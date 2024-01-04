@@ -15,8 +15,8 @@
 #define SONIC_DPLC_SIZE 0x2E0
 
 //Sonic assets
-extern const uint8_t map_sonic[];
-extern const uint8_t anim_sonic[];
+extern const uint8_t Mappings_Sonic[];
+extern const uint8_t Animation_Sonic[];
 
 //Sonic scratch structure
 typedef struct

@@ -251,8 +251,8 @@ void Obj_SpecialSonic(Object *obj)
 			obj->x_rad = 7;
 			
 			//Set object drawing information
-			obj->mappings = map_sonic;
-			obj->tile = TILE_MAP(0, 0, 0, 0, 0x780);
+                        obj->mappings = Mappings_Sonic;
+                        obj->tile = TILE_MAP(0, 0, 0, 0, 0x780);
 			obj->render.b = 0;
 			obj->render.f.align_fg = true;
 			obj->priority = 0;

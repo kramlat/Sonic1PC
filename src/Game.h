@@ -40,7 +40,7 @@ extern uint8_t jpad1_hold2, jpad1_press2;
 extern uint32_t vbla_count;
 
 //Global assets
-extern const uint8_t art_text[];
+extern const uint8_t Art_Text[];
 
 //General game functions
 void ReadJoypads();
