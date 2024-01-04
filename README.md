@@ -1,4 +1,4 @@
-# SoniCPort
+# Sonic1PC
 
 Sonic the Hedgehog (1991, Sega Genesis / MegaDrive) C Port
 
@@ -50,3 +50,5 @@ Sonic Team - Original game
 Sonic Retro - Sonic 1 Github Disassembly
 
 Clownacy - Additional porting (compression algorithms)
+
+CuckyDev - Original C Port
