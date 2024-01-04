@@ -50,6 +50,6 @@ Sonic Team - Original game
 Sonic Retro - Sonic 1 Github Disassembly
 
 Clownacy - Additional porting (compression algorithms)
-           for clownassembler, used to compile mappings and animation scripts
+           and for clownassembler, used to compile mappings and animation scripts
 
 CuckyDev - Original C Port
