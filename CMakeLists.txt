@@ -101,6 +101,55 @@ add_executable(
   "src/Backend/Joypad.c"
   "src/Backend/Joypad.h")
 
+set(ASM
+    "Animation/Sonic"
+    "Animation/Signpost"
+    "Animation/TitleSonic"
+    "Animation/PSB"
+    "Animation/Crabmeat"
+    "Animation/BuzzBomber"
+    "Animation/BuzzMissile"
+    "Animation/Ring"
+    "Animation/Monitor"
+    "Animation/Chopper"
+    "Animation/ShieldInvincibility"
+    "Animation/Motobug"
+    "Animation/Spring"
+    "Animation/Newtron"
+    "Mappings/Sonic"
+    "Mappings/SonicDPLC"
+    "Mappings/Signpost"
+    "Mappings/TitleSonic"
+    "Mappings/PSB"
+    "Mappings/GHZBridge"
+    "Mappings/Crabmeat"
+    "Mappings/HUD"
+    "Mappings/BuzzBomber"
+    "Mappings/BuzzMissile"
+    "Mappings/RingREV00"
+    "Mappings/RingREV01"
+    "Mappings/Monitor"
+    "Mappings/Explosion"
+    "Mappings/Chopper"
+    "Mappings/TitleCard"
+    "Mappings/Spikes"
+    "Mappings/ShieldInvincibility"
+    "Mappings/GameOver"
+    "Mappings/GHZRock"
+    "Mappings/Motobug"
+    "Mappings/Spring"
+    "Mappings/Newtron"
+    "Mappings/GHZEdge"
+    "Mappings/Bumper"
+    "Mappings/Credits"
+    "Mappings/SSRotate"
+    "Mappings/SSGlass"
+    "Mappings/SSUp"
+    "Mappings/SSDown"
+    "Mappings/SSEmerald"
+    "Mappings/SSWall"
+    "Mappings/SSResultEmerald")
+
 set(RESOURCES
     "Icon"
     "Art/SegaREV00"
@@ -203,54 +252,7 @@ set(RESOURCES
     "Palette/Sega2"
     "Palette/TitleCycle"
     "Palette/GHZCycle"
-    "Animation/Sonic"
-    "Animation/Signpost"
-    "Animation/TitleSonic"
-    "Animation/PSB"
-    "Animation/Crabmeat"
-    "Animation/BuzzBomber"
-    "Animation/BuzzMissile"
-    "Animation/Ring"
-    "Animation/Monitor"
-    "Animation/Chopper"
-    "Animation/ShieldInvincibility"
-    "Animation/Motobug"
-    "Animation/Spring"
-    "Animation/Newtron"
-    "Mappings/Sonic"
-    "Mappings/SonicDPLC"
-    "Mappings/Signpost"
-    "Mappings/TitleSonic"
-    "Mappings/PSB"
-    "Mappings/GHZBridge"
-    "Mappings/Crabmeat"
-    "Mappings/HUD"
-    "Mappings/BuzzBomber"
-    "Mappings/BuzzMissile"
-    "Mappings/BuzzExplode"
-    "Mappings/RingREV00"
-    "Mappings/RingREV01"
-    "Mappings/Monitor"
-    "Mappings/Explosion"
-    "Mappings/Chopper"
-    "Mappings/TitleCard"
-    "Mappings/Spikes"
-    "Mappings/ShieldInvincibility"
-    "Mappings/GameOver"
-    "Mappings/GHZRock"
-    "Mappings/Motobug"
-    "Mappings/Spring"
-    "Mappings/Newtron"
-    "Mappings/GHZEdge"
-    "Mappings/Bumper"
-    "Mappings/Credits"
-    "Mappings/SSRotate"
-    "Mappings/SSGlass"
-    "Mappings/SSUp"
-    "Mappings/SSDown"
-    "Mappings/SSEmerald"
-    "Mappings/SSWall"
-    "Mappings/SSResultEmerald"
+    ${ASM}
     "Layout/GHZ1"
     "Layout/GHZ2"
     "Layout/GHZ3"
@@ -569,4 +571,37 @@ foreach(FILENAME IN LISTS RESOURCES)
     COMMAND bin2h_tool "${IN_DIR}/${FILENAME}" "${OUT_DIR}/${FILENAME}.h"
     DEPENDS bin2h_tool "${IN_DIR}/${FILENAME}")
   target_sources(SoniCPort PRIVATE "${OUT_DIR}/${FILENAME}.h")
+endforeach()
+
+include(ExternalProject)
+
+ExternalProject_Add(
+  clownassembler
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/clownassembler"
+  DOWNLOAD_COMMAND ""
+  UPDATE_COMMAND ""
+  BUILD_BYPRODUCTS "<INSTALL_DIR>/bin/clownassembler"
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=Release
+  INSTALL_COMMAND ${CMAKE_COMMAND} --build . --config Release --target install)
+
+ExternalProject_Get_Property(clownassembler INSTALL_DIR)
+
+add_executable(clownassembler_tool IMPORTED)
+add_dependencies(clownassembler_tool clownassembler)
+set_target_properties(
+  clownassembler_tool PROPERTIES IMPORTED_LOCATION
+                                 "${INSTALL_DIR}/bin/clownassembler")
+
+# Assemble asm code
+foreach(FILENAME IN LISTS ASM)
+  set(IN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/asm")
+  set(OUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/res")
+  get_filename_component(DIRECTORY "${FILENAME}.asm" DIRECTORY)
+  add_custom_command(
+    OUTPUT "${OUT_DIR}/${FILENAME}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}/${DIRECTORY}"
+    COMMAND clownassembler_tool -i "${IN_DIR}/${FILENAME}.asm" -o
+            "${OUT_DIR}/${FILENAME}"
+    DEPENDS clownassembler_tool "${IN_DIR}/${FILENAME}.asm")
+  target_sources(SoniCPort PRIVATE "${OUT_DIR}/${FILENAME}")
 endforeach()
