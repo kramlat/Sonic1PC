@@ -43,6 +43,8 @@
 	#define LESWAP_32(x) (x)
 #endif
 
+#define MAKE_ART_TILES(addr, pal, pri) (((pri & 1) << 15) | ((pal & 3) << 13) | (addr & tile_mask))
+
 //Helper macros
 #define POSITIVE_MOD(x, y) (((x) % (y) + (y)) % (y))
 

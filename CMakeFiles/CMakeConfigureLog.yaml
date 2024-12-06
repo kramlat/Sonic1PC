@@ -1,0 +1,11 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CMakeDetermineSystem.cmake:233 (message)"
+      - "CMakeLists.txt:24 (project)"
+    message: |
+      The system is: Linux - 6.5.0-valve22-1-neptune-65-g9a338ed8a75e - x86_64
+...

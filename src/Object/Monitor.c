@@ -238,6 +238,7 @@ void Obj_MonitorItem(Object* obj)
             switch (obj->anim) // I'm not doing an else if chain LOL
             {
             case 1: // Eggman
+                HurtSonic(player,obj);
                 break; // Nothing
             case 2: // Sonic
                 ExtraLife();

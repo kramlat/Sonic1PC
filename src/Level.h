@@ -17,8 +17,7 @@
 #define META_TILE      0x07FF
 
 //Level types
-typedef enum
-{
+typedef enum {
 	ZoneId_GHZ,
 	ZoneId_LZ,
 	ZoneId_MZ,
@@ -30,20 +29,17 @@ typedef enum
 	ZoneId_Num,
 } ZoneId;
 
-typedef struct
-{
+typedef struct {
 	uint8_t frame;
 	int8_t time;
 } LevelAnim;
 
-typedef struct
-{
+typedef struct {
 	uint16_t direction;
 	uint16_t state[16][2];
 } Oscillatory;
 
-typedef struct
-{
+typedef struct {
 	uint8_t plc1;
 	const uint8_t *art;
 	uint8_t plc2;
@@ -56,10 +52,43 @@ typedef struct
 	size_t map16_size; //TEMP
 } LevelHeader;
 
-typedef struct
-{
+typedef struct {
 	uint8_t pad, min, sec, frame;
 } LevelTime;
+
+typedef struct {
+	struct {
+		uint16_t x;
+		uint16_t y;
+	} spawn;
+	uint16_t rings;
+	LevelTime time;
+	uint8_t dle;
+	uint8_t pad0;
+	uint16_t limitbtm;
+	struct {
+		uint16_t x;
+		uint16_t y;
+	} foreground;
+	struct {
+		uint16_t x;
+		uint16_t y;
+	} background;
+	struct {
+		uint16_t x;
+		uint16_t y;
+	} background2;
+	struct {
+		uint16_t x;
+		uint16_t y;
+	} background3;
+	struct {
+	uint16_t pos;
+	uint8_t routine;
+	uint8_t state;
+	} water_level;
+	uint8_t lives;
+} CheckpointState;
 
 //Level headers
 extern const LevelHeader level_header[ZoneId_Num];
@@ -77,6 +106,8 @@ extern uint16_t limit_top_db, limit_btm_db;
 extern LevelAnim level_anim[6];
 
 extern uint8_t last_lamp;
+extern uint8_t prev_lamp;
+extern CheckpointState lamp_state;
 
 extern uint16_t restart;
 extern uint16_t pause;
@@ -162,6 +193,7 @@ extern uint16_t sprite_anim_3buf;
 void AddPoints(uint16_t points);
 
 //Level functions
+void Obj_Checkpoint_LoadInfo();
 void LoadLevelMaps();
 void LoadLevelLayout();
 void LoadMap16(ZoneId zone);

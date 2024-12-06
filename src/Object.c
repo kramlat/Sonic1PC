@@ -44,10 +44,13 @@ void Obj_BuzzMissile(Object *obj);
 void Obj_BuzzExplode(Object *obj);
 void Obj_Ring(Object *obj);
 void Obj_Monitor(Object *obj);
+void Obj_Checkpoint(Object *obj);
 void Obj_Explosion(Object *obj);
 void Obj_Chopper(Object *obj);
 void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
+void Obj_Animals(Object *obj);
+void Obj_Points(Object *obj);
 void Obj_Spikes(Object *obj);
 void Obj_RingLoss(Object *obj);
 void Obj_ShieldInvincibility(Object *obj);
@@ -100,8 +103,8 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_Ring                */ Obj_Ring,
 	/* ObjId_Monitor             */ Obj_Monitor,
 	/* ObjId_Explosion           */ Obj_Explosion,
-	/* ObjId_Animal              */ Obj_Null,
-	/* ObjId_29                  */ Obj_Null,
+	/* ObjId_Animal              */ Obj_Animals,
+	/* ObjId_Points              */ Obj_Points,
 	/* ObjId_2A                  */ Obj_Null,
 	/* ObjId_Chopper             */ Obj_Chopper,
 	/* ObjId_2C                  */ Obj_Null,
@@ -181,7 +184,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_76                  */ Obj_Null,
 	/* ObjId_77                  */ Obj_Null,
 	/* ObjId_78                  */ Obj_Null,
-	/* ObjId_79                  */ Obj_Null,
+	/* ObjId_79                  */ Obj_Checkpoint,
 	/* ObjId_7A                  */ Obj_Null,
 	/* ObjId_7B                  */ Obj_Null,
 	/* ObjId_7C                  */ Obj_Null,

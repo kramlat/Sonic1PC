@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "HUD.h"
 #include "Level.h"
+#include "Oscillatory Routines.h"
 #include "LevelCollision.h"
 #include "LevelDraw.h"
 #include "LevelScroll.h"
@@ -183,6 +184,9 @@ GM_Level_Branch:;
     bg2_scroll_flags_dup = 0;
     bg3_scroll_flags_dup = 0;
 
+    last_lamp = 0;
+    prev_lamp = 0;
+
     // Clear screen
     ClearScreen();
 
@@ -271,7 +275,7 @@ GM_Level_Branch:;
     restart = false;
     frame_count = 0;
 
-    // OscillateNumInit();
+    OscillateNumInit();
 
     score_count = true;
     ring_count = true;
@@ -344,6 +348,7 @@ GM_Level_Branch:;
         RunPLC();
 
         // Other level stuff
+        OscillateNumDo();
         SynchroAnimate();
         SignpostArtLoad();
 

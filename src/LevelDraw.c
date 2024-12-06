@@ -303,9 +303,65 @@ void LoadTilesAsYouMove_BGOnly()
 #include "Resource/Art/GHZFlowerLarge.h"
 #include "Resource/Art/GHZFlowerSmall.h"
 #include "Resource/Art/GHZWaterfall.h"
+#include "Resource/Art/BigRing.h"
 
-static void AniArt_GiantRing()
-{
+#define ArtTile_Giant_Ring 0x400
+
+static void AniArt_GiantRing() {
+    const uint16_t size = 14;
+
+    if (gfx_big_ring == 0) {
+        return;
+    }
+
+    gfx_big_ring -= size * 32;
+
+    VDP_SeekVRAM((ArtTile_Giant_Ring * 32) + gfx_big_ring);
+    VDP_WriteVRAM(Art_BigRing + gfx_big_ring, size * 0x20);
+}
+
+// Animate waterfall
+void AniArt_GHZWaterfall() {
+    if (--level_anim[0].time < 0) {
+        // Increment frame and reset timer
+        level_anim[0].time = 5;
+        uint8_t frame = level_anim[0].frame++ & 1;
+
+        // Write to VRAM
+        VDP_SeekVRAM(0x6F00);
+        VDP_WriteVRAM(Art_GHZWaterfall + (frame * 8 * 0x20), 8 * 0x20);
+    }
+}
+
+// Animate large flowers
+void AniArt_GHZFlowerLarge() {
+    if (--level_anim[1].time < 0) {
+        // Increment frame and reset timer
+        level_anim[1].time = 15;
+        uint8_t frame = level_anim[1].frame++ & 1;
+
+        // Write to VRAM
+        VDP_SeekVRAM(0x6B80);
+        VDP_WriteVRAM(Art_GHZFlowerLarge + (frame * 16 * 0x20), 16 * 0x20);
+    }
+}
+
+// Animate small flowers
+void AniArt_GHZFlowerSmall() {
+    if (--level_anim[2].time < 0) {
+
+        // Increment frame and reset timer
+        level_anim[2].time = 7;
+
+        static const uint8_t seq[4] = { 0, 1, 2, 1 };
+        uint8_t frame = seq[level_anim[2].frame++ & 3];
+        if (!(frame & 1))
+            level_anim[2].time = 127;
+
+        // Write to VRAM
+        VDP_SeekVRAM(0x6D80);
+        VDP_WriteVRAM(Art_GHZFlowerSmall + (frame * 12 * 0x20), 12 * 0x20);
+    }
 }
 
 void AnimateLevelGfx()
@@ -320,43 +376,21 @@ void AnimateLevelGfx()
     // Run level animation
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_GHZ:
-        // Animate waterfall
-        if (--level_anim[0].time < 0) {
-            // Increment frame and reset timer
-            level_anim[0].time = 5;
-            uint8_t frame = level_anim[0].frame++ & 1;
-
-            // Write to VRAM
-            VDP_SeekVRAM(0x6F00);
-            VDP_WriteVRAM(Art_GHZWaterfall + (frame * 8 * 0x20), 8 * 0x20);
-        }
-
-        // Animate large flowers
-        if (--level_anim[1].time < 0) {
-            // Increment frame and reset timer
-            level_anim[1].time = 15;
-            uint8_t frame = level_anim[1].frame++ & 1;
-
-            // Write to VRAM
-            VDP_SeekVRAM(0x6B80);
-            VDP_WriteVRAM(Art_GHZFlowerLarge + (frame * 16 * 0x20), 16 * 0x20);
-        }
-
-        // Animate small flowers
-        if (--level_anim[2].time < 0) {
-
-            // Increment frame and reset timer
-            level_anim[2].time = 7;
-
-            static const uint8_t seq[4] = { 0, 1, 2, 1 };
-            uint8_t frame = seq[level_anim[2].frame++ & 3];
-            if (!(frame & 1))
-                level_anim[2].time = 127;
-
-            // Write to VRAM
-            VDP_SeekVRAM(0x6D80);
-            VDP_WriteVRAM(Art_GHZFlowerSmall + (frame * 12 * 0x20), 12 * 0x20);
-        }
+        AniArt_GHZWaterfall();
+        AniArt_GHZFlowerLarge();
+        AniArt_GHZFlowerSmall();
+        break;
+    case ZoneId_LZ:
+        break;
+    case ZoneId_MZ:
+        break;
+    case ZoneId_SLZ:
+        break;
+    case ZoneId_SYZ:
+        break;
+    case ZoneId_SBZ:
+        break;
+    case ZoneId_EndZ:
         break;
     }
 }

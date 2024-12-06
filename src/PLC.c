@@ -71,6 +71,13 @@
 #include "Resource/Art/Spikes.h"
 #include "Resource/Art/SpringH.h"
 #include "Resource/Art/SpringV.h"
+#include "Resource/Art/Rabbit.h"
+#include "Resource/Art/Flicky.h"
+#include "Resource/Art/Penguin.h"
+#include "Resource/Art/Seal.h"
+#include "Resource/Art/Squirrel.h"
+#include "Resource/Art/Pig.h"
+#include "Resource/Art/Chicken.h"
 
 // PLC lists
 typedef struct
@@ -336,6 +343,54 @@ static const PLCList PLC_SpecialStage = {
     }
 };
 
+static const PLCList PLC_GHZAnimals = {
+    2,
+    (const PLC[]) {
+        { Art_Rabbit, 0xB000 },
+        { Art_Flicky, 0xB240 },
+    }
+};
+
+static const PLCList PLC_LZAnimals = {
+    2,
+    (const PLC[]) {
+        { Art_Penguin, 0xB000 },
+        { Art_Seal, 0xB240 },
+    }
+};
+
+static const PLCList PLC_MZAnimals = {
+    2,
+    (const PLC[]) {
+        { Art_Squirrel, 0xB000 },
+        { Art_Seal, 0xB240 },
+    }
+};
+
+static const PLCList PLC_SLZAnimals = {
+    2,
+    (const PLC[]) {
+        { Art_Pig, 0xB000 },
+        { Art_Flicky, 0xB240 },
+    }
+};
+
+static const PLCList PLC_SYZAnimals = {
+    2,
+    (const PLC[]) {
+        { Art_Pig, 0xB000 },
+        { Art_Chicken, 0xB240 },
+    }
+};
+
+static const PLCList PLC_SBZAnimals = {
+    2,
+    (const PLC[]) {
+        { Art_Rabbit, 0xB000 },
+        { Art_Chicken, 0xB240 },
+    }
+};
+
 // PLC list
 static const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Main        */ &PLC_Main,
@@ -359,12 +414,12 @@ static const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Signpost    */ &PLC_Signpost,
     /* PlcId_Warp        */ NULL,
     /* PlcId_SpecialStage*/ &PLC_SpecialStage,
-    /* PlcId_GHZAnimals  */ NULL,
-    /* PlcId_LZAnimals   */ NULL,
-    /* PlcId_MZAnimals   */ NULL,
-    /* PlcId_SLZAnimals  */ NULL,
-    /* PlcId_SYZAnimals  */ NULL,
-    /* PlcId_SBZAnimals  */ NULL,
+    /* PlcId_GHZAnimals  */ &PLC_GHZAnimals,
+    /* PlcId_LZAnimals   */ &PLC_LZAnimals,
+    /* PlcId_MZAnimals   */ &PLC_MZAnimals,
+    /* PlcId_SLZAnimals  */ &PLC_SLZAnimals,
+    /* PlcId_SYZAnimals  */ &PLC_SYZAnimals,
+    /* PlcId_SBZAnimals  */ &PLC_SBZAnimals,
     /* PlcId_SSResult    */ NULL,
     /* PlcId_Ending      */ NULL,
     /* PlcId_TryAgain    */ NULL,

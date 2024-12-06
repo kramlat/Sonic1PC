@@ -146,6 +146,46 @@
 #include "Resource/ObjectLayout/SBZ2.h"
 #include "Resource/ObjectLayout/SBZ3.h"
 
+void Obj_Checkpoint_LoadInfo() {
+    last_lamp = prev_lamp;
+    player->pos.l.x.v = lamp_state.spawn.x;
+    player->pos.l.y.v = lamp_state.spawn.y;
+    // rings = lamp_state.rings; // restore rings if you want
+    rings = 0; // normal behavior
+    life_count = lamp_state.lives;
+    time.pad = lamp_state.time.pad;
+    time.min = lamp_state.time.min;
+    time.sec = lamp_state.time.sec;
+    time.frame = lamp_state.time.frame;
+    time.frame = 59;
+    time.sec--;
+    dle_routine = lamp_state.dle;
+    wtr_routine = lamp_state.water_level.routine;
+    limit_btm2 = lamp_state.limitbtm;
+    limit_btm1 = lamp_state.limitbtm;
+    scrpos_x.v = lamp_state.foreground.x;
+    scrpos_y.v = lamp_state.foreground.y;
+    bg_scrpos_x.v = lamp_state.background.x;
+    bg_scrpos_y.v = lamp_state.background.y;
+    bg2_scrpos_x.v = lamp_state.background2.x;
+    bg2_scrpos_y.v = lamp_state.background2.y;
+    bg3_scrpos_x.v = lamp_state.background3.x;
+    bg3_scrpos_y.v = lamp_state.background3.y;
+
+    if (LEVEL_ZONE(level_id) == ZoneId_LZ) {  // Is this Labyrinth Zone?
+        wtr_pos2 = lamp_state.water_level.pos;
+        wtr_routine = lamp_state.water_level.routine;
+        wtr_state = lamp_state.water_level.state;
+    }
+
+    if ((int8_t)last_lamp >= 0) {
+        return;
+    }
+
+    uint16_t ds = lamp_state.spawn.x - 0xA0;
+    limit_left2 = ds;
+}
+
 // Level definitions
 static const struct
 {
@@ -462,6 +502,8 @@ uint16_t limit_top_db, limit_btm_db;
 LevelAnim level_anim[6];
 
 uint8_t last_lamp;
+uint8_t prev_lamp;
+CheckpointState lamp_state;
 
 uint16_t restart;
 uint16_t pause;
@@ -634,8 +676,7 @@ void LevelSizeLoad()
     // Load player start
     int16_t x, y;
     if (last_lamp) {
-        // TODO
-        // Lamp_LoadInfo();
+        Obj_Checkpoint_LoadInfo();
         x = player->pos.l.x.f.u;
         y = player->pos.l.y.f.u;
     } else {
