@@ -1,3 +1,6 @@
 [submodule "clownassembler"]
 	path = clownassembler
 	url = https://github.com/kramlat/clownassembler.git
+[submodule "libgme"]
+	path = libgme
+	url = https://github.com/mcfiredrill/libgme.git
