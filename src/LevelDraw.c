@@ -82,35 +82,98 @@ void GetBlockData_2(const uint8_t** meta, const uint8_t** block, int16_t sx, int
         VDP_WriteVRAM((const uint8_t*)&v, 2);                   \
     }
 
-void DrawBlock(const uint8_t* meta, const uint8_t* block, size_t offset)
-{
-    uint8_t flag = meta[0];
+/**
+ * Helper to write two tiles at once, mirroring the 68k 'move.l (a1)+, (a6)' behavior.
+ * This fetches 4 bytes from the block pointer, modifies them, and writes to VRAM.
+ */
+static inline void WriteTwoTiles(const uint8_t* tiles, size_t vram_addr, uint16_t xor_val, bool swap_order) {
+    VDP_SeekVRAM(vram_addr);
 
-    if (flag & 0x08) // X flip
-    {
-        if (flag & 0x10) // Y flip
-        {
-            WRITE_TILE((PLANE_WIDTH << 1) + 2, 0x1800)
-            WRITE_TILE((PLANE_WIDTH << 1) + 0, 0x1800)
-            WRITE_TILE(2, 0x1800)
-            WRITE_TILE(0, 0x1800)
-        } else {
-            WRITE_TILE(2, 0x0800)
-            WRITE_TILE(0, 0x0800)
-            WRITE_TILE((PLANE_WIDTH << 1) + 2, 0x0800)
-            WRITE_TILE((PLANE_WIDTH << 1) + 0, 0x0800)
-        }
-    } else if (flag & 0x10) // Y flip
-    {
-        WRITE_TILE((PLANE_WIDTH << 1) + 0, 0x1000)
-        WRITE_TILE((PLANE_WIDTH << 1) + 2, 0x1000)
-        WRITE_TILE(0, 0x1000)
-        WRITE_TILE(2, 0x1000)
+    // Convert bytes to words (Big Endian as per 68k)
+    uint16_t t1 = (tiles[0] << 8) | tiles[1];
+    uint16_t t2 = (tiles[2] << 8) | tiles[3];
+
+    t1 ^= xor_val;
+    t2 ^= xor_val;
+
+    if (swap_order) {
+        // swap d4 - puts the second tile first
+        uint16_t v1 = t2;
+        uint16_t v2 = t1;
+        VDP_WriteVRAM((const uint8_t*)&v1, 2);
+        VDP_WriteVRAM((const uint8_t*)&v2, 2);
     } else {
-        WRITE_TILE(0, 0x0000)
-        WRITE_TILE(2, 0x0000)
-        WRITE_TILE((PLANE_WIDTH << 1) + 0, 0x0000)
-        WRITE_TILE((PLANE_WIDTH << 1) + 2, 0x0000)
+        VDP_WriteVRAM((const uint8_t*)&t1, 2);
+        VDP_WriteVRAM((const uint8_t*)&t2, 2);
+    }
+}
+
+/**
+ * DrawFlipXY: Handles both X and Y flipping.
+ * Mirrors ASM DrawFlipXY: Swaps row order and swaps tile order within rows.
+ */
+void DrawFlipXY(const uint8_t* block, size_t offset) {
+    // ASM Logic: d5 = Row1, d4 = Row2. Writes d4 (Row2) then d5 (Row1).
+    // Both are XOR'd with 0x1800 and swapped.
+
+    // Write Row 2 data into Row 1 position
+    WriteTwoTiles(block + 4, offset, 0x1800, true);
+
+    // Write Row 1 data into Row 2 position
+    WriteTwoTiles(block + 0, offset + (PLANE_WIDTH << 1), 0x1800, true);
+}
+
+/**
+ * DrawFlipY: Handles vertical flipping.
+ * Mirrors ASM DrawFlipY: Swaps row order.
+ */
+void DrawFlipY(const uint8_t* block, size_t offset) {
+    // ASM Logic: d5 = Row1, d4 = Row2. Writes d4 (Row2) then d5 (Row1).
+    // Both are XOR'd with 0x1000.
+
+    // Write Row 2 data into Row 1 position
+    WriteTwoTiles(block + 4, offset, 0x1000, false);
+
+    // Write Row 1 data into Row 2 position
+    WriteTwoTiles(block + 0, offset + (PLANE_WIDTH << 1), 0x1000, false);
+}
+
+/**
+ * DrawFlipX: Handles horizontal flipping.
+ * Mirrors ASM DrawFlipX: Swaps tile order within rows.
+ */
+void DrawFlipX(const uint8_t* block, size_t offset) {
+    // ASM Logic: Row1 XOR 0x0800 and swap. Row2 XOR 0x0800 and swap.
+
+    // Write Row 1
+    WriteTwoTiles(block + 0, offset, 0x0800, true);
+
+    // Write Row 2
+    WriteTwoTiles(block + 4, offset + (PLANE_WIDTH << 1), 0x0800, true);
+}
+
+/**
+ * DrawBlock: Main entry point for drawing a 2x2 block.
+ *
+ * @param meta   Pointer to metadata (flag byte)
+ * @param block  Pointer to the 4 tiles (8 bytes)
+ * @param offset VRAM destination address
+ */
+void DrawBlock(const uint8_t* meta, const uint8_t* block, size_t offset) {
+    uint8_t flags = meta[0];
+
+    if (flags & 0x10) {        // Check Y-flip bit (btst #4)
+        if (flags & 0x08) {    // Check X-flip bit (btst #3)
+            DrawFlipXY(block, offset);
+        } else {
+            DrawFlipY(block, offset);
+        }
+    } else if (flags & 0x08) { // Check X-flip bit
+        DrawFlipX(block, offset);
+    } else {
+        // Normal Draw (No flip)
+        WriteTwoTiles(block + 0, offset, 0x0000, false);
+        WriteTwoTiles(block + 4, offset + (PLANE_WIDTH << 1), 0x0000, false);
     }
 }
 
@@ -118,8 +181,7 @@ void DrawBlock(const uint8_t* meta, const uint8_t* block, size_t offset)
  * Core loop for drawing blocks from left to right.
  * Handles VRAM row wrapping and coordinate incrementing.
  */
-void DrawBlocks_LR_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout, size_t width)
-{
+void DrawBlocks_LR_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout, size_t width) {
     const uint8_t* meta;
     const uint8_t* block;
     while (width-- > 0) {
@@ -144,8 +206,7 @@ void DrawBlocks_LR_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
 /**
  * Variant of the horizontal draw loop using the alternative data retrieval method.
  */
-void DrawBlocks_LR_3(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout, size_t width)
-{
+void DrawBlocks_LR_3(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout, size_t width) {
     const uint8_t* meta;
     const uint8_t* block;
 
@@ -168,15 +229,13 @@ void DrawBlocks_LR_3(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
  * Renders a horizontal row of blocks across the screen width.
  * Used when the camera moves vertically to refresh the horizontal span.
  */
-void DrawBlocks_LR(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout)
-{
+void DrawBlocks_LR(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout) {
     /* Calculate number of 16x16 blocks to cover 320px screen plus 16px margins on both sides */
     const size_t blocks_to_draw = (SCROLL_WIDTH + 16 + 16) / 16;
     DrawBlocks_LR_2(offset, pos, sx, sy, x, y, layout, (SCROLL_WIDTH + 16 + 16) / 16);
 }
 
-void DrawBlocks_TB_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout, size_t height)
-{
+void DrawBlocks_TB_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout, size_t height) {
     const uint8_t* meta;
     const uint8_t* block;
     while (height-- > 0) {

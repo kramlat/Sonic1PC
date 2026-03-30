@@ -7,6 +7,10 @@
 extern int16_t scroll_block1_size, scroll_block2_size, scroll_block3_size, scroll_block4_size;
 
 //Level drawing functions
+void DrawFlipX(const uint8_t* block, size_t offset);
+void DrawFlipY(const uint8_t* block, size_t offset);
+void DrawFlipXY(const uint8_t* block, size_t offset);
+void DrawBlock(const uint8_t* meta, const uint8_t* block, size_t offset);
 void GetBlockData_2(const uint8_t** meta, const uint8_t** block, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout);
 void DrawChunks(int16_t sx, int16_t sy, uint8_t *layout, size_t offset);
 void LoadTilesFromStart();
