@@ -13,12 +13,34 @@
 // Scroll blocks
 int16_t scroll_block1_size, scroll_block2_size, scroll_block3_size, scroll_block4_size;
 
-// Block drawing functions
+size_t CalcVRAMPos_2(int16_t sx, int16_t x, int16_t y) {
+    uint16_t py = (uint16_t)y & 0x00F0;
+    uint16_t px = (uint16_t)(x + sx) & 0x01F0;
+    return (size_t)((py << 4) + (px >> 2));
+}
+
 size_t CalcVRAMPos(int16_t sx, int16_t sy, int16_t x, int16_t y) {
-    // Convert coordinates to plane coordinates
-    uint16_t px = ((x + sx) >> 2) & ~3;
-    uint16_t py = ((y + sy) >> 2) & ~3;
-    return (POSITIVE_MOD(py, PLANE_HEIGHT << 1) * PLANE_WIDTH) + POSITIVE_MOD(px, PLANE_WIDTH << 1);
+    // Calculate the absolute World Y position.
+    int16_t py = y + sy;
+    return CalcVRAMPos_2(sx, x, py);
+}
+
+/**
+ * Historical/Dead Code Version (CalcVRAMPos_Unknown)
+ *
+ * This version exists in the original retail code but is never called.
+ *
+ * ARCHAEOLOGY:
+ * In the original assembly, this returned a "VDP Command" with a prefix
+ * of 0x0002. In Mega Drive terms, that refers to memory address $8000.
+ *
+ * This tells us that early in Sonic 1's development, the "Plane A"
+ * nametable was likely located at $8000 in VRAM. It was moved to $C000
+ * later in development, and this function was left behind as "dead code."
+ */
+size_t CalcVRAMPos_Unknown(int16_t sx, int16_t sy, int16_t x, int16_t y) {
+    // The geometry logic is identical to the standard version.
+    return CalcVRAMPos(sx, sy, x, y);
 }
 
 /**
