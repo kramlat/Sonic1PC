@@ -24,3 +24,5 @@
 
 #define PLANE_WIDTH  64
 #define PLANE_HEIGHT 32 //NOTE: Changing this doesn't work properly yet
+#define PLANE_ROW_BYTES  (PLANE_WIDTH * 2)
+#define PLANE_BYTES (PLANE_HEIGHT * PLANE_ROW_BYTES)

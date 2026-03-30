@@ -14,41 +14,64 @@
 int16_t scroll_block1_size, scroll_block2_size, scroll_block3_size, scroll_block4_size;
 
 // Block drawing functions
-size_t CalcVRAMPos(int16_t sx, int16_t sy, int16_t x, int16_t y)
-{
+size_t CalcVRAMPos(int16_t sx, int16_t sy, int16_t x, int16_t y) {
     // Convert coordinates to plane coordinates
     uint16_t px = ((x + sx) >> 2) & ~3;
     uint16_t py = ((y + sy) >> 2) & ~3;
     return (POSITIVE_MOD(py, PLANE_HEIGHT << 1) * PLANE_WIDTH) + POSITIVE_MOD(px, PLANE_WIDTH << 1);
 }
 
-void GetBlockData(const uint8_t** meta, const uint8_t** block, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout)
-{
-    // Offset coordinates by screen coordinates
+/**
+ * Primary entry point: Calculates block data by first applying the camera's X offset.
+ */
+void GetBlockData(const uint8_t** meta, const uint8_t** block, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout) {
+    // Apply camera X-offset before processing
     x += sx;
+    GetBlockData_2(meta, block, sx, sy, x, y, layout);
+}
+
+/**
+ * Secondary entry point: Calculates the memory addresses for block metadata and
+ * tile data based on world coordinates and the level layout.
+ */
+void GetBlockData_2(const uint8_t** meta, const uint8_t** block, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout) {
+    // Apply camera Y-offset
     y += sy;
 
-    // Get chunk position
-    int16_t cx = (x >> 8) & 0x3F;
-    int16_t cy = (y >> 8) & 0x7;
-    uint8_t chunk = layout[(cy << 7) + cx] & 0x7F;
-    if (chunk == 0) {
+    // 1. Determine which 512x512 chunk this coordinate falls into within the layout
+    // The layout is a grid of bytes where each byte is a Chunk ID.
+    uint16_t layout_row = ((uint16_t)y >> 1) & 0x380;
+    uint16_t layout_col = ((uint16_t)x >> 8) & 0x07F;
+    uint8_t chunk_id = layout[layout_row + layout_col];
+
+    // If chunk ID is 0, it is considered empty space.
+    if (chunk_id == 0) {
         *meta = level_map256;
         *block = level_map16;
         return;
     }
 
-    // Get 256x256 map pointer
-    uint8_t tx = (x >> 4) & 0xF;
-    uint8_t ty = (y >> 4) & 0xF;
-    const uint8_t* metap = (level_map256 - 0x200) + (chunk << 9) + (ty << 5) + (tx << 1);
-    *meta = metap;
+    // 2. Calculate the offset into the Chunk Table.
+    // Each chunk is 512 bytes (16x16 blocks, 2 bytes per block entry).
+    // (chunk_id - 1) * 512
+    uint32_t chunk_offset = (uint32_t)((chunk_id - 1) & 0x7F) << 9;
 
-    // Get 16x16 map pointer
-    size_t tile = (metap[0] << 8) | (metap[1] << 0);
-    tile = tile & 0x3FF;
+    // 3. Find the specific 16x16 block within that chunk.
+    // Coordinates are masked and scaled to point to a 2-byte word entry.
+    uint16_t inner_y_offset = ((uint16_t)y << 1) & 0x1E0;
+    uint16_t inner_x_offset = ((uint16_t)x >> 3) & 0x01E;
 
-    *block = level_map16 + (tile << 3);
+    // Set the metadata pointer (a0 in assembly)
+    const uint8_t* metadata_ptr = level_map256 + chunk_offset + inner_y_offset + inner_x_offset;
+    *meta = metadata_ptr;
+
+    // 4. Retrieve the Block ID from the metadata and calculate the tile data address.
+    // Block IDs are 10-bit values stored as Big-Endian words.
+    uint16_t block_id = (metadata_ptr[0] << 8) | metadata_ptr[1];
+    block_id &= 0x3FF;
+
+    // Each block in the tilemap table is 8 bytes long.
+    *block = level_map16 + (block_id << 3);
 }
 
 #define WRITE_TILE(off, xor)                                    \
@@ -91,22 +114,64 @@ void DrawBlock(const uint8_t* meta, const uint8_t* block, size_t offset)
     }
 }
 
+/**
+ * Core loop for drawing blocks from left to right.
+ * Handles VRAM row wrapping and coordinate incrementing.
+ */
 void DrawBlocks_LR_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout, size_t width)
 {
     const uint8_t* meta;
     const uint8_t* block;
     while (width-- > 0) {
+        /* Retrieve block pointers based on current world and scroll coordinates */
         GetBlockData(&meta, &block, sx, sy, x, y, layout);
+        /* Render the 16x16 block to the VRAM destination */
         DrawBlock(meta, block, offset + pos);
+
+        /*
+         * Advance the VRAM position by 2 tiles (4 bytes).
+         * The bitwise logic ensures the position wraps within the current 128-byte VRAM row.
+         */
         size_t tx = pos % (PLANE_WIDTH << 1);
         size_t ty = pos / (PLANE_WIDTH << 1);
         pos = (ty * (PLANE_WIDTH << 1)) + ((tx + 4) % (PLANE_WIDTH << 1));
+        /* Move to the next 16-pixel block on the X axis */
         x += 16;
     }
 }
 
+#ifdef SCP_REV01
+/**
+ * Variant of the horizontal draw loop using the alternative data retrieval method.
+ */
+void DrawBlocks_LR_3(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout, size_t width)
+{
+    const uint8_t* meta;
+    const uint8_t* block;
+
+    while (width-- > 0) {
+        GetBlockData_2(&meta, &block, sx, sy, x, y, layout);
+
+        DrawBlock(meta, block, offset + pos);
+
+        /* Update VRAM position with horizontal row wrapping */
+        size_t row_base = pos & ~(PLANE_ROW_BYTES - 1);
+        size_t column_offset = (pos + 4) & (PLANE_ROW_BYTES - 1);
+        pos = row_base | column_offset;
+
+        x += 16;
+    }
+}
+#endif
+
+/**
+ * Renders a horizontal row of blocks across the screen width.
+ * Used when the camera moves vertically to refresh the horizontal span.
+ */
 void DrawBlocks_LR(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout)
 {
+    /* Calculate number of 16x16 blocks to cover 320px screen plus 16px margins on both sides */
+    const size_t blocks_to_draw = (SCROLL_WIDTH + 16 + 16) / 16;
     DrawBlocks_LR_2(offset, pos, sx, sy, x, y, layout, (SCROLL_WIDTH + 16 + 16) / 16);
 }
 
