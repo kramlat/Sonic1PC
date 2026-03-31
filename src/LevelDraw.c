@@ -270,30 +270,66 @@ void DrawBlocks_TB_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
     }
 }
 
-void DrawBlocks_TB(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout)
-{
+void DrawBlocks_TB(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout) {
     DrawBlocks_TB_2(offset, pos, sx, sy, x, y, layout, (SCROLL_HEIGHT + 16 + 16) / 16);
 }
 
-void DrawBlocks_BG(size_t offset, int16_t sx, int16_t sy, int16_t y, uint8_t* layout, const uint8_t* array)
-{
-    static const dword_s* bg_pos[] = { &bg_scrpos_x, &bg_scrpos_x, &bg2_scrpos_x, &bg3_scrpos_y };
-    uint8_t bg_pos_i = array[y >> 4];
-    if (bg_pos_i != 0) {
-        sx = bg_pos[bg_pos_i >> 1]->f.u;
-        sy = (sy & ~0xF) % SCROLL_HEIGHT;
-        DrawBlocks_LR(offset, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout);
+const dword_s* bg_pos_table[] = {
+    &bg_scrpos_x,  // Index 0
+    &bg_scrpos_x,  // Index 2
+    &bg2_scrpos_x, // Index 4
+    &bg3_scrpos_y  // Index 6 (Kept .y as per existing prototyping, though ASM used .x)
+};
+
+void DrawBlocks_BG(size_t offset, int16_t sx, int16_t sy, int16_t y, uint8_t* layout, const uint8_t* scroll_mapping) {
+    uint8_t scroll_reg_index = scroll_mapping[((sy + y) & 0x7F0) >> 4];
+    if (scroll_reg_index != 0) {
+        sx = bg_pos_table[scroll_reg_index >> 1]->f.u;
+        int16_t aligned_sy = (sy & ~0xF) % SCROLL_HEIGHT;
+        DrawBlocks_LR(offset, CalcVRAMPos(sx, aligned_sy, 0, y), sx, aligned_sy, 0, y, layout);
     } else {
         DrawBlocks_LR_2(offset, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH);
     }
 }
 
-void Draw_GHZ_Bg(int16_t sy, uint8_t* layout, size_t offset)
-{
+void Draw_GHZ_Bg(int16_t sy, uint8_t* layout, size_t offset) {
+    static const uint8_t bg_array[] = { 0x00, 0x00, 0x00, 0x00, 0x06, 0x06, 0x06, 0x04,0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
     int16_t y = 0;
     for (size_t i = 0; i < (SCROLL_HEIGHT + 16 + 16) / 16; i++) {
-        static const uint8_t bg_array[] = { 0x00, 0x00, 0x00, 0x00, 0x06, 0x06, 0x06, 0x04, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
         DrawBlocks_BG(offset, bg_scrpos_y.f.u, sy, y, layout, bg_array);
+        y += 16;
+    }
+}
+
+const uint8_t MZ_ScrollArray[128] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+        0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
+        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
+        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
+        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
+        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06
+    };
+
+
+void Draw_MZ_Bg(int16_t sy, uint8_t* layout, size_t offset) {
+    int16_t y = -16;
+    for (size_t i = 0; i < (224 + 16 + 16) / 16; i++) {
+        DrawBlocks_BG(offset, bg_scrpos_y.f.u, sy - 0x200, y, layout, MZ_ScrollArray);
+        y += 16;
+    }
+}
+
+const uint8_t SBZ_ScrollArray[32] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+        0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06
+    };
+
+void Draw_SBZ_Bg(int16_t sy, uint8_t* layout, size_t offset) {
+    int16_t y = -16;
+    for (size_t i = 0; i < (224 + 16 + 16) / 16; i++) {
+        DrawBlocks_BG(offset, bg_scrpos_y.f.u, sy, y, layout, SBZ_ScrollArray);
         y += 16;
     }
 }
@@ -312,97 +348,215 @@ void LoadTilesFromStart()
 {
     DrawChunks(scrpos_x.f.u, scrpos_y.f.u, level_layout[0][0], VRAM_FG);
 #ifndef SCP_REV00
-    if (LEVEL_ZONE(level_id) == ZoneId_GHZ)
+    if (LEVEL_ZONE(level_id) == ZoneId_GHZ || LEVEL_ZONE(level_id) == ZoneId_EndZ)
         Draw_GHZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
-    else if (LEVEL_ZONE(level_id) == ZoneId_MZ) {
-        ;
-    } // Draw_MZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
-    else if (level_id == LEVEL_ID(ZoneId_SBZ, 0)) {
-        ;
-    } // Draw_SBZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
-    else if (LEVEL_ZONE(level_id) == ZoneId_EndZ)
-        Draw_GHZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
+    else if (LEVEL_ZONE(level_id) == ZoneId_MZ)
+        Draw_MZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
+    else if (level_id == LEVEL_ID(ZoneId_SBZ, 0))
+        Draw_SBZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
     else
 #endif
         DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
 }
 
-void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout, size_t offset)
-{
-    // TODO: REV00
-    // Check if any flags have been set
-    if (*flag == 0)
+void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout, size_t offset) {
+    // tst.b (a2) - Test the lower byte for active flags
+    if ((*flag & 0xFF) == 0)
         return;
 
-    // Handle flags
+#ifdef SCP_REV00
     if (*flag & SCROLL_FLAG_UP) {
-        DrawBlocks_LR_2(offset, CalcVRAMPos(sx, sy, -16, -16), sx, sy, -16, -16, layout, PLANE_WIDTH / 2);
         *flag &= ~SCROLL_FLAG_UP;
+        size_t pos = CalcVRAMPos(sx, sy, -16, -16);
+        DrawBlocks_LR_2(offset, pos, sx, sy, -16, -16, layout, (512 / 16));
     }
     if (*flag & SCROLL_FLAG_DOWN) {
-        DrawBlocks_LR_2(offset, CalcVRAMPos(sx, sy, -16, SCROLL_HEIGHT), sx, sy, -16, SCROLL_HEIGHT, layout, PLANE_WIDTH / 2);
         *flag &= ~SCROLL_FLAG_DOWN;
+        size_t pos = CalcVRAMPos(sx, sy, -16, 224);
+        DrawBlocks_LR_2(offset, pos, sx, sy, -16, 224, layout, (512 / 16));
     }
     if (*flag & SCROLL_FLAG_LEFT) {
-        DrawBlocks_TB(offset, CalcVRAMPos(sx, sy, -16, -16), sx, sy, -16, -16, layout);
         *flag &= ~SCROLL_FLAG_LEFT;
+        int16_t size1 = scroll_block1_size - (sy & -16);
+        if (size1 >= 0) {
+            size1 >>= 4; // Convert to blocks
+            if (size1 > ((224 + 16 + 16) / 16) - 1)
+                size1 = ((224 + 16 + 16) / 16) - 1;
+            size_t pos = CalcVRAMPos(sx, sy, -16, -16);
+            DrawBlocks_TB_2(offset, pos, sx, sy, -16, -16, layout, size);
+        }
     }
     if (*flag & SCROLL_FLAG_RIGHT) {
-        DrawBlocks_TB(offset, CalcVRAMPos(sx, sy, SCROLL_WIDTH, -16), sx, sy, SCROLL_WIDTH, -16, layout);
         *flag &= ~SCROLL_FLAG_RIGHT;
+        int16_t size = v_scroll_block_1_size - (sy & -16);
+        if (size >= 0) {
+            size >>= 4;
+            if (size > ((224 + 16 + 16) / 16) - 1)
+                size = ((224 + 16 + 16) / 16) - 1;
+            size_t pos = CalcVRAMPos(sx, sy, 320, -16);
+            DrawBlocks_TB_2(offset, pos, sx, sy, 320, -16, layout, size);
+        }
+    }
+
+#else
+    if (*flag & SCROLL_FLAG_UP) {
+        *flag &= ~SCROLL_FLAG_UP;
+        size_t pos = CalcVRAMPos(sx, sy, -16, -16);
+        DrawBlocks_LR(offset, pos, sx, sy, -16, -16, layout);
+    }
+    if (*flag & SCROLL_FLAG_DOWN) {
+        *flag &= ~SCROLL_FLAG_DOWN;
+        size_t pos = CalcVRAMPos(sx, sy, -16, 224);
+        DrawBlocks_LR(offset, pos, sx, sy, -16, 224, layout);
+    }
+    if (*flag & SCROLL_FLAG_LEFT) {
+        *flag &= ~SCROLL_FLAG_LEFT;
+        size_t pos = CalcVRAMPos(sx, sy, -16, -16);
+        DrawBlocks_TB(offset, pos, sx, sy, -16, -16, layout);
+    }
+    if (*flag & SCROLL_FLAG_RIGHT) {
+        *flag &= ~SCROLL_FLAG_RIGHT;
+        size_t pos = CalcVRAMPos(sx, sy, 320, -16);
+        DrawBlocks_TB(offset, pos, sx, sy, 320, -16, layout);
     }
     if (*flag & SCROLL_FLAG_UP2) {
-        DrawBlocks_LR_2(offset, CalcVRAMPos(0, sy, 0, -16), 0, sy, 0, -16, layout, PLANE_WIDTH / 2);
         *flag &= ~SCROLL_FLAG_UP2;
+        size_t pos = CalcVRAMPos_2(sx, 0, -16);
+        DrawBlocks_LR_3(offset, pos, sx, sy, 0, -16, layout, (512 / 16));
     }
     if (*flag & SCROLL_FLAG_DOWN2) {
-        DrawBlocks_LR_2(offset, CalcVRAMPos(0, sy, 0, SCROLL_HEIGHT), 0, sy, 0, SCROLL_HEIGHT, layout, PLANE_WIDTH / 2);
         *flag &= ~SCROLL_FLAG_DOWN2;
+        size_t pos = CalcVRAMPos_2(sx, 0, 224);
+        DrawBlocks_LR_3(offset, pos, sx, sy, 0, 224, layout, (512 / 16));
     }
+#endif
 }
 
-void DrawBGScrollBlock2(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout, size_t offset)
-{
-    // TODO: REV00
-    // Check if any flags have been set
-    if (*flag == 0)
+void DrawBGScrollBlock2(int16_t sx, int16_t sy, uint16_t* scroll_flags, uint8_t* layout, size_t offset) {
+    if ((*scroll_flags & 0xFF) == 0)
         return;
 
-    // Run completely different code if in Scrap Brain Zone (what)
-    if (LEVEL_ZONE(level_id) != ZoneId_SBZ) {
-        if (*flag & SCROLL_FLAG_LEFT2) {
-            DrawBlocks_TB_2(offset, CalcVRAMPos(sx, sy, -16, SCROLL_HEIGHT / 2), sx, sy, -16, SCROLL_HEIGHT / 2, layout, 3);
-            *flag &= ~SCROLL_FLAG_LEFT2;
+#if SCP_REV01
+    if (LEVEL_ZONE(level_id) == ZoneId_SBZ) {
+        int16_t vertical_offset = -16; // Margin for drawing new tiles
+        if (*scroll_flags & 0x01) {
+            *scroll_flags &= ~0x01;
+            DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray);
+        } else if (*scroll_flags & 0x02) {
+            *scroll_flags &= ~0x02;
+            vertical_offset = 224; // Draw slice at the bottom of the screen
+            DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray);
         }
-        if (*flag & SCROLL_FLAG_RIGHT2) {
-            DrawBlocks_TB_2(offset, CalcVRAMPos(sx, sy, SCROLL_WIDTH, SCROLL_HEIGHT / 2), sx, sy, SCROLL_WIDTH, SCROLL_HEIGHT / 2, layout, 3);
-            *flag &= ~SCROLL_FLAG_RIGHT2;
+        uint8_t sync_bits = (*scroll_flags & 0xA8);
+        if (sync_bits != 0) {
+            // Shift flags to the next state and trigger a right-side update
+            *scroll_flags = (uint16_t)(sync_bits >> 1);
+            int16_t sync_y_off = -16;
+            DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, sync_y_off, layout, SBZ_ScrollArray);
         }
+        return;
+    }
+#endif
+
+#if SCP_REV00
+    if (*scroll_flags & 0x04) {
+        *scroll_flags &= ~0x04;
+        if (sx >= 16) {
+            int16_t current_sy = sy & -16;
+            int16_t remaining_coverage = scroll_block1_size - current_sy;
+            int16_t row_count = (remaining_coverage >> 4) - 14;
+            if (row_count < 0) {
+                size_t vram_pos = CalcVRAMPos(sx, sy, -16, remaining_coverage);
+                DrawBlocks_TB_2(offset, vram_pos, sx, sy, -16, remaining_coverage, layout, -row_count);
+            }
+        }
+    }
+    if (*scroll_flags & 0x08) {
+        *scroll_flags &= ~0x08;
+        int16_t current_sy = sy & -16;
+        int16_t remaining_coverage = scroll_block1_size - current_sy;
+        int16_t row_count = (remaining_coverage >> 4) - 14;
+        if (row_count < 0) {
+            size_t vram_pos = CalcVRAMPos(sx, sy, 320, remaining_coverage);
+            DrawBlocks_TB_2(offset, vram_pos, sx, sy, 320, remaining_coverage, layout, -row_count);
+        }
+    }
+#elif SCP_REV01
+    if (*scroll_flags & 0x01) {
+        *scroll_flags &= ~0x01;
+        size_t vram_pos = CalcVRAMPos(sx, sy, -16, 112); // 224/2
+        DrawBlocks_TB_2(offset, vram_pos, sx, sy, -16, 112, layout, 3);
+    }
+    if (*scroll_flags & 0x02) {
+        *scroll_flags &= ~0x02;
+        size_t vram_pos = CalcVRAMPos(sx, sy, 320, 112);
+        DrawBlocks_TB_2(offset, vram_pos, sx, sy, 320, 112, layout, 3);
+    }
+#endif
+}
+
+void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout, size_t offset) {
+    if ((*flag & 0xFF) == 0) return;
+
+#ifdef SCP_REV00
+    if (*flag & SCROLL_FLAG_LEFT2) {
+        *flag &= ~SCROLL_FLAG_LEFT2;
+        int16_t dy = (224 - 16) - (sy & -16);
+        DrawBlocks_TB_2(offset, CalcVRAMPos_Unknown(sx, sy, -16, dy), sx, sy, -16, dy, layout, 3);
+    }
+    if (*flag & SCROLL_FLAG_RIGHT2) {
+        *flag &= ~SCROLL_FLAG_RIGHT2;
+        int16_t dy = (224 - 16) - (sy & -16);
+        DrawBlocks_TB_2(offset, CalcVRAMPos_Unknown(sx, sy, SCROLL_WIDTH, dy), sx, sy, SCROLL_WIDTH, dy, layout, 3);
+    }
+#else
+    if (LEVEL_ZONE(level_id) == ZoneId_MZ) {
+        int16_t y_rel = -16;
+        if (!(*flag & SCROLL_FLAG_LEFT)) {
+            if (*flag & SCROLL_FLAG_RIGHT) {
+                *flag &= ~SCROLL_FLAG_RIGHT;
+                y_rel = 224;
+            } else goto check_mz_col;
+        } else *flag &= ~SCROLL_FLAG_LEFT;
+
+        DrawBlocks_BG(offset, sx, bg_scrpos_y_dup.f.u - 0x200, y_rel, layout, MZ_ScrollArray);
+
+    check_mz_col:
+        if ((*flag & 0xFF) == 0) return;
+        int16_t dy_c = -16;
+        uint8_t cf = (uint8_t)(*flag & 0xFF);
+        if (cf & 0xA8) {
+            cf >>= 1;
+            *flag = (*flag & 0xFF00) | cf;
+            dy_c = SCROLL_WIDTH;
+        }
+        int16_t dx_l = -16;
+        int16_t y_b = (bg_scrpos_y_dup.f.u - 0x200) & 0x7F0;
+        const uint8_t* m_ptr = &MZ_ScrollArray[y_b >> 4];
+
+        for (int i = 0; i < 16; i++) {
+            uint8_t bit = *m_ptr++;
+            if (*flag & (1 << bit)) {
+                const uint8_t *m, *b;
+                const dword_s* row_sx_ptr = bg_pos_table[bit >> 1];
+                int16_t rsx = row_sx_ptr ? row_sx_ptr->f.u : sx;
+                GetBlockData(&m, &b, rsx, bg_scrpos_y_dup.f.u, dx_l, dy_c, layout);
+                DrawBlock(m, b, CalcVRAMPos(rsx, bg_scrpos_y_dup.f.u, dx_l, dy_c));
+            }
+            dx_l += 16;
+        }
+        *flag &= 0xFF00;
     } else {
-        // TODO
-    }
-}
-
-void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout, size_t offset)
-{
-    // TODO: REV00
-    // Check if any flags have been set
-    if (*flag == 0)
-        return;
-
-    // Run completely different code if in Marble Zone (what)
-    if (LEVEL_ZONE(level_id) != ZoneId_MZ) {
-        if (*flag & SCROLL_FLAG_LEFT2) {
+        if (*flag & SCROLL_FLAG_LEFT) {
+            *flag &= ~SCROLL_FLAG_LEFT;
             DrawBlocks_TB_2(offset, CalcVRAMPos(sx, sy, -16, 64), sx, sy, -16, 64, layout, 3);
-            *flag &= ~SCROLL_FLAG_LEFT2;
         }
-        if (*flag & SCROLL_FLAG_RIGHT2) {
+        if (*flag & SCROLL_FLAG_RIGHT) {
+            *flag &= ~SCROLL_FLAG_RIGHT;
             DrawBlocks_TB_2(offset, CalcVRAMPos(sx, sy, SCROLL_WIDTH, 64), sx, sy, SCROLL_WIDTH, 64, layout, 3);
-            *flag &= ~SCROLL_FLAG_RIGHT2;
         }
-    } else {
-        // TODO
     }
+#endif
 }
 
 void LoadTilesAsYouMove()
