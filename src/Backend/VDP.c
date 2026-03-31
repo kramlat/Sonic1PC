@@ -82,8 +82,7 @@ void VDP_SeekVRAM(size_t offset)
 	vdp_vram_p = vdp_vram + offset;
 }
 
-void VDP_WriteVRAM(const uint8_t *data, size_t len)
-{
+void VDP_WriteVRAM(const uint8_t *data, size_t len) {
 	#ifdef VDP_SANITY
 	if ((vdp_vram_p - vdp_vram) >= VRAM_SIZE || (vdp_vram_p - vdp_vram + len) > VRAM_SIZE)
 	{
@@ -95,8 +94,22 @@ void VDP_WriteVRAM(const uint8_t *data, size_t len)
 	vdp_vram_p += len;
 }
 
-void VDP_FillVRAM(uint8_t data, size_t len)
-{
+void VDP_WriteLong(uint32_t val) {
+	#ifdef VDP_SANITY
+	if ((vdp_vram_p - vdp_vram) >= VRAM_SIZE || (vdp_vram_p - vdp_vram + 4) > VRAM_SIZE)
+	{
+		puts("VDP_WriteVRAM: Out-of-bounds");
+		return;
+	}
+	#endif
+	vdp_vram_p[0] = (uint8_t)(val >> 24);
+	vdp_vram_p[1] = (uint8_t)(val >> 16);
+	vdp_vram_p[2] = (uint8_t)(val >> 8);
+	vdp_vram_p[3] = (uint8_t)(val);
+	vdp_vram_p += 4;
+}
+
+void VDP_FillVRAM(uint8_t data, size_t len) {
 	#ifdef VDP_SANITY
 	if ((vdp_vram_p - vdp_vram) >= VRAM_SIZE || (vdp_vram_p - vdp_vram + len) > VRAM_SIZE)
 	{

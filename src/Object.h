@@ -211,20 +211,16 @@ typedef union
 
 #pragma pack(pop)
 
-typedef struct
-{
+typedef struct {
 	uint8_t type;            //Object type
 	ObjectRender render;     //Object render
 	uint16_t tile;           //Object base tile
 	const uint8_t *mappings; //Object mappings
-	union
-	{
-		struct
-		{
+	union {
+		struct {
 			dword_s x, y;
 		} l; //Level
-		struct
-		{
+		struct {
 			int16_t x; //X position
 			int16_t y; //Y position
 			uint16_t yl; //Y position (lower word for long accesses)
@@ -240,15 +236,13 @@ typedef struct
 	uint8_t anim_frame;   //Frame index in animation
 	uint8_t anim;         //Animation
 	uint8_t prev_anim;    //Previous animation
-	union
-	{
+	union {
 		int8_t b;
 		int16_t w;
 	} frame_time;         //Frame duration remaining
 	uint8_t col_type;     //Collision type
 	uint8_t col_property; //Collision property (object-specific)
-	union
-	{
+	union {
 		ObjectStatus o;   //Object status
 		PlayerStatus p;   //Player status
 		uint8_t b;
@@ -257,8 +251,7 @@ typedef struct
 	uint8_t routine;       //Routine
 	uint8_t routine_sec;   //Secondary routine
 	uint8_t angle;         //Angle
-	union
-	{
+	union {
 		uint8_t  u8[0x18];
 		int8_t   s8[0x18];
 		uint16_t u16[0xC];

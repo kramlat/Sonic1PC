@@ -176,14 +176,7 @@ void GM_Title()
 
     // Run title screen for 376 frames
     demo_length = 376;
-
-// Clear objects
-#ifdef SCP_FIX_BUGS
     memset(&objects[2], 0, sizeof(Object));
-#else
-    memset(&objects[2], 0, 0x20); // 0x20 instead of the object structure size?
-                                  // This why the "PRESS START BUTTON" text is missing.
-#endif
 
     // Load title objects
     objects[1].type = ObjId_TitleSonic;

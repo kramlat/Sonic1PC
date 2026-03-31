@@ -58,6 +58,7 @@ void VDP_Quit();
 
 void VDP_SeekVRAM(size_t offset);
 void VDP_WriteVRAM(const uint8_t *data, size_t len);
+void VDP_WriteLong(uint32_t val);
 void VDP_FillVRAM(uint8_t data, size_t len);
 
 void VDP_SeekCRAM(size_t offset);

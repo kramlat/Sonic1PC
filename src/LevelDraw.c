@@ -254,7 +254,7 @@ void DrawBlocks_LR_3(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
 void DrawBlocks_LR(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout) {
     /* Calculate number of 16x16 blocks to cover 320px screen plus 16px margins on both sides */
     const size_t blocks_to_draw = (SCROLL_WIDTH + 16 + 16) / 16;
-    DrawBlocks_LR_2(offset, pos, sx, sy, x, y, layout, (SCROLL_WIDTH + 16 + 16) / 16);
+    DrawBlocks_LR_2(offset, pos, sx, sy, x, y, layout, blocks_to_draw );
 }
 
 void DrawBlocks_TB_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout, size_t height) {
@@ -296,7 +296,7 @@ void Draw_GHZ_Bg(int16_t sy, uint8_t* layout, size_t offset) {
     static const uint8_t bg_array[] = { 0x00, 0x00, 0x00, 0x00, 0x06, 0x06, 0x06, 0x04,0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
     int16_t y = 0;
     for (size_t i = 0; i < (SCROLL_HEIGHT + 16 + 16) / 16; i++) {
-        DrawBlocks_BG(offset, bg_scrpos_y.f.u, sy, y, layout, bg_array);
+        DrawBlocks_BG(offset, 0, sy, y, layout, bg_array);
         y += 16;
     }
 }
@@ -315,8 +315,8 @@ const uint8_t MZ_ScrollArray[128] = {
 
 void Draw_MZ_Bg(int16_t sy, uint8_t* layout, size_t offset) {
     int16_t y = -16;
-    for (size_t i = 0; i < (224 + 16 + 16) / 16; i++) {
-        DrawBlocks_BG(offset, bg_scrpos_y.f.u, sy - 0x200, y, layout, MZ_ScrollArray);
+    for (size_t i = 0; i < (SCREEN_HEIGHT + 16 + 16) / 16; i++) {
+        DrawBlocks_BG(offset, 0, sy - 0x200, y, layout, MZ_ScrollArray);
         y += 16;
     }
 }
@@ -328,8 +328,8 @@ const uint8_t SBZ_ScrollArray[32] = {
 
 void Draw_SBZ_Bg(int16_t sy, uint8_t* layout, size_t offset) {
     int16_t y = -16;
-    for (size_t i = 0; i < (224 + 16 + 16) / 16; i++) {
-        DrawBlocks_BG(offset, bg_scrpos_y.f.u, sy, y, layout, SBZ_ScrollArray);
+    for (size_t i = 0; i < (SCREEN_HEIGHT + 16 + 16) / 16; i++) {
+        DrawBlocks_BG(offset, 0, sy, y, layout, SBZ_ScrollArray);
         y += 16;
     }
 }
@@ -352,7 +352,7 @@ void LoadTilesFromStart()
         Draw_GHZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
     else if (LEVEL_ZONE(level_id) == ZoneId_MZ)
         Draw_MZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
-    else if (level_id == LEVEL_ID(ZoneId_SBZ, 0))
+    else if (level_id == ZoneId_SBZ << 8)
         Draw_SBZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
     else
 #endif
@@ -372,16 +372,16 @@ void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout,
     }
     if (*flag & SCROLL_FLAG_DOWN) {
         *flag &= ~SCROLL_FLAG_DOWN;
-        size_t pos = CalcVRAMPos(sx, sy, -16, 224);
-        DrawBlocks_LR_2(offset, pos, sx, sy, -16, 224, layout, (512 / 16));
+        size_t pos = CalcVRAMPos(sx, sy, -16, SCREEN_HEIGHT);
+        DrawBlocks_LR_2(offset, pos, sx, sy, -16, SCREEN_HEIGHT, layout, (512 / 16));
     }
     if (*flag & SCROLL_FLAG_LEFT) {
         *flag &= ~SCROLL_FLAG_LEFT;
         int16_t size1 = scroll_block1_size - (sy & -16);
         if (size1 >= 0) {
             size1 >>= 4; // Convert to blocks
-            if (size1 > ((224 + 16 + 16) / 16) - 1)
-                size1 = ((224 + 16 + 16) / 16) - 1;
+            if (size1 > ((SCREEN_HEIGHT + 16 + 16) / 16) - 1)
+                size1 = ((SCREEN_HEIGHT + 16 + 16) / 16) - 1;
             size_t pos = CalcVRAMPos(sx, sy, -16, -16);
             DrawBlocks_TB_2(offset, pos, sx, sy, -16, -16, layout, size);
         }
@@ -391,10 +391,10 @@ void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout,
         int16_t size = v_scroll_block_1_size - (sy & -16);
         if (size >= 0) {
             size >>= 4;
-            if (size > ((224 + 16 + 16) / 16) - 1)
-                size = ((224 + 16 + 16) / 16) - 1;
-            size_t pos = CalcVRAMPos(sx, sy, 320, -16);
-            DrawBlocks_TB_2(offset, pos, sx, sy, 320, -16, layout, size);
+            if (size > ((SCREEN_HEIGHT + 16 + 16) / 16) - 1)
+                size = ((SCREEN_HEIGHT + 16 + 16) / 16) - 1;
+            size_t pos = CalcVRAMPos(sx, sy, SCREEN_WIDTH, -16);
+            DrawBlocks_TB_2(offset, pos, sx, sy, SCREEN_WIDTH, -16, layout, size);
         }
     }
 
@@ -406,8 +406,8 @@ void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout,
     }
     if (*flag & SCROLL_FLAG_DOWN) {
         *flag &= ~SCROLL_FLAG_DOWN;
-        size_t pos = CalcVRAMPos(sx, sy, -16, 224);
-        DrawBlocks_LR(offset, pos, sx, sy, -16, 224, layout);
+        size_t pos = CalcVRAMPos(sx, sy, -16, SCREEN_HEIGHT);
+        DrawBlocks_LR(offset, pos, sx, sy, -16, SCREEN_HEIGHT, layout);
     }
     if (*flag & SCROLL_FLAG_LEFT) {
         *flag &= ~SCROLL_FLAG_LEFT;
@@ -416,8 +416,8 @@ void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout,
     }
     if (*flag & SCROLL_FLAG_RIGHT) {
         *flag &= ~SCROLL_FLAG_RIGHT;
-        size_t pos = CalcVRAMPos(sx, sy, 320, -16);
-        DrawBlocks_TB(offset, pos, sx, sy, 320, -16, layout);
+        size_t pos = CalcVRAMPos(sx, sy, SCREEN_WIDTH, -16);
+        DrawBlocks_TB(offset, pos, sx, sy, SCREEN_WIDTH, -16, layout);
     }
     if (*flag & SCROLL_FLAG_UP2) {
         *flag &= ~SCROLL_FLAG_UP2;
@@ -426,8 +426,8 @@ void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout,
     }
     if (*flag & SCROLL_FLAG_DOWN2) {
         *flag &= ~SCROLL_FLAG_DOWN2;
-        size_t pos = CalcVRAMPos_2(sx, 0, 224);
-        DrawBlocks_LR_3(offset, pos, sx, sy, 0, 224, layout, (512 / 16));
+        size_t pos = CalcVRAMPos_2(sx, 0, SCREEN_HEIGHT);
+        DrawBlocks_LR_3(offset, pos, sx, sy, 0, SCREEN_HEIGHT, layout, (512 / 16));
     }
 #endif
 }
@@ -444,7 +444,7 @@ void DrawBGScrollBlock2(int16_t sx, int16_t sy, uint16_t* scroll_flags, uint8_t*
             DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray);
         } else if (*scroll_flags & 0x02) {
             *scroll_flags &= ~0x02;
-            vertical_offset = 224; // Draw slice at the bottom of the screen
+            vertical_offset = SCREEN_HEIGHT; // Draw slice at the bottom of the screen
             DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray);
         }
         uint8_t sync_bits = (*scroll_flags & 0xA8);
@@ -477,20 +477,20 @@ void DrawBGScrollBlock2(int16_t sx, int16_t sy, uint16_t* scroll_flags, uint8_t*
         int16_t remaining_coverage = scroll_block1_size - current_sy;
         int16_t row_count = (remaining_coverage >> 4) - 14;
         if (row_count < 0) {
-            size_t vram_pos = CalcVRAMPos(sx, sy, 320, remaining_coverage);
-            DrawBlocks_TB_2(offset, vram_pos, sx, sy, 320, remaining_coverage, layout, -row_count);
+            size_t vram_pos = CalcVRAMPos(sx, sy, SCREEN_WIDTH, remaining_coverage);
+            DrawBlocks_TB_2(offset, vram_pos, sx, sy, SCREEN_WIDTH, remaining_coverage, layout, -row_count);
         }
     }
 #elif SCP_REV01
     if (*scroll_flags & 0x01) {
         *scroll_flags &= ~0x01;
-        size_t vram_pos = CalcVRAMPos(sx, sy, -16, 112); // 224/2
-        DrawBlocks_TB_2(offset, vram_pos, sx, sy, -16, 112, layout, 3);
+        size_t vram_pos = CalcVRAMPos(sx, sy, -16, SCREEN_HEIGHT / 2); // SCREEN_HEIGHT/2
+        DrawBlocks_TB_2(offset, vram_pos, sx, sy, -16, SCREEN_HEIGHT / 2, layout, 3);
     }
     if (*scroll_flags & 0x02) {
         *scroll_flags &= ~0x02;
-        size_t vram_pos = CalcVRAMPos(sx, sy, 320, 112);
-        DrawBlocks_TB_2(offset, vram_pos, sx, sy, 320, 112, layout, 3);
+        size_t vram_pos = CalcVRAMPos(sx, sy, SCREEN_WIDTH, SCREEN_HEIGHT / 2);
+        DrawBlocks_TB_2(offset, vram_pos, sx, sy, SCREEN_WIDTH, SCREEN_HEIGHT / 2, layout, 3);
     }
 #endif
 }
@@ -501,12 +501,12 @@ void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout,
 #ifdef SCP_REV00
     if (*flag & SCROLL_FLAG_LEFT2) {
         *flag &= ~SCROLL_FLAG_LEFT2;
-        int16_t dy = (224 - 16) - (sy & -16);
+        int16_t dy = (SCREEN_HEIGHT - 16) - (sy & -16);
         DrawBlocks_TB_2(offset, CalcVRAMPos_Unknown(sx, sy, -16, dy), sx, sy, -16, dy, layout, 3);
     }
     if (*flag & SCROLL_FLAG_RIGHT2) {
         *flag &= ~SCROLL_FLAG_RIGHT2;
-        int16_t dy = (224 - 16) - (sy & -16);
+        int16_t dy = (SCREEN_HEIGHT - 16) - (sy & -16);
         DrawBlocks_TB_2(offset, CalcVRAMPos_Unknown(sx, sy, SCROLL_WIDTH, dy), sx, sy, SCROLL_WIDTH, dy, layout, 3);
     }
 #else
@@ -515,7 +515,7 @@ void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout,
         if (!(*flag & SCROLL_FLAG_LEFT)) {
             if (*flag & SCROLL_FLAG_RIGHT) {
                 *flag &= ~SCROLL_FLAG_RIGHT;
-                y_rel = 224;
+                y_rel = SCREEN_HEIGHT;
             } else goto check_mz_col;
         } else *flag &= ~SCROLL_FLAG_LEFT;
 
@@ -559,45 +559,60 @@ void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t* flag, uint8_t* layout,
 #endif
 }
 
-void LoadTilesAsYouMove()
-{
-    // Scroll background
-    DrawBGScrollBlock1(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, level_layout[0][1], VRAM_BG);
-    DrawBGScrollBlock2(bg2_scrpos_x.f.u, bg2_scrpos_y.f.u, &bg2_scroll_flags, level_layout[0][1], VRAM_BG);
-    DrawBGScrollBlock3(bg3_scrpos_x.f.u, bg3_scrpos_y.f.u, &bg3_scroll_flags, level_layout[0][1], VRAM_BG);
+void LoadTilesAsYouMove() {
+    DrawBGScrollBlock1(bg_scrpos_x_dup.f.u, bg_scrpos_y_dup.f.u,
+                       &bg1_scroll_flags_dup, level_layout[0][1], VRAM_BG);
 
-    // Scroll foreground
+    DrawBGScrollBlock2(bg2_scrpos_x_dup.f.u, bg2_scrpos_y_dup.f.u,
+                       &bg2_scroll_flags_dup, level_layout[0][1], VRAM_BG);
+
+#ifdef SCP_REV01
+    // REV01 added a third scroll block call
+    DrawBGScrollBlock3(bg3_scrpos_x_dup.f.u, bg3_scrpos_y_dup.f.u,
+                       &bg3_scroll_flags_dup, level_layout[0][1], VRAM_BG);
+#endif
+    if (fg_scroll_flags_dup == 0)
+        return;
     int16_t sx = scrpos_x_dup.f.u;
     int16_t sy = scrpos_y_dup.f.u;
     uint8_t* layout = level_layout[0][0];
+    if (fg_scroll_flags_dup & SCROLL_FLAG_UP) {
+         size_t pos = CalcVRAMPos(sx, sy, -16, -16);
+        DrawBlocks_LR(VRAM_FG, pos, sx, sy, -16, -16, layout);
+        fg_scroll_flags_dup &= ~SCROLL_FLAG_UP;
+    }
+    if (fg_scroll_flags_dup & SCROLL_FLAG_DOWN) {
+        size_t pos = CalcVRAMPos(sx, sy, -16, SCREEN_HEIGHT);
+        DrawBlocks_LR(VRAM_FG, pos, sx, sy, -16, SCREEN_HEIGHT, layout);
+        fg_scroll_flags_dup &= ~SCROLL_FLAG_DOWN;
+    }
 
-    if (fg_scroll_flags == 0)
-        return;
+     if (fg_scroll_flags_dup & SCROLL_FLAG_LEFT) {
+         size_t pos = CalcVRAMPos(sx, sy, -16, -16);
+        DrawBlocks_TB(VRAM_FG, pos, sx, sy, -16, -16, layout);
+        fg_scroll_flags_dup &= ~SCROLL_FLAG_LEFT;
+    }
 
-    if (fg_scroll_flags & SCROLL_FLAG_UP) {
-        DrawBlocks_LR(VRAM_FG, CalcVRAMPos(sx, sy, -16, -16), sx, sy, -16, -16, layout);
-        fg_scroll_flags &= ~SCROLL_FLAG_UP;
-    }
-    if (fg_scroll_flags & SCROLL_FLAG_DOWN) {
-        DrawBlocks_LR(VRAM_FG, CalcVRAMPos(sx, sy, -16, SCROLL_HEIGHT), sx, sy, -16, SCROLL_HEIGHT, layout);
-        fg_scroll_flags &= ~SCROLL_FLAG_DOWN;
-    }
-    if (fg_scroll_flags & SCROLL_FLAG_LEFT) {
-        DrawBlocks_TB(VRAM_FG, CalcVRAMPos(sx, sy, -16, -16), sx, sy, -16, -16, layout);
-        fg_scroll_flags &= ~SCROLL_FLAG_LEFT;
-    }
-    if (fg_scroll_flags & SCROLL_FLAG_RIGHT) {
-        DrawBlocks_TB(VRAM_FG, CalcVRAMPos(sx, sy, SCROLL_WIDTH, -16), sx, sy, SCROLL_WIDTH, -16, layout);
-        fg_scroll_flags &= ~SCROLL_FLAG_RIGHT;
+    if (fg_scroll_flags_dup & SCROLL_FLAG_RIGHT) {
+        size_t pos = CalcVRAMPos(sx, sy, SCREEN_WIDTH, -16);
+        DrawBlocks_TB(VRAM_FG, pos, sx, sy, SCREEN_WIDTH, -16, layout);
+        fg_scroll_flags_dup &= ~SCROLL_FLAG_RIGHT;
     }
 }
 
-void LoadTilesAsYouMove_BGOnly()
-{
+void LoadTilesAsYouMove_BGOnly() {
     DrawBGScrollBlock1(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, level_layout[0][1], VRAM_BG);
     DrawBGScrollBlock2(bg2_scrpos_x.f.u, bg2_scrpos_y.f.u, &bg2_scroll_flags, level_layout[0][1], VRAM_BG);
     // No scroll block 3, even in REV01... odd
 }
+
+void LoadTiles(const uint8_t *source, uint16_t count) {
+	do {
+		VDP_WriteVRAM(source, TILE_SIZE);
+		source += TILE_SIZE;
+	} while (count-- != 0);
+}
+
 
 // Level art animation
 #include "Resource/Art/GHZFlowerLarge.h"
@@ -664,6 +679,181 @@ void AniArt_GHZFlowerSmall() {
     }
 }
 
+// Level Animation Index Mappings for Marble Zone
+#define LAVA_ANIM    0 // uses time and frame
+#define MAGMA_ANIM   1 // uses time (frame was for prototype UFO)
+#define TORCH_TIMER  2 // uses time (v_lani2_time)
+#define TORCH_ANIM   3 // uses frame (v_lani3_frame)
+typedef void (*MagmaShiftFunc)(const uint8_t*, uint16_t);
+
+#include "Resource/Art/MZLava1.h"
+#include "Resource/Art/MZLava2.h"
+#include "Resource/Art/MZTorch.h"
+
+#define ArtTile_MZ_Animated_Magma 0x2E2
+#define ArtTile_MZ_Animated_Lava 0x2D2
+#define ArtTile_MZ_Torch 0x2F2
+
+
+void MagmaRow_Shift0(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[0] << 24) | (src[1] << 16) | (src[2] << 8) | src[3]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift1(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[1] << 24) | (src[2] << 16) | (src[3] << 8) | src[4]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift2(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[2] << 24) | (src[3] << 16) | (src[4] << 8) | src[5]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift3(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[3] << 24) | (src[4] << 16) | (src[5] << 8) | src[6]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift4(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[4] << 24) | (src[5] << 16) | (src[6] << 8) | src[7]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift5(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[5] << 24) | (src[6] << 16) | (src[7] << 8) | src[8]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift6(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[6] << 24) | (src[7] << 16) | (src[8] << 8) | src[9]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift7(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[7] << 24) | (src[8] << 16) | (src[9] << 8) | src[10]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift8(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[8] << 24) | (src[9] << 16) | (src[10] << 8) | src[11]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift9(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[9] << 24) | (src[10] << 16) | (src[11] << 8) | src[12]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift10(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[10] << 24) | (src[11] << 16) | (src[12] << 8) | src[13]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift11(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[11] << 24) | (src[12] << 16) | (src[13] << 8) | src[14]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift12(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[12] << 24) | (src[13] << 16) | (src[14] << 8) | src[15]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift13(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[13] << 24) | (src[14] << 16) | (src[15] << 8) | src[0]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift14(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[14] << 24) | (src[15] << 16) | (src[0] << 8) | src[1]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void MagmaRow_Shift15(const uint8_t *src, uint16_t lines) {
+	do {
+		VDP_WriteLong((src[15] << 24) | (src[0] << 16) | (src[1] << 8) | src[2]);
+		src += 16;
+	} while (lines-- != 0);
+}
+
+void AniArt_MZLava() {
+	const uint8_t TILE_COUNT = 8;
+	if (--level_anim[LAVA_ANIM].time < 0) {
+		level_anim[LAVA_ANIM].time = 0x14 - 1;
+		if (++level_anim[LAVA_ANIM].frame >= 3)
+			level_anim[LAVA_ANIM].frame = 0;
+		const uint8_t *src = Art_MZLava1 + (level_anim[LAVA_ANIM].frame * TILE_COUNT * TILE_SIZE);
+		VDP_SeekVRAM(ArtTile_MZ_Animated_Magma * TILE_SIZE);
+		LoadTiles(src, TILE_COUNT - 1);
+	}
+}
+
+static const MagmaShiftFunc MagmaDistortionTable[] = {
+	MagmaRow_Shift0,  MagmaRow_Shift1,  MagmaRow_Shift2,  MagmaRow_Shift3,
+	MagmaRow_Shift4,  MagmaRow_Shift5,  MagmaRow_Shift6,  MagmaRow_Shift7,
+	MagmaRow_Shift8,  MagmaRow_Shift9,  MagmaRow_Shift10, MagmaRow_Shift11,
+	MagmaRow_Shift12, MagmaRow_Shift13, MagmaRow_Shift14, MagmaRow_Shift15
+};
+
+void AniArt_MZMagma() {
+	if (--level_anim[MAGMA_ANIM].time < 0) {
+		level_anim[MAGMA_ANIM].time = 2 - 1;
+		uint32_t bank_offset = (uint32_t)level_anim[LAVA_ANIM].frame << 9;
+		const uint8_t *magma_art = Art_MZLava2 + bank_offset;
+		VDP_SeekVRAM(ArtTile_MZ_Animated_Lava * TILE_SIZE);
+		uint8_t osc_val = (uint8_t)oscillatory.state[4][0];
+		for (int chunk = 0; chunk < 4; chunk++) {
+			uint8_t table_idx = (osc_val * 2) & 0x1E;
+			MagmaShiftFunc ApplyShift = MagmaDistortionTable[(table_idx >> 1) & 15];
+			ApplyShift(magma_art, 0x1F);
+			osc_val += 4;
+		}
+	}
+}
+
+void AniArt_MZTorch() {
+	const uint8_t TILE_COUNT = 6;
+	if (--level_anim[TORCH_TIMER].time < 0) {
+		level_anim[TORCH_TIMER].time = 8 - 1;
+		uint8_t current_frame = level_anim[TORCH_ANIM].frame;
+		level_anim[TORCH_ANIM].frame = (level_anim[TORCH_ANIM].frame + 1) & 3;
+		const uint8_t *src = Art_MZTorch + (current_frame * TILE_COUNT * TILE_SIZE);
+		VDP_SeekVRAM(ArtTile_MZ_Torch * TILE_SIZE);
+		LoadTiles(src, TILE_COUNT - 1);
+	}
+}
+
 void AnimateLevelGfx()
 {
     // Don't run if game is paused
@@ -683,6 +873,9 @@ void AnimateLevelGfx()
     case ZoneId_LZ:
         break;
     case ZoneId_MZ:
+        AniArt_MZLava();
+        AniArt_MZMagma();
+        AniArt_MZTorch();
         break;
     case ZoneId_SLZ:
         break;
