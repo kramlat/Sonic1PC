@@ -198,7 +198,6 @@ GM_Level_Branch:;
     VDP_SetBackgroundColour(0x20); // Line 2, entry 0
 
     // Load water
-    hbla_pos = (SCREEN_HEIGHT - 1);
     if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
         // TODO
     }

@@ -1,6 +1,8 @@
 #include "Game.h"
 
 #include "HUD.h"
+#include "Backend/VDP.h"
+#include <SDL.h>
 #include "Level.h"
 #include "LevelDraw.h"
 #include "LevelScroll.h"
@@ -57,8 +59,7 @@ void ReadJoypads()
 }
 
 // Game entry point
-void EntryPoint()
-{
+void EntryPoint() {
     // Initialize game system
     VDPSetupGame();
 
@@ -67,29 +68,30 @@ void EntryPoint()
 
     // Run game loop
     while (1) {
+        SDL_Delay(1000 / 60);
         switch (gamemode & 0x7F) {
-        case GameMode_Sega:
-            GM_Sega();
-            break;
-        case GameMode_Title:
-            GM_Title();
-            break;
-        case GameMode_Level:
-        case GameMode_Demo:
-            GM_Level();
-            break;
-        case GameMode_Special:
-            GM_Special();
-            break;
+            case GameMode_Sega:
+                GM_Sega();
+                break;
+            case GameMode_Title:
+                GM_Title();
+                break;
+            case GameMode_Level:
+            case GameMode_Demo:
+                GM_Level();
+                break;
+            case GameMode_Special:
+                GM_Special();
+                break;
 #ifdef SCP_SPLASH
-        case GameMode_SSRG:
-            GM_SSRG();
-            break;
+            case GameMode_SSRG:
+                GM_SSRG();
+                break;
 #endif
-        default:
-            VDPSetupGame();
-            gamemode = GameMode_Sega;
-            break;
+            default:
+                VDPSetupGame();
+                gamemode = GameMode_Sega;
+                break;
         }
     }
 }
@@ -153,7 +155,6 @@ void VBlank()
             VDP_WriteCRAM(&dry_palette[0][0], 0x40);
 
         // Copy buffers
-        VDP_SetHIntPosition(hbla_pos);
         VDP_SeekVRAM(VRAM_SPRITES);
         VDP_WriteVRAM((const uint8_t*)sprite_buffer, sizeof(sprite_buffer));
         VDP_SeekVRAM(VRAM_HSCROLL);
@@ -207,7 +208,6 @@ void VBlank()
         VDP_WriteCRAM(&dry_palette[0][0], 0x40);
 
         // Copy buffers
-        VDP_SetHIntPosition(hbla_pos);
         VDP_SeekVRAM(VRAM_SPRITES);
         VDP_WriteVRAM((const uint8_t*)sprite_buffer, sizeof(sprite_buffer));
         VDP_SeekVRAM(VRAM_HSCROLL);
@@ -239,7 +239,6 @@ void VBlank()
             VDP_WriteCRAM(&dry_palette[0][0], 0x40);
 
         // Copy buffers
-        VDP_SetHIntPosition(hbla_pos);
         VDP_SeekVRAM(VRAM_SPRITES);
         VDP_WriteVRAM((const uint8_t*)sprite_buffer, sizeof(sprite_buffer));
         VDP_SeekVRAM(VRAM_HSCROLL);

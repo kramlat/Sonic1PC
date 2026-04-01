@@ -247,71 +247,56 @@ void ScrollBlock4(int32_t x, int32_t y) {
     }
 }
 #else
-void BGScroll_Block1(int32_t x, uint8_t bit) {
-    int32_t prev_x = bg_scrpos_x.v;
-    bg_scrpos_x.v += x;
-    uint8_t no_scroll = (bg_scrpos_x.f.u & 0x10) ^ bg1_xblock;
-    if (no_scroll)
-        return;
-    bg1_xblock ^= 0x10;
-    if (bg_scrpos_x.v < prev_x)
-        bg1_scroll_flags |= bit;
-    else
-        bg1_scroll_flags |= (bit << 1);
+void BGScroll_Block1(int32_t x, uint8_t bit)
+{
+	int32_t prev_x = bg_scrpos_x.v;
+	bg_scrpos_x.v += x;
+	uint8_t no_scroll = (bg_scrpos_x.f.u & 0x10) ^ bg1_xblock;
+	if (no_scroll)
+		return;
+	bg1_xblock ^= 0x10;
+	if (bg_scrpos_x.v < prev_x)
+		bg1_scroll_flags |= bit;
+	else
+		bg1_scroll_flags |= (bit << 1);
 }
 
-void BGScroll_Block2(int32_t x, uint8_t bit) {
-    int32_t prev_x = bg2_scrpos_x.v;
-    bg2_scrpos_x.v += x;
-    int32_t new_x = bg2_scrpos_x.v;
-    uint8_t current_x_bit = (uint8_t)(bg2_scrpos_x.f.u & 0x10);
-    if ((current_x_bit ^ bg2_xblock) != 0)
-        return;
-    bg2_xblock ^= 0x10;
-    if ((new_x - prev_x) < 0)
-        bg2_scroll_flags |= (1 << bit);
-    else
-        bg2_scroll_flags |= (1 << (bit + 1));
+void BGScroll_Block2(int32_t x, uint8_t bit)
+{
+	int32_t prev_x = bg2_scrpos_x.v;
+	bg2_scrpos_x.v += x;
+	uint8_t no_scroll = (bg2_scrpos_x.f.u & 0x10) ^ bg2_xblock;
+	if (no_scroll)
+		return;
+	bg2_xblock ^= 0x10;
+	if (bg2_scrpos_x.v < prev_x)
+		bg2_scroll_flags |= bit;
+	else
+		bg2_scroll_flags |= (bit << 1);
 }
 
-void BGScroll_Block3(int32_t x, uint8_t bit) {
-    int32_t prev_x_fixed = bg3_scrpos_x.v;
-    int32_t new_x_fixed = prev_x_fixed + x;
-	bg3_scrpos_x.v = new_x_fixed;
-    uint16_t current_block_bit = (uint16_t)((uint32_t)new_x_fixed >> 16) & 0x10;
-    if ((current_block_bit ^ bg3_xblock) != 0)
-        return;
-    bg3_xblock ^= 0x10;
-    if (new_x_fixed < prev_x_fixed) {
-        bg3_scroll_flags |= (1 << bit);
-    } else {
-         bg3_scroll_flags |= (1 << (bit + 1));
-    }
+void BGScroll_Block3(int32_t x, uint8_t bit)
+{
+	int32_t prev_x = bg3_scrpos_x.v;
+	bg3_scrpos_x.v += x;
+	uint8_t no_scroll = (bg3_scrpos_x.f.u & 0x10) ^ bg3_xblock;
+	if (no_scroll)
+		return;
+	bg3_xblock ^= 0x10;
+	if (bg3_scrpos_x.v < prev_x)
+		bg3_scroll_flags |= bit;
+	else
+		bg3_scroll_flags |= (bit << 1);
 }
 #endif
 
 //Level deformation routines
-static void FillHScroll(int16_t **bufp, int16_t fg_x, int16_t bg_x, int count) {
-	for (int i = 0; i < count; i++) {
-		*(*bufp)++ = fg_x; // Plane A (Foreground)
-		*(*bufp)++ = bg_x; // Plane B (Background)
-	}
-}
-
-static void FillHScrollWater(int16_t **bufp, int16_t fg_x, int16_t bg_base_x, int32_t delta, int count) {
-	int32_t acc = (int32_t)bg_base_x << 16;
-	for (int i = 0; i < count; i++) {
-		*(*bufp)++ = fg_x;
-		*(*bufp)++ = -(int16_t)(acc >> 16);
-		acc += delta;
-	}
-}
-
-void Deform_GHZ() {
+void Deform_GHZ()
+{
 	int16_t fg_x, bg_x;
 	int16_t *bufp = &hscroll_buffer[0][0];
-	int16_t y_offset;
 #ifdef SCP_REV00
+	int16_t y_offset;
 	int32_t dist = (int32_t)scrshift_x << 5;
 	dist += (dist << 1); // shift * 96
 	BGScroll_Block3(dist, SCROLL_FLAG_LEFT2);
@@ -326,28 +311,61 @@ void Deform_GHZ() {
 	int32_t delta = (int32_t)((int16_t)(((int32_t)d2_dist << 8) / 0x68)) << 8;
 	FillHScrollWater(&bufp, fg_x, bg2_scrpos_x.f.u, delta, 0x48 + y_offset);
 #else
-	BGScroll_Block3((scrshift_x << 6) + (scrshift_x << 5), SCROLL_FLAG_LEFT2);
-	BGScroll_Block2(scrshift_x << 7, SCROLL_FLAG_LEFT2);
-	y_offset = 0x20 - ((scrpos_y.f.u & 0x7FF) >> 5);
-	if (y_offset < 0)
-		y_offset = 0;
-	vid_bg_scrpos_y_dup = y_offset;
-	fg_x = (gamemode == GameMode_Title) ? 0 : -scrpos_x.f.u;
+	//Scroll background layers
+	BGScroll_Block3((scrshift_x << 6) + (scrshift_x << 5), SCROLL_FLAG_LEFT2); //Upper mountains
+	BGScroll_Block2(scrshift_x << 7, SCROLL_FLAG_LEFT2); //Hills and waterfalls
+
+	//Get Y position
+	vid_bg_scrpos_y_dup =  0x20 - ((scrpos_y.f.u & 0x7FF) >> 5);
+	if (vid_bg_scrpos_y_dup < 0)
+		vid_bg_scrpos_y_dup = 0;
+
+	//Get foreground position
+	if (gamemode == GameMode_Title)
+		fg_x = 0;
+	else
+		fg_x = -scrpos_x.f.u;
+
+	//Scroll clouds
 	int32_t *scroll = (int32_t*)bgscroll_buffer;
 	scroll[0] += 0x10000;
 	scroll[1] += 0xC000;
 	scroll[2] += 0x8000;
+
+	//Scroll cloud layer 1
 	bg_x = -(bg3_scrpos_x.f.u + (scroll[0] >> 16));
-	FillHScroll(&bufp, fg_x, bg_x, 0x20 - y_offset);
+	for (int i = 0; i < 0x20 - vid_bg_scrpos_y_dup; i++)
+	{ *bufp++ = fg_x; *bufp++ = bg_x; }
+
+	//Scroll cloud layer 2
 	bg_x = -(bg3_scrpos_x.f.u + (scroll[1] >> 16));
-	FillHScroll(&bufp, fg_x, bg_x, 0x10);
+	for (int i = 0; i < 0x10; i++)
+	{ *bufp++ = fg_x; *bufp++ = bg_x; }
+
+	//Scroll cloud layer 3
 	bg_x = -(bg3_scrpos_x.f.u + (scroll[2] >> 16));
-	FillHScroll(&bufp, fg_x, bg_x, 0x10);
-	FillHScroll(&bufp, fg_x, -bg3_scrpos_x.f.u, 0x30);
-	FillHScroll(&bufp, fg_x, -bg2_scrpos_x.f.u, 0x28);
-	int16_t d2_dist = (int16_t)scrpos_x.f.u - bg2_scrpos_x.f.u;
-	int32_t delta = (int32_t)((int16_t)(((int32_t)d2_dist << 8) / 0x68)) << 8;
-	FillHScrollWater(&bufp, fg_x, bg2_scrpos_x.f.u, delta, 0x48 + SCREEN_TALLADD + y_offset);
+	for (int i = 0; i < 0x10; i++)
+	{ *bufp++ = fg_x; *bufp++ = bg_x; }
+
+	//Scroll upper mountains
+	bg_x = -bg3_scrpos_x.f.u;
+	for (int i = 0; i < 0x30; i++)
+	{ *bufp++ = fg_x; *bufp++ = bg_x; }
+
+	//Scroll hills and waterfalls
+	bg_x = -bg2_scrpos_x.f.u;
+	for (int i = 0; i < 0x28; i++)
+	{ *bufp++ = fg_x; *bufp++ = bg_x; }
+
+	//Scroll water
+	int32_t wx = bg2_scrpos_x.v;
+	int32_t wi = (((scrpos_x.f.u - bg2_scrpos_x.f.u) << 8) / 0x68) << 8;
+
+	for (int i = 0; i < 0x48 + SCREEN_TALLADD + vid_bg_scrpos_y_dup; i++)
+	{
+		*bufp++ = fg_x; *bufp++ = -(wx >> 16);
+		wx += wi;
+	}
 #endif
 }
 

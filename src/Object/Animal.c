@@ -1,4 +1,5 @@
 #include "Animal.h"
+#include <stdio.h>
 
 const uint8_t AnimalVarIndex[][2] = {
 	{0, 5},  // Green Hill Zone
@@ -193,9 +194,7 @@ void Obj_Animals_FlickyWait(Object* obj, Scratch_Animals* scratch) {
 
 void Obj_Animals_FromEnemy(Object* obj, Scratch_Animals* scratch) {
     obj->routine += 2;
-
-    scratch->routine = AnimalVarIndex[level_id][RandomNumber() & 1];
-
+    scratch->routine = AnimalVarIndex[LEVEL_ZONE(level_id)][RandomNumber() & 1];
     scratch->xsp = AnimalVariables[scratch->routine].xsp;
     scratch->ysp = AnimalVariables[scratch->routine].ysp;
     obj->mappings = AnimalVariables[scratch->routine].mappings;

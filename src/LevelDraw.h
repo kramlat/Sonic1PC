@@ -12,7 +12,7 @@ size_t CalcVRAMPos(int16_t sx, int16_t sy, int16_t x, int16_t y);
 size_t CalcVRAMPos_2(int16_t sx, int16_t x, int16_t y);
 size_t CalcVRAMPos_Unknown(int16_t sx, int16_t sy, int16_t x, int16_t y);
 void GetBlockData(const uint8_t** meta, const uint8_t** block, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout);
-void GetBlockData_2(const uint8_t** meta, const uint8_t** block, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout);
+void GetBlockData_2(const uint8_t** meta, const uint8_t** block, int16_t sy, int16_t x, int16_t y, uint8_t* layout);
 void DrawFlipX(const uint8_t* block, size_t offset);
 void DrawFlipY(const uint8_t* block, size_t offset);
 void DrawFlipXY(const uint8_t* block, size_t offset);

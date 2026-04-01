@@ -21,10 +21,10 @@ option(MSVC_LINK_STATIC_RUNTIME
 #
 
 # Define project, source, and includes
-project(SoniCPort LANGUAGES C)
+project(Sonic LANGUAGES C)
 
 add_executable(
-  SoniCPort WIN32
+  Sonic WIN32
   # Game
   "src/Main.c"
   "src/Constants.h"
@@ -396,7 +396,7 @@ set(RESOURCES
     "SSLayout/6REV00"
     "SSLayout/6REV01")
 
-target_include_directories(SoniCPort PRIVATE "src")
+target_include_directories(Sonic PRIVATE "src")
 
 # ##############################################################################
 # Compiler flags #
@@ -404,19 +404,19 @@ target_include_directories(SoniCPort PRIVATE "src")
 
 # Revision
 if(REV01)
-  target_compile_definitions(SoniCPort PRIVATE SCP_REV01)
+  target_compile_definitions(Sonic PRIVATE SCP_REV01)
 else()
-  target_compile_definitions(SoniCPort PRIVATE SCP_REV00)
+  target_compile_definitions(Sonic PRIVATE SCP_REV00)
 endif()
 
 # Region
 if(JAPANESE)
-  target_compile_definitions(SoniCPort PRIVATE SCP_JP)
+  target_compile_definitions(Sonic PRIVATE SCP_JP)
 endif()
 
 # Bug fixes
 if(FIX_BUGS)
-  target_compile_definitions(SoniCPort PRIVATE SCP_FIX_BUGS)
+  target_compile_definitions(Sonic PRIVATE SCP_FIX_BUGS)
 endif()
 
 # Sanitization
@@ -426,8 +426,8 @@ endif()
 
 # Splash
 if(SPLASH)
-  target_compile_definitions(SoniCPort PRIVATE SCP_SPLASH)
-  target_sources(SoniCPort PRIVATE "src/GM_SSRG.c" "src/GM_SSRG.h")
+  target_compile_definitions(Sonic PRIVATE SCP_SPLASH)
+  target_sources(Sonic PRIVATE "src/GM_SSRG.c" "src/GM_SSRG.h")
   list(
     APPEND
     RESOURCES
@@ -445,9 +445,9 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
 
 # Force warnings
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  target_compile_options(SoniCPort PRIVATE /W4)
+  target_compile_options(Sonic PRIVATE /W4)
 else()
-  target_compile_options(SoniCPort PRIVATE -Wall -Wextra -pedantic)
+  target_compile_options(Sonic PRIVATE -Wall -Wextra -pedantic)
 endif()
 
 # Use LTO if requested
@@ -455,7 +455,7 @@ if(LTO)
   include(CheckIPOSupported)
   check_ipo_supported(RESULT result)
   if(result)
-    set_target_properties(SoniCPort PROPERTIES INTERPROCEDURAL_OPTIMIZATION
+    set_target_properties(Sonic PROPERTIES INTERPROCEDURAL_OPTIMIZATION
                                                TRUE)
   endif()
 endif()
@@ -468,9 +468,9 @@ endif()
 include(TestBigEndian)
 test_big_endian(ENDIAN)
 if(ENDIAN)
-  target_compile_definitions(SoniCPort PRIVATE SCP_BIG_ENDIAN)
+  target_compile_definitions(Sonic PRIVATE SCP_BIG_ENDIAN)
 else()
-  target_compile_definitions(SoniCPort PRIVATE SCP_LIL_ENDIAN)
+  target_compile_definitions(Sonic PRIVATE SCP_LIL_ENDIAN)
 endif()
 
 #
@@ -494,13 +494,13 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # Disable warnings that normally fire up on MSVC when using "unsafe" functions
   # instead of using MSVC's "safe" _s functions
-  target_compile_definitions(SoniCPort PRIVATE _CRT_SECURE_NO_WARNINGS)
+  target_compile_definitions(Sonic PRIVATE _CRT_SECURE_NO_WARNINGS)
 
   # Make it so source files are recognized as UTF-8 by MSVC
-  target_compile_options(SoniCPort PRIVATE "/utf-8")
+  target_compile_options(Sonic PRIVATE "/utf-8")
 
   # Use `main` instead of `WinMain`
-  set_target_properties(SoniCPort PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup")
+  set_target_properties(Sonic PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup")
 endif()
 
 # ##############################################################################
@@ -509,19 +509,19 @@ endif()
 
 # Force strict C99
 set_target_properties(
-  SoniCPort
+  Sonic
   PROPERTIES C_STANDARD 99
              C_STANDARD_REQUIRED ON
              C_EXTENSIONS OFF)
 
 # Set debug executable name
-set_target_properties(SoniCPort PROPERTIES DEBUG_OUTPUT_NAME "SoniCPort_debug")
+set_target_properties(Sonic PROPERTIES DEBUG_OUTPUT_NAME "Sonic_debug")
 
 # Set output directory
 set(BUILD_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
 set_target_properties(
-  SoniCPort
+  Sonic
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}
              RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_DIRECTORY}
              RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${BUILD_DIRECTORY}
@@ -536,9 +536,9 @@ set_target_properties(
 find_package(PkgConfig QUIET)
 
 if(BACKEND MATCHES "SDL2")
-  target_compile_definitions(SoniCPort PRIVATE SCP_BACKEND_SDL2)
+  target_compile_definitions(Sonic PRIVATE SCP_BACKEND_SDL2)
   target_sources(
-    SoniCPort PRIVATE "src/Backend/SDL2/System.c" "src/Backend/SDL2/Render.c"
+    Sonic PRIVATE "src/Backend/SDL2/System.c" "src/Backend/SDL2/Render.c"
                       "src/Backend/SDL2/Input.c")
 
   # Compile and link SDL2
@@ -560,19 +560,19 @@ if(BACKEND MATCHES "SDL2")
 
     # It has an implicit dependency on SDL2 functions, so it MUST be added
     # before SDL2::SDL2 (or SDL2::SDL2-static)
-    target_link_libraries(SoniCPort PRIVATE SDL2::SDL2main)
+    target_link_libraries(Sonic PRIVATE SDL2::SDL2main)
   endif()
 
   # Link to the actual SDL2 library. SDL2::SDL2 is the shared SDL library,
   # SDL2::SDL2-static is the static SDL libarary.
-  target_link_libraries(SoniCPort PRIVATE SDL2::SDL2)
+  target_link_libraries(Sonic PRIVATE SDL2::SDL2)
 endif()
 
 # ##############################################################################
 # Resource conversion #
 # ##############################################################################
 
-# Build bin2h externally, so it isn't cross-compiled when SoniCPort is
+# Build bin2h externally, so it isn't cross-compiled when Sonic is
 # (Emscripten, cross-GCC, MinGW on Linux, etc.)
 include(ExternalProject)
 
@@ -602,7 +602,7 @@ foreach(FILENAME IN LISTS RESOURCES)
     COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}/${DIRECTORY}"
     COMMAND bin2h_tool "${IN_DIR}/${FILENAME}" "${OUT_DIR}/${FILENAME}.h"
     DEPENDS bin2h_tool "${IN_DIR}/${FILENAME}")
-  target_sources(SoniCPort PRIVATE "${OUT_DIR}/${FILENAME}.h")
+  target_sources(Sonic PRIVATE "${OUT_DIR}/${FILENAME}.h")
 endforeach()
 
 include(ExternalProject)
@@ -635,5 +635,5 @@ foreach(FILENAME IN LISTS ASM)
     COMMAND clownassembler_tool -i "${IN_DIR}/${FILENAME}.asm" -o
             "${OUT_DIR}/${FILENAME}"
     DEPENDS clownassembler_tool "${IN_DIR}/${FILENAME}.asm")
-  target_sources(SoniCPort PRIVATE "${OUT_DIR}/${FILENAME}")
+  target_sources(Sonic PRIVATE "${OUT_DIR}/${FILENAME}")
 endforeach()

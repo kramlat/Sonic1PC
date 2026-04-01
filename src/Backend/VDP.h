@@ -52,6 +52,7 @@
 #define SPRITE_X_AND   0x1FF
 #define SPRITE_X_SHIFT 0
 
+extern int vsync;
 //VDP interface
 int VDP_Init(const MD_Header *header);
 void VDP_Quit();

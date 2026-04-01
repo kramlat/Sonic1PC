@@ -483,9 +483,7 @@ static inline void VDP_RefreshPalette()
 	for (size_t i = 0; i < 4 * 16; i++)
 		*pal_to++ = VDP_GetColour(i);
 }
-
-void VDP_Render()
-{
+void VDP_Render() {
 	//Get VDP screen pointer
 	vdp_screen = &vdp_screen_internal[0][VDP_INTERNAL_PAD];
 	vdp_mask = &vdp_mask_internal[0][VDP_INTERNAL_PAD];
@@ -529,7 +527,7 @@ void VDP_Render()
 	
 	//Render VDP screen
 	VDP_RefreshPalette();
-	
+
 	uint32_t *to = vdp_screen;
 	uint8_t *tom = vdp_mask;
 	struct VDP_SpriteCache *scache = vdp_sprite_cache;
@@ -562,10 +560,9 @@ void VDP_Render()
 	
 	//Send vertical interrupt
 	vdp_vint();
-	
 	//Render screen
 	Render_Screen(vdp_screen);
-	
+
 	//Handle events
 	if (Input_HandleEvents())
 	{

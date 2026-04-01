@@ -2,6 +2,7 @@
 #include "SDL_timer.h"
 
 #include "../VDP.h"
+#include "../../Video.h"
 
 #include <stdio.h>
 
@@ -25,7 +26,7 @@ static SDL_Renderer* renderer = NULL;
 static SDL_Texture* texture = NULL;
 
 // Render state
-static int vsync;
+int vsync;
 
 // Backend render interface
 int Render_Init(const MD_Header* header)
@@ -85,28 +86,7 @@ void Render_Quit()
 }
 
 // This takes in the internal VDP screen buffer positioned after the padding
-void Render_Screen(const uint32_t* screen)
-{
-    // Framerate limiter (when VSync is unavailable)
-    if (!vsync) {
-        static const unsigned int delays[3] = { 17, 16, 17 };
-        static unsigned int counter;
-
-        static uint32_t time_prev;
-        const uint32_t time_now = SDL_GetTicks();
-        const uint32_t time_next = time_prev + delays[counter % 3];
-
-        if (time_now >= time_prev + 100) {
-            time_prev = time_now;
-        } else {
-            if (time_now < time_next)
-                SDL_Delay(time_next - time_now);
-            time_prev += delays[counter % 3];
-        }
-
-        counter++;
-    }
-
+void Render_Screen(const uint32_t* screen) {
     // Lock screen texture
     uint8_t* to;
     int pitch;
@@ -120,6 +100,8 @@ void Render_Screen(const uint32_t* screen)
         memcpy(to, screen, TEXTURE_WIDTH << 2);
         to += pitch;
         screen += SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2);
+        hbla_pos = i;
+        VDP_SetHIntPosition(hbla_pos);
     }
 
     // Unlock screen texture and draw to window
