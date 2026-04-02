@@ -45,6 +45,7 @@ void Obj_Chopper(Object* obj) {
         case 0: // Initialization
             obj->routine += 2;
             Obj_Chopper_Construct(obj, scratch);
+            break;
 
             // Fallthrough to case 2
         case 2: // Moving

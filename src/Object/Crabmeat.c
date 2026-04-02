@@ -51,7 +51,6 @@ void Obj_Crabmeat_TurnAround(Object* obj, Scratch_Crabmeat* scratch) {
 }
 
 void Obj_Crabmeat_Fire_Projectile(Object* obj, Object* proj, uint8_t type, uint8_t routine, int16_t x, int16_t y, int16_t xsp) {
-    proj = FindFreeObj();
     if (proj != NULL) {
         proj->type = type;
         proj->routine = routine;
@@ -67,10 +66,8 @@ void Obj_Crabmeat_Fire(Object* obj, Scratch_Crabmeat* scratch) {
     obj->anim = 6;
 
     // Create projectiles
-    Object* proj;
-
-    Obj_Crabmeat_Fire_Projectile(obj, proj, ObjId_Crabmeat, 6, -16, 0, -0x100);
-    Obj_Crabmeat_Fire_Projectile(obj, proj, ObjId_Crabmeat, 6, 16, 0, 0x100);
+    Obj_Crabmeat_Fire_Projectile(obj, FindFreeObj(), ObjId_Crabmeat, 6, -16, 0, -0x100);
+    Obj_Crabmeat_Fire_Projectile(obj, FindFreeObj(), ObjId_Crabmeat, 6, 16, 0, 0x100);
 }
 
 bool Obj_Crabmeat_Check_CrabMode(Scratch_Crabmeat* scratch) {

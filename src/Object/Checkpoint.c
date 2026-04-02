@@ -30,7 +30,7 @@ void Obj_Checkpoint(Object* obj) {
         }
 
         case 2: { /* Lamp_Blue / Active Idle */
-            if (debug_use != 0 || lock_ctrl < 0) break;
+            if (debug_use != 0 || lock_ctrl > 0x7F) break;
             /* If we've already passed a newer checkpoint, turn red and stop checking */
             if ((last_lamp & 0x7F) >= (scratch->subtype & 0x7F)) {
                 objstate[obj->respawn_index] |= 1;
