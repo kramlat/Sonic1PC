@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include "Backend/Joypad.h"
-
+#include <stdbool.h>
 //Game types
 typedef enum
 {
@@ -41,6 +41,10 @@ extern uint32_t vbla_count;
 
 //Global assets
 extern const uint8_t Art_Text[];
+
+extern bool VDP_PALETTE_DISPLAY;
+extern uint16_t VRAMADDR;
+extern uint8_t CRAMPAL;
 
 //General game functions
 void ReadJoypads();

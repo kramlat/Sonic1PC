@@ -15,3 +15,5 @@
 //Joupad interface
 uint8_t Joypad_GetState1();
 uint8_t Joypad_GetState2();
+
+

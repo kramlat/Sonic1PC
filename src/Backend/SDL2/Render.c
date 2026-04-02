@@ -100,8 +100,6 @@ void Render_Screen(const uint32_t* screen) {
         memcpy(to, screen, TEXTURE_WIDTH << 2);
         to += pitch;
         screen += SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2);
-        hbla_pos = i;
-        VDP_SetHIntPosition(hbla_pos);
     }
 
     // Unlock screen texture and draw to window

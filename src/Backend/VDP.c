@@ -1,6 +1,7 @@
 #include "VDP.h"
 
 #include "MegaDrive.h"
+#include "../Video.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -16,7 +17,6 @@ int Input_HandleEvents();
 
 //VDP compile options
 #define VDP_SANITY //Enable sanity checks for the VDP (slower, but technically safer, basically for testing)
-//#define VDP_PALETTE_DISPLAY //Enable palette display
 
 //VDP masks
 #define VDP_MASK_PLANEPRI (1 << 0)
@@ -456,6 +456,10 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const uint16_t 
 	}
 }
 
+bool VDP_PALETTE_DISPLAY = false;
+uint16_t VRAMADDR = 0;
+uint8_t CRAMPAL = 0;
+
 static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct VDP_SpriteCache *scache, const int16_t *hscroll)
 {
 	//Clear scanline
@@ -466,15 +470,74 @@ static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct
 	//Draw planes
 	VDP_DrawPlaneRow(to, tom, (const uint16_t*)(vdp_vram + vdp_plane_b_location), -hscroll[1], y + vdp_vscroll_b);
 	VDP_DrawPlaneRow(to, tom, (const uint16_t*)(vdp_vram + vdp_plane_a_location), -hscroll[0], y + vdp_vscroll_a);
+    hbla_pos = y;
+    VDP_SetHIntPosition(hbla_pos);
+
 	
 	//Draw sprites
 	for (uint8_t i = 0; i < scache->pushind; i++)
 		VDP_DrawSpriteRow(to, tom, scache->sprite[i], y);
 	
-	#ifdef VDP_PALETTE_DISPLAY
-		for (size_t i = 0; i < 4 * 16; i++)
-			to[i] = vdp_screen_pal[i >> 4][i & 0xF];
-	#endif
+	if (VDP_PALETTE_DISPLAY & (y < 9))
+		for (size_t i = 0; i < 16; i++)
+			for (size_t j =0; j < 9; j++)
+				to[(SCREEN_WIDTH - 128) + ((i * 8)+ j)] = vdp_screen_pal[0][i];
+	if (VDP_PALETTE_DISPLAY & (y > 8) & (y < 17))
+		for (size_t i = 0; i < 16; i++)
+			for (size_t j =0; j < 9; j++)
+				to[(SCREEN_WIDTH - 128) + ((i * 8)+ j)] = vdp_screen_pal[1][i];
+	if (VDP_PALETTE_DISPLAY & (y > 16) & (y < 25))
+		for (size_t i = 0; i < 16; i++)
+			for (size_t j =0; j < 9; j++)
+				to[(SCREEN_WIDTH - 128) + ((i * 8)+ j)] = vdp_screen_pal[2][i];
+	if (VDP_PALETTE_DISPLAY & (y > 24) & (y < 33))
+		for (size_t i = 0; i < 16; i++)
+			for (size_t j =0; j < 9; j++)
+				to[(SCREEN_WIDTH - 128) + ((i * 8)+ j)] = vdp_screen_pal[3][i];
+	if (VDP_PALETTE_DISPLAY & (y > 32) & (y < 41))
+		for (size_t i = 0; i < 16; i++) {
+			to[(SCREEN_WIDTH - 128) + (i * 8)]       = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + VRAMADDR + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 1)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + VRAMADDR+ (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 2)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 1 + VRAMADDR+ (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 3)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 1 + VRAMADDR+ (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 4)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + 2 + VRAMADDR+ (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 5)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 2 + VRAMADDR+ (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 6)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 3 + VRAMADDR+ (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 7)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 3 + VRAMADDR+ (32 * i)] & 0xF];
+		}
+	if (VDP_PALETTE_DISPLAY & (y > 40) & (y < 49))
+		for (size_t i = 0; i < 16; i++) {
+			to[(SCREEN_WIDTH - 128) + (i * 8)]       = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + VRAMADDR + 0x200 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 1)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + VRAMADDR + 0x200 + (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 2)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 1 + VRAMADDR + 0x200 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 3)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 1 + VRAMADDR + 0x200 + (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 4)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + 2 + VRAMADDR + 0x200 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 5)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 2 + VRAMADDR + 0x200 + (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 6)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 3 + VRAMADDR + 0x200 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 7)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 3 + VRAMADDR + 0x200 + (32 * i)] & 0xF];
+		}
+	if (VDP_PALETTE_DISPLAY & (y > 48) & (y < 57))
+		for (size_t i = 0; i < 16; i++) {
+			to[(SCREEN_WIDTH - 128) + (i * 8)]       = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + VRAMADDR + 0x400 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 1)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + VRAMADDR + 0x400 + (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 2)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 1 + VRAMADDR + 0x400 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 3)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 1 + VRAMADDR + 0x400 + (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 4)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + 2 + VRAMADDR + 0x400 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 5)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 2 + VRAMADDR + 0x400 + (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 6)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 3 + VRAMADDR + 0x400 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 7)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 3 + VRAMADDR + 0x400 + (32 * i)] & 0xF];
+		}
+	if (VDP_PALETTE_DISPLAY & (y > 56) & (y < 65))
+		for (size_t i = 0; i < 16; i++) {
+			to[(SCREEN_WIDTH - 128) + (i * 8)]       = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + VRAMADDR + 0x600 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 1)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + VRAMADDR + 0x600 + (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 2)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 1 + VRAMADDR + 0x600 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 3)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 1 + VRAMADDR + 0x600 + (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 4)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + 2 + VRAMADDR + 0x600 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 5)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 2 + VRAMADDR + 0x600 + (32 * i)] & 0xF];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 6)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 3 + VRAMADDR + 0x600 + (32 * i)] & 0xF0) >> 4];
+			to[(SCREEN_WIDTH - 128) + ((i * 8) + 7)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 3 + VRAMADDR + 0x600 + (32 * i)] & 0xF];
+		}
 }
 
 static inline void VDP_RefreshPalette()
