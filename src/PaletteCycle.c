@@ -15,8 +15,7 @@ uint16_t pcyc_buffer[0x18];
 #include "Resource/Palette/TitleCycle.h"
 
 // Palette cycle routines
-signed int PCycle_Sega()
-{
+signed int PCycle_Sega(void) {
     uint16_t* to;
     const uint8_t* from;
     int16_t pal_num, pal_len;
@@ -94,8 +93,7 @@ signed int PCycle_Sega()
     }
 }
 
-static void PCycle_Water(const uint8_t* palette)
-{
+static void PCycle_Water(const uint8_t* palette) {
     // Wait for cycle timer
     if (--pcyc_time >= 0)
         return;
@@ -114,18 +112,15 @@ static void PCycle_Water(const uint8_t* palette)
     }
 }
 
-void PCycle_Title()
-{
+void PCycle_Title(void) {
     PCycle_Water(Palette_TitleCycle);
 }
 
-void PCycle_SS()
-{
+void PCycle_SS(void) {
 }
 
 // Palette cycle function
-void PaletteCycle()
-{
+void PaletteCycle(void) {
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_GHZ:
     case ZoneId_EndZ:

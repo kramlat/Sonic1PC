@@ -1,8 +1,4 @@
-#include "Object.h"
-
-// Title Sonic assets
-#include "Resource/Animation/TitleSonic.h"
-#include "Resource/Mappings/TitleSonic.h"
+#include "TitleSonic.h"
 
 // Title Sonic object
 void Obj_TitleSonic(Object* obj)

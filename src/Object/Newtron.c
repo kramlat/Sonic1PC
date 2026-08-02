@@ -1,22 +1,9 @@
-#include "Object.h"
+#include "Newtron.h"
 
 #include "Level.h"
 #include "LevelCollision.h"
 
-// Newtron assets
-#include "Resource/Animation/Newtron.h"
-#include "Resource/Mappings/Newtron.h"
-
-// Newtron object
-typedef struct
-{
-    uint8_t subtype; // 0x28
-    uint8_t pad[0x9]; // 0x29-0x31
-    uint8_t fired; // 0x32
-} Scratch_Newtron;
-
-void Obj_Newtron(Object* obj)
-{
+void Obj_Newtron(Object* obj) {
     Scratch_Newtron* scratch = (Scratch_Newtron*)&obj->scratch;
 
     int16_t floor_dist;

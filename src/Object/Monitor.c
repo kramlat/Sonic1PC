@@ -1,17 +1,12 @@
-#include "Object.h"
+#include "Monitor.h"
 
 #include "Level.h"
 #include "LevelCollision.h"
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
 
-// Monitor assets
-#include "Resource/Mappings/Monitor.h"
-#include "Resource/Animation/Monitor.h"
-
 // Monitor solid routine
-static signed int Mon_SolidSides(Object* obj, uint16_t x_rad, uint16_t y_rad, int16_t* x_off, int16_t* y_off)
-{
+static signed int Mon_SolidSides(Object* obj, uint16_t x_rad, uint16_t y_rad, int16_t* x_off, int16_t* y_off) {
     // Check if player is in horizontal range
     *x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
     uint16_t x_dia = x_rad << 1;
@@ -49,8 +44,7 @@ static signed int Mon_SolidSides(Object* obj, uint16_t x_rad, uint16_t y_rad, in
 }
 
 // Monitor object
-void Obj_Monitor(Object* obj)
-{
+void Obj_Monitor(Object* obj) {
     switch (obj->routine) {
     case 0: // Initialization
         // Increment routine
@@ -192,15 +186,13 @@ void Obj_Monitor(Object* obj)
 }
 
 // Monitor item object
-static void ExtraLife()
-{
+static void ExtraLife(void) {
     lives++;
     life_count++;
     // music	bgm_ExtraLife,1,0,0	; play extra life music TODO
 }
 
-void Obj_MonitorItem(Object* obj)
-{
+void Obj_MonitorItem(Object* obj) {
     switch (obj->routine) {
     case 0: // Initialization
         // Increment routine

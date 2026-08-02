@@ -26,75 +26,14 @@
 #include "Resource/SSRG/MapSquare.h"
 
 static const uint16_t pal_ssrg[] = {
-    0x0000,
-    0x0400,
-    0x0800,
-    0x0C00,
-    0x0E00,
-    0x0EEE,
-    0x0AAA,
-    0x0888,
-    0x0666,
-    0x0444,
-    0x0222,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0444,
-    0x0888,
-    0x0CCC,
-    0x0EEE,
-    0x0888,
-    0x0666,
-    0x0444,
-    0x0222,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0422,
-    0x0844,
-    0x0C66,
-    0x0E88,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0404,
-    0x0808,
-    0x0E0E,
-    0x00E0,
-    0x00C0,
-    0x00A0,
-    0x0080,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
+    0x0000, 0x0400, 0x0800, 0x0C00, 0x0E00, 0x0EEE, 0x0AAA, 0x0888, 0x0666, 0x0444, 0x0222, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+    0x0000, 0x0444, 0x0888, 0x0CCC, 0x0EEE, 0x0888, 0x0666, 0x0444, 0x0222, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+    0x0000, 0x0422, 0x0844, 0x0C66, 0x0E88, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+    0x0000, 0x0404, 0x0808, 0x0E0E, 0x00E0, 0x00C0, 0x00A0, 0x0080, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 };
 
 // SSRG planes
-static void CopyTilemap_Single(uint16_t v, size_t offset, size_t width, size_t height)
-{
+static void CopyTilemap_Single(uint16_t v, size_t offset, size_t width, size_t height) {
     while (height-- > 0) {
         VDP_SeekVRAM(offset);
         for (size_t x = 0; x < width; x++)
@@ -103,8 +42,7 @@ static void CopyTilemap_Single(uint16_t v, size_t offset, size_t width, size_t h
     }
 }
 
-static void CopyTilemap_Add(const uint8_t* tilemap, size_t offset, size_t width, size_t height, uint16_t add)
-{
+static void CopyTilemap_Add(const uint8_t* tilemap, size_t offset, size_t width, size_t height, uint16_t add) {
     while (height-- > 0) {
         VDP_SeekVRAM(offset);
         for (size_t x = 0; x < width; x++) {
@@ -116,8 +54,7 @@ static void CopyTilemap_Add(const uint8_t* tilemap, size_t offset, size_t width,
     }
 }
 
-static void SRG_ScrollFG()
-{
+static void SRG_ScrollFG(void) {
     int16_t* bufp;
 
     // Scroll FG
@@ -143,8 +80,7 @@ static void SRG_ScrollFG()
     }
 }
 
-static void SRG_DrawFG()
-{
+static void SRG_DrawFG(void) {
     // Get scroll value
     uint16_t scroll_fg = (ssrg_scroll_fg * 2) - 0x40;
 
@@ -184,15 +120,13 @@ static void SRG_DrawFG()
     }
 }
 
-static void UpdateScrollPositions(Object* obj)
-{
+static void UpdateScrollPositions(Object* obj) {
     ssrg_scroll_bg = obj->pos.s.x;
     vid_bg_scrpos_y_dup = -obj->pos.s.y;
 }
 
 // SSRG objects
-static void SpeedToPosHud(Object* obj)
-{
+static void SpeedToPosHud(Object* obj) {
     uint32_t xadd = (int32_t)obj->xsp << 8;
     obj->pos.s.x += xadd >> 16;
     uint32_t y = ((obj->pos.s.y << 16) | obj->pos.s.yl) + (obj->ysp << 8);
@@ -201,14 +135,12 @@ static void SpeedToPosHud(Object* obj)
 }
 
 // Letters object
-typedef struct
-{
+typedef struct {
     uint16_t pad; // 0x28-0x29
     uint16_t timer; // 0x2A
 } Scratch_Letters;
 
-static void Obj_Letters(Object* obj)
-{
+static void Obj_Letters(Object* obj) {
     Scratch_Letters* scratch = (Scratch_Letters*)&obj->scratch;
 
     static const uint16_t data[4][8] = {
@@ -231,8 +163,7 @@ static void Obj_Letters(Object* obj)
     };
 
     switch (obj->routine) {
-    case 0: // Initialization
-    {
+    case 0: {
         // Increment routine counter and read object data
         obj->routine += 2;
 
@@ -329,15 +260,13 @@ static void Obj_Letters(Object* obj)
 }
 
 // Square object
-typedef struct
-{
+typedef struct {
     uint16_t pad; // 0x28-0x29
     uint16_t timer; // 0x2A
     int16_t speed; // 0x2C
 } Scratch_Square;
 
-static void Obj_Square(Object* obj)
-{
+static void Obj_Square(Object* obj) {
     Scratch_Square* scratch = (Scratch_Square*)&obj->scratch;
 
     static const struct MapRamData {
@@ -411,8 +340,7 @@ static void Obj_Square(Object* obj)
             scratch->speed = 0xA40;
         }
         break;
-    case 10: // Finish spinning
-    {
+    case 10: {
         int16_t speed = scratch->speed;
         if (speed < 0) {
             // Invert palette brightness
@@ -450,15 +378,13 @@ static void Obj_Square(Object* obj)
 }
 
 // Sonic neon object
-typedef struct
-{
+typedef struct {
     uint16_t pad; // 0x28-0x29
     uint16_t timer; // 0x2A
     uint16_t speed; // 0x2C
 } Scratch_SonicNeon;
 
-static void Obj_SonicNeon(Object* obj)
-{
+static void Obj_SonicNeon(Object* obj) {
     // For some reason this object is written completely differently to the others
 
     Scratch_SonicNeon* scratch = (Scratch_SonicNeon*)&obj->scratch;
@@ -635,8 +561,7 @@ static void Obj_SonicNeon(Object* obj)
 }
 
 // SSRG splash game mode
-void GM_SSRG()
-{
+void GM_SSRG() {
     // moveq	#$FFFFFFE4,d0				; set music ID to "stop music"
     // jsr	PlaySound_Special			; play ID //TODO
 

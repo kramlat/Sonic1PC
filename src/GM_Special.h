@@ -1,3 +1,3 @@
 #pragma once
 
-void GM_Special();
+void GM_Special(void);

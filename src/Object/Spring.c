@@ -1,25 +1,13 @@
-#include "Object.h"
+#include "Spring.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
 #include "Sonic.h"
 
-// Spring assets
-#include "Resource/Animation/Spring.h"
-#include "Resource/Mappings/Spring.h"
-
 // Spring object
-typedef struct
-{
-    uint8_t subtype; // 0x28
-    uint8_t pad[7]; // 0x29-0x2F
-    int16_t power; // 0x30
-} Scratch_Spring;
-
 static const int16_t spring_power[] = { -0x1000, -0xA00 };
 
-void Obj_Spring(Object* obj)
-{
+void Obj_Spring(Object* obj) {
     Scratch_Spring* scratch = (Scratch_Spring*)&obj->scratch;
 
     switch (obj->routine) {

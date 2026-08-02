@@ -13,7 +13,5 @@
 #define JPAD_UP    (1 << 0)
 
 //Joupad interface
-uint8_t Joypad_GetState1();
-uint8_t Joypad_GetState2();
-
-
+uint8_t Joypad_GetState1(void);
+uint8_t Joypad_GetState2(void);

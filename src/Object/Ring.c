@@ -1,4 +1,4 @@
-#include "Object.h"
+#include "Ring.h"
 
 #include "Game.h"
 #include "Level.h"
@@ -6,23 +6,7 @@
 #include "LevelScroll.h"
 #include "MathUtil.h"
 
-// Ring assets
-#include "Resource/Animation/Ring.h"
-#ifdef SCP_REV00
-#include "Resource/Mappings/RingREV00.h"
-#else
-#include "Resource/Mappings/RingREV01.h"
-#endif
-
 // Ring object
-typedef struct
-{
-    uint8_t subtype; // 0x28
-    uint8_t pad[0x9]; // 0x29-0x31
-    int16_t base_x; // 0x32
-    uint8_t index; // 0x34
-} Scratch_Ring;
-
 static const int8_t ring_pos[16][2] = {
     { 0x10, 0x00 },
     { 0x18, 0x00 },
@@ -42,8 +26,7 @@ static const int8_t ring_pos[16][2] = {
     { -0x18, 0x10 },
 };
 
-static bool Obj_Ring_ShiftChk(uint8_t* state)
-{
+static bool Obj_Ring_ShiftChk(uint8_t* state) {
     if (*state & 1) {
         *state >>= 1;
         return true;
@@ -52,8 +35,7 @@ static bool Obj_Ring_ShiftChk(uint8_t* state)
     return false;
 }
 
-static void Obj_Ring_SetupRing(Object* obj, uint8_t index, int16_t x, int16_t y, Object* ring)
-{
+static void Obj_Ring_SetupRing(Object* obj, uint8_t index, int16_t x, int16_t y, Object* ring) {
     Scratch_Ring* scratch = (Scratch_Ring*)&ring->scratch;
 
     // Set type and routine
@@ -83,14 +65,12 @@ static void Obj_Ring_SetupRing(Object* obj, uint8_t index, int16_t x, int16_t y,
     scratch->index = index;
 }
 
-static void ExtraLife()
-{
+static void ExtraLife(void) {
     lives++;
     life_count++;
 }
 
-static void CollectRing()
-{
+static void CollectRing(void) {
     // Increment ring count
     rings++;
     ring_count |= 1;
@@ -106,13 +86,11 @@ static void CollectRing()
     }
 }
 
-void Obj_Ring(Object* obj)
-{
+void Obj_Ring(Object* obj) {
     Scratch_Ring* scratch = (Scratch_Ring*)&obj->scratch;
 
     switch (obj->routine) {
-    case 0: // Initialization
-    {
+    case 0: {
         // Get spawning information
         uint8_t* statep = &objstate[obj->respawn_index];
         uint8_t state = *statep;
@@ -182,8 +160,7 @@ void Obj_Ring(Object* obj)
 }
 
 // Ring loss object
-static void Obj_RingLoss_SetupRing(Object* obj, int16_t* xsp, int16_t* ysp, word_u* angle, Object* ring)
-{
+static void Obj_RingLoss_SetupRing(Object* obj, int16_t* xsp, int16_t* ysp, word_u* angle, Object* ring) {
     // Set object type and routine
     ring->type = ObjId_RingLoss;
     ring->routine += 2;
@@ -230,11 +207,9 @@ static void Obj_RingLoss_SetupRing(Object* obj, int16_t* xsp, int16_t* ysp, word
     angle->v = -angle->v;
 }
 
-void Obj_RingLoss(Object* obj)
-{
+void Obj_RingLoss(Object* obj) {
     switch (obj->routine) {
-    case 0: // Initialization
-    {
+    case 0: {
         // Get how many rings to drop
         uint16_t drop = rings;
         if (drop >= 32)

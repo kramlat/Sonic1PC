@@ -29,8 +29,7 @@ static SDL_Texture* texture = NULL;
 int vsync;
 
 // Backend render interface
-int Render_Init(const MD_Header* header)
-{
+int Render_Init(const MD_Header* header) {
     // Create window
     if ((window = SDL_CreateWindow(header->title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, TEXTURE_WIDTH * SCREEN_SCALE, TEXTURE_HEIGHT * SCREEN_SCALE, SDL_WINDOW_HIDDEN)) == NULL) {
         printf("Render_Init: %s\n", SDL_GetError());
@@ -72,8 +71,7 @@ int Render_Init(const MD_Header* header)
     return 0;
 }
 
-void Render_Quit()
-{
+void Render_Quit(void) {
     // Destroy screen texture
     if (texture != NULL)
         SDL_DestroyTexture(texture);

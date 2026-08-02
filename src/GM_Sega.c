@@ -20,8 +20,7 @@
 #endif
 
 // SEGA gamemode
-void GM_Sega()
-{
+void GM_Sega(void) {
     // Stop music
     // sfx	bgm_Stop,0,1,1 //TODO
 

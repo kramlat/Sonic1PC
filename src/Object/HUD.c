@@ -1,13 +1,8 @@
-#include "Object.h"
-
+#include "Object/HUD.h"
 #include "Level.h"
 
-// HUD assets
-#include "Resource/Mappings/HUD.h"
-
 // HUD object
-void Obj_HUD(Object* obj)
-{
+void Obj_HUD(Object* obj) {
     switch (obj->routine) {
     case 0: // Initialization
         // Increment routine

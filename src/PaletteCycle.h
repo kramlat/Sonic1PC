@@ -7,8 +7,8 @@ extern int16_t pcyc_num, pcyc_time;
 extern uint16_t pcyc_buffer[0x18];
 
 //Palette cycle routines
-signed int PCycle_Sega();
-void PCycle_Title();
-void PCycle_GHZ();
-void PCycle_SS();
-void PaletteCycle();
+signed int PCycle_Sega(void);
+void PCycle_Title(void);
+void PCycle_GHZ(void);
+void PCycle_SS(void);
+void PaletteCycle(void);

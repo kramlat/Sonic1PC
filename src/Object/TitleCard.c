@@ -1,4 +1,4 @@
-#include "Object.h"
+#include "TitleCard.h"
 
 #include "Constants.h"
 #include "Level.h"
@@ -15,10 +15,6 @@ static const struct TitleCard_Item {
     { 0x00E0 + SCREEN_TALLADD2, 0x02, 0x0A },
 };
 
-#define TO_ADD SCREEN_WIDEADD2
-#define FROM_ADD (TO_ADD + ((SCREEN_WIDEADD2 + 0xF) & ~0xF))
-#define FROM_SUB ((0x10 - TO_ADD) & 0xF)
-
 static const struct TitleCard_Config {
     int16_t x0, x1;
 } titlecard_config[7][4] = {
@@ -31,24 +27,12 @@ static const struct TitleCard_Config {
     { { 0x0000 - FROM_SUB, 0x0120 + TO_ADD }, { -0x011C - FROM_SUB, 0x0124 + TO_ADD }, { 0x03EC + FROM_ADD, 0x03EC + TO_ADD }, { 0x01EC + FROM_ADD, 0x012C + TO_ADD } }, // FZ
 };
 
-// Title card mappings
-#include "Resource/Mappings/TitleCard.h"
-
 // Title card object
-typedef struct
-{
-    uint8_t pad[8]; // 0x28-0x2F
-    int16_t main_x; // 0x30
-    int16_t final_x; // 0x32
-} Scratch_TitleCard;
-
-void Obj_TitleCard(Object* obj)
-{
+void Obj_TitleCard(Object* obj) {
     Scratch_TitleCard* scratch = (Scratch_TitleCard*)&obj->scratch;
 
     switch (obj->routine) {
-    case 0: // Initialization
-    {
+    case 0: {
         Object* a1 = obj;
 
         // Get title card to render

@@ -27,8 +27,7 @@
 #define TILE_PATTERN_AND    0x07FF
 #define TILE_PATTERN_SHIFT  0
 
-#define TILE_MAP(priority, palette, y_flip, x_flip, pattern)      \
-	(                                                             \
+#define TILE_MAP(priority, palette, y_flip, x_flip, pattern) (    \
 		((priority << TILE_PRIORITY_SHIFT) & TILE_PRIORITY_AND) | \
 		((palette  << TILE_PALETTE_SHIFT)  & TILE_PALETTE_AND)  | \
 		((y_flip   << TILE_Y_FLIP_SHIFT)   & TILE_Y_FLIP_AND)   | \
@@ -55,7 +54,7 @@
 extern int vsync;
 //VDP interface
 int VDP_Init(const MD_Header *header);
-void VDP_Quit();
+void VDP_Quit(void);
 
 void VDP_SeekVRAM(size_t offset);
 void VDP_WriteVRAM(const uint8_t *data, size_t len);
@@ -75,4 +74,4 @@ void VDP_SetBackgroundColour(uint8_t index);
 void VDP_SetVScroll(int16_t scroll_a, int16_t scroll_b);
 void VDP_SetHIntPosition(int16_t pos);
 
-void VDP_Render();
+void VDP_Render(void);

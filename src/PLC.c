@@ -80,8 +80,7 @@
 #include "Resource/Art/Chicken.h"
 
 // PLC lists
-typedef struct
-{
+typedef struct {
     size_t plcs;
     const PLC* plc;
 } PLCList;
@@ -435,8 +434,7 @@ static uint16_t plc_buffer_reg18;
 static uint16_t plc_buffer_reg1A;
 
 // PLC interface
-void AddPLC(PlcId plc)
-{
+void AddPLC(PlcId plc) {
     // Get PLC list to load
     const PLCList* list = plcs[plc];
     if (list == NULL)
@@ -452,8 +450,7 @@ void AddPLC(PlcId plc)
         plc_free[i] = list->plc[i];
 }
 
-void NewPLC(PlcId plc)
-{
+void NewPLC(PlcId plc) {
     // Get PLC list to load
     const PLCList* list = plcs[plc];
     if (list == NULL)
@@ -467,15 +464,13 @@ void NewPLC(PlcId plc)
         plc_buffer[i] = list->plc[i];
 }
 
-void ClearPLC()
-{
+void ClearPLC(void) {
     // Clear PLC buffer
     plc_buffer_reg18 = 0;
     memset(plc_buffer, 0, sizeof(plc_buffer));
 }
 
-void RunPLC()
-{
+void RunPLC(void) {
     if (plc_buffer[0].art != NULL && plc_buffer_reg18 == 0) {
         plc_buffer_regs.source = plc_buffer[0].art;
         plc_buffer_regs.vram_mode = true;
@@ -499,8 +494,7 @@ void RunPLC()
     }
 }
 
-static void ProcessDPLC_Main(size_t off)
-{
+static void ProcessDPLC_Main(size_t off) {
     VDP_SeekVRAM(off);
 
     do {
@@ -521,8 +515,7 @@ static void ProcessDPLC_Main(size_t off)
     } while (--plc_buffer_reg1A != 0);
 }
 
-void ProcessDPLC()
-{
+void ProcessDPLC(void) {
     if (plc_buffer_reg18 != 0) {
         plc_buffer_reg1A = PLC_SPEED_1; // Process PLC_SPEED_1 tiles
 
@@ -533,8 +526,7 @@ void ProcessDPLC()
     }
 }
 
-void ProcessDPLC2()
-{
+void ProcessDPLC2(void) {
     if (plc_buffer_reg18 != 0) {
         plc_buffer_reg1A = PLC_SPEED_2; // Process PLC_SPEED_2 tiles
 
@@ -545,8 +537,7 @@ void ProcessDPLC2()
     }
 }
 
-void QuickPLC(PlcId plc)
-{
+void QuickPLC(PlcId plc) {
     // Get PLC list to load and decompress immediately
     const PLCList* list = plcs[plc];
     if (list == NULL)

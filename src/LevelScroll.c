@@ -291,7 +291,7 @@ void BGScroll_Block3(int32_t x, uint8_t bit)
 #endif
 
 //Level deformation routines
-void Deform_GHZ()
+void Deform_GHZ(void)
 {
 	int16_t fg_x, bg_x;
 	int16_t *bufp = &hscroll_buffer[0][0];
@@ -369,7 +369,7 @@ void Deform_GHZ()
 #endif
 }
 
-void Deform_LZ() {
+void Deform_LZ(void) {
 #ifdef SCP_REV00
 	BGScroll_Block1(scrshift_x << 7, scrshift_y << 7);
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
@@ -405,7 +405,7 @@ void Deform_LZ() {
 #endif
 }
 
-void Deform_MZ() {
+void Deform_MZ(void) {
 #ifdef SCP_REV00
 	BGScroll_Block1((scrshift_x << 6) * 3, 0);
 	int16_t y_off = 0x200;
@@ -451,7 +451,7 @@ void Deform_MZ() {
 #endif
 }
 
-void Deform_SLZ() {
+void Deform_SLZ(void) {
 #ifdef SCP_REV00
 	BGScroll_Block2(scrshift_x << 7, scrshift_y << 7);
 #else
@@ -475,7 +475,7 @@ void Deform_SLZ() {
 	BGScroll_X(bg_scrpos_y.f.u, ((bg_scrpos_y.f.u - 0xC0) & 0x3F0) >> 3);
 }
 
-void Deform_SYZ() {
+void Deform_SYZ(void) {
 #ifdef SCP_REV00
 	BGScroll_Block1(scrshift_x << 6, (scrshift_y << 4) * 3);
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
@@ -502,7 +502,7 @@ void Deform_SYZ() {
 #endif
 }
 
-void Deform_SBZ() {
+void Deform_SBZ(void) {
 	if (LEVEL_ACT(level_id) != 0) { // Act 2/3
 		BGScroll_XY(scrshift_x << 6, scrshift_y << 5);
 		vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
@@ -544,7 +544,7 @@ void Deform_SBZ() {
 #endif
 }
 
-static void (*deform_routines[ZoneId_Num])() = {
+static void (*deform_routines[ZoneId_Num])(void) = {
 	/* ZoneId_GHZ  */ Deform_GHZ,
 	/* ZoneId_LZ   */ Deform_LZ,
 	/* ZoneId_MZ   */ Deform_MZ,
@@ -723,7 +723,7 @@ static void MoveBehindMid(int16_t push_amount) {
 	SetScreenPosition(target_x);
 }
 
-void MoveScreenHoriz() {
+void MoveScreenHoriz(void) {
 	int16_t distance_to_player = player->pos.l.x.f.u - scrpos_x.f.u;
 #if SCP_FIX_BUGS
 	int16_t push_left = distance_to_player - 144;
@@ -750,7 +750,7 @@ void MoveScreenHoriz() {
 	scrshift_x = 0;
 }
 
-void ScrollHoriz() {
+void ScrollHoriz(void) {
 	int16_t prev_x = scrpos_x.f.u;
 	MoveScreenHoriz();
 	if (((scrpos_x.f.u & 0x10) ^ fg_xblock) == 0) {
@@ -788,7 +788,7 @@ static void LimitScrollBottom(dword_s *scroll) {
 	}
 }
 
-void ScrollVertical() {
+void ScrollVertical(void) {
 	dword_s scroll;
 	int16_t y = player->pos.l.y.f.u - scrpos_y.f.u;
 	uint16_t speed = 0;
@@ -843,7 +843,7 @@ void ScrollVertical() {
 	ApplyScrollUpdate(scrpos_y.f.u, old_y, &fg_yblock, &fg_scroll_flags, SCROLL_FLAG_UP, SCROLL_FLAG_DOWN);
 }
 
-void DeformLayers()
+void DeformLayers(void)
 {
 	//Check if we're allowed to scroll
 	if (nobgscroll)

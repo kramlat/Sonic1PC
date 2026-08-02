@@ -14,8 +14,7 @@ static const MD_Header s1_header = {
 };
 
 //MegaDrive entry point
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	(void)argc;
 	(void)argv;
 	

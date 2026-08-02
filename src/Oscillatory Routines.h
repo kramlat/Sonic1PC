@@ -10,5 +10,5 @@ typedef struct {
     uint16_t amplitude;
 } OscillateSettings;
 
-void OscillateNumInit();
-void OscillateNumDo();
+void OscillateNumInit(void);
+void OscillateNumDo(void);

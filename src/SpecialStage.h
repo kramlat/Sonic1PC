@@ -22,4 +22,4 @@ extern uint8_t ss_layout[SS_DIM * SS_DIM];
 
 //Special Stage functions
 void SS_ShowLayout(uint8_t sprite_i);
-void SS_Load();
+void SS_Load(void);

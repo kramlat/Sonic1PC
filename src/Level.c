@@ -146,12 +146,11 @@
 #include "Resource/ObjectLayout/SBZ2.h"
 #include "Resource/ObjectLayout/SBZ3.h"
 
-void Obj_Checkpoint_LoadInfo() {
+void Obj_Checkpoint_LoadInfo(void) {
     last_lamp = prev_lamp;
     player->pos.l.x.v = lamp_state.spawn.x;
     player->pos.l.y.v = lamp_state.spawn.y;
-    // rings = lamp_state.rings; // restore rings if you want
-    rings = 0; // normal behavior
+    rings = 0;
     life_count = lamp_state.lives;
     time.pad = lamp_state.time.pad;
     time.min = lamp_state.time.min;
@@ -187,66 +186,43 @@ void Obj_Checkpoint_LoadInfo() {
 }
 
 // Level definitions
-static const struct
-{
+static const struct {
     const uint8_t* layout_fg;
     const uint8_t* layout_bg;
     const uint8_t* layout_3;
 } level_layouts[ZoneId_Num][4] = {
     {
         // ZoneId_GHZ
-        { Layout_GHZ1, Layout_GHZBG, NULL },
-        { Layout_GHZ2, Layout_GHZBG, NULL },
-        { Layout_GHZ3, Layout_GHZBG, NULL },
-        { NULL, NULL, NULL },
+        { Layout_GHZ1, Layout_GHZBG, NULL }, { Layout_GHZ2, Layout_GHZBG, NULL }, { Layout_GHZ3, Layout_GHZBG, NULL }, { NULL, NULL, NULL },
     },
     {
         // ZoneId_LZ
-        { Layout_LZ1, Layout_LZBG, NULL },
-        { Layout_LZ2, Layout_LZBG, NULL },
-        { Layout_LZ3, Layout_LZBG, NULL },
-        { Layout_SBZ3, Layout_LZBG, NULL },
+        { Layout_LZ1, Layout_LZBG, NULL }, { Layout_LZ2, Layout_LZBG, NULL }, { Layout_LZ3, Layout_LZBG, NULL }, { Layout_SBZ3, Layout_LZBG, NULL },
     },
     {
         // ZoneId_MZ
-        { Layout_MZ1, Layout_MZ1BG, Layout_MZ1 },
-        { Layout_MZ2, Layout_MZ2BG, NULL },
-        { Layout_MZ3, Layout_MZ3BG, NULL },
-        { NULL, NULL, NULL },
+        { Layout_MZ1, Layout_MZ1BG, Layout_MZ1 }, { Layout_MZ2, Layout_MZ2BG, NULL }, { Layout_MZ3, Layout_MZ3BG, NULL }, { NULL, NULL, NULL },
     },
     {
         // ZoneId_SLZ
-        { Layout_SLZ1, Layout_SLZBG, NULL },
-        { Layout_SLZ2, Layout_SLZBG, NULL },
-        { Layout_SLZ3, Layout_SLZBG, NULL },
-        { NULL, NULL, NULL },
+        { Layout_SLZ1, Layout_SLZBG, NULL }, { Layout_SLZ2, Layout_SLZBG, NULL }, { Layout_SLZ3, Layout_SLZBG, NULL }, { NULL, NULL, NULL },
     },
     {
 // ZoneId_SYZ
 #ifdef SCP_REV00
-        { Layout_SYZ1, Layout_SYZBGREV00, NULL },
-        { Layout_SYZ2, Layout_SYZBGREV00, NULL },
-        { Layout_SYZ3, Layout_SYZBGREV00, NULL },
+        { Layout_SYZ1, Layout_SYZBGREV00, NULL }, { Layout_SYZ2, Layout_SYZBGREV00, NULL }, { Layout_SYZ3, Layout_SYZBGREV00, NULL },
 #else
-        { Layout_SYZ1, Layout_SYZBGREV01, NULL },
-        { Layout_SYZ2, Layout_SYZBGREV01, NULL },
-        { Layout_SYZ3, Layout_SYZBGREV01, NULL },
+        { Layout_SYZ1, Layout_SYZBGREV01, NULL }, { Layout_SYZ2, Layout_SYZBGREV01, NULL }, { Layout_SYZ3, Layout_SYZBGREV01, NULL },
 #endif
         { NULL, NULL, NULL },
     },
     {
         // ZoneId_SBZ
-        { Layout_SBZ1, Layout_SBZ1BG, Layout_SBZ1BG },
-        { Layout_SBZ2, Layout_SBZ2BG, Layout_SBZ2BG },
-        { Layout_SBZ2, Layout_SBZ2BG, NULL },
-        { NULL, NULL, NULL },
+        { Layout_SBZ1, Layout_SBZ1BG, Layout_SBZ1BG }, { Layout_SBZ2, Layout_SBZ2BG, Layout_SBZ2BG }, { Layout_SBZ2, Layout_SBZ2BG, NULL }, { NULL, NULL, NULL },
     },
     {
         // ZoneId_EndZ
-        { Layout_Ending, Layout_GHZBG, NULL },
-        { Layout_Ending, Layout_GHZBG, NULL },
-        { NULL, NULL, NULL },
-        { NULL, NULL, NULL },
+        { Layout_Ending, Layout_GHZBG, NULL }, { Layout_Ending, Layout_GHZBG, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL },
     },
 };
 
@@ -304,55 +280,13 @@ static const int16_t LevelSizeArray[ZoneId_Num][4][6] = {
 
 // Player start positions
 static const int16_t StartLocArray[ZoneId_Num][4][2] = {
-    {
-        // ZoneId_GHZ
-        { 0x0050, 0x03B0 },
-        { 0x0050, 0x00FC },
-        { 0x0050, 0x03B0 },
-        { 0x0080, 0x00A8 },
-    },
-    {
-        // ZoneId_LZ
-        { 0x0060, 0x006C },
-        { 0x0050, 0x00EC },
-        { 0x0050, 0x02EC },
-        { 0x0B80, 0x0000 },
-    },
-    {
-        // ZoneId_MZ
-        { 0x0030, 0x0266 },
-        { 0x0030, 0x0266 },
-        { 0x0030, 0x0166 },
-        { 0x0080, 0x00A8 },
-    },
-    {
-        // ZoneId_SLZ
-        { 0x0040, 0x02CC },
-        { 0x0040, 0x014C },
-        { 0x0040, 0x014C },
-        { 0x0080, 0x00A8 },
-    },
-    {
-        // ZoneId_SYZ
-        { 0x0030, 0x03BD },
-        { 0x0030, 0x01BD },
-        { 0x0030, 0x00EC },
-        { 0x0080, 0x00A8 },
-    },
-    {
-        // ZoneId_SBZ
-        { 0x0030, 0x048C },
-        { 0x0030, 0x074C },
-        { 0x2140, 0x05AC },
-        { 0x0080, 0x00A8 },
-    },
-    {
-        // ZoneId_EndZ
-        { 0x0620, 0x016B },
-        { 0x0EE0, 0x016C },
-        { 0x0080, 0x00A8 },
-        { 0x0080, 0x00A8 },
-    },
+    { { 0x0050, 0x03B0 }, { 0x0050, 0x00FC }, { 0x0050, 0x03B0 }, { 0x0080, 0x00A8 }, }, // ZoneId_GHZ
+    { { 0x0060, 0x006C }, { 0x0050, 0x00EC }, { 0x0050, 0x02EC }, { 0x0B80, 0x0000 }, }, // ZoneId_LZ
+    { { 0x0030, 0x0266 }, { 0x0030, 0x0266 }, { 0x0030, 0x0166 }, { 0x0080, 0x00A8 }, }, // ZoneId_MZ
+    { { 0x0040, 0x02CC }, { 0x0040, 0x014C }, { 0x0040, 0x014C }, { 0x0080, 0x00A8 }, }, // ZoneId_SLZ
+    { { 0x0030, 0x03BD }, { 0x0030, 0x01BD }, { 0x0030, 0x00EC }, { 0x0080, 0x00A8 }, }, // ZoneId_SYZ
+    { { 0x0030, 0x048C }, { 0x0030, 0x074C }, { 0x2140, 0x05AC }, { 0x0080, 0x00A8 }, }, // ZoneId_SBZ
+    { { 0x0620, 0x016B }, { 0x0EE0, 0x016C }, { 0x0080, 0x00A8 }, { 0x0080, 0x00A8 }, }, // ZoneId_EndZ
 };
 
 // Level loop (and S-tube) chunks
@@ -591,8 +525,7 @@ LevelAnim sprite_anim[4];
 uint16_t sprite_anim_3buf;
 
 // Game functions
-void AddPoints(uint16_t points)
-{
+void AddPoints(uint16_t points) {
     // Update HUD
     score_count = 1;
 
@@ -616,8 +549,7 @@ void AddPoints(uint16_t points)
 }
 
 // Level loading
-void LoadLevelMaps()
-{
+void LoadLevelMaps(void) {
     // Get header
     const LevelHeader* header = &level_header[LEVEL_ZONE(level_id)];
 
@@ -626,8 +558,7 @@ void LoadLevelMaps()
     memcpy(level_map16, header->map16, header->map16_size);
 }
 
-void LoadLayout(const uint8_t* from, uint8_t* to)
-{
+void LoadLayout(const uint8_t* from, uint8_t* to) {
     // Read layout header (dimensions - 1)
     uint8_t width = *from++;
     uint8_t height = *from++;
@@ -640,8 +571,7 @@ void LoadLayout(const uint8_t* from, uint8_t* to)
     } while (height-- > 0);
 }
 
-void LoadLevelLayout()
-{
+void LoadLevelLayout(void) {
     // Load foreground and background layers
     memset(level_layout, 0, sizeof(level_layout));
     LoadLayout(
@@ -652,8 +582,7 @@ void LoadLevelLayout()
         level_layout[0][1]);
 }
 
-void LevelSizeLoad()
-{
+void LevelSizeLoad(void) {
     // Reset level state
     dle_routine = 0;
 
@@ -719,8 +648,7 @@ void LevelSizeLoad()
     scroll_block4_size = *scroll_size++;
 }
 
-void LevelDataLoad()
-{
+void LevelDataLoad(void) {
     // Get header
     const LevelHeader* header = &level_header[LEVEL_ZONE(level_id)];
 
@@ -744,15 +672,13 @@ void LevelDataLoad()
         AddPLC(header->plc2);
 }
 
-void ColIndexLoad()
-{
+void ColIndexLoad(void) {
     // Use zone's collision indices
     coll_index = level_coli[LEVEL_ZONE(level_id)];
 }
 
 // Dynamic level events
-void DynamicLevelEvents()
-{
+void DynamicLevelEvents(void) {
     // Update target scroll limits
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_GHZ:
@@ -831,8 +757,7 @@ void DynamicLevelEvents()
 }
 
 // Object animation
-void SynchroAnimate()
-{
+void SynchroAnimate(void) {
     // Spiked log
     if (--sprite_anim[0].time < 0) {
         sprite_anim[0].time = 11;
@@ -862,8 +787,7 @@ void SynchroAnimate()
 }
 
 // Signpost loading
-void SignpostArtLoad()
-{
+void SignpostArtLoad(void) {
     // Check if signpost should load
     if (debug_use || (level_id & 0xFF) == 2)
         return;
@@ -879,8 +803,7 @@ void SignpostArtLoad()
 // Level object loading
 #define LOAD_WIDTH (((SCREEN_WIDTH + 0x80) & ~0x7F) + 0x100) // I dunno
 
-static bool ChkLoadObj(uint8_t index, const uint8_t** entry)
-{
+static bool ChkLoadObj(uint8_t index, const uint8_t** entry) {
     // Handle object state
     if ((*entry)[4] & 0x80) {
         if (objstate[index] & 0x80) {
@@ -919,13 +842,11 @@ static bool ChkLoadObj(uint8_t index, const uint8_t** entry)
     return false;
 }
 
-void ObjPosLoad()
-{
+void ObjPosLoad(void) {
     const uint8_t* entry;
 
     switch (opl_routine) {
-    case 0: // Initialization
-    {
+    case 0: {
         // Increment routine
         opl_routine += 2;
 
@@ -966,8 +887,7 @@ void ObjPosLoad()
         opl_screen = -1;
     }
         // Fallthrough
-    case 2: // Main
-    {
+    case 2: {
         // Check if screen has scrolled and load objects
         uint8_t index = 0;
 

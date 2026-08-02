@@ -1,3 +1,3 @@
 #pragma once
 
-void GM_Sega();
+void GM_Sega(void);

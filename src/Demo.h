@@ -11,4 +11,4 @@ extern const uint8_t *intro_demo_ptr[];
 extern const uint8_t *ending_demo_ptr[];
 
 //Demo playback
-void MoveSonicInDemo();
+void MoveSonicInDemo(void);

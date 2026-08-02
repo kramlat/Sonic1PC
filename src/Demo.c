@@ -28,10 +28,10 @@ const uint8_t* intro_demo_ptr[] = {
     /* ZoneId_GHZ  */ Demo_IntroGHZ,
     /* ZoneId_LZ   */ Demo_IntroGHZ,
     /* ZoneId_MZ   */ Demo_IntroMZ,
-    /* ZoneId_SLZ  */ Demo_IntroMZ,
+    /* ZoneId_SLZ  */ Demo_IntroGHZ,
     /* ZoneId_SYZ  */ Demo_IntroSYZ,
-    /* ZoneId_SBZ  */ Demo_IntroSYZ,
-    /* ZoneId_EndZ */ Demo_IntroSS,
+    /* ZoneId_SBZ  */ Demo_IntroGHZ,
+    /* ZoneId_EndZ */ Demo_IntroGHZ,
     Demo_IntroSS,
 };
 
@@ -47,8 +47,7 @@ const uint8_t* ending_demo_ptr[] = {
 };
 
 // Demo playback
-void MoveSonicInDemo()
-{
+void MoveSonicInDemo(void) {
     if (!demo)
         return;
 

@@ -1,3 +1,3 @@
 #pragma once
 
-void GM_SSRG();
+void GM_SSRG(void);

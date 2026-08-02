@@ -1,20 +1,10 @@
-#include "Object.h"
-
+#include "Obj_GameOverCard.h"
 #include "Game.h"
 #include "Level.h"
 #include "PLC.h"
 
-// Game Over card assets
-#include "Resource/Mappings/GameOver.h"
-
-// Game Over card constants
-#define TO_ADD SCREEN_WIDEADD2
-#define FROM_ADD (TO_ADD + ((SCREEN_WIDEADD2 + 0xF) & ~0xF))
-#define FROM_SUB ((0x10 - TO_ADD) & 0xF)
-
 // Game Over card object
-void Obj_GameOverCard(Object* obj)
-{
+void Obj_GameOverCard(Object* obj) {
     switch (obj->routine) {
     case 0: // Initialization
         // Wait for art to be finished loading

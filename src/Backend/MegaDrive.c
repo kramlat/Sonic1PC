@@ -4,17 +4,15 @@
 
 //System backend interface
 int System_Init(const MD_Header *header);
-void System_Quit();
+void System_Quit(void);
 
 //MegaDrive interface
-int MegaDrive_Start(const MD_Header *header)
-{
+int MegaDrive_Start(const MD_Header *header) {
 	int result = 0;
 	
 	//Initialize MegaDrive subsystems
 	if (((result = System_Init(header)) ||
-	     (result = VDP_Init(header))) == 0)
-	{
+	     (result = VDP_Init(header))) == 0) {
 		//Run entry point
 		header->entry_point();
 	}
@@ -24,8 +22,7 @@ int MegaDrive_Start(const MD_Header *header)
 	return result;
 }
 
-void MegaDrive_Quit()
-{
+void MegaDrive_Quit(void) {
 	//Quit MegaDrive subsystems
 	VDP_Quit();
 	System_Quit();

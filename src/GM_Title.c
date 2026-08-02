@@ -41,10 +41,8 @@ static const uint16_t title_demos[] = {
 
 // Level select
 /*
-static void LevelSelect()
-{
-        do
-        {
+static void LevelSelect(void) {
+        do {
                 //Run frame
                 vbla_routine = 0x04;
                 WaitForVBla();
@@ -57,8 +55,7 @@ static void LevelSelect()
 */
 
 // Level stuff
-static void PlayLevel()
-{
+static void PlayLevel(void) {
     gamemode = (jpad1_hold1 & JPAD_A) ? GameMode_Special : GameMode_Level;
     lives = 3;
     rings = 0;
@@ -74,8 +71,7 @@ static void PlayLevel()
     // sfx	bgm_Fade,0,1,1 ; fade out music //TODO
 }
 
-static void Tit_ChkLevSel()
-{
+static void Tit_ChkLevSel(void) {
     PlayLevel();
 
     /*
@@ -93,8 +89,7 @@ static void Tit_ChkLevSel()
 }
 
 // Title gamemode
-void GM_Title()
-{
+void GM_Title(void) {
     // Stop music
     // sfx	bgm_Stop,0,1,1 //TODO
 

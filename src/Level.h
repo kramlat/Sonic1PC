@@ -193,15 +193,15 @@ extern uint16_t sprite_anim_3buf;
 void AddPoints(uint16_t points);
 
 //Level functions
-void Obj_Checkpoint_LoadInfo();
-void LoadLevelMaps();
-void LoadLevelLayout();
+void Obj_Checkpoint_LoadInfo(void);
+void LoadLevelMaps(void);
+void LoadLevelLayout(void);
 void LoadMap16(ZoneId zone);
 void LoadMap256(ZoneId zone);
-void LevelSizeLoad();
-void LevelDataLoad();
-void ColIndexLoad();
-void DynamicLevelEvents();
-void SynchroAnimate();
-void SignpostArtLoad();
-void ObjPosLoad();
+void LevelSizeLoad(void);
+void LevelDataLoad(void);
+void ColIndexLoad(void);
+void DynamicLevelEvents(void);
+void SynchroAnimate(void);
+void SignpostArtLoad(void);
+void ObjPosLoad(void);

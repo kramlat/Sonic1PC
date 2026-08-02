@@ -1,15 +1,11 @@
-#include "Object.h"
+#include "GHZRock.h"
 
 #include "LevelScroll.h"
 
 #include "Macros.h"
 
-// GHZ rock assets
-#include "Resource/Mappings/GHZRock.h"
-
 // GHZ rock object
-void Obj_GHZRock(Object* obj)
-{
+void Obj_GHZRock(Object* obj) {
     switch (obj->routine) {
     case 0: // Initialization
         // Increment routine

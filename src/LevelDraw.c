@@ -234,7 +234,7 @@ void DrawChunks(int16_t sx, int16_t sy, uint8_t* layout, size_t offset) {
     }
 }
 
-void LoadTilesFromStart() {
+void LoadTilesFromStart(void) {
     DrawChunks(scrpos_x.f.u, scrpos_y.f.u, level_layout[0][0], VRAM_FG);
 #ifndef SCP_REV00
     if (LEVEL_ZONE(level_id) == ZoneId_GHZ || LEVEL_ZONE(level_id) == ZoneId_EndZ)
@@ -434,7 +434,7 @@ void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t *flag, uint8_t *layout,
 	#endif
 }
 
-void LoadTilesAsYouMove() {
+void LoadTilesAsYouMove(void) {
     DrawBGScrollBlock1(bg_scrpos_x_dup.f.u, bg_scrpos_y_dup.f.u,
                        &bg1_scroll_flags_dup, level_layout[0][1], VRAM_BG);
 
@@ -475,7 +475,7 @@ void LoadTilesAsYouMove() {
     }
 }
 
-void LoadTilesAsYouMove_BGOnly() {
+void LoadTilesAsYouMove_BGOnly(void) {
     DrawBGScrollBlock1(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, level_layout[0][1], VRAM_BG);
     DrawBGScrollBlock2(bg2_scrpos_x.f.u, bg2_scrpos_y.f.u, &bg2_scroll_flags, level_layout[0][1], VRAM_BG);
     // No scroll block 3, even in REV01... odd
@@ -496,7 +496,7 @@ void LoadTiles(const uint8_t *source, uint16_t count) {
 
 #define ArtTile_Giant_Ring 0x400
 
-static void AniArt_GiantRing() {
+static void AniArt_GiantRing(void) {
     const uint16_t size = 14;
 
     if (gfx_big_ring == 0) {
@@ -510,7 +510,7 @@ static void AniArt_GiantRing() {
 }
 
 // Animate waterfall
-void AniArt_GHZWaterfall() {
+void AniArt_GHZWaterfall(void) {
     if (--level_anim[0].time < 0) {
         // Increment frame and reset timer
         level_anim[0].time = 5;
@@ -523,7 +523,7 @@ void AniArt_GHZWaterfall() {
 }
 
 // Animate large flowers
-void AniArt_GHZFlowerLarge() {
+void AniArt_GHZFlowerLarge(void) {
     if (--level_anim[1].time < 0) {
         // Increment frame and reset timer
         level_anim[1].time = 15;
@@ -536,7 +536,7 @@ void AniArt_GHZFlowerLarge() {
 }
 
 // Animate small flowers
-void AniArt_GHZFlowerSmall() {
+void AniArt_GHZFlowerSmall(void) {
     if (--level_anim[2].time < 0) {
 
         // Increment frame and reset timer
@@ -681,7 +681,7 @@ void MagmaRow_Shift15(const uint8_t *src, uint16_t lines) {
 	} while (lines-- != 0);
 }
 
-void AniArt_MZLava() {
+void AniArt_MZLava(void) {
 	const uint8_t TILE_COUNT = 8;
 	if (--level_anim[LAVA_ANIM].time < 0) {
 		level_anim[LAVA_ANIM].time = 0x14 - 1;
@@ -700,7 +700,7 @@ static const MagmaShiftFunc MagmaDistortionTable[] = {
 	MagmaRow_Shift12, MagmaRow_Shift13, MagmaRow_Shift14, MagmaRow_Shift15
 };
 
-void AniArt_MZMagma() {
+void AniArt_MZMagma(void) {
 	if (--level_anim[MAGMA_ANIM].time < 0) {
 		level_anim[MAGMA_ANIM].time = 2 - 1;
 		uint32_t bank_offset = (uint32_t)level_anim[LAVA_ANIM].frame << 9;
@@ -716,7 +716,7 @@ void AniArt_MZMagma() {
 	}
 }
 
-void AniArt_MZTorch() {
+void AniArt_MZTorch(void) {
 	const uint8_t TILE_COUNT = 6;
 	if (--level_anim[TORCH_TIMER].time < 0) {
 		level_anim[TORCH_TIMER].time = 8 - 1;
@@ -728,8 +728,7 @@ void AniArt_MZTorch() {
 	}
 }
 
-void AnimateLevelGfx()
-{
+void AnimateLevelGfx(void) {
     // Don't run if game is paused
     if (pause)
         return;

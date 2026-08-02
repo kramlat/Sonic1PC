@@ -4,7 +4,7 @@ extern Oscillatory oscillatory;
 
 extern Object *const player;
 
-void OscillateNumInit() {
+void OscillateNumInit(void) {
     Oscillatory baselines = {
         .direction = 0x003C,  // %0000000001111100
         .state = {
@@ -31,7 +31,7 @@ void OscillateNumInit() {
 }
 
 
-void OscillateNumDo() {
+void OscillateNumDo(void) {
     if (player->routine >= 6)
         return;
 

@@ -1,4 +1,4 @@
-#include "Object.h"
+#include "Signpost.h"
 
 #include "Game.h"
 #include "Level.h"
@@ -6,25 +6,7 @@
 
 #include "Macros.h"
 
-// Signpost assets
-#include "Resource/Animation/Signpost.h"
-#include "Resource/Mappings/Signpost.h"
-
-#ifdef SCP_REV00
-extern const uint8_t Mappings_RingREV00[]; // From Ring.c
-#else
-extern const uint8_t Mappings_RingREV01[]; // From Ring.c
-#endif
-
 // Signpost object
-typedef struct
-{
-    uint8_t pad[8]; // 0x28-0x2F
-    int16_t spin_time; // 0x30
-    int16_t sparkle_time; // 0x32
-    uint8_t sparkle_id; // 0x34
-} Scratch_Signpost;
-
 static const int8_t sparkle_pos[8][2] = {
     { -24, -16 },
     { 8, 8 },
@@ -36,8 +18,7 @@ static const int8_t sparkle_pos[8][2] = {
     { 24, 16 },
 };
 
-void Obj_Signpost(Object* obj)
-{
+void Obj_Signpost(Object* obj) {
     Scratch_Signpost* scratch = (Scratch_Signpost*)&obj->scratch;
 
     switch (obj->routine) {

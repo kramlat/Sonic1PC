@@ -3,8 +3,7 @@
 #include <stdint.h>
 
 //Palette types
-typedef enum
-{
+typedef enum {
 	PalId_SegaBG,
 	PalId_Title,
 	PalId_LevelSel,
@@ -27,8 +26,7 @@ typedef enum
 	PalId_Ending,
 } PaletteId;
 
-typedef struct
-{
+typedef struct {
 	uint8_t ind, len;
 } PaletteFade;
 
@@ -49,16 +47,16 @@ void PalLoad3_Water(PaletteId id);
 void PalLoad4_Water(PaletteId id);
 
 //Palette fading
-void FadeIn_FromBlack();
-void PaletteFadeIn();
+void FadeIn_FromBlack(void);
+void PaletteFadeIn(void);
 void PaletteFadeIn_At(uint8_t ind, uint8_t len);
-void FadeOut_ToBlack();
-void PaletteFadeOut();
+void FadeOut_ToBlack(void);
+void PaletteFadeOut(void);
 void PaletteFadeOut_At(uint8_t ind, uint8_t len);
 
-void WhiteIn_FromWhite();
-void PaletteWhiteIn();
+void WhiteIn_FromWhite(void);
+void PaletteWhiteIn(void);
 void PaletteWhiteIn_At(uint8_t ind, uint8_t len);
-void WhiteOut_ToWhite();
-void PaletteWhiteOut();
+void WhiteOut_ToWhite(void);
+void PaletteWhiteOut(void);
 void PaletteWhiteOut_At(uint8_t ind, uint8_t len);

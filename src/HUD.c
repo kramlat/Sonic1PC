@@ -28,8 +28,7 @@ static const uint8_t hud_cmd_base[] = {
 };
 static const uint8_t* hud_cmd_ringbase = &hud_cmd_base[12];
 
-void HUD_WriteCmd(size_t offset, const uint8_t* cmd, size_t cmds)
-{
+void HUD_WriteCmd(size_t offset, const uint8_t* cmd, size_t cmds) {
     VDP_SeekVRAM(offset);
 
     do {
@@ -44,8 +43,7 @@ void HUD_WriteCmd(size_t offset, const uint8_t* cmd, size_t cmds)
     } while (cmds-- > 0);
 }
 
-void HUD_WriteNumber(size_t offset, uint32_t value, const uint32_t* dec, size_t decs)
-{
+void HUD_WriteNumber(size_t offset, uint32_t value, const uint32_t* dec, size_t decs) {
     bool digit_write = false;
     do {
         // Get digit
@@ -68,8 +66,7 @@ void HUD_WriteNumber(size_t offset, uint32_t value, const uint32_t* dec, size_t 
     } while (decs-- > 0);
 }
 
-void HUD_WriteNumber2(size_t offset, uint32_t value, const uint32_t* dec, size_t decs)
-{
+void HUD_WriteNumber2(size_t offset, uint32_t value, const uint32_t* dec, size_t decs) {
     do {
         // Get digit
         uint16_t digit;
@@ -87,8 +84,7 @@ void HUD_WriteNumber2(size_t offset, uint32_t value, const uint32_t* dec, size_t
     } while (decs-- > 0);
 }
 
-void HUD_WriteHex(size_t offset, uint32_t value)
-{
+void HUD_WriteHex(size_t offset, uint32_t value) {
     VDP_SeekVRAM(offset);
 
     size_t decs = 7;
@@ -108,8 +104,7 @@ void HUD_WriteHex(size_t offset, uint32_t value)
 }
 
 // HUD functions
-void HUD_Lives()
-{
+void HUD_Lives(void) {
     size_t offset = 0xFBA0;
 
     uint32_t value = lives;
@@ -142,15 +137,13 @@ void HUD_Lives()
     } while (decs-- > 0);
 }
 
-void HUD_Base()
-{
+void HUD_Base(void) {
     // Write lives and initial HUD cmd
     HUD_Lives();
     HUD_WriteCmd(0xDC40, hud_cmd_base, 14);
 }
 
-void HUD_Update()
-{
+void HUD_Update(void) {
     if (!debug_mode) {
         // Update score
         if (score_count) {

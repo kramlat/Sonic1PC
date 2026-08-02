@@ -1,12 +1,7 @@
-#include "Object.h"
-
-//'PRESS START BUTTON' Assets
-#include "Resource/Animation/PSB.h"
-#include "Resource/Mappings/PSB.h"
+#include "PSB.h"
 
 //'PRESS START BUTTON' object
-void Obj_PSB(Object* obj)
-{
+void Obj_PSB(Object* obj) {
     switch (obj->routine) {
     case 0: // Initialization
         // Increment routine and set position

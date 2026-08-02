@@ -5,8 +5,7 @@
 #include "Backend/Joypad.h"
 #include <stdbool.h>
 //Game types
-typedef enum
-{
+typedef enum {
 	GameMode_Sega,
 	GameMode_Title,
 	GameMode_Demo,
@@ -47,11 +46,11 @@ extern uint16_t VRAMADDR;
 extern uint8_t CRAMPAL;
 
 //General game functions
-void ReadJoypads();
+void ReadJoypads(void);
 
 //Entry point
-void EntryPoint();
+void EntryPoint(void);
 
 //Interrupt functions
-void VBlank();
-void HBlank();
+void VBlank(void);
+void HBlank(void);

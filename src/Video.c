@@ -21,8 +21,7 @@ uint16_t sprite_buffer[BUFFER_SPRITES][4]; //Apparently the last 16 entries of t
 int16_t hscroll_buffer[SCREEN_HEIGHT][2];
 
 //Video interface
-void VDPSetupGame()
-{
+void VDPSetupGame(void) {
 	//Initialize VDP state
 	VDP_SetPlaneALocation(VRAM_FG);
 	VDP_SetPlaneBLocation(VRAM_BG);
@@ -44,14 +43,12 @@ void VDPSetupGame()
 	memset(wet_palette_dup, 0, sizeof(wet_palette_dup));
 }
 
-void WaitForVBla()
-{
+void WaitForVBla(void) {
 	//Render the VDP
 	VDP_Render();
 }
 
-void ClearScreen()
-{
+void ClearScreen(void) {
 	//Clear foreground and background planes
 	VDP_SeekVRAM(VRAM_FG);
 	VDP_FillVRAM(0x00, (PLANE_WIDTH * PLANE_HEIGHT) << 1);
@@ -69,13 +66,10 @@ void ClearScreen()
 	memset(hscroll_buffer, 0, sizeof(hscroll_buffer));
 }
 
-void CopyTilemap(const uint8_t *tilemap, size_t offset, size_t width, size_t height)
-{
-	while (height-- > 0)
-	{
+void CopyTilemap(const uint8_t *tilemap, size_t offset, size_t width, size_t height) {
+	while (height-- > 0) {
 		VDP_SeekVRAM(offset);
-		for (size_t x = 0; x < width; x++)
-		{
+		for (size_t x = 0; x < width; x++) {
 			uint16_t v = (tilemap[0] << 8) | (tilemap[1] << 0);
 			tilemap += 2;
 			VDP_WriteVRAM((const uint8_t*)&v, 2);

@@ -4,8 +4,7 @@
 #include <stddef.h>
 
 //PLC structure
-typedef struct
-{
+typedef struct {
 	const uint8_t *art;
 	size_t off;
 } PLC;
@@ -14,8 +13,7 @@ typedef struct
 extern PLC plc_buffer[16];
 
 //PLC IDs
-typedef enum
-{
+typedef enum {
 	PlcId_Main,
 	PlcId_Main2,
 	PlcId_Explode,
@@ -63,8 +61,8 @@ extern const uint8_t Art_SBZ[];
 //PLC interface
 void AddPLC(PlcId plc);
 void NewPLC(PlcId plc);
-void ClearPLC();
-void RunPLC();
-void ProcessDPLC();
-void ProcessDPLC2();
+void ClearPLC(void);
+void RunPLC(void);
+void ProcessDPLC(void);
+void ProcessDPLC2(void);
 void QuickPLC(PlcId plc);

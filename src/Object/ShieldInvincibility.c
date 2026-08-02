@@ -1,21 +1,10 @@
-#include "Object.h"
+#include "ShieldInvincibility.h"
 
 #include "Level.h"
 #include "Object/Sonic.h"
 
-// Shield and invincibility assets
-#include "Resource/Mappings/ShieldInvincibility.h"
-#include "Resource/Animation/ShieldInvincibility.h"
-
 // Shield and invincibility object
-typedef struct
-{
-    uint8_t pad[0x8]; // 0x28-0x2F
-    uint8_t trail; // 0x30
-} Scratch_Invincibility;
-
-void Obj_ShieldInvincibility(Object* obj)
-{
+void Obj_ShieldInvincibility(Object* obj) {
     Scratch_Invincibility* scratch = (Scratch_Invincibility*)&obj->scratch;
 
     switch (obj->routine) {

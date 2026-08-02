@@ -5,13 +5,10 @@
 #include "Backend/Joypad.h"
 
 //Backend input interface
-int Input_HandleEvents()
-{
+int Input_HandleEvents(void) {
 	SDL_Event e;
-	while (SDL_PollEvent(&e))
-	{
-		switch (e.type)
-		{
+	while (SDL_PollEvent(&e)) {
+		switch (e.type) {
 			case SDL_QUIT:
 				return 1;
 			default:
@@ -22,8 +19,7 @@ int Input_HandleEvents()
 }
 
 
-uint8_t Input_GetState1()
-{
+uint8_t Input_GetState1(void) {
 
 	//Get keyboard state
 	const uint8_t *key_state = SDL_GetKeyboardState(NULL);
@@ -57,8 +53,7 @@ uint8_t Input_GetState1()
 	return start | a | c | b | right | left | down | up;
 }
 
-uint8_t Input_GetState2()
-{
+uint8_t Input_GetState2(void) {
 	//No use in Sonic 1
 	return 0;
 }

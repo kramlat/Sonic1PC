@@ -11,8 +11,7 @@
 #include <string.h>
 
 //Object draw queue
-struct SpriteQueue
-{
+struct SpriteQueue {
 	uint32_t size;
 	Object *obj[0x3F];
 } sprite_queue[8];
@@ -21,8 +20,7 @@ struct SpriteQueue
 //#ifndef SCP_FIX_BUGS
 //	#define Obj_Null ObjectFall //Thats right, all null objects point to ObjectFall
 //#else
-	void Obj_Null(Object *obj)
-	{
+	void Obj_Null(Object *obj) {
 		if (obj->respawn_index)
 			objstate[obj->respawn_index] &= 0x7F;
 		ObjectDelete(obj);
@@ -207,8 +205,7 @@ static void (*object_func[])(Object*) = {
 };
 
 //Object functions
-Object *FindFreeObj()
-{
+Object *FindFreeObj(void) {
 	Object *obj = level_objects;
 	for (int i = 0; i < LEVEL_OBJECTS; i++, obj++)
 		if (obj->type == ObjId_Null)
@@ -216,8 +213,7 @@ Object *FindFreeObj()
 	return NULL; //Original would return the address at the end of object space, I believe
 }
 
-Object *FindNextFreeObj(Object *obj)
-{
+Object *FindNextFreeObj(Object *obj) {
 	for (; (obj - objects) < OBJECTS; obj++)
 		if (obj->type == ObjId_Null)
 			return obj;
@@ -226,29 +222,23 @@ Object *FindNextFreeObj(Object *obj)
 
 int ExecuteObjects_i;
 
-void ExecuteObjects()
-{
+void ExecuteObjects(void) {
 	Object *obj;
 	
-	if (player->routine < 6)
-	{
+	if (player->routine < 6) {
 		//Run all objects
 		obj = objects;
 		ExecuteObjects_i = OBJECTS - 1;
-		do
-		{
+		do {
 			if (obj->type)
 				object_func[obj->type](obj);
 			obj++;
 		} while (ExecuteObjects_i-- > 0);
-	}
-	else
-	{
+	} else {
 		//Run reserved objects
 		obj = objects;
 		ExecuteObjects_i = RESERVED_OBJECTS - 1;
-		do
-		{
+		do {
 			if (obj->type)
 				object_func[obj->type](obj);
 			obj++;
@@ -256,8 +246,7 @@ void ExecuteObjects()
 		
 		//Draw level objects
 		ExecuteObjects_i = LEVEL_OBJECTS - 1;
-		do
-		{
+		do {
 			if (obj->type && obj->render.f.on_screen)
 				DisplaySprite(obj);
 			obj++;
@@ -266,10 +255,8 @@ void ExecuteObjects()
 }
 
 //Object drawing
-void BuildSpr_Normal(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces)
-{
-	do
-	{
+void BuildSpr_Normal(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces) {
+	do {
 		//Don't overflow the sprite buffer
 		if (*sprite_i >= BUFFER_SPRITES)
 			break;
@@ -299,13 +286,10 @@ void BuildSpr_Normal(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t 
 
 void BuildSprites_Draw(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, Object *obj, const uint8_t *mappings, uint8_t pieces)
 {
-	if (obj->render.f.x_flip)
-	{
-		if (obj->render.f.y_flip)
-		{
+	if (obj->render.f.x_flip) {
+		if (obj->render.f.y_flip) {
 			//XY flip
-			do
-			{
+			do {
 				//Don't overflow the sprite buffer
 				if (*sprite_i >= BUFFER_SPRITES)
 					break;
@@ -331,12 +315,9 @@ void BuildSprites_Draw(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 				#endif
 				*(*sprite)++ = px; //x
 			} while (pieces-- > 0);
-		}
-		else
-		{
+		} else {
 			//X flip
-			do
-			{
+			do {
 				//Don't overflow the sprite buffer
 				if (*sprite_i >= BUFFER_SPRITES)
 					break;
@@ -363,12 +344,9 @@ void BuildSprites_Draw(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 				*(*sprite)++ = px; //x
 			} while (pieces-- > 0);
 		}
-	}
-	else if (obj->render.f.y_flip)
-	{
+	} else if (obj->render.f.y_flip) {
 		//Y flip
-		do
-		{
+		do {
 			//Don't overflow the sprite buffer
 			if (*sprite_i >= BUFFER_SPRITES)
 				break;
@@ -394,36 +372,29 @@ void BuildSprites_Draw(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 			#endif
 			*(*sprite)++ = px; //x
 		} while (pieces-- > 0);
-	}
-	else
-	{
+	} else {
 		BuildSpr_Normal(sprite, sprite_i, x, y, obj->tile, mappings, pieces);
 	}
 }
 
-void BuildSprites(uint8_t *sprite_io)
-{
+void BuildSprites(uint8_t *sprite_io) {
 	//Draw each sprite priority queue
 	uint16_t *sprite = &sprite_buffer[0][0];
 	uint8_t sprite_i = 0;
 	struct SpriteQueue *queue = sprite_queue;
 	
-	for (int i = 0; i < 8; i++, queue++)
-	{
+	for (int i = 0; i < 8; i++, queue++) {
 		//Iterate through all queued objects
-		for (int j = 0; queue->size != 0; j++, queue->size--)
-		{
+		for (int j = 0; queue->size != 0; j++, queue->size--) {
 			Object *obj = queue->obj[j];
 			if (obj->mappings == NULL) //This line isn't in the original, but without it, the title screen segfaults
 				continue;              //Basically, the bug that causes the 'PRESS START BUTTON' text to not appear gives the object null mappings
-			if (obj->type != ObjId_Null)
-			{
+			if (obj->type != ObjId_Null) {
 				//Get object position on screen and check if visible
 				obj->render.f.on_screen = false;
 				
 				uint16_t x, y;
-				if (obj->render.f.align_bg || obj->render.f.align_fg)
-				{
+				if (obj->render.f.align_bg || obj->render.f.align_fg) {
 					//Get screen position to use
 					static int16_t *bs_scrpos[4][2] = {
 						{NULL, NULL},
@@ -440,23 +411,18 @@ void BuildSprites(uint8_t *sprite_io)
 					x = 128 + ox; //VDP sprites start at 128
 					
 					//Get object Y position
-					if (obj->render.f.yrad_height)
-					{
+					if (obj->render.f.yrad_height) {
 						int16_t oy = obj->pos.l.y.f.u - *scrpos[1];
 						if ((oy + obj->y_rad) < 0 || (oy - obj->y_rad) >= SCREEN_HEIGHT)
 							continue;
 						y = 128 + oy; //VDP sprites start at 128
-					}
-					else
-					{
+					} else {
 						int16_t oy = obj->pos.l.y.f.u - *scrpos[1] + 0x80;
 						if (oy < 0x60 || oy >= (0x180 + SCREEN_TALLADD))
 							continue;
 						y = oy;
 					}
-				}
-				else
-				{
+				} else {
 					//Positions map directly to VDP coordinates
 					x = obj->pos.s.x;
 					y = obj->pos.s.y;
@@ -466,15 +432,12 @@ void BuildSprites(uint8_t *sprite_io)
 				const uint8_t *mappings;
 				uint8_t pieces;
 				
-				if (!obj->render.f.raw_mappings)
-				{
+				if (!obj->render.f.raw_mappings) {
 					//Index mapping by frame
 					const uint8_t *mapping_ind = (const uint8_t*)obj->mappings + (obj->frame << 1);
 					mappings = obj->mappings + ((mapping_ind[0] << 8) | (mapping_ind[1] << 0));
 					pieces = *mappings++;
-				}
-				else
-				{
+				} else {
 					//Directly use object mappings pointer
 					mappings = obj->mappings;
 					pieces = 1;
@@ -490,12 +453,9 @@ void BuildSprites(uint8_t *sprite_io)
 	
 	//Terminate end of sprite list
 	sprite_count = sprite_i;
-	if (sprite_i >= BUFFER_SPRITES)
-	{
+	if (sprite_i >= BUFFER_SPRITES) {
 		sprite[-3] &= 0xFF00; //Clear link byte
-	}
-	else
-	{
+	} else {
 		*sprite++ = 0;
 		*sprite++ = 0;
 	}
@@ -504,12 +464,10 @@ void BuildSprites(uint8_t *sprite_io)
 }
 
 //Object functions
-void AnimateSprite(Object *obj, const uint8_t *anim_script)
-{
+void AnimateSprite(Object *obj, const uint8_t *anim_script) {
 	//Check if animation changed
 	uint8_t anim = obj->anim;
-	if (anim != obj->prev_anim)
-	{
+	if (anim != obj->prev_anim) {
 		//Reset animation state
 		obj->prev_anim = anim;
 		obj->anim_frame = 0;
@@ -528,56 +486,46 @@ void AnimateSprite(Object *obj, const uint8_t *anim_script)
 	//Read current animation command
 	uint8_t cmd = anim_script[1 + obj->anim_frame];
 	
-	if (!(cmd & 0x80))
-	{
+	if (!(cmd & 0x80)) {
 		Anim_Next:
 		//Set animation frame
 		obj->frame = cmd & 0x1F;
 		obj->render.f.x_flip = obj->status.o.f.x_flip ^ ((cmd >> 5) & 1);
 		obj->render.f.y_flip = obj->status.o.f.y_flip ^ ((cmd >> 6) & 1);
 		obj->anim_frame++;
-	}
-	else
-	{
-		if (++cmd == 0) //0xFF
-		{
+	} else {
+		if (++cmd == 0) {
 			//Restart animation
 			obj->anim_frame = 0;
 			cmd = anim_script[1];
 			goto Anim_Next;
 		}
-		if (++cmd == 0) //0xFE
-		{
+		if (++cmd == 0) {
 			//Go back (next byte) frames
 			obj->anim_frame -= anim_script[2 + obj->anim_frame];
 			cmd = anim_script[1 + obj->anim_frame];
 			goto Anim_Next;
 		}
-		if (++cmd == 0) //0xFD
-		{
+		if (++cmd == 0) {
 			//Change animation
 			obj->anim = anim_script[2 + obj->anim_frame];
 		}
-		if (++cmd == 0) //0xFC
-		{
+		if (++cmd == 0) {
 			//Increment routine
 			obj->routine += 2;
 		}
-		if (++cmd == 0) //0xFB
-		{
+		if (++cmd == 0) {
 			//Clear secondary routine
 			obj->routine_sec = 0;
 		}
-		if (++cmd == 0) //0xFA
-		{
+		if (++cmd == 0) {
 			//Increment secondary routine
 			obj->routine_sec += 2;
 		}
 	}
 }
 
-void DisplaySprite(Object *obj)
-{
+void DisplaySprite(Object *obj) {
 	//Get queue to use
 	struct SpriteQueue *queue = &sprite_queue[obj->priority & 7];
 	
@@ -587,45 +535,37 @@ void DisplaySprite(Object *obj)
 	queue->obj[queue->size++] = obj;
 }
 
-void ObjectDelete(Object *obj)
-{
+void ObjectDelete(Object *obj) {
 	//Clear object memory
 	memset(obj, 0, sizeof(Object));
 	obj->mappings = NULL; //NULL isn't guaranteed to be 0
 }
 
-void SpeedToPos(Object *obj)
-{
+void SpeedToPos(Object *obj) {
 	obj->pos.l.x.v += obj->xsp << 8;
 	obj->pos.l.y.v += obj->ysp << 8;
 }
 
-void ObjectFall(Object *obj)
-{
+void ObjectFall(Object *obj) {
 	obj->pos.l.x.v += obj->xsp << 8;
 	obj->pos.l.y.v += obj->ysp << 8;
 	obj->ysp += 0x38;
 }
 
-void RememberState(Object *obj)
-{
-	if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-	{
+void RememberState(Object *obj) {
+	if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
 		//Off-screen
 		if (obj->respawn_index)
 			objstate[obj->respawn_index] &= 0x7F;
 		ObjectDelete(obj);
-	}
-	else
-	{
+	} else {
 		//On-screen
 		DisplaySprite(obj);
 	}
 }
 
 //Platform and solid objects
-void MvSonicOnPtfm(Object *obj, int16_t y, int16_t prev_x)
-{
+void MvSonicOnPtfm(Object *obj, int16_t y, int16_t prev_x) {
 	//Check if player can be moved
 	if (lock_multi & 0x80 || player->routine >= 6 || debug_use)
 		return;
@@ -634,8 +574,7 @@ void MvSonicOnPtfm(Object *obj, int16_t y, int16_t prev_x)
 	player->pos.l.x.f.u += obj->pos.l.x.f.u - prev_x;
 }
 
-void PlatformObject(Object *obj, uint16_t x_rad)
-{
+void PlatformObject(Object *obj, uint16_t x_rad) {
 	//Check if player is colliding with platform
 	if (player->ysp < 0)
 		return;
@@ -647,8 +586,7 @@ void PlatformObject(Object *obj, uint16_t x_rad)
 	Platform3(obj, obj->pos.l.y.f.u - 8);
 }
 
-void Platform3(Object *obj, int16_t top)
-{
+void Platform3(Object *obj, int16_t top) {
 	//Check if player is touching the top of platform
 	int16_t py = player->pos.l.y.f.u;
 	int16_t by = py + player->y_rad + 4;
@@ -670,8 +608,7 @@ void Platform3(Object *obj, int16_t top)
 	Platform_SetStand(obj);
 }
 
-void Platform_SetStand(Object *obj)
-{
+void Platform_SetStand(Object *obj) {
 	Scratch_Sonic *scratch = (Scratch_Sonic*)&player->scratch;
 	
 	//Release from last standing object
@@ -696,13 +633,11 @@ void Platform_SetStand(Object *obj)
 	obj->status.o.f.player_stand = true;
 }
 
-bool ExitPlatform(Object *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p)
-{
+bool ExitPlatform(Object *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p) {
 	uint16_t x_dia = x_rad2 << 1;
 	
 	//Check if we've jumped off
-	if (!player->status.p.f.in_air)
-	{
+	if (!player->status.p.f.in_air) {
 		//Check if we've walked off
 		int16_t x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
 		if (x_off_p != NULL)
@@ -718,13 +653,11 @@ bool ExitPlatform(Object *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p
 	return true;
 }
 
-static void Solid_ResetFloor(Object *obj, Object *pla)
-{
-	Scratch_Sonic *scratch = (Scratch_Sonic*)&player->scratch;
+static void Solid_ResetFloor(Object *obj, Object *pla) {
+	Scratch_Sonic *scratch = (Scratch_Sonic*)&player->scratch;ZZ
 	
 	//Release player from last standing object
-	if (player->status.p.f.object_stand)
-	{
+	if (player->status.p.f.object_stand) {
 		Object *prv = objects + scratch->standing_obj;
 		prv->status.o.f.player_stand = false;
 		prv->routine_sec = 0;
@@ -742,26 +675,21 @@ static void Solid_ResetFloor(Object *obj, Object *pla)
 	obj->status.o.f.player_stand = true;
 }
 
-static signed int Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off)
-{
+static signed int Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off) {
 	//Check if player is in horizontal range
 	*x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
 	uint16_t x_dia = x_rad << 1;
-	if (*x_off >= 0 && *x_off <= x_dia)
-	{
+	if (*x_off >= 0 && *x_off <= x_dia) {
 		//Check if player is in vertical range
 		y_rad += player->y_rad;
 		*y_off = player->pos.l.y.f.u - obj->pos.l.y.f.u + 4 + y_rad;
 		uint16_t y_dia = y_rad << 1;
 		
-		if (*y_off >= 0 && *y_off < y_dia)
-		{
+		if (*y_off >= 0 && *y_off < y_dia) {
 			//Check if player can collide with object
-			if (!(lock_multi & 0x80))
-			{
+			if (!(lock_multi & 0x80)) {
 			#ifdef SCP_REV00
-				if (player->routine >= 6)
-				{
+				if (player->routine >= 6) {
 					if (debug_use)
 						return 0;
 			#else
@@ -771,39 +699,30 @@ static signed int Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, in
 			#endif
 					//Get X clip
 					uint16_t x_clip = *x_off;
-					if (x_rad < *x_off)
-					{
+					if (x_rad < *x_off) {
 						*x_off -= x_dia;
 						x_clip = -*x_off;
 					}
 					
 					//Get Y clip
 					uint16_t y_clip = *y_off;
-					if (y_rad < *y_off)
-					{
+					if (y_rad < *y_off) {
 						*y_off -= (4 + y_dia);
 						y_clip = -*y_off;
 					}
 					
 					//Check if we're hitting the top/bottom or sides
-					if (x_clip <= y_clip)
-					{
+					if (x_clip <= y_clip) {
 						//Left/right
-						if (y_clip > 4)
-						{
+						if (y_clip > 4 {
 							//Stop speed going towards object
-							if (*x_off > 0)
-							{
-								if (player->xsp > 0)
-								{
+							if (*x_off > 0) {
+								if (player->xsp > 0) {
 									player->xsp = 0;
 									player->inertia = 0;
 								}
-							}
-							else if (*x_off < 0)
-							{
-								if (player->xsp < 0)
-								{
+							} else if (*x_off < 0) {
+								if (player->xsp < 0) {
 									player->xsp = 0;
 									player->inertia = 0;
 								}
@@ -811,8 +730,7 @@ static signed int Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, in
 							
 							//Clip and change push flags
 							player->pos.l.x.f.u -= *x_off;
-							if (!player->status.p.f.in_air)
-							{
+							if (!player->status.p.f.in_air) {
 								//On ground, set push flags
 								obj->status.o.f.player_push = true;
 								player->status.p.f.pushing = true;
@@ -824,32 +742,24 @@ static signed int Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, in
 						obj->status.o.f.player_push = false;
 						player->status.p.f.pushing = false;
 						return 1;
-					}
-					else if (*y_off < 0)
-					{
+					} else if (*y_off < 0) {
 						//Bottom
-						if (player->ysp != 0)
-						{
+						if (player->ysp != 0) {
 							//Check if we should be clipped out the bottom
-							if (player->ysp < 0 && *y_off < 0)
-							{
+							if (player->ysp < 0 && *y_off < 0) {
 								player->pos.l.y.f.u -= *y_off;
 								player->ysp = 0;
 							}
 						}
-						else if (!player->status.p.f.in_air)
-						{
+						else if (!player->status.p.f.in_air) {
 							//Squish Sonic
 							KillSonic(player, obj);
 						}
 						return -1;
-					}
-					else
-					{
+					} else {
 						//Top
 						//Check if we're going to land on the object
-						if (*y_off < 16)
-						{
+						if (*y_off < 16) {
 							*y_off -= 4;
 							
 							//Check if we're within horizontal range and moving downwards
@@ -883,19 +793,15 @@ static signed int Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, in
 	return 0;
 }
 
-signed int SolidObject(Object *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off)
-{
-	if (obj->routine_sec)
-	{
+signed int SolidObject(Object *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off) {
+	if (obj->routine_sec) {
 		uint16_t x_dia = x_rad << 1;
 		
 		//Check if we've jumped off
-		if (!player->status.p.f.in_air)
-		{
+		if (!player->status.p.f.in_air) {
 			//Check if we've walked off
 			int16_t x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
-			if (x_off >= 0 && x_off <= x_dia)
-			{
+			if (x_off >= 0 && x_off <= x_dia) {
 				//Move on platform
 				MvSonicOnPtfm(obj, obj->pos.l.y.f.u - y_rad2, prev_x);
 				return 0;

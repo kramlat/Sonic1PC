@@ -17,8 +17,7 @@
 #include <string.h>
 
 //Special stage gamemode
-void GM_Special()
-{
+void GM_Special(void) {
 	//Fade out
 	//sfx	sfx_EnterSS,0,1,0 ; play special stage entry sound TODO
 	PaletteWhiteOut();
@@ -175,8 +174,7 @@ void GM_Special()
 	PaletteWhiteIn();
 	
 	//Start special stage loop
-	while (1)
-	{
+	while (1) {
 		//Run frame
 		vbla_routine = 0x0A;
 		WaitForVBla();

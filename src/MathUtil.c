@@ -3,8 +3,7 @@
 #include <stddef.h>
 
 //Trigonometry tables
-static const int16_t sine_table[] =
-{
+static const int16_t sine_table[] = {
 	  0x00,   0x06,   0x0C,   0x12,   0x19,   0x1F,   0x25,   0x2B,
 	  0x31,   0x38,   0x3E,   0x44,   0x4A,   0x50,   0x56,   0x5C,
 	  0x61,   0x67,   0x6D,   0x73,   0x78,   0x7E,   0x83,   0x88,
@@ -47,8 +46,7 @@ static const int16_t sine_table[] =
 	  0xFB,   0xFC,   0xFD,   0xFE,   0xFE,   0xFF,   0xFF,   0xFF
 };
 
-static const uint8_t atan_table[] =
-{
+static const uint8_t atan_table[] = {
 	0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01,
 	0x01, 0x01, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
 	0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x04,
@@ -85,26 +83,22 @@ static const uint8_t atan_table[] =
 };
 
 //Trigonometry
-void CalcSine(uint8_t angle, int16_t *sin, int16_t *cos)
-{
+void CalcSine(uint8_t angle, int16_t *sin, int16_t *cos) {
 	if (sin != NULL)
 		*sin = sine_table[angle];
 	if (cos != NULL)
 		*cos = sine_table[angle + 0x40];
 }
 
-int16_t GetSin(uint8_t angle)
-{
+int16_t GetSin(uint8_t angle) {
 	return sine_table[angle];
 }
 
-int16_t GetCos(uint8_t angle)
-{
+int16_t GetCos(uint8_t angle) {
 	return sine_table[angle + 0x40];
 }
 
-uint16_t CalcAngle(int16_t x, int16_t y)
-{
+uint16_t CalcAngle(int16_t x, int16_t y) {
 	//If x and y is 0, return 90 degrees
 	if ((x | y) == 0)
 		return 0x40;
@@ -131,8 +125,7 @@ uint16_t CalcAngle(int16_t x, int16_t y)
 //Random number generation
 dword_u random_seed;
 
-uint32_t RandomNumber()
-{
+uint32_t RandomNumber(void) {
 	//Re-seed if 0
 	if (random_seed.v == 0)
 		random_seed.v = 0x2A6D365A;

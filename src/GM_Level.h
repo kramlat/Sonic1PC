@@ -1,3 +1,3 @@
 #pragma once
 
-void GM_Level();
+void GM_Level(void);

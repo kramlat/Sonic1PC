@@ -1,22 +1,9 @@
-#include "Object.h"
+#include "MotoBug.h"
 
 #include "LevelCollision.h"
 
-// Motobug assets
-#include "Resource/Mappings/Motobug.h"
-#include "Resource/Animation/Motobug.h"
-
 // Motobug object
-typedef struct
-{
-    uint8_t pad0[8]; // 0x28-0x2F
-    int16_t time; // 0x30
-    uint8_t pad1; // 0x32
-    int8_t smoke_delay; // 0x33
-} Scratch_Motobug;
-
-void Obj_Motobug(Object* obj)
-{
+void Obj_Motobug(Object* obj) {
     Scratch_Motobug* scratch = (Scratch_Motobug*)&obj->scratch;
 
     int16_t floor_dist;

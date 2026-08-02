@@ -9,8 +9,7 @@
 
 uint8_t nemesis_buffer[0x200];
 
-void NemDecPrepare(NemesisState *state)
-{
+void NemDecPrepare(NemesisState *state) {
 	uint8_t d0;
 	uint8_t d7;
 	
@@ -19,10 +18,8 @@ void NemDecPrepare(NemesisState *state)
 	if (d7 == 0xFF)
 		return;
 	
-	for (;;)
-	{
-		for (;;)
-		{
+	for (;;) {
+		for (;;) {
 			d0 = *state->source++;
 			
 			if (d0 < 0x80)
@@ -40,20 +37,16 @@ void NemDecPrepare(NemesisState *state)
 		
 		uint8_t d1 = 8 - d0;
 		
-		if (d1 == 0)
-		{
+		if (d1 == 0) {
 			size_t index = *state->source++ * 2;
 			
 			state->dictionary[index] = d0;
 			state->dictionary[index+1] = d7;
-		}
-		else
-		{
+		} else {
 			size_t index = (*state->source++ << d1) * 2;
 			uint16_t d5 = (1 << d1) - 1;
 			
-			do
-			{
+			do {
 				state->dictionary[index++] = d0;
 				state->dictionary[index++] = d7;
 			} while (d5-- != 0);
@@ -62,44 +55,31 @@ void NemDecPrepare(NemesisState *state)
 }
 
 //This function needed a lot of restructuring to look good in C
-void NemDecRun(NemesisState *state)
-{
-	for (;;)
-	{
-		while (state->d0-- != 0)
-		{
+void NemDecRun(NemesisState *state) {
+	for (;;) {
+		while (state->d0-- != 0) {
 			state->d4 <<= 4;
 			state->d4 |= state->d1;
 			
-			if (--state->d3 == 0)
-			{
-				if (state->xor_mode)
-				{
+			if (--state->d3 == 0) {
+				if (state->xor_mode) {
 					state->d2 ^= state->d4;
 					
-					if (state->vram_mode)
-					{
+					if (state->vram_mode) {
 						uint32_t wdw = LESWAP_32(state->d2);
 						VDP_WriteVRAM((const uint8_t*)&wdw, 4);
-					}
-					else
-					{
+					} else {
 						// NemDec_WriteAndAdvance_XOR
 						*state->destination++ = (state->d2 >> 8 * 3) & 0xFF;
 						*state->destination++ = (state->d2 >> 8 * 2) & 0xFF;
 						*state->destination++ = (state->d2 >> 8 * 1) & 0xFF;
 						*state->destination++ = (state->d2 >> 8 * 0) & 0xFF;
 					}
-				}
-				else
-				{
-					if (state->vram_mode)
-					{
+				} else {
+					if (state->vram_mode) {
 						uint32_t wdw = LESWAP_32(state->d4);
 						VDP_WriteVRAM((const uint8_t*)&wdw, 4);
-					}
-					else
-					{
+					} else {
 						// NemDec_WriteAndAdvance
 						*state->destination++ = (state->d4 >> 8 * 3) & 0xFF;
 						*state->destination++ = (state->d4 >> 8 * 2) & 0xFF;
@@ -118,14 +98,12 @@ void NemDecRun(NemesisState *state)
 		
 		size_t index = (state->d5 >> (state->d6 - 8)) & 0xFF;
 		
-		if (index < 0xFC)
-		{
+		if (index < 0xFC) {
 			index *= 2;
 			
 			state->d6 -= state->dictionary[index];
 			
-			if (state->d6 < 9)
-			{
+			if (state->d6 < 9) {
 				state->d6 += 8;
 				
 				state->d5 <<= 8;
@@ -136,13 +114,10 @@ void NemDecRun(NemesisState *state)
 			
 			state->d1 &= 0xF;
 			state->d0 &= 0xF0;
-		}
-		else
-		{
+		} else {
 			state->d6 -= 6;
 			
-			if (state->d6 < 9)
-			{
+			if (state->d6 < 9) {
 				state->d6 += 8;
 				
 				state->d5 <<= 8;
@@ -156,8 +131,7 @@ void NemDecRun(NemesisState *state)
 			state->d1 &= 0xF;
 			state->d0 &= 0x70;
 			
-			if (state->d6 < 9)
-			{
+			if (state->d6 < 9) {
 				state->d6 += 8;
 				
 				state->d5 <<= 8;
@@ -171,8 +145,7 @@ void NemDecRun(NemesisState *state)
 	}
 }
 
-static void NemDecMain(NemesisState *state)
-{
+static void NemDecMain(NemesisState *state) {
 	state->dictionary = nemesis_buffer;
 	
 	uint16_t header = (state->source[0] << 8) | state->source[1];
@@ -200,8 +173,7 @@ static void NemDecMain(NemesisState *state)
 	NemDecRun(state);
 }
 
-void NemDec(const uint8_t *source)
-{
+void NemDec(const uint8_t *source) {
 	NemesisState state;
 	
 	state.source = source;
@@ -210,8 +182,7 @@ void NemDec(const uint8_t *source)
 	NemDecMain(&state);
 }
 
-void NemDecToRAM(const uint8_t *source, uint8_t *destination)
-{
+void NemDecToRAM(const uint8_t *source, uint8_t *destination) {
 	NemesisState state;
 	
 	state.source = source;

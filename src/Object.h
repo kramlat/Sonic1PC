@@ -12,8 +12,7 @@
 #define OBJECTS          (RESERVED_OBJECTS + LEVEL_OBJECTS)
 
 //Object IDs
-typedef enum
-{
+typedef enum {
 	/*00*/ ObjId_Null,
 	/*01*/ ObjId_Sonic,
 	/*02*/ ObjId_02,
@@ -161,10 +160,8 @@ typedef enum
 #pragma pack(push)
 #pragma pack(1)
 
-typedef union
-{
-	struct
-	{
+typedef union {
+	struct {
 		unsigned int x_flip : 1;       //Horizontally flipped
 		unsigned int y_flip : 1;       //Vertically flipped
 		unsigned int align_fg : 1;     //Aligned to the foreground
@@ -177,10 +174,8 @@ typedef union
 	uint8_t b;
 } ObjectRender;
 
-typedef union
-{
-	struct
-	{
+typedef union {
+	struct {
 		unsigned int x_flip : 1;       //Horizontally flipped
 		unsigned int y_flip : 1;       //Vertially flipped
 		unsigned int flag2 : 1;        //Unused
@@ -193,10 +188,8 @@ typedef union
 	uint8_t b;
 } ObjectStatus;
 
-typedef union
-{
-	struct
-	{
+typedef union {
+	struct {
 		unsigned int x_flip : 1;       //Horizontally flipped
 		unsigned int in_air : 1;       //In mid-air
 		unsigned int in_ball : 1;      //In ball-form
@@ -265,9 +258,9 @@ typedef struct {
 extern int ExecuteObjects_i;
 
 //Object functions
-Object *FindFreeObj();
+Object *FindFreeObj(void);
 Object *FindNextFreeObj(Object *obj);
-void ExecuteObjects();
+void ExecuteObjects(void);
 
 void BuildSpr_Normal(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces);
 void BuildSprites(uint8_t *sprite_io);

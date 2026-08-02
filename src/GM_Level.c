@@ -23,15 +23,15 @@
 #include "Resource/Art/TitleCard.h"
 
 // Level gamemode
-void GM_Level()
-{
+void GM_Level(void) {
 GM_Level_Branch:;
     // Set 'title card' flag
     gamemode |= 0x80;
 
     if (demo >= 0) {
         ;
-    } // sfx	bgm_Fade,0,1,1 ; fade out music //TODO
+    }
+    // sfx	bgm_Fade,0,1,1 ; fade out music //TODO
 
     // Clear the pattern load queue and fade out
     ClearPLC();

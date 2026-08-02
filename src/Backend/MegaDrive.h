@@ -4,18 +4,16 @@
 #include <stdint.h>
 
 //General types
-typedef void(*MD_Vector)();
+typedef void(*MD_Vector)(void);
 
-enum MD_Region
-{
+enum MD_Region {
 	Region_J,
 	Region_U,
 	Region_E,
 };
 
 //Program header
-typedef struct
-{
+typedef struct {
 	//Vectors
 	MD_Vector entry_point; //Start of program
 	MD_Vector h_interrupt; //Horizontal interrupt
@@ -27,4 +25,4 @@ typedef struct
 
 //MegaDrive interface
 int MegaDrive_Start(const MD_Header *header);
-void MegaDrive_Quit();
+void MegaDrive_Quit(void);

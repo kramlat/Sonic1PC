@@ -1,4 +1,4 @@
-#include "Object.h"
+#include "Spikes.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -6,21 +6,7 @@
 
 #include "Macros.h"
 
-// Spikes assets
-#include "Resource/Mappings/Spikes.h"
-
 // Spikes object
-typedef struct
-{
-    uint8_t subtype; // 0x28
-    uint8_t pad1[0x7]; // 0x29-0x2F
-    int16_t orig_x; // 0x30
-    int16_t orig_y; // 0x32
-    word_u move; // 0x34
-    uint16_t dir; // 0x36
-    uint16_t timer; // 0x38
-} Scratch_Spikes;
-
 static const uint8_t spike_set[][2] = {
     { 0, 20 },
     { 1, 10 },
@@ -30,8 +16,7 @@ static const uint8_t spike_set[][2] = {
     { 5, 16 },
 };
 
-static void Spike_Hurt(Object* obj)
-{
+static void Spike_Hurt(Object* obj) {
     // Check if player can be hurt
     if (invincibility)
         return;
@@ -43,8 +28,7 @@ static void Spike_Hurt(Object* obj)
     HurtSonic(player, obj);
 }
 
-static void Spike_Wait(Object* obj)
-{
+static void Spike_Wait(Object* obj) {
     Scratch_Spikes* scratch = (Scratch_Spikes*)&obj->scratch;
 
     // Wait for direction switch
@@ -75,13 +59,11 @@ static void Spike_Wait(Object* obj)
     }
 }
 
-void Obj_Spikes(Object* obj)
-{
+void Obj_Spikes(Object* obj) {
     Scratch_Spikes* scratch = (Scratch_Spikes*)&obj->scratch;
 
     switch (obj->routine) {
-    case 0: // Initialization
-    {
+    case 0: {
         // Increment routine
         obj->routine += 2;
 
@@ -101,8 +83,7 @@ void Obj_Spikes(Object* obj)
         scratch->orig_y = obj->pos.l.y.f.u;
     }
         // Fallthrough
-    case 2: // Solid
-    {
+    case 2: {
         // Spike movement
         switch (scratch->subtype) {
         case 0: // Don't move

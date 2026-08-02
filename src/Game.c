@@ -43,8 +43,7 @@ uint32_t vbla_count;
 #include "Resource/Art/Text.h"
 
 // General game functions
-void ReadJoypads()
-{
+void ReadJoypads(void) {
     uint8_t state;
 
     // Read joypad 1
@@ -59,7 +58,7 @@ void ReadJoypads()
 }
 
 // Game entry point
-void EntryPoint() {
+void EntryPoint(void) {
     // Initialize game system
     VDPSetupGame();
 
@@ -97,8 +96,7 @@ void EntryPoint() {
 }
 
 // Interrupts
-void WriteVRAMBuffers()
-{
+void WriteVRAMBuffers(void) {
     // Read joypad state
     ReadJoypads();
 
@@ -116,8 +114,7 @@ void WriteVRAMBuffers()
     VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
 }
 
-void VBlank()
-{
+void VBlank(void) {
     uint8_t routine = vbla_routine;
     if (vbla_routine != 0x00) {
         // Set VDP state
@@ -182,8 +179,7 @@ void VBlank()
         bg2_scroll_flags_dup = bg2_scroll_flags;
         bg3_scroll_flags_dup = bg3_scroll_flags;
 
-        if (hbla_pos >= 96) // Uh?
-        {
+        if (hbla_pos >= 96) {
             // Scroll camera
             LoadTilesAsYouMove();
 
@@ -288,6 +284,5 @@ void VBlank()
     vbla_count++;
 }
 
-void HBlank()
-{
+void HBlank(void) {
 }

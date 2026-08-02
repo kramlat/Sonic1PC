@@ -200,8 +200,7 @@ struct SS_Mapping {
 } ss_mappings[1 + SS_MAPPINGS];
 
 // Special Stage functions
-void SS_AniWallsRings()
-{
+void SS_AniWallsRings(void) {
     // Update wall angle
     uint8_t angle = (ss_angle.f.u >> 2) & 0xF;
     for (int i = 0; i < 36; i++)
@@ -268,12 +267,10 @@ void SS_AniWallsRings()
     }
 }
 
-void SS_AniItems()
-{
+void SS_AniItems(void) {
 }
 
-void SS_ShowLayout(uint8_t sprite_i)
-{
+void SS_ShowLayout(uint8_t sprite_i) {
     // Animate stage
     SS_AniWallsRings();
     SS_AniItems();
@@ -342,8 +339,7 @@ void SS_ShowLayout(uint8_t sprite_i)
     }
 }
 
-void SS_Load()
-{
+void SS_Load(void) {
 SS_Load_Branch:;
     // Get special stage to load
     uint8_t stage = last_special;
