@@ -51,11 +51,17 @@ static int SpecialSonic_ChkPos(Object *obj, int32_t x, int32_t y) {
 	
 	//Return if we hit a tile
 	int result = 0;
-	SpecialSonic_ChkTile(obj, *layout++, layout, &result);
-	SpecialSonic_ChkTile(obj, *layout++, layout, &result);
+	uint8_t block;
+
+	block = *layout++;
+	SpecialSonic_ChkTile(obj, block, layout, &result);
+	block = *layout++;
+	SpecialSonic_ChkTile(obj, block, layout, &result);
 	layout += SS_DIM - 2;
-	SpecialSonic_ChkTile(obj, *layout++, layout, &result);
-	SpecialSonic_ChkTile(obj, *layout++, layout, &result);
+	block = *layout++;
+	SpecialSonic_ChkTile(obj, block, layout, &result);
+	block = *layout++;
+	SpecialSonic_ChkTile(obj, block, layout, &result);
 	return result;
 }
 
