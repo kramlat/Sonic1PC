@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _SONIC_H
+#define _SONIC_H
 
 #include "Object.h"
 
@@ -90,3 +91,5 @@ void Sonic_LoadGfx(Object *obj);
 void Sonic_ResetOnFloor(Object *obj);
 int32_t HurtSonic(Object *obj, Object *src);
 int32_t KillSonic(Object *obj, Object *src);
+
+#endif //_SONIC_H

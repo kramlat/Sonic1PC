@@ -4,6 +4,10 @@
 #include "Level.h"
 #include "PLC.h"
 
+#define TO_ADD SCREEN_WIDEADD2
+#define FROM_ADD (TO_ADD + ((SCREEN_WIDEADD2 + 0xF) & ~0xF))
+#define FROM_SUB ((0x10 - TO_ADD) & 0xF)
+
 // Title card configuration
 static const struct TitleCard_Item {
     int16_t y;

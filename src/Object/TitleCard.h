@@ -3,10 +3,6 @@
 
 #include "Object.h"
 
-#define TO_ADD SCREEN_WIDEADD2
-#define FROM_ADD (TO_ADD + ((SCREEN_WIDEADD2 + 0xF) & ~0xF))
-#define FROM_SUB ((0x10 - TO_ADD) & 0xF)
-
 // Title card mappings
 #include "Resource/Mappings/TitleCard.h"
 
