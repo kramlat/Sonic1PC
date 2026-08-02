@@ -434,8 +434,9 @@ void BuildSprites(uint8_t *sprite_io) {
 				
 				if (!obj->render.f.raw_mappings) {
 					//Index mapping by frame
-					const uint8_t *mapping_ind = (const uint8_t*)obj->mappings + (obj->frame << 1);
-					mappings = obj->mappings + ((mapping_ind[0] << 8) | (mapping_ind[1] << 0));
+					const uint8_t *mapping_base = (const uint8_t*)obj->mappings;
+					const uint8_t *mapping_ind = mapping_base + (obj->frame << 1);
+					mappings = mapping_base + ((mapping_ind[0] << 8) | (mapping_ind[1] << 0));
 					pieces = *mappings++;
 				} else {
 					//Directly use object mappings pointer

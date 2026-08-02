@@ -208,7 +208,7 @@ typedef struct {
 	uint8_t type;            //Object type
 	ObjectRender render;     //Object render
 	uint16_t tile;           //Object base tile
-	const uint8_t *mappings; //Object mappings
+	const void *mappings;    //Object mappings
 	union {
 		struct {
 			dword_s x, y;
