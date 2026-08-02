@@ -20,7 +20,7 @@ void Obj_BuzzMissile_Construct(Object* obj) {
         obj->status.o.f.flag7 = false;
 }
 
-bool Obj_BuzzMissile_CheckNewtron(Object *obj, const Scratch_BuzzMissile *scratch) {
+bool Obj_BuzzMissile_CheckNewtron(Object *obj, Scratch_BuzzMissile *scratch) {
     if (scratch->subtype) {
         obj->routine = 8;
         obj->col_type = 0x87;
@@ -32,7 +32,7 @@ bool Obj_BuzzMissile_CheckNewtron(Object *obj, const Scratch_BuzzMissile *scratc
     return false;
 }
 
-void Obj_BuzzMissile_Charge(Object *obj, const Scratch_BuzzMissile *scratch) {
+void Obj_BuzzMissile_Charge(Object *obj, Scratch_BuzzMissile *scratch) {
     // Delete object if parent Buzz Bomber has exploded
     if (scratch->parent->type == ObjId_Explosion)
         ObjectDelete(obj);
@@ -124,7 +124,7 @@ void Obj_BuzzBomber_Construct(Object *obj) {
     obj->width_pixels = 24;
 }
 
-void Obj_BuzzBomber_Fly(Object *obj, const Scratch_BuzzBomber *scratch) {
+void Obj_BuzzBomber_Fly(Object *obj, Scratch_BuzzBomber *scratch) {
     // Not near Sonic
     obj->routine_sec += 2;
     scratch->time_delay = 127; // It's a word, Yuji!
@@ -134,7 +134,7 @@ void Obj_BuzzBomber_Fly(Object *obj, const Scratch_BuzzBomber *scratch) {
         obj->xsp = -obj->xsp;
 }
 
-void Obj_BuzzBomber_Fire(Object *obj, Object *missile, const Scratch_BuzzBomber *scratch) {
+void Obj_BuzzBomber_Fire(Object *obj, Object *missile, Scratch_BuzzBomber *scratch) {
     Scratch_BuzzMissile* mscratch = (Scratch_BuzzMissile*)&missile->scratch;
 
     missile->type = ObjId_BuzzMissile;
@@ -167,13 +167,13 @@ bool Obj_BuzzBomber_CheckCloseToSonic(Object *obj) {
     return true;
 }
 
-void Obj_BuzzBomber_SetStatusAttack(const Scratch_BuzzBomber *scratch) {
+void Obj_BuzzBomber_SetStatusAttack(Scratch_BuzzBomber *scratch) {
     // Set that we're near Sonic
     scratch->buzz_status = 2;
     scratch->time_delay = 29;
 }
 
-void Obj_BuzzBomber_TurnAround(Object *obj, const Scratch_BuzzBomber *scratch) {
+void Obj_BuzzBomber_TurnAround(Object *obj, Scratch_BuzzBomber *scratch) {
     // Change direction
     scratch->buzz_status = 0;
     obj->status.o.f.x_flip ^= 1;

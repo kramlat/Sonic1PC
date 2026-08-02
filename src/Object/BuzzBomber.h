@@ -34,18 +34,18 @@ typedef struct {
 void Obj_BuzzExplode(Object *obj);
 
 void Obj_BuzzMissile_Construct(Object *obj);
-bool Obj_BuzzMissile_CheckNewtron(Object *obj, const Scratch_BuzzMissile *scratch);
-void Obj_BuzzMissile_Charge(Object *obj, const Scratch_BuzzMissile *scratch);
+bool Obj_BuzzMissile_CheckNewtron(Object *obj, Scratch_BuzzMissile *scratch);
+void Obj_BuzzMissile_Charge(Object *obj, Scratch_BuzzMissile *scratch);
 void Obj_BuzzMissile_Fire(Object *obj);
 void Obj_BuzzMissile_NewtFire(Object *obj);
 void Obj_BuzzMissile(Object *obj);
 
 void Obj_BuzzBomber_Construct(Object *obj);
-void Obj_BuzzBomber_Fly(Object* obj, const Scratch_BuzzBomber *scratch);
-void Obj_BuzzBomber_Fire(Object* obj, Object *missile, const Scratch_BuzzBomber *scratch);
+void Obj_BuzzBomber_Fly(Object* obj, Scratch_BuzzBomber *scratch);
+void Obj_BuzzBomber_Fire(Object* obj, Object *missile, Scratch_BuzzBomber *scratch);
 bool Obj_BuzzBomber_CheckCloseToSonic(Object *obj);
-void Obj_BuzzBomber_SetStatusAttack(const Scratch_BuzzBomber *scratch);
-void Obj_BuzzBomber_TurnAround(Object *obj, const Scratch_BuzzBomber *scratch);
+void Obj_BuzzBomber_SetStatusAttack(Scratch_BuzzBomber *scratch);
+void Obj_BuzzBomber_TurnAround(Object *obj, Scratch_BuzzBomber *scratch);
 void Obj_BuzzBomber_Stop(Object *obj);
 void Obj_BuzzBomber(Object *obj);
 

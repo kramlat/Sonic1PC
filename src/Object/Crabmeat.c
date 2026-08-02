@@ -36,11 +36,11 @@ void Obj_Crabmeat_Fall(Object *obj, int16_t floor_dist) {
     obj->routine += 2;
 }
 
-bool Obj_Crabmeat_Check_Timer(const Scratch_Crabmeat *scratch) {
+bool Obj_Crabmeat_Check_Timer(Scratch_Crabmeat *scratch) {
     return --scratch->time_delay >= 0;
 }
 
-void Obj_Crabmeat_TurnAround(Object *obj, const Scratch_Crabmeat *scratch) {
+void Obj_Crabmeat_TurnAround(Object *obj, Scratch_Crabmeat *scratch) {
     // Turn around
     obj->routine_sec += 2;
     scratch->time_delay = 127;
@@ -60,7 +60,7 @@ void Obj_Crabmeat_Fire_Projectile(Object *obj, Object *proj, uint8_t type, uint8
     }
 }
 
-void Obj_Crabmeat_Fire(Object *obj, const Scratch_Crabmeat *scratch) {
+void Obj_Crabmeat_Fire(Object *obj, Scratch_Crabmeat *scratch) {
     // Fire
     scratch->time_delay = 59;
     obj->anim = 6;
@@ -70,7 +70,7 @@ void Obj_Crabmeat_Fire(Object *obj, const Scratch_Crabmeat *scratch) {
     Obj_Crabmeat_Fire_Projectile(obj, FindFreeObj(), ObjId_Crabmeat, 6, 16, 0, 0x100);
 }
 
-bool Obj_Crabmeat_Check_CrabMode(const Scratch_Crabmeat *scratch) {
+bool Obj_Crabmeat_Check_CrabMode(Scratch_Crabmeat *scratch) {
     return ((scratch->crab_mode ^= 1) & 1);
 }
 
@@ -88,7 +88,7 @@ void Obj_Crabmeat_NonZIF(Object *obj, int16_t floor_dist) {
     obj->anim = 3 + Obj_Crabmeat_SetAni(obj);
 }
 
-void Obj_Crabmeat_Stop(Object *obj, const Scratch_Crabmeat *scratch) {
+void Obj_Crabmeat_Stop(Object *obj, Scratch_Crabmeat *scratch) {
     // Stop for a moment
     obj->routine_sec -= 2;
     scratch->time_delay = 59;

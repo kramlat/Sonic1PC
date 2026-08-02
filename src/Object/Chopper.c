@@ -1,7 +1,7 @@
 #include "Chopper.h"
 
 // Helper function for initialization
-void Obj_Chopper_Construct(Object *obj, const Scratch_Chopper *scratch) {
+void Obj_Chopper_Construct(Object *obj, Scratch_Chopper *scratch) {
     obj->mappings = Mappings_Chopper;
     obj->tile = TILE_MAP(0, 0, 0, 0, 0x47B);
     obj->render.b = 0;
@@ -13,14 +13,14 @@ void Obj_Chopper_Construct(Object *obj, const Scratch_Chopper *scratch) {
 }
 
 // Helper function for movement logic
-void Obj_Chopper_Move(Object *obj, const Scratch_Chopper *scratch) {
+void Obj_Chopper_Move(Object *obj, Scratch_Chopper *scratch) {
     SpeedToPos(obj);
     obj->ysp += 0x18;
     Obj_Chopper_CheckAndResetPosition(obj, scratch);
 }
 
 // Helper function for animation
-void Obj_Chopper_Animate(Object *obj, const Scratch_Chopper *scratch) {
+void Obj_Chopper_Animate(Object *obj, Scratch_Chopper *scratch) {
     obj->anim = 1;
     if ((scratch->orig_y - 0xC0) < obj->pos.l.y.f.u) {
         obj->anim = 0;
@@ -31,7 +31,7 @@ void Obj_Chopper_Animate(Object *obj, const Scratch_Chopper *scratch) {
 }
 
 // Helper function to check position and reset if necessary
-void Obj_Chopper_CheckAndResetPosition(Object *obj, const Scratch_Chopper *scratch) {
+void Obj_Chopper_CheckAndResetPosition(Object *obj, Scratch_Chopper *scratch) {
     if (scratch->orig_y < obj->pos.l.y.f.u) {
         obj->pos.l.y.f.u = scratch->orig_y;
         obj->ysp = -0x700;
