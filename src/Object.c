@@ -655,7 +655,7 @@ bool ExitPlatform(Object *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p
 }
 
 static void Solid_ResetFloor(Object *obj, Object *pla) {
-	Scratch_Sonic *scratch = (Scratch_Sonic*)&player->scratch;ZZ
+	Scratch_Sonic *scratch = (Scratch_Sonic*)&player->scratch;
 	
 	//Release player from last standing object
 	if (player->status.p.f.object_stand) {
@@ -715,7 +715,7 @@ static signed int Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, in
 					//Check if we're hitting the top/bottom or sides
 					if (x_clip <= y_clip) {
 						//Left/right
-						if (y_clip > 4 {
+						if (y_clip > 4) {
 							//Stop speed going towards object
 							if (*x_off > 0) {
 								if (player->xsp > 0) {
