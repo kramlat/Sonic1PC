@@ -1,0 +1,1 @@
+placeholder for binary animation script to asm animation script generator

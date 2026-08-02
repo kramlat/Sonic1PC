@@ -1,0 +1,1 @@
+placeholder for binary palette (MD) to gimp palette generator
