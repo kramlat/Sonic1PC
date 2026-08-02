@@ -16,7 +16,7 @@ static const uint8_t spike_set[][2] = {
     { 5, 16 },
 };
 
-static void Spike_Hurt(Object* obj) {
+static void Spike_Hurt(Object *obj) {
     // Check if player can be hurt
     if (invincibility)
         return;
@@ -28,8 +28,8 @@ static void Spike_Hurt(Object* obj) {
     HurtSonic(player, obj);
 }
 
-static void Spike_Wait(Object* obj) {
-    Scratch_Spikes* scratch = (Scratch_Spikes*)&obj->scratch;
+static void Spike_Wait(Object *obj) {
+    Scratch_Spikes *scratch = (Scratch_Spikes*)&obj->scratch;
 
     // Wait for direction switch
     if (scratch->timer) {
@@ -59,7 +59,7 @@ static void Spike_Wait(Object* obj) {
     }
 }
 
-void Obj_Spikes(Object* obj) {
+void Obj_Spikes(Object *obj) {
     Scratch_Spikes* scratch = (Scratch_Spikes*)&obj->scratch;
 
     switch (obj->routine) {

@@ -7,7 +7,7 @@
 #include "Macros.h"
 
 // GHZ edge object
-static signed int Obj44_SolidWall2(Object* obj, uint16_t x_rad, uint16_t y_rad, int16_t* x_off, int16_t* y_off) {
+static int32_t Obj44_SolidWall2(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off) {
     // Check if we're touching horizontally
     *x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
     uint16_t x_dia = x_rad << 1;
@@ -48,7 +48,7 @@ static signed int Obj44_SolidWall2(Object* obj, uint16_t x_rad, uint16_t y_rad, 
         return -1;
 }
 
-static void Obj44_SolidWall(Object* obj, uint16_t x_rad, uint16_t y_rad)
+static void Obj44_SolidWall(Object *obj, uint16_t x_rad, uint16_t y_rad)
 {
     int16_t x_off, y_off;
 
@@ -94,7 +94,7 @@ static void Obj44_SolidWall(Object* obj, uint16_t x_rad, uint16_t y_rad)
     }
 }
 
-void Obj_GHZEdge(Object* obj)
+void Obj_GHZEdge(Object *obj)
 {
     switch (obj->routine) {
     case 0: // Initialization

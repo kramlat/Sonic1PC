@@ -28,8 +28,8 @@ static const struct TitleCard_Config {
 };
 
 // Title card object
-void Obj_TitleCard(Object* obj) {
-    Scratch_TitleCard* scratch = (Scratch_TitleCard*)&obj->scratch;
+void Obj_TitleCard(Object *obj) {
+    Scratch_TitleCard *scratch = (Scratch_TitleCard*)&obj->scratch;
 
     switch (obj->routine) {
     case 0: {

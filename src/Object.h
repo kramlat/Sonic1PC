@@ -278,4 +278,4 @@ void PlatformObject(Object *obj, uint16_t x_rad);
 void Platform3(Object *obj, int16_t top);
 void Platform_SetStand(Object *obj);
 bool ExitPlatform(Object *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p);
-signed int SolidObject(Object *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off);
+int32_t SolidObject(Object *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off);

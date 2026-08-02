@@ -1,6 +1,6 @@
 #include "Credits.h"
 
-void Obj_Credits_Construct(Object* obj) {
+void Obj_Credits_Construct(Object *obj) {
     // Increment routine and set position
     obj->routine += 2;
     obj->pos.s.x = 0x120 + SCREEN_WIDEADD2;
@@ -14,13 +14,13 @@ void Obj_Credits_Construct(Object* obj) {
     obj->priority = 0;
 }
 
-void Obj_Credits_SonicTeamPresents(Object* obj) {
+void Obj_Credits_SonicTeamPresents(Object *obj) {
     // Display "SONIC TEAM PRESENTS" text
     obj->tile = TILE_MAP(0, 0, 0, 0, 0xA6);
     obj->frame = 10;
 }
 
-bool Obj_Credits_JapEnable(Object* obj) {
+bool Obj_Credits_JapEnable(Object *obj) {
     // Hidden Japanese credits
     if (credits_cheat && jpad1_hold1 == (JPAD_A | JPAD_C | JPAD_B | JPAD_DOWN)) {
         dry_palette_dup[2][0] = 0xEEE;
@@ -32,7 +32,7 @@ bool Obj_Credits_JapEnable(Object* obj) {
 }
 
 // Credits object
-void Obj_Credits(Object* obj) {
+void Obj_Credits(Object *obj) {
     switch (obj->routine) {
     case 0: // Initialization
         Obj_Credits_Construct(obj);

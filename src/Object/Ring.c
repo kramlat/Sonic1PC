@@ -35,8 +35,8 @@ static bool Obj_Ring_ShiftChk(uint8_t* state) {
     return false;
 }
 
-static void Obj_Ring_SetupRing(Object* obj, uint8_t index, int16_t x, int16_t y, Object* ring) {
-    Scratch_Ring* scratch = (Scratch_Ring*)&ring->scratch;
+static void Obj_Ring_SetupRing(Object *obj, uint8_t index, int16_t x, int16_t y, Object *ring) {
+    Scratch_Ring *scratch = (Scratch_Ring*)&ring->scratch;
 
     // Set type and routine
     ring->type = ObjId_Ring;
@@ -86,8 +86,8 @@ static void CollectRing(void) {
     }
 }
 
-void Obj_Ring(Object* obj) {
-    Scratch_Ring* scratch = (Scratch_Ring*)&obj->scratch;
+void Obj_Ring(Object *obj) {
+    Scratch_Ring *scratch = (Scratch_Ring*)&obj->scratch;
 
     switch (obj->routine) {
     case 0: {
@@ -160,7 +160,7 @@ void Obj_Ring(Object* obj) {
 }
 
 // Ring loss object
-static void Obj_RingLoss_SetupRing(Object* obj, int16_t* xsp, int16_t* ysp, word_u* angle, Object* ring) {
+static void Obj_RingLoss_SetupRing(Object *obj, int16_t *xsp, int16_t *ysp, word_u *angle, Object *ring) {
     // Set object type and routine
     ring->type = ObjId_RingLoss;
     ring->routine += 2;
@@ -207,7 +207,7 @@ static void Obj_RingLoss_SetupRing(Object* obj, int16_t* xsp, int16_t* ysp, word
     angle->v = -angle->v;
 }
 
-void Obj_RingLoss(Object* obj) {
+void Obj_RingLoss(Object *obj) {
     switch (obj->routine) {
     case 0: {
         // Get how many rings to drop

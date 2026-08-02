@@ -14,10 +14,10 @@ typedef struct {
 } Scratch_Chopper;
 
 // Function prototypes
-void Obj_Chopper_Construct(Object* obj, Scratch_Chopper* scratch);
-void Obj_Chopper_Move(Object* obj, Scratch_Chopper* scratch);
-void Obj_Chopper_Animate(Object* obj, Scratch_Chopper* scratch);
-void Obj_Chopper_CheckAndResetPosition(Object* obj, Scratch_Chopper* scratch);
-void Obj_Chopper(Object* obj);
+void Obj_Chopper_Construct(Object *obj, const Scratch_Chopper *scratch);
+void Obj_Chopper_Move(Object *obj, const Scratch_Chopper *scratch);
+void Obj_Chopper_Animate(Object *obj, const Scratch_Chopper *scratch);
+void Obj_Chopper_CheckAndResetPosition(Object *obj, const Scratch_Chopper *scratch);
+void Obj_Chopper(Object *obj);
 
 #endif //_CHOPPER_H

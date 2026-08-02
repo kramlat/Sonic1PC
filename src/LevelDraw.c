@@ -46,7 +46,7 @@ size_t CalcVRAMPos_Unknown(int16_t sx, int16_t sy, int16_t x, int16_t y) {
 /**
  * Primary entry point: Calculates block data by first applying the camera's X offset.
  */
-void GetBlockData(const uint8_t** meta, const uint8_t** block, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout) {
+void GetBlockData(const uint8_t **meta, const uint8_t **block, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
     GetBlockData_2(meta, block, sy, sx + x, y, layout);
 }
 
@@ -54,7 +54,7 @@ void GetBlockData(const uint8_t** meta, const uint8_t** block, int16_t sx, int16
  * Secondary entry point: Calculates the memory addresses for block metadata and
  * tile data based on world coordinates and the level layout.
  */
-void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int16_t x, int16_t y, uint8_t *layout) {
+void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
 	y += sy;
 	int16_t cx = (x >> 8) & 0x3F;
 	int16_t cy = (y >> 8) & 0x7;
@@ -119,7 +119,7 @@ void DrawBlock(const uint8_t *meta, const uint8_t *block, size_t offset) {
 	}
 }
 
-void DrawBlocks_LR_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t *layout, size_t width) {
+void DrawBlocks_LR_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t width) {
 	const uint8_t *meta;
 	const uint8_t *block;
 	while (width-- > 0) {
@@ -133,7 +133,7 @@ void DrawBlocks_LR_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
 }
 
 #ifdef SCP_REV01
-void DrawBlocks_LR_3(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t* layout, size_t width) {
+void DrawBlocks_LR_3(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t width) {
     const uint8_t* meta;
     const uint8_t* block;
     while (width-- > 0) {
@@ -147,11 +147,11 @@ void DrawBlocks_LR_3(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
 }
 #endif
 
-void DrawBlocks_LR(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t *layout) {
+void DrawBlocks_LR(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
 	DrawBlocks_LR_2(offset, pos, sx, sy, x, y, layout, (SCROLL_WIDTH + 16 + 16) / 16);
 }
 
-void DrawBlocks_TB_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t *layout, size_t height) {
+void DrawBlocks_TB_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t height) {
 	const uint8_t *meta;
 	const uint8_t *block;
 	while (height-- > 0) {
@@ -164,7 +164,7 @@ void DrawBlocks_TB_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
 	}
 }
 
-void DrawBlocks_TB(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, uint8_t *layout) {
+void DrawBlocks_TB(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
 	DrawBlocks_TB_2(offset, pos, sx, sy, x, y, layout, (SCROLL_HEIGHT + 16 + 16) / 16);
 }
 
@@ -175,7 +175,7 @@ const dword_s* bg_pos_table[] = {
     &bg3_scrpos_y  // Index 6 (Kept .y as per existing prototyping, though ASM used .x)
 };
 
-void DrawBlocks_BG(size_t offset, int16_t sx, int16_t sy, int16_t y, uint8_t *layout, const uint8_t *array) {
+void DrawBlocks_BG(size_t offset, int16_t sx, int16_t sy, int16_t y, const uint8_t *layout, const uint8_t *array) {
 	uint8_t bg_pos_i = array[y >> 4];
 	if (bg_pos_i != 0) {
 		sx = bg_pos_table[bg_pos_i >> 1]->f.u;
@@ -186,7 +186,7 @@ void DrawBlocks_BG(size_t offset, int16_t sx, int16_t sy, int16_t y, uint8_t *la
 		DrawBlocks_LR_2(offset, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH);
 }
 
-void Draw_GHZ_Bg(int16_t sy, uint8_t *layout, size_t offset) {
+void Draw_GHZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
 	int16_t y = 0;
 	for (size_t i = 0; i < (SCROLL_HEIGHT + 16 + 16) / 16; i++) {
 		static const uint8_t bg_array[] = {0x00, 0x00, 0x00, 0x00, 0x06, 0x06, 0x06, 0x04, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -195,7 +195,7 @@ void Draw_GHZ_Bg(int16_t sy, uint8_t *layout, size_t offset) {
 	}
 }
 
-void Draw_MZ_Bg(int16_t sy, uint8_t* layout, size_t offset) {
+void Draw_MZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
     int16_t y = 0;
     for (size_t i = 0; i < (SCREEN_HEIGHT + 16 + 16) / 16; i++) {
         static const uint8_t bg_array[] = {
@@ -213,7 +213,7 @@ void Draw_MZ_Bg(int16_t sy, uint8_t* layout, size_t offset) {
     }
 }
 
-void Draw_SBZ_Bg(int16_t sy, uint8_t* layout, size_t offset) {
+void Draw_SBZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
     int16_t y = 0;
     for (size_t i = 0; i < (SCREEN_HEIGHT + 16 + 16) / 16; i++) {
         static const uint8_t bg_array[] = {
@@ -226,7 +226,7 @@ void Draw_SBZ_Bg(int16_t sy, uint8_t* layout, size_t offset) {
 }
 
 // Level drawing functions
-void DrawChunks(int16_t sx, int16_t sy, uint8_t* layout, size_t offset) {
+void DrawChunks(int16_t sx, int16_t sy, const uint8_t *layout, size_t offset) {
     int16_t y = -16;
     for (size_t i = 0; i < (SCROLL_HEIGHT + 16 + 16) / 16; i++) {
         DrawBlocks_LR_2(offset, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH / 2);
@@ -248,7 +248,7 @@ void LoadTilesFromStart(void) {
     DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
 }
 
-void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t *flag, uint8_t *layout, size_t offset) {
+void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset) {
 	//Check if any flags have been set
 	if (*flag == 0)
 		return;
@@ -314,7 +314,7 @@ void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t *flag, uint8_t *layout,
 }
 
 
-void DrawBGScrollBlock2(int16_t sx, int16_t sy, uint16_t *flag, uint8_t *layout, size_t offset) {
+void DrawBGScrollBlock2(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset) {
 	if (*flag == 0)
 		return;
 	#if SCP_REV00
@@ -371,7 +371,7 @@ void DrawBGScrollBlock2(int16_t sx, int16_t sy, uint16_t *flag, uint8_t *layout,
 	#endif
 }
 
-void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t *flag, uint8_t *layout, size_t offset) {
+void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset) {
 	//Check if any flags have been set
 	if (*flag == 0)
 		return;

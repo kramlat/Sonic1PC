@@ -1,7 +1,7 @@
 #include "BuzzBomber.h"
 
 // Buzz Bomber's explosion
-void Obj_BuzzExplode(Object* obj) {
+void Obj_BuzzExplode(Object *obj) {
     (void)obj;
 }
 
@@ -20,7 +20,7 @@ void Obj_BuzzMissile_Construct(Object* obj) {
         obj->status.o.f.flag7 = false;
 }
 
-bool Obj_BuzzMissile_CheckNewtron(Object* obj, Scratch_BuzzMissile* scratch) {
+bool Obj_BuzzMissile_CheckNewtron(Object *obj, const Scratch_BuzzMissile *scratch) {
     if (scratch->subtype) {
         obj->routine = 8;
         obj->col_type = 0x87;
@@ -32,7 +32,7 @@ bool Obj_BuzzMissile_CheckNewtron(Object* obj, Scratch_BuzzMissile* scratch) {
     return false;
 }
 
-void Obj_BuzzMissile_Charge(Object* obj, Scratch_BuzzMissile* scratch) {
+void Obj_BuzzMissile_Charge(Object *obj, const Scratch_BuzzMissile *scratch) {
     // Delete object if parent Buzz Bomber has exploded
     if (scratch->parent->type == ObjId_Explosion)
         ObjectDelete(obj);
@@ -42,7 +42,7 @@ void Obj_BuzzMissile_Charge(Object* obj, Scratch_BuzzMissile* scratch) {
     DisplaySprite(obj);
 }
 
-void Obj_BuzzMissile_Fire(Object* obj) {
+void Obj_BuzzMissile_Fire(Object *obj) {
     // Check if we've 'hit Sonic' (disabled)
     if (!obj->status.o.f.flag7) {
         // Use fired collision and animation
@@ -66,7 +66,7 @@ void Obj_BuzzMissile_Fire(Object* obj) {
     }
 }
 
-void Obj_BuzzMissile_NewtFire(Object* obj) {
+void Obj_BuzzMissile_NewtFire(Object *obj) {
     // Delete once off-screen
     if (!obj->render.f.on_screen)
         ObjectDelete(obj);
@@ -78,7 +78,7 @@ void Obj_BuzzMissile_NewtFire(Object* obj) {
     }
 }
 
-void Obj_BuzzMissile(Object* obj) {
+void Obj_BuzzMissile(Object *obj) {
     Scratch_BuzzMissile* scratch = (Scratch_BuzzMissile*)&obj->scratch;
 
     switch (obj->routine) {
@@ -113,7 +113,7 @@ void Obj_BuzzMissile(Object* obj) {
     }
 }
 
-void Obj_BuzzBomber_Construct(Object* obj) {
+void Obj_BuzzBomber_Construct(Object *obj) {
     // Set object drawing information
     obj->mappings = Mappings_BuzzBomber;
     obj->tile = TILE_MAP(0, 0, 0, 0, 0x444);
@@ -124,7 +124,7 @@ void Obj_BuzzBomber_Construct(Object* obj) {
     obj->width_pixels = 24;
 }
 
-void Obj_BuzzBomber_Fly(Object* obj, Scratch_BuzzBomber* scratch) {
+void Obj_BuzzBomber_Fly(Object *obj, const Scratch_BuzzBomber *scratch) {
     // Not near Sonic
     obj->routine_sec += 2;
     scratch->time_delay = 127; // It's a word, Yuji!
@@ -134,7 +134,7 @@ void Obj_BuzzBomber_Fly(Object* obj, Scratch_BuzzBomber* scratch) {
         obj->xsp = -obj->xsp;
 }
 
-void Obj_BuzzBomber_Fire(Object* obj, Object* missile, Scratch_BuzzBomber* scratch) {
+void Obj_BuzzBomber_Fire(Object *obj, Object *missile, const Scratch_BuzzBomber *scratch) {
     Scratch_BuzzMissile* mscratch = (Scratch_BuzzMissile*)&missile->scratch;
 
     missile->type = ObjId_BuzzMissile;
@@ -158,7 +158,7 @@ void Obj_BuzzBomber_Fire(Object* obj, Object* missile, Scratch_BuzzBomber* scrat
     obj->anim = 2;
 }
 
-bool Obj_BuzzBomber_CheckCloseToSonic(Object* obj) {
+bool Obj_BuzzBomber_CheckCloseToSonic(Object *obj) {
     // Get X difference and check if we're close enough to Sonic
     uint16_t x_off = (obj->pos.l.x.f.u < player->pos.l.x.f.u) ? (player->pos.l.x.f.u - obj->pos.l.x.f.u) : (obj->pos.l.x.f.u - player->pos.l.x.f.u);
 
@@ -167,29 +167,29 @@ bool Obj_BuzzBomber_CheckCloseToSonic(Object* obj) {
     return true;
 }
 
-void Obj_BuzzBomber_SetStatusAttack(Scratch_BuzzBomber* scratch) {
+void Obj_BuzzBomber_SetStatusAttack(const Scratch_BuzzBomber *scratch) {
     // Set that we're near Sonic
     scratch->buzz_status = 2;
     scratch->time_delay = 29;
 }
 
-void Obj_BuzzBomber_TurnAround(Object* obj, Scratch_BuzzBomber* scratch) {
+void Obj_BuzzBomber_TurnAround(Object *obj, const Scratch_BuzzBomber *scratch) {
     // Change direction
     scratch->buzz_status = 0;
     obj->status.o.f.x_flip ^= 1;
     scratch->time_delay = 59;
 }
 
-void Obj_BuzzBomber_Stop(Object* obj) {
+void Obj_BuzzBomber_Stop(Object *obj) {
     // Stop
     obj->routine_sec -= 2;
     obj->xsp = 0;
     obj->anim = 0;
 }
 
-void Obj_BuzzBomber(Object* obj)
+void Obj_BuzzBomber(Object *obj)
 {
-    Scratch_BuzzBomber* scratch = (Scratch_BuzzBomber*)&obj->scratch;
+    Scratch_BuzzBomber *scratch = (Scratch_BuzzBomber*)&obj->scratch;
 
     switch (obj->routine) {
     case 0: // Initialization

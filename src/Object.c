@@ -284,8 +284,7 @@ void BuildSpr_Normal(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t 
 	} while (pieces-- > 0);
 }
 
-void BuildSprites_Draw(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, Object *obj, const uint8_t *mappings, uint8_t pieces)
-{
+void BuildSprites_Draw(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, Object *obj, const uint8_t *mappings, uint8_t pieces) {
 	if (obj->render.f.x_flip) {
 		if (obj->render.f.y_flip) {
 			//XY flip
@@ -676,7 +675,7 @@ static void Solid_ResetFloor(Object *obj, Object *pla) {
 	obj->status.o.f.player_stand = true;
 }
 
-static signed int Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off) {
+static int32_t Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off) {
 	//Check if player is in horizontal range
 	*x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
 	uint16_t x_dia = x_rad << 1;
@@ -785,8 +784,7 @@ static signed int Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, in
 	}
 	
 	//Clear pushing state
-	if (obj->status.o.f.player_push)
-	{
+	if (obj->status.o.f.player_push) {
 		player->anim = SonAnimId_Run; //Not Walk
 		obj->status.o.f.player_push = false;
 		player->status.p.f.pushing = false;
@@ -794,7 +792,7 @@ static signed int Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, in
 	return 0;
 }
 
-signed int SolidObject(Object *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off) {
+int32_t SolidObject(Object *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off) {
 	if (obj->routine_sec) {
 		uint16_t x_dia = x_rad << 1;
 		

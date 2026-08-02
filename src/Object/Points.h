@@ -8,8 +8,8 @@
 //Points Assets
 #include "Resource/Mappings/Points.h"
 
-void Obj_Points_Construct(Object* obj);
-void Obj_Points_Slow(Object* obj);
-void Obj_Points(Object* obj);
+void Obj_Points_Construct(Object *obj);
+void Obj_Points_Slow(Object *obj);
+void Obj_Points(Object *obj);
 
 #endif

@@ -65,7 +65,7 @@ const int16_t AnimalEndSpeed[][2] = {
 	{-0x280, -0x380}
 };
 
-bool Obj_Animals_CheckInRange(Object* obj) {
+bool Obj_Animals_CheckInRange(Object *obj) {
     return ((player->pos.l.x.v - obj->pos.l.x.v - 0xB8) >= 0 && (player->pos.l.x.v - obj->pos.l.x.v - 0xB8) <= 0x100);
 }
 
@@ -88,7 +88,7 @@ void Obj_Animals_UpdateRender(Object *obj) {
     }
 }
 
-void Obj_Animals_FlickyJump(Object *obj, Scratch_Animals* scratch) {
+void Obj_Animals_FlickyJump(Object *obj, const Scratch_Animals *scratch) {
     if (!Obj_Animals_CheckInRange(obj)) {
         obj->xsp = 0;
         scratch->xsp = 0;
@@ -114,7 +114,7 @@ void Obj_Animals_FlickyJump(Object *obj, Scratch_Animals* scratch) {
     DisplaySprite(obj);
 }
 
-void Obj_Animals_Walk(Object* obj, Scratch_Animals* scratch) {
+void Obj_Animals_Walk(Object *obj, const Scratch_Animals *scratch) {
     ObjectFall(obj);
     obj->frame = 1;
 
@@ -136,7 +136,7 @@ void Obj_Animals_Walk(Object* obj, Scratch_Animals* scratch) {
     }
 }
 
-void Obj_Animals_Fly(Object* obj, Scratch_Animals* scratch) {
+void Obj_Animals_Fly(Object *obj, const Scratch_Animals *scratch) {
     SpeedToPos(obj);
     obj->ysp += 0x18;
 
@@ -175,7 +175,7 @@ void Obj_Animals_Fly(Object* obj, Scratch_Animals* scratch) {
     DisplaySprite(obj);
 }
 
-void Obj_Animals_FlickyWait(Object* obj, Scratch_Animals* scratch) {
+void Obj_Animals_FlickyWait(Object *obj, const Scratch_Animals *scratch) {
     if (Obj_Animals_CheckInRange(obj)) {
         obj->xsp = scratch->xsp;
         obj->ysp = scratch->ysp;
@@ -192,7 +192,7 @@ void Obj_Animals_FlickyWait(Object* obj, Scratch_Animals* scratch) {
     }
 }
 
-void Obj_Animals_FromEnemy(Object* obj, Scratch_Animals* scratch) {
+void Obj_Animals_FromEnemy(Object *obj, const Scratch_Animals *scratch) {
     obj->routine += 2;
     scratch->routine = AnimalVarIndex[LEVEL_ZONE(level_id)][RandomNumber() & 1];
     scratch->xsp = AnimalVariables[scratch->routine].xsp;
@@ -229,7 +229,7 @@ void Obj_Animals_FromEnemy(Object* obj, Scratch_Animals* scratch) {
     DisplaySprite(obj);
 }
 
-void Obj_Animals_Construct(Object* obj, Scratch_Animals* scratch) {
+void Obj_Animals_Construct(Object *obj, const Scratch_Animals *scratch) {
     if (scratch->subtype == 0) {
         Obj_Animals_FromEnemy(obj,scratch);
         return;
@@ -256,7 +256,7 @@ void Obj_Animals_Construct(Object* obj, Scratch_Animals* scratch) {
     DisplaySprite(obj);
 }
 
-void Obj_Animals_Main(Object* obj, Scratch_Animals* scratch) {
+void Obj_Animals_Main(Object *obj, const Scratch_Animals *scratch) {
     if (!(obj->render.b & 0x80)) {
         ObjectDelete(obj);
         return;
@@ -285,7 +285,7 @@ void Obj_Animals_Main(Object* obj, Scratch_Animals* scratch) {
     DisplaySprite(obj);
 }
 
-void Obj_Animals_Prison(Object* obj, Scratch_Animals* scratch) {
+void Obj_Animals_Prison(Object *obj, const Scratch_Animals *scratch) {
     if (!(obj->render.b & 0x80)) {
         ObjectDelete(obj);
         return;
@@ -300,7 +300,7 @@ void Obj_Animals_Prison(Object* obj, Scratch_Animals* scratch) {
     DisplaySprite(obj);
 }
 
-void Obj_Animals_RabbitWait(Object* obj, Scratch_Animals* scratch) {
+void Obj_Animals_RabbitWait(Object *obj, const Scratch_Animals *scratch) {
     if (!Obj_Animals_CheckInRange(obj)) {
         int16_t dx = obj->pos.l.x.v - player->pos.l.x.v;
         if (dx >= 0) {
@@ -321,7 +321,7 @@ void Obj_Animals_RabbitWait(Object* obj, Scratch_Animals* scratch) {
     }
 }
 
-void Obj_Animals_LandJump(Object *obj, Scratch_Animals* scratch) {
+void Obj_Animals_LandJump(Object *obj, const Scratch_Animals *scratch) {
     if (Obj_Animals_CheckInRange(obj)) {
         obj->xsp = 0;
         scratch->xsp = 0;
@@ -358,7 +358,7 @@ void Obj_Animals_LandJump(Object *obj, Scratch_Animals* scratch) {
     DisplaySprite(obj);
 }
 
-void Obj_Animals_SingleBounce(Object *obj, Scratch_Animals* scratch) {
+void Obj_Animals_SingleBounce(Object *obj, const Scratch_Animals *scratch) {
     int floorDist;
 
     if (Obj_Animals_CheckInRange(obj)) {
@@ -390,7 +390,7 @@ void Obj_Animals_SingleBounce(Object *obj, Scratch_Animals* scratch) {
     DisplaySprite(obj);
 }
 
-void Obj_Animals_FlyBounce(Object *obj, Scratch_Animals* scratch) {
+void Obj_Animals_FlyBounce(Object *obj, const Scratch_Animals *scratch) {
     int floorDist;
 
     if (Obj_Animals_CheckInRange(obj)) {
@@ -430,7 +430,7 @@ void Obj_Animals_FlyBounce(Object *obj, Scratch_Animals* scratch) {
     }
 }
 
-void Obj_Animals_DoubleBounce(Object* obj, Scratch_Animals* scratch) {
+void Obj_Animals_DoubleBounce(Object* obj, const Scratch_Animals *scratch) {
     ObjectFall(obj);
     obj->frame = 1;
 
@@ -462,7 +462,7 @@ void Obj_Animals_DoubleBounce(Object* obj, Scratch_Animals* scratch) {
 }
 
 void Obj_Animals(Object* obj) {
-Scratch_Animals* scratch = (Scratch_Animals*)&obj->scratch;
+Scratch_Animals *scratch = (Scratch_Animals*)&obj->scratch;
 
 	switch (obj->routine) {
 		case 0:

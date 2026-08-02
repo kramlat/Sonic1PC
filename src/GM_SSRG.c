@@ -120,13 +120,13 @@ static void SRG_DrawFG(void) {
     }
 }
 
-static void UpdateScrollPositions(Object* obj) {
+static void UpdateScrollPositions(Object *obj) {
     ssrg_scroll_bg = obj->pos.s.x;
     vid_bg_scrpos_y_dup = -obj->pos.s.y;
 }
 
 // SSRG objects
-static void SpeedToPosHud(Object* obj) {
+static void SpeedToPosHud(Object *obj) {
     uint32_t xadd = (int32_t)obj->xsp << 8;
     obj->pos.s.x += xadd >> 16;
     uint32_t y = ((obj->pos.s.y << 16) | obj->pos.s.yl) + (obj->ysp << 8);
@@ -140,7 +140,7 @@ typedef struct {
     uint16_t timer; // 0x2A
 } Scratch_Letters;
 
-static void Obj_Letters(Object* obj) {
+static void Obj_Letters(Object *obj) {
     Scratch_Letters* scratch = (Scratch_Letters*)&obj->scratch;
 
     static const uint16_t data[4][8] = {

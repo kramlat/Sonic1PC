@@ -27,9 +27,8 @@ word_u track_pos;
 uint8_t dbg_ang0, dbg_ang1, dbg_ang2, dbg_ang3; // 0xFFEC-0xFFEF
 
 // General Sonic state stuff
-static void Sonic_Display(Object* obj)
-{
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+static void Sonic_Display(Object *obj) {
+    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Handle invulnerability blinking
     uint16_t blink;
@@ -69,8 +68,7 @@ static void Sonic_Display(Object* obj)
     }
 }
 
-static void Sonic_RecordPosition(Object* obj)
-{
+static void Sonic_RecordPosition(Object *obj) {
     // Track current position
     int16_t* write = &track_sonic[0][0] + (track_pos.v >> 1);
     *write++ = obj->pos.l.x.f.u;
@@ -83,8 +81,7 @@ static void Sonic_RecordPosition(Object* obj)
 
 #define GET_SONIC_ANISCR(x) (Animation_Sonic + ((Animation_Sonic[((x) << 1)] << 8) | (Animation_Sonic[((x) << 1) + 1] << 0)))
 
-static void Sonic_AnimateReadFrame(Object* obj, const uint8_t* anim_script)
-{
+static void Sonic_AnimateReadFrame(Object *obj, const uint8_t *anim_script) {
     // Read current animation command
     uint8_t cmd = anim_script[1 + obj->anim_frame];
 
@@ -94,30 +91,26 @@ static void Sonic_AnimateReadFrame(Object* obj, const uint8_t* anim_script)
         obj->frame = cmd;
         obj->anim_frame++;
     } else {
-        if (++cmd == 0) // 0xFF
-        {
+        if (++cmd == 0) {
             // Restart animation
             obj->anim_frame = 0;
             cmd = anim_script[1];
             goto Anim_Next;
         }
-        if (++cmd == 0) // 0xFE
-        {
+        if (++cmd == 0) {
             // Go back (next byte) frames
             obj->anim_frame -= anim_script[2 + obj->anim_frame];
             cmd = anim_script[1 + obj->anim_frame];
             goto Anim_Next;
         }
-        if (++cmd == 0) // 0xFD
-        {
+        if (++cmd == 0) {
             // Change animation (falls through to the routine increment below)
             obj->anim = anim_script[2 + obj->anim_frame];
         }
     }
 }
 
-void Sonic_Animate(Object* obj)
-{
+void Sonic_Animate(Object *obj) {
     // Get animation script to use
     const uint8_t* anim_script = Animation_Sonic;
 
@@ -247,8 +240,7 @@ void Sonic_Animate(Object* obj)
 
 #include "Resource/Mappings/SonicDPLC.h"
 
-void Sonic_LoadGfx(Object* obj)
-{
+void Sonic_LoadGfx(Object *obj) {
     // Check if we're loading a new frame
     uint8_t frame = obj->frame;
     if (frame == sonframe_num)
@@ -285,8 +277,7 @@ void Sonic_LoadGfx(Object* obj)
 }
 
 // Sonic collision functions
-void Sonic_ResetOnFloor(Object* obj)
-{
+void Sonic_ResetOnFloor(Object *obj) {
     Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Set state
@@ -306,8 +297,7 @@ void Sonic_ResetOnFloor(Object* obj)
     item_bonus = 0;
 }
 
-static int16_t Sonic_Angle(Object* obj, int16_t dist0, int16_t dist1)
-{
+static int16_t Sonic_Angle(Object *obj, int16_t dist0, int16_t dist1) {
     // Get angle and distance to use (use closest one)
     uint8_t res_angle = angle_buffer1;
     int16_t res_dist = dist1;
@@ -324,9 +314,8 @@ static int16_t Sonic_Angle(Object* obj, int16_t dist0, int16_t dist1)
     return res_dist;
 }
 
-static void Sonic_AnglePos(Object* obj)
-{
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+static void Sonic_AnglePos(Object *obj) {
+    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Don't do floor collision if standing on an object
     if (obj->status.p.f.object_stand) {
@@ -428,8 +417,7 @@ static void Sonic_AnglePos(Object* obj)
     }
 }
 
-static void Sonic_Floor(Object* obj)
-{
+static void Sonic_Floor(Object *obj) {
     // Get angle we're moving in
     // There's some weird logging stuff done here
     // Maybe testing if the CalcAngle is yielding desirable results?
@@ -581,8 +569,7 @@ static void Sonic_Floor(Object* obj)
     }
 }
 
-static void Sonic_HurtStop(Object* obj)
-{
+static void Sonic_HurtStop(Object *obj) {
     Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Die when falling below the level
@@ -644,8 +631,7 @@ static const uint8_t obj_sizes[][2] = {
     { 0x48, 0x8 },
 };
 
-static signed int React_ChkHurt(Object* obj, Object* hit)
-{
+static signed int React_ChkHurt(Object *obj, Object *hit) {
     Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Check for invincibility or invulnerability
@@ -658,7 +644,7 @@ static signed int React_ChkHurt(Object* obj, Object* hit)
     return HurtSonic(obj, hit);
 }
 
-static signed int React_Enemy(Object* obj, Object* hit)
+static signed int React_Enemy(Object *obj, Object *hit)
 {
     // Check if we can hurt the enemy
     if (!(invincibility || obj->anim == SonAnimId_Roll))
@@ -687,8 +673,7 @@ static signed int React_Enemy(Object* obj, Object* hit)
 
         static const uint16_t points[] = { 10, 20, 50, 100 };
         uint16_t point_bonus = points[bonus >> 1];
-        if (item_bonus >= 32) // 16 enemies destroyed
-        {
+        if (item_bonus >= 32) {
             point_bonus = 1000;
             hit->scratch.u16[0xB] = 10;
         }
@@ -711,8 +696,7 @@ static signed int React_Enemy(Object* obj, Object* hit)
     return 0; // d0 not set
 }
 
-static signed int React_Monitor(Object* obj, Object* hit)
-{
+static signed int React_Monitor(Object *obj, Object *hit) {
     if (obj->ysp < 0) {
         // Check if we're below the monitor
         uint16_t chky = obj->pos.l.y.f.u - 0x10;
@@ -731,17 +715,15 @@ static signed int React_Monitor(Object* obj, Object* hit)
     return 0; // d0 not set
 }
 
-static signed int ReactToItem(Object* obj)
-{
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+static signed int ReactToItem(Object *obj) {
+    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Get collision area
     int16_t width, height;
     int16_t x = obj->pos.l.x.f.u - 8;
     int16_t y = obj->pos.l.y.f.u - (height = (uint8_t)(obj->y_rad - 3));
 
-    if (obj->frame == 0x39) // Ducking
-    {
+    if (obj->frame == 0x39) {
         // Smaller hitbox when ducking
         y += 12;
         height = 10;
@@ -750,14 +732,14 @@ static signed int ReactToItem(Object* obj)
     height <<= 1;
 
     // Iterate through level objects
-    Object* hit = level_objects;
+    Object *hit = level_objects;
     for (int i = 0; i < LEVEL_OBJECTS; i++, hit++) {
         // Check if object is collidable
         if (!(hit->render.f.on_screen && hit->col_type))
             continue;
 
         // Get object's size
-        const uint8_t* sizep = obj_sizes[hit->col_type & 0x3F];
+        const uint8_t *sizep = obj_sizes[hit->col_type & 0x3F];
         uint8_t hit_width = *sizep++;
         uint8_t hit_height = *sizep++;
 
@@ -787,9 +769,9 @@ static signed int ReactToItem(Object* obj)
 }
 
 // Sonic functions
-signed int HurtSonic(Object* obj, Object* src)
+signed int HurtSonic(Object *obj, Object *src)
 {
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Lose rings and shield
     if (!shield) {
@@ -834,8 +816,7 @@ signed int HurtSonic(Object* obj, Object* src)
     return -1;
 }
 
-signed int KillSonic(Object* obj, Object* src)
-{
+int32_t KillSonic(Object *obj, Object *src) {
     (void)src;
     Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
 
@@ -867,9 +848,8 @@ signed int KillSonic(Object* obj, Object* src)
 }
 
 // Sonic movement functions
-static bool Sonic_Jump(Object* obj)
-{
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+static bool Sonic_Jump(Object *obj) {
+    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Don't jump if ABC isn't pressed
     if (!(jpad1_press2 & (JPAD_A | JPAD_C | JPAD_B)))
@@ -914,8 +894,7 @@ static bool Sonic_Jump(Object* obj)
     return true;
 }
 
-static void Sonic_SlopeResist(Object* obj)
-{
+static void Sonic_SlopeResist(Object *obj) {
     if (((obj->angle + 0x60) & 0xFF) >= 0xC0)
         return;
 
@@ -924,8 +903,7 @@ static void Sonic_SlopeResist(Object* obj)
         obj->inertia += force;
 }
 
-static void Sonic_MoveLeft(Object* obj)
-{
+static void Sonic_MoveLeft(Object *obj) {
     int16_t inertia = obj->inertia;
     if (inertia <= 0) {
         // Turn around
@@ -957,8 +935,7 @@ static void Sonic_MoveLeft(Object* obj)
     }
 }
 
-static void Sonic_MoveRight(Object* obj)
-{
+static void Sonic_MoveRight(Object *obj) {
     int16_t inertia = obj->inertia;
     if (inertia >= 0) {
         // Turn around
@@ -990,9 +967,8 @@ static void Sonic_MoveRight(Object* obj)
     }
 }
 
-static void Sonic_Move(Object* obj)
-{
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+static void Sonic_Move(Object *obj) {
+    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     if (!jump_only) {
         if (!scratch->control_lock) {
@@ -1115,8 +1091,7 @@ static void Sonic_Move(Object* obj)
     }
 }
 
-static void Sonic_ChkRoll(Object* obj)
-{
+static void Sonic_ChkRoll(Object *obj) {
     // Enter roll state
     if (obj->status.p.f.in_ball)
         return;
@@ -1132,8 +1107,7 @@ static void Sonic_ChkRoll(Object* obj)
         obj->inertia = 0x200;
 }
 
-static void Sonic_Roll(Object* obj)
-{
+static void Sonic_Roll(Object *obj) {
     // Check if we can and are trying to roll
     if (jump_only || ((obj->inertia < 0) ? -obj->inertia : obj->inertia) < 0x80)
         return;
@@ -1142,8 +1116,7 @@ static void Sonic_Roll(Object* obj)
     Sonic_ChkRoll(obj);
 }
 
-static void Sonic_LevelBound(Object* obj)
-{
+static void Sonic_LevelBound(Object *obj) {
     // Get next X position
     // This is unsigned, but it shouldn't be
     uint16_t x = (obj->pos.l.x.v + (obj->xsp << 8)) >> 16;
@@ -1171,9 +1144,8 @@ static void Sonic_LevelBound(Object* obj)
     }
 }
 
-static void Sonic_SlopeRepel(Object* obj)
-{
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+static void Sonic_SlopeRepel(Object *obj) {
+    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Check if we can fall off a slope
     if (scratch->x38.floor_clip)
@@ -1195,8 +1167,7 @@ static void Sonic_SlopeRepel(Object* obj)
     }
 }
 
-static void Sonic_RollRepel(Object* obj)
-{
+static void Sonic_RollRepel(Object *obj) {
     if (((obj->angle + 0x60) & 0xFF) >= 0xC0)
         return;
 
@@ -1212,8 +1183,7 @@ static void Sonic_RollRepel(Object* obj)
     }
 }
 
-static void Sonic_RollLeft(Object* obj)
-{
+static void Sonic_RollLeft(Object *obj) {
     int16_t inertia = obj->inertia;
     if (inertia <= 0) {
         // Set animation
@@ -1227,8 +1197,7 @@ static void Sonic_RollLeft(Object* obj)
     }
 }
 
-static void Sonic_RollRight(Object* obj)
-{
+static void Sonic_RollRight(Object *obj) {
     int16_t inertia = obj->inertia;
     if (inertia >= 0) {
         // Set animation
@@ -1242,9 +1211,8 @@ static void Sonic_RollRight(Object* obj)
     }
 }
 
-static void Sonic_RollSpeed(Object* obj)
-{
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+static void Sonic_RollSpeed(Object *obj) {
+    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     if (!jump_only) {
         if (!scratch->control_lock) {
@@ -1316,8 +1284,7 @@ static void Sonic_RollSpeed(Object* obj)
     }
 }
 
-static void Sonic_JumpHeight(Object* obj)
-{
+static void Sonic_JumpHeight(Object *obj) {
     Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
 
     if (scratch->jumping) {
@@ -1332,8 +1299,7 @@ static void Sonic_JumpHeight(Object* obj)
     }
 }
 
-static void Sonic_JumpDirection(Object* obj)
-{
+static void Sonic_JumpDirection(Object *obj) {
     // Handle acceleration
     if (!obj->status.p.f.roll_jump) {
         int16_t xsp = obj->xsp;
@@ -1379,8 +1345,7 @@ static void Sonic_JumpDirection(Object* obj)
     }
 }
 
-static void Sonic_JumpAngle(Object* obj)
-{
+static void Sonic_JumpAngle(Object *obj) {
     // Reset angle towards 0
     uint8_t angle = obj->angle;
     if (angle == 0)
@@ -1397,8 +1362,7 @@ static void Sonic_JumpAngle(Object* obj)
     obj->angle = angle;
 }
 
-static void Sonic_Loops(Object* obj)
-{
+static void Sonic_Loops(Object *obj) {
     // Make sure we're in SLZ or GHZ
     if (LEVEL_ZONE(level_id) != ZoneId_SLZ && LEVEL_ZONE(level_id) != ZoneId_GHZ)
         return;
@@ -1449,8 +1413,7 @@ static void Sonic_Loops(Object* obj)
 }
 
 // Other functions
-static void GameOver(Object* obj)
-{
+static void GameOver(Object* obj) {
     Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Have we fallen below the screen?
@@ -1498,9 +1461,8 @@ static void GameOver(Object* obj)
 }
 
 // Sonic object
-void Obj_Sonic(Object* obj)
-{
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+void Obj_Sonic(Object* obj) {
+    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Run debug mode code while in debug mode
     if (debug_use) {

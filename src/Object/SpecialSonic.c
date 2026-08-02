@@ -28,7 +28,7 @@ static void SpecialSonic_Display(Object *obj) {
 }
 
 //Special Stage Sonic collision
-static void SpecialSonic_ChkTile(Object *obj, uint8_t block, uint8_t *addr, int *result) {
+static void SpecialSonic_ChkTile(Object *obj, uint8_t block, const uint8_t *addr, int *result) {
 	Scratch_SpecialSonic *scratch = (Scratch_SpecialSonic*)&obj->scratch;
 	
 	//Check if block can be touched

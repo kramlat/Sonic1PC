@@ -22,10 +22,7 @@ typedef struct {
 	uint8_t pad2[7];
 } Scratch_Checkpoint;
 
-void Obj_Checkpoint_StoreInfo(Object* obj, Scratch_Checkpoint* scratch);
-void Obj_Checkpoint_Construct(Object* obj, Scratch_Checkpoint* scratch);
-void Obj_Checkpoint_Blue(Object* obj, Scratch_Checkpoint* scratch);
-void Obj_Checkpoint_Twirl(Object* obj, Scratch_Checkpoint* scratch);
-void Obj_Checkpoint(Object* obj);
+void Obj_Checkpoint_StoreInfo(Object *obj, const Scratch_Checkpoint *scratch);
+void Obj_Checkpoint(Object *obj);
 
 #endif

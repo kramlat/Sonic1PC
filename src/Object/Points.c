@@ -1,6 +1,6 @@
 #include "Points.h"
 
-void Obj_Points_Construct(Object* obj) {
+void Obj_Points_Construct(Object *obj) {
 	obj->mappings = Mappings_Points;
 	obj->tile = TILE_MAP(0, 1, 0, 0, 0x797);
 	obj->render.b = 4;
@@ -9,12 +9,12 @@ void Obj_Points_Construct(Object* obj) {
 	obj->ysp = -0x300; // move object upwards
 }
 
-void Obj_Points_Slow(Object* obj) {
+void Obj_Points_Slow(Object *obj) {
 	SpeedToPos(obj);
 	obj->ysp += 0x18; // reduce object speed
 }
 
-void Obj_Points(Object* obj) {
+void Obj_Points(Object *obj) {
     switch (obj->routine) {
         case 0: // Poi_Main
             Obj_Points_Construct(obj);

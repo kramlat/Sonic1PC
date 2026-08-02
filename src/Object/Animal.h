@@ -33,22 +33,22 @@ typedef struct {
 	uint16_t points; //0x3E
 } Scratch_Animals;
 
-void Obj_Animals_Construct(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_FromEnemy(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_Main(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_Walk(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_Fly(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_Prison(Object* obj, Scratch_Animals* scratch);
-bool Obj_Animals_CheckInRange(Object* obj);
-void Obj_Animals_FlickyWait(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_UpdateRender(Object* obj);
-void Obj_Animals_UpdateFrame(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_FlickyJump(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_RabbitWait(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_LandJump(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_SingleBounce(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals_FlyBounce(Object *obj, Scratch_Animals* scratch);
-void Obj_Animals_DoubleBounce(Object* obj, Scratch_Animals* scratch);
-void Obj_Animals(Object* obj);
+void Obj_Animals_Construct(Object* obj, const Scratch_Animals *scratch);
+void Obj_Animals_FromEnemy(Object* obj, const Scratch_Animals *scratch);
+void Obj_Animals_Main(Object* obj, const Scratch_Animals *scratch);
+void Obj_Animals_Walk(Object* obj, const Scratch_Animals *scratch);
+void Obj_Animals_Fly(Object* obj, const Scratch_Animals *scratch);
+void Obj_Animals_Prison(Object* obj, const Scratch_Animals *scratch);
+bool Obj_Animals_CheckInRange(Object *obj);
+void Obj_Animals_FlickyWait(Object *obj, const Scratch_Animals *scratch);
+void Obj_Animals_UpdateRender(Object *obj);
+void Obj_Animals_UpdateFrame(Object *obj, const Scratch_Animals *scratch);
+void Obj_Animals_FlickyJump(Object *obj, const Scratch_Animals *scratch);
+void Obj_Animals_RabbitWait(Object *obj, const Scratch_Animals *scratch);
+void Obj_Animals_LandJump(Object *obj, const Scratch_Animals *scratch);
+void Obj_Animals_SingleBounce(Object *obj, const Scratch_Animals *scratch);
+void Obj_Animals_FlyBounce(Object *obj, const Scratch_Animals *scratch);
+void Obj_Animals_DoubleBounce(Object *obj, const Scratch_Animals *scratch);
+void Obj_Animals(Object *obj);
 
 #endif

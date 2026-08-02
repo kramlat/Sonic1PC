@@ -6,8 +6,8 @@
 // Explosion assets
 #include "Resource/Mappings/Explosion.h"
 
-void Obj_Explosion_Animal(Object* obj);
-void Obj_Explosion_Construct(Object* obj);
-void Obj_Explosion(Object* obj);
+void Obj_Explosion_Animal(Object *obj);
+void Obj_Explosion_Construct(Object *obj);
+void Obj_Explosion(Object *obj);
 
 #endif

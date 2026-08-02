@@ -15,7 +15,7 @@ uint16_t pcyc_buffer[0x18];
 #include "Resource/Palette/TitleCycle.h"
 
 // Palette cycle routines
-signed int PCycle_Sega(void) {
+int32_t PCycle_Sega(void) {
     uint16_t* to;
     const uint8_t* from;
     int16_t pal_num, pal_len;
@@ -93,7 +93,7 @@ signed int PCycle_Sega(void) {
     }
 }
 
-static void PCycle_Water(const uint8_t* palette) {
+static void PCycle_Water(const uint8_t *palette) {
     // Wait for cycle timer
     if (--pcyc_time >= 0)
         return;

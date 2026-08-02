@@ -7,8 +7,8 @@
 
 #include "Macros.h"
 
-static void Obj_GHZBridge_Bend(Object* obj) {
-    Scratch_GHZBridge* scratch = (Scratch_GHZBridge*)&obj->scratch;
+static void Obj_GHZBridge_Bend(Object *obj) {
+    Scratch_GHZBridge *scratch = (Scratch_GHZBridge*)&obj->scratch;
 
     uint16_t d0;
     uint16_t d3;
@@ -64,8 +64,8 @@ static void Obj_GHZBridge_Bend(Object* obj) {
     } while (d2-- > 0);
 }
 
-static void Obj_GHZBridge_Solid(Object* obj) {
-    Scratch_GHZBridge* scratch = (Scratch_GHZBridge*)&obj->scratch;
+static void Obj_GHZBridge_Solid(Object *obj) {
+    Scratch_GHZBridge *scratch = (Scratch_GHZBridge*)&obj->scratch;
 
     // Get bridge size
     uint16_t x_rad = (scratch->subtype << 3) + 8;
@@ -83,16 +83,16 @@ static void Obj_GHZBridge_Solid(Object* obj) {
     Platform3(obj, obj->pos.l.y.f.u - 8);
 }
 
-static void Obj_GHZBridge_MoveSonic(Object* obj) {
-    Scratch_GHZBridge* scratch = (Scratch_GHZBridge*)&obj->scratch;
+static void Obj_GHZBridge_MoveSonic(Object *obj) {
+    Scratch_GHZBridge *scratch = (Scratch_GHZBridge*)&obj->scratch;
 
     // Clip Sonic to the top of the bridge segment being stood on
     Object* seg = objects + scratch->seg[scratch->push_seg];
     player->pos.l.y.f.u = seg->pos.l.y.f.u - 8 - player->y_rad;
 }
 
-static void Obj_GHZBridge_WalkOff(Object* obj) {
-    Scratch_GHZBridge* scratch = (Scratch_GHZBridge*)&obj->scratch;
+static void Obj_GHZBridge_WalkOff(Object *obj) {
+    Scratch_GHZBridge *scratch = (Scratch_GHZBridge*)&obj->scratch;
 
     // Check if we've walked off the platform
     int16_t x_off;
@@ -107,8 +107,8 @@ static void Obj_GHZBridge_WalkOff(Object* obj) {
     }
 }
 
-static void Obj_GHZBridge_ChkDel(Object* obj) {
-    Scratch_GHZBridge* scratch = (Scratch_GHZBridge*)&obj->scratch;
+static void Obj_GHZBridge_ChkDel(Object *obj) {
+    Scratch_GHZBridge *scratch = (Scratch_GHZBridge*)&obj->scratch;
 
     if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         // Off-screen
@@ -124,8 +124,8 @@ static void Obj_GHZBridge_ChkDel(Object* obj) {
     }
 }
 
-void Obj_GHZBridge(Object* obj) {
-    Scratch_GHZBridge* scratch = (Scratch_GHZBridge*)&obj->scratch;
+void Obj_GHZBridge(Object *obj) {
+    Scratch_GHZBridge *scratch = (Scratch_GHZBridge*)&obj->scratch;
 
     switch (obj->routine) {
     case 0: // Initialization

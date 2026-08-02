@@ -1,6 +1,6 @@
 #include "Explosion.h"
 
-void Obj_Explosion_Animal(Object* obj) {
+void Obj_Explosion_Animal(Object *obj) {
     Object* animal = FindFreeObj();
     if (animal != NULL) {
         animal->type = ObjId_Animal;
@@ -10,7 +10,7 @@ void Obj_Explosion_Animal(Object* obj) {
     }
 }
 
-void Obj_Explosion_Construct(Object* obj) {
+void Obj_Explosion_Construct(Object *obj) {
     // Set object drawing information
     obj->mappings = Mappings_Explosion;
     obj->tile = TILE_MAP(0, 0, 0, 0, 0x5A0);
@@ -28,7 +28,7 @@ void Obj_Explosion_Construct(Object* obj) {
 }
 
 // Explosion object
-void Obj_Explosion(Object* obj) {
+void Obj_Explosion(Object *obj) {
     switch (obj->routine) {
     case 0: // Spawn an animal
         // Increment routine and create animal object

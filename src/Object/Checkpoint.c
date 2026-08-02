@@ -6,8 +6,8 @@
 ; Object 79 - lamppost (Checkpoint)
 ; --------------------------------------------------------------------------- */
 
-void Obj_Checkpoint(Object* obj) {
-    Scratch_Checkpoint* scratch = (Scratch_Checkpoint*)&obj->scratch;
+void Obj_Checkpoint(Object *obj) {
+    Scratch_Checkpoint *scratch = (Scratch_Checkpoint*)&obj->scratch;
 
     switch (obj->routine) {
         case 0: { /* Lamp_Main / Constructor */
@@ -104,7 +104,7 @@ void Obj_Checkpoint(Object* obj) {
 // Subroutine to store information when you hit a lamppost
 // ===========================================================================
 
-void Obj_Checkpoint_StoreInfo(Object* obj, Scratch_Checkpoint* scratch)
+void Obj_Checkpoint_StoreInfo(Object *obj, const Scratch_Checkpoint *scratch)
 {
     // Store the ID of the current lamppost
     // Assembly: move.b obSubtype(a0),(v_lastlamp).w
