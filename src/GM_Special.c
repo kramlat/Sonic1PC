@@ -189,5 +189,11 @@ void GM_Special(void) {
 		uint8_t sprite_i;
 		BuildSprites(&sprite_i);
 		SS_ShowLayout(sprite_i);
+
+		//End the demo once its timer runs out
+		if (demo && !demo_length) {
+			gamemode = GameMode_Sega;
+			return;
+		}
 	}
 }

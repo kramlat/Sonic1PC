@@ -182,6 +182,7 @@ int main(int argc, char* argv[])
     if (argc > 2) {
         FILE* in_file = fopen(argv[1], "rb");
         FILE* out_file = fopen(argv[2], "w");
+        long pad_bytes = (argc > 3) ? atol(argv[3]) : 0;
 
         if (in_file == NULL) {
             printf("Couldn't open '%s'\n", argv[1]);
@@ -228,7 +229,14 @@ int main(int argc, char* argv[])
                     fprintf(out_file, "%d,", *in_file_pointer++);
             }
 
-            fprintf(out_file, "%d\n};\n#endif //%s\n\n", *in_file_pointer++, h_def.data());
+            if (pad_bytes > 0) {
+                fprintf(out_file, "%d,\n\t", *in_file_pointer++);
+                for (long p = 0; p < pad_bytes - 1; ++p)
+                    fprintf(out_file, "0,");
+                fprintf(out_file, "0\n};\n#endif //%s\n\n", h_def.data());
+            } else {
+                fprintf(out_file, "%d\n};\n#endif //%s\n\n", *in_file_pointer++, h_def.data());
+            }
 
             fclose(out_file);
             free(in_file_buffer);

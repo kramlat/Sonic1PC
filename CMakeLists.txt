@@ -597,10 +597,22 @@ foreach(FILENAME IN LISTS RESOURCES)
   set(IN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/res")
   set(OUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Resource")
   get_filename_component(DIRECTORY "${FILENAME}" DIRECTORY)
+  if(DIRECTORY MATCHES "^Map16")
+    # Map16_* size is relied on via sizeof() elsewhere (LevelHeader table) --
+    # must stay exactly the real data size, no padding.
+    set(PAD_BYTES 0)
+  else()
+    # Safety margin: Nemesis/Kosinski decompression speculatively reads a
+    # byte or two past the logical end of their compressed input as an
+    # artifact of their bit-refill logic. Harmless on real hardware
+    # (contiguous ROM) but an actual out-of-bounds read here, since each
+    # resource is its own fixed-size array.
+    set(PAD_BYTES 8)
+  endif()
   add_custom_command(
     OUTPUT "${OUT_DIR}/${FILENAME}.h"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}/${DIRECTORY}"
-    COMMAND bin2h_tool "${IN_DIR}/${FILENAME}" "${OUT_DIR}/${FILENAME}.h"
+    COMMAND bin2h_tool "${IN_DIR}/${FILENAME}" "${OUT_DIR}/${FILENAME}.h" ${PAD_BYTES}
     DEPENDS bin2h_tool "${IN_DIR}/${FILENAME}")
   target_sources(Sonic PRIVATE "${OUT_DIR}/${FILENAME}.h")
 endforeach()

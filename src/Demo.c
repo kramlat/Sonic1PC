@@ -25,14 +25,14 @@ uint8_t btn_pushtime2;
 #include "Resource/Demo/EndingSYZ.h"
 
 const uint8_t* intro_demo_ptr[] = {
-    /* ZoneId_GHZ  */ Demo_IntroGHZ,
-    /* ZoneId_LZ   */ Demo_IntroGHZ,
-    /* ZoneId_MZ   */ Demo_IntroMZ,
-    /* ZoneId_SLZ  */ Demo_IntroGHZ,
-    /* ZoneId_SYZ  */ Demo_IntroSYZ,
-    /* ZoneId_SBZ  */ Demo_IntroGHZ,
-    /* ZoneId_EndZ */ Demo_IntroGHZ,
-    Demo_IntroSS,
+    /* ZoneId_GHZ  */   Demo_IntroGHZ,
+    /* ZoneId_LZ   */   Demo_IntroGHZ,
+    /* ZoneId_MZ   */   Demo_IntroMZ,
+    /* ZoneId_SLZ  */   Demo_IntroGHZ,
+    /* ZoneId_SYZ  */   Demo_IntroSYZ,
+    /* ZoneId_SBZ  */   Demo_IntroGHZ,
+    /* ZoneId_EndZ */   Demo_IntroGHZ,
+    /* Special Stage */ Demo_IntroSS,
 };
 
 const uint8_t* ending_demo_ptr[] = {
@@ -60,7 +60,7 @@ void MoveSonicInDemo(void) {
     if (demo < 0)
         demo_data = ending_demo_ptr[credits_num - 1];
     else
-        demo_data = intro_demo_ptr[(gamemode == GameMode_Special) ? 6 : LEVEL_ZONE(level_id)];
+        demo_data = intro_demo_ptr[(gamemode == GameMode_Special) ? 7 : LEVEL_ZONE(level_id)];
 
     // Offset demo address
     demo_data += btn_pushtime1;
