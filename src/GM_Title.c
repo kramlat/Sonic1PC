@@ -23,7 +23,7 @@ static const uint16_t title_demos[] = {
     LEVEL_ID(ZoneId_GHZ, 0),
     LEVEL_ID(ZoneId_MZ, 0),
     LEVEL_ID(ZoneId_SYZ, 0),
-    LEVEL_ID(6, 0), // Special stage
+    LEVEL_ID(7, 0), // Special stage
 };
 
 // Japanese credits
