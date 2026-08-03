@@ -27,6 +27,9 @@ static SDL_Texture* texture = NULL;
 
 // Render state
 int vsync;
+static int use_vsync_present; //Whether display vsync itself is trustworthy for pacing (exact 60Hz multiple)
+static Uint64 perf_freq;
+static Uint64 next_frame_time;
 
 // Backend render interface
 int Render_Init(const MD_Header* header) {
@@ -51,16 +54,33 @@ int Render_Init(const MD_Header* header) {
     // Check if VSync should be used
     SDL_DisplayMode display_mode;
     SDL_GetWindowDisplayMode(window, &display_mode);
-    if (display_mode.refresh_rate > 0 && (display_mode.refresh_rate % 60) == 0)
+    if (display_mode.refresh_rate > 0 && (display_mode.refresh_rate % 60) == 0) {
+        // Display refresh rate is a clean multiple of 60Hz -- hardware vsync
+        // itself gives us correct pacing, for free and tear-free.
         vsync = display_mode.refresh_rate / 60;
-    else
+        use_vsync_present = 1;
+    } else {
+        // Non-standard/uneven refresh rate (75Hz, 90Hz, 144Hz, 165Hz, etc.),
+        // or none detected at all (e.g. headless). Hardware vsync's cadence
+        // can't be trusted to average out to 60Hz here, so we pace frames
+        // ourselves against a monotonic clock instead. This used to just
+        // present once with no delay at all in this case, running the game
+        // completely unthrottled.
         vsync = 0;
+        use_vsync_present = 0;
+    }
 
     // Create renderer
-    if ((renderer = SDL_CreateRenderer(window, -1, vsync ? SDL_RENDERER_PRESENTVSYNC : 0)) == NULL) {
+    if ((renderer = SDL_CreateRenderer(window, -1, use_vsync_present ? SDL_RENDERER_PRESENTVSYNC : 0)) == NULL) {
         printf("Render_Init: %s\n", SDL_GetError());
         return -1;
     }
+
+    // Set up our own frame clock. Used as the sole pacing source when
+    // display vsync isn't trustworthy, and to keep the two in sync
+    // (avoiding drift) when it is.
+    perf_freq = SDL_GetPerformanceFrequency();
+    next_frame_time = SDL_GetPerformanceCounter();
 
     // Create screen texture
     if ((texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, TEXTURE_WIDTH, TEXTURE_HEIGHT)) == NULL) {
@@ -103,8 +123,44 @@ void Render_Screen(const uint32_t* screen) {
     // Unlock screen texture and draw to window
     SDL_UnlockTexture(texture);
 
-    for (int i = 0; i < (vsync == 0 ? 1 : vsync); i++) {
+    if (use_vsync_present) {
+        // Let display vsync present at the right cadence to reduce tearing.
+        for (int i = 0; i < vsync; i++) {
+            SDL_RenderCopy(renderer, texture, NULL, NULL);
+            SDL_RenderPresent(renderer);
+        }
+    } else {
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
+    }
+
+    // Always pace ourselves against our own monotonic clock as the
+    // authoritative backstop, regardless of whether hardware vsync is
+    // in play. Presenting with SDL_RENDERER_PRESENTVSYNC is *supposed*
+    // to block until the display's next refresh, but that can't be
+    // trusted blindly -- SDL's dummy video driver (and some real
+    // broken drivers/VMs/remote desktop setups) silently doesn't
+    // block at all despite reporting a perfectly clean 60Hz-multiple
+    // refresh rate. If vsync did block us past our target time, this
+    // wait becomes a no-op; if it didn't, this is what actually
+    // enforces correct speed.
+    next_frame_time += perf_freq / 60;
+
+    Uint64 now = SDL_GetPerformanceCounter();
+    if (next_frame_time > now) {
+        Uint64 remaining = next_frame_time - now;
+        Uint32 ms = (Uint32)(remaining * 1000 / perf_freq);
+        // Sleep for the coarse remainder, leaving a little headroom
+        // since SDL_Delay can overshoot on some platforms/schedulers.
+        if (ms > 1)
+            SDL_Delay(ms - 1);
+        // Spin for the last sliver for sub-millisecond precision.
+        while (SDL_GetPerformanceCounter() < next_frame_time)
+            ;
+    } else {
+        // We're behind schedule (e.g. after a debugger pause or a
+        // long hitch). Resync rather than trying to burn through a
+        // backlog of missed frames at full speed.
+        next_frame_time = now;
     }
 }
