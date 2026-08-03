@@ -6,7 +6,7 @@ extern Object *const player;
 
 void OscillateNumInit(void) {
     Oscillatory baselines = {
-        .direction = 0x003C,  // %0000000001111100
+        .direction = 0x007C,  // %0000000001111100
         .state = {
             {0x80, 0},
             {0x80, 0},
@@ -62,13 +62,13 @@ void OscillateNumDo(void) {
         if (!is_down) {
             oscillatory.state[i][1] += frequency;
             oscillatory.state[i][0] += oscillatory.state[i][1];
-            if ((uint8_t)oscillatory.state[i][0] > amplitude) {
+            if ((uint8_t)(oscillatory.state[i][0] >> 8) > amplitude) {
                 oscillatory.direction |= (1 << (15 - i));
             }
         } else {
             oscillatory.state[i][1] -= frequency;
             oscillatory.state[i][0] += oscillatory.state[i][1];
-            if ((uint8_t)oscillatory.state[i][0] <= amplitude) {
+            if ((uint8_t)(oscillatory.state[i][0] >> 8) <= amplitude) {
                 oscillatory.direction &= ~(1 << (15 - i));
             }
         }

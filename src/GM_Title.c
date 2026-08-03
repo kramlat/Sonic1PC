@@ -253,7 +253,7 @@ void GM_Title(void) {
 
             // Enter demo gamemode
             demo = 1;
-            if (level_id != 0x600) {
+            if (level_id != 0x700) {
                 // Regular level
                 gamemode = GameMode_Demo;
             } else {
