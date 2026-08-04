@@ -36,6 +36,27 @@
 #include "Resource/Art/GHZSwing.h"
 #include "Resource/Art/GHZWall1.h"
 #include "Resource/Art/GHZWall2.h"
+#include "Resource/Art/LZBlock1.h"
+#include "Resource/Art/LZBlock2.h"
+#include "Resource/Art/LZBlock3.h"
+#include "Resource/Art/Splash.h"
+#include "Resource/Art/Water.h"
+#include "Resource/Art/LZSpikeBall.h"
+#include "Resource/Art/FlapDoor.h"
+#include "Resource/Art/Bubbles.h"
+#include "Resource/Art/LZDoor1.h"
+#include "Resource/Art/LZDoor2.h"
+#include "Resource/Art/Harpoon.h"
+#include "Resource/Art/Burrobot.h"
+#include "Resource/Art/LZPole.h"
+#include "Resource/Art/LZWheel.h"
+#include "Resource/Art/Gargoyle.h"
+#include "Resource/Art/LZSonic.h"
+#include "Resource/Art/LZPlatfm.h"
+#include "Resource/Art/Orbinaut.h"
+#include "Resource/Art/Jaws.h"
+#include "Resource/Art/LZSwitch.h"
+#include "Resource/Art/Cork.h"
 #include "Resource/Art/GameOver.h"
 #include "Resource/Art/HUD.h"
 #include "Resource/Art/HUDLife.h"
@@ -85,6 +106,9 @@ typedef struct {
     const PLC* plc;
 } PLCList;
 
+// ---------------------------------------------------------------------------
+// Pattern load cues - standard block 1
+// ---------------------------------------------------------------------------
 static const PLCList PLC_Main = {
     5,
     (const PLC[]) {
@@ -95,7 +119,9 @@ static const PLCList PLC_Main = {
         { Art_Points, 0xF2E0 },
     }
 };
-
+// ---------------------------------------------------------------------------
+// Pattern load cues - standard block 2
+// ---------------------------------------------------------------------------
 static const PLCList PLC_Main2 = {
     3,
     (const PLC[]) {
@@ -104,21 +130,27 @@ static const PLCList PLC_Main2 = {
         { Art_Invincibility, 0xAB80 },
     }
 };
-
+// ---------------------------------------------------------------------------
+// Pattern load cues - explosion
+// ---------------------------------------------------------------------------
 static const PLCList PLC_Explode = {
     1,
     (const PLC[]) {
         { Art_Explosion, 0xB400 },
     }
 };
-
+// ---------------------------------------------------------------------------
+// Pattern load cues - game/time	over
+// ---------------------------------------------------------------------------
 static const PLCList PLC_GameOver = {
     1,
     (const PLC[]) {
         { Art_GameOver, 0xABC0 },
     }
 };
-
+// ---------------------------------------------------------------------------
+// Pattern load cues - Green Hill
+// ---------------------------------------------------------------------------
 static const PLCList PLC_GHZ = {
     12,
     (const PLC[]) {
@@ -148,47 +180,48 @@ static const PLCList PLC_GHZ2 = {
         { Art_GHZWall2, 0x6980 },
     }
 };
-
+// ---------------------------------------------------------------------------
+// Pattern load cues - Labyrinth
+// ---------------------------------------------------------------------------
 static const PLCList PLC_LZ = {
-    1,
+    12,
     (const PLC[]) {
         { Art_LZ, 0x0000 },
-        // plcm	Nem_LzBlock1, $3C00	; block
-        // plcm	Nem_LzBlock2, $3E00	; blocks
-        // plcm	Nem_Splash, $4B20	; waterfalls and splash
-        // plcm	Nem_Water, $6000	; water	surface
-        // plcm	Nem_LzSpikeBall, $6200	; spiked ball
-        // plcm	Nem_FlapDoor, $6500	; flapping door
-        // plcm	Nem_Bubbles, $6900	; bubbles and numbers
-        // plcm	Nem_LzBlock3, $7780	; block
-        // plcm	Nem_LzDoor1, $7880	; vertical door
-        // plcm	Nem_Harpoon, $7980	; harpoon
-        // plcm	Nem_Burrobot, $94C0	; burrobot enemy
+        { Art_LZBlock1, 0x3C00 },
+        { Art_LZBlock2, 0x3E00 },
+        { Art_Splash, 0x4B20 },
+        { Art_Water, 0x6000 },
+        { Art_LZSpikeBall, 0x6200 },
+        { Art_FlapDoor, 0x6500 },
+        { Art_Bubbles, 0x6900 },
+        { Art_LZBlock3, 0x7780 },
+        { Art_LZDoor1, 0x7880 },
+        { Art_Harpoon, 0x7980 },
+        { Art_Burrobot, 0x94C0 },
     }
 };
 
 static const PLCList PLC_LZ2 = {
-    3,
+    13,
     (const PLC[]) {
-        // plcm	Nem_LzPole, $7BC0	; pole that breaks
-        // plcm	Nem_LzDoor2, $7CC0	; large	horizontal door
-        // plcm	Nem_LzWheel, $7EC0	; wheel
-        // plcm	Nem_Gargoyle, $5D20	; gargoyle head
-        // if Revision=0
-        // plcm	Nem_LzSonic, $8800	; Sonic	holding	his breath
-        // else
-        // endc
-        // plcm	Nem_LzPlatfm, $89E0	; rising platform
-        // plcm	Nem_Orbinaut, $8CE0	; orbinaut enemy
-        // plcm	Nem_Jaws, $90C0		; jaws enemy
-        // plcm	Nem_LzSwitch, $A1E0	; switch
-        // plcm	Nem_Cork, $A000		; cork block
+        { Art_LZPole, 0x7BC0 },
+        { Art_LZDoor2, 0x7CC0 },
+        { Art_LZWheel, 0x7EC0 },
+        { Art_Gargoyle, 0x5D20 },
+        { Art_LZSonic, 0x8800 },
+        { Art_LZPlatfm, 0x89E0 },
+        { Art_Orbinaut, 0x8CE0 },
+        { Art_Jaws, 0x90C0 },
+        { Art_LZSwitch, 0xA1E0 },
+        { Art_Cork, 0xA000 },
         { Art_Spikes, 0xA360 },
         { Art_SpringH, 0xA460 },
         { Art_SpringV, 0xA660 },
     }
 };
-
+// ---------------------------------------------------------------------------
+// Pattern load cues - Marble
+// ---------------------------------------------------------------------------
 static const PLCList PLC_MZ = {
     3,
     (const PLC[]) {
@@ -306,12 +339,38 @@ static const PLCList PLC_SBZ2 = {
     }
 };
 
+static const PLCList PLC_TitleCard = {
+    0,
+    (const PLC[]) {
+        // plcm	Nem_TitleCard, ArtTile_Title_Card
+    }
+};
+
+static const PLCList PLC_Boss = {
+    0,
+    (const PLC[]) {
+        // plcm	Nem_Eggman,   ArtTile_Eggman           ; Eggman main patterns
+        // plcm	Nem_Weapons,  ArtTile_Eggman_Weapons   ; Eggman's weapons
+        // plcm	Nem_Prison,   ArtTile_Prison_Capsule   ; prison capsule
+        // plcm	Nem_Bomb,     ArtTile_Eggman_Spikeball ; bomb enemy (gets overwritten)
+        // plcm	Nem_SlzSpike, ArtTile_Eggman_Spikeball ; spikeball (SLZ boss)
+        // plcm	Nem_Exhaust,  ArtTile_Eggman_Exhaust   ; exhaust flame
+    }
+};
+
 static const PLCList PLC_Signpost = {
     3,
     (const PLC[]) {
         { Art_Signpost, 0xD000 },
         { Art_HiddenBonus, 0x96C0 },
         { Art_BigFlash, 0x8C40 },
+    }
+};
+
+static const PLCList PLC_Warp = {
+    0,
+    (const PLC[]) {
+        // plcm	Nem_Warp, ArtTile_Warp
     }
 };
 
@@ -390,6 +449,65 @@ static const PLCList PLC_SBZAnimals = {
     }
 };
 
+static const PLCList PLC_SSResult = {
+    0,
+    (const PLC[]) {
+        // plcm	Nem_ResultEm,  ArtTile_SS_Results_Emeralds ; emeralds
+        // plcm	Nem_MiniSonic, ArtTile_Mini_Sonic          ; mini Sonic
+    }
+};
+
+static const PLCList PLC_Ending = {
+    0,
+    (const PLC[]) {
+        // plcm	Nem_GHZ_1st,   ArtTile_Level            ; GHZ main patterns
+        // plcm	Nem_GHZ_2nd,   ArtTile_Level+$1CD       ; GHZ secondary patterns
+        // plcm	Nem_Stalk,     ArtTile_GHZ_Flower_Stalk ; flower stalk
+        // plcm	Nem_EndFlower, ArtTile_Ending_Flowers   ; flowers
+        // plcm	Nem_EndEm,     ArtTile_Ending_Emeralds  ; emeralds
+        // plcm	Nem_EndSonic,  ArtTile_Ending_Sonic     ; Sonic
+        // plcm	Nem_EndEggman, ArtTile_Ending_Eggman    ; Eggman's death (unused)
+        // plcm	Nem_Rabbit,    ArtTile_Ending_Rabbit    ; rabbit
+        // plcm	Nem_Chicken,   ArtTile_Ending_Chicken   ; chicken
+        // plcm	Nem_Penguin,   ArtTile_Ending_Penguin   ; penguin
+        // plcm	Nem_Seal,      ArtTile_Ending_Seal      ; seal
+        // plcm	Nem_Pig,       ArtTile_Ending_Pig       ; pig
+        // plcm	Nem_Flicky,    ArtTile_Ending_Flicky    ; flicky
+        // plcm	Nem_Squirrel,  ArtTile_Ending_Squirrel  ; squirrel
+        // plcm	Nem_EndStH,    ArtTile_Ending_STH       ; "SONIC THE HEDGEHOG"
+    }
+};
+
+static const PLCList PLC_TryAgain = {
+    0,
+    (const PLC[]) {
+        // plcm	Nem_EndEm,      ArtTile_Try_Again_Emeralds ; emeralds
+        // plcm	Nem_TryAgain,   ArtTile_Try_Again_Eggman   ; Eggman
+        // plcm	Nem_CreditText, ArtTile_Credits_Font       ; credits alphabet
+    }
+};
+
+static const PLCList PLC_EggmanSBZ2 = {
+    0,
+    (const PLC[]) {
+        // plcm	Nem_SbzBlock,   ArtTile_Eggman_Trap_Floor ; block
+        // plcm	Nem_Sbz2Eggman, ArtTile_Eggman            ; Eggman
+        // plcm	Nem_LzSwitch,   ArtTile_Eggman_Button-4   ; switch
+    }
+};
+
+static const PLCList PLC_FZBoss = {
+    0,
+    (const PLC[]) {
+        // plcm	Nem_FzEggman,   ArtTile_FZ_Eggman_Fleeing    ; Eggman after boss
+        // plcm	Nem_FzBoss,     ArtTile_FZ_Boss              ; FZ boss
+        // plcm	Nem_Eggman,     ArtTile_Eggman               ; Eggman main patterns
+        // plcm	Nem_Sbz2Eggman, ArtTile_FZ_Eggman_No_Vehicle ; Eggman without ship
+        // plcm	Nem_Exhaust,    ArtTile_Eggman_Exhaust       ; exhaust flame
+    }
+};
+
+
 // PLC list
 static const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Main        */ &PLC_Main,
@@ -408,10 +526,10 @@ static const PLCList* plcs[PlcId_Num] = {
     /* PlcId_SYZ2        */ &PLC_SYZ2,
     /* PlcId_SBZ         */ &PLC_SBZ,
     /* PlcId_SBZ2        */ &PLC_SBZ2,
-    /* PlcId_TitleCard   */ NULL,
-    /* PlcId_Boss        */ NULL,
+    /* PlcId_TitleCard   */ &PLC_TitleCard,
+    /* PlcId_Boss        */ &PLC_Boss,
     /* PlcId_Signpost    */ &PLC_Signpost,
-    /* PlcId_Warp        */ NULL,
+    /* PlcId_Warp        */ &PLC_Warp,
     /* PlcId_SpecialStage*/ &PLC_SpecialStage,
     /* PlcId_GHZAnimals  */ &PLC_GHZAnimals,
     /* PlcId_LZAnimals   */ &PLC_LZAnimals,
@@ -419,11 +537,11 @@ static const PLCList* plcs[PlcId_Num] = {
     /* PlcId_SLZAnimals  */ &PLC_SLZAnimals,
     /* PlcId_SYZAnimals  */ &PLC_SYZAnimals,
     /* PlcId_SBZAnimals  */ &PLC_SBZAnimals,
-    /* PlcId_SSResult    */ NULL,
-    /* PlcId_Ending      */ NULL,
-    /* PlcId_TryAgain    */ NULL,
-    /* PlcId_EggmanSBZ2  */ NULL,
-    /* PlcId_FZBoss      */ NULL,
+    /* PlcId_SSResult    */ &PLC_SSResult,
+    /* PlcId_Ending      */ &PLC_Ending,
+    /* PlcId_TryAgain    */ &PLC_TryAgain,
+    /* PlcId_EggmanSBZ2  */ &PLC_EggmanSBZ2,
+    /* PlcId_FZBoss      */ &PLC_FZBoss,
 };
 
 // PLC state

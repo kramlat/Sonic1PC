@@ -1,5 +1,10 @@
+#define Animals_Build
 #include "Animal.h"
 #include <stdio.h>
+
+#include "Resource/Mappings/Animals1.h"
+#include "Resource/Mappings/Animals2.h"
+#include "Resource/Mappings/Animals3.h"
 
 const uint8_t AnimalVarIndex[][2] = {
 	{0, 5},  // Green Hill Zone

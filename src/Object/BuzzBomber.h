@@ -6,14 +6,12 @@
 #include "Level.h"
 
 // Buzz Bomber assets
-#include "Resource/Mappings/BuzzBomber.h"
-#include "Resource/Mappings/BuzzMissile.h"
-/*
-        #include "Resource/Mappings/BuzzExplode.h"
-*/
-
-#include "Resource/Animation/BuzzBomber.h"
-#include "Resource/Animation/BuzzMissile.h"
+#ifndef Buzz_Build
+extern const uint8_t Mappings_BuzzBomber[];
+extern const uint8_t Mappings_BuzzMissile[];
+extern const uint8_t Mappings_BuzzBomber[];
+extern const uint8_t Mappings_BuzzMissile[];
+#endif
 
 // Buzz Bomber's missile
 typedef struct {
@@ -49,4 +47,4 @@ void Obj_BuzzBomber_TurnAround(Object *obj, Scratch_BuzzBomber *scratch);
 void Obj_BuzzBomber_Stop(Object *obj);
 void Obj_BuzzBomber(Object *obj);
 
-#endif
+#endif //_BUZZBOMBER_H_

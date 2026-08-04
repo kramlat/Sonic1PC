@@ -9,9 +9,11 @@
 #include "LevelCollision.h"
 
 //Animal Assets
-#include "Resource/Mappings/Animals1.h"
-#include "Resource/Mappings/Animals2.h"
-#include "Resource/Mappings/Animals3.h"
+#ifndef Animals_Build
+extern cont uint8_t Mappings_Animals1[];
+extern cont uint8_t Mappings_Animals2[];
+extern cont uint8_t Mappings_Animals3[];
+#endif
 
 // Animal Variables
 typedef struct {

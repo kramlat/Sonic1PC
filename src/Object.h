@@ -34,7 +34,7 @@ typedef enum {
 	/*12*/ ObjId_12,
 	/*13*/ ObjId_13,
 	/*14*/ ObjId_14,
-	/*15*/ ObjId_15,
+	/*15*/ ObjId_SwingingPlatform,
 	/*16*/ ObjId_16,
 	/*17*/ ObjId_17,
 	/*18*/ ObjId_18,

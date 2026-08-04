@@ -4,7 +4,11 @@
 #include "Object.h"
 
 // Title card mappings
-#include "Resource/Mappings/TitleCard.h"
+#ifndef Titlecard_Build
+extern const uint8_t Mappings_TitleCard
+extern const uint8_t GotThrough_TitleCard
+extern const uint8_t SpecialResult_TitleCard
+#endif
 
 typedef struct {
     uint8_t pad[8]; // 0x28-0x2F

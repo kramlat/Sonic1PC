@@ -47,6 +47,7 @@ void Obj_Explosion(Object *obj);
 void Obj_Chopper(Object *obj);
 void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
+void Obj_GotThroughCard(Object *obj);
 void Obj_Animals(Object *obj);
 void Obj_Points(Object *obj);
 void Obj_Spikes(Object *obj);
@@ -82,7 +83,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_12                  */ Obj_Null,
 	/* ObjId_13                  */ Obj_Null,
 	/* ObjId_14                  */ Obj_Null,
-	/* ObjId_15                  */ Obj_Null,
+	/* ObjId_SwingingPlatform    */ Obj_SwingingPlatform,
 	/* ObjId_16                  */ Obj_Null,
 	/* ObjId_17                  */ Obj_Null,
 	/* ObjId_18                  */ Obj_Null,
@@ -119,7 +120,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_RingLoss            */ Obj_RingLoss,
 	/* ObjId_ShieldInvincibility */ Obj_ShieldInvincibility,
 	/* ObjId_GameOverCard        */ Obj_GameOverCard,
-	/* ObjId_GotThroughCard      */ Obj_Null,//GotThroughCard,
+	/* ObjId_GotThroughCard      */ Obj_GotThroughCard,
 	/* ObjId_GHZRock             */ Obj_GHZRock,
 	/* ObjId_3C                  */ Obj_Null,
 	/* ObjId_3D                  */ Obj_Null,
@@ -182,7 +183,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_76                  */ Obj_Null,
 	/* ObjId_77                  */ Obj_Null,
 	/* ObjId_78                  */ Obj_Null,
-	/* ObjId_79                  */ Obj_Checkpoint,
+	/* ObjId_Checkpoint          */ Obj_Checkpoint,
 	/* ObjId_7A                  */ Obj_Null,
 	/* ObjId_7B                  */ Obj_Null,
 	/* ObjId_7C                  */ Obj_Null,

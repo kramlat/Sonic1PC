@@ -1,4 +1,12 @@
+#define Buzz_Build
 #include "BuzzBomber.h"
+
+#include "Resource/Mappings/BuzzBomber.h"
+#include "Resource/Mappings/BuzzMissile.h"
+
+#include "Resource/Animation/BuzzBomber.h"
+#include "Resource/Animation/BuzzMissile.h"
+
 
 // Buzz Bomber's explosion
 void Obj_BuzzExplode(Object *obj) {

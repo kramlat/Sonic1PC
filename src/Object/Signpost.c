@@ -6,6 +6,17 @@
 
 #include "Macros.h"
 
+// Time bonus lookup, indexed by (total seconds / 15), clamped to the last
+// entry (0 points) for times of 5 minutes or more.
+#define TIME_BONUSES_NUM 20
+static const uint16_t time_bonuses[TIME_BONUSES_NUM] = {
+    5000, 5000, 1000, 500,  // 0:00 - 0:59
+    400,  400,  300,  300,  // 1:00 - 1:59
+    200,  200,  200,  200,  // 2:00 - 2:59
+    100,  100,  100,  100,  // 3:00 - 3:59
+    50,   50,   50,   50,   // 4:00 - 4:59
+};
+
 // Signpost object
 static const int8_t sparkle_pos[8][2] = {
     { -24, -16 },
@@ -113,6 +124,27 @@ void Obj_Signpost(Object* obj) {
         // Load "Got through" card
         objects[23].type = ObjId_GotThroughCard;
         NewPLC(PlcId_TitleCard);
+        endact_bonus = true;
+
+        // Time Bonus
+#ifdef SCP_FIX_BUGS
+        // Time doesn't update while Debug Mode is enabled, which always
+        // results in an annoying, unskippable 50,000 point time bonus
+        // with it enabled.
+        if (!debug_mode)
+#endif
+        {
+            uint16_t total_sec = (uint16_t)time.min * 60 + time.sec;
+            uint16_t index = total_sec / 15;
+            if (index >= TIME_BONUSES_NUM)
+                index = TIME_BONUSES_NUM - 1;
+            time_bonus = time_bonuses[index];
+        }
+
+        // Ring Bonus
+        ring_bonus = rings * 10;
+
+        //music bgm_GotThrough,0,1,0 ; play "Sonic got through" music TODO
         break;
     case 8: // Level end
         break;
