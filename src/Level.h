@@ -141,6 +141,8 @@ extern int16_t wtr_pos1, wtr_pos2, wtr_pos3;
 extern uint8_t water;
 extern uint8_t wtr_routine;
 extern uint8_t wtr_state;
+extern bool hblank_pal;         //Set every VBlank; tells HBlank() to swap CRAM to the water palette
+extern bool doupdatesinhblank;  //Set when VBlank ran out of time; defers standard transfers to HBlank
 
 extern uint8_t *const level_map256;
 extern uint8_t level_map16[0x1800];

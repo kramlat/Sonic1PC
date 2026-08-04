@@ -18,7 +18,6 @@ typedef struct {
 #ifndef SwingingPlatform_Build
 extern const uint8_t Mappings_SwingGHZ[];
 extern const uint8_t Mappings_SwingSLZ[];
-extern const uint8_t Mappings_BallSBZ[];
 extern const uint8_t Mappings_BallGHZ[];
 #endif
 

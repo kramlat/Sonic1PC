@@ -101,7 +101,7 @@ typedef enum {
 	/*55*/ ObjId_55,
 	/*56*/ ObjId_56,
 	/*57*/ ObjId_57,
-	/*58*/ ObjId_58,
+	/*58*/ ObjId_BigSpikeBall,
 	/*59*/ ObjId_59,
 	/*5A*/ ObjId_5A,
 	/*5B*/ ObjId_5B,

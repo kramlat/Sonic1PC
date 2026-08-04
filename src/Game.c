@@ -124,6 +124,11 @@ void VBlank(void) {
         vbla_routine = 0x00;
     }
 
+    // Tell HBlank() to swap CRAM to the water palette next time it fires.
+    // Only meaningful in LZ (the only zone with h-int actually enabled),
+    // but set unconditionally every frame either way, matching the original.
+    hblank_pal = true;
+
     // Run VBlank routine
     switch (routine) {
     case 0x02:
@@ -285,4 +290,31 @@ void VBlank(void) {
 }
 
 void HBlank(void) {
+    if (!hblank_pal)
+        return;
+    hblank_pal = false;
+
+    // Write the water palette to CRAM. Unconditional -- unlike VBlank's own
+    // palette write (which picks dry or wet for the *whole* frame based on
+    // wtr_state), this one always writes wet, since its purpose is to
+    // override the bottom portion of an otherwise-dry frame once the
+    // h-int counter is repositioned to the water surface's scanline
+    // (not done yet -- see the TODO in GM_Level_Branch).
+    VDP_SeekCRAM(0);
+    VDP_WriteCRAM(&wet_palette[0][0], 0x40);
+
+    // Reset the h-int counter back to its dormant, once-per-frame position
+    VDP_SetHIntCounter(223);
+
+    if (doupdatesinhblank) {
+        doupdatesinhblank = false;
+
+        //TODO: VBlank ran out of time this frame and deferred its standard
+        //transfers (sprite/hscroll buffers, tile art) to here. Nothing
+        //currently sets doupdatesinhblank, so this is unreachable -- needs
+        //the relevant part of VBlank()'s case 0x08 factored out into its
+        //own function before this can actually do the deferred work.
+
+        //music UpdateMusic ; advance the sound driver TODO
+    }
 }

@@ -561,7 +561,7 @@ void VDP_Render(void) {
 		}
 
 		//Draw rest of screen
-		for (; y < SCREEN_HEIGHT; y++, scache++, hscroll += 2, to += SCREEN_PITCH, tom += SCREEN_PITCH)
+		for (size_t y = 0; y < SCREEN_HEIGHT; y++, scache++, hscroll += 2, to += SCREEN_PITCH, tom += SCREEN_PITCH)
 			VDP_DrawScanline(y, to, tom, scache, hscroll);
 	} else {
 		//Draw entire screen

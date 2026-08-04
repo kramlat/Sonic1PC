@@ -3,12 +3,12 @@
 #include "Level.h"
 #include "MathUtil.h"
 #include "Macros.h"
-#include "GameState.h"
+#include "Game.h"
 
-#include "Resource/Mappings/SwingGHZ.h"
-#include "Resource/Mappings/SwingSLZ.h"
-#include "Resource/Mappings/BallSBZ.h"
-#include "Resource/Mappings/BallGHZ.h"
+#include "Resource/Mappings/GHZSwing.h"
+#include "Resource/Mappings/SLZSwing.h"
+#include "Resource/Mappings/GHZBall.h"
+extern const uint8_t Mappings_BigSpikedBall[];
 
 // Forward declarations
 void Obj_SwingingPlatform_Move(Object *obj);
@@ -35,7 +35,7 @@ void Obj_SwingingPlatform(Object *obj) {
     switch (obj->routine) {
         case 0: { // Swing_Main
             obj->routine += 2;
-            obj->mappings = Mappings_SwingGHZ;
+            obj->mappings = Mappings_GHZSwing;
             obj->tile = TILE_MAP(0, 2, 0, 0, 0x380); // ArtTile_GHZ_MZ_Swing
             obj->render.f.align_fg = true;
             obj->priority = 3;
@@ -45,7 +45,7 @@ void Obj_SwingingPlatform(Object *obj) {
             scratch->orig_x = obj->pos.l.x.f.u;
 
             if (v_zone == ZoneID_SLZ) {
-                obj->mappings = Mappings_SwingSLZ;
+                obj->mappings = Mappings_SLZSwing;
                 obj->tile = TILE_MAP(0, 2, 0, 0, 0x300); // ArtTile_SLZ_Swing
                 obj->width_pixels = 0x20;
                 obj->height_pixels = 0x10;
@@ -53,7 +53,7 @@ void Obj_SwingingPlatform(Object *obj) {
             }
 
             if (v_zone == ZoneID_SBZ) {
-                obj->mappings = Mappings_BallSBZ;
+                obj->mappings = Mappings_BigSpikedBall;
                 obj->tile = TILE_MAP(0, 0, 0, 0, 0x300); // ArtTile_SBZ_Swing
                 obj->width_pixels = 0x18;
                 obj->height_pixels = 0x18;
@@ -107,7 +107,7 @@ void Obj_SwingingPlatform(Object *obj) {
             scratch->speed = -0x200;
 
             if (subtype & 0x10) { // is object type $1X?
-                obj->mappings = Mappings_BallGHZ;
+                obj->mappings = Mappings_GHZBall;
                 obj->tile = TILE_MAP(0, 2, 0, 0, 0x396); // ArtTile_GHZ_Giant_Ball
                 obj->frame = 1;
                 obj->priority = 2;

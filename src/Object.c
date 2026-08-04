@@ -55,6 +55,8 @@ void Obj_RingLoss(Object *obj);
 void Obj_ShieldInvincibility(Object *obj);
 void Obj_GameOverCard(Object *obj);
 void Obj_GHZRock(Object *obj);
+void Obj_SwingingPlatform(Object *obj);
+void Obj_BigSpikeBall(Object *obj);
 void Obj_Motobug(Object *obj);
 void Obj_Spring(Object *obj);
 void Obj_Newtron(Object *obj);
@@ -150,7 +152,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_55                  */ Obj_Null,
 	/* ObjId_56                  */ Obj_Null,
 	/* ObjId_57                  */ Obj_Null,
-	/* ObjId_58                  */ Obj_Null,
+	/* ObjId_BigSpikeBall        */ Obj_BigSpikeBall,
 	/* ObjId_59                  */ Obj_Null,
 	/* ObjId_5A                  */ Obj_Null,
 	/* ObjId_5B                  */ Obj_Null,

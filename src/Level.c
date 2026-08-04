@@ -473,6 +473,9 @@ int16_t wtr_pos1, wtr_pos2, wtr_pos3;
 uint8_t water;
 uint8_t wtr_routine;
 uint8_t wtr_state;
+bool hblank_pal;
+bool doupdatesinhblank;
+
 
 // Loaded level data
 uint8_t* const level_map256 = &buffer0000[0x0000];

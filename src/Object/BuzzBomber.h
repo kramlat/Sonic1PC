@@ -1,4 +1,4 @@
-#ifndef _BUZZBOMBER_H
+#ifndef _BUZZBOMBER_H_
 #define _BUZZBOMBER_H_
 
 #include "Object.h"

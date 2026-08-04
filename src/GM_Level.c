@@ -198,8 +198,11 @@ GM_Level_Branch:;
     VDP_SetBackgroundColour(0x20); // Line 2, entry 0
 
     // Load water
+    VDP_SetHIntCounter(223);
+    VDP_SetHIntEnable(false);
     if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
-        // TODO
+        VDP_SetHIntEnable(true);
+        // TODO: further LZ water setup (water surface Y tracking, wtr_state)
     }
     air = 30;
 
