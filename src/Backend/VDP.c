@@ -35,7 +35,8 @@ static uint8_t vdp_background_colour;
 
 static int16_t vdp_vscroll_a, vdp_vscroll_b;
 
-static int16_t vdp_hint_pos;
+static int16_t vdp_hint_counter; //H interrupt reload counter (VDP register $0A)
+static bool vdp_hint_enable;     //H interrupt enable (VDP register $00 bit 4, IE1)
 
 static MD_Vector vdp_hint, vdp_vint;
 
@@ -55,8 +56,9 @@ int VDP_Init(const MD_Header *header) {
 	vdp_background_colour = 0;
 	vdp_vscroll_a = 0;
 	vdp_vscroll_b = 0;
-	vdp_hint_pos = -1;
-	
+	vdp_hint_counter = 0;
+	vdp_hint_enable = false;
+
 	vdp_hint = header->h_interrupt;
 	vdp_vint = header->v_interrupt;
 	
@@ -217,8 +219,12 @@ void VDP_SetVScroll(int16_t scroll_a, int16_t scroll_b) {
 	vdp_vscroll_b = scroll_b;
 }
 
-void VDP_SetHIntPosition(int16_t pos) {
-	vdp_hint_pos = pos;
+void VDP_SetHIntCounter(int16_t counter) {
+	vdp_hint_counter = counter;
+}
+
+void VDP_SetHIntEnable(bool enable) {
+	vdp_hint_enable = enable;
 }
 
 //VDP rendering
@@ -415,10 +421,7 @@ static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct
 	//Draw planes
 	VDP_DrawPlaneRow(to, tom, (const uint16_t*)(vdp_vram + vdp_plane_b_location), -hscroll[1], y + vdp_vscroll_b);
 	VDP_DrawPlaneRow(to, tom, (const uint16_t*)(vdp_vram + vdp_plane_a_location), -hscroll[0], y + vdp_vscroll_a);
-    hbla_pos = y;
-    VDP_SetHIntPosition(hbla_pos);
 
-	
 	//Draw sprites
 	for (uint8_t i = 0; i < scache->pushind; i++)
 		VDP_DrawSpriteRow(to, tom, scache->sprite[i], y);
@@ -495,10 +498,10 @@ void VDP_Render(void) {
 	//Get VDP screen pointer
 	vdp_screen = &vdp_screen_internal[0][VDP_INTERNAL_PAD];
 	vdp_mask = &vdp_mask_internal[0][VDP_INTERNAL_PAD];
-	
+
 	//Calculate sprite cache
 	memset(vdp_sprite_cache, 0, sizeof(vdp_sprite_cache));
-	
+
 	for (uint8_t i = 0;;) {
 		//Get sprite values
 		const uint16_t *sprite = (const uint16_t*)(vdp_vram + vdp_sprite_location + ((uint16_t)i << 3));
@@ -507,7 +510,7 @@ void VDP_Render(void) {
 		uint8_t sprite_width = (sprite_sl & SPRITE_SL_W_AND) >> SPRITE_SL_W_SHIFT;
 		uint8_t sprite_height = (sprite_sl & SPRITE_SL_H_AND) >> SPRITE_SL_H_SHIFT;
 		uint8_t sprite_link = (sprite_sl & SPRITE_SL_L_AND) >> SPRITE_SL_L_SHIFT;
-		
+
 		//Get sprite bounding area
 		int top = sprite_y - 128;
 		int bottom = top + ((sprite_height + 1) << 3);
@@ -515,7 +518,7 @@ void VDP_Render(void) {
 			top = 0;
 		if (bottom > SCREEN_HEIGHT)
 			bottom = SCREEN_HEIGHT;
-		
+
 		//Write sprite cache
 		for (int v = top; v < bottom; v++) {
 			struct VDP_SpriteCache *scache = &vdp_sprite_cache[v];
@@ -523,7 +526,7 @@ void VDP_Render(void) {
 			if (scache->pixels <= SCANLINE_SPRITES)
 				scache->sprite[scache->pushind++] = sprite;
 		}
-		
+
 		//Go to next sprite
 		if (sprite_link != 0)
 			i = sprite_link;
@@ -538,19 +541,25 @@ void VDP_Render(void) {
 	uint8_t *tom = vdp_mask;
 	struct VDP_SpriteCache *scache = vdp_sprite_cache;
 	const int16_t *hscroll = (int16_t*)(vdp_vram + vdp_hscroll_location);
-	
-	if (vdp_hint_pos >= 0 && vdp_hint_pos < SCREEN_HEIGHT) {
-		//Draw up to horizontal interrupt
-		size_t y = 0;
-		while (y < (size_t)vdp_hint_pos && y < SCREEN_HEIGHT) {
-			for (; y < (size_t)vdp_hint_pos && y < SCREEN_HEIGHT; y++, scache++, hscroll += 2, to += SCREEN_PITCH, tom += SCREEN_PITCH)
-				VDP_DrawScanline(y, to, tom, scache, hscroll);
-			
-			//Send horizontal interrupt
-			vdp_hint();
-			VDP_RefreshPalette();
+
+	if (vdp_hint_enable) {
+		//Draw with repeating horizontal interrupt. Real HBlank hardware is an
+		//8-bit down-counter (VDP register $0A) that reloads and fires every
+		//(vdp_hint_counter + 1) lines for as long as H-ints are enabled --
+		//not a single one-shot interrupt at a fixed position.
+		int32_t countdown = vdp_hint_counter;
+		for (size_t y = 0; y < SCREEN_HEIGHT; y++, scache++, hscroll += 2, to += SCREEN_PITCH, tom += SCREEN_PITCH) {
+			VDP_DrawScanline(y, to, tom, scache, hscroll);
+
+			if (countdown-- <= 0) {
+				countdown = vdp_hint_counter;
+
+				//Send horizontal interrupt
+				vdp_hint();
+				VDP_RefreshPalette();
+			}
 		}
-		
+
 		//Draw rest of screen
 		for (; y < SCREEN_HEIGHT; y++, scache++, hscroll += 2, to += SCREEN_PITCH, tom += SCREEN_PITCH)
 			VDP_DrawScanline(y, to, tom, scache, hscroll);
