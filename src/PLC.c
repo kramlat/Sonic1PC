@@ -22,6 +22,7 @@
 #include "Resource/Art/SYZ.h"
 
 // Object art
+#include "Resource/Art/TitleCard.h"
 #include "Resource/Art/BigFlash.h"
 #include "Resource/Art/Bumper.h"
 #include "Resource/Art/BuzzBomber.h"
@@ -66,6 +67,18 @@
 #include "Resource/Art/Caterkiller.h"
 #include "Resource/Art/MZSwitch.h"
 #include "Resource/Art/MZBlock.h"
+#include "Resource/Art/Bomb.h"
+#include "Resource/Art/SLZBlock.h"
+#include "Resource/Art/SLZWall.h"
+#include "Resource/Art/Seesaw.h"
+#include "Resource/Art/Fan.h"
+#include "Resource/Art/Pylon.h"
+#include "Resource/Art/SLZSwing.h"
+#include "Resource/Art/SLZCannon.h"
+#include "Resource/Art/SLZSpike.h"
+#include "Resource/Art/Roller.h"
+#include "Resource/Art/SYZSpike1.h"
+#include "Resource/Art/SYZSpike2.h"
 #include "Resource/Art/GameOver.h"
 #include "Resource/Art/HUD.h"
 #include "Resource/Art/HUDLife.h"
@@ -264,11 +277,11 @@ static const PLCList PLC_SLZ = {
     9,
     (const PLC[]) {
         { Art_SLZ, 0x0000 },
-        // plcm	Nem_Bomb, $8000		; bomb enemy
+        { Art_Bomb, 0x8520 },
         { Art_Orbinaut, 0x8520 },
         { Art_MZFire, 0x9000 },
-        // plcm	Nem_SlzBlock, $9C00	; block
-        // plcm	Nem_SlzWall, $A260	; breakable wall
+        { Art_SLZBlock, 0x9C00 },
+        { Art_SLZWall, 0xA260 },
         { Art_Spikes, 0xA360 },
         { Art_SpringH, 0xA460 },
         { Art_SpringV, 0xA660 },
@@ -278,33 +291,34 @@ static const PLCList PLC_SLZ = {
 static const PLCList PLC_SLZ2 = {
     6,
     (const PLC[]) {
-        { NULL, 0 }, // ISO C forbids empty initializer braces
-        // plcm	Nem_Seesaw, $6E80	; seesaw
-        // plcm	Nem_Fan, $7400		; fan
-        // plcm	Nem_Pylon, $7980	; foreground pylon
-        // plcm	Nem_SlzSwing, $7B80	; swinging platform
-        // plcm	Nem_SlzCannon, $9B00	; fireball launcher
-        // plcm	Nem_SlzSpike, $9E00	; spikeball
+        { Art_Seesaw, 0x6E80 },
+        { Art_Fan, 0x7400 },
+        { Art_Pylon, 0x7980 },
+        { Art_SLZSwing, 0x7B80 },
+        { Art_SLZCannon, 0x9B00 },
+        { Art_SLZSpike, 0x9E00 },
     }
 };
-
+// ---------------------------------------------------------------------------
+// Pattern load cues - Spring Yard
+// ---------------------------------------------------------------------------
 static const PLCList PLC_SYZ = {
-    3,
+    4,
     (const PLC[]) {
         { Art_SYZ, 0x0000 },
         { Art_Crabmeat, 0x8000 },
         { Art_BuzzBomber, 0x8880 },
         { Art_Yadrin, 0x8F60 },
-        // plcm	Nem_Roller, $9700	; roller enemy
+        { Art_Roller, 0x9700 },
     }
 };
 
 static const PLCList PLC_SYZ2 = {
-    4,
+    8,
     (const PLC[]) {
         { Art_Bumper, 0x7000 },
-        // plcm	Nem_SyzSpike1, $72C0	; large	spikeball
-        // plcm	Nem_SyzSpike2, $7740	; small	spikeball
+        { Art_SYZSpike1, 0x72C0 },
+        { Art_SYZSpike2, 0x7740 },
         { Art_Caterkiller, 0x9FE0 },
         { Art_LZSwitch, 0xA1E0 },
         { Art_Spikes, 0xA360 },
@@ -312,7 +326,9 @@ static const PLCList PLC_SYZ2 = {
         { Art_SpringV, 0xA660 },
     }
 };
-
+// ---------------------------------------------------------------------------
+// Pattern load cues - Scrap Brain
+// ---------------------------------------------------------------------------
 static const PLCList PLC_SBZ = {
     1,
     (const PLC[]) {
@@ -323,7 +339,7 @@ static const PLCList PLC_SBZ = {
         // plcm	Nem_BallHog, $6040	; ball hog enemy
         // plcm	Nem_SbzWheel1, $6880	; spot on large	wheel
         // plcm	Nem_SbzWheel2, $6900	; wheel	that grabs Sonic
-        // plcm	Nem_SyzSpike1, $7220	; large	spikeball
+        { Art_SYZSpike1, 0x7220 },
         // plcm	Nem_Cutter, $76A0	; pizza	cutter
         // plcm	Nem_FlamePipe, $7B20	; flaming pipe
         // plcm	Nem_SbzFloor, $7EA0	; collapsing floor
@@ -335,7 +351,7 @@ static const PLCList PLC_SBZ2 = {
     3,
     (const PLC[]) {
         { Art_Caterkiller, 0x5600 },
-        // plcm	Nem_Bomb, $8000		; bomb enemy
+        { Art_Bomb, 0x8000 },
         { Art_Orbinaut, 0x8520 },
         // plcm	Nem_SlideFloor, $8C00	; floor	that slides away
         // plcm	Nem_SbzDoor2, $8DE0	; horizontal door
@@ -349,15 +365,18 @@ static const PLCList PLC_SBZ2 = {
         { Art_SpringV, 0xA660 },
     }
 };
-
+// ---------------------------------------------------------------------------
+// Pattern load cues - title card
+// ---------------------------------------------------------------------------
 static const PLCList PLC_TitleCard = {
-    0,
+   1,
     (const PLC[]) {
-        { NULL, 0 }, // ISO C forbids empty initializer braces
-        // plcm	Nem_TitleCard, $B000
+        { Art_TitleCard, 0xB000 },
     }
 };
-
+// ---------------------------------------------------------------------------
+// Pattern load cues - act 3 boss
+// ---------------------------------------------------------------------------
 static const PLCList PLC_Boss = {
     0,
     (const PLC[]) {

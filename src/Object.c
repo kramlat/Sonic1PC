@@ -589,7 +589,21 @@ void PlatformObject(Object *obj, uint16_t x_rad) {
 	Platform3(obj, obj->pos.l.y.f.u - 8);
 }
 
-void Platform3(Object *obj, int16_t top) {
+// Alternate version of PlatformObject with a custom solidity height input,
+// instead of assuming 8px (only used by swinging platforms on chain links)
+void PlatformObject_CustomHeight(Object *obj, uint16_t x_rad, int16_t height) {
+	//Check if player is colliding with platform
+	if (player->ysp < 0)
+		return;
+
+	int16_t x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+	if (x_off < 0 || x_off >= (x_rad << 1))
+		return;
+
+	Platform3(obj, obj->pos.l.y.f.u - height);
+}
+
+	void Platform3(Object *obj, int16_t top) {
 	//Check if player is touching the top of platform
 	int16_t py = player->pos.l.y.f.u;
 	int16_t by = py + player->y_rad + 4;

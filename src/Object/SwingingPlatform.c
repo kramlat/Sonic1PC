@@ -1,9 +1,11 @@
 #define SwingingPlatform_Build
 #include "SwingingPlatform.h"
 #include "Level.h"
+#include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Macros.h"
 #include "Game.h"
+#include "Oscillatory Routines.h"
 
 #include "Resource/Mappings/GHZSwing.h"
 #include "Resource/Mappings/SLZSwing.h"
@@ -40,29 +42,33 @@ void Obj_SwingingPlatform(Object *obj) {
             obj->render.f.align_fg = true;
             obj->priority = 3;
             obj->width_pixels = 0x18;
-            obj->height_pixels = 8;
+            obj->y_rad = 8;
             scratch->orig_y = obj->pos.l.y.f.u;
             scratch->orig_x = obj->pos.l.x.f.u;
 
-            if (v_zone == ZoneID_SLZ) {
+            if (LEVEL_ZONE(level_id) == ZoneId_SLZ) {
                 obj->mappings = Mappings_SLZSwing;
                 obj->tile = TILE_MAP(0, 2, 0, 0, 0x300); // ArtTile_SLZ_Swing
                 obj->width_pixels = 0x20;
-                obj->height_pixels = 0x10;
+                obj->y_rad = 0x10;
                 obj->col_type = 0x99;
             }
 
-            if (v_zone == ZoneID_SBZ) {
+            if (LEVEL_ZONE(level_id) == ZoneId_SBZ) {
                 obj->mappings = Mappings_BigSpikedBall;
                 obj->tile = TILE_MAP(0, 0, 0, 0, 0x300); // ArtTile_SBZ_Swing
                 obj->width_pixels = 0x18;
-                obj->height_pixels = 0x18;
+                obj->y_rad = 0x18;
                 obj->col_type = 0x86;
                 obj->routine = 12; // Swing_Action
             }
 
             // Chain Creation
-            uint8_t subtype = obj->type; // Original subtype
+            // Read the level-placed subtype byte. It lives at scratch offset
+            // 0 (obSubtype), aliased here as child_count -- read it BEFORE
+            // clearing it to 0 just below, matching the original's own
+            // read-then-reuse-the-same-byte pattern.
+            uint8_t subtype = scratch->child_count;
             uint8_t count = subtype & 0xF;
             uint8_t d3 = (count << 4) + 8;
             scratch->chain_length = d3;
@@ -84,7 +90,7 @@ void Obj_SwingingPlatform(Object *obj) {
                 link->routine = 10; // Swing_Display
                 link->type = obj->type;
                 link->mappings = obj->mappings;
-                link->tile = obj->tile & ~(1 << 11); // bclr #6 in Gfx (Priority bit)
+                link->tile = obj->tile & ~(1 << 14); // bclr #6 on the high byte -> bit 14 of the full word (palette line 3 -> 1)
                 link->render.f.align_fg = true;
                 link->priority = 4;
                 link->width_pixels = 8;
@@ -97,16 +103,21 @@ void Obj_SwingingPlatform(Object *obj) {
                 if ((int8_t)d3 < 0) {
                     link->frame = 2;
                     link->priority = 3;
-                    link->tile |= (1 << 11); // bset #6
+                    link->tile |= (1 << 14); // bset #6 on the high byte -> bit 14 (palette line 1 -> 3)
                 }
             }
 
             // Set parent as the last entry in the list
             scratch->child_idx[scratch->child_count] = (uint8_t)(obj - objects);
-            obj->angle = 0x4080;
-            scratch->speed = -0x200;
+            // Note: the original also sets obAngle and GBall_Swing_Speed
+            // here, but both are explicitly commented as "GHZ wrecking ball
+            // boss only" -- that's separate, later work (the boss isn't
+            // ported yet), and obAngle can't be safely translated here
+            // anyway (the original writes it as a word, spilling into an
+            // adjacent unnamed byte -- a boss-only trick, not something to
+            // replicate for the general swinging-platform case).
 
-            if (subtype & 0x10) { // is object type $1X?
+            if (subtype & 0x10) { // is object type $1X? (unused in real levels)
                 obj->mappings = Mappings_GHZBall;
                 obj->tile = TILE_MAP(0, 2, 0, 0, 0x396); // ArtTile_GHZ_Giant_Ball
                 obj->frame = 1;
@@ -114,12 +125,12 @@ void Obj_SwingingPlatform(Object *obj) {
                 obj->col_type = 0x81;
             }
 
-            if (v_zone == ZoneID_SBZ) break;
-            // Fallthrough to Swing_SetSolid
+            if (LEVEL_ZONE(level_id) == ZoneId_SBZ) break;
+            __attribute__((fallthrough));
         }
 
-        case 2: { // Swing_SetSolid
-            Platform3(obj, obj->width_pixels);
+        case 2: { // Swing_SetSolid / Swing_Platform
+            PlatformObject_CustomHeight(obj, obj->width_pixels, obj->y_rad);
             Obj_SwingingPlatform_Move(obj);
             DisplaySprite(obj);
             Obj_SwingingPlatform_ChkDel(obj);
@@ -131,8 +142,9 @@ void Obj_SwingingPlatform(Object *obj) {
             if (!ExitPlatform(obj, obj->width_pixels, obj->width_pixels, &x_off)) {
                 int16_t prev_x = obj->pos.l.x.f.u;
                 Obj_SwingingPlatform_Move(obj);
-                // Move Sonic with platform
-                MvSonicOnPtfm(obj, prev_x, obj->height_pixels + 1);
+                // Move Sonic with platform -- y is the pre-computed top
+                // surface (post-move platform Y minus custom height + 1px)
+                MvSonicOnPtfm(obj, obj->pos.l.y.f.u - (obj->y_rad + 1), prev_x);
             }
             DisplaySprite(obj);
             Obj_SwingingPlatform_ChkDel(obj);
@@ -157,9 +169,11 @@ void Obj_SwingingPlatform(Object *obj) {
 }
 
 void Obj_SwingingPlatform_Move(Object *obj) {
-    // GHZ/MZ/SLZ logic using oscillation table
-    int16_t angle = (int16_t)v_oscillate[0x1A];
-    if (obj->status.f.x_flip) {
+    // GHZ/MZ/SLZ logic using oscillation table (entry 6: frequency 8, middle
+    // value $40). The value field is a 16-bit fixed-point accumulator; only
+    // its high byte (the integer part) is meaningful here.
+    int16_t angle = (uint8_t)(oscillatory.state[6][0] >> 8);
+    if (obj->status.o.f.x_flip) {
         angle = -angle + 0x80;
     }
 

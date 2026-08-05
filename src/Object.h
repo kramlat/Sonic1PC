@@ -275,6 +275,7 @@ void ObjectFall(Object *obj);
 void RememberState(Object *obj);
 void MvSonicOnPtfm(Object *obj, int16_t y, int16_t prev_x);
 void PlatformObject(Object *obj, uint16_t x_rad);
+void PlatformObject_CustomHeight(Object *obj, uint16_t x_rad, int16_t height);
 void Platform3(Object *obj, int16_t top);
 void Platform_SetStand(Object *obj);
 bool ExitPlatform(Object *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p);

@@ -19,9 +19,6 @@
 
 #include <string.h>
 
-// Title card art
-#include "Resource/Art/TitleCard.h"
-
 // Level gamemode
 void GM_Level(void) {
 GM_Level_Branch:;
@@ -40,8 +37,7 @@ GM_Level_Branch:;
     // Load art if not in credits
     if (demo >= 0) {
         // Load title card art
-        VDP_SeekVRAM(0xB000);
-        NemDec(Art_TitleCard);
+        NewPLC(PlcId_TitleCard);
 
         // Load level art and general art
         if (level_header[LEVEL_ZONE(level_id)].plc1 != 0)

@@ -1,5 +1,6 @@
 #include "BigSpikeBall.h"
 #include "Level.h"
+#include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Macros.h"
 
@@ -7,10 +8,11 @@
 static void Obj_BigSpikeBall_Type01(Object *obj) {
     Scratch_BigSpikeBall *scratch = (Scratch_BigSpikeBall*)&obj->scratch;
 
-    // (v_oscillate+$E).w maps to state[3][0] in your struct
-    int16_t dist = oscillatory.state[3][0];
+   // (v_oscillate+$E).w maps to state[3][0]; only the high byte (the
+   // integer part of the fixed-point value) is meaningful here.
+    int16_t dist = (uint8_t)(oscillatory.state[3][0] >> 8);
 
-    if (obj->status.f.x_flip) {
+    if (obj->status.o.f.x_flip) {
         dist = -dist + 0x60;
     }
 
@@ -20,10 +22,11 @@ static void Obj_BigSpikeBall_Type01(Object *obj) {
 static void Obj_BigSpikeBall_Type02(Object *obj) {
     Scratch_BigSpikeBall *scratch = (Scratch_BigSpikeBall*)&obj->scratch;
 
-    // (v_oscillate+$E).w maps to state[3][0] in your struct
-    int16_t dist = oscillatory.state[3][0];
+    // (v_oscillate+$E).w maps to state[3][0]; only the high byte (the
+    // integer part of the fixed-point value) is meaningful here.
+    int16_t dist = (uint8_t)(oscillatory.state[3][0] >> 8);
 
-    if (obj->status.f.x_flip) {
+    if (obj->status.o.f.x_flip) {
         dist = -dist + 0x80;
     }
 
@@ -62,8 +65,14 @@ void Obj_BigSpikeBall(Object *obj) {
             scratch->orig_x = obj->pos.l.x.f.u;
             scratch->orig_y = obj->pos.l.y.f.u;
 
-            // Set speed from first digit of subtype (e.g., $20 -> speed $100)
-            scratch->speed = (obj->subtype & 0xF0) << 3;
+            // Set speed from the upper nibble of the level-placed subtype
+            // byte (e.g., $20 -> speed $100). This must be treated as a
+            // SIGNED byte before widening/scaling: subtypes with the upper
+            // nibble >= 8 (e.g. $E0) are meant to produce a negative speed
+            // (reverse/counterclockwise rotation), matching the original's
+            // ext.w sign-extension -- a plain unsigned shift would instead
+            // produce a large wrong positive value for those subtypes.
+            scratch->speed = (int16_t)(int8_t)(scratch->subtype & 0xF0) * 8;
 
             // Set starting angle based on flip bits (status bits 0 & 1)
             uint8_t start_angle = obj->status.b;
@@ -75,7 +84,7 @@ void Obj_BigSpikeBall(Object *obj) {
 
         case 2: // BBall_Move
         {
-            uint8_t move_type = obj->subtype & 0x07;
+            uint8_t move_type = scratch->subtype & 0x07;
 
             if (move_type == 1)      Obj_BigSpikeBall_Type01(obj);
             else if (move_type == 2) Obj_BigSpikeBall_Type02(obj);
