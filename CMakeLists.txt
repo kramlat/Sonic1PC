@@ -48,6 +48,10 @@ set(
   "src/Palette.h"
   "src/PLC.c"
   "src/PLC.h"
+  "src/Sound.c"
+  "src/Sound.h"
+  "src/Enigma.c"
+  "src/Enigma.h"
   "src/PaletteCycle.c"
   "src/PaletteCycle.h"
   "src/Oscillatory Routines.c"
@@ -66,6 +70,8 @@ set(
   "src/LevelDraw.h"
   "src/LevelScroll.c"
   "src/LevelScroll.h"
+  "src/LZWaterFeatures.c"
+  "src/LZWaterFeatures.h"
   "src/LevelCollision.c"
   "src/LevelCollision.h"
   "src/SpecialStage.c"
@@ -108,7 +114,9 @@ set(
   "src/Backend/VDP.c"
   "src/Backend/VDP.h"
   "src/Backend/Joypad.c"
-  "src/Backend/Joypad.h")
+  "src/Backend/Joypad.h"
+  "src/Backend/SN76489.c"
+  "src/Backend/SN76489.h")
 
 add_library(SonicCore STATIC ${SONIC_CORE_SOURCES})
 
@@ -588,7 +596,7 @@ if(BACKEND MATCHES "SDL2")
   target_compile_definitions(SonicCore PUBLIC SCP_BACKEND_SDL2)
   target_sources(
     SonicCore PRIVATE "src/Backend/SDL2/System.c" "src/Backend/SDL2/Render.c"
-                      "src/Backend/SDL2/Input.c")
+                      "src/Backend/SDL2/Input.c" "src/Backend/SDL2/Audio.c")
 
   # Compile and link SDL2
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -648,18 +656,15 @@ foreach(FILENAME IN LISTS RESOURCES)
   set(IN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/res")
   set(OUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Resource")
   get_filename_component(DIRECTORY "${FILENAME}" DIRECTORY)
-  if(DIRECTORY MATCHES "^Map16")
-    # Map16_* size is relied on via sizeof() elsewhere (LevelHeader table) --
-    # must stay exactly the real data size, no padding.
-    set(PAD_BYTES 0)
-  else()
-    # Safety margin: Nemesis/Kosinski decompression speculatively reads a
-    # byte or two past the logical end of their compressed input as an
-    # artifact of their bit-refill logic. Harmless on real hardware
-    # (contiguous ROM) but an actual out-of-bounds read here, since each
-    # resource is its own fixed-size array.
-    set(PAD_BYTES 8)
-  endif()
+  # Safety margin: Nemesis/Kosinski/Enigma decompression speculatively reads
+  # a byte or two past the logical end of their compressed input as an
+  # artifact of their bit-refill logic. Harmless on real hardware
+  # (contiguous ROM) but an actual out-of-bounds read here, since each
+  # resource is its own fixed-size array. Map16_* (see src/Enigma.c) used to
+  # be an exception to this -- pre-decompressed and padding-free, since
+  # sizeof() on it was relied on elsewhere -- back when it stored plain
+  # decompressed data instead of genuine compressed Enigma data.
+  set(PAD_BYTES 8)
   add_custom_command(
     OUTPUT "${OUT_DIR}/${FILENAME}.h"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}/${DIRECTORY}"
@@ -700,6 +705,65 @@ foreach(FILENAME IN LISTS ASM)
     DEPENDS clownassembler_tool "${IN_DIR}/${FILENAME}.asm")
   target_sources(SonicCore PRIVATE "${OUT_DIR}/${FILENAME}")
 endforeach()
+
+# ##############################################################################
+# Music/SFX (SMPS2ASM) #
+# ##############################################################################
+# smps2asmc translates a SMPS2ASM-format .asm song/SFX file into a small C
+# program that #includes smps2asmc/smps.h (a C dialect of smps2asm.asm,
+# specialized to the real Sonic 1 sound driver -- see that header's own
+# comment) and calls its functions in the same sequence as the original
+# file's macro invocations. Building *that* generated program and running it
+# produces the actual resource header -- so each song needs three steps:
+# translate, build, run. See add_smps_song() below.
+#
+# NOTE: unlike bin2h/clownassembler (built via ExternalProject_Add
+# specifically so they're always host-native even when Sonic itself is being
+# cross-compiled), smps2asmc and each per-song "song builder" program below
+# are currently built as ordinary add_executable() targets, which use
+# whatever compiler the current build is configured for. That's fine for a
+# native build (this project's only configuration so far) but would need
+# the same ExternalProject_Add isolation bin2h/clownassembler have before
+# this pipeline could be trusted under cross-compilation.
+
+add_executable(smps2asmc_tool "smps2asmc/smps2asmc.c")
+set_target_properties(smps2asmc_tool PROPERTIES OUTPUT_NAME smps2asmc)
+
+# Translates, builds, and runs one song/SFX .asm file, adding its resulting
+# resource header to SonicCore. ASM_FILE is relative to res/Music/;
+# ARRAY_NAME becomes both the generated C array's name and the output
+# header's filename (Resource/Music/${ARRAY_NAME}.h).
+function(add_smps_song ASM_FILE ARRAY_NAME)
+  set(IN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/res/Music")
+  set(OUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Resource/Music")
+  set(GEN_C "${CMAKE_CURRENT_BINARY_DIR}/smps_gen/${ARRAY_NAME}.gen.c")
+  set(OUT_H "${OUT_DIR}/${ARRAY_NAME}.h")
+
+  add_custom_command(
+    OUTPUT "${GEN_C}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/smps_gen"
+    COMMAND smps2asmc_tool "${IN_DIR}/${ASM_FILE}" "${GEN_C}" "${ARRAY_NAME}" "${OUT_H}"
+    DEPENDS smps2asmc_tool "${IN_DIR}/${ASM_FILE}")
+
+  add_executable(songbuild_${ARRAY_NAME} "${GEN_C}" "${CMAKE_SOURCE_DIR}/smps2asmc/smps.c")
+  target_include_directories(songbuild_${ARRAY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/smps2asmc")
+
+  add_custom_command(
+    OUTPUT "${OUT_H}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}"
+    COMMAND songbuild_${ARRAY_NAME}
+    DEPENDS songbuild_${ARRAY_NAME}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+
+  target_sources(SonicCore PRIVATE "${OUT_H}")
+endfunction()
+
+# Proof-of-concept songs, verified byte-for-byte against hand-derived
+# expected output before being added here. The rest of the soundtrack/SFX
+# catalog is future work -- this establishes the pipeline works end-to-end
+# on a real, complete music file and a real SFX file.
+add_smps_song("Mus81 - GHZ.asm" Mus81_GHZ)
+add_smps_song("SndA0 - Jump.asm" SndA0_Jump)
 
 # ##############################################################################
 # Tests #
@@ -748,8 +812,24 @@ if(BUILD_TESTS)
   file(MAKE_DIRECTORY "${DEMO_OUTPUT_DIR}")
   target_compile_definitions(SonicDemoRecord PRIVATE DEMO_OUTPUT_DIR="${DEMO_OUTPUT_DIR}")
 
+  # Joypad test tool: a small SDL2 window showing a row of icons (the four
+  # D-pad directions, then A/B/C/Start) that light up while the matching
+  # button is held -- see tests/joypad_test_main.c. Reads input through the
+  # same Joypad_GetState1()/Input_HandleEvents() path the real game uses,
+  # so it doubles as a manual sanity check for the keyboard scheme and any
+  # connected SDL_GameController (including Steam Input). Interactive tool,
+  # not registered as a ctest.
+  add_executable(SonicJoypadTest "tests/joypad_test_main.c")
+  target_link_libraries(SonicJoypadTest PRIVATE SonicCore)
+  if(NOT WIN32)
+    target_link_libraries(SonicJoypadTest PRIVATE m)
+  endif()
+  set_target_properties(SonicJoypadTest PROPERTIES C_STANDARD 99
+                                                     C_STANDARD_REQUIRED ON
+                                                     C_EXTENSIONS OFF)
+
   set_target_properties(
-    SonicTests SonicSmoke SonicDemoRecord
+    SonicTests SonicSmoke SonicDemoRecord SonicJoypadTest
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}
                RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_DIRECTORY}
                RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${BUILD_DIRECTORY}

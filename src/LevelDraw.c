@@ -13,21 +13,36 @@
 // Scroll blocks
 int16_t scroll_block1_size, scroll_block2_size, scroll_block3_size, scroll_block4_size;
 
-const uint8_t MZ_ScrollArray[128] = {
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
-        0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
-        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
-        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
-        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
-        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06
-    };
+// BG_ScrollBlockMap_MZ from the disassembly is only 98 bytes ($00-$61) --
+// real hardware's column scan (DrawBG_ColumnForBGIndex, see
+// DrawBG_ColumnForBGIndex() below) can walk up to 15 entries past the
+// highest masked start index (127), reading whatever ROM bytes happened to
+// follow the table. That's not reproducible (or desirable) here, so this is
+// padded with zeroes out to a safe size -- in practice the real game rarely
+// if ever reaches that edge of the table during normal play.
+const uint8_t MZ_ScrollArray[144] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x06, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
+    0x04, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+    0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+    0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+    0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+    0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+    0x02, 0x00,
+    // Safe zero padding past the real 98-byte table (see comment above).
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
 
-const uint8_t SBZ_ScrollArray[32] = {
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
-        0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06
-    };
+// BG_ScrollBlockMap_SBZ from the disassembly is only 34 bytes ($00-$21);
+// padded with zeroes for the same reason as MZ_ScrollArray above.
+const uint8_t SBZ_ScrollArray[48] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x04,
+    0x04, 0x04, 0x04, 0x04, 0x04, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+    0x02, 0x00,
+    // Safe zero padding past the real 34-byte table (see comment above).
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
 
 size_t CalcVRAMPos_2(int16_t sx, int16_t x, int16_t y) {
 	uint16_t px = ((x + sx) >> 2) & ~3;
@@ -175,22 +190,56 @@ const dword_s* bg_pos_table[] = {
     &bg3_scrpos_y  // Index 6 (Kept .y as per existing prototyping, though ASM used .x)
 };
 
-void DrawBlocks_BG(size_t offset, int16_t sx, int16_t sy, int16_t y, const uint8_t *layout, const uint8_t *array, size_t entries) {
+void DrawBlocks_BG_2(size_t offset, int16_t sx, int16_t sy, int16_t index_bias, int16_t y, const uint8_t *layout, const uint8_t *array, size_t entries) {
 	// Matches the disassembly's "move.w v_bgscreenposy,d0 ; add.w d4,d0 ;
 	// andi.w #$1F0,d0" (mask varies per table size): combine the camera
 	// position with the relative row offset (y can legitimately be
 	// negative, e.g. -16 for "one row above the screen"), then wrap via an
 	// unsigned mask rather than a signed shift -- plain "y >> 4" on a
-	// negative y indexed before the start of the array.
+	// negative y indexed before the start of the array. index_bias is MZ's
+	// extra "subi.w #$200,d0" (its table is addressed 512px further along
+	// than its own BG camera position) -- zero for every other zone.
 	uint16_t mask = (uint16_t)((entries << 4) - 16);
-	uint8_t bg_pos_i = array[((uint16_t)(sy + y) & mask) >> 4];
+	uint8_t bg_pos_i = array[((uint16_t)(sy + y + index_bias) & mask) >> 4];
 	if (bg_pos_i != 0) {
 		sx = bg_pos_table[bg_pos_i >> 1]->f.u;
 		sy = (sy & ~0xF) % SCROLL_HEIGHT;
 		DrawBlocks_LR(offset, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout);
 	}
 	else
-		DrawBlocks_LR_2(offset, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH);
+		// Matches the disassembly's ".bgXPos0" branch of DrawBG_RowForBGIndex
+		// exactly: DrawBlocks_LR_3 (REV01's VRAM-wrapping variant, matching
+		// every other "draw a full-width strip" call in this file) at
+		// PLANE_WIDTH/2 blocks (512px, the plane's real width) -- not plain
+		// DrawBlocks_LR_2 at a full PLANE_WIDTH (1024px, double the plane),
+		// which wrapped the destination VRAM position around twice per row
+		// and drew over itself with the wrong tiles.
+		DrawBlocks_LR_3(offset, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH / 2);
+}
+
+void DrawBlocks_BG(size_t offset, int16_t sx, int16_t sy, int16_t y, const uint8_t *layout, const uint8_t *array, size_t entries) {
+	DrawBlocks_BG_2(offset, sx, sy, 0, y, layout, array, entries);
+}
+
+// Matches DrawBG_ColumnForBGIndex in the disassembly: draws a full 16-row
+// vertical strip when more than one scroll-block redraw flag is pending at
+// once (diagonal scrolling in MZ/SBZ). Unlike DrawBlocks_BG (one row, one
+// table lookup derived from the camera position), this walks 16 consecutive
+// table entries -- one per row of the strip, starting from table[0] --
+// checking each directly against the shared redraw-flags byte.
+void DrawBG_ColumnForBGIndex(size_t offset, int16_t x, int16_t y, int16_t sy, const uint8_t *layout, const uint8_t *table, uint16_t *flag) {
+	for (size_t i = 0; i < (SCREEN_HEIGHT + 16 + 16) / 16; i++, y += 16) {
+		uint8_t bit = table[i];
+		if (*flag & (1 << bit)) {
+			const uint8_t *meta, *block;
+			int16_t row_sx = bg_pos_table[bit >> 1]->f.u;
+			GetBlockData(&meta, &block, row_sx, sy, x, y, layout);
+			DrawBlock(meta, block, offset + CalcVRAMPos(row_sx, sy, x, y));
+		}
+	}
+	// Matches "clr.b (a2)" -- only the low (SBZ/MZ-specific) byte of the
+	// redraw-flags word is cleared, not the whole 16-bit value.
+	*flag &= 0xFF00;
 }
 
 void Draw_GHZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
@@ -203,31 +252,24 @@ void Draw_GHZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
 }
 
 void Draw_MZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
-    int16_t y = 0;
+    // Matches Draw_MZ_BG in the disassembly: starts one row above the top of
+    // the screen (y = -16, not 0), reads MZ_ScrollArray+1 (its row-index
+    // table is addressed with a +1 offset -- see BG_ScrollBlockMap_MZ+1),
+    // and biases the row index by -512 (v_bgscreenposy - $200) before
+    // masking, unlike every other zone's table.
+    int16_t y = -16;
     for (size_t i = 0; i < (SCREEN_HEIGHT + 16 + 16) / 16; i++) {
-        static const uint8_t bg_array[] = {
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
-        0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
-        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
-        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
-        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
-        0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06
-    };
-        DrawBlocks_BG(offset, bg_scrpos_x.f.u, sy, y, layout, bg_array, 128);
+        DrawBlocks_BG_2(offset, bg_scrpos_x.f.u, sy, -0x200, y, layout, MZ_ScrollArray + 1, 128);
         y += 16;
     }
 }
 
 void Draw_SBZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
-    int16_t y = 0;
+    // Matches Draw_SBZ_act1_BG in the disassembly: y = -16 (not 0), and
+    // SBZ_ScrollArray+1 (see BG_ScrollBlockMap_SBZ+1).
+    int16_t y = -16;
     for (size_t i = 0; i < (SCREEN_HEIGHT + 16 + 16) / 16; i++) {
-        static const uint8_t bg_array[] = {
-         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
-        0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06
-    };
-       DrawBlocks_BG(offset, bg_scrpos_x.f.u, sy, y, layout, bg_array, 32);
+        DrawBlocks_BG(offset, bg_scrpos_x.f.u, sy, y, layout, SBZ_ScrollArray + 1, 32);
         y += 16;
     }
 }
@@ -361,17 +403,29 @@ void DrawBGScrollBlock2(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *l
 			int16_t vertical_offset = -16; // Margin for drawing new tiles
 			if (*flag & 0x01) {
 				*flag &= ~0x01;
-				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray, 32);
+				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray + 1, 32);
 			} else if (*flag & 0x02) {
 				*flag &= ~0x02;
 				vertical_offset = SCREEN_HEIGHT; // Draw slice at the bottom of the screen
-				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray, 32);
+				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray + 1, 32);
 			}
-			uint8_t sync_bits = (*flag & 0xA8);
-			if (sync_bits != 0) {
-				*flag= (uint16_t)(sync_bits >> 1);
-				int16_t sync_y_off = -16;
-				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, sync_y_off, layout, SBZ_ScrollArray, 32);
+			if (*flag & 0xFF) {
+				// Matches Draw_SBZ's ".more"/".doMore": any remaining flag
+				// bits trigger a full vertical strip via
+				// DrawBG_ColumnForBGIndex (not another single-row lookup --
+				// unlike the top/bottom case above, no +1 table offset
+				// here), at the screen's left edge by default, or the right
+				// edge if any of bits 7/5/3 ($A8) are among those
+				// remaining (which also get folded down into bits 6/4/2 for
+				// the strip's own per-row bit tests).
+				int16_t col_x = -16;
+				uint8_t submask = (uint8_t)(*flag & 0xA8);
+				if (submask != 0) {
+					*flag = (*flag & 0xFF00) | (submask >> 1);
+					col_x = SCREEN_WIDTH;
+				}
+				uint16_t idx = (uint16_t)bg_scrpos_y.f.u & 0x1F0;
+				DrawBG_ColumnForBGIndex(offset, col_x, -16, bg_scrpos_y.f.u, layout, SBZ_ScrollArray + (idx >> 4), flag);
 			}
 			return;
 		}
@@ -412,31 +466,29 @@ void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *l
 					y_rel = SCREEN_HEIGHT;
 				} else goto check_mz_col;
 			} else *flag &= ~SCROLL_FLAG_LEFT;
-			DrawBlocks_BG(offset, sx, bg_scrpos_y_dup.f.u - 0x200, y_rel, layout, MZ_ScrollArray, 128);
+			// MZ's row lookup is biased by -512 for the table index only --
+			// the actual draw position/content still uses the real,
+			// unbiased bg_scrpos_y_dup -- and (like Draw_MZ_BG) reads
+			// MZ_ScrollArray+1 for this single-row case.
+			DrawBlocks_BG_2(offset, sx, bg_scrpos_y_dup.f.u, -0x200, y_rel, layout, MZ_ScrollArray + 1, 128);
 			check_mz_col:
 			if ((*flag & 0xFF) == 0) return;
-			int16_t dy_c = -16;
+			// Matches Draw_MZ's ".more"/".doMore": any remaining flag bits
+			// trigger a full vertical strip via DrawBG_ColumnForBGIndex (no
+			// +1 table offset here, unlike the single-row case above), at
+			// the screen's left edge by default, or the right edge if any
+			// of bits 7/5/3 ($A8) are among those remaining (which also get
+			// folded down into bits 6/4/2 for the strip's own per-row bit
+			// tests).
+			int16_t col_x = -16;
 			uint8_t cf = (uint8_t)(*flag & 0xFF);
 			if (cf & 0xA8) {
 				cf >>= 1;
 				*flag = (*flag & 0xFF00) | cf;
-				dy_c = SCROLL_WIDTH;
+				col_x = SCREEN_WIDTH;
 			}
-			int16_t dx_l = -16;
-			int16_t y_b = (bg_scrpos_y_dup.f.u - 0x200) & 0x7F0;
-			const uint8_t* m_ptr = &MZ_ScrollArray[y_b >> 4];
-			for (int i = 0; i < 16; i++) {
-				uint8_t bit = *m_ptr++;
-				if (*flag & (1 << bit)) {
-					const uint8_t *m, *b;
-					const dword_s* row_sx_ptr = bg_pos_table[bit >> 1];
-					int16_t rsx = row_sx_ptr ? row_sx_ptr->f.u : sx;
-					GetBlockData(&m, &b, rsx, bg_scrpos_y_dup.f.u, dx_l, dy_c, layout);
-					DrawBlock(m, b, CalcVRAMPos(rsx, bg_scrpos_y_dup.f.u, dx_l, dy_c));
-				}
-				dx_l += 16;
-			}
-			*flag &= 0xFF00;
+			uint16_t idx = (uint16_t)(bg_scrpos_y_dup.f.u - 0x200) & 0x7F0;
+			DrawBG_ColumnForBGIndex(offset, col_x, -16, bg_scrpos_y_dup.f.u, layout, MZ_ScrollArray + (idx >> 4), flag);
 		}
 	#endif
 }

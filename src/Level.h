@@ -49,7 +49,6 @@ typedef struct {
 	uint8_t music;
 	uint8_t pal_dup;
 	uint8_t pal;
-	size_t map16_size; //TEMP
 } LevelHeader;
 
 typedef struct {

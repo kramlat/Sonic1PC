@@ -1460,13 +1460,77 @@ static void GameOver(Object* obj) {
     }
 }
 
+extern const uint8_t Mappings_RingREV01[]; // From Object/Ring.c
+
+// Debug (object placement) mode -- entered by pressing B while debug_cheat
+// is active (see the "Enter debug mode" check below), exited by pressing B
+// again. debug_use doubles as a routine selector matching the
+// disassembly's DebugMode: 1 (set by that B-press check) means "just
+// entered, run one-time setup", 2 means "already active".
+//
+// This is currently a minimal core -- free 8-direction movement and the
+// entry/exit transitions -- not the full original feature. Not yet ported:
+// cycling through and spawning the per-zone object list (DebugList in the
+// disassembly), which is why the displayed object is always a ring rather
+// than whatever's currently selected.
+static void DebugMode(Object *obj) {
+    if (debug_use == 1) {
+        // One-time setup: temporarily unlock the level's Y boundaries (so
+        // debug mode can fly anywhere), and show a placeholder object
+        // (a ring -- always item 0 in every zone's real debug list) in
+        // place of Sonic.
+        limit_top_db = limit_top2;
+        limit_btm_db = limit_btm1;
+        limit_top2 = 0;
+        limit_btm1 = 0x800 - 224;
+
+        obj->mappings = Mappings_RingREV01;
+        obj->tile = TILE_MAP(0, 1, 0, 0, 0x7B2);
+        obj->frame = 0;
+        obj->render.b = 0;
+        obj->priority = 2;
+        obj->width_pixels = 8;
+
+        debug_use = 2;
+    }
+
+    // Exit back to normal Sonic.
+    if (jpad1_press1 & JPAD_B) {
+        debug_use = 0;
+
+        limit_top2 = limit_top_db;
+        limit_btm1 = limit_btm_db;
+
+        obj->mappings = Mappings_Sonic;
+        obj->tile = TILE_MAP(0, 0, 0, 0, 0x780);
+        obj->frame = 0;
+        obj->anim = SonAnimId_Walk;
+        obj->width_pixels = 24;
+        obj->render.f.align_fg = true;
+        return;
+    }
+
+    // Free movement (matches the movement half of the disassembly's
+    // Debug_Control; no speed ramp-up yet -- just pressed/held both move
+    // at a fixed pace).
+    const int32_t speed = 4 << 16;
+    if (jpad1_hold1 & JPAD_UP)
+        obj->pos.l.y.v -= speed;
+    if (jpad1_hold1 & JPAD_DOWN)
+        obj->pos.l.y.v += speed;
+    if (jpad1_hold1 & JPAD_LEFT)
+        obj->pos.l.x.v -= speed;
+    if (jpad1_hold1 & JPAD_RIGHT)
+        obj->pos.l.x.v += speed;
+}
+
 // Sonic object
 void Obj_Sonic(Object* obj) {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Run debug mode code while in debug mode
     if (debug_use) {
-        // DebugMode();
+        DebugMode(obj);
         return;
     }
 

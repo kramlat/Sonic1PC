@@ -8,6 +8,7 @@
 #include "LevelCollision.h"
 #include "LevelDraw.h"
 #include "LevelScroll.h"
+#include "LZWaterFeatures.h"
 #include "MathUtil.h"
 #include "Nemesis.h"
 #include "Object/Sonic.h"
@@ -18,6 +19,39 @@
 #include "Video.h"
 
 #include <string.h>
+
+// Matches PauseGame in the disassembly: pressing Start (with at least one
+// life left, so a game-over screen can't be paused) blocks in a loop
+// running VBlank routine 0x10 (Paused -- see VBlank()'s remap to 0x08/0x0A)
+// until Start is pressed again.
+//
+// Also matches Pause_SlowMo: while paused, holding B advances one frame at
+// a time continuously (returning here with pause_state left true, so the
+// very next call re-enters the paused loop without needing Start again),
+// and pressing C advances exactly one frame the same way. The original
+// only allows this with the slow-motion cheat active; that cheat's entry
+// (counting C presses during the level select code) isn't implemented in
+// this port (see GM_Title.c), so frame advance is available unconditionally
+// here instead of being locked behind it.
+void PauseGame(void) {
+    if (!lives)
+        return;
+    if (!pause_state) {
+        if (!(jpad1_press1 & JPAD_START))
+            return;
+        pause_state = true;
+    }
+    do {
+        vbla_routine = 0x10;
+        WaitForVBla();
+        // music PauseMusic ; pause the sound driver //TODO
+
+        if ((jpad1_hold1 & JPAD_B) || (jpad1_press1 & JPAD_C))
+            return; // Frame advance -- pause_state stays true
+    } while (!(jpad1_press1 & JPAD_START));
+    // music ResumeMusic ; unpause the sound driver //TODO
+    pause_state = false;
+}
 
 // Level gamemode
 void GM_Level(void) {
@@ -199,9 +233,11 @@ GM_Level_Branch:;
     VDP_SetHIntEnable(false);
     if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
         VDP_SetHIntEnable(true);
-        // TODO: further LZ water setup (water surface Y tracking, wtr_state).
-        // Once implemented, that code should keep hbla_counter in sync with
-        // whatever scanline it passes to VDP_SetHIntCounter() each frame.
+        // LZWaterFeatures() (called every frame from the level loop below)
+        // keeps hbla_counter and VDP's h-int counter in sync with the water
+        // surface's current scanline from here on. TODO: it doesn't yet
+        // drive the real water *height* (LZWindTunnels/LZWaterSlides/
+        // LZDynamicWater aren't ported), only its surface sway.
     }
     air = 30;
 
@@ -248,9 +284,16 @@ GM_Level_Branch:;
     if (demo >= 0)
         objects[1].type = ObjId_HUD;
 
-    // Handle debug mode cheat
+    // Handle debug mode cheat. Debug builds skip the "hold A" requirement
+    // too -- debug_cheat alone (itself unconditionally on in debug builds,
+    // see GM_Title.c) is enough.
+#ifndef NDEBUG
+    if (debug_cheat)
+        debug_mode = true;
+#else
     if (debug_cheat && (jpad1_hold1 & JPAD_A))
         debug_mode = true;
+#endif
     jpad1_hold2 = 0;
     jpad1_press2 = 0;
     jpad1_hold1 = 0;
@@ -324,13 +367,16 @@ GM_Level_Branch:;
     // Enter level loop
     gamemode &= 0x7F;
     while (1) {
+        // Handle pausing the game when pressing Start
+        PauseGame();
+
         // Run frame
         vbla_routine = 0x08;
         WaitForVBla();
         frame_count++;
 
         MoveSonicInDemo();
-        // LZWaterFeatures();
+        LZWaterFeatures();
 
         // Run game
         ExecuteObjects();

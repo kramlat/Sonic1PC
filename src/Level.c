@@ -1,6 +1,7 @@
 #include "Level.h"
 
 #include "Constants.h"
+#include "Enigma.h"
 #include "Game.h"
 #include "Kosinski.h"
 #include "LevelDraw.h"
@@ -313,21 +314,21 @@ static const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
 
 // Level headers
 const LevelHeader level_header[ZoneId_Num] = {
-    { PlcId_GHZ, Art_GHZ2, PlcId_GHZ2, Map16_GHZ, Map256_GHZ, 0, 0, PalId_GHZ, PalId_GHZ, sizeof(Map16_GHZ) },
-    { PlcId_LZ, Art_LZ, PlcId_LZ2, Map16_LZ, Map256_LZ, 0, 0, PalId_LZ, PalId_LZ, sizeof(Map16_LZ) },
+    { PlcId_GHZ, Art_GHZ2, PlcId_GHZ2, Map16_GHZ, Map256_GHZ, 0, 0, PalId_GHZ, PalId_GHZ },
+    { PlcId_LZ, Art_LZ, PlcId_LZ2, Map16_LZ, Map256_LZ, 0, 0, PalId_LZ, PalId_LZ },
 #ifdef SCP_REV00
-    { PlcId_MZ, Art_MZ, PlcId_MZ2, Map16_MZ, Map256_MZREV00, 0, 0, PalId_MZ, PalId_MZ, sizeof(Map16_MZ) },
+    { PlcId_MZ, Art_MZ, PlcId_MZ2, Map16_MZ, Map256_MZREV00, 0, 0, PalId_MZ, PalId_MZ },
 #else
-    { PlcId_MZ, Art_MZ, PlcId_MZ2, Map16_MZ, Map256_MZREV01, 0, 0, PalId_MZ, PalId_MZ, sizeof(Map16_MZ) },
+    { PlcId_MZ, Art_MZ, PlcId_MZ2, Map16_MZ, Map256_MZREV01, 0, 0, PalId_MZ, PalId_MZ },
 #endif
-    { PlcId_SLZ, Art_SLZ, PlcId_SLZ2, Map16_SLZ, Map256_SLZ, 0, 0, PalId_SLZ, PalId_SLZ, sizeof(Map16_SLZ) },
-    { PlcId_SYZ, Art_SYZ, PlcId_SYZ2, Map16_SYZ, Map256_SYZ, 0, 0, PalId_SYZ, PalId_SYZ, sizeof(Map16_SYZ) },
+    { PlcId_SLZ, Art_SLZ, PlcId_SLZ2, Map16_SLZ, Map256_SLZ, 0, 0, PalId_SLZ, PalId_SLZ },
+    { PlcId_SYZ, Art_SYZ, PlcId_SYZ2, Map16_SYZ, Map256_SYZ, 0, 0, PalId_SYZ, PalId_SYZ },
 #ifdef SCP_REV00
-    { PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, Map256_SBZREV00, 0, 0, PalId_SBZ1, PalId_SBZ1, sizeof(Map16_SBZ) },
+    { PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, Map256_SBZREV00, 0, 0, PalId_SBZ1, PalId_SBZ1 },
 #else
-    { PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, Map256_SBZREV01, 0, 0, PalId_SBZ1, PalId_SBZ1, sizeof(Map16_SBZ) },
+    { PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, Map256_SBZREV01, 0, 0, PalId_SBZ1, PalId_SBZ1 },
 #endif
-    { 0, Art_GHZ2, 0, Map16_GHZ, Map256_GHZ, 0, 0, PalId_GHZ, PalId_GHZ, sizeof(Map16_GHZ) },
+    { 0, Art_GHZ2, 0, Map16_GHZ, Map256_GHZ, 0, 0, PalId_GHZ, PalId_GHZ },
 };
 
 // Level collision indices
@@ -558,7 +559,7 @@ void LoadLevelMaps(void) {
 
     // Load chunk maps and tile map
     KosDec(header->map256, level_map256);
-    memcpy(level_map16, header->map16, header->map16_size);
+    EniDec(header->map16, level_map16, 0);
 }
 
 void LoadLayout(const uint8_t* from, uint8_t* to) {
@@ -666,7 +667,7 @@ void LevelDataLoad(void) {
 
     // Load chunk maps and tile map
     KosDec(header->map256, level_map256);
-    memcpy(level_map16, header->map16, header->map16_size);
+    EniDec(header->map16, level_map16, 0);
 
     // Load level layout
     LoadLevelLayout();

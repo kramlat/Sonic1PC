@@ -1,6 +1,7 @@
 #include "GM_Special.h"
 
 #include "Game.h"
+#include "GM_Level.h"
 #include "SpecialStage.h"
 #include "Level.h"
 #include "LevelScroll.h"
@@ -166,15 +167,25 @@ void GM_Special(void) {
 	debug_use = false;
 	demo_length = 1800;
 	
-	//Handle debug mode cheat
+	//Handle debug mode cheat. Debug builds skip the "hold A" requirement
+	//too -- debug_cheat alone (itself unconditionally on in debug builds,
+	//see GM_Title.c) is enough.
+#ifndef NDEBUG
+	if (debug_cheat)
+		debug_mode = true;
+#else
 	if (debug_cheat && (jpad1_hold1 & JPAD_A))
 		debug_mode = true;
+#endif
 	
 	//Fade in
 	PaletteWhiteIn();
 	
 	//Start special stage loop
 	while (1) {
+		//Handle pausing the game when pressing Start
+		PauseGame();
+
 		//Run frame
 		vbla_routine = 0x0A;
 		WaitForVBla();

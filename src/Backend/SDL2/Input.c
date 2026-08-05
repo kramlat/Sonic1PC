@@ -4,6 +4,27 @@
 
 #include "Backend/Joypad.h"
 
+// Gamepad support. Deliberately uses SDL_GameController (not raw
+// SDL_Joystick) so Steam Input's virtual controller -- which SDL sees as a
+// standard Xbox-style pad regardless of the physical hardware or the user's
+// Steam Input button/stick remapping -- works out of the box. Steam Input's
+// virtual device can appear (or disappear, e.g. the overlay taking it over)
+// after startup, so it's tracked via hotplug events rather than opened once.
+static SDL_GameController *pad = NULL;
+#define STICK_DEADZONE 8000 // out of a signed 16-bit axis range
+
+static void OpenFirstPad(void) {
+	if (pad)
+		return;
+	for (int i = 0; i < SDL_NumJoysticks(); i++) {
+		if (SDL_IsGameController(i)) {
+			pad = SDL_GameControllerOpen(i);
+			if (pad)
+				break;
+		}
+	}
+}
+
 //Backend input interface
 int Input_HandleEvents(void) {
 	SDL_Event e;
@@ -11,6 +32,17 @@ int Input_HandleEvents(void) {
 		switch (e.type) {
 			case SDL_QUIT:
 				return 1;
+			case SDL_CONTROLLERDEVICEADDED:
+				if (!pad)
+					pad = SDL_GameControllerOpen(e.cdevice.which);
+				break;
+			case SDL_CONTROLLERDEVICEREMOVED:
+				if (pad && e.cdevice.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad))) {
+					SDL_GameControllerClose(pad);
+					pad = NULL;
+					OpenFirstPad(); // fall back to another pad, if any
+				}
+				break;
 			default:
 				break;
 		}
@@ -24,30 +56,80 @@ uint8_t Input_GetState1(void) {
 	//Get keyboard state
 	const uint8_t *key_state = SDL_GetKeyboardState(NULL);
 	uint8_t start = key_state[SDL_SCANCODE_RETURN] ? JPAD_START : 0;
-	uint8_t a     = key_state[SDL_SCANCODE_A]      ? JPAD_A     : 0;
-	uint8_t b     = key_state[SDL_SCANCODE_S]      ? JPAD_B     : 0;
-	uint8_t c     = key_state[SDL_SCANCODE_D]      ? JPAD_C     : 0;
-	uint8_t right = key_state[SDL_SCANCODE_RIGHT]  ? JPAD_RIGHT : 0;
-	uint8_t left  = key_state[SDL_SCANCODE_LEFT]   ? JPAD_LEFT  : 0;
-	uint8_t down  = key_state[SDL_SCANCODE_DOWN]   ? JPAD_DOWN  : 0;
-	uint8_t up    = key_state[SDL_SCANCODE_UP]     ? JPAD_UP    : 0;
-	
-        if(key_state[SDL_SCANCODE_TAB])
-            VDP_PALETTE_DISPLAY = !VDP_PALETTE_DISPLAY;
-        if(key_state[SDL_SCANCODE_1] & VDP_PALETTE_DISPLAY)
-            CRAMPAL = 0;
-        if(key_state[SDL_SCANCODE_2] & VDP_PALETTE_DISPLAY)
+	// J/K/L -> A/B/C, and WASD -> D-pad (alongside the arrow keys below) --
+	// keeps movement and jump on separate, non-overlapping key clusters,
+	// closer to a standard PC control scheme than the old A/S/D-for-jump
+	// (which collided with using A/D for movement).
+	uint8_t a     = key_state[SDL_SCANCODE_B]      ? JPAD_A     : 0;
+	uint8_t b     = key_state[SDL_SCANCODE_N]      ? JPAD_B     : 0;
+	uint8_t c     = key_state[SDL_SCANCODE_M]      ? JPAD_C     : 0;
+	uint8_t right = (key_state[SDL_SCANCODE_RIGHT] || key_state[SDL_SCANCODE_D]) ? JPAD_RIGHT : 0;
+	uint8_t left  = (key_state[SDL_SCANCODE_LEFT]  || key_state[SDL_SCANCODE_A]) ? JPAD_LEFT  : 0;
+	uint8_t down  = (key_state[SDL_SCANCODE_DOWN]  || key_state[SDL_SCANCODE_S]) ? JPAD_DOWN  : 0;
+	uint8_t up    = (key_state[SDL_SCANCODE_UP]    || key_state[SDL_SCANCODE_W]) ? JPAD_UP    : 0;
+
+	//Merge in gamepad state, if one's connected: D-pad and left stick both
+	//drive the Genesis D-pad, X/A/B -> Genesis A/B/C, Start/Options -> Start.
+	if (pad && SDL_GameControllerGetAttached(pad)) {
+		int16_t lx = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
+		int16_t ly = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
+
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) || lx > STICK_DEADZONE)
+			right = JPAD_RIGHT;
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_LEFT) || lx < -STICK_DEADZONE)
+			left = JPAD_LEFT;
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN) || ly > STICK_DEADZONE)
+			down = JPAD_DOWN;
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP) || ly < -STICK_DEADZONE)
+			up = JPAD_UP;
+
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X))
+			a = JPAD_A;
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A))
+			b = JPAD_B;
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B))
+			c = JPAD_C;
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_START))
+			start = JPAD_START;
+	}
+
+	//VDP peek view (VRAM/CRAM debug overlay): Tab or Select/Back toggles it
+	//on/off -- edge-detected, since it's a flip rather than a level, and
+	//holding the button shouldn't flicker it every frame. While it's
+	//showing, LB/RB/LT/RT pick which of the 4 CRAM palettes to view, and
+	//the right stick (or O/L keys) page through VRAM.
+	//Debug builds only -- release builds shouldn't expose a VRAM/CRAM
+	//dump to players, and VDP_PALETTE_DISPLAY defaults to false regardless.
+#ifndef NDEBUG
+	static bool toggle_held_prev = false;
+	bool toggle_held = key_state[SDL_SCANCODE_TAB] ||
+	                    (pad && SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_BACK));
+	if (toggle_held && !toggle_held_prev)
+		VDP_PALETTE_DISPLAY = !VDP_PALETTE_DISPLAY;
+	toggle_held_prev = toggle_held;
+
+	if (VDP_PALETTE_DISPLAY) {
+		bool lb = pad && SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+		bool rb = pad && SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+		bool lt = pad && SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > STICK_DEADZONE;
+		bool rt = pad && SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > STICK_DEADZONE;
+
+		if (key_state[SDL_SCANCODE_1] || lb)
+			CRAMPAL = 0;
+		if (key_state[SDL_SCANCODE_2] || rb)
 			CRAMPAL = 1;
-        if(key_state[SDL_SCANCODE_3] & VDP_PALETTE_DISPLAY)
-            CRAMPAL = 2;
-        if(key_state[SDL_SCANCODE_4] & VDP_PALETTE_DISPLAY)
-            CRAMPAL = 3;
-        if(key_state[SDL_SCANCODE_O] & VDP_PALETTE_DISPLAY)
-			if(VRAMADDR > 0)
-				VRAMADDR = VRAMADDR - 0x200;
-        if(key_state[SDL_SCANCODE_L] & VDP_PALETTE_DISPLAY)
-			if (VRAMADDR < 0xF800)
-				VRAMADDR = VRAMADDR + 0x200;
+		if (key_state[SDL_SCANCODE_3] || lt)
+			CRAMPAL = 2;
+		if (key_state[SDL_SCANCODE_4] || rt)
+			CRAMPAL = 3;
+
+		int16_t ry = pad ? SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY) : 0;
+		if ((key_state[SDL_SCANCODE_O] || ry < -STICK_DEADZONE) && VRAMADDR > 0)
+			VRAMADDR = VRAMADDR - 0x200;
+		if ((key_state[SDL_SCANCODE_L] || ry > STICK_DEADZONE) && VRAMADDR < 0xF800)
+			VRAMADDR = VRAMADDR + 0x200;
+	}
+#endif
 
 	//Return as bitfield
 	return start | a | c | b | right | left | down | up;

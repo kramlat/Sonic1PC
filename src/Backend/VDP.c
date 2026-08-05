@@ -15,6 +15,9 @@ void Render_Screen(const uint32_t *screen);
 //Input backend interface
 int Input_HandleEvents(void);
 
+//Audio backend interface
+void Audio_Update(void);
+
 //VDP compile options
 #define VDP_SANITY //Enable sanity checks for the VDP (slower, but technically safer, basically for testing)
 
@@ -576,6 +579,9 @@ void VDP_Render(void) {
 	vdp_vint();
 	//Render screen
 	Render_Screen(vdp_screen);
+
+	//Generate and queue this frame's audio
+	Audio_Update();
 
 	//Handle events
 	if (Input_HandleEvents()) {
