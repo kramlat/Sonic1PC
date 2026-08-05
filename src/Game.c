@@ -150,8 +150,38 @@ void WriteVRAMBuffers(void) {
     VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
 }
 
+// Matches VBlank_UpdateScreen in the original: level tile scrolling,
+// animated tiles, HUD, PLC processing (3 tiles/frame here -- slower than
+// VBlank's own 9 tiles/frame elsewhere, since this competes for time with
+// everything else this handler does), and the demo length countdown.
+// Called directly from VBlank's case 0x08 when there's enough time, or
+// deferred to HBlank when the LZ water surface is too close to the top of
+// the screen for it to safely run during VBlank itself.
+static void VBlank_UpdateScreen(void) {
+    // Scroll camera
+    LoadTilesAsYouMove();
+
+    // Update level animations and HUD
+    AnimateLevelGfx();
+    HUD_Update();
+
+    // Process PLCs
+    ProcessDPLC2();
+
+    // Decrement demo timer
+    if (demo_length)
+        demo_length--;
+}
+
 void VBlank(void) {
     uint8_t routine = vbla_routine;
+    bool skip_music = false; // set by case 0x08 when deferring to HBlank
+
+    // Paused (0x10) shares VBlank_SpecialStage or VBlank_Levels in the
+    // original, picked by game mode -- not a plain case-label fallthrough.
+    if (routine == 0x10)
+        routine = (gamemode == GameMode_Special) ? 0x0A : 0x08;
+
     if (vbla_routine != 0x00) {
         // Set VDP state
         VDP_SetVScroll(vid_scrpos_y_dup, vid_bg_scrpos_y_dup);
@@ -223,24 +253,19 @@ void VBlank(void) {
 
         // If the LZ water surface's HBlank trigger line is near the top of the
         // screen, there isn't enough time before HBlank fires to safely do these
-        // updates -- real hardware defers them to HBlank instead (not yet
-        // implemented here; see HBlank()'s doupdatesinhblank TODO). For every
+        // updates -- real hardware defers them to HBlank instead. For every
         // other zone hbla_counter stays at its dormant position (223), so this
         // always runs immediately.
         if (hbla_counter >= 96) {
-            // Scroll camera
-            LoadTilesAsYouMove();
-
-            // Update level animations and HUD
-            AnimateLevelGfx();
-            HUD_Update();
-
-            // Process PLCs
-            ProcessDPLC2();
-
-            // Decrement demo timer
-            if (demo_length)
-                demo_length--;
+            VBlank_UpdateScreen();
+        } else {
+            // Not enough time -- defer to HBlank instead. Matches the
+            // original exactly: addq.l #4,sp / bra.w VBlank_Exit skips both
+            // the demo timer decrement above (VBlank_UpdateScreen's rts
+            // never runs) and the sound driver update below (the return
+            // address back to that call site gets popped off unused).
+            doupdatesinhblank = true;
+            skip_music = true;
         }
         break;
     case 0x0A:
@@ -272,7 +297,8 @@ void VBlank(void) {
         if (demo_length)
             demo_length--;
         break;
-    case 0x0C:
+    case 0x0C: // Title Cards
+    case 0x18: // Ending Sequence (shares the exact same routine in the original)
         // Read joypad state
         ReadJoypads();
 
@@ -327,7 +353,11 @@ void VBlank(void) {
         break;
     }
 
-    // Update music
+    // Update music (skipped this frame if case 0x08 deferred to HBlank --
+    // matches the original popping its return address unused in that case)
+    if (!skip_music) {
+        //music UpdateMusic ; advance the sound driver TODO
+    }
 
     // Increment VBlank counter
     vbla_count++;
@@ -353,11 +383,12 @@ void HBlank(void) {
     if (doupdatesinhblank) {
         doupdatesinhblank = false;
 
-        //TODO: VBlank ran out of time this frame and deferred its standard
-        //transfers (sprite/hscroll buffers, tile art) to here. Nothing
-        //currently sets doupdatesinhblank, so this is unreachable -- needs
-        //the relevant part of VBlank()'s case 0x08 factored out into its
-        //own function before this can actually do the deferred work.
+        // VBlank ran out of time this frame (LZ water surface too close to
+        // the top of the screen) and deferred its standard updates to here.
+        // hbla_counter always stays at its dormant 223 until water surface
+        // tracking is implemented (see the TODO in GM_Level_Branch), so
+        // this is correctly wired but not yet reachable in practice.
+        VBlank_UpdateScreen();
 
         //music UpdateMusic ; advance the sound driver TODO
     }
