@@ -54,7 +54,7 @@ static const MD_Header s1_header = {
     /* Start of program     */ EntryPoint,
     /* Horizontal interrupt */ HBlank,
     /* Vertical interrupt   */ VBlank,
-    /* Game title           */ "SONIC THE HEDGEHOG",
+    /* Game title           */ "NEO RECORD",
 };
 
 // Placeholder example AI: runs right, and jumps briefly every couple of

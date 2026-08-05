@@ -32,7 +32,7 @@ static const MD_Header s1_header = {
     /* Start of program     */ EntryPoint,
     /* Horizontal interrupt */ HBlank,
     /* Vertical interrupt   */ VBlank,
-    /* Game title           */ "SONIC THE HEDGEHOG",
+    /* Game title           */ "NEO SMOKE",
 };
 
 // Reads a whole file into a malloc'd buffer. Never freed -- this process
