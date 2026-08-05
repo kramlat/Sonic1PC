@@ -195,10 +195,13 @@ GM_Level_Branch:;
 
     // Load water
     VDP_SetHIntCounter(223);
+    hbla_counter = 223;
     VDP_SetHIntEnable(false);
     if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
         VDP_SetHIntEnable(true);
-        // TODO: further LZ water setup (water surface Y tracking, wtr_state)
+        // TODO: further LZ water setup (water surface Y tracking, wtr_state).
+        // Once implemented, that code should keep hbla_counter in sync with
+        // whatever scanline it passes to VDP_SetHIntCounter() each frame.
     }
     air = 30;
 

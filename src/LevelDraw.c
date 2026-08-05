@@ -56,7 +56,7 @@ void GetBlockData(const uint8_t **meta, const uint8_t **block, int16_t sx, int16
  */
 void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
 	y += sy;
-	int16_t cx = (x >> 8) & 0x3F;
+	int16_t cx = (x >> 8) & 0x7F;
 	int16_t cy = (y >> 8) & 0x7;
 	uint8_t chunk = layout[(cy << 7) + cx] & 0x7F;
 	if (chunk == 0) {
@@ -175,8 +175,15 @@ const dword_s* bg_pos_table[] = {
     &bg3_scrpos_y  // Index 6 (Kept .y as per existing prototyping, though ASM used .x)
 };
 
-void DrawBlocks_BG(size_t offset, int16_t sx, int16_t sy, int16_t y, const uint8_t *layout, const uint8_t *array) {
-	uint8_t bg_pos_i = array[y >> 4];
+void DrawBlocks_BG(size_t offset, int16_t sx, int16_t sy, int16_t y, const uint8_t *layout, const uint8_t *array, size_t entries) {
+	// Matches the disassembly's "move.w v_bgscreenposy,d0 ; add.w d4,d0 ;
+	// andi.w #$1F0,d0" (mask varies per table size): combine the camera
+	// position with the relative row offset (y can legitimately be
+	// negative, e.g. -16 for "one row above the screen"), then wrap via an
+	// unsigned mask rather than a signed shift -- plain "y >> 4" on a
+	// negative y indexed before the start of the array.
+	uint16_t mask = (uint16_t)((entries << 4) - 16);
+	uint8_t bg_pos_i = array[((uint16_t)(sy + y) & mask) >> 4];
 	if (bg_pos_i != 0) {
 		sx = bg_pos_table[bg_pos_i >> 1]->f.u;
 		sy = (sy & ~0xF) % SCROLL_HEIGHT;
@@ -190,7 +197,7 @@ void Draw_GHZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
 	int16_t y = 0;
 	for (size_t i = 0; i < (SCROLL_HEIGHT + 16 + 16) / 16; i++) {
 		static const uint8_t bg_array[] = {0x00, 0x00, 0x00, 0x00, 0x06, 0x06, 0x06, 0x04, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-		DrawBlocks_BG(offset, bg_scrpos_y.f.u, sy, y, layout, bg_array);
+		DrawBlocks_BG(offset, bg_scrpos_y.f.u, sy, y, layout, bg_array, 16);
 		y += 16;
 	}
 }
@@ -208,7 +215,7 @@ void Draw_MZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
         0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
         0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06
     };
-        DrawBlocks_BG(offset, bg_scrpos_x.f.u, sy, y, layout, bg_array);
+        DrawBlocks_BG(offset, bg_scrpos_x.f.u, sy, y, layout, bg_array, 128);
         y += 16;
     }
 }
@@ -220,7 +227,7 @@ void Draw_SBZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06
     };
-       DrawBlocks_BG(offset, bg_scrpos_x.f.u, sy, y, layout, bg_array);
+       DrawBlocks_BG(offset, bg_scrpos_x.f.u, sy, y, layout, bg_array, 32);
         y += 16;
     }
 }
@@ -354,17 +361,17 @@ void DrawBGScrollBlock2(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *l
 			int16_t vertical_offset = -16; // Margin for drawing new tiles
 			if (*flag & 0x01) {
 				*flag &= ~0x01;
-				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray);
+				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray, 32);
 			} else if (*flag & 0x02) {
 				*flag &= ~0x02;
 				vertical_offset = SCREEN_HEIGHT; // Draw slice at the bottom of the screen
-				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray);
+				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray, 32);
 			}
 			uint8_t sync_bits = (*flag & 0xA8);
 			if (sync_bits != 0) {
 				*flag= (uint16_t)(sync_bits >> 1);
 				int16_t sync_y_off = -16;
-				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, sync_y_off, layout, SBZ_ScrollArray);
+				DrawBlocks_BG(offset, sx, bg_scrpos_y.f.u, sync_y_off, layout, SBZ_ScrollArray, 32);
 			}
 			return;
 		}
@@ -405,7 +412,7 @@ void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *l
 					y_rel = SCREEN_HEIGHT;
 				} else goto check_mz_col;
 			} else *flag &= ~SCROLL_FLAG_LEFT;
-			DrawBlocks_BG(offset, sx, bg_scrpos_y_dup.f.u - 0x200, y_rel, layout, MZ_ScrollArray);
+			DrawBlocks_BG(offset, sx, bg_scrpos_y_dup.f.u - 0x200, y_rel, layout, MZ_ScrollArray, 128);
 			check_mz_col:
 			if ((*flag & 0xFF) == 0) return;
 			int16_t dy_c = -16;

@@ -421,6 +421,7 @@ static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct
 	//Draw planes
 	VDP_DrawPlaneRow(to, tom, (const uint16_t*)(vdp_vram + vdp_plane_b_location), -hscroll[1], y + vdp_vscroll_b);
 	VDP_DrawPlaneRow(to, tom, (const uint16_t*)(vdp_vram + vdp_plane_a_location), -hscroll[0], y + vdp_vscroll_a);
+	hbla_pos = (int16_t)y;
 
 	//Draw sprites
 	for (uint8_t i = 0; i < scache->pushind; i++)
@@ -546,7 +547,13 @@ void VDP_Render(void) {
 		//Draw with repeating horizontal interrupt. Real HBlank hardware is an
 		//8-bit down-counter (VDP register $0A) that reloads and fires every
 		//(vdp_hint_counter + 1) lines for as long as H-ints are enabled --
-		//not a single one-shot interrupt at a fixed position.
+		//not a single one-shot interrupt at a fixed position. This loop
+		//already covers the entire screen height itself; there is no
+		//"remainder" left to draw afterward (a leftover second pass here,
+		//from before this loop was unified, kept advancing scache/hscroll/
+		//to/tom another full screen's worth past the end of their buffers,
+		//reading/writing out of bounds -- that's what was crashing LZ, the
+		//only zone with H-ints actually enabled).
 		int32_t countdown = vdp_hint_counter;
 		for (size_t y = 0; y < SCREEN_HEIGHT; y++, scache++, hscroll += 2, to += SCREEN_PITCH, tom += SCREEN_PITCH) {
 			VDP_DrawScanline(y, to, tom, scache, hscroll);
@@ -559,10 +566,6 @@ void VDP_Render(void) {
 				VDP_RefreshPalette();
 			}
 		}
-
-		//Draw rest of screen
-		for (size_t y = 0; y < SCREEN_HEIGHT; y++, scache++, hscroll += 2, to += SCREEN_PITCH, tom += SCREEN_PITCH)
-			VDP_DrawScanline(y, to, tom, scache, hscroll);
 	} else {
 		//Draw entire screen
 		for (size_t y = 0; y < SCREEN_HEIGHT; y++, scache++, hscroll += 2, to += SCREEN_PITCH, tom += SCREEN_PITCH)

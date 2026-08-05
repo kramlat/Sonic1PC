@@ -597,12 +597,13 @@ void AddPLC(PlcId plc) {
         return;
 
     // Find empty PLC slot
+    PLC* const plc_end = plc_buffer + (sizeof(plc_buffer) / sizeof(*plc_buffer));
     PLC* plc_free = plc_buffer;
-    while (plc_free->art != NULL)
+    while (plc_free < plc_end && plc_free->art != NULL)
         plc_free++;
 
     // Push PLCs to buffer
-    for (size_t i = 0; i < list->plcs; i++)
+    for (size_t i = 0; i < list->plcs && plc_free + i < plc_end; i++)
         plc_free[i] = list->plc[i];
 }
 
@@ -666,6 +667,7 @@ static void ProcessDPLC_Main(size_t off) {
             // Pop one request off the buffer so that the next one can be filled
             for (size_t i = 0; i < sizeof(plc_buffer) / sizeof(*plc_buffer) - 1; i++)
                 plc_buffer[i] = plc_buffer[i + 1];
+            plc_buffer[sizeof(plc_buffer) / sizeof(*plc_buffer) - 1] = (PLC){0};
             return;
         }
     } while (--plc_buffer_reg1A != 0);

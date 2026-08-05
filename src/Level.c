@@ -626,6 +626,15 @@ void LevelSizeLoad(void) {
         player->pos.l.y.f.u = y;
     }
 
+    // CLI test hook: override Sonic's start position (e.g. to drop straight
+    // into a boss fight instead of walking there).
+    if (cli_start_x >= 0)
+        x = (int16_t)cli_start_x;
+    if (cli_start_y >= 0)
+        y = (int16_t)cli_start_y;
+    player->pos.l.x.f.u = x;
+    player->pos.l.y.f.u = y;
+
     // Clip camera position against left and right
     if ((x -= (SCREEN_WIDTH / 2)) < 0) // 0 instead of limit_left
         x = 0;

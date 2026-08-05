@@ -13,6 +13,7 @@ option(SPLASH "Enable the SSRG splash screen (for my own demo releases)" OFF)
 
 option(SANITIZE "Enable sanitization" OFF)
 option(LTO "Enable link-time optimization" OFF)
+option(BUILD_TESTS "Build SonicTests (unit tests) and SonicSmoke (headless level-injection smoke test), and register them with ctest" ON)
 option(MSVC_LINK_STATIC_RUNTIME
        "Link the static MSVC runtime library (Visual Studio only)" OFF)
 
@@ -23,10 +24,12 @@ option(MSVC_LINK_STATIC_RUNTIME
 # Define project, source, and includes
 project(Sonic LANGUAGES C)
 
-add_executable(
-  Sonic WIN32
+# All game sources except Main.c (the entry point), so that Main.c's real
+# SDL2 entry point and the test suite's own entry point (tests/test_main.c)
+# can each link against the exact same compiled game logic as a static lib.
+set(
+  SONIC_CORE_SOURCES
   # Game
-  "src/Main.c"
   "src/Constants.h"
   "src/Macros.h"
   "src/Kosinski.c"
@@ -106,6 +109,11 @@ add_executable(
   "src/Backend/VDP.h"
   "src/Backend/Joypad.c"
   "src/Backend/Joypad.h")
+
+add_library(SonicCore STATIC ${SONIC_CORE_SOURCES})
+
+add_executable(Sonic WIN32 "src/Main.c")
+target_link_libraries(Sonic PRIVATE SonicCore)
 
 set(ASM
     "Animation/Sonic"
@@ -437,7 +445,7 @@ set(RESOURCES
     "SSLayout/6REV00"
     "SSLayout/6REV01")
 
-target_include_directories(Sonic PRIVATE "src")
+target_include_directories(SonicCore PUBLIC "src")
 
 # ##############################################################################
 # Compiler flags #
@@ -445,19 +453,19 @@ target_include_directories(Sonic PRIVATE "src")
 
 # Revision
 if(REV01)
-  target_compile_definitions(Sonic PRIVATE SCP_REV01)
+  target_compile_definitions(SonicCore PUBLIC SCP_REV01)
 else()
-  target_compile_definitions(Sonic PRIVATE SCP_REV00)
+  target_compile_definitions(SonicCore PUBLIC SCP_REV00)
 endif()
 
 # Region
 if(JAPANESE)
-  target_compile_definitions(Sonic PRIVATE SCP_JP)
+  target_compile_definitions(SonicCore PUBLIC SCP_JP)
 endif()
 
 # Bug fixes
 if(FIX_BUGS)
-  target_compile_definitions(Sonic PRIVATE SCP_FIX_BUGS)
+  target_compile_definitions(SonicCore PUBLIC SCP_FIX_BUGS)
 endif()
 
 # Sanitization
@@ -467,8 +475,8 @@ endif()
 
 # Splash
 if(SPLASH)
-  target_compile_definitions(Sonic PRIVATE SCP_SPLASH)
-  target_sources(Sonic PRIVATE "src/GM_SSRG.c" "src/GM_SSRG.h")
+  target_compile_definitions(SonicCore PUBLIC SCP_SPLASH)
+  target_sources(SonicCore PRIVATE "src/GM_SSRG.c" "src/GM_SSRG.h")
   list(
     APPEND
     RESOURCES
@@ -486,9 +494,9 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
 
 # Force warnings
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  target_compile_options(Sonic PRIVATE /W4)
+  target_compile_options(SonicCore PRIVATE /W4)
 else()
-  target_compile_options(Sonic PRIVATE -Wall -Wextra -pedantic)
+  target_compile_options(SonicCore PRIVATE -Wall -Wextra -pedantic)
 endif()
 
 # Use LTO if requested
@@ -496,7 +504,7 @@ if(LTO)
   include(CheckIPOSupported)
   check_ipo_supported(RESULT result)
   if(result)
-    set_target_properties(Sonic PROPERTIES INTERPROCEDURAL_OPTIMIZATION
+    set_target_properties(Sonic SonicCore PROPERTIES INTERPROCEDURAL_OPTIMIZATION
                                                TRUE)
   endif()
 endif()
@@ -509,9 +517,9 @@ endif()
 include(TestBigEndian)
 test_big_endian(ENDIAN)
 if(ENDIAN)
-  target_compile_definitions(Sonic PRIVATE SCP_BIG_ENDIAN)
+  target_compile_definitions(SonicCore PUBLIC SCP_BIG_ENDIAN)
 else()
-  target_compile_definitions(Sonic PRIVATE SCP_LIL_ENDIAN)
+  target_compile_definitions(SonicCore PUBLIC SCP_LIL_ENDIAN)
 endif()
 
 #
@@ -535,10 +543,10 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # Disable warnings that normally fire up on MSVC when using "unsafe" functions
   # instead of using MSVC's "safe" _s functions
-  target_compile_definitions(Sonic PRIVATE _CRT_SECURE_NO_WARNINGS)
+  target_compile_definitions(SonicCore PUBLIC _CRT_SECURE_NO_WARNINGS)
 
   # Make it so source files are recognized as UTF-8 by MSVC
-  target_compile_options(Sonic PRIVATE "/utf-8")
+  target_compile_options(SonicCore PRIVATE "/utf-8")
 
   # Use `main` instead of `WinMain`
   set_target_properties(Sonic PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup")
@@ -550,7 +558,7 @@ endif()
 
 # Force strict C99
 set_target_properties(
-  Sonic
+  SonicCore Sonic
   PROPERTIES C_STANDARD 99
              C_STANDARD_REQUIRED ON
              C_EXTENSIONS OFF)
@@ -577,9 +585,9 @@ set_target_properties(
 find_package(PkgConfig QUIET)
 
 if(BACKEND MATCHES "SDL2")
-  target_compile_definitions(Sonic PRIVATE SCP_BACKEND_SDL2)
+  target_compile_definitions(SonicCore PUBLIC SCP_BACKEND_SDL2)
   target_sources(
-    Sonic PRIVATE "src/Backend/SDL2/System.c" "src/Backend/SDL2/Render.c"
+    SonicCore PRIVATE "src/Backend/SDL2/System.c" "src/Backend/SDL2/Render.c"
                       "src/Backend/SDL2/Input.c")
 
   # Compile and link SDL2
@@ -596,7 +604,8 @@ if(BACKEND MATCHES "SDL2")
   find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
 
   # SDL2::SDL2main may or may not be available. It is e.g. required by Windows
-  # GUI applications
+  # GUI applications. Only the real Sonic executable needs it -- SonicTests
+  # has its own plain console main() and must not get SDL's main-shimming.
   if(TARGET SDL2::SDL2main)
 
     # It has an implicit dependency on SDL2 functions, so it MUST be added
@@ -605,8 +614,9 @@ if(BACKEND MATCHES "SDL2")
   endif()
 
   # Link to the actual SDL2 library. SDL2::SDL2 is the shared SDL library,
-  # SDL2::SDL2-static is the static SDL libarary.
-  target_link_libraries(Sonic PRIVATE SDL2::SDL2)
+  # SDL2::SDL2-static is the static SDL libarary. PUBLIC so it also propagates
+  # to whatever links SonicCore (Sonic itself, and SonicTests).
+  target_link_libraries(SonicCore PUBLIC SDL2::SDL2)
 endif()
 
 # ##############################################################################
@@ -655,7 +665,7 @@ foreach(FILENAME IN LISTS RESOURCES)
     COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}/${DIRECTORY}"
     COMMAND bin2h_tool "${IN_DIR}/${FILENAME}" "${OUT_DIR}/${FILENAME}.h" ${PAD_BYTES}
     DEPENDS bin2h_tool "${IN_DIR}/${FILENAME}")
-  target_sources(Sonic PRIVATE "${OUT_DIR}/${FILENAME}.h")
+  target_sources(SonicCore PRIVATE "${OUT_DIR}/${FILENAME}.h")
 endforeach()
 
 include(ExternalProject)
@@ -688,5 +698,73 @@ foreach(FILENAME IN LISTS ASM)
     COMMAND clownassembler_tool -i "${IN_DIR}/${FILENAME}.asm" -o
             "${OUT_DIR}/${FILENAME}"
     DEPENDS clownassembler_tool "${IN_DIR}/${FILENAME}.asm")
-  target_sources(Sonic PRIVATE "${OUT_DIR}/${FILENAME}")
+  target_sources(SonicCore PRIVATE "${OUT_DIR}/${FILENAME}")
 endforeach()
+
+# ##############################################################################
+# Tests #
+# ##############################################################################
+
+if(BUILD_TESTS)
+  enable_testing()
+
+  # Unit tests: link the exact same compiled game logic (SonicCore) as the
+  # real Sonic executable, exercising real production functions directly
+  # (see tests/test_plc.c, tests/test_leveldraw.c) rather than reimplementing
+  # their logic.
+  add_executable(SonicTests "tests/test_main.c" "tests/test_plc.c"
+                             "tests/test_leveldraw.c")
+  target_link_libraries(SonicTests PRIVATE SonicCore)
+  set_target_properties(SonicTests PROPERTIES C_STANDARD 99
+                                               C_STANDARD_REQUIRED ON
+                                               C_EXTENSIONS OFF)
+
+  # Headless smoke runner: same entry point as the real game, but with
+  # --zone/--act CLI injection to skip straight into a level (see
+  # tests/smoke_main.c). Also handy for manual debugging -- no more
+  # hand-editing fprintf() calls into GM_Level.c/PLC.c and remembering to
+  # revert them afterward.
+  add_executable(SonicSmoke "tests/smoke_main.c")
+  target_link_libraries(SonicSmoke PRIVATE SonicCore)
+  set_target_properties(SonicSmoke PROPERTIES C_STANDARD 99
+                                               C_STANDARD_REQUIRED ON
+                                               C_EXTENSIONS OFF)
+
+  # Demo recorder: play a level/special stage for real (or via the --ai
+  # control hook) and record the input to a demo file in the same format
+  # Demo.c plays back -- see tests/demo_record_main.c. Interactive tool, not
+  # registered as a ctest.
+  add_executable(SonicDemoRecord "tests/demo_record_main.c")
+  target_link_libraries(SonicDemoRecord PRIVATE SonicCore)
+  set_target_properties(SonicDemoRecord PROPERTIES C_STANDARD 99
+                                                     C_STANDARD_REQUIRED ON
+                                                     C_EXTENSIONS OFF)
+
+  set_target_properties(
+    SonicTests SonicSmoke SonicDemoRecord
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}
+               RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_DIRECTORY}
+               RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${BUILD_DIRECTORY}
+               RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${BUILD_DIRECTORY}
+               RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_DIRECTORY})
+
+  add_test(NAME unit_tests COMMAND SonicTests)
+
+  # One headless smoke test per zone. "Still running when the timeout hits"
+  # is success (the game loop never exits on its own) -- a crash, an early
+  # exit, or an ASan abort (build with -DSANITIZE=ON for that coverage) is a
+  # failure. See tests/RunSmoke.cmake.
+  set(SMOKE_TARGETS "0:GHZ" "1:LZ" "2:MZ" "3:SLZ" "4:SYZ" "5:SBZ")
+  foreach(ENTRY IN LISTS SMOKE_TARGETS)
+    string(REPLACE ":" ";" PAIR "${ENTRY}")
+    list(GET PAIR 0 ZONE_NUM)
+    list(GET PAIR 1 ZONE_NAME)
+    add_test(
+      NAME smoke_${ZONE_NAME}
+      COMMAND
+        ${CMAKE_COMMAND} -DTEST_EXE=$<TARGET_FILE:SonicSmoke>
+        "-DTEST_ARGS=--zone;${ZONE_NUM}" -DTEST_TIMEOUT=15 -P
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunSmoke.cmake")
+    set_tests_properties(smoke_${ZONE_NAME} PROPERTIES TIMEOUT 30)
+  endforeach()
+endif()

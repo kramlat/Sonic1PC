@@ -3,6 +3,7 @@
 #include "HUD.h"
 #include "Backend/VDP.h"
 #include <SDL.h>
+#include "Demo.h"
 #include "Level.h"
 #include "LevelDraw.h"
 #include "LevelScroll.h"
@@ -10,7 +11,10 @@
 #include "PLC.h"
 #include "Palette.h"
 #include "PaletteCycle.h"
+#include "SpecialStage.h"
 #include "Video.h"
+
+#include <string.h>
 
 #include "GM_Level.h"
 #include "GM_Sega.h"
@@ -27,6 +31,12 @@ uint8_t gamemode; // MSB acts as a title card flag
 
 int16_t demo;
 uint16_t demo_length;
+int32_t cli_start_level = -1;
+int32_t cli_start_x = -1, cli_start_y = -1;
+bool cli_force_demo = false;
+bool cli_start_special = false;
+int32_t cli_special_stage = -1;
+uint8_t (*cli_ai_control_hook)(void) = NULL;
 uint16_t credits_num;
 
 uint8_t credits_cheat;
@@ -47,7 +57,7 @@ void ReadJoypads(void) {
     uint8_t state;
 
     // Read joypad 1
-    state = Joypad_GetState1();
+    state = cli_ai_control_hook ? cli_ai_control_hook() : Joypad_GetState1();
     jpad1_press1 = state & ~jpad1_hold1;
     jpad1_hold1 = state;
 
@@ -64,6 +74,32 @@ void EntryPoint(void) {
 
     // Initialize game state
     gamemode = GameMode_Sega;
+
+    // CLI test hook: skip straight to a level, bypassing Sega/title screens.
+    // Mirrors GM_Title.c's PlayLevel().
+    if (cli_start_level >= 0) {
+        level_id = (uint16_t)cli_start_level;
+        lives = 3;
+        rings = 0;
+        time.pad = time.min = time.sec = time.frame = 0;
+        score = 0;
+        last_special = (cli_special_stage >= 0) ? (uint8_t)cli_special_stage : 0;
+        emeralds = 0;
+        memset(emerald_list, 0, sizeof(emerald_list));
+        continues = 0;
+#ifndef SCP_REV00
+        score_life = 5000;
+#endif
+        if (cli_start_special) {
+            gamemode = GameMode_Special;
+        } else {
+            // demo > 0 makes MoveSonicInDemo() (Demo.c) drive Sonic from
+            // recorded input instead of the real joypad -- see
+            // cli_demo_override there for supplying that input data.
+            demo = cli_force_demo ? 1 : 0;
+            gamemode = cli_force_demo ? GameMode_Demo : GameMode_Level;
+        }
+    }
 
     // Run game loop
     while (1) {
@@ -148,6 +184,7 @@ void VBlank(void) {
     case 0x08:
         // Read joypad state
         ReadJoypads();
+        RecordDemoFrame();
 
         // Copy palette
         VDP_SeekCRAM(0);
@@ -184,7 +221,13 @@ void VBlank(void) {
         bg2_scroll_flags_dup = bg2_scroll_flags;
         bg3_scroll_flags_dup = bg3_scroll_flags;
 
-        if (hbla_pos >= 96) {
+        // If the LZ water surface's HBlank trigger line is near the top of the
+        // screen, there isn't enough time before HBlank fires to safely do these
+        // updates -- real hardware defers them to HBlank instead (not yet
+        // implemented here; see HBlank()'s doupdatesinhblank TODO). For every
+        // other zone hbla_counter stays at its dormant position (223), so this
+        // always runs immediately.
+        if (hbla_counter >= 96) {
             // Scroll camera
             LoadTilesAsYouMove();
 
@@ -203,6 +246,7 @@ void VBlank(void) {
     case 0x0A:
         // Read joypad state
         ReadJoypads();
+        RecordDemoFrame();
 
         // Copy palette
         VDP_SeekCRAM(0);
