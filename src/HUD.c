@@ -167,7 +167,7 @@ void HUD_Update(void) {
         // Update time
         if (time_count) {
             // Time Over if time is 9:59:59(frames)
-            if (time.pad == 0 && time.min == 9 && time.sec == 59 && time.frame == 59) {
+            if (level_time.pad == 0 && level_time.min == 9 && level_time.sec == 59 && level_time.frame == 59) {
                 time_count = false;
                 KillSonic(player, player);
                 time_over = true;
@@ -175,18 +175,18 @@ void HUD_Update(void) {
             }
 
             // Increment time
-            if (++time.frame >= 60) {
-                time.frame = 0;
-                if (++time.sec >= 60) {
-                    time.sec = 0;
-                    if (++time.min > 9)
-                        time.min = 9;
+            if (++level_time.frame >= 60) {
+                level_time.frame = 0;
+                if (++level_time.sec >= 60) {
+                    level_time.sec = 0;
+                    if (++level_time.min > 9)
+                        level_time.min = 9;
                 }
             }
 
             // Write time
-            HUD_WriteNumber2(0xDE40, time.min, &hud_dec[5], 0);
-            HUD_WriteNumber2(0xDEC0, time.sec, &hud_dec[4], 1);
+            HUD_WriteNumber2(0xDE40, level_time.min, &hud_dec[5], 0);
+            HUD_WriteNumber2(0xDEC0, level_time.sec, &hud_dec[4], 1);
         }
 
         // Update lives

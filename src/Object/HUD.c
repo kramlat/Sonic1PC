@@ -29,7 +29,7 @@ void Obj_HUD(Object* obj) {
             uint8_t frame = 0;
             if (!(frame_count & 8)) {
                 frame += 1; // Flash RINGS
-                if (time.min == 9)
+                if (level_time.min == 9)
                     frame += 2; // Flash TIME
             }
             obj->frame = frame;
@@ -42,7 +42,7 @@ void Obj_HUD(Object* obj) {
         if (!(frame_count & 8)) {
             if (!rings)
                 frame += 1; // Flash RINGS
-            if (time.min == 9)
+            if (level_time.min == 9)
                 frame += 2; // Flash TIME
         }
         obj->frame = frame;

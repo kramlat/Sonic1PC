@@ -110,13 +110,13 @@ extern uint8_t prev_lamp;
 extern CheckpointState lamp_state;
 
 extern uint16_t restart;
-extern uint16_t pause;
+extern uint16_t pause_state;
 extern uint8_t time_over;
 
 extern uint16_t frame_count;
 
 extern uint32_t score;
-extern LevelTime time;
+extern LevelTime level_time;
 extern uint16_t rings;
 extern uint8_t lives;
 extern uint8_t continues;

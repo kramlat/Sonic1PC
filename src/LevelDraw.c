@@ -737,7 +737,7 @@ void AniArt_MZTorch(void) {
 
 void AnimateLevelGfx(void) {
     // Don't run if game is paused
-    if (pause)
+    if (pause_state)
         return;
 
     // Animate giant ring

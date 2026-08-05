@@ -152,12 +152,12 @@ void Obj_Checkpoint_LoadInfo(void) {
     player->pos.l.y.v = lamp_state.spawn.y;
     rings = 0;
     life_count = lamp_state.lives;
-    time.pad = lamp_state.time.pad;
-    time.min = lamp_state.time.min;
-    time.sec = lamp_state.time.sec;
-    time.frame = lamp_state.time.frame;
-    time.frame = 59;
-    time.sec--;
+    level_time.pad = lamp_state.time.pad;
+    level_time.min = lamp_state.time.min;
+    level_time.sec = lamp_state.time.sec;
+    level_time.frame = lamp_state.time.frame;
+    level_time.frame = 59;
+    level_time.sec--;
     dle_routine = lamp_state.dle;
     wtr_routine = lamp_state.water_level.routine;
     limit_btm2 = lamp_state.limitbtm;
@@ -440,14 +440,14 @@ uint8_t prev_lamp;
 CheckpointState lamp_state;
 
 uint16_t restart;
-uint16_t pause;
+uint16_t pause_state;
 uint8_t time_over;
 
 uint16_t frame_count;
 
 // Player state
 uint32_t score;
-LevelTime time;
+LevelTime level_time;
 uint16_t rings;
 uint8_t lives;
 uint8_t continues;

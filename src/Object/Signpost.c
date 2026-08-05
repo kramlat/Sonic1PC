@@ -134,7 +134,7 @@ void Obj_Signpost(Object* obj) {
         if (!debug_mode)
 #endif
         {
-            uint16_t total_sec = (uint16_t)time.min * 60 + time.sec;
+            uint16_t total_sec = (uint16_t)level_time.min * 60 + level_time.sec;
             uint16_t index = total_sec / 15;
             if (index >= TIME_BONUSES_NUM)
                 index = TIME_BONUSES_NUM - 1;

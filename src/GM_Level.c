@@ -53,7 +53,7 @@ GM_Level_Branch:;
     pcyc_num = 0;
     pcyc_time = 0;
     random_seed.v = 0;
-    pause = false;
+    pause_state = false;
     hbla_pal = 0;
     wtr_pos1 = 0;
     wtr_pos2 = 0;
@@ -264,7 +264,7 @@ GM_Level_Branch:;
     // Initialize game state
     if (!last_lamp) {
         rings = 0;
-        time.pad = time.min = time.sec = time.frame = 0;
+        level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
         life_num = 0;
     }
 

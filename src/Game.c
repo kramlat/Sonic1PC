@@ -81,7 +81,7 @@ void EntryPoint(void) {
         level_id = (uint16_t)cli_start_level;
         lives = 3;
         rings = 0;
-        time.pad = time.min = time.sec = time.frame = 0;
+        level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
         score = 0;
         last_special = (cli_special_stage >= 0) ? (uint8_t)cli_special_stage : 0;
         emeralds = 0;

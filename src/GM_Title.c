@@ -59,7 +59,7 @@ static void PlayLevel(void) {
     gamemode = (jpad1_hold1 & JPAD_A) ? GameMode_Special : GameMode_Level;
     lives = 3;
     rings = 0;
-    time.pad = time.min = time.sec = time.frame = 0;
+    level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
     score = 0;
     last_special = 0;
     emeralds = 0;
@@ -266,7 +266,7 @@ void GM_Title(void) {
             // Set game state
             lives = 3;
             rings = 0;
-            time.pad = time.min = time.sec = time.frame = 0;
+            level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
             score = 0;
 #ifndef SCP_REV00
             score_life = 5000;

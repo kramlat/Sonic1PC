@@ -734,11 +734,19 @@ if(BUILD_TESTS)
   # control hook) and record the input to a demo file in the same format
   # Demo.c plays back -- see tests/demo_record_main.c. Interactive tool, not
   # registered as a ctest.
-  add_executable(SonicDemoRecord "tests/demo_record_main.c")
+  add_executable(SonicDemoRecord "tests/demo_record_main.c" "tests/ai_pipe.c"
+                                  "tests/timestamp.c")
   target_link_libraries(SonicDemoRecord PRIVATE SonicCore)
   set_target_properties(SonicDemoRecord PROPERTIES C_STANDARD 99
                                                      C_STANDARD_REQUIRED ON
                                                      C_EXTENSIONS OFF)
+
+  # Default --out location: bindir/demos, alongside the built executables,
+  # so recordings land somewhere predictable regardless of the working
+  # directory SonicDemoRecord is invoked from.
+  set(DEMO_OUTPUT_DIR "${BUILD_DIRECTORY}/demos")
+  file(MAKE_DIRECTORY "${DEMO_OUTPUT_DIR}")
+  target_compile_definitions(SonicDemoRecord PRIVATE DEMO_OUTPUT_DIR="${DEMO_OUTPUT_DIR}")
 
   set_target_properties(
     SonicTests SonicSmoke SonicDemoRecord

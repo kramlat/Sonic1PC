@@ -119,7 +119,7 @@ void Obj_Checkpoint_StoreInfo(Object *obj, const Scratch_Checkpoint *scratch)
     // Store Status variables
     lamp_state.rings    = rings;
     lamp_state.lives    = lives;
-    lamp_state.time     = time; // Struct copy (LevelTime)
+    lamp_state.time     = level_time; // Struct copy (LevelTime)
     lamp_state.dle      = dle_routine;
     lamp_state.limitbtm = limit_btm2;
 
