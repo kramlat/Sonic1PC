@@ -1,3 +1,6 @@
 [submodule "clownassembler"]
 	path = clownassembler
 	url = https://github.com/kramlat/clownassembler.git
+[submodule "ymfm"]
+	path = ymfm
+	url = https://github.com/aaronsgiles/ymfm.git
