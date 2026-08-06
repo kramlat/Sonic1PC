@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "Level.h"
 #include "Nemesis.h"
+#include "Sound.h"
 #include "PLC.h"
 #include "Palette.h"
 #include "PaletteCycle.h"
@@ -22,7 +23,7 @@
 // SEGA gamemode
 void GM_Sega(void) {
     // Stop music
-    // sfx	bgm_Stop,0,1,1 //TODO
+    StopAllSound();
 
     // Clear the pattern load queue and fade out
     ClearPLC();
@@ -65,7 +66,7 @@ void GM_Sega(void) {
         WaitForVBla();
     } while (PCycle_Sega());
 
-    // Play "SEGA" sound
+    PlaySegaSound();
 
     vbla_routine = 0x14;
     WaitForVBla();

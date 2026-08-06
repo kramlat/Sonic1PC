@@ -14,13 +14,14 @@
 #include "Nemesis.h"
 #include "Demo.h"
 #include "Object/Sonic.h"
+#include "Sound.h"
 
 #include <string.h>
 
 //Special stage gamemode
 void GM_Special(void) {
 	//Fade out
-	//sfx	sfx_EnterSS,0,1,0 ; play special stage entry sound TODO
+	PlaySound(sfx_EnterSS);
 	PaletteWhiteOut();
 	
 	//Reset screen
@@ -158,7 +159,7 @@ void GM_Special(void) {
 	
 	ss_angle.v = 0;
 	ss_rotate = 0x0040;
-	//music	bgm_SS,0,1,0	; play special stage BG	music TODO
+	PlayMusic(bgm_SS);
 	
 	//TODO: load demos
 	

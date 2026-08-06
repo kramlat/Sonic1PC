@@ -1,5 +1,6 @@
 #include "Checkpoint.h"
 #include "Game.h"
+#include "Sound.h"
 #include <stdio.h>
 
 /* ---------------------------------------------------------------------------
@@ -44,7 +45,7 @@ void Obj_Checkpoint(Object *obj) {
             int16_t dy = player->pos.l.y.f.u - obj->pos.l.y.f.u + 0x40;
 
             if ((uint16_t)dx < 0x10 && (uint16_t)dy < 0x68) {
-                // QueueSound(sfx_Lamppost);
+                PlaySound(sfx_Lamppost);
                 obj->routine += 2;
 
                 /* Spawn the twirling ball object */

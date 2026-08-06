@@ -4,6 +4,7 @@
 #include "LevelCollision.h"
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
+#include "Sound.h"
 
 // Monitor solid routine
 static int32_t Mon_SolidSides(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off) {
@@ -189,7 +190,7 @@ void Obj_Monitor(Object *obj) {
 static void ExtraLife(void) {
     lives++;
     life_count++;
-    // music	bgm_ExtraLife,1,0,0	; play extra life music TODO
+    PlayMusic(bgm_ExtraLife);
 }
 
 void Obj_MonitorItem(Object *obj) {
@@ -241,12 +242,12 @@ void Obj_MonitorItem(Object *obj) {
                 sonspeed_max = 0xC00;
                 sonspeed_acc = 0x18;
                 sonspeed_dec = 0x80;
-                // music	bgm_Speedup,1,0,0		; Speed	up the music TODO
+                SpeedUpMusic();
                 break;
             case 4: // Shield
                 shield = true;
                 objects[6].type = ObjId_ShieldInvincibility; // TODO
-                // music	sfx_Shield,1,0,0	; play shield sound TODO
+                PlaySound(sfx_Shield);
                 break;
             case 5: // Invincibility
                 invincibility = true;
@@ -260,8 +261,8 @@ void Obj_MonitorItem(Object *obj) {
                 objects[11].type = ObjId_ShieldInvincibility;
                 objects[11].anim = 4;
                 if (!lock_screen) {
-                    ;
-                } // music	bgm_Invincible,1,0,0 ; play invincibility music TODO
+                    PlayMusic(bgm_Invincible);
+                }
                 break;
             case 6: // Rings
                 // Give 10 rings
@@ -276,7 +277,7 @@ void Obj_MonitorItem(Object *obj) {
                     life_num |= 2;
                     ExtraLife();
                 } else {
-                    // music	sfx_Ring,1,0,0	; play ring sound TODO
+                    PlaySound(sfx_Ring);
                 }
                 break;
             case 7: // S

@@ -22,7 +22,10 @@ option(MSVC_LINK_STATIC_RUNTIME
 #
 
 # Define project, source, and includes
-project(Sonic LANGUAGES C)
+project(Sonic LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # All game sources except Main.c (the entry point), so that Main.c's real
 # SDL2 entry point and the test suite's own entry point (tests/test_main.c)
@@ -92,6 +95,8 @@ set(
   "src/Object/SwingingPlatform.c"
   "src/Object/BigSpikeBall.c"
   "src/Object/Ring.c"
+  "src/Object/Waterfall.c"
+  "src/Object/Waterfall.h"
   "src/Object/Monitor.c"
   "src/Object/Explosion.c"
   "src/Object/Checkpoint.c"
@@ -116,6 +121,11 @@ set(
   "src/Backend/Joypad.c"
   "src/Backend/Joypad.h"
   "src/Backend/SN76489.c"
+  "src/Backend/YM2612.cpp"
+  "src/Backend/YM2612.h"
+  "ymfm/src/ymfm_opn.cpp"
+  "ymfm/src/ymfm_ssg.cpp"
+  "ymfm/src/ymfm_adpcm.cpp"
   "src/Backend/SN76489.h")
 
 add_library(SonicCore STATIC ${SONIC_CORE_SOURCES})
@@ -451,7 +461,20 @@ set(RESOURCES
     "SSLayout/5REV00"
     "SSLayout/5REV01"
     "SSLayout/6REV00"
-    "SSLayout/6REV01")
+    "SSLayout/6REV01"
+    "DAC/kick"
+    "DAC/snare"
+    "DAC/timpani"
+    "PCM/sega"
+    "PSG/psg1"
+    "PSG/psg2"
+    "PSG/psg3"
+    "PSG/psg4"
+    "PSG/psg5"
+    "PSG/psg6"
+    "PSG/psg7"
+    "PSG/psg8"
+    "PSG/psg9")
 
 target_include_directories(SonicCore PUBLIC "src")
 
@@ -627,6 +650,11 @@ if(BACKEND MATCHES "SDL2")
   target_link_libraries(SonicCore PUBLIC SDL2::SDL2)
 endif()
 
+# libm -- Sound.c computes PSG note periods from note frequencies (pow/exp2)
+if(NOT WIN32)
+  target_link_libraries(SonicCore PUBLIC m)
+endif()
+
 # ##############################################################################
 # Resource conversion #
 # ##############################################################################
@@ -739,10 +767,16 @@ function(add_smps_song ASM_FILE ARRAY_NAME)
   set(GEN_C "${CMAKE_CURRENT_BINARY_DIR}/smps_gen/${ARRAY_NAME}.gen.c")
   set(OUT_H "${OUT_DIR}/${ARRAY_NAME}.h")
 
+  if(FIX_BUGS)
+    set(SONG_FIX_BUGS 1)
+  else()
+    set(SONG_FIX_BUGS 0)
+  endif()
+
   add_custom_command(
     OUTPUT "${GEN_C}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/smps_gen"
-    COMMAND smps2asmc_tool "${IN_DIR}/${ASM_FILE}" "${GEN_C}" "${ARRAY_NAME}" "${OUT_H}"
+    COMMAND smps2asmc_tool "${IN_DIR}/${ASM_FILE}" "${GEN_C}" "${ARRAY_NAME}" "${OUT_H}" "${SONG_FIX_BUGS}"
     DEPENDS smps2asmc_tool "${IN_DIR}/${ASM_FILE}")
 
   add_executable(songbuild_${ARRAY_NAME} "${GEN_C}" "${CMAKE_SOURCE_DIR}/smps2asmc/smps.c")
@@ -758,12 +792,82 @@ function(add_smps_song ASM_FILE ARRAY_NAME)
   target_sources(SonicCore PRIVATE "${OUT_H}")
 endfunction()
 
-# Proof-of-concept songs, verified byte-for-byte against hand-derived
-# expected output before being added here. The rest of the soundtrack/SFX
-# catalog is future work -- this establishes the pipeline works end-to-end
-# on a real, complete music file and a real SFX file.
+# Full music/SFX catalog. res/Music/ also contains "E0 - Spin Dash Rev.asm",
+# deliberately NOT wired up here: it's a SonicDriverVer=2 test file, and
+# smps.h/smps.c only implement driver 1 (see smps.h's own comment).
 add_smps_song("Mus81 - GHZ.asm" Mus81_GHZ)
+add_smps_song("Mus82 - LZ.asm" Mus82_LZ)
+add_smps_song("Mus83 - MZ.asm" Mus83_MZ)
+add_smps_song("Mus84 - SLZ.asm" Mus84_SLZ)
+add_smps_song("Mus85 - SYZ.asm" Mus85_SYZ)
+add_smps_song("Mus86 - SBZ.asm" Mus86_SBZ)
+add_smps_song("Mus87 - Invincibility.asm" Mus87_Invincibility)
+add_smps_song("Mus88 - Extra Life.asm" Mus88_Extra_Life)
+add_smps_song("Mus89 - Special Stage.asm" Mus89_Special_Stage)
+add_smps_song("Mus8A - Title Screen.asm" Mus8A_Title_Screen)
+add_smps_song("Mus8B - Ending.asm" Mus8B_Ending)
+add_smps_song("Mus8C - Boss.asm" Mus8C_Boss)
+add_smps_song("Mus8D - FZ.asm" Mus8D_FZ)
+add_smps_song("Mus8E - Sonic Got Through.asm" Mus8E_Sonic_Got_Through)
+add_smps_song("Mus8F - Game Over.asm" Mus8F_Game_Over)
+add_smps_song("Mus90 - Continue Screen.asm" Mus90_Continue_Screen)
+add_smps_song("Mus91 - Credits.asm" Mus91_Credits)
+add_smps_song("Mus92 - Drowning.asm" Mus92_Drowning)
+add_smps_song("Mus93 - Get Emerald.asm" Mus93_Get_Emerald)
+
 add_smps_song("SndA0 - Jump.asm" SndA0_Jump)
+add_smps_song("SndA1 - Lamppost.asm" SndA1_Lamppost)
+add_smps_song("SndA2.asm" SndA2)
+add_smps_song("SndA3 - Death.asm" SndA3_Death)
+add_smps_song("SndA4 - Skid.asm" SndA4_Skid)
+add_smps_song("SndA5.asm" SndA5)
+add_smps_song("SndA6 - Hit Spikes.asm" SndA6_Hit_Spikes)
+add_smps_song("SndA7 - Push Block.asm" SndA7_Push_Block)
+add_smps_song("SndA8 - SS Goal.asm" SndA8_SS_Goal)
+add_smps_song("SndA9 - SS Item.asm" SndA9_SS_Item)
+add_smps_song("SndAA - Splash.asm" SndAA_Splash)
+add_smps_song("SndAB.asm" SndAB)
+add_smps_song("SndAC - Hit Boss.asm" SndAC_Hit_Boss)
+add_smps_song("SndAD - Get Bubble.asm" SndAD_Get_Bubble)
+add_smps_song("SndAE - Fireball.asm" SndAE_Fireball)
+add_smps_song("SndAF - Shield.asm" SndAF_Shield)
+add_smps_song("SndB0 - Saw.asm" SndB0_Saw)
+add_smps_song("SndB1 - Electric.asm" SndB1_Electric)
+add_smps_song("SndB2 - Drown Death.asm" SndB2_Drown_Death)
+add_smps_song("SndB3 - Flamethrower.asm" SndB3_Flamethrower)
+add_smps_song("SndB4 - Bumper.asm" SndB4_Bumper)
+add_smps_song("SndB5 - Ring.asm" SndB5_Ring)
+add_smps_song("SndB6 - Spikes Move.asm" SndB6_Spikes_Move)
+add_smps_song("SndB7 - Rumbling.asm" SndB7_Rumbling)
+add_smps_song("SndB8.asm" SndB8)
+add_smps_song("SndB9 - Collapse.asm" SndB9_Collapse)
+add_smps_song("SndBA - SS Glass.asm" SndBA_SS_Glass)
+add_smps_song("SndBB - Door.asm" SndBB_Door)
+add_smps_song("SndBC - Teleport.asm" SndBC_Teleport)
+add_smps_song("SndBD - ChainStomp.asm" SndBD_ChainStomp)
+add_smps_song("SndBE - Roll.asm" SndBE_Roll)
+add_smps_song("SndBF - Get Continue.asm" SndBF_Get_Continue)
+add_smps_song("SndC0 - Basaran Flap.asm" SndC0_Basaran_Flap)
+add_smps_song("SndC1 - Break Item.asm" SndC1_Break_Item)
+add_smps_song("SndC2 - Drown Warning.asm" SndC2_Drown_Warning)
+add_smps_song("SndC3 - Giant Ring.asm" SndC3_Giant_Ring)
+add_smps_song("SndC4 - Bomb.asm" SndC4_Bomb)
+add_smps_song("SndC5 - Cash Register.asm" SndC5_Cash_Register)
+add_smps_song("SndC6 - Ring Loss.asm" SndC6_Ring_Loss)
+add_smps_song("SndC7 - Chain Rising.asm" SndC7_Chain_Rising)
+add_smps_song("SndC8 - Burning.asm" SndC8_Burning)
+add_smps_song("SndC9 - Hidden Bonus.asm" SndC9_Hidden_Bonus)
+add_smps_song("SndCA - Enter SS.asm" SndCA_Enter_SS)
+add_smps_song("SndCB - Wall Smash.asm" SndCB_Wall_Smash)
+add_smps_song("SndCC - Spring.asm" SndCC_Spring)
+add_smps_song("SndCD - Switch.asm" SndCD_Switch)
+add_smps_song("SndCE - Ring Left Speaker.asm" SndCE_Ring_Left_Speaker)
+add_smps_song("SndCF - Signpost.asm" SndCF_Signpost)
+add_smps_song("SndD0 - Waterfall.asm" SndD0_Waterfall)
+
+if(SPLASH)
+  add_smps_song("Mus94 - SSRG.asm" Mus94_SSRG)
+endif()
 
 # ##############################################################################
 # Tests #
@@ -828,8 +932,15 @@ if(BUILD_TESTS)
                                                      C_STANDARD_REQUIRED ON
                                                      C_EXTENSIONS OFF)
 
+  # Sound trace tool: loads a real song (by sound ID, default $81 = GHZ) and
+  # logs every note/duration event Sound.c's TickChannel decodes to stderr,
+  # for direct comparison against the song's own .asm source. Usage:
+  # SonicSoundTrace [sound_id_hex] [frames]
+  add_executable(SonicSoundTrace "tests/sound_trace_main.c")
+  target_link_libraries(SonicSoundTrace PRIVATE SonicCore)
+
   set_target_properties(
-    SonicTests SonicSmoke SonicDemoRecord SonicJoypadTest
+    SonicTests SonicSmoke SonicDemoRecord SonicJoypadTest SonicSoundTrace
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}
                RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_DIRECTORY}
                RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${BUILD_DIRECTORY}

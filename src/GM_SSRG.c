@@ -8,6 +8,7 @@
 #include "Nemesis.h"
 #include "PLC.h"
 #include "Palette.h"
+#include "Sound.h"
 #include "Video.h"
 
 #include <string.h>
@@ -303,16 +304,14 @@ static void Obj_Square(Object* obj) {
         return;
     case 4: // Play sound
         obj->routine += 2;
-        // moveq	#0xFFFFFFBC,d0				; set to play spin release SFX
-        // jsr	PlaySound_Special			; play SFX //TODO
+        PlaySound(sfx_Teleport);
         // Fallthrough
     case 6: // Spin in
         scratch->timer += 2;
         if (obj->pos.s.x >= 0x60 + (PLANE_WIDEADD * 4)) {
             // Hit the 'SSRG' text
             obj->routine += 2;
-            // moveq	#0xFFFFFFBD,d0				; set to play spiked chandelier SFX
-            // jsr	PlaySound_Special			; play SFX //TODO
+            PlaySound(sfx_ChainStomp);
             obj->xsp = -0x100;
             obj->ysp = -0x400;
 
@@ -528,8 +527,7 @@ static void Obj_SonicNeon(Object* obj) {
         // Stop running and increment routine
         obj->pos.s.x = 0xDE + (PLANE_WIDEADD * 4);
         obj->xsp = 0;
-        // moveq	#$FFFFFFBE,d0				; set to play spinning SFX
-        // jsr	PlaySound_Special			; play SFX //TODO
+        PlaySound(sfx_Roll);
         obj->routine += 2;
     }
 
@@ -562,8 +560,7 @@ static void Obj_SonicNeon(Object* obj) {
 
 // SSRG splash game mode
 void GM_SSRG() {
-    // moveq	#$FFFFFFE4,d0				; set music ID to "stop music"
-    // jsr	PlaySound_Special			; play ID //TODO
+    StopAllSound();
 
     // Clear the pattern load queue and fade out
     ClearPLC();

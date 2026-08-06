@@ -3,6 +3,7 @@
 #include "Level.h"
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
+#include "Sound.h"
 
 #include "Macros.h"
 
@@ -37,7 +38,8 @@ static void Spike_Wait(Object *obj) {
             return;
         if (obj->render.f.on_screen) {
             ;
-        } // sfx	sfx_SpikesMove,0,0,0	; play "spikes moving" sound TODO
+            PlaySound(sfx_SpikesMove);
+        }
         return;
     }
 

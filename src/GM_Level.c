@@ -2,6 +2,7 @@
 
 #include "Demo.h"
 #include "Game.h"
+#include "Sound.h"
 #include "HUD.h"
 #include "Level.h"
 #include "Oscillatory Routines.h"
@@ -40,17 +41,51 @@ void PauseGame(void) {
         if (!(jpad1_press1 & JPAD_START))
             return;
         pause_state = true;
+        Sound_Pause();
     }
     do {
         vbla_routine = 0x10;
         WaitForVBla();
-        // music PauseMusic ; pause the sound driver //TODO
+
+#ifndef NDEBUG
+        // Debug builds only: bail out to the title screen from the pause
+        // menu, same spirit as the level-select/debug-mode cheat skips
+        // elsewhere in debug builds -- not a real disasm feature.
+        if (jpad1_press1 & JPAD_A) {
+            Sound_Resume();
+            pause_state = false;
+            gamemode = GameMode_Title;
+            return;
+        }
+#endif
 
         if ((jpad1_hold1 & JPAD_B) || (jpad1_press1 & JPAD_C))
             return; // Frame advance -- pause_state stays true
     } while (!(jpad1_press1 & JPAD_START));
-    // music ResumeMusic ; unpause the sound driver //TODO
+    Sound_Resume();
     pause_state = false;
+}
+
+// Indexed by LEVEL_ZONE(level_id) -- matches the ZoneId_* enum order
+// (GHZ, LZ, MZ, SLZ, SYZ, SBZ) exactly, so no separate lookup is needed.
+static const uint8_t zone_music[] = {bgm_GHZ, bgm_LZ, bgm_MZ, bgm_SLZ, bgm_SYZ, bgm_SBZ};
+
+void ResumeLevelMusic(void) {
+    // SBZ act 3 and Final Zone don't have their own zone IDs -- SBZ3 is
+    // stored under LZ's level slot (0103), and FZ under SBZ's (0502), so
+    // both need their music special-cased ahead of the normal zone lookup.
+    if (level_id == 0x0103) {
+        PlayMusic(bgm_SBZ);
+        return;
+    }
+    if (level_id == 0x0502) {
+        PlayMusic(bgm_FZ);
+        return;
+    }
+
+    uint8_t zone = LEVEL_ZONE(level_id);
+    if (zone < sizeof(zone_music))
+        PlayMusic(zone_music[zone]);
 }
 
 // Level gamemode
@@ -62,7 +97,7 @@ GM_Level_Branch:;
     if (demo >= 0) {
         ;
     }
-    // sfx	bgm_Fade,0,1,1 ; fade out music //TODO
+    FadeOutMusic();
 
     // Clear the pattern load queue and fade out
     ClearPLC();
@@ -250,8 +285,8 @@ GM_Level_Branch:;
     } // move.b	($FFFFFE53).w,(f_wtr_state).w //TODO
 
     if (demo >= 0) {
-        // Load music
-        // TODO
+        ResumeLevelMusic();
+        // TODO: SBZ3 music and FZ music, resume on fresh air LZ
 
         // Start title card
         objects[2].type = ObjId_TitleCard;
@@ -339,9 +374,10 @@ GM_Level_Branch:;
     else
         demo_length = 1800; // Demo length
 
-    // Load level's water palette
+    // Load level's water palette (act 3 is the SBZ3-under-LZ slot -- purple
+    // water, not LZ's usual green)
     if (LEVEL_ZONE(level_id) == ZoneId_LZ)
-        PalLoad4_Water((LEVEL_ACT(level_id) == 3) ? PalId_LZWater : PalId_SBZ3Water);
+        PalLoad4_Water((LEVEL_ACT(level_id) == 3) ? PalId_SBZ3Water : PalId_LZWater);
 
     // Wait for 4 frames
     for (int i = 0; i < 4; i++) {

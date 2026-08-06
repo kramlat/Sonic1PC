@@ -8,6 +8,7 @@
 #include "LevelScroll.h"
 #include "PLC.h"
 #include "Palette.h"
+#include "Sound.h"
 
 #include "Backend/VDP.h"
 
@@ -546,7 +547,7 @@ void AddPoints(uint16_t points) {
 #ifndef SCP_JP
         lives++;
         life_count++;
-        // music	bgm_ExtraLife,1,0,0 //TODO
+        PlayMusic(bgm_ExtraLife);
 #endif
     }
 #endif

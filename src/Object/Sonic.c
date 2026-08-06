@@ -1,12 +1,14 @@
 #include "Sonic.h"
 
 #include "Game.h"
+#include "GM_Level.h"
 #include "Level.h"
 #include "LevelCollision.h"
 #include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Object.h"
 #include "PLC.h"
+#include "Sound.h"
 
 #include <string.h>
 
@@ -45,7 +47,7 @@ static void Sonic_Display(Object *obj) {
         if (--scratch->invincibility_time == 0) {
             // Restore music
             if (!(lock_screen || air < 12)) {
-                // TODO
+                ResumeLevelMusic();
             }
 
             // Clear flag
@@ -63,7 +65,7 @@ static void Sonic_Display(Object *obj) {
 
             // Clear flag and restore music
             shoes = false;
-            // music	bgm_Slowdown,1,0,0	; run music at normal speed //TODO
+            SlowDownMusic();
         }
     }
 }
@@ -804,15 +806,8 @@ signed int HurtSonic(Object *obj, Object *src)
     obj->anim = SonAnimId_Hurt;
     scratch->flash_time = 120;
 
-    // move.w	#sfx_Death,d0	; load normal damage sound
-    // cmpi.b	#id_Spikes,(a2)	; was damage caused by spikes?
-    // bne.s	@sound		; if not, branch
-    // cmpi.b	#id_Harpoon,(a2) ; was damage caused by LZ harpoon?
-    // bne.s	@sound		; if not, branch
-    // move.w	#sfx_HitSpikes,d0 ; load spikes damage sound
-    //
-    //@sound:
-    // jsr	(PlaySound_Special).l //TODO
+    // LZ harpoon isn't ported yet -- only checking for Spikes here.
+    PlaySound((src->type == ObjId_Spikes) ? sfx_HitSpikes : sfx_Death);
     return -1;
 }
 
@@ -836,14 +831,8 @@ int32_t KillSonic(Object *obj, Object *src) {
     obj->anim = SonAnimId_Death;
     obj->tile |= TILE_PRIORITY_AND;
 
-    // Play death sound
-    // move.w	#sfx_Death,d0	; play normal death sound
-    // cmpi.b	#id_Spikes,(a2)	; check	if you were killed by spikes
-    // bne.s	@sound
-    // move.w	#sfx_HitSpikes,d0 ; play spikes death sound
-    //
-    //@sound:
-    // jsr	(PlaySound_Special).l
+    // Play death sound (LZ harpoon isn't ported yet -- only Spikes here)
+    PlaySound((src->type == ObjId_Spikes) ? sfx_HitSpikes : sfx_Death);
     return -1;
 }
 
@@ -877,7 +866,7 @@ static bool Sonic_Jump(Object *obj) {
     scratch->jumping = true;
     scratch->x38.floor_clip = 0;
 
-    // sfx	sfx_Jump,0,0,0	; play jumping sound //TODO
+    PlaySound(sfx_Jump);
 
     obj->y_rad = SONIC_HEIGHT; // No idea why this is here
     obj->x_rad = SONIC_WIDTH;
@@ -930,7 +919,7 @@ static void Sonic_MoveLeft(Object *obj) {
         if (((obj->angle + 0x20) & 0xC0) == 0x00 && inertia >= 0x400) {
             obj->anim = SonAnimId_Stop;
             obj->status.p.f.x_flip = false;
-            // sfx	sfx_Skid,0,0,0	; play stopping sound //TODO
+            PlaySound(sfx_Skid);
         }
     }
 }
@@ -962,7 +951,7 @@ static void Sonic_MoveRight(Object *obj) {
         if (((obj->angle + 0x20) & 0xC0) == 0x00 && inertia <= -0x400) {
             obj->anim = SonAnimId_Stop;
             obj->status.p.f.x_flip = true;
-            // sfx	sfx_Skid,0,0,0	; play stopping sound //TODO
+            PlaySound(sfx_Skid);
         }
     }
 }
@@ -1100,7 +1089,7 @@ static void Sonic_ChkRoll(Object *obj) {
     obj->x_rad = SONIC_BALL_WIDTH;
     obj->anim = SonAnimId_Roll;
     obj->pos.l.y.f.u += SONIC_BALL_SHIFT;
-    // sfx	sfx_Roll,0,0,0	; play rolling sound //TODO
+    PlaySound(sfx_Roll);
 
     // Set speed (S-tubes)
     if (!obj->inertia)
@@ -1454,7 +1443,7 @@ static void GameOver(Object* obj) {
             objects[2].frame = 2;
             objects[3].frame = 3;
 
-            // music	bgm_GameOver,0,0,0	; play game over music //TODO
+            PlayMusic(bgm_GameOver);
             AddPLC(PlcId_GameOver);
         }
     }

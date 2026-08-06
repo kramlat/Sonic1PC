@@ -44,6 +44,7 @@ void SMPS_End(const char *out_path, const char *array_name);
 // ---------------------------------------------------------------------
 
 void smpsHeaderStartSong(int driver_version); // Just a version assertion (must be 1) -- emits nothing
+void smpsHeaderStartSong2(int driver_version, int source_driver); // 2-arg form -- both must be 1
 void smpsHeaderVoice(const char *loc);        // dc.w loc-songStart
 void smpsHeaderVoiceNull(void);               // dc.w $0000
 void smpsHeaderVoiceUVB(void);                // Not valid for driver 1 -- fatal error if called
@@ -67,7 +68,10 @@ void smpsHeaderSFXChannel(uint8_t chanid, const char *loc, uint8_t pitch, uint8_
 #define cPSG2  0xA0
 #define cPSG3  0xC0
 #define cNoise 0xE0
-// cFM3/4/5/6 intentionally omitted -- driver 1 SFX only ever target PSG
+#define cFM3   0x02
+#define cFM4   0x04
+#define cFM5   0x05
+#define cFM6   0x06 // Only in S3/S&K/S3D, overrides DAC -- unused by driver 1
 // channels in this project's songs.
 
 // ---------------------------------------------------------------------

@@ -138,6 +138,17 @@ void smpsHeaderStartSong(int driver_version) {
     }
 }
 
+// 2-arg form used by some real song files (SonicDriverVer, SourceDriver).
+// Everything else in this file assumes both are 1 -- see the comment above
+// smpsVcTotalLevel's SourceSMPS2ASM==0 branch.
+void smpsHeaderStartSong2(int driver_version, int source_driver) {
+    if (driver_version != 1 || source_driver != 1) {
+        fprintf(stderr, "smps.c: only SonicDriverVer=1/SourceDriver=1 is supported (got %d, %d)\n",
+                driver_version, source_driver);
+        exit(1);
+    }
+}
+
 void smpsHeaderVoice(const char *loc) { RefPatch(loc, PATCH_SONG_RELATIVE); }
 void smpsHeaderVoiceNull(void) { SMPS_Word(0x0000); }
 
@@ -319,8 +330,16 @@ void smpsVcTotalLevel(int op1, int op2, int op3, int op4) {
         (vc_algorithm == 7) ? 0x80 : 0,
     };
 
-    // Operator write order for SonicDriverVer != 2: 4,3,2,1
-    static const int order[4] = {3, 2, 1, 0}; // 0-based index for op4,op3,op2,op1
+    // Operator write order: natural 1,2,3,4 (the Sonic 2 voice format,
+    // which "actually correctly follows the internal order of operators
+    // used by the YM2612" -- Sonic Retro's words, not the Sonic 1 driver's
+    // own 1,3,2,4 layout that every other main series game uses). Chosen
+    // deliberately over matching Sonic 1's real byte order: since nothing
+    // else in this project needs byte-for-byte parity with the real
+    // driver's voice RAM (we never load real ROM data into it), there's no
+    // reason to keep the confusing swap around -- Sound.c's FM_LoadVoice
+    // does the op2/op3 -> physical-slot remap once, here, instead.
+    static const int order[4] = {0, 1, 2, 3}; // 0-based index for op1,op2,op3,op4
 
     for (int row = 0; row < 3; row++) {
         for (int k = 0; k < 4; k++) {

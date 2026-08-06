@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "Level.h"
 #include "LevelScroll.h"
+#include "Sound.h"
 
 #include "Macros.h"
 
@@ -49,7 +50,7 @@ void Obj_Signpost(Object* obj) {
         // Check if player is touching signpost
         if ((uint16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u) < 0x20) {
             // Start spinning
-            // music	sfx_Signpost,0,0,0	; play signpost sound TODO
+            PlaySound(sfx_Signpost);
             time_count = false;
             limit_left2 = limit_right2;
             obj->routine += 2;
@@ -144,7 +145,7 @@ void Obj_Signpost(Object* obj) {
         // Ring Bonus
         ring_bonus = rings * 10;
 
-        //music bgm_GotThrough,0,1,0 ; play "Sonic got through" music TODO
+        PlayMusic(bgm_GotThrough);
         break;
     case 8: // Level end
         break;

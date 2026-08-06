@@ -21,7 +21,7 @@ void Audio_Init(void) {
     SDL_zero(want);
     want.freq = AUDIO_SAMPLE_RATE;
     want.format = AUDIO_S16SYS;
-    want.channels = 1;
+    want.channels = 2; // Stereo -- FM/DAC panning, PSG duplicated equally into both (see Sound_Generate)
     want.samples = 1024;
     want.callback = NULL; // Passive -- see Audio.h
 
@@ -32,8 +32,8 @@ void Audio_Init(void) {
     }
 
     samples_per_frame = (uint32_t)have.freq / AUDIO_FRAME_HZ;
-    mix_buffer = calloc(samples_per_frame, sizeof(int32_t));
-    out_buffer = calloc(samples_per_frame, sizeof(int16_t));
+    mix_buffer = calloc(2 * (size_t)samples_per_frame, sizeof(int32_t));
+    out_buffer = calloc(2 * (size_t)samples_per_frame, sizeof(int16_t));
 
     Sound_Init();
     SDL_PauseAudioDevice(device, 0);
@@ -43,10 +43,12 @@ void Audio_Update(void) {
     if (!device)
         return;
 
-    memset(mix_buffer, 0, samples_per_frame * sizeof(int32_t));
+    Sound_Frame();
+
+    memset(mix_buffer, 0, 2 * (size_t)samples_per_frame * sizeof(int32_t));
     Sound_Generate(mix_buffer, samples_per_frame, AUDIO_SAMPLE_RATE);
 
-    for (uint32_t i = 0; i < samples_per_frame; i++) {
+    for (uint32_t i = 0; i < 2 * samples_per_frame; i++) {
         int32_t s = mix_buffer[i];
         if (s > 32767)
             s = 32767;
@@ -58,10 +60,10 @@ void Audio_Update(void) {
     // Don't let a stall (e.g. breakpoint, slow frame) build up an
     // ever-growing backlog of queued audio -- cap it at a few frames' worth
     // and drop the rest rather than drifting further out of sync.
-    if (SDL_GetQueuedAudioSize(device) > samples_per_frame * sizeof(int16_t) * 4)
+    if (SDL_GetQueuedAudioSize(device) > 2 * samples_per_frame * sizeof(int16_t) * 4)
         SDL_ClearQueuedAudio(device);
 
-    SDL_QueueAudio(device, out_buffer, samples_per_frame * sizeof(int16_t));
+    SDL_QueueAudio(device, out_buffer, 2 * samples_per_frame * sizeof(int16_t));
 }
 
 void Audio_Quit(void) {

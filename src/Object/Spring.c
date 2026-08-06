@@ -3,6 +3,7 @@
 #include "Level.h"
 #include "LevelScroll.h"
 #include "Sonic.h"
+#include "Sound.h"
 
 // Spring object
 static const int16_t spring_power[] = { -0x1000, -0xA00 };
@@ -62,7 +63,7 @@ void Obj_Spring(Object* obj) {
         // Reset object state
         obj->status.o.f.player_stand = false;
         obj->routine_sec = 0;
-        // sfx	sfx_Spring,0,0,0	; play spring sound //TODO
+        PlaySound(sfx_Spring);
         // Fallthrough
     case 4: // Up bouncing
         AnimateSprite(obj, Animation_Spring);
@@ -100,7 +101,7 @@ void Obj_Spring(Object* obj) {
         // Reset object state
         obj->status.o.f.player_push = false;
         player->status.p.f.pushing = false;
-        // sfx	sfx_Spring,0,0,0	; play spring sound //TODO
+        PlaySound(sfx_Spring);
         break;
     case 10: // Left/right bouncing
         AnimateSprite(obj, Animation_Spring);
@@ -132,7 +133,7 @@ void Obj_Spring(Object* obj) {
         // Reset object state
         obj->status.o.f.player_stand = false;
         obj->routine_sec = 0;
-        // sfx	sfx_Spring,0,0,0	; play spring sound //TODO
+        PlaySound(sfx_Spring);
         // Fallthrough
     case 16: // Down bouncing
         AnimateSprite(obj, Animation_Spring);

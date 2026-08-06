@@ -1,4 +1,5 @@
 #include "Explosion.h"
+#include "Sound.h"
 
 void Obj_Explosion_Animal(Object *obj) {
     Object* animal = FindFreeObj();
@@ -24,7 +25,7 @@ void Obj_Explosion_Construct(Object *obj) {
     obj->frame_time.b = 7;
     obj->frame = 0;
 
-    // sfx	sfx_BreakItem,0,0,0	; play breaking enemy sound //TODO
+    PlaySound(sfx_BreakItem);
 }
 
 // Explosion object

@@ -4,6 +4,142 @@ Session notes capturing context, rationale, and outstanding work that isn't
 already recorded in code comments or commit history — written so this
 survives conversation summarization/compaction. Newest work first.
 
+## Sound playback driver (Sound.c) + PlaySound/PlayMusic API
+
+**Status: real, working driver — PSG/DAC audible, FM wired but untested by ear; tempo bugs from this session found and fixed via SCHG wiki cross-referencing.**
+
+Implements the actual byte-stream interpreter the earlier `smps2asmc`
+pipeline only encoded data *for* — tempo governor, note/duration parsing,
+most coordination flags ($E0-$F9), DAC/DPCM percussion + raw-PCM ("SEGA!"
+clip) playback, and FM synthesis via a new `ymfm` C++ wrapper
+(`Backend/YM2612.{h,cpp}`, `extern "C"`; pulled in `ymfm_opn.cpp` +
+`ymfm_ssg.cpp` + `ymfm_adpcm.cpp` since they're one translation unit even
+though `ym2612` itself only needs the OPN half). CMake now builds `C CXX`.
+
+**High-level API** (`Sound.h`): `PlayMusic(id)`/`PlaySound(id)` are what
+game code should call — routes to `QueueSound1`/`QueueSound2`, and
+`PlaySound` dispatches the `$E0-$E4` range directly to `FadeOutMusic`/
+`PlaySegaSound`/`SpeedUpMusic`/`SlowDownMusic`/`StopAllSound`. SFX carry a
+priority (`sound_priorities[]`, mirrors the real `SoundPriorities` table)
+so a lower-priority sound can't cut off one still playing. `Sound_Pause`/
+`Sound_Resume` freeze `sound_music`'s tempo governor only — SFX keep
+playing while paused, matching the real driver — wired into `PauseGame()`.
+
+All `bgm_*`/`sfx_*` TODOs across `GM_Level.c`, `GM_Special.c`, `GM_SSRG.c`,
+`Level.c`, and 9 `Object/*.c` files are now real calls instead of commented
+pseudo-asm. Added `ResumeLevelMusic()` (`GM_Level.h`) as the shared
+"return to this level's own zone track" helper — also fixed a real bug
+along the way: the old ad-hoc `MusicPlaylist[level_id]` indexed by raw
+`level_id` instead of `LEVEL_ZONE(level_id)`, silently wrong past the
+first few levels. `ResumeLevelMusic` special-cases SBZ3 (`level_id==0x0103`,
+stored under LZ's slot) and Final Zone (`0x0502`, under SBZ's slot) ahead
+of the normal zone lookup — confirmed against title-card behavior, which
+uses the same slot quirk. Also fixed a real, separate, unrelated bug the
+user caught while discussing this: `GM_Level.c`'s underwater palette
+ternary was inverted, loading green `PalId_LZWater` for the SBZ3 slot and
+purple `PalId_SBZ3Water` everywhere else.
+
+**Tempo/duration bugs found via the Sonic Community Hacking Guide wiki**
+(the user pasted several SCHG "Music Hacking" pages mid-session) — these
+were the actual cause of a "music isn't parsing correctly" report:
+
+- The tempo governor was completely wrong. It modeled header bytes `$04`/
+  `$05` as an accumulator-gate (only tick channels when a threshold
+  crosses), so most frames nothing advanced at all. Real mechanism
+  (`TempoWait`/`v_main_tempo_timeout`): every channel's duration countdown
+  decrements by 1 **every frame unconditionally**; separately, a counter
+  reset to `main_tempo` (header `$05`, music only) ticks down each frame,
+  and on reaching 0 it resets and adds **+1 back to every channel** — a
+  periodic "delay by one frame" correction, not a gate. Rewrote
+  `TickChipSet` accordingly.
+- `$04` ("dividing timing") is a **multiplier on a note's raw duration
+  byte**, applied once when the byte is read (the multiplied value is what
+  gets stored/reused, not re-multiplied on repeat notes) — wasn't applied
+  at all before.
+- SFX headers have **no `main_tempo` byte at all** — their single tempo
+  byte (offset `$02`) is `duration_mult`, not `main_tempo` as first
+  assumed. SFX now run with the periodic correction disabled
+  (`main_tempo=0` sentinel) and only the multiplier scaling applied.
+- `$E1` was writing into an unused `detune` field instead of `transpose`
+  (the same "channel key displacement" the header pitch byte and `$E9`
+  use) — `$E1` *sets* it, `$E9` *adds* to it.
+- `$E5` (per-track duration-multiplier override) had a field
+  (`tempo_divider`) but the multiply logic never actually read it — now
+  every channel's duration multiply uses its own `tempo_divider` (seeded
+  from the chip-set default at load, overridable via `$E5`), not the
+  chip-set-wide value directly.
+- `$E8` (note fill) had the relationship backwards: implemented as
+  "duration minus a release-tail length," but it's actually the *total*
+  number of frames the note is allowed to play, independent of the note's
+  own duration — fixed, `0` now means "disabled" (no early cutoff).
+- A bare duration byte (`$00-$7F`) encountered with no preceding note in
+  that read (e.g. `81 01 04 03 02` — note `$81` replayed at durations
+  `01`, `04`, `03`, `02`) means "keep the currently-held note, just change
+  its duration," not "here's a new note." The interpreter treated *any*
+  byte `<$E0` as a note trigger, so this case would've read a bare
+  duration like `$04` as note `$04` — garbage pitch. Matches the
+  `.noteloop`/`.gotnote`/`bpl .gotduration` structure in the real
+  `PSGDoNext` disassembly. Fixed with an explicit `b < 0x80` branch ahead
+  of the note-byte branch that updates duration/note-fill only, without
+  touching pitch, key-on state, or retriggering the DAC/FM/PSG at all.
+- `$EA`/`$EB` were no-op placeholders; they're real chip-set-wide setters
+  (`main_tempo`/`duration_mult` respectively) issuable from inside any
+  channel's byte stream — `$EB` also propagates to every channel's
+  per-track `tempo_divider` copy.
+- `$ED` ("ClearPush") was wrongly implemented as resetting the call/return
+  stack — it's actually unrelated to the sound engine, an SFX-specific
+  game-state flag (`sfx_Push`/pushable-block re-trigger prevention) that
+  doesn't belong at this layer at all. Now a documented no-op.
+- `$EE` needed no fix: its real-hardware complexity (restoring FM4's music
+  instrument after a channel-stealing special SFX) is a workaround for a
+  problem the dual-chip-set design doesn't have, since SFX never borrows
+  channels from `sound_music` here in the first place.
+- Verified (didn't need fixing): the `$F6`/`$F7`/`$F8` jump/loop/call
+  pointer math (`target = word_offset + 1 + signed_value`) against SCHG's
+  own worked examples — matched exactly, so that wasn't the bug. Per-track
+  FM/PSG header field order (key-displacement, then volume-attenuation,
+  then PSG's modulation-control byte and default-tone/envelope index) also
+  checked out against SCHG's per-channel header tables.
+
+**DAC sample IDs** corrected against a user-provided reference table:
+`$81-$83` = Kick/Snare/Timpani (already had this), `$84-$86` = invalid on
+real hardware (now explicitly excluded rather than silently falling
+through), `$87` = the "SEGA!" PCM clip (now routes to `PlaySegaSound`),
+`$88-$8B` = pitch-shifted Timpani variants (still not implemented — would
+need per-trigger pitch, not just sample selection).
+
+**PCM/"SEGA!" clip**: `res/PCM/sega` turned out to be a plain stripped-WAV
+body (8-bit unsigned mono, no ADPCM decode step — confirmed both from the
+real driver's `zPlaySEGAPCMLoop`, which just writes bytes straight to the
+DAC register, and from a WAV header hex dump the user provided, which gave
+an exact `SampleRate` field of 33598 Hz for a Sonic 3K-sourced version of
+the clip vs. Sonic 1's own `pcmLoopCounter(16000)` — currently set to
+16000 for the Sonic 1 sample; swap the constant if the source clip changes).
+
+**FM voice format**: went through two real fixes. First, the operator
+register write order — voice bytes are NOT laid out in logical op1-4
+order; physical YM2612 slots are hardwired 1,3,2,4. Initially "fixed" by
+remapping in the *decoder* (`FM_LoadVoice`), which turned out to be
+patching the wrong side — the real bug was the *encoder*
+(`smps2asmc/smps.c`'s `smpsVcTotalLevel`, which had `order[4]={3,2,1,0}`,
+i.e. write order 4,3,2,1, when it should've been the Sonic-1-real 1,3,2,4).
+Per explicit preference, ultimately settled on neither of those: the
+encoder now writes voices in natural 1,2,3,4 order (the Sonic 2 format,
+which "actually correctly follows the internal order of operators used by
+the YM2612" per SCHG, vs. every other main-series game's real 1,3,2,4
+layout) — `FM_LoadVoice` does the logical-op → physical-slot remap
+(`{0,2,1,3}`) instead, isolating the hardware quirk to one clearly-commented
+spot in the runtime rather than baking it into the intermediate format.
+
+**Known gaps, still open**: FM pan (`$E0`) and per-channel volume changes
+(`$E6`/`$EC`) don't touch FM operator TL yet — only PSG responds to
+volume commands. `PlaySegaSound`'s pitch-shifted Timpani variants
+(`$88-$8B`) aren't implemented. `$F0`/`$F1`/`$F4` (modulation/vibrato)
+parameters are stored but never applied per-frame. None of this has been
+verified by ear — only confirmed via build success, the existing automated
+test suite, and cross-referencing SCHG's documentation and the real
+driver's disassembly.
+
 ## Music/SFX pipeline (smps2asmc)
 
 **Status: core pipeline done and verified; only 2 songs imported; playback driver not started.**

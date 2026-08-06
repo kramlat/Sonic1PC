@@ -6,6 +6,7 @@
 #include "LevelScroll.h"
 #include "SpecialStage.h"
 #include "MathUtil.h"
+#include "Sound.h"
 
 //Special Stage Sonic functions
 static void SpecialSonic_FixCamera(Object *obj) {
@@ -79,7 +80,7 @@ static void SpecialSonic_Jump(Object *obj) {
 	
 	//Set state
 	obj->status.p.f.in_air = true;
-	//sfx	sfx_Jump,0,0,0	; play jumping sound TODO
+	PlaySound(sfx_Jump);
 }
 
 static void SpecialSonic_JumpHeight(Object *obj) {

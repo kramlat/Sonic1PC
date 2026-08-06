@@ -5,6 +5,7 @@
 #include "LevelCollision.h"
 #include "LevelScroll.h"
 #include "MathUtil.h"
+#include "Sound.h"
 
 // Ring object
 static const int8_t ring_pos[16][2] = {
@@ -233,7 +234,7 @@ void Obj_RingLoss(Object *obj) {
         rings = 0;
         ring_count = 0x80;
         life_num = 0;
-        // sfx	sfx_RingLoss,0,0,0	; play ring loss sound //TODO
+        PlaySound(sfx_RingLoss);
     }
         // Fallthrough
     case 2: // Moving

@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "Level.h"
 #include "PLC.h"
+#include "Sound.h"
 
 #include "Resource/Mappings/TitleCard.h"
 #include "Resource/Mappings/GotThrough.h"
@@ -146,9 +147,9 @@ void Obj_GotThroughCard(Object *obj) {
 
         if (ticked) {
             AddPoints(ticked);
-            //sfx sfx_Switch,0,0,0 ; "blip" sound, every 4th frame TODO
+            PlaySound(sfx_Switch);
         } else {
-            //sfx sfx_Cash,0,0,0 ; "ka-ching" sound TODO
+            PlaySound(sfx_Cash);
             obj->routine += 2; // -> Got_Wait, before Got_NextLevel
             obj->frame_time.w = 3 * 60; // 3 second post-tally delay
         }

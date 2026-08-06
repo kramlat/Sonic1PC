@@ -1,5 +1,6 @@
 #include "GM_Title.h"
 
+#include "Sound.h"
 #include "Game.h"
 #include "Level.h"
 #include "LevelDraw.h"
@@ -34,12 +35,22 @@ uint8_t demo_num;
 
 #define LEVSEL_LINE_COUNT   21
 #define LEVSEL_LINE_LENGTH  24
-#define LEVSEL_SNDTEST_ROW  (LEVSEL_LINE_COUNT - 1) // "SOUND SELECT" -- present for authenticity, but inert (no sound system yet)
+#define LEVSEL_SNDTEST_ROW  (LEVSEL_LINE_COUNT - 1) // "SOUND SELECT"
 #define LEVSEL_SS_ROW        (LEVSEL_LINE_COUNT - 2) // "SPECIAL STAGE"
 #define LEVSEL_START_ROW    4
 #define LEVSEL_START_COL    8
 #define LEVSEL_VRAM_MAIN    (VRAM_BG + (LEVSEL_START_ROW << 7) + (LEVSEL_START_COL << 1))
 #define LEVSEL_FONT_VRAM    0xD000 // ArtTile_Level_Select_Font ($680) * 32 bytes/tile
+#define LEVSEL_SNDTEST_COL  (LEVSEL_LINE_LENGTH - 8) // column offset for the 2-digit sound number
+// Highest registered sound/SFX ID (see the dispatch table near the top of
+// Sound.c) -- real hardware derives this from the assembled SoundIndex
+// table's own size instead of a fixed constant, but that same effect here
+// is just "the last ID we actually have data for".
+#define LEVSEL_SNDTEST_MAX  (0xD0 - 0x80)
+
+// Persists across visits to level select, same as the real v_levselsound
+// RAM variable (never reset on entry -- picks up where you left off).
+static int levsel_sound = 0;
 
 static const char *const levsel_text[LEVSEL_LINE_COUNT] = {
     "GREEN HILL ZONE  STAGE 1",
@@ -77,7 +88,7 @@ static const uint16_t levsel_levels[LEVSEL_LINE_COUNT - 2] = {
     LEVEL_ID(ZoneId_LZ,  0), LEVEL_ID(ZoneId_LZ,  1), LEVEL_ID(ZoneId_LZ,  2),
     LEVEL_ID(ZoneId_SLZ, 0), LEVEL_ID(ZoneId_SLZ, 1), LEVEL_ID(ZoneId_SLZ, 2),
     LEVEL_ID(ZoneId_SBZ, 0), LEVEL_ID(ZoneId_SBZ, 1), LEVEL_ID(ZoneId_LZ,  3),
-    LEVEL_ID(ZoneId_LZ,  3), // Final Zone
+    LEVEL_ID(ZoneId_SBZ, 2), // Final Zone
 };
 
 // Matches the disassembly's LevelMenuText charset table: ' '=blank tile,
@@ -98,11 +109,27 @@ static uint8_t LevSelCharToTile(char c) {
 // Draws all 21 lines, with `selected` highlighted in yellow and everything
 // else in white.
 static void LevSelTextLoad(int selected) {
+    static const char hex_digits[] = "0123456789ABCDEF";
+    char sndtest_line[LEVSEL_LINE_LENGTH];
+
     for (int row = 0; row < LEVSEL_LINE_COUNT; row++) {
         VDP_SeekVRAM(LEVSEL_VRAM_MAIN + (row * PLANE_ROW_BYTES));
         uint8_t palette = (row == selected) ? 2 : 3; // yellow : white
         const char *text = levsel_text[row];
         size_t len = strlen(text);
+        if (row == LEVSEL_SNDTEST_ROW) {
+            // Overlay the current sound test number (0x80-based, 2 hex
+            // digits) at its own fixed column, same as the real driver's
+            // LevSel_DrawSnd -- rebuilt into a scratch buffer each draw
+            // rather than mutating the static levsel_text entry.
+            for (int col = 0; col < LEVSEL_LINE_LENGTH; col++)
+                sndtest_line[col] = (col < (int)len) ? text[col] : ' ';
+            int id = 0x80 + levsel_sound;
+            sndtest_line[LEVSEL_SNDTEST_COL + 0] = hex_digits[(id >> 4) & 0xF];
+            sndtest_line[LEVSEL_SNDTEST_COL + 1] = hex_digits[id & 0xF];
+            text = sndtest_line;
+            len = LEVSEL_LINE_LENGTH;
+        }
         for (int col = 0; col < LEVSEL_LINE_LENGTH; col++) {
             char c = (col < (int)len) ? text[col] : ' ';
             uint8_t tile = LevSelCharToTile(c);
@@ -159,8 +186,26 @@ static void LevelSelect(void) {
             LevSelTextLoad(item);
         }
 
-        if ((jpad1_press1 & (JPAD_A | JPAD_B | JPAD_C | JPAD_START)) && item != LEVSEL_SNDTEST_ROW)
-            break;
+        // Left/Right only ever does anything on the sound test row -- cycles
+        // the selected sound/music ID, single-step per press (no hold-repeat,
+        // matching the real LevSel_SndTest reading jpad1_press1 not _hold1).
+        if (item == LEVSEL_SNDTEST_ROW) {
+            uint8_t lr = jpad1_press1 & (JPAD_LEFT | JPAD_RIGHT);
+            if (lr) {
+                if (lr & JPAD_LEFT)
+                    levsel_sound = levsel_sound ? levsel_sound - 1 : LEVSEL_SNDTEST_MAX;
+                else
+                    levsel_sound = (levsel_sound < LEVSEL_SNDTEST_MAX) ? levsel_sound + 1 : 0;
+                LevSelTextLoad(item);
+            }
+        }
+
+        if (jpad1_press1 & (JPAD_A | JPAD_B | JPAD_C | JPAD_START)) {
+            if (item == LEVSEL_SNDTEST_ROW)
+                QueueSound2((uint8_t)(0x80 + levsel_sound)); // stays in the loop -- doesn't exit level select
+            else
+                break;
+        }
     }
 
     if (item == LEVSEL_SS_ROW) {
@@ -256,7 +301,7 @@ static void PlayLevel(void) {
 #ifndef SCP_REV00
     score_life = 5000;
 #endif
-    // sfx	bgm_Fade,0,1,1 ; fade out music //TODO
+   FadeOutMusic();
 }
 
 // Matches Tit_ChkLevSel: the cheat must be active (level_select_cheat) and A
@@ -282,7 +327,7 @@ static void Tit_ChkLevSel(bool level_select_cheat) {
 // Title gamemode
 void GM_Title(void) {
     // Stop music
-    // sfx	bgm_Stop,0,1,1 //TODO
+    StopAllSound();
 
     // Clear the pattern load queue and fade out
     ClearPLC();
@@ -383,6 +428,8 @@ void GM_Title(void) {
     // Fade in
     PaletteFadeIn();
 
+    PlayMusic(0x8A);
+
     // Level select cheat entry state (see TitleCheatStep/Tit_ChkLevSel).
     uint8_t cheat_progress = 0;
     bool level_select_cheat = false;
@@ -421,12 +468,16 @@ void GM_Title(void) {
         }
 
         // Check for level select cheat entry (Up, Down, Left, Right)
-        if (TitleCheatStep(&cheat_progress, levsel_cheat_sequence, 4))
+        if (TitleCheatStep(&cheat_progress, levsel_cheat_sequence, 4)) {
             level_select_cheat = true;
+            PlaySound(sfx_Ring);
+        }
 #ifdef NDEBUG
         // Check for debug mode cheat entry (C, C, C, C, Up, Down, Left, Right)
-        if (TitleCheatStep(&debug_progress, debug_cheat_sequence, 8))
+        if (TitleCheatStep(&debug_progress, debug_cheat_sequence, 8)) {
             debug_cheat = true;
+            PlaySound(sfx_Ring);
+        }
 #endif
 
         // Check if the title's over
@@ -451,12 +502,16 @@ void GM_Title(void) {
                 }
 
                 // Check for level select cheat entry (Up, Down, Left, Right)
-                if (TitleCheatStep(&cheat_progress, levsel_cheat_sequence, 4))
+                if (TitleCheatStep(&cheat_progress, levsel_cheat_sequence, 4)) {
                     level_select_cheat = true;
+                    PlaySound(sfx_Ring);
+                }
 #ifdef NDEBUG
                 // Check for debug mode cheat entry (C, C, C, C, Up, Down, Left, Right)
-                if (TitleCheatStep(&debug_progress, debug_cheat_sequence, 8))
+                if (TitleCheatStep(&debug_progress, debug_cheat_sequence, 8)) {
                     debug_cheat = true;
+                    PlaySound(sfx_Ring);
+                }
 #endif
 
                 // Check if start is pressed
@@ -467,7 +522,7 @@ void GM_Title(void) {
             } while (demo_length);
 
             // Load demo
-            // sfx	bgm_Fade,0,1,1 ; fade out music //TODO
+            FadeOutMusic();
 
             level_id = title_demos[demo_num & 7];
             if (++demo_num >= 4)

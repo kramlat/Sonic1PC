@@ -22,7 +22,14 @@
 #include <string.h>
 
 #define MAX_LINE 1024
-#define MAX_ARGS 8
+// Real macro invocations never need more than a handful of arguments (5 at
+// most, e.g. smpsHeaderPSG) -- but dc.b/dc.w lines are raw comma-separated
+// byte lists a composer can write arbitrarily long (the real corpus has
+// lines with 12+ tokens). This one constant sizes the shared arg_tokens
+// buffer used for both, so it has to cover the dc.b case: previously fixed
+// at 8, which silently truncated (and dropped, with no warning) any longer
+// dc.b/dc.w line -- corrupting the compiled song data build after build.
+#define MAX_ARGS 64
 
 typedef enum { ARG_NUM, ARG_STR } ArgKind;
 
@@ -35,7 +42,6 @@ typedef struct {
 
 // clang-format off
 static const MacroDef macros[] = {
-    {"smpsHeaderStartSong",       "smpsHeaderStartSong",       1, {ARG_NUM}},
     {"smpsHeaderVoice",           "smpsHeaderVoice",           1, {ARG_STR}},
     {"smpsHeaderVoiceNull",       "smpsHeaderVoiceNull",       0, {0}},
     {"smpsHeaderChan",            "smpsHeaderChan",            2, {ARG_NUM, ARG_NUM}},
@@ -117,10 +123,10 @@ static void Trim(char *s) {
 
 // Splits `s` (a comma-separated argument list) in place into up to
 // MAX_ARGS trimmed tokens. Returns the count.
-static int SplitArgs(char *s, char *args[MAX_ARGS]) {
+static int SplitArgs(char *s, char *args[], int max_args) {
     int count = 0;
     char *tok = strtok(s, ",");
-    while (tok && count < MAX_ARGS) {
+    while (tok && count < max_args) {
         Trim(tok);
         if (*tok)
             args[count++] = tok;
@@ -163,9 +169,53 @@ static const MacroDef *FindMacro(const char *name) {
     return NULL;
 }
 
+// A handful of real song/SFX files gate a couple of known-bug workarounds
+// behind "if <symbol> ... else ... endif" (mirroring the real disassembly's
+// FixMusicAndSFXDataBugs = FixBugs, which itself defaults to 0 -- see
+// sonic.asm's "FixBugs = 0"). Only that one symbol shows up in this
+// project's corpus, so it's the only one resolved here; anything else is a
+// translation error rather than silently guessed at.
+static int LookupIfSymbol(const char *in_path, int line_no, const char *symbol, int fix_bugs, int *out_value) {
+    if (strcmp(symbol, "FixMusicAndSFXDataBugs") == 0) {
+        *out_value = fix_bugs;
+        return 1;
+    }
+    fprintf(stderr, "%s:%d: unrecognized \"if\" symbol \"%s\"\n", in_path, line_no, symbol);
+    return 0;
+}
+
+// Evaluates "if" conditions of the forms seen in this corpus: "SYMBOL",
+// "~~SYMBOL" (AS's double-negation-to-boolean idiom -- same truthiness as
+// bare SYMBOL here), "SYMBOL=0", "SYMBOL=1".
+static int EvalIfCondition(const char *in_path, int line_no, const char *cond_text, int fix_bugs, int *out_result) {
+    char buf[128];
+    snprintf(buf, sizeof(buf), "%s", cond_text);
+    Trim(buf);
+    char *p = buf;
+    while (*p == '~')
+        p++;
+
+    char *eq = strchr(p, '=');
+    int want = -1;
+    if (eq) {
+        *eq = '\0';
+        want = atoi(eq + 1);
+    }
+    Trim(p);
+
+    int value;
+    if (!LookupIfSymbol(in_path, line_no, p, fix_bugs, &value))
+        return 0;
+
+    *out_result = eq ? (value == want) : (value != 0);
+    return 1;
+}
+
+#define MAX_IF_DEPTH 16
+
 int main(int argc, char **argv) {
-    if (argc != 5) {
-        fprintf(stderr, "usage: %s <input.asm> <output.c> <array_name> <output.h path>\n", argv[0]);
+    if (argc != 5 && argc != 6) {
+        fprintf(stderr, "usage: %s <input.asm> <output.c> <array_name> <output.h path> [fix_bugs=0|1]\n", argv[0]);
         return 1;
     }
 
@@ -173,6 +223,11 @@ int main(int argc, char **argv) {
     const char *out_c_path = argv[2];
     const char *array_name = argv[3];
     const char *out_h_path = argv[4];
+    int fix_bugs = (argc == 6) ? atoi(argv[5]) : 0; // Matches the real disasm's FixBugs=0 default
+
+    int if_taken[MAX_IF_DEPTH];
+    int if_emit[MAX_IF_DEPTH]; // cumulative (parent && this branch) emit state
+    int if_depth = 0;
 
     FILE *in = fopen(in_path, "r");
     if (!in) {
@@ -204,6 +259,43 @@ int main(int argc, char **argv) {
         if (!*line)
             continue;
 
+        // Conditional-assembly directives ("if <symbol>" / "else" / "endif").
+        // Only a couple of real files use these, always to pick between a
+        // faithfully-buggy branch and a bugfixed one -- see LookupIfSymbol.
+        if (strncmp(line, "if ", 3) == 0 || strcmp(line, "if") == 0) {
+            if (if_depth >= MAX_IF_DEPTH) {
+                fprintf(stderr, "%s:%d: \"if\" nested too deeply\n", in_path, line_no);
+                return 1;
+            }
+            int parent_emit = (if_depth == 0) ? 1 : if_emit[if_depth - 1];
+            int cond = 0;
+            if (!EvalIfCondition(in_path, line_no, line + 2, fix_bugs, &cond))
+                return 1;
+            if_taken[if_depth] = cond;
+            if_emit[if_depth] = parent_emit && cond;
+            if_depth++;
+            continue;
+        }
+        if (strcmp(line, "else") == 0) {
+            if (if_depth == 0) {
+                fprintf(stderr, "%s:%d: \"else\" without matching \"if\"\n", in_path, line_no);
+                return 1;
+            }
+            int parent_emit = (if_depth == 1) ? 1 : if_emit[if_depth - 2];
+            if_emit[if_depth - 1] = parent_emit && !if_taken[if_depth - 1];
+            continue;
+        }
+        if (strcmp(line, "endif") == 0) {
+            if (if_depth == 0) {
+                fprintf(stderr, "%s:%d: \"endif\" without matching \"if\"\n", in_path, line_no);
+                return 1;
+            }
+            if_depth--;
+            continue;
+        }
+        if (if_depth > 0 && !if_emit[if_depth - 1])
+            continue; // Inside a false branch -- skip everything until else/endif
+
         // Label line: a bare identifier followed by ':' and nothing else.
         size_t len = strlen(line);
         if (line[len - 1] == ':') {
@@ -231,7 +323,15 @@ int main(int argc, char **argv) {
         char args_buf[MAX_LINE];
         snprintf(args_buf, sizeof(args_buf), "%s", rest ? rest : "");
         char *arg_tokens[MAX_ARGS];
-        int arg_count = SplitArgs(args_buf, arg_tokens);
+        int arg_count = SplitArgs(args_buf, arg_tokens, MAX_ARGS);
+        // A real line hitting this exactly would previously have been
+        // silently truncated (see MAX_ARGS's comment) -- now it's a hard
+        // error instead of silent data corruption, however unlikely.
+        if (arg_count == MAX_ARGS) {
+            fprintf(stderr, "%s:%d: too many comma-separated values on one line (limit %d) -- raise MAX_ARGS\n",
+                    in_path, line_no, MAX_ARGS);
+            return 1;
+        }
 
         if (strcmp(command, "dc.b") == 0 || strcmp(command, "dc.w") == 0) {
             const char *emit = (strcmp(command, "dc.b") == 0) ? "SMPS_Byte" : "SMPS_Word";
@@ -239,6 +339,21 @@ int main(int argc, char **argv) {
                 char converted[128];
                 ConvertToken(arg_tokens[i], converted, sizeof(converted));
                 fprintf(out, "    %s(%s);\n", emit, converted);
+            }
+            continue;
+        }
+
+        if (strcmp(command, "smpsHeaderStartSong") == 0) {
+            // Some real files write the 1-arg form, others write the
+            // explicit 2-arg (SonicDriverVer, SourceDriver) form -- both
+            // are only supported here when every value given is 1.
+            if (arg_count == 1) {
+                fprintf(out, "    smpsHeaderStartSong(%s);\n", arg_tokens[0]);
+            } else if (arg_count == 2) {
+                fprintf(out, "    smpsHeaderStartSong2(%s, %s);\n", arg_tokens[0], arg_tokens[1]);
+            } else {
+                fprintf(stderr, "%s:%d: smpsHeaderStartSong takes 1 or 2 arguments\n", in_path, line_no);
+                return 1;
             }
             continue;
         }

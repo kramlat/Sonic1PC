@@ -5,6 +5,7 @@
 #include "LevelScroll.h"
 
 #include "Object/Sonic.h"
+#include "Object/Waterfall.h"
 
 #include "Macros.h"
 
@@ -62,6 +63,7 @@ void Obj_Spring(Object *obj);
 void Obj_Newtron(Object *obj);
 void Obj_GHZEdge(Object *obj);
 void Obj_Credits(Object *obj);
+void Obj_Waterfall(Object *obj);
 
 static void (*object_func[])(Object*) = {
 	/* ObjId_Null                */ NULL,
@@ -137,7 +139,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_46                  */ Obj_Null,
 	/* ObjId_Bumper              */ Obj_Null,//Bumper,
 	/* ObjId_48                  */ Obj_Null,
-	/* ObjId_49                  */ Obj_Null,
+	/* ObjId_49                  */ Obj_Waterfall,
 	/* ObjId_4A                  */ Obj_Null,
 	/* ObjId_4B                  */ Obj_Null,
 	/* ObjId_4C                  */ Obj_Null,
