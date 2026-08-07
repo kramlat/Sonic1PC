@@ -1,6 +1,12 @@
 [submodule "clownassembler"]
-	path = clownassembler
+	path = contrib/clownassembler
 	url = https://github.com/kramlat/clownassembler.git
 [submodule "ymfm"]
-	path = ymfm
+	path = contrib/ymfm
 	url = https://github.com/aaronsgiles/ymfm.git
+[submodule "imgui"]
+	path = contrib/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "nuked-opn2"]
+	path = contrib/nuked-opn2
+	url = https://github.com/nukeykt/Nuked-OPN2.git
