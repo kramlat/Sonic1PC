@@ -91,6 +91,12 @@ ptr_MS_Float6:	dc.w MS_Float6-Map_Sonic_internal
 ptr_MS_Injury:	dc.w MS_Injury-Map_Sonic_internal
 ptr_MS_GetAir:	dc.w MS_GetAir-Map_Sonic_internal
 ptr_MS_WaterSlide:dc.w MS_WaterSlide-Map_Sonic_internal
+ptr_MS_SpinDash1:dc.w byte_spdh1-Map_Sonic_internal
+ptr_MS_SpinDash2:dc.w byte_spdh2-Map_Sonic_internal
+ptr_MS_SpinDash3:dc.w byte_spdh3-Map_Sonic_internal
+ptr_MS_SpinDash4:dc.w byte_spdh4-Map_Sonic_internal
+ptr_MS_SpinDash5:dc.w byte_spdh5-Map_Sonic_internal
+ptr_MS_SpinDash6:dc.w byte_spdh6-Map_Sonic_internal
 
 MS_Null:	dc.b 0
 MS_Stand:	dc.b 4			; standing
@@ -440,4 +446,16 @@ MS_GetAir:	dc.b 3			; collecting bubble (LZ)
 MS_WaterSlide:	dc.b 2			; water	slide (LZ)
 		dc.b $F0, $F, 0, 0, $EC
 		dc.b $F8, 2, 0,	$10, $C
+byte_spdh1:	dc.b 1			; Spin Dash 1
+		dc.b $F8, $F, 0, 0, $F4
+byte_spdh2:	dc.b 1			; Spin Dash 2
+		dc.b $F8, $F, 0, 0, $F4
+byte_spdh3:	dc.b 1			; Spin Dash 3
+		dc.b $F8, $F, 0, 0, $F4
+byte_spdh4:	dc.b 1			; Spin Dash 4
+		dc.b $F8, $F, 0, 0, $F4
+byte_spdh5:	dc.b 1			; Spin Dash 5
+		dc.b $F8, $F, 0, 0, $F4
+byte_spdh6:	dc.b 1			; Spin Dash 6
+		dc.b $F8, $F, 0, 0, $F4
 		even

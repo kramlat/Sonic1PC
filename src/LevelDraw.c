@@ -71,17 +71,24 @@ void GetBlockData(const uint8_t **meta, const uint8_t **block, int16_t sx, int16
  */
 void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
 	y += sy;
-	int16_t cx = (x >> 8) & 0x7F;
-	int16_t cy = (y >> 8) & 0x7;
-	uint8_t chunk = layout[(cy << 7) + cx] & 0x7F;
+	// layout points at a plane's start within the interleaved level_layout
+	// buffer (LEVEL_LAYOUT_FG(0)/LEVEL_LAYOUT_BG(0)) -- rows are
+	// LEVEL_LAYOUT_ROW_STRIDE (0x100) apart, not 0x80, since FG and BG share
+	// each row. Chunks are 128x128 px (real Sonic 2 size), hence >>7.
+	int16_t cx = (x >> 7) & (LEVEL_LAYOUT_COLS - 1);
+	int16_t cy = (y >> 7) & (LEVEL_LAYOUT_ROWS - 1);
+	// Real Sonic 2 uses the full byte (0-255) as the chunk ID, no reserved
+	// high bit like Sonic 1 had.
+	uint8_t chunk = layout[cy * LEVEL_LAYOUT_ROW_STRIDE + cx];
 	if (chunk == 0) {
-		*meta = level_map256;
+		*meta = level_map128;
 		*block = level_map16;
 		return;
 	}
-	uint8_t tx = (x >> 4) & 0xF;
-	uint8_t ty = (y >> 4) & 0xF;
-	const uint8_t *metap = (level_map256 - 0x200) + (chunk << 9) + (ty << 5) + (tx << 1);
+	uint8_t tx = (x >> 4) & 0x7;
+	uint8_t ty = (y >> 4) & 0x7;
+	// No -1 shift: raw layout byte N indexes Map128 table entry N directly.
+	const uint8_t *metap = level_map128 + (chunk << 7) + (ty << 4) + (tx << 1);
 	*meta = metap;
 	size_t tile = (metap[0] << 8) | (metap[1] << 0);
 	tile = tile & 0x3FF;
@@ -119,12 +126,17 @@ void DrawFlipY(const uint8_t* block, size_t offset) {
 
 void DrawBlock(const uint8_t *meta, const uint8_t *block, size_t offset) {
 	uint8_t flag = meta[0];
-	if (flag & 0x08) //X flip
-		if (flag & 0x10) //Y flip
+	// meta[0] is the word's high byte -- META_X_FLIP (bit10 of the word) is
+	// bit2 here (0x04), META_Y_FLIP (bit11) is bit3 (0x08). These used to be
+	// bit3/bit4 (0x08/0x10) under the old bit format, where the tile field
+	// was 11 bits instead of 10; shifted down by one when that changed, but
+	// this call site never got updated to match.
+	if (flag & 0x04) //X flip
+		if (flag & 0x08) //Y flip
 			DrawFlipXY(block, offset);
 		else
 			DrawFlipX(block, offset);
-	else if (flag & 0x10) //Y flip
+	else if (flag & 0x08) //Y flip
 			DrawFlipY(block, offset);
 	else {
 		WRITE_TILE(                     0, 0x0000)
@@ -284,17 +296,17 @@ void DrawChunks(int16_t sx, int16_t sy, const uint8_t *layout, size_t offset) {
 }
 
 void LoadTilesFromStart(void) {
-    DrawChunks(scrpos_x.f.u, scrpos_y.f.u, level_layout[0][0], VRAM_FG);
+    DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_FG(0), VRAM_FG);
 #ifndef SCP_REV00
     if (LEVEL_ZONE(level_id) == ZoneId_GHZ || LEVEL_ZONE(level_id) == ZoneId_EndZ)
-        Draw_GHZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
+        Draw_GHZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), VRAM_BG);
     else if (LEVEL_ZONE(level_id) == ZoneId_MZ)
-        Draw_MZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
+        Draw_MZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), VRAM_BG);
     else if (level_id == ZoneId_SBZ << 8)
-        Draw_SBZ_Bg(bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
+        Draw_SBZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), VRAM_BG);
     else
 #endif
-    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
+    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), VRAM_BG);
 }
 
 void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset) {
@@ -495,21 +507,21 @@ void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *l
 
 void LoadTilesAsYouMove(void) {
     DrawBGScrollBlock1(bg_scrpos_x_dup.f.u, bg_scrpos_y_dup.f.u,
-                       &bg1_scroll_flags_dup, level_layout[0][1], VRAM_BG);
+                       &bg1_scroll_flags_dup, LEVEL_LAYOUT_BG(0), VRAM_BG);
 
     DrawBGScrollBlock2(bg2_scrpos_x_dup.f.u, bg2_scrpos_y_dup.f.u,
-                       &bg2_scroll_flags_dup, level_layout[0][1], VRAM_BG);
+                       &bg2_scroll_flags_dup, LEVEL_LAYOUT_BG(0), VRAM_BG);
 
 #ifdef SCP_REV01
     // REV01 added a third scroll block call
     DrawBGScrollBlock3(bg3_scrpos_x_dup.f.u, bg3_scrpos_y_dup.f.u,
-                       &bg3_scroll_flags_dup, level_layout[0][1], VRAM_BG);
+                       &bg3_scroll_flags_dup, LEVEL_LAYOUT_BG(0), VRAM_BG);
 #endif
     if (fg_scroll_flags_dup == 0)
         return;
     int16_t sx = scrpos_x_dup.f.u;
     int16_t sy = scrpos_y_dup.f.u;
-    uint8_t* layout = level_layout[0][0];
+    uint8_t* layout = LEVEL_LAYOUT_FG(0);
     if (fg_scroll_flags_dup & SCROLL_FLAG_UP) {
          size_t pos = CalcVRAMPos(sx, sy, -16, -16);
         DrawBlocks_LR(VRAM_FG, pos, sx, sy, -16, -16, layout);
@@ -535,8 +547,8 @@ void LoadTilesAsYouMove(void) {
 }
 
 void LoadTilesAsYouMove_BGOnly(void) {
-    DrawBGScrollBlock1(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, level_layout[0][1], VRAM_BG);
-    DrawBGScrollBlock2(bg2_scrpos_x.f.u, bg2_scrpos_y.f.u, &bg2_scroll_flags, level_layout[0][1], VRAM_BG);
+    DrawBGScrollBlock1(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, LEVEL_LAYOUT_BG(0), VRAM_BG);
+    DrawBGScrollBlock2(bg2_scrpos_x.f.u, bg2_scrpos_y.f.u, &bg2_scroll_flags, LEVEL_LAYOUT_BG(0), VRAM_BG);
     // No scroll block 3, even in REV01... odd
 }
 

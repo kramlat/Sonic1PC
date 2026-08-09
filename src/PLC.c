@@ -134,7 +134,7 @@ typedef struct {
 static const PLCList PLC_Main = {
     5,
     (const PLC[]) {
-        { Art_Lamppost, 0xF400 },
+        { Art_Lamppost, 0xD800 }, // moved from 0xF400 to make room for the Spin Dash dust (see Splash.h)
         { Art_HUD, 0xD940 },
         { Art_HUDLife, 0xFA80 },
         { Art_Ring, 0xF640 },
@@ -174,10 +174,8 @@ static const PLCList PLC_GameOver = {
 // Pattern load cues - Green Hill
 // ---------------------------------------------------------------------------
 static const PLCList PLC_GHZ = {
-    12,
+    10,
     (const PLC[]) {
-        { Art_GHZ1, 0x0000 },
-        { Art_GHZ2, 0x39A0 },
         { Art_GHZStalk, 0x6B00 },
         { Art_GHZRock, 0x7A00 },
         { Art_Crabmeat, 0x8000 },
@@ -206,12 +204,10 @@ static const PLCList PLC_GHZ2 = {
 // Pattern load cues - Labyrinth
 // ---------------------------------------------------------------------------
 static const PLCList PLC_LZ = {
-    12,
+    10,
     (const PLC[]) {
-        { Art_LZ, 0x0000 },
         { Art_LZBlock1, 0x3C00 },
         { Art_LZBlock2, 0x3E00 },
-        { Art_Splash, 0x4B20 },
         { Art_Water, 0x6000 },
         { Art_LZSpikeBall, 0x6200 },
         { Art_FlapDoor, 0x6500 },
@@ -245,9 +241,8 @@ static const PLCList PLC_LZ2 = {
 // Pattern load cues - Marble
 // ---------------------------------------------------------------------------
 static const PLCList PLC_MZ = {
-    10,
+    9,
     (const PLC[]) {
-        { Art_MZ, 0x0000 },
         { Art_MZMetal, 0x6000 },
         { Art_MZFire, 0x68A0 },
         { Art_GHZSwing, 0x7000 },
@@ -274,9 +269,8 @@ static const PLCList PLC_MZ2 = {
 // Pattern load cues - Star Light
 // ---------------------------------------------------------------------------
 static const PLCList PLC_SLZ = {
-    9,
+    8,
     (const PLC[]) {
-        { Art_SLZ, 0x0000 },
         { Art_Bomb, 0x8520 },
         { Art_Orbinaut, 0x8520 },
         { Art_MZFire, 0x9000 },
@@ -305,7 +299,6 @@ static const PLCList PLC_SLZ2 = {
 static const PLCList PLC_SYZ = {
     4,
     (const PLC[]) {
-        { Art_SYZ, 0x0000 },
         { Art_Crabmeat, 0x8000 },
         { Art_BuzzBomber, 0x8880 },
         { Art_Yadrin, 0x8F60 },
@@ -332,7 +325,6 @@ static const PLCList PLC_SYZ2 = {
 static const PLCList PLC_SBZ = {
     1,
     (const PLC[]) {
-        { Art_SBZ, 0x0000 },
         // plcm	Nem_Stomper, $5800	; moving platform and stomper
         // plcm	Nem_SbzDoor1, $5D00	; door
         // plcm	Nem_Girder, $5E00	; girder

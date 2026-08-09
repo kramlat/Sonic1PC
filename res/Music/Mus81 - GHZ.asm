@@ -558,18 +558,18 @@ Mus81_GHZ_Voices:
 ;	$74, $74, $34, $34, 	$1F, $12, $1F, $1F, 	$00, $00, $00, $00
 ;	$00, $01, $00, $01, 	$0F, $3F, $0F, $3F, 	$16, $80, $17, $80
 	smpsVcAlgorithm     $04
-	smpsVcFeedback      $05
+	smpsVcFeedback      $07
 	smpsVcUnusedBits    $00
-	smpsVcDetune        $03, $03, $07, $07
-	smpsVcCoarseFreq    $04, $04, $04, $04
+	smpsVcDetune        $00, $00, $00, $00
+	smpsVcCoarseFreq    $01, $01, $01, $01
 	smpsVcRateScale     $00, $00, $00, $00
-	smpsVcAttackRate    $1F, $1F, $12, $1F
+	smpsVcAttackRate    $0F, $1F, $0F, $1F
 	smpsVcAmpMod        $00, $00, $00, $00
-	smpsVcDecayRate1    $00, $00, $00, $00
-	smpsVcDecayRate2    $01, $00, $01, $00
-	smpsVcDecayLevel    $03, $00, $03, $00
-	smpsVcReleaseRate   $0F, $0F, $0F, $0F
-	smpsVcTotalLevel    $00, $17, $00, $16
+	smpsVcDecayRate1    $0C, $00, $0C, $0C
+	smpsVcDecayRate2    $03, $03, $03, $00
+	smpsVcDecayLevel    $08, $08, $08, $00
+	smpsVcReleaseRate   $06, $06, $06, $06
+	smpsVcTotalLevel    $00, $00, $00, $00
 
 ;	Voice $06
 ;	$04

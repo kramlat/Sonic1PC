@@ -1,0 +1,244 @@
+{
+  "header": [
+    {
+      "smpsHeaderStartSong": [
+        "0x1",
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderVoice": [
+        "SndBF_Get_Continue_Voices"
+      ]
+    },
+    {
+      "smpsHeaderTempoSFX": [
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderChanSFX": [
+        "0x3"
+      ]
+    },
+    {
+      "smpsHeaderSFXChannel": [
+        "cFM3",
+        "SndBF_Get_Continue_FM3",
+        "0xF4",
+        "0x6"
+      ]
+    },
+    {
+      "smpsHeaderSFXChannel": [
+        "cFM4",
+        "SndBF_Get_Continue_FM4",
+        "0xF4",
+        "0x6"
+      ]
+    },
+    {
+      "smpsHeaderSFXChannel": [
+        "cFM5",
+        "SndBF_Get_Continue_FM5",
+        "0xF4",
+        "0x6"
+      ]
+    }
+  ],
+  "voices": [
+    {
+      "smpsVcAlgorithm": "0x4",
+      "smpsVcFeedback": "0x2",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x1",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x13",
+          "smpsVcDecayRate2": "0x9",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x80"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x6",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x1C",
+          "smpsVcDecayRate2": "0xD",
+          "smpsVcDecayLevel": "0x8",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0xA"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x3",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x18",
+          "smpsVcDecayRate2": "0x8",
+          "smpsVcDecayLevel": "0x9",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x5"
+        },
+        {
+          "smpsVcDetune": "0x2",
+          "smpsVcCoarseFreq": "0x5",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x15",
+          "smpsVcDecayRate2": "0xB",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x24"
+        }
+      ]
+    }
+  ],
+  "SMPSplaylist": {
+    "SndBF_Get_Continue_FM3": [
+      {
+        "smpsSetvoice": "0x0"
+      },
+      {
+        "note": "C6",
+        "duration": "0x7"
+      },
+      {
+        "note": "E6"
+      },
+      {
+        "note": "G6"
+      },
+      {
+        "note": "D6"
+      },
+      {
+        "note": "F6"
+      },
+      {
+        "note": "A6"
+      },
+      {
+        "note": "E6"
+      },
+      {
+        "note": "G6"
+      },
+      {
+        "note": "B6"
+      },
+      {
+        "note": "F6"
+      },
+      {
+        "note": "A6"
+      },
+      {
+        "note": "C7"
+      },
+      {
+        "smpsLoop": [
+          "0x0",
+          "0x8",
+          {
+            "note": "G6",
+            "duration": "0x7"
+          },
+          {
+            "note": "B6"
+          },
+          {
+            "note": "D7"
+          },
+          {
+            "smpsAlterVol": "0x5"
+          }
+        ]
+      },
+      "smpsStop"
+    ],
+    "SndBF_Get_Continue_FM4": [
+      {
+        "smpsSetvoice": "0x0"
+      },
+      {
+        "smpsAlterNote": "0x1"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x7"
+      },
+      {
+        "note": "E6",
+        "duration": "0x15"
+      },
+      {
+        "note": "F6"
+      },
+      {
+        "note": "G6"
+      },
+      {
+        "note": "A6"
+      },
+      {
+        "smpsLoop": [
+          "0x0",
+          "0x8",
+          {
+            "note": "B6",
+            "duration": "0x15"
+          },
+          {
+            "smpsAlterVol": "0x5"
+          }
+        ]
+      },
+      "smpsStop"
+    ],
+    "SndBF_Get_Continue_FM5": [
+      {
+        "smpsSetvoice": "0x0"
+      },
+      {
+        "smpsAlterNote": "0x1"
+      },
+      {
+        "note": "C6",
+        "duration": "0x15"
+      },
+      {
+        "note": "D6"
+      },
+      {
+        "note": "E6"
+      },
+      {
+        "note": "F6"
+      },
+      {
+        "smpsLoop": [
+          "0x0",
+          "0x8",
+          {
+            "note": "G6",
+            "duration": "0x15"
+          },
+          {
+            "smpsAlterVol": "0x5"
+          }
+        ]
+      },
+      "smpsStop"
+    ]
+  }
+}

@@ -83,6 +83,7 @@ typedef enum
 	SonAnimId_Null,
 	SonAnimId_Float3,
 	SonAnimId_Float4,
+	SonAnimId_SpinDash,
 } SonAnimId;
 
 //Sonic functions

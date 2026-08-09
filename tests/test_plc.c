@@ -19,6 +19,11 @@ static void PLC_DrainsExactlyFullQueue(void) {
     NewPLC(PlcId_TitleCard);
     AddPLC(PlcId_GHZ);
     AddPLC(PlcId_Main2);
+    // TitleCard(1) + GHZ(10) + Main2(3) = 14 since PLC_GHZ dropped its
+    // Art_GHZ1/Art_GHZ2 entries (now loaded separately via KosDec, not the
+    // Nemesis-only PLC pipeline -- see LevelDataLoad). Top up to the real
+    // 16-slot edge case with an unrelated small list.
+    AddPLC(PlcId_LZAnimals);
 
     CHECK(plc_buffer[0].art != NULL);
 
@@ -39,6 +44,7 @@ static void PLC_AddPLCDoesNotOverflowWhenFull(void) {
     NewPLC(PlcId_TitleCard);
     AddPLC(PlcId_GHZ);
     AddPLC(PlcId_Main2);
+    AddPLC(PlcId_LZAnimals); // top up to 16, see PLC_DrainsExactlyFullQueue
 
     for (int i = 0; i < 16; i++)
         CHECK(plc_buffer[i].art != NULL);

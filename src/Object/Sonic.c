@@ -7,6 +7,7 @@
 #include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Object.h"
+#include "Object/Splash.h"
 #include "PLC.h"
 #include "Sound.h"
 
@@ -25,6 +26,16 @@ uint8_t sgfx_buffer[SONIC_DPLC_SIZE];
 
 int16_t track_sonic[0x40][2];
 word_u track_pos;
+
+// Spin Dash state (no room left in Scratch_Sonic, so kept here like track_sonic/track_pos)
+static uint8_t spindash_flag;
+static uint16_t spindash_count;
+
+// Skid dust spawn throttle (matches Sonic 2's Obj08's own obj08_dust_timer)
+static uint8_t skid_dust_timer;
+
+// Temporary alias until the driver hybridization work lands the real SFX.
+#define sfx_SpinDash sfx_Roll
 
 uint8_t dbg_ang0, dbg_ang1, dbg_ang2, dbg_ang3; // 0xFFEC-0xFFEF
 
@@ -794,6 +805,8 @@ signed int HurtSonic(Object *obj, Object *src)
 
     // Set Sonic state
     obj->routine = 4;
+    spindash_flag &= ~1;
+    objects[0x1B].anim = SplashAnim_Null;
     Sonic_ResetOnFloor(obj);
     obj->status.p.f.in_air = true;
 
@@ -920,6 +933,14 @@ static void Sonic_MoveLeft(Object *obj) {
             obj->anim = SonAnimId_Stop;
             obj->status.p.f.x_flip = false;
             PlaySound(sfx_Skid);
+            if (air >= 12) {
+                if (skid_dust_timer == 0) {
+                    skid_dust_timer = 4;
+                    Splash_SpawnSkidDust(obj);
+                } else {
+                    skid_dust_timer--;
+                }
+            }
         }
     }
 }
@@ -952,6 +973,14 @@ static void Sonic_MoveRight(Object *obj) {
             obj->anim = SonAnimId_Stop;
             obj->status.p.f.x_flip = true;
             PlaySound(sfx_Skid);
+            if (air >= 12) {
+                if (skid_dust_timer == 0) {
+                    skid_dust_timer = 4;
+                    Splash_SpawnSkidDust(obj);
+                } else {
+                    skid_dust_timer--;
+                }
+            }
         }
     }
 }
@@ -1010,12 +1039,25 @@ static void Sonic_Move(Object *obj) {
             LookUpDown:;
                 if (jpad1_hold2 & JPAD_UP) {
                     obj->anim = SonAnimId_LookUp;
+                    // Wait 2 seconds (120 frames) before the camera actually
+                    // starts panning up, matching the Spin Dash guide's
+                    // camera-delay addition
+                    if (cam_y_delay < 120) {
+                        cam_y_delay++;
+                        goto Sonic_ResetScr_Part2;
+                    }
+                    cam_y_delay = 120;
                     if (look_shift != (200 + SCREEN_TALLADD2))
                         look_shift += 2;
                     goto DoFriction;
                 }
                 if (jpad1_hold2 & JPAD_DOWN) {
                     obj->anim = SonAnimId_Duck;
+                    if (cam_y_delay < 120) {
+                        cam_y_delay++;
+                        goto Sonic_ResetScr_Part2;
+                    }
+                    cam_y_delay = 120;
                     if (look_shift != (8 + SCREEN_TALLADD2))
                         look_shift -= 2;
                     goto DoFriction;
@@ -1025,6 +1067,9 @@ static void Sonic_Move(Object *obj) {
 
     // Reset camera to neutral position
     Sonic_ResetScr:;
+        cam_y_delay = 0;
+
+    Sonic_ResetScr_Part2:;
         if (look_shift < (96 + SCREEN_TALLADD2))
             look_shift += 2;
         else if (look_shift > (96 + SCREEN_TALLADD2))
@@ -1356,10 +1401,10 @@ static void Sonic_Loops(Object *obj) {
     if (LEVEL_ZONE(level_id) != ZoneId_SLZ && LEVEL_ZONE(level_id) != ZoneId_GHZ)
         return;
 
-    // Get chunk we're on
-    int16_t cx = (obj->pos.l.x.f.u >> 8) & 0x3F;
-    int16_t cy = (obj->pos.l.y.f.u >> 8) & 0x7;
-    uint8_t chunk = level_layout[cy][0][cx];
+    // Get chunk we're on (128x128 px chunks, see FindNearestTile)
+    int16_t cx = (obj->pos.l.x.f.u >> 7) & (LEVEL_LAYOUT_COLS - 1);
+    int16_t cy = (obj->pos.l.y.f.u >> 7) & (LEVEL_LAYOUT_ROWS - 1);
+    uint8_t chunk = LEVEL_LAYOUT_FG(cy)[cx];
 
     // Handle S-tubes
     if (chunk == level_schunks[1][0] || chunk == level_schunks[1][1]) {
@@ -1398,6 +1443,163 @@ static void Sonic_Loops(Object *obj) {
     } else {
         // Return to high plane
         obj->render.f.player_loop = false;
+    }
+}
+
+// Spin Dash
+static void Sonic_Spindash_ResetScr(Object *obj) {
+    // Reset camera to neutral position (same logic as Sonic_Move/Sonic_JumpDirection)
+    if (look_shift < (96 + SCREEN_TALLADD2))
+        look_shift += 2;
+    else if (look_shift > (96 + SCREEN_TALLADD2))
+        look_shift -= 2;
+
+    // Since we skip the rest of the normal-movement case, run these manually
+    Sonic_LevelBound(obj);
+    Sonic_AnglePos(obj);
+}
+
+static void Sonic_ChargingSpindash(Object *obj) {
+    obj->anim = SonAnimId_SpinDash; // make sure Spin Dash animation stays
+
+    // Charge decay
+    spindash_count -= spindash_count >> 5;
+
+    if (!(jpad1_press2 & (JPAD_A | JPAD_C | JPAD_B))) {
+        Sonic_Spindash_ResetScr(obj);
+        return;
+    }
+
+    // Restart Spin Dash animation
+    obj->anim = SonAnimId_SpinDash;
+    obj->anim_frame = 0;
+    obj->frame_time.b = 0;
+    PlaySound(sfx_SpinDash);
+
+    spindash_count += 0x200;
+    if (spindash_count > 0x800)
+        spindash_count = 0x800;
+
+    Sonic_Spindash_ResetScr(obj);
+}
+
+static void Sonic_ReleaseSpindash(Object *obj) {
+    spindash_flag &= ~1;
+    obj->y_rad = SONIC_BALL_HEIGHT;
+    obj->x_rad = SONIC_BALL_WIDTH;
+    obj->pos.l.y.f.u += SONIC_BALL_SHIFT;
+    obj->anim = SonAnimId_Roll;
+    obj->status.p.f.in_ball = true;
+    PlaySound(sfx_Teleport);
+    objects[0x1B].anim = SplashAnim_Null;
+
+    // Get release speed from number of revs performed
+    int16_t rev = (int16_t)(spindash_count >> 1);
+    int16_t speed = rev + 0x800;
+    if (obj->status.p.f.x_flip)
+        speed = -speed;
+    obj->inertia = speed;
+
+    // Camera delay (based on rev count, before the base speed was added)
+    uint16_t cam = (uint16_t)rev;
+    cam <<= 1;
+    cam &= 0x1F00;
+    cam = (uint16_t)(-(int16_t)cam);
+    cam += 0x2000;
+    cam_x_delay = cam;
+
+    // Set new velocities immediately (same convention as Sonic_Move/Sonic_RollSpeed: cos->xsp, sin->ysp)
+    int16_t sin, cos;
+    CalcSine(obj->angle, &sin, &cos);
+    obj->xsp = (int16_t)(((int32_t)cos * obj->inertia) >> 8);
+    obj->ysp = (int16_t)(((int32_t)sin * obj->inertia) >> 8);
+
+    Sonic_Spindash_ResetScr(obj);
+}
+
+static void Sonic_UpdateSpindash(Object *obj) {
+    if (jpad1_hold2 & JPAD_DOWN) {
+        Sonic_ChargingSpindash(obj);
+        return;
+    }
+    Sonic_ReleaseSpindash(obj);
+}
+
+static bool Sonic_SpinDash(Object *obj) {
+    if (spindash_flag & 1) {
+        Sonic_UpdateSpindash(obj);
+        return true;
+    }
+
+    if (obj->anim != SonAnimId_Duck)
+        return false;
+    if (!(jpad1_press2 & (JPAD_A | JPAD_C | JPAD_B)))
+        return false;
+
+    obj->anim = SonAnimId_SpinDash;
+    PlaySound(sfx_SpinDash);
+    spindash_flag |= 1;
+    spindash_count = 0;
+    if (air >= 12)
+        objects[0x1B].anim = SplashAnim_Dash;
+
+    // Because we're skipping the rest of the normal-movement case
+    Sonic_LevelBound(obj);
+    Sonic_AnglePos(obj);
+    return true;
+}
+
+// Water entry/exit: adjusts speed for being underwater and spawns the
+// splash effect. Stage 1 of the water subsystem -- air/drowning countdown,
+// bubbles, and real dynamic water height are still TODO.
+static void Sonic_Water(Object *obj) {
+    if (LEVEL_ZONE(level_id) != ZoneId_LZ)
+        return;
+
+    if (obj->pos.l.y.f.u < wtr_pos1) {
+        // Above water
+        if (!obj->status.p.f.underwater)
+            return;
+        obj->status.p.f.underwater = false;
+
+        sonspeed_max = 0x600;
+        sonspeed_acc = 0xC;
+        sonspeed_dec = 0x80;
+        if (shoes) {
+            sonspeed_max = 0xC00;
+            sonspeed_acc = 0x18;
+        }
+
+        obj->ysp = (int16_t)(obj->ysp << 1); // double Y-speed while exiting water
+        if (obj->ysp == 0)
+            return;
+        if (obj->ysp < -0x1000)
+            obj->ysp = -0x1000; // cap max speed on leaving water
+
+        objects[0x1B].anim = SplashAnim_Splash;
+        PlaySound(sfx_Splash);
+    } else {
+        // Underwater
+        if (obj->status.p.f.underwater)
+            return;
+        obj->status.p.f.underwater = true;
+
+        sonspeed_max = 0x300;
+        sonspeed_acc = 0x6;
+        sonspeed_dec = 0x40;
+        if (shoes) {
+            sonspeed_max = 0x600;
+            sonspeed_acc = 0xC;
+            sonspeed_dec = 0x80;
+        }
+
+        obj->xsp >>= 1; // half X-speed when entering water
+        obj->ysp >>= 2; // quarter Y-speed when entering water
+        if (obj->ysp == 0)
+            return;
+
+        objects[0x1B].anim = SplashAnim_Splash;
+        PlaySound(sfx_Splash);
     }
 }
 
@@ -1616,6 +1818,8 @@ void Obj_Sonic(Object* obj) {
         if (!(lock_multi & 1)) {
             switch ((obj->status.p.f.in_ball << 2) | (obj->status.p.f.in_air << 1)) {
             case 0: // Not in ball, not in air
+                if (Sonic_SpinDash(obj))
+                    break;
                 if (Sonic_Jump(obj))
                     break;
                 Sonic_SlopeResist(obj);
@@ -1627,6 +1831,7 @@ void Obj_Sonic(Object* obj) {
                 Sonic_SlopeRepel(obj);
                 break;
             case 2: // Not in ball, in air
+                spindash_flag &= ~1; // see-saw bug fix: don't get stuck charging if launched airborne
                 Sonic_JumpHeight(obj);
                 Sonic_JumpDirection(obj);
                 Sonic_LevelBound(obj);
@@ -1647,6 +1852,7 @@ void Obj_Sonic(Object* obj) {
                 Sonic_SlopeRepel(obj);
                 break;
             case 6: // In ball, in air
+                spindash_flag &= ~1; // see-saw bug fix
                 Sonic_JumpHeight(obj);
                 Sonic_JumpDirection(obj);
                 Sonic_LevelBound(obj);
@@ -1662,7 +1868,7 @@ void Obj_Sonic(Object* obj) {
         // Handle general player state stuff
         Sonic_Display(obj);
         Sonic_RecordPosition(obj);
-        // Sonic_Water(obj); //TODO
+        Sonic_Water(obj);
 
         // Copy angle buffers
         scratch->front_angle = angle_buffer0;

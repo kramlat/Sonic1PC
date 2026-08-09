@@ -10,11 +10,27 @@
 #define LEVEL_INDEX(id)       ((LEVEL_ZONE(id) << 2) | LEVEL_ACT(id))
 
 //Level bitfield structures
-#define META_SOLID_LRB 0x4000
-#define META_SOLID_TOP 0x2000
-#define META_Y_FLIP    0x1000
-#define META_X_FLIP    0x0800
-#define META_TILE      0x07FF
+//Dual collision-path block word format (matches s1disasm's ProjectSonic1TwoEight
+//branch / Sonic 2 & 3K convention): bits 0-9 = tile index (0-1023), bit10 =
+//x-flip, bit11 = y-flip, bit12 = path-1 top-solid, bit13 = path-1 LRB-solid,
+//bit14 = path-2 top-solid, bit15 = path-2 LRB-solid. Path selection (which
+//pair of solid bits to test, and which of the two heightmap arrays below to
+//consult) is runtime state set by the path-swapper object (Obj03), not baked
+//into the block data itself.
+#define META_SOLID_TOP_1 0x1000
+#define META_SOLID_LRB_1 0x2000
+#define META_SOLID_TOP_2 0x4000
+#define META_SOLID_LRB_2 0x8000
+#define META_Y_FLIP       0x0800
+#define META_X_FLIP       0x0400
+#define META_TILE         0x03FF
+//Bare names used by every existing FindFloor/FindWall call site: alias to
+//path 1 so those callers keep testing the exact same bit they always have.
+//The actual bit tested at runtime is shifted by collision_path*2 inside
+//LevelCollision.c, which is what makes path 2 apply without touching every
+//call site.
+#define META_SOLID_TOP META_SOLID_TOP_1
+#define META_SOLID_LRB META_SOLID_LRB_1
 
 //Level types
 typedef enum {
@@ -39,16 +55,20 @@ typedef struct {
 	uint16_t state[16][2];
 } Oscillatory;
 
+// 3 longs per zone, matching s2disasm's LevelArtPointers (12 bytes/zone,
+// zone_id*12): each long's upper byte is a small metadata value, the lower
+// 3 bytes are (conceptually) a pointer to the actual data. Kept as plain
+// separate C fields rather than literally bit-packed -- there's no ROM-space
+// benefit to packing a real pointer with metadata on a PC target, only the
+// conceptual 3-pair grouping is preserved. (music/pad/pal_dup from the old
+// 9-field struct were dead fields, never read anywhere -- dropped.)
 typedef struct {
 	uint8_t plc1;
 	const uint8_t *art;
 	uint8_t plc2;
 	const uint8_t *map16;
-	const uint8_t *map256;
-	uint8_t pad;
-	uint8_t music;
-	uint8_t pal_dup;
 	uint8_t pal;
+	const uint8_t *map128;
 } LevelHeader;
 
 typedef struct {
@@ -143,11 +163,32 @@ extern uint8_t wtr_state;
 extern bool hblank_pal;         //Set every VBlank; tells HBlank() to swap CRAM to the water palette
 extern bool doupdatesinhblank;  //Set when VBlank ran out of time; defers standard transfers to HBlank
 
-extern uint8_t *const level_map256;
+extern uint8_t *const level_map128;
 extern uint8_t level_map16[0x1800];
-extern uint8_t level_layout[8][2][0x40];
-extern uint8_t level_schunks[2][2];
-extern const uint8_t *coll_index;
+//Interleaved single-buffer level layout (matches s1disasm's ProjectSonic1TwoEight
+//branch / Sonic 2 convention): each row is a fixed 0x100-byte stride, with
+//foreground chunk IDs in the first 0x80 bytes and background chunk IDs in the
+//second 0x80 bytes of that same row. Use level_layout[row]/level_layout[row]+0x80
+//(or the LEVEL_LAYOUT_FG/LEVEL_LAYOUT_BG helpers) rather than indexing a
+//separate plane dimension.
+#define LEVEL_LAYOUT_ROWS 16
+#define LEVEL_LAYOUT_ROW_STRIDE 0x100
+#define LEVEL_LAYOUT_COLS 0x80
+#define LEVEL_LAYOUT_FG(row) (&level_layout[(row) * LEVEL_LAYOUT_ROW_STRIDE])
+#define LEVEL_LAYOUT_BG(row) (&level_layout[(row) * LEVEL_LAYOUT_ROW_STRIDE + LEVEL_LAYOUT_COLS])
+extern uint8_t level_layout[LEVEL_LAYOUT_ROWS * LEVEL_LAYOUT_ROW_STRIDE];
+extern uint8_t level_schunks[2][2]; //TODO: retired once Obj03/path-swapper fully replaces Sonic_Loops' special-chunk check
+//Dual collision heightmap arrays (collision curve ID -> 16 height bytes),
+//selected at runtime by the active path (see META_SOLID_TOP_1/2,
+//META_SOLID_LRB_1/2). coll_index[0] = path 1 (primary), coll_index[1] = path
+//2 (secondary). 0x400 bytes/path is headroom over the largest existing zone's
+//real data (SBZ at 608 bytes) -- these are decompressed via KosDec at level
+//load time, not indexed directly against ROM like the old single pointer was.
+extern uint8_t coll_index[2][0x400];
+//Active collision path (0 = path 1/primary, 1 = path 2/secondary). Set by
+//the path-swapper object (Obj03) once it's ported; defaults to 0, which
+//reproduces Sonic 1's original single-path behaviour exactly.
+extern uint8_t collision_path;
 
 extern Object objects[OBJECTS];
 extern Object *const player;

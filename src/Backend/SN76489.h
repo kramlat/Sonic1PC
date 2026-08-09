@@ -2,6 +2,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Emulates the SN76489 PSG (Programmable Sound Generator): 3 square-wave
 // tone channels and 1 noise channel, each with its own 4-bit attenuation.
 // One instance is one physical chip -- Sound.h's dual-chip-set design (see
@@ -48,3 +52,7 @@ void SN76489_Write(SN76489 *chip, uint8_t value);
 // (the Genesis feeds it the same ~3.58MHz/3.58MHz NTSC/PAL clock as the
 // YM2612 gets its own divided-down clock from).
 void SN76489_Generate(SN76489 *chip, int32_t *out, uint32_t count, uint32_t sample_rate, uint32_t clock_rate);
+
+#ifdef __cplusplus
+}
+#endif

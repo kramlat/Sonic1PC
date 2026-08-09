@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // Diagnostic trace (see Sound_SetTrace): logs every note/duration event
@@ -9,10 +10,17 @@
 // .asm source directly instead of guessing from audio alone.
 static int sound_trace_enabled = 0;
 void Sound_SetTrace(int enabled) { sound_trace_enabled = enabled; }
-#define SOUND_TRACE(...)               \
-    do {                                \
-        if (sound_trace_enabled)        \
-            fprintf(stderr, __VA_ARGS__); \
+// Running Sound_Frame() count, printed as every trace line's prefix -- lets
+// two channels' event timing be diffed by exact frame number instead of by
+// eye, e.g. to check whether two channels sharing a voice for a rhythmically
+// -locked part actually line up or have drifted apart.
+static uint32_t sound_trace_frame = 0;
+#define SOUND_TRACE(...)                          \
+    do {                                            \
+        if (sound_trace_enabled) {                  \
+            fprintf(stderr, "[%u] ", sound_trace_frame); \
+            fprintf(stderr, __VA_ARGS__);            \
+        }                                            \
     } while (0)
 
 // SFX channel IDs and DAC sample IDs -- matches smps2asmc/smps.h's cPSG1..
@@ -26,7 +34,12 @@ void Sound_SetTrace(int enabled) { sound_trace_enabled = enabled; }
 #define SND_cFM3   0x02
 #define SND_cFM4   0x04
 #define SND_cFM5   0x05
-#define SND_cFM6   0x06
+// No SND_cFM6 -- $06 is a Sonic 3/S&K/S3D-only channel ID ("overrides DAC");
+// _smps2asm_inc.asm's smpsHeaderSFXChannel macro makes it a hard compile-time
+// fatal for Sonic 1/2 driver versions ("unsupported... change it to another
+// channel"), and no SFX file in this project uses it. Sonic 1's SFX RAM
+// layout only ever allocates FM3-FM5 (3 channels) for regular SFX and a
+// single fixed FM4 slot for the one special SFX ($D0, Waterfall).
 #define SND_dKick  0x81
 
 SoundChipSet sound_music;
@@ -49,6 +62,12 @@ void Sound_Init(void) {
     // playback is actually triggered.
     sound_music.dac_pan = 0xC0;
     sound_sfx.dac_pan = 0xC0;
+    // -1, not the zero-initialized default -- 0 is a real Hi-Timpani variant
+    // index, and (for dac_pitch_override_sample) DAC_SAMPLE_KICK.
+    sound_music.dac_timpani_variant = -1;
+    sound_sfx.dac_timpani_variant = -1;
+    sound_music.dac_pitch_override_sample = -1;
+    sound_sfx.dac_pitch_override_sample = -1;
 }
 
 // ---------------------------------------------------------------------
@@ -216,9 +235,13 @@ static const uint8_t *const sound_table[0x100] = {
 // DAC/DPCM percussion samples
 // ---------------------------------------------------------------------
 
+#include "Resource/DAC/bongo.h"
+#include "Resource/DAC/clap.h"
 #include "Resource/DAC/kick.h"
+#include "Resource/DAC/scratch.h"
 #include "Resource/DAC/snare.h"
 #include "Resource/DAC/timpani.h"
+#include "Resource/DAC/tom.h"
 #include "Resource/PCM/sega.h"
 
 typedef struct {
@@ -230,8 +253,53 @@ typedef struct {
 static const DACSample dac_samples[DAC_SAMPLE_COUNT] = {
     [DAC_SAMPLE_KICK] = {DAC_kick, sizeof(DAC_kick), 8250},
     [DAC_SAMPLE_SNARE] = {DAC_snare, sizeof(DAC_snare), 24000},
-    [DAC_SAMPLE_TIMPANI] = {DAC_timpani, sizeof(DAC_timpani), 7250},
+    // This is the DEFAULT/untriggered rate for plain Timpani ($83) only --
+    // was 7250 Hz, confirmed by ear via ParadoxComposer's DAC preview to be
+    // roughly an octave too low, doubled to 14500 Hz. Unlike Kick/Snare
+    // above, no real disassembly source has confirmed this specific value
+    // (the $88-$8B pitch-shifted variants below DO now have a real source
+    // -- see timpani_variant_rate_hz -- but that table only covers the
+    // post-override case; $83's own default before any $88-$8B has ever
+    // fired is still this doubled-guess value, not independently verified).
+    // Cross-referencing Sonic 2's own base*scale formula against this
+    // project's real Timpani variant table implies a base closer to
+    // ~7300-7500 Hz -- NOT changed, since Sonic 2's Kick/Snare/Timpani
+    // sound the same as Sonic 1's but are confirmed to be different DPCM
+    // recordings, so that formula doesn't transfer to this project's own
+    // sample data.
+    [DAC_SAMPLE_TIMPANI] = {DAC_timpani, sizeof(DAC_timpani), 14500},
+    // Sonic 2-exclusive base samples (per your direction), folded into this
+    // project's own extended DAC scheme -- see the DAC_SAMPLE_* enum
+    // comment in Sound.h and the $81-$92 dispatch comment below. Base
+    // rates all directly confirmed (not guessed/derived), same standard as
+    // Kick/Snare above.
+    [DAC_SAMPLE_SCRATCH] = {DAC_scratch, sizeof(DAC_scratch), 15000},
+    [DAC_SAMPLE_CLAP] = {DAC_clap, sizeof(DAC_clap), 17000},
+    [DAC_SAMPLE_TOM] = {DAC_tom, sizeof(DAC_tom), 13500},
+    [DAC_SAMPLE_BONGO] = {DAC_bongo, sizeof(DAC_bongo), 7375},
 };
+
+// Real driver's DAC_sample_rate table (byte_71CC4, referenced from
+// DACUpdateTrack) -- each entry is dpcmLoopCounter(Hz) for note bytes
+// $88-$8B (Hi/Mid/Low/Floor), transcribed directly from the real
+// disassembly rather than an earlier scale-factor approximation this
+// replaced (1.30/1.20/0.97/0.95 off the -- itself uncertain -- base rate
+// above). Real Sonic 1's own table continues with $8C/$8D (both
+// dpcmLoopCounter saturating at $FF, i.e. "so slow you may want to skip
+// them" per its own comment) and $8E/$8F (no entry at all) -- not
+// implemented here, since this project's own $8C+ range is used for Tom
+// variants instead (see the $81-$92 dispatch comment below).
+static const uint32_t timpani_variant_rate_hz[4] = {9750, 8750, 7150, 7000};
+
+// Tom/Bongo pitch-shifted variants (note bytes $8C-$8E/$8F-$91) -- Sonic
+// 2-exclusive, per your direction. Unlike Timpani above, no standalone
+// absolute-Hz disassembly table was available for these; instead
+// transcribed from Sonic 2's own dac_sample_metadata macro (base_rate *
+// scale, scale factors 1.70/1.30/1.10 for Tom and 2.00/1.75/1.30 for
+// Bongo) applied against DAC_SAMPLE_TOM/BONGO's own confirmed base rates
+// above (13500 Hz, 7375 Hz), then rounded to the nearest whole Hz.
+static const uint32_t tom_variant_rate_hz[3] = {22950, 17550, 14850};   // $8C/$8D/$8E: Mid/Low/Floor-Tom
+static const uint32_t bongo_variant_rate_hz[3] = {14750, 12906, 9588}; // $8F/$90/$91: Hi/Mid/Low-Bongo
 
 // JMan2050's DAC decode table (see zDACDecodeTbl in the real driver): each
 // 4-bit nibble is a signed step added to an 8-bit accumulator, giving cheap
@@ -343,8 +411,10 @@ static void DAC_Trigger(SoundChipSet *cs, int sample_id) {
     if (sample_id < 0 || sample_id >= DAC_SAMPLE_COUNT)
         return;
     cs->dac_data = dac_samples[sample_id].data;
+    cs->dac_sample_id = sample_id;
     cs->dac_nibble_count = dac_samples[sample_id].length * 2;
-    cs->dac_rate = dac_samples[sample_id].rate;
+    cs->dac_rate = (sample_id == cs->dac_pitch_override_sample) ? cs->dac_pitch_override_rate
+                                                                  : dac_samples[sample_id].rate;
     cs->dac_nibble_pos = 0;
     cs->dac_accum = 0x80;
     cs->dac_playing = 1;
@@ -424,6 +494,8 @@ static void FMPortChannel(int channel_index, int *port_offset, int *chan_in_port
 }
 
 static void FM_WriteReg(YM2612 *fm, int port_offset, uint8_t reg, uint8_t data) {
+    if (getenv("SONIC_FM_TRACE"))
+        fprintf(stderr, "FMREG port=%d reg=$%02X data=$%02X\n", port_offset, reg, data);
     YM2612_Write(fm, (uint32_t)port_offset, reg);
     YM2612_Write(fm, (uint32_t)port_offset + 1, data);
 }
@@ -438,13 +510,44 @@ static uint8_t FM_ClampTL(int tl) { return (uint8_t)(tl < 0 ? 0 : (tl > 127 ? 12
 // for PSG) instead just updates sch->volume without calling this -- for FM
 // channels that only takes effect "on next voice change", i.e. the next
 // time FM_LoadVoice folds sch->volume in below.
+
+// Real driver's FMSlotMask (s1.sounddriver.asm): per-algorithm bitmask of
+// which operators are "carriers" -- the ones an algorithm actually routes
+// to audible output. Only carriers get the track's volume attenuation
+// added to their TL; modulator operators keep their authored TL untouched,
+// since changing a modulator's level changes the FM modulation depth (the
+// timbre itself), not just the loudness. Indexed by algorithm (0-7 real
+// hardware, 8-15 fmcore-original -- see fm_voice.c's own comment on each);
+// bit order matches the real table's own op1,op3,op2,op4 write order (SCHG
+// FM voice format table / FMInstrumentTLTable -- see FM_LoadVoice's own
+// comment), not natural op order -- FM_SLOT_BIT[] below remaps logical op
+// index to that bit position. (This was previously {3,2,1,0}, derived
+// against the op4,op3,op2,op1 order used before that fix -- left stale when
+// the write order changed, silently marking op1 as algorithm 0-3's carrier
+// instead of the real op4, and similarly wrong elsewhere.) Entries 8-15
+// derived directly from FM_VOICE_ALGORITHM_CONNECT[8..15]'s own carrier
+// sets (fmcore/fm_voice.c), same FM_SLOT_BIT remap applied for consistency.
+static const uint8_t FM_SLOT_MASK[16] = {8, 8, 8, 8, 0xA, 0xE, 0xE, 0xF, 8, 0xC, 8, 8, 0xA, 0xF, 0xF, 0xF};
+static const int FM_SLOT_BIT[4] = {0, 2, 1, 3}; // natural op1..op4 -> FMSlotMask bit position
+
+static int FM_IsCarrier(uint8_t algorithm, int op) {
+    return (FM_SLOT_MASK[algorithm & 0xF] >> FM_SLOT_BIT[op]) & 1;
+}
+
 static void FM_ApplyVolume(YM2612 *fm, SoundChannel *sch, int channel_index) {
     int port, ch;
     FMPortChannel(channel_index, &port, &ch);
-    static const int op_to_slot[4] = {0, 2, 1, 3};
     for (int op = 0; op < 4; op++) {
-        int slot = op_to_slot[op] * 4;
-        FM_WriteReg(fm, port, (uint8_t)(0x40 + slot + ch), FM_ClampTL(sch->fm_base_tl[op] + sch->volume));
+        int slot = op * 4; // register offset per operator is natural: op1=+0x00, op2=+0x04, op3=+0x08, op4=+0x0C
+        int is_carrier = FM_IsCarrier(sch->feedback_algo, op);
+        int add = is_carrier ? sch->volume : 0;
+        // Debug-only mute (ParadoxComposer's Channels panel): only carrier
+        // operators reach the audible mix, so only those need forcing to
+        // max attenuation -- modulator operators keep running normally
+        // (they're inaudible on their own either way), which also means
+        // un-muting doesn't need to restore any modulator state.
+        uint8_t tl = (sch->debug_muted && is_carrier) ? 0x7F : FM_ClampTL(sch->fm_base_tl[op] + add);
+        FM_WriteReg(fm, port, (uint8_t)(0x40 + slot + ch), tl);
     }
 }
 
@@ -455,43 +558,72 @@ static void FM_LoadVoice(YM2612 *fm, SoundChannel *sch, int channel_index, const
     int port, ch;
     FMPortChannel(channel_index, &port, &ch);
 
-    FM_WriteReg(fm, port, (uint8_t)(0xB0 + ch), voice[0] & 0x3F); // algorithm/feedback (top 2 bits unused here)
+    // Algorithm is 4 bits (0-7 real hardware, 8-15 fmcore-original -- see
+    // fm_voice.c's own comment): low 3 bits as always, plus bit7 as the
+    // high algorithm bit ("0"=real algorithm 0-7, "1"=custom fmcore
+    // algorithm 8-15). Real hardware register $B0 leaves bits 6-7 unused/
+    // ignored, so this is harmless if this exact byte were ever loaded on
+    // real silicon (or the ymfm backend) -- it just sees algorithm 0-7's
+    // low bits and silently ignores bit7. Feedback stays bits3-5, unchanged
+    // from real hardware's own layout.
+    sch->feedback_algo = (uint8_t)((((voice[0] >> 7) & 1) << 3) | (voice[0] & 7));
+    FM_WriteReg(fm, port, (uint8_t)(0xB0 + ch), voice[0]); // algorithm(+high bit)/feedback -- every bit meaningful or genuinely inert on both backends
 
-    // voice[] is in natural op1,op2,op3,op4 order (the Sonic 2 voice
-    // format -- see the "order" array in smps.c's smpsVcTotalLevel), but
-    // the YM2612's physical slot registers are hardwired 1,3,2,4 regardless
-    // of voice format. Remap logical operator -> physical slot here.
-    static const int op_to_slot[4] = {0, 2, 1, 3};
+    // voice[] is stored op1,op3,op2,op4 per row (see smps.c's
+    // smpsVcTotalLevel comment -- matches the SCHG FM voice format table
+    // and the real driver's FMInstrumentOperatorTable register-write
+    // sequence). For natural operator index op (0=op1..3=op4), its byte
+    // position within each row is pos_map[op] below (self-inverse: op2 and
+    // op3 swap positions, op1/op4 stay put). The YM2612 register address
+    // per operator is separately just op*4, naturally sequential -- no
+    // hardware remap needed.
+    static const int pos_map[4] = {0, 2, 1, 3};
     for (int op = 0; op < 4; op++) {
-        int slot = op_to_slot[op] * 4;
-        FM_WriteReg(fm, port, (uint8_t)(0x30 + slot + ch), voice[1 + op]);  // DT/MUL
-        FM_WriteReg(fm, port, (uint8_t)(0x50 + slot + ch), voice[5 + op]);  // RS/AR
-        FM_WriteReg(fm, port, (uint8_t)(0x60 + slot + ch), voice[9 + op]);  // AM/D1R
-        FM_WriteReg(fm, port, (uint8_t)(0x70 + slot + ch), voice[13 + op]); // D2R
-        FM_WriteReg(fm, port, (uint8_t)(0x80 + slot + ch), voice[17 + op]); // D1L/RR
+        int slot = op * 4;
+        int pos = pos_map[op];
+        FM_WriteReg(fm, port, (uint8_t)(0x30 + slot + ch), voice[1 + pos]);  // DT/MUL
+        FM_WriteReg(fm, port, (uint8_t)(0x50 + slot + ch), voice[5 + pos]);  // RS/AR
+        FM_WriteReg(fm, port, (uint8_t)(0x60 + slot + ch), voice[9 + pos]);  // AM/D1R
+        FM_WriteReg(fm, port, (uint8_t)(0x70 + slot + ch), voice[13 + pos]); // D2R
+        FM_WriteReg(fm, port, (uint8_t)(0x80 + slot + ch), voice[17 + pos]); // D1L/RR
 
-        uint8_t base_tl = voice[21 + op] & 0x7F;
+        uint8_t base_tl = voice[21 + pos] & 0x7F;
         sch->fm_base_tl[op] = base_tl;
-        FM_WriteReg(fm, port, (uint8_t)(0x40 + slot + ch), FM_ClampTL(base_tl + sch->volume));
+        int add = FM_IsCarrier(sch->feedback_algo, op) ? sch->volume : 0;
+        FM_WriteReg(fm, port, (uint8_t)(0x40 + slot + ch), FM_ClampTL(base_tl + add));
     }
 }
 
-// Pan is whole-channel only -- hard left, hard right, center (both), or
-// silent (neither) -- not a continuous position. panLeft/panRight/
-// panCentre/panNone in smps.h already match the L/R bits of register $B4
-// directly, so the coordination-flag parameter byte can be written through
-// as-is (AMS/FMS in the low bits aren't wired up, so this zeroes them).
+// Pan direction is whole-channel only -- hard left, hard right, center
+// (both), or silent (neither) -- not a continuous position. panLeft/
+// panRight/panCentre/panNone in smps.h already match the L/R bits of
+// register $B4 directly, and the SAME byte's bits5-4 (AMS) are a real,
+// supported register field too, so the coordination-flag parameter byte is
+// written through unmasked instead of zeroing them. AMS only has an
+// audible effect once something enables the chip-wide LFO (register $22)
+// -- no coordination flag writes that yet, so today AMS bits are silently
+// inert, exactly as they'd be on real hardware. bits2-0 (FMS/PMS, pitch
+// modulation depth) are a deliberate fixed 0/off, not a gap -- see
+// YM2612_FMCore.c's own $B4-$B6 write handler comment for why.
 static void FM_SetPan(YM2612 *fm, int channel_index, uint8_t value) {
     int port, ch;
     FMPortChannel(channel_index, &port, &ch);
-    FM_WriteReg(fm, port, (uint8_t)(0xB4 + ch), value & 0xC0);
+    FM_WriteReg(fm, port, (uint8_t)(0xB4 + ch), value);
 }
 
 static void FM_KeyOnOff(YM2612 *fm, int channel_index, int on) {
+    // Diagnostic isolation only (SonicSoundWav): SONIC_FM_CHANNEL=N (0-5)
+    // silences every other FM channel's key-on so the real ROM voice/note
+    // data for just that one channel can be inspected/heard alone.
+    const char *only = getenv("SONIC_FM_CHANNEL");
+    if (only && (channel_index - SOUND_CHANNEL_FM_BASE) != atoi(only))
+        on = 0;
     int port, ch;
     FMPortChannel(channel_index, &port, &ch);
     int chan_code = ch + ((channel_index - SOUND_CHANNEL_FM_BASE >= 3) ? 4 : 0);
     uint8_t op_mask = on ? 0xF0 : 0x00; // all 4 operators on/off together
+    if (getenv("SONIC_FM_TRACE"))
+        fprintf(stderr, "FMKEY channel_index=%d chan_code=$%02X on=%d\n", channel_index, chan_code, on);
     YM2612_Write(fm, 0, 0x28);
     YM2612_Write(fm, 1, (uint8_t)(op_mask | chan_code));
 }
@@ -676,7 +808,6 @@ static int SFXChannelIndex(uint8_t chanid) {
         case SND_cFM3: return SOUND_CHANNEL_FM_BASE + 2;
         case SND_cFM4: return SOUND_CHANNEL_FM_BASE + 3;
         case SND_cFM5: return SOUND_CHANNEL_FM_BASE + 4;
-        case SND_cFM6: return SOUND_CHANNEL_FM_BASE + 5;
         default: return -1;
     }
 }
@@ -932,6 +1063,8 @@ static void StepModulation(SoundChannel *ch) {
     }
 }
 
+static int debug_isolate_voice = -1; // see Sound_DebugIsolateVoice's own comment in Sound.h
+
 static void TickChannel(SoundChipSet *cs, int channel_index) {
     SoundChannel *ch = &cs->channels[channel_index];
     if (!ch->active)
@@ -970,7 +1103,7 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
     if (psg_chan >= 0 && ch->key_on) {
         int vol = PSGStepEnvelope(ch);
         if (vol >= 0)
-            PSG_SetAttenuation(&cs->psg, psg_reg_chan, (uint8_t)vol);
+            PSG_SetAttenuation(&cs->psg, psg_reg_chan, ch->debug_muted ? 0x0F : (uint8_t)vol);
     }
 
     if (ch->duration_timeout > 0) {
@@ -1074,18 +1207,62 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
                 ResetModulationIfActive(ch);
                 SOUND_TRACE("ch%d: rest dur=%u\n", channel_index, dur);
             } else if (is_dac) {
-                // $81-$83 = Kick/Snare/Timpani (DAC_Trigger). $84-$86 are
-                // invalid/noise on real hardware -- silently ignored, same
-                // as the real driver's "do NOT play samples 84h-86h!"
-                // warning implies. $87 routes to the same "SEGA!" PCM clip
-                // as the $E1 special command (see zPlay_SegaPCM's
-                // index>=6 branch), not a DPCM sample. $88-$8B are pitch-
-                // shifted Timpani variants -- not implemented (would need
-                // per-trigger pitch, not just sample selection).
-                if (b == 0x87)
+                // Sonic1PC's own EXTENDED DAC scheme (per your direction) --
+                // a superset of real Sonic 1's own note-byte layout,
+                // incorporating Sonic 2's four extra percussion samples
+                // (Scratch/Clap/Tom/Bongo) at renumbered slots so both fit
+                // without collision (real Sonic 2 uses $83 for Clap and $87
+                // for Bongo, which real Sonic 1 already uses for Timpani and
+                // the "SEGA!" PCM clip respectively -- moved to $85/$92
+                // here instead). $81-$87 are the 7 base DPCM samples (Kick/
+                // Snare/Timpani/Scratch/Clap/Tom/Bongo, one DAC_Trigger
+                // each). $88-$91 are pitch-shifted variants of Timpani/Tom/
+                // Bongo -- same DPCM data as their own base sample, just
+                // played back at a different rate (real driver's
+                // DACUpdateTrack: any sample byte with bit 3 set gets
+                // rewritten to its base sample after stashing a rate into
+                // zTimpani_Pitch -- see timpani_variant_rate_hz above for
+                // the real per-variant Hz values transcribed directly from
+                // Sonic 1's own DAC_sample_rate/byte_71CC4 table, and
+                // tom_variant_rate_hz/bongo_variant_rate_hz for Tom/Bongo,
+                // derived from Sonic 2's dac_sample_metadata scale factors
+                // -- base_rate*scale -- against their own confirmed base
+                // rates). $92 is the "SEGA!" PCM clip (was $87 in real
+                // Sonic 1). Pitch overrides persist across other samples
+                // playing in between, same as real hardware's "this
+                // affects the raw pitch of the base sample, meaning it will
+                // use this value from then on" -- see
+                // cs->dac_pitch_override_sample/rate. NOTE: this project
+                // models that persistence with a single shared
+                // override-sample/rate pair (matching real hardware's own
+                // apparent single-register redirect-and-restash mechanism,
+                // as best understood from the disassembly), so interleaving
+                // Timpani/Tom/Bongo variants (e.g. a Bongo variant right
+                // after a Timpani one) means only the MOST RECENT family's
+                // override is remembered -- not independently verified
+                // against real hardware for the 3-family case, since real
+                // Sonic 1 only ever had Timpani to test this with.
+                if (b == 0x92) {
                     PlaySegaSound_Trigger(cs);
-                else if (b <= SND_dKick + 2) // $81-$83
+                } else if (b >= 0x88 && b <= 0x8B) {
+                    cs->dac_pitch_override_sample = DAC_SAMPLE_TIMPANI;
+                    cs->dac_pitch_override_rate = timpani_variant_rate_hz[b - 0x88];
+                    cs->dac_timpani_variant = b - 0x88;
+                    DAC_Trigger(cs, DAC_SAMPLE_TIMPANI);
+                } else if (b >= 0x8C && b <= 0x8E) {
+                    cs->dac_pitch_override_sample = DAC_SAMPLE_TOM;
+                    cs->dac_pitch_override_rate = tom_variant_rate_hz[b - 0x8C];
+                    cs->dac_timpani_variant = -1;
+                    DAC_Trigger(cs, DAC_SAMPLE_TOM);
+                } else if (b >= 0x8F && b <= 0x91) {
+                    cs->dac_pitch_override_sample = DAC_SAMPLE_BONGO;
+                    cs->dac_pitch_override_rate = bongo_variant_rate_hz[b - 0x8F];
+                    cs->dac_timpani_variant = -1;
+                    DAC_Trigger(cs, DAC_SAMPLE_BONGO);
+                } else if (b >= SND_dKick && b <= SND_dKick + 6) { // $81-$87
+                    cs->dac_timpani_variant = -1;
                     DAC_Trigger(cs, b - SND_dKick);
+                }
                 ch->key_on = 1;
                 ch->note_timeout = dur;
             } else {
@@ -1093,16 +1270,33 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
                 ch->note_index = note_index;
                 ResetModulationIfActive(ch); // reset before this note's first frequency write, so modulation_val is 0 for it
                 if (psg_chan >= 0) {
-                    // A noise-redirected track has no tone register to set
-                    // -- $F3 already configured the noise mode once, and
-                    // note events from here on just gate its attenuation.
-                    if (!ch->psg_noise)
-                        PSG_SetTonePeriod(&cs->psg, psg_reg_chan, PSGPeriodForNote(note_index));
-                    PSG_SetAttenuation(&cs->psg, psg_reg_chan, ch->volume);
+                    // A noise-redirected track's own notes DO still set a
+                    // period -- just not its own (real hardware has no
+                    // period register on the noise channel at all). Real
+                    // driver's PSGUpdateFreq: when VoiceControl marks a
+                    // track as noise-redirected ($E0), it overrides the
+                    // channel-select bits to $C0 ("PSG channel 2") before
+                    // writing the frequency, unconditionally -- i.e. it
+                    // hijacks PSG channel 2's own period register. That's
+                    // exactly the register SN76489's noise generator reads
+                    // from in "sync" mode (shift_rate==3, which $F3's real
+                    // $E7 usage always selects -- see SN76489.c), so this is
+                    // how a composer actually controls noise pitch: not via
+                    // a noise-specific register (there isn't one), but by
+                    // repurposing PSG2's period register through whichever
+                    // track got redirected. Skipping this (as this code
+                    // used to) leaves the noise generator reading whatever
+                    // stale/unrelated value PSG2's own track last set,
+                    // independent of the noise track's own authored notes
+                    // -- audibly, every noise hit ends up the same pitch
+                    // regardless of what note is written.
+                    PSG_SetTonePeriod(&cs->psg, ch->psg_noise ? 2 : psg_reg_chan, PSGPeriodForNote(note_index));
+                    PSG_SetAttenuation(&cs->psg, psg_reg_chan, ch->debug_muted ? 0x0F : ch->volume);
                     ch->vol_env_index = 0; // Every new note restarts its volume envelope from the top
                 } else if (is_fm) {
                     FM_SetFrequency(cs->fm, channel_index, note_index, ch->modulation_val);
-                    FM_KeyOnOff(cs->fm, channel_index, 1);
+                    if (debug_isolate_voice < 0 || ch->voice_index == debug_isolate_voice)
+                        FM_KeyOnOff(cs->fm, channel_index, 1);
                 }
                 ch->key_on = 1;
                 // Note fill ($E8) is the number of frames the note is
@@ -1255,28 +1449,39 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
 // ---------------------------------------------------------------------
 
 static void TickChipSet(SoundChipSet *cs) {
-    DispatchQueue(cs, SOUND_QUEUE_NORMAL);
-    DispatchQueue(cs, SOUND_QUEUE_SPECIAL);
-
     if (cs->paused) // Sound_Pause() -- only sound_music ever sets this
         return;
 
-    // Shared tempo governor -- matches the real driver's TempoWait: every
-    // channel ticks every frame unconditionally (see TickChannel's own
-    // unconditional duration_timeout-- at its top), and separately,
-    // main_tempo (0 = disabled, used for SFX -- see LoadSFX) governs a
-    // periodic +1 "extra delay" applied to every channel at once, which is
-    // what actually implements the tempo slowdown.
+    // Shared tempo governor -- matches the real driver's TempoWait exactly
+    // (s1.sounddriver.asm): every track's DurationTimeout gets an
+    // unconditional "addq.b #1", regardless of whether that track is
+    // active, and as a plain 8-bit add it wraps on overflow (255+1->0)
+    // rather than clamping. Both properties matter: skipping inactive
+    // channels or clamping at 0xFF (as this used to do) makes a channel
+    // that ever hits max duration diverge permanently from real hardware's
+    // timing by a fixed offset from that point on -- exactly the kind of
+    // per-channel desync (not a gradual drift) this was found to cause.
+    //
+    // This must run BEFORE the queue is dispatched below -- the real
+    // driver's main loop (UpdateMusic) does subq.b/TempoWait first, and
+    // only afterward calls CycleSoundQueue/PlaySoundID to load any newly
+    // queued song/SFX. Doing it in the other order (as this used to) means
+    // a freshly-loaded song's very first frame either does or doesn't get
+    // an extra tempo correction depending purely on our call order, not on
+    // anything the song data says -- a real source of startup-frame skew
+    // for whichever song/SFX happens to get dispatched this tick.
     if (cs->main_tempo != 0) {
         if (cs->tempo_timeout > 0)
             cs->tempo_timeout--;
         if (cs->tempo_timeout == 0) {
             cs->tempo_timeout = cs->main_tempo;
             for (int i = 0; i < SOUND_CHANNELS; i++)
-                if (cs->channels[i].active && cs->channels[i].duration_timeout < 0xFF)
-                    cs->channels[i].duration_timeout++;
+                cs->channels[i].duration_timeout++; // uint8_t: wraps naturally, matching addq.b
         }
     }
+
+    DispatchQueue(cs, SOUND_QUEUE_NORMAL);
+    DispatchQueue(cs, SOUND_QUEUE_SPECIAL);
 
     for (int i = 0; i < SOUND_CHANNELS; i++)
         TickChannel(cs, i);
@@ -1297,6 +1502,7 @@ static void TickChipSet(SoundChipSet *cs) {
 void Sound_Frame(void) {
     TickChipSet(&sound_music);
     TickChipSet(&sound_sfx);
+    sound_trace_frame++;
 }
 
 // `out` is interleaved stereo (2*count entries: L,R,L,R,...), additive
@@ -1309,17 +1515,151 @@ void Sound_Generate(int32_t *out, uint32_t count, uint32_t sample_rate) {
     static int32_t psg_scratch[SOUND_SCRATCH_MAX];
     uint32_t n = count < SOUND_SCRATCH_MAX ? count : SOUND_SCRATCH_MAX;
     memset(psg_scratch, 0, n * sizeof(int32_t));
-    SN76489_Generate(&sound_music.psg, psg_scratch, n, sample_rate, SOUND_PSG_CLOCK);
-    SN76489_Generate(&sound_sfx.psg, psg_scratch, n, sample_rate, SOUND_PSG_CLOCK);
+    if (!getenv("SONIC_FM_ONLY") && debug_isolate_voice < 0) {
+        SN76489_Generate(&sound_music.psg, psg_scratch, n, sample_rate, SOUND_PSG_CLOCK);
+        SN76489_Generate(&sound_sfx.psg, psg_scratch, n, sample_rate, SOUND_PSG_CLOCK);
+    }
     for (uint32_t i = 0; i < n; i++) {
         out[2 * i + 0] += psg_scratch[i];
         out[2 * i + 1] += psg_scratch[i];
     }
 
-    YM2612_Generate(sound_music.fm, out, count, sample_rate, SOUND_FM_CLOCK);
-    YM2612_Generate(sound_sfx.fm, out, count, sample_rate, SOUND_FM_CLOCK);
-    DAC_Generate(&sound_music, out, count, sample_rate);
-    DAC_Generate(&sound_sfx, out, count, sample_rate);
-    PCM_Generate(&sound_music, out, count, sample_rate);
-    PCM_Generate(&sound_sfx, out, count, sample_rate);
+    // Multiplies FM's contribution to the mix by a fixed gain before adding
+    // it in -- real TL/attenuation register math is unaffected, this only
+    // scales FM's overall level in the final mix relative to PSG/DAC, which
+    // is otherwise measurably ~5-6x quieter than PSG+DAC even when playing
+    // fully correct, byte-verified voice data (see the RMS comparison this
+    // was based on). SONIC_FM_GAIN=N overrides the default for A/B testing.
+    const char *fm_gain_env = getenv("SONIC_FM_GAIN");
+    int fm_gain = fm_gain_env ? atoi(fm_gain_env) : 10;
+    if (fm_gain != 1) {
+        static int32_t fm_scratch[2 * SOUND_SCRATCH_MAX];
+        uint32_t fn = count < SOUND_SCRATCH_MAX ? count : SOUND_SCRATCH_MAX;
+        memset(fm_scratch, 0, 2 * fn * sizeof(int32_t));
+        YM2612_Generate(sound_music.fm, fm_scratch, fn, sample_rate, SOUND_FM_CLOCK);
+        YM2612_Generate(sound_sfx.fm, fm_scratch, fn, sample_rate, SOUND_FM_CLOCK);
+        for (uint32_t i = 0; i < 2 * fn; i++)
+            out[i] += fm_scratch[i] * fm_gain;
+    } else {
+        YM2612_Generate(sound_music.fm, out, count, sample_rate, SOUND_FM_CLOCK);
+        YM2612_Generate(sound_sfx.fm, out, count, sample_rate, SOUND_FM_CLOCK);
+    }
+    if (!getenv("SONIC_FM_ONLY") && debug_isolate_voice < 0) {
+        // sound_sfx has no DAC-sample track -- real hardware's SFX RAM
+        // layout (v_sfx_track_ram) never allocates one (only FM3-5/PSG1-3),
+        // and SFXChannelIndex() never routes any SFX channel ID to
+        // SOUND_CHANNEL_DAC either, so sound_sfx.channels[DAC] can never
+        // become active. DAC_Generate(&sound_sfx,...) was a guaranteed-inert
+        // call every frame; PCM_Generate stays for both, since the separate
+        // "SEGA!" PCM clip ($E1/$87) can legitimately trigger from either
+        // chip set's own track data.
+        DAC_Generate(&sound_music, out, count, sample_rate);
+        PCM_Generate(&sound_music, out, count, sample_rate);
+        PCM_Generate(&sound_sfx, out, count, sample_rate);
+    }
+}
+
+// Debug/tooling only (ParadoxComposer): raw pointer to a song/SFX's
+// compiled data by ID, NULL if unused. Lets a standalone tool read the
+// voice bank and header directly without going through PlayMusic/LoadMusic.
+const uint8_t *Sound_DebugGetSongData(uint8_t id) { return sound_table[id]; }
+
+// Debug/tooling only (ParadoxComposer): play an arbitrary, not-yet-baked-in
+// compiled song/SFX buffer -- e.g. one just produced by json_to_header.py
+// from an edited .jsonc, with no ID in sound_table at all. PlayMusic/
+// PlaySound only accept an ID looked up in that compile-time table, so this
+// bypasses the lookup and calls straight into the same LoadMusic/LoadSFX
+// logic DispatchQueue uses, letting the tool audition arbitrary song bytes
+// through the real sequencer without recompiling the game.
+void Sound_DebugPlayRawSong(const uint8_t *data, uint8_t is_sfx) {
+    if (is_sfx)
+        LoadSFX(&sound_sfx, data);
+    else
+        LoadMusic(&sound_music, data, 0);
+}
+
+void Sound_DebugSetChannelMuted(int channel_index, uint8_t muted) {
+    if (channel_index < 0 || channel_index >= SOUND_CHANNELS)
+        return;
+    sound_music.channels[channel_index].debug_muted = muted;
+}
+
+// Dedicated scratch chip-set for standalone DAC preview -- DAC_Trigger/
+// DAC_Generate only ever touch a SoundChipSet's own dac_*/timpani_pitch_rate
+// fields, so a zero-initialized instance used for nothing else is safe.
+// dac_pan defaults to 0 (both channels off, i.e. silent) like any other
+// zero-initialized SoundChipSet -- set explicitly to center below, same
+// reasoning as YM2612_FMCore's own pan-default fix (a caller with no pan
+// control of its own should still be audible).
+static SoundChipSet dac_preview_chipset;
+static int dac_preview_pan_initialized = 0;
+
+static void EnsureDacPreviewPanInitialized(void) {
+    if (dac_preview_pan_initialized)
+        return;
+    dac_preview_chipset.dac_pan = 0xC0;
+    // -1, not the zero-initialized (static storage) default -- 0 is a real
+    // DAC_SAMPLE_KICK, which would otherwise make the very first preview
+    // ever triggered incorrectly think an override applies (matching the
+    // sound_music/sound_sfx init in Sound_Init).
+    dac_preview_chipset.dac_pitch_override_sample = -1;
+    dac_preview_pan_initialized = 1;
+}
+
+void Sound_DebugPreviewDacSample(int sampleId) {
+    EnsureDacPreviewPanInitialized();
+    // Each direct-sample preview is independent -- doesn't inherit a
+    // pitch-variant override from a previous Sound_DebugPreviewDacVariant
+    // call, same as dac_timpani_variant being reset here too.
+    dac_preview_chipset.dac_pitch_override_sample = -1;
+    dac_preview_chipset.dac_timpani_variant = -1;
+    DAC_Trigger(&dac_preview_chipset, sampleId);
+}
+
+void Sound_DebugPreviewDacVariant(int sampleId, int variant) {
+    uint32_t rate;
+    if (sampleId == DAC_SAMPLE_TIMPANI && variant >= 0 && variant < 4) {
+        rate = timpani_variant_rate_hz[variant];
+    } else if (sampleId == DAC_SAMPLE_TOM && variant >= 0 && variant < 3) {
+        rate = tom_variant_rate_hz[variant];
+    } else if (sampleId == DAC_SAMPLE_BONGO && variant >= 0 && variant < 3) {
+        rate = bongo_variant_rate_hz[variant];
+    } else {
+        return; // not a real family/variant combination -- nothing to trigger
+    }
+    EnsureDacPreviewPanInitialized();
+    dac_preview_chipset.dac_pitch_override_sample = sampleId;
+    dac_preview_chipset.dac_pitch_override_rate = rate;
+    // Debug tooling only (SMPSInspector) -- still Timpani-specific by
+    // design (see its own declaration comment in Sound.h); left at -1 for
+    // Tom/Bongo previews since that inspector visualization doesn't cover
+    // them.
+    dac_preview_chipset.dac_timpani_variant = (sampleId == DAC_SAMPLE_TIMPANI) ? variant : -1;
+    DAC_Trigger(&dac_preview_chipset, sampleId);
+}
+
+void Sound_DebugGenerateDacPreview(int32_t *out, uint32_t count, uint32_t sample_rate) {
+    DAC_Generate(&dac_preview_chipset, out, count, sample_rate);
+}
+
+int Sound_DebugIsDacPreviewPlaying(void) { return dac_preview_chipset.dac_playing; }
+
+void Sound_DebugIsolateVoice(int voice_index) {
+    debug_isolate_voice = voice_index;
+    // Only gating *new* note-on events left an already-ringing channel
+    // audible until its own natural note-off -- switching targets live
+    // would briefly bleed the old voice into the new selection. Force any
+    // currently-active, non-matching FM channel silent immediately instead.
+    if (voice_index < 0)
+        return;
+    SoundChipSet *sets[2] = {&sound_music, &sound_sfx};
+    for (int s = 0; s < 2; s++) {
+        for (int i = 0; i < 6; i++) {
+            SoundChannel *fch = &sets[s]->channels[SOUND_CHANNEL_FM_BASE + i];
+            if (fch->key_on && fch->voice_index != voice_index) {
+                fch->key_on = 0;
+                FM_KeyOnOff(sets[s]->fm, SOUND_CHANNEL_FM_BASE + i, 0);
+            }
+        }
+    }
 }

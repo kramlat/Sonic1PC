@@ -5,7 +5,9 @@
 #include "LevelScroll.h"
 
 #include "Object/Sonic.h"
+#include "Object/Splash.h"
 #include "Object/Waterfall.h"
+#include "Object/PathSwapper.h"
 
 #include "Macros.h"
 
@@ -69,12 +71,12 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_Null                */ NULL,
 	/* ObjId_Sonic               */ Obj_Sonic,
 	/* ObjId_02                  */ Obj_Null,
-	/* ObjId_03                  */ Obj_Null,
+	/* ObjId_PathSwapper         */ Obj_PathSwapper,
 	/* ObjId_04                  */ Obj_Null,
 	/* ObjId_05                  */ Obj_Null,
 	/* ObjId_06                  */ Obj_Null,
 	/* ObjId_07                  */ Obj_Null,
-	/* ObjId_08                  */ Obj_Null,
+	/* ObjId_Splash                  */ Obj_Splash,
 	/* ObjId_SpecialSonic        */ Obj_SpecialSonic,
 	/* ObjId_0A                  */ Obj_Null,
 	/* ObjId_0B                  */ Obj_Null,
@@ -93,7 +95,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_18                  */ Obj_Null,
 	/* ObjId_19                  */ Obj_Null,
 	/* ObjId_1A                  */ Obj_Null,
-	/* ObjId_1B                  */ Obj_Null,
+	/* ObjId_WaterSurface        */ Obj_Null,
 	/* ObjId_1C                  */ Obj_Null,
 	/* ObjId_1D                  */ Obj_Null,
 	/* ObjId_1E                  */ Obj_Null,

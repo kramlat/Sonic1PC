@@ -318,9 +318,22 @@ void smpsVcAmpMod(int op1, int op2, int op3, int op4) {
 }
 
 void smpsVcTotalLevel(int op1, int op2, int op3, int op4) {
-    int tl[4] = {op1, op2, op3, op4};
+    int tl[4] = {op1, op2, op3, op4}; // natural order, matches every other vc_* array and tl_mask[] below
 
-    SMPS_Byte((uint8_t)((vc_unused_bits << 6) + (vc_feedback << 3) + vc_algorithm));
+    // Algorithm is 4 bits (0-7 real hardware, 8-15 fmcore-original -- see
+    // fmcore/fm_voice.c's own comment on 8-15, and Sound.c's FM_LoadVoice
+    // for the runtime decode this must match). Byte layout: bit7=high
+    // algorithm bit ("0"=real algorithm 0-7, "1"=custom fmcore algorithm
+    // 8-15), bit6=unused (real hardware's own genuinely-unused bit, also
+    // vc_unused_bits's own field -- untouched by this extension, no
+    // collision), bits5-3=feedback, bits2-0=algorithm low 3 bits -- both
+    // completely unchanged from real hardware's own layout, so this is a
+    // pure fmcore extension, invisible to real silicon (or the ymfm
+    // backend) if this exact byte were ever loaded there: bit7 just reads
+    // as another ignored/unused bit on both.
+    uint8_t alg_low3 = (uint8_t)(vc_algorithm & 7);
+    uint8_t alg_ext_bit = (uint8_t)((vc_algorithm >> 3) & 1);
+    SMPS_Byte((uint8_t)((alg_ext_bit << 7) + (vc_unused_bits << 6) + (vc_feedback << 3) + alg_low3));
 
     // SourceSMPS2ASM==0 TL masks (see smps.h's comment on smpsVcAmpMod)
     int tl_mask[4] = {
@@ -330,16 +343,15 @@ void smpsVcTotalLevel(int op1, int op2, int op3, int op4) {
         (vc_algorithm == 7) ? 0x80 : 0,
     };
 
-    // Operator write order: natural 1,2,3,4 (the Sonic 2 voice format,
-    // which "actually correctly follows the internal order of operators
-    // used by the YM2612" -- Sonic Retro's words, not the Sonic 1 driver's
-    // own 1,3,2,4 layout that every other main series game uses). Chosen
-    // deliberately over matching Sonic 1's real byte order: since nothing
-    // else in this project needs byte-for-byte parity with the real
-    // driver's voice RAM (we never load real ROM data into it), there's no
-    // reason to keep the confusing swap around -- Sound.c's FM_LoadVoice
-    // does the op2/op3 -> physical-slot remap once, here, instead.
-    static const int order[4] = {0, 1, 2, 3}; // 0-based index for op1,op2,op3,op4
+    // Operator write order: op1,op3,op2,op4 -- matches the SCHG FM voice
+    // format table (offset $1=op1/reg $30, $2=op3/$38, $3=op2/$34,
+    // $4=op4/$3C) and the real driver's own FMInstrumentOperatorTable
+    // register-write sequence (1st voice byte->$30, 2nd->$38, 3rd->$34,
+    // 4th->$3C). Sound.c's FM_LoadVoice reads this same order back (see its
+    // own comment) -- the actual YM2612 register address per operator is
+    // separately just op_number*4, naturally sequential, no remap needed
+    // there.
+    static const int order[4] = {0, 2, 1, 3}; // 0-based index for op1,op2,op3,op4, in op1,op3,op2,op4 write order
 
     for (int row = 0; row < 3; row++) {
         for (int k = 0; k < 4; k++) {

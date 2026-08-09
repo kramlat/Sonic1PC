@@ -16,6 +16,7 @@ typedef enum {
 	GameMode_Credits,
 #ifdef SCP_SPLASH
 	GameMode_SSRG,
+	GameMode_Countdown,
 #endif
 } GameMode;
 
@@ -58,6 +59,28 @@ extern int32_t cli_special_stage;
 // e.g. for SonicDemoRecord --ai. Must return a JPAD_* bitmask (see
 // Backend/Joypad.h) of currently-held buttons.
 extern uint8_t (*cli_ai_control_hook)(void);
+
+#ifdef SCP_SPLASH
+// If true, EntryPoint() routes through GameMode_Countdown (a 1-minute
+// countdown screen with a pie-wipe progress indicator and music, see
+// GM_Countdown.c) before whatever cli_start_level/cli_force_demo/
+// cli_start_special already set up -- for recording a YouTube-Premiere-
+// style countdown intro ahead of scripted showcase footage. Ignored unless
+// cli_start_level is also set (nothing to count down to otherwise). Press
+// START to skip the countdown early. Only exists in SPLASH builds (Premier/
+// Showcase) -- same reasoning as GameMode_SSRG, this is demo-recording
+// tooling, not something a normal build needs.
+extern bool cli_countdown;
+// Sound ID to play during the countdown (see Sound.h's SOUND_ID_* range);
+// -1 uses GM_Countdown's own default.
+extern int32_t cli_countdown_music;
+// Set by EntryPoint() alongside cli_countdown: the gamemode (GameMode_Level/
+// GameMode_Demo/GameMode_Special) the countdown should hand off to once it
+// finishes (or is skipped) -- GM_Countdown.c reads this rather than
+// duplicating EntryPoint()'s own cli_start_level/cli_force_demo/
+// cli_start_special decision logic.
+extern uint8_t countdown_target_gamemode;
+#endif
 extern uint16_t credits_num;
 
 extern uint8_t credits_cheat;
@@ -76,6 +99,13 @@ extern const uint8_t Art_Text[];
 extern bool VDP_PALETTE_DISPLAY;
 extern uint16_t VRAMADDR;
 extern uint8_t CRAMPAL;
+
+// "Z80 Peek" debug overlay (live YM2612/SN76489 register dump) -- Left Alt
+// toggles it, same edge-detected pattern as VDP_PALETTE_DISPLAY above, same
+// #ifndef NDEBUG gating (see Backend/SDL2/Input.c). Game.c's main loop reads
+// this each frame to decide whether to gather register state and push it to
+// the render backend (Render_SetZ80Peek, Backend/VDP.h).
+extern bool Z80_PEEK_DISPLAY;
 
 //General game functions
 void ReadJoypads(void);

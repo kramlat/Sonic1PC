@@ -14,59 +14,52 @@
 
 #include <string.h>
 
-// Level layouts
+// Level layouts (interleaved FG+BG single-buffer blobs, Kosinski-compressed,
+// real Sonic 2 format -- one combined resource per act, no separate BG file
+// and no REV00/REV01 split at this layer; SonLVL-format-verified against
+// s2disasm, which fixes Level_Layout at ds.b $1000 = 16 rows * 0x100 stride)
 #include "Resource/Layout/GHZ1.h"
 #include "Resource/Layout/GHZ2.h"
 #include "Resource/Layout/GHZ3.h"
-#include "Resource/Layout/GHZBG.h"
 
 #include "Resource/Layout/LZ1.h"
 #include "Resource/Layout/LZ2.h"
 #include "Resource/Layout/LZ3.h"
-#include "Resource/Layout/LZBG.h"
 
 #include "Resource/Layout/MZ1.h"
-#include "Resource/Layout/MZ1BG.h"
 #include "Resource/Layout/MZ2.h"
-#include "Resource/Layout/MZ2BG.h"
 #include "Resource/Layout/MZ3.h"
-#include "Resource/Layout/MZ3BG.h"
 
 #include "Resource/Layout/SLZ1.h"
 #include "Resource/Layout/SLZ2.h"
 #include "Resource/Layout/SLZ3.h"
-#include "Resource/Layout/SLZBG.h"
 
 #include "Resource/Layout/SYZ1.h"
 #include "Resource/Layout/SYZ2.h"
 #include "Resource/Layout/SYZ3.h"
-#ifdef SCP_REV00
-#include "Resource/Layout/SYZBGREV00.h"
-#else
-#include "Resource/Layout/SYZBGREV01.h"
-#endif
+
 #include "Resource/Layout/SBZ1.h"
-#include "Resource/Layout/SBZ1BG.h"
 #include "Resource/Layout/SBZ2.h"
-#include "Resource/Layout/SBZ2BG.h"
 #include "Resource/Layout/SBZ3.h"
 
 #include "Resource/Layout/Ending.h"
 
-// 256x256 mappings
-#include "Resource/Map256/GHZ.h"
-#include "Resource/Map256/LZ.h"
+// 128x128 chunk tables (real Sonic 2 chunk size -- half of Sonic 1's
+// original 256x256, so a level needs twice as many rows to cover the same
+// physical height, see LEVEL_LAYOUT_ROWS)
+#include "Resource/Map128/GHZ.h"
+#include "Resource/Map128/LZ.h"
 #ifdef SCP_REV00
-#include "Resource/Map256/MZREV00.h"
+#include "Resource/Map128/MZREV00.h"
 #else
-#include "Resource/Map256/MZREV01.h"
+#include "Resource/Map128/MZREV01.h"
 #endif
-#include "Resource/Map256/SLZ.h"
-#include "Resource/Map256/SYZ.h"
+#include "Resource/Map128/SLZ.h"
+#include "Resource/Map128/SYZ.h"
 #ifdef SCP_REV00
-#include "Resource/Map256/SBZREV00.h"
+#include "Resource/Map128/SBZREV00.h"
 #else
-#include "Resource/Map256/SBZREV01.h"
+#include "Resource/Map128/SBZREV01.h"
 #endif
 
 // 16x16 mappings
@@ -77,13 +70,20 @@
 #include "Resource/Map16/SLZ.h"
 #include "Resource/Map16/SYZ.h"
 
-// Collision indices
-#include "Resource/CollisionIndex/GHZ.h"
-#include "Resource/CollisionIndex/LZ.h"
-#include "Resource/CollisionIndex/MZ.h"
-#include "Resource/CollisionIndex/SBZ.h"
-#include "Resource/CollisionIndex/SLZ.h"
-#include "Resource/CollisionIndex/SYZ.h"
+// Collision indices, one file per path (1 = primary, 2 = secondary; both
+// currently identical since no real content path-swaps yet)
+#include "Resource/Collision/GHZ1.h"
+#include "Resource/Collision/GHZ2.h"
+#include "Resource/Collision/LZ1.h"
+#include "Resource/Collision/LZ2.h"
+#include "Resource/Collision/MZ1.h"
+#include "Resource/Collision/MZ2.h"
+#include "Resource/Collision/SBZ1.h"
+#include "Resource/Collision/SBZ2.h"
+#include "Resource/Collision/SLZ1.h"
+#include "Resource/Collision/SLZ2.h"
+#include "Resource/Collision/SYZ1.h"
+#include "Resource/Collision/SYZ2.h"
 
 // Object positions
 #include "Resource/ObjectLayout/GHZ1.h"
@@ -187,44 +187,42 @@ void Obj_Checkpoint_LoadInfo(void) {
     limit_left2 = ds;
 }
 
-// Level definitions
+// Level definitions -- one combined (interleaved FG+BG, Kosinski) blob per
+// act now, not a separate FG/BG pair (layout_3 was a dead 3rd field here
+// that was never actually read anywhere -- same dead-field pattern as
+// LevelHeader's old pad/music/pal_dup -- dropped along with layout_bg).
 static const struct {
-    const uint8_t* layout_fg;
-    const uint8_t* layout_bg;
-    const uint8_t* layout_3;
+    const uint8_t* layout;
 } level_layouts[ZoneId_Num][4] = {
     {
         // ZoneId_GHZ
-        { Layout_GHZ1, Layout_GHZBG, NULL }, { Layout_GHZ2, Layout_GHZBG, NULL }, { Layout_GHZ3, Layout_GHZBG, NULL }, { NULL, NULL, NULL },
+        { Layout_GHZ1 }, { Layout_GHZ2 }, { Layout_GHZ3 }, { NULL },
     },
     {
         // ZoneId_LZ
-        { Layout_LZ1, Layout_LZBG, NULL }, { Layout_LZ2, Layout_LZBG, NULL }, { Layout_LZ3, Layout_LZBG, NULL }, { Layout_SBZ3, Layout_LZBG, NULL },
+        { Layout_LZ1 }, { Layout_LZ2 }, { Layout_LZ3 }, { Layout_SBZ3 },
     },
     {
         // ZoneId_MZ
-        { Layout_MZ1, Layout_MZ1BG, Layout_MZ1 }, { Layout_MZ2, Layout_MZ2BG, NULL }, { Layout_MZ3, Layout_MZ3BG, NULL }, { NULL, NULL, NULL },
+        { Layout_MZ1 }, { Layout_MZ2 }, { Layout_MZ3 }, { NULL },
     },
     {
         // ZoneId_SLZ
-        { Layout_SLZ1, Layout_SLZBG, NULL }, { Layout_SLZ2, Layout_SLZBG, NULL }, { Layout_SLZ3, Layout_SLZBG, NULL }, { NULL, NULL, NULL },
+        { Layout_SLZ1 }, { Layout_SLZ2 }, { Layout_SLZ3 }, { NULL },
     },
     {
-// ZoneId_SYZ
-#ifdef SCP_REV00
-        { Layout_SYZ1, Layout_SYZBGREV00, NULL }, { Layout_SYZ2, Layout_SYZBGREV00, NULL }, { Layout_SYZ3, Layout_SYZBGREV00, NULL },
-#else
-        { Layout_SYZ1, Layout_SYZBGREV01, NULL }, { Layout_SYZ2, Layout_SYZBGREV01, NULL }, { Layout_SYZ3, Layout_SYZBGREV01, NULL },
-#endif
-        { NULL, NULL, NULL },
+        // ZoneId_SYZ
+        { Layout_SYZ1 }, { Layout_SYZ2 }, { Layout_SYZ3 }, { NULL },
     },
     {
-        // ZoneId_SBZ
-        { Layout_SBZ1, Layout_SBZ1BG, Layout_SBZ1BG }, { Layout_SBZ2, Layout_SBZ2BG, Layout_SBZ2BG }, { Layout_SBZ2, Layout_SBZ2BG, NULL }, { NULL, NULL, NULL },
+        // ZoneId_SBZ (3rd slot is FZ -- the Final Zone boss act reuses SBZ
+        // act 2's own chunk layout, just with a different start position;
+        // Layout_SBZ3 is real data but only used for LZ's 4th act, above)
+        { Layout_SBZ1 }, { Layout_SBZ2 }, { Layout_SBZ2 }, { NULL },
     },
     {
         // ZoneId_EndZ
-        { Layout_Ending, Layout_GHZBG, NULL }, { Layout_Ending, Layout_GHZBG, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL },
+        { Layout_Ending }, { Layout_Ending }, { NULL }, { NULL },
     },
 };
 
@@ -315,31 +313,33 @@ static const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
 
 // Level headers
 const LevelHeader level_header[ZoneId_Num] = {
-    { PlcId_GHZ, Art_GHZ2, PlcId_GHZ2, Map16_GHZ, Map256_GHZ, 0, 0, PalId_GHZ, PalId_GHZ },
-    { PlcId_LZ, Art_LZ, PlcId_LZ2, Map16_LZ, Map256_LZ, 0, 0, PalId_LZ, PalId_LZ },
+    { PlcId_GHZ, Art_GHZ2, PlcId_GHZ2, Map16_GHZ, PalId_GHZ, Map128_GHZ },
+    { PlcId_LZ, Art_LZ, PlcId_LZ2, Map16_LZ, PalId_LZ, Map128_LZ },
 #ifdef SCP_REV00
-    { PlcId_MZ, Art_MZ, PlcId_MZ2, Map16_MZ, Map256_MZREV00, 0, 0, PalId_MZ, PalId_MZ },
+    { PlcId_MZ, Art_MZ, PlcId_MZ2, Map16_MZ, PalId_MZ, Map128_MZREV00 },
 #else
-    { PlcId_MZ, Art_MZ, PlcId_MZ2, Map16_MZ, Map256_MZREV01, 0, 0, PalId_MZ, PalId_MZ },
+    { PlcId_MZ, Art_MZ, PlcId_MZ2, Map16_MZ, PalId_MZ, Map128_MZREV01 },
 #endif
-    { PlcId_SLZ, Art_SLZ, PlcId_SLZ2, Map16_SLZ, Map256_SLZ, 0, 0, PalId_SLZ, PalId_SLZ },
-    { PlcId_SYZ, Art_SYZ, PlcId_SYZ2, Map16_SYZ, Map256_SYZ, 0, 0, PalId_SYZ, PalId_SYZ },
+    { PlcId_SLZ, Art_SLZ, PlcId_SLZ2, Map16_SLZ, PalId_SLZ, Map128_SLZ },
+    { PlcId_SYZ, Art_SYZ, PlcId_SYZ2, Map16_SYZ, PalId_SYZ, Map128_SYZ },
 #ifdef SCP_REV00
-    { PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, Map256_SBZREV00, 0, 0, PalId_SBZ1, PalId_SBZ1 },
+    { PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, PalId_SBZ1, Map128_SBZREV00 },
 #else
-    { PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, Map256_SBZREV01, 0, 0, PalId_SBZ1, PalId_SBZ1 },
+    { PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, PalId_SBZ1, Map128_SBZREV01 },
 #endif
-    { 0, Art_GHZ2, 0, Map16_GHZ, Map256_GHZ, 0, 0, PalId_GHZ, PalId_GHZ },
+    { 0, Art_GHZ2, 0, Map16_GHZ, PalId_GHZ, Map128_GHZ },
 };
 
-// Level collision indices
-const uint8_t* level_coli[ZoneId_Num - 1] = {
-    CollisionIndex_GHZ,
-    CollisionIndex_LZ,
-    CollisionIndex_MZ,
-    CollisionIndex_SLZ,
-    CollisionIndex_SYZ,
-    CollisionIndex_SBZ,
+// Level collision indices, one file per path (real data, not a
+// decode-the-same-blob-twice shim -- GHZ1/GHZ2 etc are currently identical
+// since no content path-swaps yet, but are independent resources)
+const uint8_t* level_coli[ZoneId_Num - 1][2] = {
+    { Collision_GHZ1, Collision_GHZ2 },
+    { Collision_LZ1, Collision_LZ2 },
+    { Collision_MZ1, Collision_MZ2 },
+    { Collision_SLZ1, Collision_SLZ2 },
+    { Collision_SYZ1, Collision_SYZ2 },
+    { Collision_SBZ1, Collision_SBZ2 },
 };
 
 // Level object layouts
@@ -480,11 +480,12 @@ bool doupdatesinhblank;
 
 
 // Loaded level data
-uint8_t* const level_map256 = &buffer0000[0x0000];
+uint8_t* const level_map128 = &buffer0000[0x0000];
 ALIGNED2 uint8_t level_map16[0x1800];
-uint8_t level_layout[8][2][0x40];
+uint8_t level_layout[LEVEL_LAYOUT_ROWS * LEVEL_LAYOUT_ROW_STRIDE];
 uint8_t level_schunks[2][2];
-const uint8_t* coll_index;
+uint8_t coll_index[2][0x400];
+uint8_t collision_path;
 
 // Object state
 Object objects[OBJECTS];
@@ -559,32 +560,16 @@ void LoadLevelMaps(void) {
     const LevelHeader* header = &level_header[LEVEL_ZONE(level_id)];
 
     // Load chunk maps and tile map
-    KosDec(header->map256, level_map256);
-    EniDec(header->map16, level_map16, 0);
-}
-
-void LoadLayout(const uint8_t* from, uint8_t* to) {
-    // Read layout header (dimensions - 1)
-    uint8_t width = *from++;
-    uint8_t height = *from++;
-
-    // Read layout data
-    do {
-        for (size_t i = 0; i <= width; i++)
-            *to++ = *from++;
-        to += 0x80 - (width + 1);
-    } while (height-- > 0);
+    KosDec(header->map128, level_map128);
+    KosDec(header->map16, level_map16);
 }
 
 void LoadLevelLayout(void) {
-    // Load foreground and background layers
+    // Load the single interleaved FG+BG layout blob (Kosinski-compressed,
+    // matches level_layout's flat LEVEL_LAYOUT_ROWS*LEVEL_LAYOUT_ROW_STRIDE
+    // shape exactly, one KosDec call decodes both planes at once)
     memset(level_layout, 0, sizeof(level_layout));
-    LoadLayout(
-        level_layouts[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)].layout_fg,
-        level_layout[0][0]);
-    LoadLayout(
-        level_layouts[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)].layout_bg,
-        level_layout[0][1]);
+    KosDec(level_layouts[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)].layout, level_layout);
 }
 
 void LevelSizeLoad(void) {
@@ -662,13 +647,29 @@ void LevelSizeLoad(void) {
     scroll_block4_size = *scroll_size++;
 }
 
+// Scratch RAM for decoding the main terrain tileset before it's copied to
+// VRAM -- Kosinski has no VRAM-aware streaming decoder here (unlike NemDec),
+// so it decodes to RAM first, same as every other Kosinski resource. Sized
+// for the largest real zone (SYZ, 882 tiles / 0x6E40 bytes) with headroom;
+// this buffer is purely transient, not read again once VDP_WriteVRAM runs.
+static uint8_t level_art_scratch[0x7000];
+
 void LevelDataLoad(void) {
     // Get header
     const LevelHeader* header = &level_header[LEVEL_ZONE(level_id)];
 
     // Load chunk maps and tile map
-    KosDec(header->map256, level_map256);
-    EniDec(header->map16, level_map16, 0);
+    KosDec(header->map128, level_map128);
+    KosDec(header->map16, level_map16);
+
+    // Load the main terrain tileset at VRAM tile 0 -- the block/chunk tile
+    // indices read directly from here. Each zone's PLC decoration list
+    // starts well clear of the real tile counts involved (checked against
+    // SonLVL's real per-zone tile limits when this was wired up), so this
+    // never collides with PLC_GHZ/PLC_LZ/etc's own art.
+    uint8_t *art_end = KosDec(header->art, level_art_scratch);
+    VDP_SeekVRAM(0x0000);
+    VDP_WriteVRAM(level_art_scratch, (size_t)(art_end - level_art_scratch));
 
     // Load level layout
     LoadLevelLayout();
@@ -687,8 +688,13 @@ void LevelDataLoad(void) {
 }
 
 void ColIndexLoad(void) {
-    // Use zone's collision indices
-    coll_index = level_coli[LEVEL_ZONE(level_id)];
+    // Decode the zone's two independent Kosinski-compressed collision
+    // indices, one per path. Both currently hold identical data (no real
+    // content path-swaps exist yet -- Obj03 isn't ported to C), but they're
+    // separate resources, not a single blob decoded twice.
+    KosDec(level_coli[LEVEL_ZONE(level_id)][0], coll_index[0]);
+    KosDec(level_coli[LEVEL_ZONE(level_id)][1], coll_index[1]);
+    collision_path = 0;
 }
 
 // Dynamic level events

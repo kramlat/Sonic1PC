@@ -4,12 +4,34 @@
 
 #include "../../Sound.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define AUDIO_SAMPLE_RATE 44100
 #define AUDIO_FRAME_HZ    60
+
+// A hard clamp on an already-loud mix (e.g. with SONIC_FM_GAIN boosting FM)
+// produces audible pops/crackle every time a sample gets flattened to the
+// ceiling. Soft-knee into a tanh curve above the threshold instead, so
+// peaks compress smoothly rather than slam into a wall.
+static int16_t SoftClip(int32_t sample) {
+    const double threshold = 28000.0;
+    double x = (double)sample;
+    if (x > threshold) {
+        double range = 32767.0 - threshold;
+        x = threshold + range * tanh((x - threshold) / range);
+    } else if (x < -threshold) {
+        double range = 32768.0 - threshold;
+        x = -threshold + range * tanh((x + threshold) / range);
+    }
+    if (x > 32767.0)
+        x = 32767.0;
+    if (x < -32768.0)
+        x = -32768.0;
+    return (int16_t)x;
+}
 
 static SDL_AudioDeviceID device;
 static int32_t *mix_buffer;
@@ -48,22 +70,20 @@ void Audio_Update(void) {
     memset(mix_buffer, 0, 2 * (size_t)samples_per_frame * sizeof(int32_t));
     Sound_Generate(mix_buffer, samples_per_frame, AUDIO_SAMPLE_RATE);
 
-    for (uint32_t i = 0; i < 2 * samples_per_frame; i++) {
-        int32_t s = mix_buffer[i];
-        if (s > 32767)
-            s = 32767;
-        else if (s < -32768)
-            s = -32768;
-        out_buffer[i] = (int16_t)s;
-    }
+    for (uint32_t i = 0; i < 2 * samples_per_frame; i++)
+        out_buffer[i] = SoftClip(mix_buffer[i]);
 
     // Don't let a stall (e.g. breakpoint, slow frame) build up an
-    // ever-growing backlog of queued audio -- cap it at a few frames' worth
-    // and drop the rest rather than drifting further out of sync.
-    if (SDL_GetQueuedAudioSize(device) > 2 * samples_per_frame * sizeof(int16_t) * 4)
-        SDL_ClearQueuedAudio(device);
-
-    SDL_QueueAudio(device, out_buffer, 2 * samples_per_frame * sizeof(int16_t));
+    // ever-growing backlog of queued audio -- but SDL_ClearQueuedAudio
+    // abruptly discards whatever's queued, creating a hard silence-then-jump
+    // discontinuity exactly when it fires (audible as a pop/click, and if
+    // this trips under routine frame-timing jitter rather than only genuine
+    // stalls, that's a recurring artifact, not a rare one). Skip queueing
+    // this frame's audio instead when there's already a backlog -- lets it
+    // drain naturally with no discontinuity, at the cost of that frame's
+    // audio simply not being added (inaudible on its own, unlike a clear).
+    if (SDL_GetQueuedAudioSize(device) <= 2 * samples_per_frame * sizeof(int16_t) * 4)
+        SDL_QueueAudio(device, out_buffer, 2 * samples_per_frame * sizeof(int16_t));
 }
 
 void Audio_Quit(void) {

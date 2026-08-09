@@ -2,12 +2,15 @@
 
 #include "HUD.h"
 #include "Backend/VDP.h"
+#include "Backend/YM2612.h"
+#include "Sound.h"
 #include <SDL.h>
 #include "Demo.h"
 #include "Level.h"
 #include "LevelDraw.h"
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
+#include "Object/Splash.h"
 #include "PLC.h"
 #include "Palette.h"
 #include "PaletteCycle.h"
@@ -21,6 +24,7 @@
 #include "GM_Special.h"
 #include "GM_Title.h"
 #ifdef SCP_SPLASH
+#include "GM_Countdown.h"
 #include "GM_SSRG.h"
 #endif
 
@@ -37,6 +41,11 @@ bool cli_force_demo = false;
 bool cli_start_special = false;
 int32_t cli_special_stage = -1;
 uint8_t (*cli_ai_control_hook)(void) = NULL;
+#ifdef SCP_SPLASH
+bool cli_countdown = false;
+int32_t cli_countdown_music = -1;
+uint8_t countdown_target_gamemode;
+#endif
 uint16_t credits_num;
 
 uint8_t credits_cheat;
@@ -101,6 +110,19 @@ void EntryPoint(void) {
         }
     }
 
+#ifdef SCP_SPLASH
+    // Countdown intro: capture whatever gamemode was just decided above --
+    // GameMode_Sega (normal boot, if --zone wasn't given) or Level/Demo/
+    // Special (if it was) -- as the hand-off target, and show the countdown
+    // first instead. Deliberately outside the cli_start_level block above:
+    // a countdown before the game's own normal Sega/title/attract-mode
+    // sequence is just as valid a use as one before an injected level.
+    if (cli_countdown) {
+        countdown_target_gamemode = gamemode;
+        gamemode = GameMode_Countdown;
+    }
+#endif
+
     // Run game loop
     while (1) {
         SDL_Delay(1000 / 60);
@@ -121,6 +143,9 @@ void EntryPoint(void) {
 #ifdef SCP_SPLASH
             case GameMode_SSRG:
                 GM_SSRG();
+                break;
+            case GameMode_Countdown:
+                GM_Countdown();
                 break;
 #endif
             default:
@@ -173,7 +198,44 @@ static void VBlank_UpdateScreen(void) {
         demo_length--;
 }
 
+#ifndef NDEBUG
+// Z80 Peek: gathers live FM/PSG register state and pushes it to the render
+// backend once per real frame. VBlank() (not EntryPoint()'s while(1), which
+// only iterates once per gamemode change -- every GM_*() function runs its
+// own internal per-frame loop) is the one place that's genuinely called
+// every frame regardless of which gamemode is active, matching
+// VDP_PALETTE_DISPLAY's own reasoning for living here too.
+static void UpdateZ80Peek(void) {
+    if (!Z80_PEEK_DISPLAY) {
+        Render_SetZ80Peek(false, NULL);
+        return;
+    }
+
+    Z80PeekData peek;
+    for (int port = 0; port < 2; port++) {
+        for (int ch = 0; ch < 3; ch++) {
+            peek.fm_alg_fb[port][ch] = YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0xB0 + ch));
+            for (int op = 0; op < 4; op++)
+                peek.fm_tl[port][ch][op] = YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0x40 + op * 4 + ch));
+        }
+    }
+    peek.fm_keyon = YM2612_PeekKeyOn(sound_music.fm);
+    for (int c = 0; c < 3; c++) {
+        peek.psg_tone_period[c] = sound_music.psg.tone_period[c];
+        peek.psg_tone_atten[c] = sound_music.psg.tone_atten[c];
+    }
+    peek.psg_noise_atten = sound_music.psg.noise_atten;
+    peek.psg_noise_shift_rate = sound_music.psg.noise_shift_rate;
+    peek.psg_noise_fb_white = sound_music.psg.noise_fb_white;
+    Render_SetZ80Peek(true, &peek);
+}
+#endif
+
 void VBlank(void) {
+#ifndef NDEBUG
+    UpdateZ80Peek();
+#endif
+
     uint8_t routine = vbla_routine;
     bool skip_music = false; // set by case 0x08 when deferring to HBlank
 
@@ -236,6 +298,13 @@ void VBlank(void) {
             sonframe_chg = false;
         }
 
+        // Update the splash/dust companion's art
+        if (splashdust_frame_chg) {
+            VDP_SeekVRAM(ArtTile_SplashDust * 0x20);
+            VDP_WriteVRAM(splashdust_gfx_buffer, SPLASHDUST_GFX_SIZE);
+            splashdust_frame_chg = false;
+        }
+
         // Copy duplicate plane positions and flags
         scrpos_x_dup.v = scrpos_x.v;
         scrpos_y_dup.v = scrpos_y.v;
@@ -293,6 +362,13 @@ void VBlank(void) {
             sonframe_chg = false;
         }
 
+        // Update the splash/dust companion's art
+        if (splashdust_frame_chg) {
+            VDP_SeekVRAM(ArtTile_SplashDust * 0x20);
+            VDP_WriteVRAM(splashdust_gfx_buffer, SPLASHDUST_GFX_SIZE);
+            splashdust_frame_chg = false;
+        }
+
         // Decrement demo timer
         if (demo_length)
             demo_length--;
@@ -320,6 +396,13 @@ void VBlank(void) {
             VDP_SeekVRAM(0xF000);
             VDP_WriteVRAM(sgfx_buffer, SONIC_DPLC_SIZE);
             sonframe_chg = false;
+        }
+
+        // Update the splash/dust companion's art
+        if (splashdust_frame_chg) {
+            VDP_SeekVRAM(ArtTile_SplashDust * 0x20);
+            VDP_WriteVRAM(splashdust_gfx_buffer, SPLASHDUST_GFX_SIZE);
+            splashdust_frame_chg = false;
         }
 
         // Copy duplicate plane positions and flags

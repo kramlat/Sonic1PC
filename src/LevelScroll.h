@@ -28,6 +28,9 @@ extern uint8_t fg_yblock, bg1_yblock, bg2_yblock, bg3_yblock;
 
 extern int16_t look_shift;
 
+extern uint16_t cam_x_delay;
+extern uint8_t cam_y_delay;
+
 extern const int8_t Drown_WobbleData[];
 //Level scroll functions
 void ApplyScrollUpdate(int16_t current_y, int16_t previous_y, uint8_t *block_state, uint16_t *flags, uint16_t up_bit, uint16_t down_bit);

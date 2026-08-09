@@ -1,0 +1,772 @@
+{
+  "header": [
+    {
+      "smpsHeaderStartSong": [
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderVoice": [
+        "Mus90_Continue_Screen_Voices"
+      ]
+    },
+    {
+      "smpsHeaderChan": [
+        "0x6",
+        "0x3"
+      ]
+    },
+    {
+      "smpsHeaderTempo": [
+        "0x1",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderDAC": [
+        "Mus90_Continue_Screen_DAC"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus90_Continue_Screen_FM1",
+        "0xE5",
+        "0x8"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus90_Continue_Screen_FM2",
+        "0xE8",
+        "0x8"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus90_Continue_Screen_FM3",
+        "0xF4",
+        "0xF"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus90_Continue_Screen_FM4",
+        "0xF4",
+        "0xF"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus90_Continue_Screen_FM5",
+        "0xF4",
+        "0xA"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "Mus90_Continue_Screen_PSG1",
+        "0xD0",
+        "0x3",
+        "0x0",
+        "fTone_05"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "Mus90_Continue_Screen_PSG2",
+        "0xDC",
+        "0x6",
+        "0x0",
+        "fTone_05"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "Mus90_Continue_Screen_PSG3",
+        "0xDC",
+        "0x0",
+        "0x0",
+        "fTone_04"
+      ]
+    }
+  ],
+  "voices": [
+    {
+      "smpsVcAlgorithm": "0x2",
+      "smpsVcFeedback": "0x7",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x10",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xF",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x1",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x1"
+        },
+        {
+          "smpsVcDetune": "0x5",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1E",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x1F",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x22"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x8",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1E",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x1F",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x24"
+        },
+        {
+          "smpsVcDetune": "0x5",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1E",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x1F",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x18"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x3",
+      "smpsVcFeedback": "0x7",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x5",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x14",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x2",
+          "smpsVcDecayRate2": "0x1",
+          "smpsVcDecayLevel": "0x3",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x12",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xD",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x5",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x2D"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x14",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x18"
+        },
+        {
+          "smpsVcDetune": "0x5",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x12",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xD",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x4",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x1E"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x2",
+      "smpsVcFeedback": "0x7",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x3",
+          "smpsVcAttackRate": "0x1A",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x3",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0xA",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x1",
+          "smpsVcCoarseFreq": "0x4",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0x1C",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x4",
+          "smpsVcDecayRate2": "0x3",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x31"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0xC",
+          "smpsVcRateScale": "0x3",
+          "smpsVcAttackRate": "0x1B",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x9",
+          "smpsVcDecayRate2": "0x1",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x47"
+        },
+        {
+          "smpsVcDetune": "0x6",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0x1C",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x4",
+          "smpsVcDecayRate2": "0x3",
+          "smpsVcDecayLevel": "0x1",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x21"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x4",
+      "smpsVcFeedback": "0x3",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x7",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x1E",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x7",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0xF",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x2",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0x1E",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x6",
+          "smpsVcDecayRate2": "0xB",
+          "smpsVcDecayLevel": "0xF",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x26"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x3",
+          "smpsVcAttackRate": "0x1B",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x7",
+          "smpsVcDecayRate2": "0xA",
+          "smpsVcDecayLevel": "0x8",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0xD"
+        },
+        {
+          "smpsVcDetune": "0x6",
+          "smpsVcCoarseFreq": "0xF",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xF",
+          "smpsVcDecayRate2": "0x8",
+          "smpsVcDecayLevel": "0x8",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x18"
+        }
+      ]
+    }
+  ],
+  "SMPSplaylist": {
+    "Mus90_Continue_Screen_FM1": [
+      {
+        "smpsSetvoice": "0x0"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x30"
+      },
+      {
+        "smpsLoop": [
+          "0x0",
+          "0x3",
+          {
+            "smpsAlterPitch": "0x1"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x12"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Eb6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "E6",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Cs6",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          }
+        ]
+      },
+      {
+        "note": "F6",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "F6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "F6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb5",
+        "duration": "0xC"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "D6",
+        "duration": "0x4E"
+      },
+      "smpsStop"
+    ],
+    "Mus90_Continue_Screen_FM2": [
+      {
+        "smpsSetvoice": "0x1"
+      },
+      {
+        "smpsAlterVol": "0x2"
+      },
+      {
+        "smpsAlterPitch": "0xF4"
+      },
+      {
+        "smpsNop": "0x1"
+      },
+      {
+        "note": "A5",
+        "duration": "0xC"
+      },
+      {
+        "note": "Ab5"
+      },
+      {
+        "note": "G5"
+      },
+      {
+        "note": "Fs5"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "smpsAlterPitch": "0xC"
+      },
+      {
+        "smpsSetvoice": "0x2"
+      },
+      {
+        "smpsLoop": [
+          "0x0",
+          "0x3",
+          {
+            "note": "A4",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "E4"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "E4"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "G4",
+            "duration": "0x12"
+          },
+          {
+            "note": "Fs4"
+          },
+          {
+            "note": "Fs4",
+            "duration": "0xC"
+          },
+          {
+            "note": "G4",
+            "duration": "0x6"
+          },
+          {
+            "note": "Fs4",
+            "duration": "0xC"
+          },
+          {
+            "smpsAlterPitch": "0x1"
+          }
+        ]
+      },
+      {
+        "smpsAlterPitch": "0xFD"
+      },
+      {
+        "note": "B4",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "B4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Fs4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Fs4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "E5",
+        "duration": "0xC"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "Eb5",
+        "duration": "0x4E"
+      },
+      {
+        "smpsNop": "0x1"
+      },
+      "smpsStop"
+    ],
+    "Mus90_Continue_Screen_FM3": [
+      {
+        "smpsSetvoice": "0x3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x30"
+      },
+      {
+        "smpsLoop": [
+          "0x0",
+          "0x3",
+          {
+            "note": "E6",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "E6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "D6",
+            "duration": "0x12"
+          },
+          {
+            "note": "D6"
+          },
+          {
+            "note": "D6",
+            "duration": "0x1E"
+          }
+        ]
+      },
+      {
+        "note": "E6",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "E6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Cs6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Cs6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "G6",
+        "duration": "0xC"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "G6",
+        "duration": "0x1E"
+      },
+      "smpsNoAttack",
+      {
+        "tie": true,
+        "duration": "0x30"
+      },
+      "smpsStop"
+    ],
+    "Mus90_Continue_Screen_FM4": [
+      {
+        "smpsSetvoice": "0x3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x30"
+      },
+      {
+        "smpsLoop": [
+          "0x0",
+          "0x3",
+          {
+            "note": "Cs6",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "B5",
+            "duration": "0x12"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "B5",
+            "duration": "0x1E"
+          }
+        ]
+      },
+      {
+        "note": "Cs6",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Cs6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A5"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A5"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D6",
+        "duration": "0xC"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "D6",
+        "duration": "0x4E"
+      }
+    ],
+    "Mus90_Continue_Screen_FM5": [],
+    "Mus90_Continue_Screen_PSG1": [],
+    "Mus90_Continue_Screen_PSG2": [],
+    "Mus90_Continue_Screen_PSG3": [
+      "smpsStop"
+    ],
+    "Mus90_Continue_Screen_DAC": [
+      {
+        "note": "Rst",
+        "duration": "0x30"
+      },
+      {
+        "smpsLoop": [
+          "0x0",
+          "0xE",
+          {
+            "note": "Kick",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare"
+          }
+        ]
+      },
+      {
+        "note": "Kick",
+        "duration": "0xC"
+      },
+      {
+        "note": "Snare",
+        "duration": "0x6"
+      },
+      {
+        "note": "Kick",
+        "duration": "0xC"
+      },
+      "smpsStop"
+    ]
+  }
+}

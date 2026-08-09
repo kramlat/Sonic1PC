@@ -129,6 +129,16 @@ uint8_t Input_GetState1(void) {
 		if ((key_state[SDL_SCANCODE_L] || ry > STICK_DEADZONE) && VRAMADDR < 0xF800)
 			VRAMADDR = VRAMADDR + 0x200;
 	}
+
+	//Z80 Peek (live YM2612/SN76489 register dump): Left Alt toggles it,
+	//same edge-detected on/off flip as the VDP peek view above. No
+	//controller equivalent bound yet (all the natural analog-stick/shoulder
+	//buttons are already spoken for by VDP peek's own controls above).
+	static bool z80_peek_toggle_held_prev = false;
+	bool z80_peek_toggle_held = key_state[SDL_SCANCODE_LALT];
+	if (z80_peek_toggle_held && !z80_peek_toggle_held_prev)
+		Z80_PEEK_DISPLAY = !Z80_PEEK_DISPLAY;
+	z80_peek_toggle_held_prev = z80_peek_toggle_held;
 #endif
 
 	//Return as bitfield

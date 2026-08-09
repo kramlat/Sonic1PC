@@ -7,6 +7,7 @@
 // this tool replaces that.
 //
 // Usage: SonicSmoke [--zone N] [--act N] [--x N] [--y N] [--demo FILE]
+//                    [--countdown] [--countdown-music HEX]
 //   --zone N    Jump straight into zone N (see ZoneId in Level.h). If
 //               omitted, boots normally through the Sega/title screens (and
 //               every other flag below is ignored).
@@ -18,6 +19,15 @@
 //               recorded input data, instead of playing it for real. FILE
 //               must already be in the game's demo-encoding (see
 //               cli_demo_override in Demo.h).
+//   --countdown Show a 1-minute pie-wipe countdown (GM_Countdown, see
+//               Game.h's cli_countdown) before jumping into --zone/--demo --
+//               for recording a YouTube-Premiere-style intro ahead of
+//               scripted showcase footage. Only available in SPLASH builds
+//               (Premier/Showcase) -- errors out otherwise. Works with or
+//               without --zone -- hands off to the injected level/demo if
+//               given, or the normal Sega/title/attract-mode boot otherwise.
+//   --countdown-music HEX
+//               Sound ID to play during the countdown (default: GHZ, $81).
 
 #include "Backend/MegaDrive.h"
 #include "Demo.h"
@@ -73,6 +83,20 @@ int main(int argc, char *argv[]) {
         else if (!strcmp(argv[i], "--demo") && i + 1 < argc) {
             cli_demo_override = LoadFile(argv[++i]);
             cli_force_demo = true;
+        } else if (!strcmp(argv[i], "--countdown")) {
+#ifdef SCP_SPLASH
+            cli_countdown = true;
+#else
+            fprintf(stderr, "SonicSmoke: --countdown needs a SPLASH build (Premier/Showcase)\n");
+            exit(1);
+#endif
+        } else if (!strcmp(argv[i], "--countdown-music") && i + 1 < argc) {
+#ifdef SCP_SPLASH
+            cli_countdown_music = (int32_t)strtol(argv[++i], NULL, 16);
+#else
+            fprintf(stderr, "SonicSmoke: --countdown-music needs a SPLASH build (Premier/Showcase)\n");
+            exit(1);
+#endif
         }
     }
 

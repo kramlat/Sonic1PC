@@ -22,12 +22,14 @@ static void GetBlockData2_ReadsColumnsPast64(void) {
 
     // Place known tile data for chunk 1 at block position (tx=3, ty=2), and
     // pick x/y so the lookup lands on column 100, row 0, tx=3, ty=2.
-    // metap = (level_map256 - 0x200) + (chunk << 9) + (ty << 5) + (tx << 1)
-    //       = level_map256 + 0x46  (for chunk=1, ty=2, tx=3)
-    level_map256[0x46] = 0x00;
-    level_map256[0x47] = 0x05; // tile id 5
+    // Chunks are 128x128 px / 8x8 cells (real Sonic 2 size); raw layout byte
+    // indexes the table directly, no -1 shift:
+    // metap = level_map128 + (chunk << 7) + (ty << 4) + (tx << 1)
+    //       = level_map128 + 0xA6  (for chunk=1, ty=2, tx=3)
+    level_map128[0xA6] = 0x00;
+    level_map128[0xA7] = 0x05; // tile id 5
 
-    int16_t x = (100 << 8) | 0x30; // column 100, tx = 3
+    int16_t x = (100 << 7) | 0x30; // column 100, tx = 3
     int16_t y = 0x20;              // row 0, ty = 2
 
     const uint8_t *meta = NULL, *block = NULL;

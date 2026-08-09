@@ -1,6 +1,8 @@
-# Exclude build directories
-/build/
-/bin/
+# Exclude build directories (any folder starting with "build", anywhere; e.g.
+# build/, build-release/, build-premier/, build-showcase/) and anything
+# inside a "bin" folder, anywhere.
+build*/
+bin/
 
 # Exclude converted resources
 /src/Resource/

@@ -414,6 +414,42 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const uint16_t 
 bool VDP_PALETTE_DISPLAY = false;
 uint16_t VRAMADDR = 0;
 uint8_t CRAMPAL = 0;
+bool Z80_PEEK_DISPLAY = false;
+
+// The VDP peek's own VRAM-address/palette-ID readout, drawn with the same
+// Art_Text glyph font Z80 Peek uses (see HUD_WriteHex/GM_Title.c's
+// LevSelCharToTile for the other two places this same asset is used).
+// Declared, not #included -- Game.c is the one place that includes the real
+// header, so including it again here would double-define the array at link
+// time (same reasoning as GM_Title.c's/Render.c's own copy of this extern).
+extern const uint8_t Art_Text[];
+
+// Draws one 8px-tall row (glyph_row, 0-7) of every character in `text`
+// (digits/uppercase letters only -- matches LevSelCharToTile's charset),
+// starting at pixel column x, into scanline buffer `to`. Called once per
+// scanline from VDP_DrawScanline, same as the rest of this debug overlay --
+// there's no separate "draw the whole string" pass since this whole
+// function operates one scanline at a time.
+static inline void VDP_DrawDebugText(uint32_t *to, const char *text, size_t x, size_t glyph_row) {
+	for (; *text; text++, x += 8) {
+		char c = *text;
+		uint8_t tile;
+		if (c >= '0' && c <= '9')
+			tile = (uint8_t)(c - '0');
+		else if (c >= 'A' && c <= 'F')
+			tile = (uint8_t)(0x11 + (c - 'A')); // matches LevSelCharToTile's 'A'-'X' run
+		else
+			continue; // blank/unsupported -- just skip the column
+
+		const uint8_t *src = Art_Text + tile * 32 + glyph_row * 4;
+		for (size_t col = 0; col < 8; col++) {
+			uint8_t byte = src[col / 2];
+			uint8_t nibble = (col & 1) ? (byte & 0xF) : (byte >> 4);
+			if (nibble)
+				to[x + col] = 0xFFFFFFFF;
+		}
+	}
+}
 
 static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct VDP_SpriteCache *scache, const int16_t *hscroll) {
 	//Clear scanline
@@ -430,23 +466,43 @@ static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct
 	for (uint8_t i = 0; i < scache->pushind; i++)
 		VDP_DrawSpriteRow(to, tom, scache->sprite[i], y);
 	
-	if (VDP_PALETTE_DISPLAY & (y < 9))
+	// VRAM address + selected CRAM palette readout -- drawn in the 32px this
+	// display's own shift-down (below) vacated above it, using the same
+	// Art_Text glyph font Z80 Peek uses (see VDP_DrawDebugText), so both
+	// debug overlays read consistently. Two rows: 4 hex digits of VRAMADDR,
+	// then 1 hex digit of CRAMPAL.
+	if (VDP_PALETTE_DISPLAY && y < 16) {
+		char text[5];
+		text[0] = "0123456789ABCDEF"[(VRAMADDR >> 12) & 0xF];
+		text[1] = "0123456789ABCDEF"[(VRAMADDR >> 8) & 0xF];
+		text[2] = "0123456789ABCDEF"[(VRAMADDR >> 4) & 0xF];
+		text[3] = "0123456789ABCDEF"[VRAMADDR & 0xF];
+		text[4] = '\0';
+		if (y < 8)
+			VDP_DrawDebugText(to, text, SCREEN_WIDTH - 128, y);
+		else {
+			char pal[2] = {(char)('0' + CRAMPAL), '\0'};
+			VDP_DrawDebugText(to, pal, SCREEN_WIDTH - 128, y - 8);
+		}
+	}
+
+	if (VDP_PALETTE_DISPLAY & (y > 31) & (y < 41))
 		for (size_t i = 0; i < 16; i++)
 			for (size_t j =0; j < 9; j++)
 				to[(SCREEN_WIDTH - 128) + ((i * 8)+ j)] = vdp_screen_pal[0][i];
-	if (VDP_PALETTE_DISPLAY & (y > 8) & (y < 17))
+	if (VDP_PALETTE_DISPLAY & (y > 40) & (y < 49))
 		for (size_t i = 0; i < 16; i++)
 			for (size_t j =0; j < 9; j++)
 				to[(SCREEN_WIDTH - 128) + ((i * 8)+ j)] = vdp_screen_pal[1][i];
-	if (VDP_PALETTE_DISPLAY & (y > 16) & (y < 25))
+	if (VDP_PALETTE_DISPLAY & (y > 48) & (y < 57))
 		for (size_t i = 0; i < 16; i++)
 			for (size_t j =0; j < 9; j++)
 				to[(SCREEN_WIDTH - 128) + ((i * 8)+ j)] = vdp_screen_pal[2][i];
-	if (VDP_PALETTE_DISPLAY & (y > 24) & (y < 33))
+	if (VDP_PALETTE_DISPLAY & (y > 56) & (y < 65))
 		for (size_t i = 0; i < 16; i++)
 			for (size_t j =0; j < 9; j++)
 				to[(SCREEN_WIDTH - 128) + ((i * 8)+ j)] = vdp_screen_pal[3][i];
-	if (VDP_PALETTE_DISPLAY & (y > 32) & (y < 41))
+	if (VDP_PALETTE_DISPLAY & (y > 64) & (y < 73))
 		for (size_t i = 0; i < 16; i++) {
 			to[(SCREEN_WIDTH - 128) + (i * 8)]       = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + VRAMADDR + (32 * i)] & 0xF0) >> 4];
 			to[(SCREEN_WIDTH - 128) + ((i * 8) + 1)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + VRAMADDR+ (32 * i)] & 0xF];
@@ -457,7 +513,7 @@ static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct
 			to[(SCREEN_WIDTH - 128) + ((i * 8) + 6)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 3 + VRAMADDR+ (32 * i)] & 0xF0) >> 4];
 			to[(SCREEN_WIDTH - 128) + ((i * 8) + 7)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 3 + VRAMADDR+ (32 * i)] & 0xF];
 		}
-	if (VDP_PALETTE_DISPLAY & (y > 40) & (y < 49))
+	if (VDP_PALETTE_DISPLAY & (y > 72) & (y < 81))
 		for (size_t i = 0; i < 16; i++) {
 			to[(SCREEN_WIDTH - 128) + (i * 8)]       = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + VRAMADDR + 0x200 + (32 * i)] & 0xF0) >> 4];
 			to[(SCREEN_WIDTH - 128) + ((i * 8) + 1)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + VRAMADDR + 0x200 + (32 * i)] & 0xF];
@@ -468,7 +524,7 @@ static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct
 			to[(SCREEN_WIDTH - 128) + ((i * 8) + 6)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 3 + VRAMADDR + 0x200 + (32 * i)] & 0xF0) >> 4];
 			to[(SCREEN_WIDTH - 128) + ((i * 8) + 7)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 3 + VRAMADDR + 0x200 + (32 * i)] & 0xF];
 		}
-	if (VDP_PALETTE_DISPLAY & (y > 48) & (y < 57))
+	if (VDP_PALETTE_DISPLAY & (y > 80) & (y < 89))
 		for (size_t i = 0; i < 16; i++) {
 			to[(SCREEN_WIDTH - 128) + (i * 8)]       = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + VRAMADDR + 0x400 + (32 * i)] & 0xF0) >> 4];
 			to[(SCREEN_WIDTH - 128) + ((i * 8) + 1)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + VRAMADDR + 0x400 + (32 * i)] & 0xF];
@@ -479,7 +535,7 @@ static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct
 			to[(SCREEN_WIDTH - 128) + ((i * 8) + 6)] = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4)+ 3 + VRAMADDR + 0x400 + (32 * i)] & 0xF0) >> 4];
 			to[(SCREEN_WIDTH - 128) + ((i * 8) + 7)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + 3 + VRAMADDR + 0x400 + (32 * i)] & 0xF];
 		}
-	if (VDP_PALETTE_DISPLAY & (y > 56) & (y < 65))
+	if (VDP_PALETTE_DISPLAY & (y > 88) & (y < 97))
 		for (size_t i = 0; i < 16; i++) {
 			to[(SCREEN_WIDTH - 128) + (i * 8)]       = vdp_screen_pal[CRAMPAL][(vdp_vram[(y * 4) + VRAMADDR + 0x600 + (32 * i)] & 0xF0) >> 4];
 			to[(SCREEN_WIDTH - 128) + ((i * 8) + 1)] = vdp_screen_pal[CRAMPAL][vdp_vram[(y * 4) + VRAMADDR + 0x600 + (32 * i)] & 0xF];

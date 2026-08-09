@@ -86,6 +86,7 @@ typedef struct {
     uint8_t active;  // 0 once smpsStop/smpsStopSpecial ($F2/$EE) is hit, or channel unused by the loaded song
     uint8_t key_on;  // 1 while gated on (audible); cleared during a note-fill release tail or on a rest
     uint8_t mod_active; // smpsModOn/smpsModOff ($F1/$F4) -- parameters stored above are not yet applied per-frame (TODO)
+    uint8_t debug_muted; // Debug/tooling only (ParadoxComposer): forces silence regardless of ch->volume -- see Sound_DebugSetChannelMuted
 } SoundChannel;
 
 // Matches v_soundqueue0-2: one pending request per priority tier, each
@@ -142,6 +143,21 @@ typedef struct {
     uint32_t dac_nibble_count;
     uint8_t dac_accum;   // 8-bit DPCM decode accumulator, centered at 0x80
     uint8_t dac_playing;
+    int dac_sample_id;   // which of dac_samples[]/DAC_SAMPLE_* triggered the current dac_data -- debug tooling only (SMPSInspector), nothing in the driver itself reads this back
+    // Generalized pitch-override mechanism (per your direction, Sonic 2's
+    // driver does the exact same "one base DPCM sample, multiple
+    // pitch-shifted note bytes" trick for Tom and Bongo too, not just
+    // Timpani) -- dac_pitch_override_sample is which DAC_SAMPLE_* the
+    // override applies to (-1 = none), dac_pitch_override_rate is the last
+    // pitch-shifted-variant rate selected for it, sticky across other
+    // samples playing in between (matches real hardware's "this affects
+    // the raw pitch of the base sample, meaning it will use this value
+    // from then on" -- see the DAC dispatch comment in Sound.c). Was
+    // Timpani-only (timpani_pitch_rate); generalized rather than adding a
+    // near-duplicate pair of fields per family now that there are three.
+    uint32_t dac_pitch_override_rate;
+    int dac_pitch_override_sample;
+    int dac_timpani_variant; // -1 = N/A (a non-Timpani sample, or plain $83, is the most recent trigger); 0-3 = Hi/Mid/Low/Floor, whichever $88-$8B was the most recent trigger -- debug tooling only (SMPSInspector)
     uint32_t dac_phase; // fixed-point phase accumulator for dac_rate->output-rate step
     uint32_t dac_rate;  // Hz -- the currently-triggered sample's own real rate (see DACSample::rate)
 
@@ -179,14 +195,23 @@ extern SoundChipSet sound_sfx;   // Dedicated chip set for sound effects
 // same ~53.69MHz (NTSC) master clock the 68000 runs from.
 #define SOUND_PSG_CLOCK 3579545
 
-// The 3 real DPCM percussion samples (res/DAC/*.dpcm). dKick/dSnare/dTimpani
-// in smps.h map directly to these. The pitch-shifted timpani variants
-// (dHiTimpani..dVLowTimpani) and the "SEGA!" boot voice PCM sample
-// (res/PCM/sega.pcm, a different codec entirely -- see zPlay_SegaPCM in the
-// real driver) are NOT implemented yet.
+// The 7 base DPCM percussion samples (res/DAC/*) in Sonic1PC's own EXTENDED
+// DAC scheme (per your direction) -- Kick/Snare/Timpani are real Sonic 1's
+// own set; Scratch/Clap/Tom/Bongo are Sonic 2's four extra ones, folded in
+// at renumbered note-byte slots (see the $81-$92 dispatch comment in
+// Sound.c) so both games' samples coexist without collision. Each has its
+// own pitch-shiftable variants too except Scratch/Clap -- see
+// timpani_variant_rate_hz/tom_variant_rate_hz/bongo_variant_rate_hz in
+// Sound.c. The "SEGA!" boot voice PCM sample (res/PCM/sega, a different
+// codec entirely -- see zPlay_SegaPCM in the real driver) is separate from
+// this DPCM sample set.
 #define DAC_SAMPLE_KICK    0
 #define DAC_SAMPLE_SNARE   1
 #define DAC_SAMPLE_TIMPANI 2
+#define DAC_SAMPLE_SCRATCH 3
+#define DAC_SAMPLE_CLAP    4
+#define DAC_SAMPLE_TOM     5
+#define DAC_SAMPLE_BONGO   6
 
 // Sound IDs -- matches the real disasm's bgm_*/sfx_* equates (_Constants.asm)
 // exactly, both by name and by value (each one is just the hex byte baked
@@ -262,7 +287,7 @@ extern SoundChipSet sound_sfx;   // Dedicated chip set for sound effects
 #define bgm_Speedup  0xE2
 #define bgm_Slowdown 0xE3
 #define bgm_Stop     0xE4
-#define DAC_SAMPLE_COUNT   3
+#define DAC_SAMPLE_COUNT   7
 
 void Sound_Init(void);
 
@@ -313,3 +338,57 @@ void Sound_SetTrace(int enabled);
 // function -- callers must zero it, since it's meant to be summed with
 // whatever else shares the output buffer).
 void Sound_Generate(int32_t *out, uint32_t count, uint32_t sample_rate);
+
+// Debug/tooling only (ParadoxComposer): raw pointer to a song/SFX's
+// compiled data by ID (matches PlaySoundID's ID space, e.g. 0x81=GHZ),
+// NULL if that ID has no song registered.
+const uint8_t *Sound_DebugGetSongData(uint8_t id);
+
+// Debug/tooling only (ParadoxComposer): play an arbitrary, not-yet-baked-in
+// compiled song/SFX buffer (e.g. one just produced by json_to_header.py from
+// an edited .jsonc) through the real sequencer, bypassing the sound_table ID
+// lookup PlayMusic/PlaySound require. is_sfx selects LoadSFX vs LoadMusic.
+void Sound_DebugPlayRawSong(const uint8_t *data, uint8_t is_sfx);
+
+// Debug/tooling only (ParadoxComposer): force a channel silent regardless
+// of its own computed volume, for the Channels panel's per-strip mute/solo
+// checkboxes. Operates on sound_music (what Sound_DebugPlayRawSong(...,
+// is_sfx=0) plays through) -- channel_index matches SoundChipSet::channels[]
+// indexing: 0..SOUND_CHANNELS_PSG-1 are PSG (3 tone + noise), then
+// SOUND_CHANNEL_FM_BASE.. are FM/DAC (see Sound.h's own layout comment).
+void Sound_DebugSetChannelMuted(int channel_index, uint8_t muted);
+
+// Debug/tooling only (ParadoxComposer): standalone DAC-sample preview for a
+// DAC-home block's own keyboard (per your direction: "list DAC samples on
+// keys... and actually play the samples"), independent of any song/SFX
+// playback -- uses a dedicated scratch chip-set state, not sound_music/
+// sound_sfx, so it never interferes with real playback. sampleId is one of
+// the 7 DAC_SAMPLE_* base samples (Kick/Snare/Timpani/Scratch/Clap/Tom/
+// Bongo).
+void Sound_DebugPreviewDacSample(int sampleId);
+// Pitch-shifted variant preview, for any of the 3 families that have them
+// -- sampleId is DAC_SAMPLE_TIMPANI/TOM/BONGO, variant indexes that
+// family's own rate table in Sound.c (timpani_variant_rate_hz: 0-3 =
+// Hi/Mid/Low/Floor, transcribed directly from Sonic 1's own
+// DAC_sample_rate/byte_71CC4 disassembly; tom_variant_rate_hz/
+// bongo_variant_rate_hz: 0-2, derived from Sonic 2's dac_sample_metadata
+// scale factors -- see those tables' own comments). Any other sampleId is
+// a no-op. Generalized (was Timpani-only, Sound_DebugPreviewTimpaniVariant)
+// once Tom/Bongo needed the exact same preview behavior.
+void Sound_DebugPreviewDacVariant(int sampleId, int variant);
+// Generates `count` stereo samples of whatever's currently previewing via
+// either function above, additive into `out` (same convention as
+// Sound_Generate). Call once per output tick while a DAC preview is active.
+void Sound_DebugGenerateDacPreview(int32_t *out, uint32_t count, uint32_t sample_rate);
+// Whether the standalone DAC preview is still playing -- a DAC sample is a
+// one-shot (unlike a held FM/PSG note), so the caller uses this to know
+// when it can stop calling Sound_DebugGenerateDacPreview.
+int Sound_DebugIsDacPreviewPlaying(void);
+
+// Debug/tooling only (SonicVoiceIsolate): while active, mutes every FM
+// channel except one currently loaded with the given voice_index, and mutes
+// PSG/DAC entirely -- lets a real song play at real speed/timing with only
+// one specific voice audible, to identify which voice index in a bank is
+// the "this one sounds right" voice by ear, in context. -1 disables
+// isolation (normal playback, the default).
+void Sound_DebugIsolateVoice(int voice_index);

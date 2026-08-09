@@ -23,6 +23,9 @@ uint8_t fg_yblock, bg1_yblock, bg2_yblock, bg3_yblock;
 
 int16_t look_shift;
 
+uint16_t cam_x_delay;
+uint8_t cam_y_delay;
+
 static ALIGNED4 uint8_t bgscroll_buffer[0x200];
 
 const int8_t Drown_WobbleData[] = {
@@ -724,7 +727,22 @@ static void MoveBehindMid(int16_t push_amount) {
 }
 
 void MoveScreenHoriz(void) {
-	int16_t distance_to_player = player->pos.l.x.f.u - scrpos_x.f.u;
+	int16_t distance_to_player;
+	if (cam_x_delay) {
+		// Lagging camera after a Spin Dash release: use Sonic's position
+		// from a few frames ago (tracked in track_sonic/track_pos, the
+		// same buffer ShieldInvincibility uses to trail behind Sonic)
+		// instead of his real-time position, easing the delay out as
+		// cam_x_delay counts down.
+		cam_x_delay -= 0x100;
+		uint8_t delay_hi = (uint8_t)(cam_x_delay >> 8);
+		uint8_t offset = (uint8_t)((delay_hi << 2) + 4);
+		uint8_t index = (uint8_t)(track_pos.f.l - offset);
+		int16_t tracked_x = track_sonic[index >> 2][0];
+		distance_to_player = (int16_t)(tracked_x & 0x3FFF) - scrpos_x.f.u;
+	} else {
+		distance_to_player = player->pos.l.x.f.u - scrpos_x.f.u;
+	}
 #if SCP_FIX_BUGS
 	int16_t push_left = distance_to_player - 144;
 	if (push_left < 0) {

@@ -3,7 +3,7 @@
 #include "Level.h"
 
 // Collision maps
-#include "Resource/Collision/AngleMap.h"
+#include "Resource/Collision/Angle.h"
 #include "Resource/Collision/HeightMap.h"
 #include "Resource/Collision/WidthMap.h"
 
@@ -17,31 +17,24 @@ void FloorLog_Unk(void) {
 
 static const uint8_t chunk0_dummy[2] = { 0, 0 };
 const uint8_t* FindNearestTile(Object *obj, int16_t x, int16_t y) {
-    // Get chunk
-    uint16_t cx = ((uint16_t)x >> 8) & 0x3F;
-    uint16_t cy = ((uint16_t)y >> 8) & 0x7;
-    uint8_t chunk = level_layout[cy][0][cx];
+    (void)obj; // player_loop no longer changes chunk selection, see below
+    // Get chunk (real Sonic 2 chunk size: 128x128 px, 8x8 grid of 16x16
+    // cells -- half of Sonic 1's original 256x256/16x16-grid chunks, hence
+    // the >>7 instead of >>8 and the wider row count, see LEVEL_LAYOUT_ROWS).
+    // Real Sonic 2 uses the full byte (0-255) as the chunk ID directly --
+    // unlike Sonic 1, there's no reserved high bit / player_loop remap
+    // trick (that priority effect is Obj03/path-swapper's job now).
+    uint16_t cx = ((uint16_t)x >> 7) & (LEVEL_LAYOUT_COLS - 1);
+    uint16_t cy = ((uint16_t)y >> 7) & (LEVEL_LAYOUT_ROWS - 1);
+    uint8_t chunk = LEVEL_LAYOUT_FG(cy)[cx];
     if (chunk == 0)
         return chunk0_dummy;
 
-    if (!(chunk & 0x80)) {
-        // Return chunk
-        uint8_t tx = (x >> 4) & 0xF;
-        uint8_t ty = (y >> 4) & 0xF;
-        return (level_map256 - 0x200) + (chunk << 9) + (ty << 5) + (tx << 1);
-    } else {
-        // Get chunk id
-        chunk &= 0x7F;
-        if (obj->render.f.player_loop) {
-            if (++chunk == 0x29)
-                chunk = 0x51;
-        }
-
-        // Return chunk
-        uint8_t tx = (x >> 4) & 0xF;
-        uint8_t ty = (y >> 4) & 0xF;
-        return (level_map256 - 0x200) + (chunk << 9) + (ty << 5) + (tx << 1);
-    }
+    // chunk<<7 = chunk * 0x80 bytes/chunk: 8x8 cells * 2 bytes each. No -1
+    // shift: raw layout byte N indexes Map128 table entry N directly.
+    uint8_t tx = (x >> 4) & 0x7;
+    uint8_t ty = (y >> 4) & 0x7;
+    return level_map128 + (chunk << 7) + (ty << 4) + (tx << 1);
 }
 
 static int16_t FindFloor2(Object *obj, int16_t x, int16_t y, uint16_t solid, uint16_t flip, uint8_t *angle) {
@@ -51,13 +44,17 @@ static int16_t FindFloor2(Object *obj, int16_t x, int16_t y, uint16_t solid, uin
 
     uint16_t tilei = tilev & META_TILE;
 
-    if (tilei != 0 && (tilev & solid)) {
+    // The bare META_SOLID_TOP/META_SOLID_LRB callers pass always name path
+    // 1's bits; shifting by collision_path*2 lands on path 2's bits instead
+    // when the path-swapper (Obj03) has switched paths -- see Level.h.
+    uint16_t path_solid = (uint16_t)(solid << (collision_path * 2));
+    if (tilei != 0 && (tilev & path_solid)) {
         // Get collision tile
-        uint16_t ctile = coll_index[tilei];
+        uint16_t ctile = coll_index[collision_path][tilei];
         if (ctile != 0) {
             // Get angle and height map index
             if (angle != NULL)
-                *angle = Collision_AngleMap[ctile];
+                *angle = Collision_Angle[ctile];
             ctile <<= 4;
 
             int16_t ind_x = x;
@@ -100,13 +97,17 @@ int16_t FindFloor(Object *obj, int16_t x, int16_t y, uint16_t solid, uint16_t fl
 
     uint16_t tilei = tilev & META_TILE;
 
-    if (tilei != 0 && (tilev & solid)) {
+    // The bare META_SOLID_TOP/META_SOLID_LRB callers pass always name path
+    // 1's bits; shifting by collision_path*2 lands on path 2's bits instead
+    // when the path-swapper (Obj03) has switched paths -- see Level.h.
+    uint16_t path_solid = (uint16_t)(solid << (collision_path * 2));
+    if (tilei != 0 && (tilev & path_solid)) {
         // Get collision tile
-        uint16_t ctile = coll_index[tilei];
+        uint16_t ctile = coll_index[collision_path][tilei];
         if (ctile != 0) {
             // Get angle and height map index
             if (angle != NULL)
-                *angle = Collision_AngleMap[ctile];
+                *angle = Collision_Angle[ctile];
             ctile <<= 4;
 
             int16_t ind_x = x;
@@ -149,13 +150,17 @@ static int16_t FindWall2(Object *obj, int16_t x, int16_t y, uint16_t solid, uint
 
     uint16_t tilei = tilev & META_TILE;
 
-    if (tilei != 0 && (tilev & solid)) {
+    // The bare META_SOLID_TOP/META_SOLID_LRB callers pass always name path
+    // 1's bits; shifting by collision_path*2 lands on path 2's bits instead
+    // when the path-swapper (Obj03) has switched paths -- see Level.h.
+    uint16_t path_solid = (uint16_t)(solid << (collision_path * 2));
+    if (tilei != 0 && (tilev & path_solid)) {
         // Get collision tile
-        uint16_t ctile = coll_index[tilei];
+        uint16_t ctile = coll_index[collision_path][tilei];
         if (ctile != 0) {
             // Get angle and width map index
             if (angle != NULL)
-                *angle = Collision_AngleMap[ctile];
+                *angle = Collision_Angle[ctile];
             ctile <<= 4;
 
             int16_t ind_y = y;
@@ -198,13 +203,17 @@ int16_t FindWall(Object *obj, int16_t x, int16_t y, uint16_t solid, uint16_t fli
 
     uint16_t tilei = tilev & META_TILE;
 
-    if (tilei != 0 && (tilev & solid)) {
+    // The bare META_SOLID_TOP/META_SOLID_LRB callers pass always name path
+    // 1's bits; shifting by collision_path*2 lands on path 2's bits instead
+    // when the path-swapper (Obj03) has switched paths -- see Level.h.
+    uint16_t path_solid = (uint16_t)(solid << (collision_path * 2));
+    if (tilei != 0 && (tilev & path_solid)) {
         // Get collision tile
-        uint16_t ctile = coll_index[tilei];
+        uint16_t ctile = coll_index[collision_path][tilei];
         if (ctile != 0) {
             // Get angle and width map index
             if (angle != NULL)
-                *angle = Collision_AngleMap[ctile];
+                *angle = Collision_Angle[ctile];
             ctile <<= 4;
 
             int16_t ind_y = y;

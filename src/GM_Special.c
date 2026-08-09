@@ -96,7 +96,7 @@ void GM_Special(void) {
 	btn_pushtime1 = 0;
 	btn_pushtime2 = 0;
 	pal_chgspeed = 0;
-	coll_index = NULL;
+	memset(coll_index, 0, sizeof(coll_index));
 	palss_num = 0;
 	palss_time = 0;
 	

@@ -76,3 +76,36 @@ void VDP_SetHIntCounter(int16_t counter);
 void VDP_SetHIntEnable(bool enable);
 
 void VDP_Render(void);
+
+// PC-only overlay drawn directly by the SDL2 backend after the emulated VDP
+// frame is blitted, on top of it -- real Genesis hardware has no vector/arc
+// drawing (everything is tile-based), so a smooth pie-wipe progress
+// indicator isn't something the VDP layer itself can produce; this exists
+// purely for GM_Countdown's SDL_RenderGeometry-drawn pie slice. fraction is
+// 0.0 (empty) to 1.0 (full circle). No-op on any backend that doesn't
+// implement it (declared here, not in a specific backend's own header, so
+// callers don't need to know/care which backend is active).
+// seconds_left is drawn as a big centered 2-digit number (simple SDL-drawn
+// segments, not a VDP tile font) so it composites cleanly on top of the pie
+// fill instead of being drawn underneath it and covered up.
+void Render_SetCountdownPie(bool active, float fraction, int seconds_left);
+
+// "Z80 Peek" debug overlay -- live YM2612/SN76489 register state drawn
+// directly by the SDL2 backend, same PC-only-overlay reasoning as the
+// countdown pie above. Left Alt toggles it (see Game.h's Z80_PEEK_DISPLAY),
+// same debug-only (#ifndef NDEBUG) gating as the existing VDP_PALETTE_DISPLAY
+// VRAM/CRAM peek. Gathered fresh from sound_music each frame by Game.c's
+// main loop (the one place that already has direct access to both
+// SoundChipSet and the render backend) -- Render.c itself has no business
+// knowing about Sound.c's internals, so it only ever sees this plain struct.
+typedef struct {
+    uint8_t fm_alg_fb[2][3];  // [port][chan]: raw $B0+ch byte (algorithm low 3 bits, feedback next 3)
+    uint8_t fm_tl[2][3][4];   // [port][chan][operator 0=op1..3=op4]: raw $40+op*4+ch byte
+    uint8_t fm_keyon;         // last $28 write -- bit layout matches the real key-on register
+    uint16_t psg_tone_period[3];
+    uint8_t psg_tone_atten[3];
+    uint8_t psg_noise_atten;
+    uint8_t psg_noise_shift_rate;
+    uint8_t psg_noise_fb_white;
+} Z80PeekData;
+void Render_SetZ80Peek(bool active, const Z80PeekData *data);

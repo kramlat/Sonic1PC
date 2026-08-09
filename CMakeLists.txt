@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16) # Qt6's CMake package/AUTOMOC requires >= 3.16
 
 # ##############################################################################
 # Options #
@@ -9,7 +9,28 @@ set(BACKEND
 option(REV01 "Compile REV01 ROM" ON)
 option(JAPANESE "Compile Japanese ROM" OFF)
 option(FIX_BUGS "Fix bugs (completely screwed up code, not gameplay bugs)" OFF)
-option(SPLASH "Enable the SSRG splash screen (for my own demo releases)" OFF)
+
+# Two custom CMAKE_BUILD_TYPEs (alongside the usual Debug/Release/etc), both
+# defaulting SPLASH (below) to ON -- boot straight into the SSRG (Sonic
+# Stuff Research Group) screen
+# instead of the title screen, for a polished "preview build" look:
+#   - "Premier": Release-level optimization, but deliberately NOT defining
+#     NDEBUG, so every #ifndef NDEBUG debug-cheat/level-select shortcut
+#     (GM_Level.c, GM_Special.c, GM_Title.c) stays active -- for OBS/YouTube
+#     footage where quickly jumping to a specific level/feature to show off
+#     matters more than hiding debug-only access.
+#   - "Showcase": plain Release build (NDEBUG defined, no debug-cheat
+#     access) with the same SSRG-first default -- for release-quality
+#     public builds/trailers that don't need cheat access.
+# Only takes effect on this variable's FIRST configure in a given build dir,
+# same as any other option() default -- use a separate build directory per
+# CMAKE_BUILD_TYPE (as this project already does for Debug vs Release).
+if(CMAKE_BUILD_TYPE STREQUAL "Premier" OR CMAKE_BUILD_TYPE STREQUAL "Showcase")
+  set(SPLASH_DEFAULT ON)
+else()
+  set(SPLASH_DEFAULT OFF)
+endif()
+option(SPLASH "Enable the SSRG (Sonic Stuff Research Group) splash screen (for my own demo releases)" ${SPLASH_DEFAULT})
 
 option(SANITIZE "Enable sanitization" OFF)
 option(LTO "Enable link-time optimization" OFF)
@@ -95,11 +116,15 @@ set(
   "src/Object/SwingingPlatform.c"
   "src/Object/BigSpikeBall.c"
   "src/Object/Ring.c"
+  "src/Object/Splash.c"
+  "src/Object/Splash.h"
   "src/Object/Waterfall.c"
   "src/Object/Waterfall.h"
   "src/Object/Monitor.c"
   "src/Object/Explosion.c"
   "src/Object/Checkpoint.c"
+  "src/Object/PathSwapper.c"
+  "src/Object/PathSwapper.h"
   "src/Object/Chopper.c"
   "src/Object/TitleCard.c"
   "src/Object/Spikes.c"
@@ -121,12 +146,37 @@ set(
   "src/Backend/Joypad.c"
   "src/Backend/Joypad.h"
   "src/Backend/SN76489.c"
-  "src/Backend/YM2612.cpp"
   "src/Backend/YM2612.h"
-  "ymfm/src/ymfm_opn.cpp"
-  "ymfm/src/ymfm_ssg.cpp"
-  "ymfm/src/ymfm_adpcm.cpp"
   "src/Backend/SN76489.h")
+
+# Two interchangeable implementations of YM2612.h's C API -- both kept fully
+# buildable so switching is a one-line config change, not a code change.
+# "fmcore" (default): the in-house engine (fmcore/fm_voice.h), built and
+# validated this session against real ymfm output plus an actual shipped
+# voice (SndB5's ring chime) by ear -- see the fmcore/ folder's own framing
+# comments for what it is/isn't (musically correct, not cycle-accurate).
+# "ymfm": the original reference-accurate implementation this project used
+# before fmcore existed, kept available (not deleted) as a fallback/
+# comparison point until fmcore has more mileage, per explicit instruction
+# not to remove it while there's still any doubt.
+set(SOUND_FM_BACKEND "fmcore" CACHE STRING "YM2612 backend: 'fmcore' (default, in-house engine) or 'ymfm' (previous reference implementation)")
+set_property(CACHE SOUND_FM_BACKEND PROPERTY STRINGS fmcore ymfm)
+
+if(SOUND_FM_BACKEND STREQUAL "fmcore")
+  list(APPEND SONIC_CORE_SOURCES
+    "src/Backend/YM2612_FMCore.c"
+    "fmcore/fm_operator.c"
+    "fmcore/fm_operator.h"
+    "fmcore/fm_voice.c"
+    "fmcore/fm_voice.h")
+  set_source_files_properties("fmcore/fm_operator.c" "fmcore/fm_voice.c" "src/Backend/YM2612_FMCore.c" PROPERTIES LANGUAGE C)
+else()
+  list(APPEND SONIC_CORE_SOURCES
+    "src/Backend/YM2612.cpp"
+    "contrib/ymfm/src/ymfm_opn.cpp"
+    "contrib/ymfm/src/ymfm_ssg.cpp"
+    "contrib/ymfm/src/ymfm_adpcm.cpp")
+endif()
 
 add_library(SonicCore STATIC ${SONIC_CORE_SOURCES})
 
@@ -355,30 +405,20 @@ set(RESOURCES
     "Layout/GHZ1"
     "Layout/GHZ2"
     "Layout/GHZ3"
-    "Layout/GHZBG"
     "Layout/LZ1"
     "Layout/LZ2"
     "Layout/LZ3"
-    "Layout/LZBG"
     "Layout/MZ1"
-    "Layout/MZ1BG"
     "Layout/MZ2"
-    "Layout/MZ2BG"
     "Layout/MZ3"
-    "Layout/MZ3BG"
     "Layout/SLZ1"
     "Layout/SLZ2"
     "Layout/SLZ3"
-    "Layout/SLZBG"
     "Layout/SYZ1"
     "Layout/SYZ2"
     "Layout/SYZ3"
-    "Layout/SYZBGREV00"
-    "Layout/SYZBGREV01"
     "Layout/SBZ1"
-    "Layout/SBZ1BG"
     "Layout/SBZ2"
-    "Layout/SBZ2BG"
     "Layout/SBZ3"
     "Layout/Ending"
     "ObjectLayout/GHZ1"
@@ -425,21 +465,27 @@ set(RESOURCES
     "Map16/SBZ"
     "Map16/SLZ"
     "Map16/SYZ"
-    "Map256/GHZ"
-    "Map256/LZ"
-    "Map256/MZREV00"
-    "Map256/MZREV01"
-    "Map256/SBZREV00"
-    "Map256/SBZREV01"
-    "Map256/SLZ"
-    "Map256/SYZ"
-    "CollisionIndex/GHZ"
-    "CollisionIndex/LZ"
-    "CollisionIndex/MZ"
-    "CollisionIndex/SLZ"
-    "CollisionIndex/SYZ"
-    "CollisionIndex/SBZ"
-    "Collision/AngleMap"
+    "Map128/GHZ"
+    "Map128/LZ"
+    "Map128/MZREV00"
+    "Map128/MZREV01"
+    "Map128/SBZREV00"
+    "Map128/SBZREV01"
+    "Map128/SLZ"
+    "Map128/SYZ"
+    "Collision/GHZ1"
+    "Collision/GHZ2"
+    "Collision/LZ1"
+    "Collision/LZ2"
+    "Collision/MZ1"
+    "Collision/MZ2"
+    "Collision/SLZ1"
+    "Collision/SLZ2"
+    "Collision/SYZ1"
+    "Collision/SYZ2"
+    "Collision/SBZ1"
+    "Collision/SBZ2"
+    "Collision/Angle"
     "Collision/HeightMap"
     "Collision/WidthMap"
     "Demo/IntroGHZ"
@@ -465,6 +511,10 @@ set(RESOURCES
     "DAC/kick"
     "DAC/snare"
     "DAC/timpani"
+    "DAC/scratch"
+    "DAC/clap"
+    "DAC/tom"
+    "DAC/bongo"
     "PCM/sega"
     "PSG/psg1"
     "PSG/psg2"
@@ -507,7 +557,7 @@ endif()
 # Splash
 if(SPLASH)
   target_compile_definitions(SonicCore PUBLIC SCP_SPLASH)
-  target_sources(SonicCore PRIVATE "src/GM_SSRG.c" "src/GM_SSRG.h")
+  target_sources(SonicCore PRIVATE "src/GM_SSRG.c" "src/GM_SSRG.h" "src/GM_Countdown.c" "src/GM_Countdown.h")
   list(
     APPEND
     RESOURCES
@@ -522,6 +572,36 @@ endif()
 
 # Strip release builds
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
+
+# Premier: same optimization+strip as Release, but deliberately no -DNDEBUG
+# (unlike CMake's built-in Release/MinSizeRel/RelWithDebInfo, which all add
+# it) -- see the SPLASH_DEFAULT comment above for why: this build type wants
+# every #ifndef NDEBUG debug-cheat path to stay compiled in and active.
+set(CMAKE_C_FLAGS_PREMIER
+    "-O3 -s"
+    CACHE STRING "Flags used by the C compiler for the Premier build type" FORCE)
+set(CMAKE_CXX_FLAGS_PREMIER
+    "-O3 -s"
+    CACHE STRING "Flags used by the CXX compiler for the Premier build type" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_PREMIER
+    ""
+    CACHE STRING "Flags used by the linker for the Premier build type" FORCE)
+mark_as_advanced(CMAKE_C_FLAGS_PREMIER CMAKE_CXX_FLAGS_PREMIER CMAKE_EXE_LINKER_FLAGS_PREMIER)
+
+# Showcase: identical flags to Release (optimization, strip, AND -DNDEBUG --
+# unlike Premier, this keeps debug-cheat paths compiled out) -- exists as its
+# own build type purely to get the SPLASH-on-by-default behavior above and
+# land in its own bin/Showcase/ directory, without affecting plain Release.
+set(CMAKE_C_FLAGS_SHOWCASE
+    "-O3 -DNDEBUG -s"
+    CACHE STRING "Flags used by the C compiler for the Showcase build type" FORCE)
+set(CMAKE_CXX_FLAGS_SHOWCASE
+    "-O3 -DNDEBUG -s"
+    CACHE STRING "Flags used by the CXX compiler for the Showcase build type" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_SHOWCASE
+    ""
+    CACHE STRING "Flags used by the linker for the Showcase build type" FORCE)
+mark_as_advanced(CMAKE_C_FLAGS_SHOWCASE CMAKE_CXX_FLAGS_SHOWCASE CMAKE_EXE_LINKER_FLAGS_SHOWCASE)
 
 # Force warnings
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -594,19 +674,64 @@ set_target_properties(
              C_STANDARD_REQUIRED ON
              C_EXTENSIONS OFF)
 
-# Set debug executable name
-set_target_properties(Sonic PROPERTIES DEBUG_OUTPUT_NAME "Sonic_debug")
-
 # Set output directory
 set(BUILD_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
-set_target_properties(
-  Sonic
-  PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}
-             RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_DIRECTORY}
-             RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${BUILD_DIRECTORY}
-             RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${BUILD_DIRECTORY}
-             RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_DIRECTORY})
+# Sonic lands in bin/<config>/Sonic (bin/Debug/Sonic, bin/Release/Sonic, ...)
+# -- $<CONFIG> resolves correctly for both single-config generators (Unix
+# Makefiles, using CMAKE_BUILD_TYPE) and multi-config ones (Ninja Multi-
+# Config, Visual Studio), unlike the old fixed RUNTIME_OUTPUT_DIRECTORY_*
+# per-config properties, which only multi-config generators actually read.
+set_target_properties(Sonic PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                        "${BUILD_DIRECTORY}/$<CONFIG>")
+
+# ##############################################################################
+# fmcore -- from-scratch YM2612 core side project (see fmcore/fm_operator.h) #
+# ##############################################################################
+# Completely independent of SonicCore/the game -- a single operator so far,
+# verified against ymfm (contrib/ymfm) rather than the game's own YM2612.cpp
+# wrapper, since the point is comparing against a known-good reference
+# implementation directly, not anything game-specific.
+add_executable(FMCoreVerify
+  "fmcore/fm_operator.c"
+  "fmcore/fm_operator.h"
+  "fmcore/fmcore_verify_main.c"
+  "contrib/ymfm/src/ymfm_opn.cpp"
+  "contrib/ymfm/src/ymfm_ssg.cpp"
+  "contrib/ymfm/src/ymfm_adpcm.cpp")
+target_include_directories(FMCoreVerify PRIVATE "contrib/ymfm/src")
+set_target_properties(FMCoreVerify PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
+                                               RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
+if(NOT WIN32)
+  target_link_libraries(FMCoreVerify PRIVATE m)
+endif()
+# fmcore_verify_main.c is C++ (uses ymfm's C++ API + <vector>/<math.h>
+# directly) even though it #includes fm_operator.h's C API -- force it to
+# compile as C++ despite the .c extension, same reasoning as C_EXTENSIONS
+# elsewhere in this file when a file's real language doesn't match its
+# CMake-inferred one.
+set_source_files_properties("fmcore/fmcore_verify_main.c" PROPERTIES LANGUAGE CXX)
+
+# Same idea as FMCoreVerify, but exercises all 8 of the real YM2612's fixed
+# algorithms through fm_voice.h's free-form connect[][] graph instead of
+# just isolating a single operator -- see fmcore_algcheck_main.c's own
+# comment for what this is actually checking.
+add_executable(FMCoreAlgCheck
+  "fmcore/fm_operator.c"
+  "fmcore/fm_operator.h"
+  "fmcore/fm_voice.c"
+  "fmcore/fm_voice.h"
+  "fmcore/fmcore_algcheck_main.c"
+  "contrib/ymfm/src/ymfm_opn.cpp"
+  "contrib/ymfm/src/ymfm_ssg.cpp"
+  "contrib/ymfm/src/ymfm_adpcm.cpp")
+target_include_directories(FMCoreAlgCheck PRIVATE "contrib/ymfm/src")
+set_target_properties(FMCoreAlgCheck PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
+                                                 RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
+if(NOT WIN32)
+  target_link_libraries(FMCoreAlgCheck PRIVATE m)
+endif()
+set_source_files_properties("fmcore/fmcore_algcheck_main.c" PROPERTIES LANGUAGE CXX)
 
 # ##############################################################################
 # Backends #
@@ -665,7 +790,7 @@ include(ExternalProject)
 
 ExternalProject_Add(
   bin2h
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/bin2h"
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/tools/bin2h"
   DOWNLOAD_COMMAND ""
   UPDATE_COMMAND ""
   BUILD_BYPRODUCTS "<INSTALL_DIR>/bin/bin2h"
@@ -705,7 +830,7 @@ include(ExternalProject)
 
 ExternalProject_Add(
   clownassembler
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/clownassembler"
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/contrib/clownassembler"
   DOWNLOAD_COMMAND ""
   UPDATE_COMMAND ""
   BUILD_BYPRODUCTS "<INSTALL_DIR>/bin/clownassembler"
@@ -735,138 +860,140 @@ foreach(FILENAME IN LISTS ASM)
 endforeach()
 
 # ##############################################################################
-# Music/SFX (SMPS2ASM) #
+# ParadoxSMPS (JSON song/SFX format) #
 # ##############################################################################
-# smps2asmc translates a SMPS2ASM-format .asm song/SFX file into a small C
-# program that #includes smps2asmc/smps.h (a C dialect of smps2asm.asm,
-# specialized to the real Sonic 1 sound driver -- see that header's own
-# comment) and calls its functions in the same sequence as the original
-# file's macro invocations. Building *that* generated program and running it
-# produces the actual resource header -- so each song needs three steps:
-# translate, build, run. See add_smps_song() below.
+# libparadoxsmps (libparadoxsmps/json.c + compiler.c) is the ONE canonical
+# ParadoxSMPS compiler -- both this real build (via the jsonc2h_tool CLI
+# below) and ParadoxComposer (linked directly) use the exact same code, so
+# there is no second hand-ported implementation left to drift out of sync
+# (the retired smps2asmc/.asm pipeline below this comment used to be the
+# real build's source of truth; ParadoxComposer separately carried its own
+# Qt/C++ port -- "a C based converter and compiler can be hooked into by the
+# daw directly and guarantee the same code quality consistently").
 #
-# NOTE: unlike bin2h/clownassembler (built via ExternalProject_Add
-# specifically so they're always host-native even when Sonic itself is being
-# cross-compiled), smps2asmc and each per-song "song builder" program below
-# are currently built as ordinary add_executable() targets, which use
-# whatever compiler the current build is configured for. That's fine for a
-# native build (this project's only configuration so far) but would need
-# the same ExternalProject_Add isolation bin2h/clownassembler have before
-# this pipeline could be trusted under cross-compilation.
+# jsonc2h compiles one .jsonc straight to a header in a single step -- no
+# intermediate .asm, no generated-C song-builder program to build and run,
+# unlike the old three-step translate/build/run pipeline. Same relationship
+# moc has to a Qt header.
+add_library(paradoxsmps STATIC
+  "libparadoxsmps/json.c"
+  "libparadoxsmps/json.h"
+  "libparadoxsmps/compiler.c"
+  "libparadoxsmps/compiler.h"
+  "libparadoxsmps/converter.c"
+  "libparadoxsmps/converter.h")
+set_target_properties(paradoxsmps PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
 
-add_executable(smps2asmc_tool "smps2asmc/smps2asmc.c")
-set_target_properties(smps2asmc_tool PROPERTIES OUTPUT_NAME smps2asmc)
+add_executable(jsonc2h_tool "libparadoxsmps/jsonc2h_main.c")
+target_link_libraries(jsonc2h_tool PRIVATE paradoxsmps)
+target_include_directories(jsonc2h_tool PRIVATE "${CMAKE_SOURCE_DIR}/libparadoxsmps")
+set_target_properties(jsonc2h_tool PROPERTIES OUTPUT_NAME jsonc2h)
 
-# Translates, builds, and runs one song/SFX .asm file, adding its resulting
-# resource header to SonicCore. ASM_FILE is relative to res/Music/;
-# ARRAY_NAME becomes both the generated C array's name and the output
-# header's filename (Resource/Music/${ARRAY_NAME}.h).
-function(add_smps_song ASM_FILE ARRAY_NAME)
-  set(IN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/res/Music")
+# asm2json: migration tool (not part of the game build), converts a real
+# SMPS2ASM .asm song/SFX file to ParadoxSMPS JSONC -- see converter.c's own
+# comment. Kept for re-conversion/verification against
+# tools/paradoxsmps/asm_to_json.py, the same relationship jsonc2h_tool has
+# to json_to_header.py.
+add_executable(asm2json_tool "libparadoxsmps/asm2json_main.c")
+target_link_libraries(asm2json_tool PRIVATE paradoxsmps)
+target_include_directories(asm2json_tool PRIVATE "${CMAKE_SOURCE_DIR}/libparadoxsmps")
+set_target_properties(asm2json_tool PROPERTIES OUTPUT_NAME asm2json)
+
+# Compiles one already-converted ParadoxSMPS .jsonc file, adding its
+# resulting resource header to SonicCore. JSONC_FILE is relative to
+# tools/paradoxsmps/converted/ (e.g. "music/Mus81 - GHZ.jsonc"); ARRAY_NAME
+# becomes both the generated C array's name and the output header's
+# filename (Resource/Music/${ARRAY_NAME}.h).
+function(add_paradoxsmps_song JSONC_FILE ARRAY_NAME)
+  set(IN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tools/paradoxsmps/converted")
   set(OUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Resource/Music")
-  set(GEN_C "${CMAKE_CURRENT_BINARY_DIR}/smps_gen/${ARRAY_NAME}.gen.c")
   set(OUT_H "${OUT_DIR}/${ARRAY_NAME}.h")
-
-  if(FIX_BUGS)
-    set(SONG_FIX_BUGS 1)
-  else()
-    set(SONG_FIX_BUGS 0)
-  endif()
-
-  add_custom_command(
-    OUTPUT "${GEN_C}"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/smps_gen"
-    COMMAND smps2asmc_tool "${IN_DIR}/${ASM_FILE}" "${GEN_C}" "${ARRAY_NAME}" "${OUT_H}" "${SONG_FIX_BUGS}"
-    DEPENDS smps2asmc_tool "${IN_DIR}/${ASM_FILE}")
-
-  add_executable(songbuild_${ARRAY_NAME} "${GEN_C}" "${CMAKE_SOURCE_DIR}/smps2asmc/smps.c")
-  target_include_directories(songbuild_${ARRAY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/smps2asmc")
 
   add_custom_command(
     OUTPUT "${OUT_H}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}"
-    COMMAND songbuild_${ARRAY_NAME}
-    DEPENDS songbuild_${ARRAY_NAME}
-    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+    COMMAND jsonc2h_tool "${IN_DIR}/${JSONC_FILE}" "${OUT_H}" "${ARRAY_NAME}"
+    DEPENDS jsonc2h_tool "${IN_DIR}/${JSONC_FILE}")
 
   target_sources(SonicCore PRIVATE "${OUT_H}")
 endfunction()
 
-# Full music/SFX catalog. res/Music/ also contains "E0 - Spin Dash Rev.asm",
-# deliberately NOT wired up here: it's a SonicDriverVer=2 test file, and
-# smps.h/smps.c only implement driver 1 (see smps.h's own comment).
-add_smps_song("Mus81 - GHZ.asm" Mus81_GHZ)
-add_smps_song("Mus82 - LZ.asm" Mus82_LZ)
-add_smps_song("Mus83 - MZ.asm" Mus83_MZ)
-add_smps_song("Mus84 - SLZ.asm" Mus84_SLZ)
-add_smps_song("Mus85 - SYZ.asm" Mus85_SYZ)
-add_smps_song("Mus86 - SBZ.asm" Mus86_SBZ)
-add_smps_song("Mus87 - Invincibility.asm" Mus87_Invincibility)
-add_smps_song("Mus88 - Extra Life.asm" Mus88_Extra_Life)
-add_smps_song("Mus89 - Special Stage.asm" Mus89_Special_Stage)
-add_smps_song("Mus8A - Title Screen.asm" Mus8A_Title_Screen)
-add_smps_song("Mus8B - Ending.asm" Mus8B_Ending)
-add_smps_song("Mus8C - Boss.asm" Mus8C_Boss)
-add_smps_song("Mus8D - FZ.asm" Mus8D_FZ)
-add_smps_song("Mus8E - Sonic Got Through.asm" Mus8E_Sonic_Got_Through)
-add_smps_song("Mus8F - Game Over.asm" Mus8F_Game_Over)
-add_smps_song("Mus90 - Continue Screen.asm" Mus90_Continue_Screen)
-add_smps_song("Mus91 - Credits.asm" Mus91_Credits)
-add_smps_song("Mus92 - Drowning.asm" Mus92_Drowning)
-add_smps_song("Mus93 - Get Emerald.asm" Mus93_Get_Emerald)
+# Full music/SFX catalog. res/Music/ also contains "E0 - Spin Dash Rev.asm"
+# (and its converted/ counterpart, if any), deliberately NOT wired up here:
+# it's a SonicDriverVer=2 test file, and this compiler only implements
+# driver 1 (matching the original smps2asmc/smps.c pipeline's own scope).
+add_paradoxsmps_song("music/Mus81 - GHZ.jsonc" Mus81_GHZ)
+add_paradoxsmps_song("music/Mus82 - LZ.jsonc" Mus82_LZ)
+add_paradoxsmps_song("music/Mus83 - MZ.jsonc" Mus83_MZ)
+add_paradoxsmps_song("music/Mus84 - SLZ.jsonc" Mus84_SLZ)
+add_paradoxsmps_song("music/Mus85 - SYZ.jsonc" Mus85_SYZ)
+add_paradoxsmps_song("music/Mus86 - SBZ.jsonc" Mus86_SBZ)
+add_paradoxsmps_song("music/Mus87 - Invincibility.jsonc" Mus87_Invincibility)
+add_paradoxsmps_song("music/Mus88 - Extra Life.jsonc" Mus88_Extra_Life)
+add_paradoxsmps_song("music/Mus89 - Special Stage.jsonc" Mus89_Special_Stage)
+add_paradoxsmps_song("music/Mus8A - Title Screen.jsonc" Mus8A_Title_Screen)
+add_paradoxsmps_song("music/Mus8B - Ending.jsonc" Mus8B_Ending)
+add_paradoxsmps_song("music/Mus8C - Boss.jsonc" Mus8C_Boss)
+add_paradoxsmps_song("music/Mus8D - FZ.jsonc" Mus8D_FZ)
+add_paradoxsmps_song("music/Mus8E - Sonic Got Through.jsonc" Mus8E_Sonic_Got_Through)
+add_paradoxsmps_song("music/Mus8F - Game Over.jsonc" Mus8F_Game_Over)
+add_paradoxsmps_song("music/Mus90 - Continue Screen.jsonc" Mus90_Continue_Screen)
+add_paradoxsmps_song("music/Mus91 - Credits.jsonc" Mus91_Credits)
+add_paradoxsmps_song("music/Mus92 - Drowning.jsonc" Mus92_Drowning)
+add_paradoxsmps_song("music/Mus93 - Get Emerald.jsonc" Mus93_Get_Emerald)
 
-add_smps_song("SndA0 - Jump.asm" SndA0_Jump)
-add_smps_song("SndA1 - Lamppost.asm" SndA1_Lamppost)
-add_smps_song("SndA2.asm" SndA2)
-add_smps_song("SndA3 - Death.asm" SndA3_Death)
-add_smps_song("SndA4 - Skid.asm" SndA4_Skid)
-add_smps_song("SndA5.asm" SndA5)
-add_smps_song("SndA6 - Hit Spikes.asm" SndA6_Hit_Spikes)
-add_smps_song("SndA7 - Push Block.asm" SndA7_Push_Block)
-add_smps_song("SndA8 - SS Goal.asm" SndA8_SS_Goal)
-add_smps_song("SndA9 - SS Item.asm" SndA9_SS_Item)
-add_smps_song("SndAA - Splash.asm" SndAA_Splash)
-add_smps_song("SndAB.asm" SndAB)
-add_smps_song("SndAC - Hit Boss.asm" SndAC_Hit_Boss)
-add_smps_song("SndAD - Get Bubble.asm" SndAD_Get_Bubble)
-add_smps_song("SndAE - Fireball.asm" SndAE_Fireball)
-add_smps_song("SndAF - Shield.asm" SndAF_Shield)
-add_smps_song("SndB0 - Saw.asm" SndB0_Saw)
-add_smps_song("SndB1 - Electric.asm" SndB1_Electric)
-add_smps_song("SndB2 - Drown Death.asm" SndB2_Drown_Death)
-add_smps_song("SndB3 - Flamethrower.asm" SndB3_Flamethrower)
-add_smps_song("SndB4 - Bumper.asm" SndB4_Bumper)
-add_smps_song("SndB5 - Ring.asm" SndB5_Ring)
-add_smps_song("SndB6 - Spikes Move.asm" SndB6_Spikes_Move)
-add_smps_song("SndB7 - Rumbling.asm" SndB7_Rumbling)
-add_smps_song("SndB8.asm" SndB8)
-add_smps_song("SndB9 - Collapse.asm" SndB9_Collapse)
-add_smps_song("SndBA - SS Glass.asm" SndBA_SS_Glass)
-add_smps_song("SndBB - Door.asm" SndBB_Door)
-add_smps_song("SndBC - Teleport.asm" SndBC_Teleport)
-add_smps_song("SndBD - ChainStomp.asm" SndBD_ChainStomp)
-add_smps_song("SndBE - Roll.asm" SndBE_Roll)
-add_smps_song("SndBF - Get Continue.asm" SndBF_Get_Continue)
-add_smps_song("SndC0 - Basaran Flap.asm" SndC0_Basaran_Flap)
-add_smps_song("SndC1 - Break Item.asm" SndC1_Break_Item)
-add_smps_song("SndC2 - Drown Warning.asm" SndC2_Drown_Warning)
-add_smps_song("SndC3 - Giant Ring.asm" SndC3_Giant_Ring)
-add_smps_song("SndC4 - Bomb.asm" SndC4_Bomb)
-add_smps_song("SndC5 - Cash Register.asm" SndC5_Cash_Register)
-add_smps_song("SndC6 - Ring Loss.asm" SndC6_Ring_Loss)
-add_smps_song("SndC7 - Chain Rising.asm" SndC7_Chain_Rising)
-add_smps_song("SndC8 - Burning.asm" SndC8_Burning)
-add_smps_song("SndC9 - Hidden Bonus.asm" SndC9_Hidden_Bonus)
-add_smps_song("SndCA - Enter SS.asm" SndCA_Enter_SS)
-add_smps_song("SndCB - Wall Smash.asm" SndCB_Wall_Smash)
-add_smps_song("SndCC - Spring.asm" SndCC_Spring)
-add_smps_song("SndCD - Switch.asm" SndCD_Switch)
-add_smps_song("SndCE - Ring Left Speaker.asm" SndCE_Ring_Left_Speaker)
-add_smps_song("SndCF - Signpost.asm" SndCF_Signpost)
-add_smps_song("SndD0 - Waterfall.asm" SndD0_Waterfall)
+add_paradoxsmps_song("sfx/SndA0 - Jump.jsonc" SndA0_Jump)
+add_paradoxsmps_song("sfx/SndA1 - Lamppost.jsonc" SndA1_Lamppost)
+add_paradoxsmps_song("sfx/SndA2.jsonc" SndA2)
+add_paradoxsmps_song("sfx/SndA3 - Death.jsonc" SndA3_Death)
+add_paradoxsmps_song("sfx/SndA4 - Skid.jsonc" SndA4_Skid)
+add_paradoxsmps_song("sfx/SndA5.jsonc" SndA5)
+add_paradoxsmps_song("sfx/SndA6 - Hit Spikes.jsonc" SndA6_Hit_Spikes)
+add_paradoxsmps_song("sfx/SndA7 - Push Block.jsonc" SndA7_Push_Block)
+add_paradoxsmps_song("sfx/SndA8 - SS Goal.jsonc" SndA8_SS_Goal)
+add_paradoxsmps_song("sfx/SndA9 - SS Item.jsonc" SndA9_SS_Item)
+add_paradoxsmps_song("sfx/SndAA - Splash.jsonc" SndAA_Splash)
+add_paradoxsmps_song("sfx/SndAB.jsonc" SndAB)
+add_paradoxsmps_song("sfx/SndAC - Hit Boss.jsonc" SndAC_Hit_Boss)
+add_paradoxsmps_song("sfx/SndAD - Get Bubble.jsonc" SndAD_Get_Bubble)
+add_paradoxsmps_song("sfx/SndAE - Fireball.jsonc" SndAE_Fireball)
+add_paradoxsmps_song("sfx/SndAF - Shield.jsonc" SndAF_Shield)
+add_paradoxsmps_song("sfx/SndB0 - Saw.jsonc" SndB0_Saw)
+add_paradoxsmps_song("sfx/SndB1 - Electric.jsonc" SndB1_Electric)
+add_paradoxsmps_song("sfx/SndB2 - Drown Death.jsonc" SndB2_Drown_Death)
+add_paradoxsmps_song("sfx/SndB3 - Flamethrower.jsonc" SndB3_Flamethrower)
+add_paradoxsmps_song("sfx/SndB4 - Bumper.jsonc" SndB4_Bumper)
+add_paradoxsmps_song("sfx/SndB5 - Ring.jsonc" SndB5_Ring)
+add_paradoxsmps_song("sfx/SndB6 - Spikes Move.jsonc" SndB6_Spikes_Move)
+add_paradoxsmps_song("sfx/SndB7 - Rumbling.jsonc" SndB7_Rumbling)
+add_paradoxsmps_song("sfx/SndB8.jsonc" SndB8)
+add_paradoxsmps_song("sfx/SndB9 - Collapse.jsonc" SndB9_Collapse)
+add_paradoxsmps_song("sfx/SndBA - SS Glass.jsonc" SndBA_SS_Glass)
+add_paradoxsmps_song("sfx/SndBB - Door.jsonc" SndBB_Door)
+add_paradoxsmps_song("sfx/SndBC - Teleport.jsonc" SndBC_Teleport)
+add_paradoxsmps_song("sfx/SndBD - ChainStomp.jsonc" SndBD_ChainStomp)
+add_paradoxsmps_song("sfx/SndBE - Roll.jsonc" SndBE_Roll)
+add_paradoxsmps_song("sfx/SndBF - Get Continue.jsonc" SndBF_Get_Continue)
+add_paradoxsmps_song("sfx/SndC0 - Basaran Flap.jsonc" SndC0_Basaran_Flap)
+add_paradoxsmps_song("sfx/SndC1 - Break Item.jsonc" SndC1_Break_Item)
+add_paradoxsmps_song("sfx/SndC2 - Drown Warning.jsonc" SndC2_Drown_Warning)
+add_paradoxsmps_song("sfx/SndC3 - Giant Ring.jsonc" SndC3_Giant_Ring)
+add_paradoxsmps_song("sfx/SndC4 - Bomb.jsonc" SndC4_Bomb)
+add_paradoxsmps_song("sfx/SndC5 - Cash Register.jsonc" SndC5_Cash_Register)
+add_paradoxsmps_song("sfx/SndC6 - Ring Loss.jsonc" SndC6_Ring_Loss)
+add_paradoxsmps_song("sfx/SndC7 - Chain Rising.jsonc" SndC7_Chain_Rising)
+add_paradoxsmps_song("sfx/SndC8 - Burning.jsonc" SndC8_Burning)
+add_paradoxsmps_song("sfx/SndC9 - Hidden Bonus.jsonc" SndC9_Hidden_Bonus)
+add_paradoxsmps_song("sfx/SndCA - Enter SS.jsonc" SndCA_Enter_SS)
+add_paradoxsmps_song("sfx/SndCB - Wall Smash.jsonc" SndCB_Wall_Smash)
+add_paradoxsmps_song("sfx/SndCC - Spring.jsonc" SndCC_Spring)
+add_paradoxsmps_song("sfx/SndCD - Switch.jsonc" SndCD_Switch)
+add_paradoxsmps_song("sfx/SndCE - Ring Left Speaker.jsonc" SndCE_Ring_Left_Speaker)
+add_paradoxsmps_song("sfx/SndCF - Signpost.jsonc" SndCF_Signpost)
+add_paradoxsmps_song("sfx/SndD0 - Waterfall.jsonc" SndD0_Waterfall)
 
 if(SPLASH)
-  add_smps_song("Mus94 - SSRG.asm" Mus94_SSRG)
+  add_paradoxsmps_song("music/Mus94 - SSRG.jsonc" Mus94_SSRG)
 endif()
 
 # ##############################################################################
@@ -876,16 +1003,31 @@ endif()
 if(BUILD_TESTS)
   enable_testing()
 
-  # Unit tests: link the exact same compiled game logic (SonicCore) as the
-  # real Sonic executable, exercising real production functions directly
-  # (see tests/test_plc.c, tests/test_leveldraw.c) rather than reimplementing
-  # their logic.
-  add_executable(SonicTests "tests/test_main.c" "tests/test_plc.c"
-                             "tests/test_leveldraw.c")
-  target_link_libraries(SonicTests PRIVATE SonicCore)
-  set_target_properties(SonicTests PROPERTIES C_STANDARD 99
-                                               C_STANDARD_REQUIRED ON
-                                               C_EXTENSIONS OFF)
+  # Showcase only wants the tools relevant to producing/recording pre-scripted
+  # footage (SonicSmoke to play back scripted movement, SonicDemoRecord to
+  # capture it) plus the main Sonic binary itself -- not the rest of the
+  # developer-diagnostic toolkit (unit tests, joypad/sound-trace tools, the
+  # FM voice editor, etc), which have no role in producing showcase footage.
+  if(CMAKE_BUILD_TYPE STREQUAL "Showcase")
+    set(SONIC_FULL_DEV_TOOLS OFF)
+  else()
+    set(SONIC_FULL_DEV_TOOLS ON)
+  endif()
+
+  if(SONIC_FULL_DEV_TOOLS)
+    # Unit tests: link the exact same compiled game logic (SonicCore) as the
+    # real Sonic executable, exercising real production functions directly
+    # (see tests/test_plc.c, tests/test_leveldraw.c) rather than
+    # reimplementing their logic.
+    add_executable(SonicTests "tests/test_main.c" "tests/test_plc.c"
+                               "tests/test_leveldraw.c" "tests/test_levelcollision.c")
+    target_link_libraries(SonicTests PRIVATE SonicCore)
+    set_target_properties(SonicTests PROPERTIES C_STANDARD 99
+                                                 C_STANDARD_REQUIRED ON
+                                                 C_EXTENSIONS OFF)
+    set_target_properties(SonicTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
+    add_test(NAME unit_tests COMMAND SonicTests)
+  endif()
 
   # Headless smoke runner: same entry point as the real game, but with
   # --zone/--act CLI injection to skip straight into a level (see
@@ -912,42 +1054,165 @@ if(BUILD_TESTS)
   # Default --out location: bindir/demos, alongside the built executables,
   # so recordings land somewhere predictable regardless of the working
   # directory SonicDemoRecord is invoked from.
-  set(DEMO_OUTPUT_DIR "${BUILD_DIRECTORY}/demos")
+  set(DEMO_OUTPUT_DIR "${BUILD_DIRECTORY}/${CMAKE_BUILD_TYPE}/demos")
   file(MAKE_DIRECTORY "${DEMO_OUTPUT_DIR}")
   target_compile_definitions(SonicDemoRecord PRIVATE DEMO_OUTPUT_DIR="${DEMO_OUTPUT_DIR}")
 
-  # Joypad test tool: a small SDL2 window showing a row of icons (the four
-  # D-pad directions, then A/B/C/Start) that light up while the matching
-  # button is held -- see tests/joypad_test_main.c. Reads input through the
-  # same Joypad_GetState1()/Input_HandleEvents() path the real game uses,
-  # so it doubles as a manual sanity check for the keyboard scheme and any
-  # connected SDL_GameController (including Steam Input). Interactive tool,
-  # not registered as a ctest.
-  add_executable(SonicJoypadTest "tests/joypad_test_main.c")
-  target_link_libraries(SonicJoypadTest PRIVATE SonicCore)
-  if(NOT WIN32)
-    target_link_libraries(SonicJoypadTest PRIVATE m)
-  endif()
-  set_target_properties(SonicJoypadTest PROPERTIES C_STANDARD 99
+  if(SONIC_FULL_DEV_TOOLS)
+    # Joypad test tool: a small SDL2 window showing a row of icons (the four
+    # D-pad directions, then A/B/C/Start) that light up while the matching
+    # button is held -- see tests/joypad_test_main.c. Reads input through the
+    # same Joypad_GetState1()/Input_HandleEvents() path the real game uses,
+    # so it doubles as a manual sanity check for the keyboard scheme and any
+    # connected SDL_GameController (including Steam Input). Interactive tool,
+    # not registered as a ctest.
+    add_executable(SonicJoypadTest "tests/joypad_test_main.c")
+    target_link_libraries(SonicJoypadTest PRIVATE SonicCore)
+    if(NOT WIN32)
+      target_link_libraries(SonicJoypadTest PRIVATE m)
+    endif()
+    set_target_properties(SonicJoypadTest PROPERTIES C_STANDARD 99
+                                                       C_STANDARD_REQUIRED ON
+                                                       C_EXTENSIONS OFF)
+
+    # Sound trace tool: loads a real song (by sound ID, default $81 = GHZ) and
+    # logs every note/duration event Sound.c's TickChannel decodes to stderr,
+    # for direct comparison against the song's own .asm source. Usage:
+    # SonicSoundTrace [sound_id_hex] [frames]
+    add_executable(SonicSoundTrace "tests/sound_trace_main.c")
+    target_link_libraries(SonicSoundTrace PRIVATE SonicCore)
+
+    # Renders a real song/SFX to raw 16-bit stereo PCM for offline waveform
+    # inspection, independent of any live audio backend. Usage:
+    # SonicSoundWav [sound_id_hex] [seconds] [out.pcm]
+    add_executable(SonicSoundWav "tests/sound_wav_main.c")
+    target_link_libraries(SonicSoundWav PRIVATE SonicCore)
+
+    # Voice isolation tool: plays a real song at real speed through the actual
+    # gameplay driver, muting every FM channel except one currently loaded
+    # with a chosen voice index (PSG/DAC muted entirely) -- see
+    # tests/voice_isolate_main.c. Live stdin control (type a voice index +
+    # Enter to switch), not registered as a ctest. Usage: SonicVoiceIsolate
+    # [song_id_hex]
+    add_executable(SonicVoiceIsolate "tests/voice_isolate_main.c")
+    target_link_libraries(SonicVoiceIsolate PRIVATE SonicCore SDL2::SDL2)
+    # Not C_EXTENSIONS OFF here -- needs POSIX select()/fd_set for non-blocking
+    # stdin polling, which strict ISO C99 mode doesn't expose without extra
+    # feature-test-macro plumbing.
+
+    # SMPSInspector: real-time per-channel activity visualizer (piano-key
+    # strips for FM1-6/PSG1-3, squares for the noise slot, hexagons for DAC)
+    # inspired by Knuckles Chaotix's extended sound test screen -- see
+    # tests/smps_inspector_main.c for the full design note. Left/Right
+    # cycles through registered songs while it plays them for real.
+    add_executable(SMPSInspector "tests/smps_inspector_main.c")
+    target_link_libraries(SMPSInspector PRIVATE SonicCore SDL2::SDL2)
+    set_target_properties(SMPSInspector PROPERTIES C_STANDARD 99
                                                      C_STANDARD_REQUIRED ON
                                                      C_EXTENSIONS OFF)
 
-  # Sound trace tool: loads a real song (by sound ID, default $81 = GHZ) and
-  # logs every note/duration event Sound.c's TickChannel decodes to stderr,
-  # for direct comparison against the song's own .asm source. Usage:
-  # SonicSoundTrace [sound_id_hex] [frames]
-  add_executable(SonicSoundTrace "tests/sound_trace_main.c")
-  target_link_libraries(SonicSoundTrace PRIVATE SonicCore)
+    set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/imgui")
+    set(NUKED_OPN2_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/nuked-opn2")
 
-  set_target_properties(
-    SonicTests SonicSmoke SonicDemoRecord SonicJoypadTest SonicSoundTrace
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}
-               RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_DIRECTORY}
-               RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${BUILD_DIRECTORY}
-               RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${BUILD_DIRECTORY}
-               RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_DIRECTORY})
+    # ParadoxComposer: Qt6 editor/DAW for the ParadoxSMPS JSON song/SFX
+    # format (tools/paradoxsmps/), replacing SonicVoiceEditor entirely --
+    # see tools/paradoxcomposer/ for the individual panel source files.
+    # Compiles in-process by linking libparadoxsmps directly (NativeCompiler.cpp
+    # is just the QJsonObject/QByteArray boundary wrapper around it -- the
+    # SAME static library jsonc2h_tool and the real CMake build use, so there
+    # is only one compiler implementation anywhere in this project), and
+    # plays back either a single voice directly (Backend/YM2612.h, same as
+    # the old voice editor) or a full compiled song through SonicCore's real
+    # sequencer (Sound_DebugPlayRawSong, Sound.c).
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)
+    add_executable(ParadoxComposer
+      "tools/paradoxcomposer/main.cpp"
+      "tools/paradoxcomposer/MainWindow.cpp"
+      "tools/paradoxcomposer/MainWindow.h"
+      "tools/paradoxcomposer/SongDocument.cpp"
+      "tools/paradoxcomposer/SongDocument.h"
+      "tools/paradoxcomposer/NativeCompiler.cpp"
+      "tools/paradoxcomposer/NativeCompiler.h"
+      "tools/paradoxcomposer/AudioEngine.cpp"
+      "tools/paradoxcomposer/AudioEngine.h"
+      "tools/paradoxcomposer/SourcePanel.cpp"
+      "tools/paradoxcomposer/SourcePanel.h"
+      "tools/paradoxcomposer/BytesPanel.cpp"
+      "tools/paradoxcomposer/BytesPanel.h"
+      "tools/paradoxcomposer/VoiceBankPanel.cpp"
+      "tools/paradoxcomposer/VoiceBankPanel.h"
+      "tools/paradoxcomposer/VoiceWidgets.cpp"
+      "tools/paradoxcomposer/VoiceWidgets.h"
+      "tools/paradoxcomposer/PlaylistPanel.cpp"
+      "tools/paradoxcomposer/PlaylistPanel.h"
+      "tools/paradoxcomposer/PianoRollWidgets.cpp"
+      "tools/paradoxcomposer/PianoRollWidgets.h"
+      "tools/paradoxcomposer/PianoRollPanel.cpp"
+      "tools/paradoxcomposer/PianoRollPanel.h"
+      "tools/paradoxcomposer/WaveformVUWidget.cpp"
+      "tools/paradoxcomposer/WaveformVUWidget.h"
+      "tools/paradoxcomposer/ChannelsPanel.cpp"
+      "tools/paradoxcomposer/ChannelsPanel.h"
+      "tools/paradoxcomposer/PlaybackPanel.cpp"
+      "tools/paradoxcomposer/PlaybackPanel.h"
+      "tools/paradoxcomposer/DockableContainer.cpp"
+      "tools/paradoxcomposer/DockableContainer.h"
+      "tools/paradoxcomposer/BlockMetadata.cpp"
+      "tools/paradoxcomposer/BlockMetadata.h")
+    target_link_libraries(ParadoxComposer PRIVATE SonicCore paradoxsmps SDL2::SDL2 Qt6::Widgets)
+    target_compile_definitions(ParadoxComposer PRIVATE
+      PARADOXCOMPOSER_REPO_ROOT="${CMAKE_SOURCE_DIR}")
+    set_target_properties(ParadoxComposer PROPERTIES
+      CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
+      AUTOMOC ON)
 
-  add_test(NAME unit_tests COMMAND SonicTests)
+    # Throwaway correctness check, not part of the shipped GUI: compiles a
+    # .jsonc to raw bytes via NativeCompiler (-> libparadoxsmps) and writes
+    # them to stdout, so they can be byte-diffed against jsonc2h_tool's own
+    # output on the same file -- see native_compiler_test_main.cpp.
+    add_executable(NativeCompilerTest
+      "tools/paradoxcomposer/native_compiler_test_main.cpp"
+      "tools/paradoxcomposer/SongDocument.cpp"
+      "tools/paradoxcomposer/SongDocument.h"
+      "tools/paradoxcomposer/NativeCompiler.cpp"
+      "tools/paradoxcomposer/NativeCompiler.h")
+    target_link_libraries(NativeCompilerTest PRIVATE Qt6::Core paradoxsmps)
+    set_target_properties(NativeCompilerTest PROPERTIES
+      CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
+      AUTOMOC ON)
+
+    # fmcore's interactive test rig -- home-row-piano input driving a full
+    # 4-operator FMVoice (fm_voice.h) through a free-form, Flowstone-style
+    # patch-cable UI (see fmcore/fmcore_synth_main.cpp's own design note).
+    # Evolved from an earlier single-operator-only version (fmcore_gui_main.cpp,
+    # now removed/superseded). Vendors Dear ImGui (imgui/ submodule) directly,
+    # independent of ParadoxComposer's Qt6 UI, but otherwise
+    # has nothing to do with SonicCore/the game -- fmcore is a from-scratch
+    # YM2612 side project, not wired into gameplay yet.
+    add_executable(FMCoreSynth
+      "fmcore/fm_operator.c"
+      "fmcore/fm_operator.h"
+      "fmcore/fm_voice.c"
+      "fmcore/fm_voice.h"
+      "fmcore/fmcore_synth_main.cpp"
+      "${IMGUI_DIR}/imgui.cpp"
+      "${IMGUI_DIR}/imgui_draw.cpp"
+      "${IMGUI_DIR}/imgui_tables.cpp"
+      "${IMGUI_DIR}/imgui_widgets.cpp"
+      "${IMGUI_DIR}/imgui_demo.cpp"
+      "${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp"
+      "${IMGUI_DIR}/backends/imgui_impl_sdlrenderer2.cpp")
+    target_include_directories(FMCoreSynth PRIVATE "fmcore" "${IMGUI_DIR}" "${IMGUI_DIR}/backends")
+    target_link_libraries(FMCoreSynth PRIVATE SDL2::SDL2)
+    set_target_properties(FMCoreSynth PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+    set_source_files_properties("fmcore/fm_operator.c" "fmcore/fm_voice.c" PROPERTIES LANGUAGE C)
+
+    set_target_properties(
+      SonicJoypadTest SonicSoundTrace SonicSoundWav ParadoxComposer SonicVoiceIsolate SMPSInspector FMCoreSynth
+      PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
+  endif()
+
+  set_target_properties(SonicSmoke SonicDemoRecord PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
 
   # One headless smoke test per zone. "Still running when the timeout hits"
   # is success (the game loop never exits on its own) -- a crash, an early

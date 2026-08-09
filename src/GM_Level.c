@@ -192,7 +192,7 @@ GM_Level_Branch:;
     btn_pushtime1 = 0;
     btn_pushtime2 = 0;
     pal_chgspeed = 0;
-    coll_index = NULL;
+    memset(coll_index, 0, sizeof(coll_index));
     palss_num = 0;
     palss_time = 0;
 
@@ -316,6 +316,7 @@ GM_Level_Branch:;
 
     // Create player and HUD objects
     player->type = ObjId_Sonic;
+    objects[0x1B].type = ObjId_Splash; // Spin Dash dust / skid dust / water splash companion
     if (demo >= 0)
         objects[1].type = ObjId_HUD;
 

@@ -90,6 +90,12 @@ SonicDynPLC_internal:
 		dc.w SonPLC_Injury-SonicDynPLC_internal
 		dc.w SonPLC_GetAir-SonicDynPLC_internal
 		dc.w SonPLC_WaterSlide-SonicDynPLC_internal
+		dc.w SonPLC_SpinDash1-SonicDynPLC_internal
+		dc.w SonPLC_SpinDash2-SonicDynPLC_internal
+		dc.w SonPLC_SpinDash3-SonicDynPLC_internal
+		dc.w SonPLC_SpinDash4-SonicDynPLC_internal
+		dc.w SonPLC_SpinDash5-SonicDynPLC_internal
+		dc.w SonPLC_SpinDash6-SonicDynPLC_internal
 SonPLC_Null:	dc.b 0
 SonPLC_Stand:	dc.b 4,	$20, 0,	$70, 3,	$20, $B, $20, $E
 SonPLC_Wait1:	dc.b 3,	$50, $11, $50, $17, $20, $1D
@@ -176,4 +182,10 @@ SonPLC_Shrink5:	dc.b 1,	$14, $D0
 SonPLC_Injury:	dc.b 3,	$B4, $D2, $14, $DE, $34, $E0
 SonPLC_GetAir:	dc.b 3,	$54, $E4, $B4, $EA, $10, $6D
 SonPLC_WaterSlide:dc.b 2, $F4, $F6, $25, 6
+SonPLC_SpinDash1:dc.b 1, $F5, $10
+SonPLC_SpinDash2:dc.b 1, $F5, $20
+SonPLC_SpinDash3:dc.b 1, $F5, $30
+SonPLC_SpinDash4:dc.b 1, $F5, $40
+SonPLC_SpinDash5:dc.b 1, $F5, $50
+SonPLC_SpinDash6:dc.b 1, $F5, $60
 		even

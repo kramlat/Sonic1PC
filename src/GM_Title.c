@@ -395,7 +395,7 @@ void GM_Title(void) {
 
     // Draw background
     ClearScreen();
-    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, level_layout[0][1], VRAM_BG);
+    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), VRAM_BG);
 
     // Load title mappings
     CopyTilemap(&Tilemap_TitleFG[0x0000], MAP_PLANE(VRAM_FG, 3, 4) + PLANE_WIDEADD + PLANE_TALLADD, 34, 22);
