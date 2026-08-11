@@ -18,7 +18,7 @@ void Obj_Waterfall(Object *obj) {
             // is a free-running countdown local to this object.
             if (obj->scratch.u8[0]-- == 0) {
                 obj->scratch.u8[0] = 0x3F;
-                QueueSound2(0xD0); // sfx_Waterfall
+                QueueSound2(sfx_Waterfall);
             }
 
             // out_of_range check: matches the real disasm's out_of_range

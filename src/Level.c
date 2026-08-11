@@ -429,6 +429,11 @@ const uint8_t* level_obj[ZoneId_Num][4][2] = {
 uint16_t level_id;
 
 uint8_t dle_routine;
+// GHZ2-only: debounce timer for DynamicLevelEvents' own tube-exit
+// boundary shrink (see its own comment). Not part of real hardware --
+// added so the shrink doesn't apply the instant Sonic's X crosses the
+// threshold while he may still be deep in the tube.
+static uint16_t ghz2_tube_exit_timer;
 
 uint16_t limit_left1, limit_right1, limit_top1, limit_btm1;
 uint16_t limit_left2, limit_right2, limit_top2, limit_btm2;
@@ -458,6 +463,7 @@ uint32_t score_life;
 
 uint16_t air;
 uint8_t last_special;
+uint8_t big_ring_collected;
 
 uint8_t life_num;
 uint8_t life_count;
@@ -469,6 +475,10 @@ uint8_t shield;
 uint8_t invincibility;
 uint8_t shoes;
 uint8_t debug_use;
+uint8_t debug_item;
+uint8_t debug_speed;
+uint8_t debug_speed_timer;
+uint8_t debug_subtype;
 
 // Water state
 int16_t wtr_pos1, wtr_pos2, wtr_pos3;
@@ -575,6 +585,7 @@ void LoadLevelLayout(void) {
 void LevelSizeLoad(void) {
     // Reset level state
     dle_routine = 0;
+    ghz2_tube_exit_timer = 0;
 
     // Get sizes to load
     const int16_t* sizes = LevelSizeArray[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)];
@@ -699,7 +710,20 @@ void ColIndexLoad(void) {
 
 // Dynamic level events
 void DynamicLevelEvents(void) {
-    // Update target scroll limits
+    // MZ1's own "opened up the stomper hole" transition (below) is checked
+    // against Sonic's own position rather than the camera's -- everywhere
+    // else in this function matches real hardware and stays camera-based
+    // (scrpos_x/y). That one transition is the exception because it's the
+    // one that extends the kill-plane deeper (see Sonic_LevelBound):
+    // gating it on the camera's own lagging position meant falling fast
+    // enough let Sonic outrun the camera and hit the still-unextended
+    // kill-plane before the trigger ever fired. If another such
+    // "outrun the camera and die" case turns up elsewhere, fix it the
+    // same way -- Sonic's own position for that one specific extending
+    // transition, not a blanket swap.
+    int16_t sonic_x = player->pos.l.x.f.u;
+    int16_t sonic_y = player->pos.l.y.f.u;
+
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_GHZ:
         switch (LEVEL_ACT(level_id)) {
@@ -717,7 +741,17 @@ void DynamicLevelEvents(void) {
             if ((uint16_t)scrpos_x.f.u < (0x1600 - SCREEN_WIDEADD2))
                 break;
             limit_btm1 = 0x400 - SCREEN_TALLADD;
-            if ((uint16_t)scrpos_x.f.u < (0x1D60 - SCREEN_WIDEADD2))
+            if ((uint16_t)scrpos_x.f.u < (0x1D60 - SCREEN_WIDEADD2)) {
+                ghz2_tube_exit_timer = 0;
+                break;
+            }
+            // Real hardware shrinks the boundary back down the instant X
+            // crosses 0x1D60, with nothing accounting for Sonic still
+            // being deep in the tube at that point -- added a 20-second
+            // (1200 frame) debounce here so the shrink only applies once
+            // he's plausibly actually clear of it, resetting above if he
+            // drifts back before the delay elapses.
+            if (++ghz2_tube_exit_timer < 1200)
                 break;
             limit_btm1 = 0x300 - SCREEN_TALLADD;
             break;
@@ -750,6 +784,109 @@ void DynamicLevelEvents(void) {
                 if ((uint16_t)scrpos_x.f.u < (0x2960 - SCREEN_WIDEADD2))
                     break;
                 // TODO spawn boss
+                break;
+            }
+            break;
+        }
+        break;
+    case ZoneId_MZ:
+        switch (LEVEL_ACT(level_id)) {
+        case 0: // Act 1 -- reversible 4-state boundary chain (can step forward OR backward as the camera moves)
+            switch (dle_routine) {
+            case 0:
+                limit_btm1 = 0x1D0 - SCREEN_TALLADD;
+                if ((uint16_t)scrpos_x.f.u < (0x700 - SCREEN_WIDEADD2))
+                    break;
+                limit_btm1 = 0x220 - SCREEN_TALLADD;
+                if ((uint16_t)scrpos_x.f.u < (0xD00 - SCREEN_WIDEADD2))
+                    break;
+                limit_btm1 = 0x340 - SCREEN_TALLADD;
+                // The one transition in this whole function checked
+                // against Sonic's own position rather than the camera's
+                // -- see this function's own top-of-function comment.
+                // Also requires Sonic to be horizontally near the chained
+                // stomper itself (same X-range PushBlock's own MZ1
+                // stomper-button hardcoding uses) before opening up the
+                // lower boundary, not just having fallen deep enough.
+                if ((uint16_t)sonic_x < 0xA20 || (uint16_t)sonic_x >= 0xAA1)
+                    break;
+                if (sonic_y < (0x340 + SCREEN_TALLADD))
+                    break;
+                dle_routine += 2;
+                break;
+            case 2:
+                if ((uint16_t)scrpos_y.f.u < (0x340 + SCREEN_TALLADD)) {
+                    dle_routine -= 2;
+                    break;
+                }
+                limit_top2 = 0;
+                if ((uint16_t)scrpos_x.f.u >= (0xE00 - SCREEN_WIDEADD2))
+                    break;
+                limit_top2 = 0x340 - SCREEN_TALLADD;
+                limit_btm1 = 0x340 - SCREEN_TALLADD;
+                if ((uint16_t)scrpos_x.f.u < (0xA90 - SCREEN_WIDEADD2))
+                    break;
+                limit_btm1 = 0x500 - SCREEN_TALLADD;
+                if ((uint16_t)scrpos_y.f.u < (0x370 + SCREEN_TALLADD))
+                    break;
+                dle_routine += 2;
+                break;
+            case 4:
+                if ((uint16_t)scrpos_y.f.u < (0x370 + SCREEN_TALLADD)) {
+                    dle_routine -= 2;
+                    break;
+                }
+                if ((uint16_t)scrpos_y.f.u < (0x500 + SCREEN_TALLADD))
+                    break;
+#ifndef SCP_REV00
+                if ((uint16_t)scrpos_x.f.u < (0xB80 - SCREEN_WIDEADD2))
+                    break;
+#endif
+                limit_top2 = 0x500 - SCREEN_TALLADD;
+                dle_routine += 2;
+                break;
+            case 6:
+#ifndef SCP_REV00
+                if ((uint16_t)scrpos_x.f.u < (0xB80 - SCREEN_WIDEADD2)) {
+                    if (limit_top2 != (uint16_t)(0x340 - SCREEN_TALLADD))
+                        limit_top2 -= 2;
+                    break;
+                }
+                if (limit_top2 != (uint16_t)(0x500 - SCREEN_TALLADD)) {
+                    if ((uint16_t)scrpos_y.f.u >= (0x500 + SCREEN_TALLADD))
+                        limit_top2 = 0x500 - SCREEN_TALLADD;
+                }
+#endif
+                if ((uint16_t)scrpos_x.f.u < (0xE70 - SCREEN_WIDEADD2))
+                    break;
+                limit_top2 = 0;
+                limit_btm1 = 0x500 - SCREEN_TALLADD;
+                if ((uint16_t)scrpos_x.f.u < (0x1430 - SCREEN_WIDEADD2))
+                    break;
+                limit_btm1 = 0x210 - SCREEN_TALLADD;
+                break;
+            }
+            break;
+        case 1: // Act 2
+            limit_btm1 = 0x520 - SCREEN_TALLADD;
+            if ((uint16_t)scrpos_x.f.u < (0x1700 - SCREEN_WIDEADD2))
+                break;
+            limit_btm1 = 0x200 - SCREEN_TALLADD;
+            break;
+        case 2: // Act 3
+            switch (dle_routine) {
+            case 0: // DLE_MZ3_Boss
+                limit_btm1 = 0x720 - SCREEN_TALLADD;
+                if ((uint16_t)scrpos_x.f.u < (0x1560 - SCREEN_WIDEADD2)) // boss_mz_x-0x2A0
+                    break;
+                limit_btm1 = 0x210 - SCREEN_TALLADD; // boss_mz_y
+                if ((uint16_t)scrpos_x.f.u < (0x17F0 - SCREEN_WIDEADD2)) // boss_mz_x-0x10
+                    break;
+                // TODO spawn boss (id_BossMarble at boss_mz_x+0x1F0, boss_mz_y+0x1C), queue bgm_Boss, lock_screen=true, AddPLC(PlcId_Boss)
+                dle_routine += 2;
+                break;
+            case 2: // DLE_MZ3_End
+                limit_left2 = scrpos_x.f.u; // camera-freeze at the level's end, deliberately still camera-based
                 break;
             }
             break;

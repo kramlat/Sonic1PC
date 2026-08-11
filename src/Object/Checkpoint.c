@@ -14,7 +14,7 @@ void Obj_Checkpoint(Object *obj) {
         case 0: { /* Lamp_Main / Constructor */
             obj->routine += 2;
             obj->mappings = Mappings_Checkpoint;
-            obj->tile = TILE_MAP(0, 0, 0, 0, 0x7A0);
+            obj->tile = TILE_MAP(0, 0, 0, 0, 0x6C0); // Art_Lamppost lives at VRAM 0xD800 (tile 0x6C0) -- moved from 0xF400/tile 0x7A0 to make room for the Spin Dash dust (see PLC.c's PLC_Main), but this reference was never updated to match
             obj->render.b = 4;
             obj->width_pixels = 8;
             obj->priority = 5;
@@ -60,7 +60,7 @@ void Obj_Checkpoint(Object *obj) {
                     ball_scratch->pos.y.v = obj->pos.l.y.v - (0x18 << 16);
 
                     ball->mappings = Mappings_Checkpoint;
-                    ball->tile = TILE_MAP(0, 0, 0, 0, 0x7A0);
+                    ball->tile = TILE_MAP(0, 0, 0, 0, 0x6C0); // Art_Lamppost lives at VRAM 0xD800 (tile 0x6C0) -- moved from 0xF400/tile 0x7A0 to make room for the Spin Dash dust (see PLC.c's PLC_Main), but this reference was never updated to match
                     ball->render.b = 4;
                     ball->width_pixels = 8;
                     ball->priority = 4;

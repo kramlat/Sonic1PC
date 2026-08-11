@@ -1,9 +1,16 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include "Backend/SN76489.h"
 #include "Backend/YM2612.h"
+
+// PJValue (libparadoxsmps) -- the JSON-tree-walking playback engine's
+// channel/chip-set state below points directly at nodes in a loaded song's
+// parsed tree (see the "SMPS runtime: walk JSON directly" plan's own
+// rollout section, staged alongside the original byte-stream engine).
+#include "json.h"
 
 // Sound driver state. Modeled on the real SMPS driver's per-channel RAM
 // (SMPS_Track in s1.sounddriver.ram.asm) and its 3-slot sound request queue
@@ -50,6 +57,13 @@ typedef struct {
     uint8_t voice_control;
     uint8_t tempo_divider;
     const uint8_t *data_ptr;
+    // The song/SFX's own byte 0 -- needed to resolve smpsCall ($F8) targets,
+    // which the compiler encodes as an ABSOLUTE offset from song start
+    // ("abs" patch kind, unlike smpsJump/smpsLoop's relative "rel-1"
+    // encoding). Per-channel, not per-chip-set, since sound_sfx's channels
+    // can each be playing a different SFX (different song_base) at once --
+    // same reasoning as SoundChannel's own json_playlist field.
+    const uint8_t *song_base;
     int8_t transpose;
     uint8_t volume;
     uint8_t ams_fms_pan;   // FM/DAC only
@@ -62,6 +76,15 @@ typedef struct {
     uint8_t note_timeout;
     uint8_t note_timeout_master; // persists across notes -- set by smpsNoteFill ($E8)
     const uint8_t *modulation_ptr;
+    // Backing store for modulation_ptr when this channel is running the
+    // JSON engine: ResetModulationIfActive/StepModulation (shared with the
+    // byte-VM) re-arm modulation by re-reading 4 raw bytes through
+    // modulation_ptr on every note-on, not from the wait/speed/delta/steps
+    // fields directly (those get mutated while stepping) -- the byte-VM
+    // points it straight into the compiled stream; the JSON engine has no
+    // such stream, so smpsModSet copies its 4 args in here and points
+    // modulation_ptr at this instead, keeping the governor engine-agnostic.
+    uint8_t json_modulation_raw[4];
     uint8_t modulation_wait;
     uint8_t modulation_speed;
     int8_t modulation_delta;
@@ -77,6 +100,18 @@ typedef struct {
     const uint8_t *voice_ptr; // FM SFX only
     uint32_t loop_counters[3];
 
+    // Driver-version-3 (Sonic 3/Flamedriver-compatible flags, see
+    // TickChannel_FlagsV3 in Sound.c) only -- unused/zero for driver_version
+    // 1 channels. return_stack/return_sp and loop_counters above are shared
+    // as-is (Flamedriver's own gosub-stack and shared loop-counter-pool
+    // mechanisms match these fields exactly, no v3-specific duplicates
+    // needed).
+    uint8_t alt_freq_mode;    // cfToggleAltFreqMode ($FD) -- raw 16-bit-frequency note encoding, not yet interpreted by the note-byte decoder (see TickChannel_FlagsV3's own comment)
+    uint8_t pitch_slide_active; // cfPitchSlide ($FF,$0B)
+    int fm_vol_env_index;     // cfFMVolEnv ($FF,$06) -- 0 = no envelope active, else 1-based index into psg_envelopes (same table FM borrows for its own "flutter" effect)
+    uint8_t fm_vol_env_mask;  // cfFMVolEnv's operator bitmask (%00004231 format) -- stored for completeness, not yet used to restrict which operators the flutter applies to (whole-channel TL only, see FM_ApplyVolume)
+    uint8_t fm_vol_env_pos;   // Current step within the envelope pointed to by fm_vol_env_index -- separate from vol_env_index above, which is PSG-only and driven by a different flag ($EC v1 / $E6 v1)
+
     // Runtime interpreter state (not modeled on SMPS_Track RAM -- this
     // engine's byte-stream interpreter needs a real return-address stack
     // and explicit active/key-on flags where the original just relied on
@@ -87,6 +122,69 @@ typedef struct {
     uint8_t key_on;  // 1 while gated on (audible); cleared during a note-fill release tail or on a rest
     uint8_t mod_active; // smpsModOn/smpsModOff ($F1/$F4) -- parameters stored above are not yet applied per-frame (TODO)
     uint8_t debug_muted; // Debug/tooling only (ParadoxComposer): forces silence regardless of ch->volume -- see Sound_DebugSetChannelMuted
+
+    // JSON-tree-walking playback engine (SoundJSON.c) -- staged ALONGSIDE
+    // data_ptr/return_stack above, not replacing them yet (see the "SMPS
+    // runtime: walk JSON directly" plan's rollout section). A channel uses
+    // exactly one of the two engines at a time, selected by whether the
+    // owning SoundChipSet's json_song is non-NULL. events/event_index are
+    // this engine's equivalent of data_ptr: a direct pointer to the current
+    // block's events array (real PJValue*, resolved once at load time --
+    // never a byte offset, per your direction) plus a position within it.
+    // This channel's own SMPSplaylist object, for jump/loop/call target
+    // resolution (JsonResolveBlock). Per-channel, NOT per-chip-set --
+    // sound_music's channels all share one song's playlist, but sound_sfx's
+    // channels can each be playing a DIFFERENT SFX concurrently (e.g. one
+    // channel mid-Jump SFX while another starts Spring), so a single
+    // chip-set-wide "current playlist" would resolve the wrong SFX's block
+    // names for whichever channel didn't trigger most recently.
+    const PJValue *json_playlist;
+    const PJValue *json_voices; // this channel's own "voices" array -- same per-channel-not-per-chip-set reasoning as json_playlist above
+    const PJValue *json_events;
+    size_t json_event_index;
+    // Doubles as both smpsCall's real return stack AND the implicit
+    // "resume the outer array here" point an inline smpsLoop body needs
+    // once its own repeat count is exhausted (see TickChannelJSON's own
+    // comment) -- both are strictly-nested push/pop resume points, so one
+    // stack serves both rather than needing two. Sized a little deeper
+    // than the byte-VM's return_stack[2] to allow one level of each
+    // simultaneously, a real pattern (a smpsCall target block that itself
+    // contains an inline smpsLoop).
+    struct {
+        const PJValue *events;
+        size_t index;
+        uint8_t in_jump_body; // the CONTEXT being resumed's own json_in_jump_body value, saved/restored across nesting (see JsonPushReturn/JsonPopReturn)
+        int8_t loop_idx;      // ditto for json_loop_idx/json_loop_body_start
+        size_t loop_body_start;
+    } json_return_stack[4];
+    uint8_t json_return_sp;
+    // True while ch->json_events points at an inline smpsJump body ("no
+    // count = forever" per the schema) -- running off the end of one wraps
+    // back to its own start instead of popping json_return_stack, since an
+    // inline smpsJump body never falls through to anything (unlike an
+    // inline smpsLoop body, which does once its repeat count hits 0).
+    uint8_t json_in_jump_body;
+    // >=0 while ch->json_events points at an inline smpsLoop body -- which
+    // loop_counters[] slot to check/decrement once the body runs off its
+    // own end (-1 = not currently in a loop body). Matches the byte-VM's
+    // own $F7, which sits AFTER its loop body in the compiled stream and
+    // jumps BACKWARD to repeat it -- the JSON schema instead embeds the
+    // body inline right after the smpsLoop node, so the equivalent
+    // decrement/repeat-or-fall-through check has to happen when the body
+    // is EXHAUSTED, not when the smpsLoop node is first entered (an early
+    // version got this backwards: checking on entry meant the body only
+    // ever played once, since re-entering it required re-reading the
+    // smpsLoop node itself, which nothing does once inside the body).
+    int8_t json_loop_idx;
+    size_t json_loop_body_start;
+    // Which engine THIS channel uses -- set 1 by StartChannelJSON, 0 by
+    // StartChannel. Dispatch must be per-channel, not per-chip-set: SFX
+    // are loaded via LoadSFXJSON, which deliberately never touches
+    // cs->json_song (SFX trees aren't chip-set-owned -- see LoadSFXJSON's
+    // own comment), so a cs->json_song-based dispatch check left every
+    // JSON-loaded SFX channel silently falling through to the byte-VM
+    // with a NULL data_ptr (the "active=1, data_ptr=NULL" crash).
+    uint8_t json_active;
 } SoundChannel;
 
 // Matches v_soundqueue0-2: one pending request per priority tier, each
@@ -115,6 +213,17 @@ typedef struct {
     struct YM2612 *fm; // Backend/YM2612.h -- one physical chip per chip set, same dual-chip-set idea as psg
     const uint8_t *voice_bank; // Current song's FM voice table (25 bytes/voice) -- see smpsSetvoice/$EF
 
+    // JSON-tree-walking playback engine (SoundJSON.c) -- staged alongside
+    // the byte-VM fields above, see SoundChannel's own comment. json_song
+    // is this chip set's currently-loaded song's root PJValue (owned --
+    // freed and replaced wholesale on the next JSON-path load, which is
+    // the actual fix for the "music leaks" this whole redesign is for: no
+    // shared backing store two songs' state could ever alias into). NULL
+    // means this chip set is using the classic byte-VM instead.
+    PJValue *json_song;
+    PJValue *json_voices;   // "voices" array within json_song, cached (FM_LoadVoice-equivalent reads this by index)
+    PJValue *json_playlist; // "SMPSplaylist" object within json_song, cached (post-normalization -- see SoundJSON.c)
+
     // Shared tempo governor -- one per chip set (not per channel; see
     // smpsChanTempoDiv's comment in Sound.c for why per-channel overrides
     // aren't independently timed yet). Matches the real driver's
@@ -134,6 +243,39 @@ typedef struct {
     uint8_t current_music_id;  // Currently-loaded music ID, for SpeedUpMusic's per-song SpeedUpIndex lookup
     uint8_t psg_count;         // Cached from the header, for $F3's "only if psg_count<4" gate
     uint8_t tempo_timeout;
+
+    // 0 (default) = driver-version-1 (Sonic 1/2-compatible) coordination-
+    // flag table, exactly as implemented before this field existed -- every
+    // existing song stays on this path unconditionally, since sound_table's
+    // parallel driver-version array (Sound.c) defaults every entry to 0.
+    // >=3 = driver-version-3 (Sonic 3/Flamedriver-compatible) table, see
+    // TickChannel_FlagsV3. Set once per LoadMusic/LoadSFX call, from
+    // whichever song was just loaded.
+    //
+    // Deliberately NOT a byte-exact match for Clownacy's Sonic 2 Clone
+    // Driver v2 (~/Downloads/Sonic-2-Clone-Driver-v2-master) -- that driver
+    // uses a genuinely different physical encoding (EVERY coordination flag,
+    // even pan/detune, goes through a universal $FF,<sub-op> 2-byte prefix;
+    // see its own engine/_smps2asm_inc.asm macro bodies), not this project's
+    // Flamedriver-style direct-$E0-$FE-plus-small-$FF-extended-subset
+    // scheme, even when Clone Driver v2's own SourceDriver>=3 conditionals
+    // are active. Per your direction, music authored for Clone Driver v2
+    // with SourceDriver>=3 is approximated as driver-version-3 here for now
+    // (same target feature set, same macro names in spirit) rather than
+    // getting its own distinct byte-exact table -- if that ever needs to
+    // change, Clone Driver v2 support means a REAL 4th table (its own
+    // sub-op numbering, read from that file), not a value tweak here.
+    uint8_t driver_version;
+
+    // Driver-version-3 only, chip-set-wide (matches Flamedriver's own
+    // global-not-per-track scope for these -- e.g. zSpindashRev/zHaltFlag
+    // are single shared Z80 RAM bytes in the real driver, not one per
+    // track). Unused/zero when driver_version==0.
+    int spindash_rev;          // cfSpindashRev ($E9) / cfResetSpindashRev ($FF,$07)
+    uint8_t halt_flag;         // cfHaltSound ($FF,$02)
+    uint8_t continuous_sfx_flag; // cfLoopContinuousSFX ($FC)
+    uint8_t cont_sfx_loop_cnt;   // cfLoopContinuousSFX ($FC)
+    uint8_t fade_to_prev_flag;   // cfFadeInToPrevious ($E2) -- stored but not acted on, same documented stub status as the existing v1 smpsFade/FadeOutMusic()
 
     // DAC/DPCM percussion sample playback (kick/snare/timpani only so far
     // -- see DACSampleID). One sample plays at a time per chip set, matching
@@ -212,82 +354,112 @@ extern SoundChipSet sound_sfx;   // Dedicated chip set for sound effects
 #define DAC_SAMPLE_CLAP    4
 #define DAC_SAMPLE_TOM     5
 #define DAC_SAMPLE_BONGO   6
+#define DAC_SAMPLE_S3SNARE 7 // Sonic 3's snare -- $92, temporarily taking over the slot SEGA! used to trigger (see Sound.c's $92 dispatch comment)
 
-// Sound IDs -- matches the real disasm's bgm_*/sfx_* equates (_Constants.asm)
-// exactly, both by name and by value (each one is just the hex byte baked
-// into its resource's own filename -- Mus81 = bgm_GHZ = 0x81, etc.).
-#define bgm_GHZ        0x81
-#define bgm_LZ         0x82
-#define bgm_MZ         0x83
-#define bgm_SLZ        0x84
-#define bgm_SYZ        0x85
-#define bgm_SBZ        0x86
-#define bgm_Invincible 0x87
-#define bgm_ExtraLife  0x88
-#define bgm_SS         0x89
-#define bgm_Title      0x8A
-#define bgm_Ending     0x8B
-#define bgm_Boss       0x8C
-#define bgm_FZ         0x8D
-#define bgm_GotThrough 0x8E
-#define bgm_GameOver   0x8F
-#define bgm_Continue   0x90
-#define bgm_Credits    0x91
-#define bgm_Drowning   0x92
-#define bgm_Emerald    0x93
+// Sound IDs. Originally a direct transcription of the real disasm's
+// bgm_*/sfx_* equates (_Constants.asm), which start music at $81 (a real
+// hardware convention: $80 itself means "silence"/stop, so the real driver's
+// own first playable song is one past that) and pack SFX into $A0-$D0 with
+// a further gap up to $E0-$E4's handful of special top-level commands.
+// Renumbered (per your direction) into one contiguous enum, freeing up that
+// space for a new "continuous SFX" category (Sonic 3-style, cfLoopContinuousSFX)
+// that doesn't exist yet -- reserved here as an empty range so a future
+// Sonic 3 content port has somewhere to grow into without ANOTHER
+// renumbering pass. Layout, in order: 0 = silence/stop (was $80), music
+// ($01+), regular SFX, continuous SFX (empty for now), special SFX (just
+// Waterfall), then the 5 top-level commands fixed at $F0-$F4. Each
+// constant's NAME is still exactly what the real disasm calls it and (for
+// music) still matches its resource filename number (Mus81 = bgm_GHZ, even
+// though bgm_GHZ's own ID value is no longer literally 0x81) -- only the
+// numeric ID space changed, not the identity of anything.
+enum SoundID {
+    bgm_GHZ = 1, // 0 is reserved -- id==0 means silence/stop, same as the real $80 sentinel PlayMusic used to special-case
+    bgm_LZ,
+    bgm_MZ,
+    bgm_SLZ,
+    bgm_SYZ,
+    bgm_SBZ,
+    bgm_Invincible,
+    bgm_ExtraLife,
+    bgm_SS,
+    bgm_Title,
+    bgm_Ending,
+    bgm_Boss,
+    bgm_FZ,
+    bgm_GotThrough,
+    bgm_GameOver,
+    bgm_Continue,
+    bgm_Credits,
+    bgm_Drowning,
+    bgm_Emerald,
+    bgm_SSRG, // SCP_SPLASH-only in sound_table (see Sound.c), but the ID slot itself is always reserved so the rest of the ID space doesn't shift depending on that build option
 
-#define sfx_Jump         0xA0
-#define sfx_Lamppost     0xA1
-#define sfx_Death        0xA3
-#define sfx_Skid         0xA4
-#define sfx_HitSpikes    0xA6
-#define sfx_Push         0xA7
-#define sfx_SSGoal       0xA8
-#define sfx_SSItem       0xA9
-#define sfx_Splash       0xAA
-#define sfx_HitBoss      0xAC
-#define sfx_Bubble       0xAD
-#define sfx_Fireball     0xAE
-#define sfx_Shield       0xAF
-#define sfx_Saw          0xB0
-#define sfx_Electric     0xB1
-#define sfx_Drown        0xB2
-#define sfx_Flamethrower 0xB3
-#define sfx_Bumper       0xB4
-#define sfx_Ring         0xB5
-#define sfx_SpikesMove   0xB6
-#define sfx_Rumbling     0xB7
-#define sfx_Collapse     0xB9
-#define sfx_SSGlass      0xBA
-#define sfx_Door         0xBB
-#define sfx_Teleport     0xBC
-#define sfx_ChainStomp   0xBD
-#define sfx_Roll         0xBE
-#define sfx_Continue     0xBF
-#define sfx_Basaran      0xC0
-#define sfx_BreakItem    0xC1
-#define sfx_Warning      0xC2
-#define sfx_GiantRing    0xC3
-#define sfx_Bomb         0xC4
-#define sfx_Cash         0xC5
-#define sfx_RingLoss     0xC6
-#define sfx_ChainRise    0xC7
-#define sfx_Burning      0xC8
-#define sfx_Bonus        0xC9
-#define sfx_EnterSS      0xCA
-#define sfx_WallSmash    0xCB
-#define sfx_Spring       0xCC
-#define sfx_Switch       0xCD
-#define sfx_RingLeft     0xCE
-#define sfx_Signpost     0xCF
-#define sfx_Waterfall    0xD0
+    sfx_Jump = bgm_SSRG + 1,
+    sfx_Lamppost,
+    sfx_Unk_A2, // SndA2 in sound_table -- no real disasm sfx_ name (never referenced by ID in game code, then or now)
+    sfx_Death,
+    sfx_Skid,
+    sfx_Unk_A5, // SndA5, same as sfx_Unk_A2 above
+    sfx_HitSpikes,
+    sfx_Push,
+    sfx_SSGoal,
+    sfx_SSItem,
+    sfx_Splash,
+    sfx_Unk_AB, // SndAB
+    sfx_HitBoss,
+    sfx_Bubble,
+    sfx_Fireball,
+    sfx_Shield,
+    sfx_Saw,
+    sfx_Electric,
+    sfx_Drown,
+    sfx_Flamethrower,
+    sfx_Bumper,
+    sfx_Ring,
+    sfx_SpikesMove,
+    sfx_Rumbling,
+    sfx_Unk_B8, // SndB8
+    sfx_Collapse,
+    sfx_SSGlass,
+    sfx_Door,
+    sfx_Teleport,
+    sfx_ChainStomp,
+    sfx_Roll,
+    sfx_Continue,
+    sfx_Basaran,
+    sfx_BreakItem,
+    sfx_Warning,
+    sfx_GiantRing,
+    sfx_Bomb,
+    sfx_Cash,
+    sfx_RingLoss,
+    sfx_ChainRise,
+    sfx_Burning,
+    sfx_Bonus,
+    sfx_EnterSS,
+    sfx_WallSmash,
+    sfx_Spring,
+    sfx_Switch,
+    sfx_RingLeft,
+    sfx_Signpost,
 
-#define bgm_Fade     0xE0
-#define sfx_Sega     0xE1
-#define bgm_Speedup  0xE2
-#define bgm_Slowdown 0xE3
-#define bgm_Stop     0xE4
-#define DAC_SAMPLE_COUNT   7
+    // Continuous SFX -- new category, no members yet (see this enum's own
+    // comment above). sound_table has nothing registered anywhere in this
+    // range, so any ID here resolves to a NULL pointer and the driver
+    // silently skips it (DispatchQueue's `if (!song) return;`) until real
+    // entries exist.
+    SOUND_ID_CONTINUOUS_SFX_FIRST = sfx_Signpost + 1,
+    SOUND_ID_CONTINUOUS_SFX_LAST = SOUND_ID_CONTINUOUS_SFX_FIRST - 1, // empty range (LAST < FIRST)
+
+    sfx_Waterfall = SOUND_ID_CONTINUOUS_SFX_LAST + 1, // collapses onto CONTINUOUS_SFX_FIRST while that range stays empty
+
+    bgm_Fade = 0xF0,
+    sfx_Sega,
+    bgm_Speedup,
+    bgm_Slowdown,
+    bgm_Stop,
+};
+#define DAC_SAMPLE_COUNT   8
 
 void Sound_Init(void);
 
@@ -298,6 +470,14 @@ void Sound_Init(void);
 // should actually call; they route through these.
 void QueueSound1(uint8_t id);
 void QueueSound2(uint8_t id);
+
+// Plays a music/SFX ID through the JSON tree-walking engine instead of the
+// byte-VM QueueSound1/2 -> DispatchQueue routes through -- see its own
+// comment in Sound.c. Immediate, not queued (unlike QueueSound1/2, which
+// wait for the next Sound_Frame() tick): the caller is expected to already
+// be OK with side effects landing this frame, matching how the level-select
+// sound test (its only caller so far) already works.
+void Sound_PlayFromJSON(uint8_t id);
 
 // High-level entry points -- matches the real PlaySoundID's dispatch by ID
 // range (bgm__First-Last $81-$93, sfx__First-Last $A0-$CF, spec__First-Last
@@ -348,7 +528,18 @@ const uint8_t *Sound_DebugGetSongData(uint8_t id);
 // compiled song/SFX buffer (e.g. one just produced by json_to_header.py from
 // an edited .jsonc) through the real sequencer, bypassing the sound_table ID
 // lookup PlayMusic/PlaySound require. is_sfx selects LoadSFX vs LoadMusic.
-void Sound_DebugPlayRawSong(const uint8_t *data, uint8_t is_sfx);
+// driver_version selects the coordination-flag table (0 = driver-version-1/
+// Sonic 1-2-compatible, the same value sound_table's songs default to; 3 =
+// driver-version-3/Sonic 3-Flamedriver-compatible) -- the caller (e.g.
+// ParadoxComposer, via its SongDocument's own "driverVersion" field) must
+// pass whichever table the bytes were actually compiled against, since
+// nothing in the compiled byte stream itself self-identifies its table.
+void Sound_DebugPlayRawSong(const uint8_t *data, uint8_t is_sfx, uint8_t driver_version);
+
+// Debug/tooling only: JSON-tree-walking engine equivalent of the above --
+// json_text is a whole .jsonc song/SFX's source text. Returns 0 on parse
+// failure, 1 on success. See the "SMPS runtime: walk JSON directly" plan.
+int Sound_DebugPlayRawSongJSON(const char *json_text, uint8_t is_sfx, uint8_t driver_version);
 
 // Debug/tooling only (ParadoxComposer): force a channel silent regardless
 // of its own computed volume, for the Channels panel's per-strip mute/solo
@@ -376,6 +567,19 @@ void Sound_DebugPreviewDacSample(int sampleId);
 // a no-op. Generalized (was Timpani-only, Sound_DebugPreviewTimpaniVariant)
 // once Tom/Bongo needed the exact same preview behavior.
 void Sound_DebugPreviewDacVariant(int sampleId, int variant);
+// Preview by raw DAC note byte ($81-$DE, SND_dKick and up) -- looks straight
+// into Sound.c's dac_notes[] table, the same one the real note dispatch
+// uses, so this covers every wired-up percussion sample (not just the
+// original 7 DAC_SAMPLE_* base ones + their pitch variants) with a single
+// function. Preferred over Sound_DebugPreviewDacSample/Variant above for any
+// new caller; those two are kept only because existing callers still use
+// them. A note byte with no dac_notes[] entry (a gap, or $DF/SEGA -- not a
+// real DPCM sample) is a no-op.
+void Sound_DebugPreviewDacNote(int note_byte);
+// Whether dac_notes[] actually has a real sample at this note byte -- lets
+// callers (e.g. ParadoxComposer's piano roll) tell a valid preview click
+// apart from a no-op one without needing to know dac_notes[]'s own bounds.
+uint8_t Sound_DebugHasDacNote(int note_byte);
 // Generates `count` stereo samples of whatever's currently previewing via
 // either function above, additive into `out` (same convention as
 // Sound_Generate). Call once per output tick while a DAC preview is active.

@@ -18,6 +18,7 @@ struct Result {
     bool success = false;
     QByteArray compiledBytes;
     QString errorMessage; // mirrors the Python compiler's own exception text
+    int driverVersion = 1; // from the song's own "driverVersion" field (PSCompileResult::driver_version) -- see SMPS driver-version-3 plan
 };
 
 // playlistOrder: SongDocument::playlistOrder() -- MUST be passed explicitly

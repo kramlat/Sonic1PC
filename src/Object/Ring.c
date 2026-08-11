@@ -8,7 +8,10 @@
 #include "Sound.h"
 
 // Ring object
-static const int8_t ring_pos[16][2] = {
+// Not static -- Object/DebugList.c reads this too, to build the debug
+// placement preview's row/column formation stack, so the two can never
+// silently drift out of sync (see Ring.h's extern declaration).
+const int8_t ring_pos[16][2] = {
     { 0x10, 0x00 },
     { 0x18, 0x00 },
     { 0x20, 0x00 },

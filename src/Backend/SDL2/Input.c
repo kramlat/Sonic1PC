@@ -145,6 +145,33 @@ uint8_t Input_GetState1(void) {
 	return start | a | c | b | right | left | down | up;
 }
 
+// Extended (non-Genesis) bindings -- see Backend/Joypad.h's own comment.
+// Currently just debug mode's "cycle item backward": / on keyboard, a real
+// physical gamepad's Y button (not the Genesis-style virtual pad mapping
+// used by Input_GetState1 above -- SDL_CONTROLLER_BUTTON_Y specifically).
+uint8_t Input_GetExtState1(void) {
+	const uint8_t *key_state = SDL_GetKeyboardState(NULL);
+	uint8_t state = key_state[SDL_SCANCODE_SLASH] ? JPAD_EXT_Y : 0;
+	if (key_state[SDL_SCANCODE_COMMA] || key_state[SDL_SCANCODE_LEFTBRACKET])
+		state |= JPAD_EXT_SUBTYPE_DEC;
+	if (key_state[SDL_SCANCODE_PERIOD] || key_state[SDL_SCANCODE_RIGHTBRACKET])
+		state |= JPAD_EXT_SUBTYPE_INC;
+
+	if (pad && SDL_GameControllerGetAttached(pad)) {
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_Y))
+			state |= JPAD_EXT_Y;
+		// Right stick specifically -- left stick already drives Genesis
+		// D-pad movement (see Input_GetState1 above), so this is the one
+		// analog input on a modern pad with no Genesis-era meaning yet.
+		int16_t rx = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
+		if (rx < -STICK_DEADZONE)
+			state |= JPAD_EXT_SUBTYPE_DEC;
+		if (rx > STICK_DEADZONE)
+			state |= JPAD_EXT_SUBTYPE_INC;
+	}
+	return state;
+}
+
 uint8_t Input_GetState2(void) {
 	//No use in Sonic 1
 	return 0;

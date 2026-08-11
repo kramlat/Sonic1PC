@@ -22,6 +22,7 @@ typedef struct {
     int success;
     uint8_t *bytes; // owned -- free with ps_compile_result_free()
     size_t byte_count;
+    int driver_version; // 1 (default) or 3, from the song's own "driverVersion" field -- see SMPS driver-version-3 plan
     char error_message[256];
 } PSCompileResult;
 

@@ -13,6 +13,7 @@
 #include "MathUtil.h"
 #include "Nemesis.h"
 #include "Object/Sonic.h"
+#include "Object/WaterSurface.h"
 #include "PLC.h"
 #include "Palette.h"
 #include "PaletteCycle.h"
@@ -285,6 +286,17 @@ GM_Level_Branch:;
     } // move.b	($FFFFFE53).w,(f_wtr_state).w //TODO
 
     if (demo >= 0) {
+        // Unlike sound_music (fully repopulated by ResumeLevelMusic's own
+        // LoadMusic call right below), sound_sfx has no per-level reset --
+        // this project models music/SFX as two fully independent chip
+        // sets mixed together (see Sound.c), not real hardware's single
+        // shared chip with SFX temporarily "stealing" a channel. Without
+        // this, a still-looping zone-specific ambient SFX (e.g. MZ's noise
+        // channel) keeps playing through a zone transition and gets mixed
+        // in with the new zone's music. Matches the same StopAllSound()
+        // call other gamemode transitions already make (GM_Title.c,
+        // GM_Sega.c, GM_SSRG.c) -- level transitions were just missing it.
+        StopAllSound();
         ResumeLevelMusic();
         // TODO: SBZ3 music and FZ music, resume on fresh air LZ
 
@@ -320,6 +332,13 @@ GM_Level_Branch:;
     if (demo >= 0)
         objects[1].type = ObjId_HUD;
 
+    if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
+        objects[WATERSURFACE_SLOT_LEFT].type = ObjId_WaterSurface;
+        objects[WATERSURFACE_SLOT_LEFT].pos.l.x.f.u = 0x60;
+        objects[WATERSURFACE_SLOT_RIGHT].type = ObjId_WaterSurface;
+        objects[WATERSURFACE_SLOT_RIGHT].pos.l.x.f.u = 0x120;
+    }
+
     // Handle debug mode cheat. Debug builds skip the "hold A" requirement
     // too -- debug_cheat alone (itself unconditionally on in debug builds,
     // see GM_Title.c) is enough.
@@ -345,6 +364,14 @@ GM_Level_Branch:;
         rings = 0;
         level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
         life_num = 0;
+
+        // Initial water height at level start (checkpoint restore instead
+        // loads it from lamp_state via Obj_Checkpoint_LoadInfo). LZ act 4
+        // is SBZ3, see [[project_lz_act4_sbz3]].
+        if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
+            static const int16_t WaterHeight[4] = { 0xB8, 0x328, 0x900, 0x228 };
+            wtr_pos2 = WaterHeight[LEVEL_ACT(level_id)];
+        }
     }
 
     time_over = false;

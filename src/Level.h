@@ -144,6 +144,7 @@ extern uint32_t score_life;
 
 extern uint16_t air;
 extern uint8_t last_special;
+extern uint8_t big_ring_collected; // set by Obj_RingFlash (GiantRing.c) -- matches the real f_bigring flag; not yet consumed anywhere (level-exit-to-Special-Stage transition isn't wired up yet)
 
 extern uint8_t life_num;
 extern uint8_t life_count;
@@ -155,6 +156,10 @@ extern uint8_t shield;
 extern uint8_t invincibility;
 extern uint8_t shoes;
 extern uint8_t debug_use;
+extern uint8_t debug_item;         // currently selected index into the active zone's DebugList
+extern uint8_t debug_speed;        // current free-move speed (ramps up while a D-Pad direction is held)
+extern uint8_t debug_speed_timer;  // frames left before debug_speed ramps up again
+extern uint8_t debug_subtype;      // subtype the selected item will spawn with -- resets to the DebugList entry's own default whenever the item changes, adjustable via right stick / ,. (see JPAD_EXT_SUBTYPE_*)
 
 extern int16_t wtr_pos1, wtr_pos2, wtr_pos3;
 extern uint8_t water;

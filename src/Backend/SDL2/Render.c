@@ -14,6 +14,19 @@
 // Render compile options
 // #define DISPLAY_PADDING //Displays the internal VDP padding
 
+// Real Sonic hardware ran on a CRT, whose phosphors keep glowing for a few
+// milliseconds after being lit rather than switching off instantly. That
+// persistence blends consecutive frames together for anything moving fast
+// on screen (e.g. Sonic at terminal fall speed, ~23px/frame), smearing it
+// into a soft trail instead of the discrete per-frame jumps you get once
+// each frame is shown crisply on a modern flat panel with zero decay. Our
+// physics/rendering are frame-accurate (verified against real disasm and
+// live debug traces), so the "jump" is genuine per-frame motion becoming
+// visible for the first time, not a bug -- this blend restores the visual
+// smoothing the CRT used to provide for free.
+#define CRT_MOTION_BLUR
+#define CRT_MOTION_BLUR_ALPHA 176 // Out of 255; new-frame weight per blend
+
 #ifdef DISPLAY_PADDING
 #define TEXTURE_WIDTH (SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2))
 #define TEXTURE_HEIGHT SCREEN_HEIGHT
@@ -35,6 +48,11 @@ int vsync;
 static int use_vsync_present; //Whether display vsync itself is trustworthy for pacing (exact 60Hz multiple)
 static Uint64 perf_freq;
 static Uint64 next_frame_time;
+
+#ifdef CRT_MOTION_BLUR
+static uint32_t prev_frame[TEXTURE_HEIGHT][TEXTURE_WIDTH];
+static int prev_frame_valid;
+#endif
 
 // Backend render interface
 int Render_Init(const MD_Header* header) {
@@ -382,11 +400,37 @@ void Render_Screen(const uint32_t* screen) {
 #ifdef DISPLAY_PADDING
     screen -= VDP_INTERNAL_PAD;
 #endif
+#ifdef CRT_MOTION_BLUR
+    if (!prev_frame_valid) {
+        // First frame -- nothing to blend with yet, show it as-is.
+        for (size_t i = 0; i < TEXTURE_HEIGHT; i++) {
+            memcpy(to, screen, TEXTURE_WIDTH << 2);
+            memcpy(prev_frame[i], screen, TEXTURE_WIDTH << 2);
+            to += pitch;
+            screen += SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2);
+        }
+        prev_frame_valid = 1;
+    } else {
+        for (size_t i = 0; i < TEXTURE_HEIGHT; i++) {
+            uint8_t* out_row = to;
+            const uint8_t* new_row = (const uint8_t*)screen;
+            uint8_t* prev_row = (uint8_t*)prev_frame[i];
+            for (size_t x = 0; x < (TEXTURE_WIDTH << 2); x++) {
+                uint8_t blended = (uint8_t)((new_row[x] * CRT_MOTION_BLUR_ALPHA + prev_row[x] * (255 - CRT_MOTION_BLUR_ALPHA)) / 255);
+                out_row[x] = blended;
+                prev_row[x] = blended;
+            }
+            to += pitch;
+            screen += SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2);
+        }
+    }
+#else
     for (size_t i = 0; i < TEXTURE_HEIGHT; i++) {
         memcpy(to, screen, TEXTURE_WIDTH << 2);
         to += pitch;
         screen += SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2);
     }
+#endif
 
     // Unlock screen texture and draw to window
     SDL_UnlockTexture(texture);

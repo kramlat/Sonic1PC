@@ -23,7 +23,7 @@ typedef enum {
 	/*07*/ ObjId_07,
 	/*08*/ ObjId_Splash,
 	/*09*/ ObjId_SpecialSonic,
-	/*0A*/ ObjId_0A,
+	/*0A*/ ObjId_DrownCount,
 	/*0B*/ ObjId_0B,
 	/*0C*/ ObjId_0C,
 	/*0D*/ ObjId_Signpost,
@@ -32,16 +32,16 @@ typedef enum {
 	/*10*/ ObjId_10,
 	/*11*/ ObjId_GHZBridge,
 	/*12*/ ObjId_12,
-	/*13*/ ObjId_13,
-	/*14*/ ObjId_14,
+	/*13*/ ObjId_LavaMaker,
+	/*14*/ ObjId_LavaBall,
 	/*15*/ ObjId_SwingingPlatform,
 	/*16*/ ObjId_16,
-	/*17*/ ObjId_17,
-	/*18*/ ObjId_18,
+	/*17*/ ObjId_Helix,
+	/*18*/ ObjId_BasicPlatform,
 	/*19*/ ObjId_19,
-	/*1A*/ ObjId_1A,
-	/*1B*/ ObjId_1B,
-	/*1C*/ ObjId_1C,
+	/*1A*/ ObjId_CollapseLedge,
+	/*1B*/ ObjId_WaterSurface,
+	/*1C*/ ObjId_Scenery,
 	/*1D*/ ObjId_1D,
 	/*1E*/ ObjId_1E,
 	/*1F*/ ObjId_Crabmeat,
@@ -60,20 +60,20 @@ typedef enum {
 	/*2C*/ ObjId_2C,
 	/*2D*/ ObjId_2D,
 	/*2E*/ ObjId_MonitorItem,
-	/*2F*/ ObjId_2F,
-	/*30*/ ObjId_30,
-	/*31*/ ObjId_31,
-	/*32*/ ObjId_32,
-	/*33*/ ObjId_33,
+	/*2F*/ ObjId_LargeGrass,
+	/*30*/ ObjId_GlassBlock,
+	/*31*/ ObjId_ChainStomp,
+	/*32*/ ObjId_Button,
+	/*33*/ ObjId_PushBlock,
 	/*34*/ ObjId_TitleCard,
-	/*35*/ ObjId_35,
+	/*35*/ ObjId_GrassFire,
 	/*36*/ ObjId_Spikes,
 	/*37*/ ObjId_RingLoss,
 	/*38*/ ObjId_ShieldInvincibility,
 	/*39*/ ObjId_GameOverCard,
 	/*3A*/ ObjId_GotThroughCard,
 	/*3B*/ ObjId_GHZRock,
-	/*3C*/ ObjId_3C,
+	/*3C*/ ObjId_SmashWall,
 	/*3D*/ ObjId_3D,
 	/*3E*/ ObjId_3E,
 	/*3F*/ ObjId_3F,
@@ -83,22 +83,22 @@ typedef enum {
 	/*43*/ ObjId_43,
 	/*44*/ ObjId_GHZEdge,
 	/*45*/ ObjId_45,
-	/*46*/ ObjId_46,
+	/*46*/ ObjId_MarbleBrick,
 	/*47*/ ObjId_Bumper,
 	/*48*/ ObjId_48,
 	/*49*/ ObjId_49,
 	/*4A*/ ObjId_4A,
-	/*4B*/ ObjId_4B,
-	/*4C*/ ObjId_4C,
-	/*4D*/ ObjId_4D,
+	/*4B*/ ObjId_GiantRing,
+	/*4C*/ ObjId_GeyserMaker,
+	/*4D*/ ObjId_LavaGeyser,
 	/*4E*/ ObjId_4E,
 	/*4F*/ ObjId_4F,
-	/*50*/ ObjId_50,
-	/*51*/ ObjId_51,
-	/*52*/ ObjId_52,
-	/*53*/ ObjId_53,
-	/*54*/ ObjId_54,
-	/*55*/ ObjId_55,
+	/*50*/ ObjId_Yadrin,
+	/*51*/ ObjId_SmashBlock,
+	/*52*/ ObjId_MovingBlock,
+	/*53*/ ObjId_CollapseFloor,
+	/*54*/ ObjId_LavaTag,
+	/*55*/ ObjId_Basaran,
 	/*56*/ ObjId_56,
 	/*57*/ ObjId_57,
 	/*58*/ ObjId_BigSpikeBall,
@@ -113,7 +113,7 @@ typedef enum {
 	/*61*/ ObjId_61,
 	/*62*/ ObjId_62,
 	/*63*/ ObjId_63,
-	/*64*/ ObjId_64,
+	/*64*/ ObjId_Bubble,
 	/*65*/ ObjId_65,
 	/*66*/ ObjId_66,
 	/*67*/ ObjId_67,
@@ -126,19 +126,19 @@ typedef enum {
 	/*6E*/ ObjId_6E,
 	/*6F*/ ObjId_6F,
 	/*70*/ ObjId_70,
-	/*71*/ ObjId_71,
+	/*71*/ ObjId_InvisibleBarrier,
 	/*72*/ ObjId_72,
 	/*73*/ ObjId_73,
 	/*74*/ ObjId_74,
 	/*75*/ ObjId_75,
 	/*76*/ ObjId_76,
 	/*77*/ ObjId_77,
-	/*78*/ ObjId_78,
+	/*78*/ ObjId_Caterkiller,
 	/*79*/ ObjId_Checkpoint,
 	/*7A*/ ObjId_7A,
 	/*7B*/ ObjId_7B,
-	/*7C*/ ObjId_7C,
-	/*7D*/ ObjId_7D,
+	/*7C*/ ObjId_RingFlash,
+	/*7D*/ ObjId_HiddenBonus,
 	/*7E*/ ObjId_7E,
 	/*7F*/ ObjId_7F,
 	/*80*/ ObjId_80,
@@ -269,14 +269,26 @@ void AnimateSprite(Object *obj, const uint8_t *anim_script);
 void DisplaySprite(Object *obj);
 
 void ObjectDelete(Object *obj);
+void RememberState(Object *obj);
 void SpeedToPos(Object *obj);
 void ObjectFall(Object *obj);
 
-void RememberState(Object *obj);
 void MvSonicOnPtfm(Object *obj, int16_t y, int16_t prev_x);
 void PlatformObject(Object *obj, uint16_t x_rad);
 void PlatformObject_CustomHeight(Object *obj, uint16_t x_rad, int16_t height);
 void Platform3(Object *obj, int16_t top);
 void Platform_SetStand(Object *obj);
 bool ExitPlatform(Object *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p);
+void GotThroughAct(void);
+void SmashObject(Object *obj, int count, const int16_t *frag_speeds);
+void FragmentatePlatform(Object *obj, int count, const uint8_t *delays);
+void SlopeObject(Object *obj, uint16_t x_rad, const uint8_t *heightmap);
+void SlopeObject_AssumeStoodOn(Object *obj, uint16_t x_rad, const uint8_t *heightmap, int16_t prev_x);
+int16_t ObjHitWallRight(Object *obj, int16_t x_off);
+int16_t ObjHitWallLeft(Object *obj, int16_t x_off);
+int16_t ObjHitCeiling(Object *obj);
+bool ChkObjectVisible(Object *obj);
+bool ChkPartiallyVisible(Object *obj);
+int32_t Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off);
 int32_t SolidObject(Object *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off);
+int32_t SolidObject_Heightmap(Object *obj, uint16_t x_rad, uint16_t y_rad, const uint8_t *heightmap);

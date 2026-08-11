@@ -211,7 +211,165 @@ def _new_synthetic_label():
     return f"__synthetic_{_synthetic_label_counter[0]}"
 
 
-def emit_event(em, event):
+# ---------------------------------------------------------------------------
+# Coordination-flag byte encodings, SonicDriverVer=3 (Sonic 3/Flamedriver-
+# compatible) -- see the SMPS driver-version-3 plan for the full researched
+# table this mirrors (Flamedriver.asm's zCoordFlagSwitchTable/
+# zExtraCoordFlagSwitchTable). Byte values here mean something ENTIRELY
+# DIFFERENT than the SonicDriverVer=1 table above for most of this range --
+# selected per-song via the JSON header's own "driverVersion" field, never
+# mixed within one song. Kept byte-for-byte in sync with
+# libparadoxsmps/compiler.c's own emit_event_v3, same convention as
+# emit_event/emit_simple above already follow for the v1 table.
+# ---------------------------------------------------------------------------
+
+ZERO_ARG_OPS_V3 = {
+    "cfPreventAttack": 0xE7,  # same runtime code path as v1's smpsNoAttack -- see TickChannel_FlagsV3's own comment
+    "cfSilenceStopTrack": 0xE3,
+    "cfStopTrack": 0xF2,
+    "cfJumpReturn": 0xF9,
+    "cfDisableModulation": 0xFA,
+    "cfResetSpindashRev": (0xFF, 0x07),
+}
+
+# mnemonic -> (opcode byte, extended-subbyte-or-None, arg byte count).
+# Extended (0xFF-prefixed) flags carry their sub-index as the 2nd tuple
+# element; emit_simple_v3 below emits [0xFF, sub, *args] for those,
+# [op, *args] otherwise.
+SIMPLE_OPS_V3 = {
+    "cfDetune": (0xE1, None, 1),
+    "cfFadeInToPrevious": (0xE2, None, 1),
+    "cfSetVolume": (0xE4, None, 1),
+    "cfChangeVolume2": (0xE5, None, 2),  # [discarded_byte, delta] -- see TickChannel_FlagsV3's own comment
+    "cfChangeVolume": (0xE6, None, 1),
+    "cfNoteFill": (0xE8, None, 1),
+    "cfPlayDACSample": (0xEA, None, 1),  # raw note-byte value (e.g. "0x81"), same encoding as a DAC-track note byte
+    "cfChangePSGVolume": (0xEC, None, 1),
+    "cfSetKey": (0xED, None, 1),
+    "cfSendFMI": (0xEE, None, 2),  # [reg, data]
+    "cfAlterModulation": (0xF1, None, 2),  # [byte_for_psg, byte_for_fm]
+    "cfSetPSGNoise": (0xF3, None, 1),
+    "cfSetModulation": (0xF4, None, 1),
+    "cfSetPSGVolEnv": (0xF5, None, 1),
+    "cfChangeTransposition": (0xFB, None, 1),
+    "cfToggleAltFreqMode": (0xFD, None, 1),
+    "cfFM3SpecialMode": (0xFE, None, 4),  # documented runtime stub -- still needs correct byte encoding for round-trip fidelity
+    "cfSetTempo": (0xFF, 0x00, 1),
+    "cfPlaySFXByIndex": (0xFF, 0x01, 1),
+    "cfHaltSound": (0xFF, 0x02, 1),
+    "cfSetTempoDivider": (0xFF, 0x04, 1),
+    "cfSetSSGEG": (0xFF, 0x05, 4),  # documented runtime stub, see cfFM3SpecialMode above
+    "cfFMVolEnv": (0xFF, 0x06, 2),  # [envIndex, operatorMask]
+    "cfChanSetTempoDivider": (0xFF, 0x08, 1),
+    "cfChanFMCommand": (0xFF, 0x09, 2),  # [reg, data]
+    "cfNoteFillSet": (0xFF, 0x0A, 1),
+    "cfPitchSlide": (0xFF, 0x0B, 1),
+    "cfSetLFO": (0xFF, 0x0C, 2),  # [lfoByte, panByte]
+    "cfPlayMusicByIndex": (0xFF, 0x0D, 1),
+}
+
+
+def emit_simple_v3(em, mnemonic, value):
+    op, sub, argc = SIMPLE_OPS_V3[mnemonic]
+    args = value if isinstance(value, list) else [value]
+    if len(args) != argc:
+        raise ValueError(f"{mnemonic}: expected {argc} arg(s), got {len(args)}")
+    em.byte(op)
+    if sub is not None:
+        em.byte(sub)
+    for a in args:
+        em.byte(unhex(a) & 0xFF)
+
+
+def emit_event_v3(em, event):
+    if isinstance(event, str):
+        if event in ZERO_ARG_OPS_V3:
+            op = ZERO_ARG_OPS_V3[event]
+            if isinstance(op, tuple):
+                em.byte(op[0])
+                em.byte(op[1])
+            else:
+                em.byte(op)
+            return
+        raise NotImplementedError(f"bare event {event!r}: not implemented (driverVersion 3)")
+    if "note" in event:
+        em.byte(note_value(event["note"]))
+        if "duration" in event:
+            em.byte(unhex(event["duration"]) & 0xFF)
+        return
+    if "tie" in event or "inheritedNote" in event:
+        em.byte(unhex(event["duration"]) & 0xFF)
+        return
+    if "cfPanningAMSFMS" in event:
+        direction_name, amsfms = event["cfPanningAMSFMS"]
+        pan_values = {"panLeft": 0x80, "panRight": 0x40, "panCentre": 0xC0, "panCenter": 0xC0, "panNone": 0x00}
+        em.byte(0xE0)
+        em.byte((pan_values[direction_name] + unhex(amsfms)) & 0xFF)
+        return
+    if "cfModulation" in event:
+        em.byte(0xF0)
+        for v in event["cfModulation"]:
+            em.byte(unhex(v) & 0xFF)
+        return
+    if "cfSetVoice" in event:
+        # Bare int = the common 1-byte form; a 2-element array = the rare
+        # "foreign voice bank" form (high bit set on the 1st byte).
+        v = event["cfSetVoice"]
+        vals = v if isinstance(v, list) else [v]
+        em.byte(0xEF)
+        for a in vals:
+            em.byte(unhex(a) & 0xFF)
+        return
+    # Jump/loop/gosub-style flags -- reuse the exact same synthetic-label
+    # nested-block machinery smpsJump/smpsLoop/smpsCall use above (v1 and
+    # v3 share this mechanism even though the emitted opcode BYTES differ).
+    if "cfConditionalJump" in event:
+        idx, target = event["cfConditionalJump"]
+        em.byte(0xEB)
+        em.byte(unhex(idx) & 0xFF)
+        em.word_placeholder(target, "rel-1")
+        return
+    if "cfRepeatAtPos" in event:
+        idx, cnt, *body = event["cfRepeatAtPos"]
+        label = _new_synthetic_label()
+        em.mark_block(label)
+        for e in body:
+            emit_event_v3(em, e)
+        em.byte(0xF7)
+        em.byte(unhex(idx) & 0xFF)
+        em.byte(unhex(cnt) & 0xFF)
+        em.word_placeholder(label, "rel-1")
+        return
+    if "cfJumpTo" in event:
+        em.byte(0xF6)
+        em.word_placeholder(event["cfJumpTo"], "rel-1")
+        return
+    if "cfJumpToGosub" in event:
+        em.byte(0xF8)
+        em.word_placeholder(event["cfJumpToGosub"], "abs")
+        return
+    if "cfLoopContinuousSFX" in event:
+        em.byte(0xFC)
+        em.word_placeholder(event["cfLoopContinuousSFX"], "rel-1")
+        return
+    if "cfCopyData" in event:
+        src, count = event["cfCopyData"]
+        em.byte(0xFF)
+        em.byte(0x03)
+        em.word_placeholder(src, "abs")
+        em.byte(unhex(count) & 0xFF)
+        return
+    for mnemonic, value in event.items():
+        if mnemonic in SIMPLE_OPS_V3:
+            emit_simple_v3(em, mnemonic, value)
+            return
+    raise NotImplementedError(f"unrecognized event (driverVersion 3): {event!r}")
+
+
+def emit_event(em, event, driver_version=1):
+    if driver_version >= 3:
+        emit_event_v3(em, event)
+        return
     if isinstance(event, str):
         if event in ZERO_ARG_OPS:
             em.byte(ZERO_ARG_OPS[event])
@@ -442,10 +600,11 @@ def compile_song(data):
                 else:
                     em.byte(unhex(a) & 0xFF)
 
+    driver_version = data.get("driverVersion", 1)
     for name, events in data.get("SMPSplaylist", {}).items():
         em.mark_block(name)
         for e in events:
-            emit_event(em, e)
+            emit_event(em, e, driver_version)
 
     if voice_bank_name is not None:
         em.mark_block(voice_bank_name)
@@ -456,16 +615,20 @@ def compile_song(data):
     return bytes(em.buf)
 
 
-def to_c_header(data_bytes, array_name):
+def to_c_header(data_bytes, array_name, driver_version=1):
     # Matches smps2asmc's own generated-header convention exactly (#pragma
     # once, uint8_t) since this compiler is meant to replace that pipeline --
     # same consumption pattern in Sound.c (a single direct #include per
-    # song), so the two should be interchangeable at the include site.
+    # song), so the two should be interchangeable at the include site. The
+    # trailing _DRIVERVER macro is new (SMPS driver-version-3 support) --
+    # Sound.c's sound_table_driver_ver[] references it by name so the JSON's
+    # own "driverVersion" field stays the single source of truth end to end.
     lines = ["#pragma once", "", "#include <stdint.h>", "", f"const uint8_t {array_name}[] = {{"]
     for i in range(0, len(data_bytes), 16):
         chunk = data_bytes[i : i + 16]
         lines.append("    " + ", ".join(f"0x{b:02X}" for b in chunk) + ",")
     lines.append("};")
+    lines.append(f"#define {array_name}_DRIVERVER {driver_version}")
     return "\n".join(lines) + "\n"
 
 
@@ -476,5 +639,5 @@ if __name__ == "__main__":
     song = load_jsonc(sys.argv[1])
     compiled = compile_song(song)
     with open(sys.argv[2], "w", encoding="utf-8") as f:
-        f.write(to_c_header(compiled, sys.argv[3]))
+        f.write(to_c_header(compiled, sys.argv[3], song.get("driverVersion", 1)))
     print(f"Wrote {len(compiled)} bytes to {sys.argv[2]}", file=sys.stderr)

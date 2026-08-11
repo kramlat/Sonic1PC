@@ -35,8 +35,16 @@ QString toJsonText(const QJsonObject &song, const QStringList &playlistOrder) {
         blockEntries << QString("\"%1\":%2").arg(name, eventsText);
     }
 
-    return QString("{\"header\":%1,\"voices\":%2,\"SMPSplaylist\":{%3}}")
-        .arg(headerText, voicesText, blockEntries.join(","));
+    // driverVersion (SMPS driver-version-3 support) is a plain top-level
+    // scalar, same as header/voices/SMPSplaylist -- must be threaded through
+    // by hand here too, since this function builds its own compact JSON
+    // text rather than round-tripping the QJsonObject wholesale (same
+    // reason playlist order needs explicit handling above).
+    const QString driverVersionText =
+        song.contains("driverVersion") ? QString(",\"driverVersion\":%1").arg(song.value("driverVersion").toInt(1)) : QString();
+
+    return QString("{\"header\":%1,\"voices\":%2,\"SMPSplaylist\":{%3}%4}")
+        .arg(headerText, voicesText, blockEntries.join(","), driverVersionText);
 }
 
 } // namespace
@@ -63,6 +71,7 @@ Result compile(const QJsonObject &song, const QStringList &playlistOrder) {
 
     result.success = true;
     result.compiledBytes = QByteArray(reinterpret_cast<const char *>(native.bytes), static_cast<int>(native.byte_count));
+    result.driverVersion = native.driver_version;
     ps_compile_result_free(&native);
     return result;
 }

@@ -214,6 +214,73 @@ MULTI_ARG = {
 }
 BLOCK_MACROS = {"smpsLoop", "smpsJump", "smpsCall"}
 
+# ---------------------------------------------------------------------------
+# SMPS driver-version-3 (Sonic 3/Flamedriver-compatible) mnemonics -- same
+# name/shape conventions as json_to_header.py's own SIMPLE_OPS_V3/
+# ZERO_ARG_OPS_V3 (bare string / single value / positional array), so a real
+# Flamedriver-driven .asm source (matching this project's naming exactly,
+# see /home/deck/Projects/flamedriver/Flamedriver.asm) converts straight
+# through the SAME machinery below as the driver-version-1 sets above.
+#
+# NOT included here: cfPanningAMSFMS/cfModulation/cfSetVoice (need the
+# same special-cased handling smpsPan/smpsModSet/smpsSetvoice-with-variant-
+# arg-count get elsewhere -- see convert_instruction's own v3 branch below),
+# and the 5 jump/loop/gosub-target flags (cfConditionalJump, cfRepeatAtPos,
+# cfJumpTo, cfJumpToGosub, cfLoopContinuousSFX) -- those need the same
+# control-flow-folding treatment smpsLoop/smpsJump/smpsCall get below, which
+# is currently hardcoded to those 3 mnemonic names specifically (not
+# parameterized by BLOCK_MACROS membership) across several functions in this
+# file. Generalizing that fold is real future work, deferred until an actual
+# driverVersion-3 source file needs importing -- until then, those 5
+# mnemonics will fall through to convert_instruction's "unrecognized macro"
+# passthrough if encountered, which is honest (visibly flags the gap) rather
+# than silently producing wrong output.
+ZERO_ARG_V3 = {
+    "cfPreventAttack",
+    "cfSilenceStopTrack",
+    "cfStopTrack",
+    "cfJumpReturn",
+    "cfDisableModulation",
+    "cfResetSpindashRev",
+}
+SINGLE_ARG_V3 = {
+    "cfDetune",
+    "cfFadeInToPrevious",
+    "cfSetVolume",
+    "cfChangeVolume",
+    "cfNoteFill",
+    "cfPlayDACSample",
+    "cfChangePSGVolume",
+    "cfSetKey",
+    "cfSetPSGNoise",
+    "cfSetModulation",
+    "cfSetPSGVolEnv",
+    "cfChangeTransposition",
+    "cfToggleAltFreqMode",
+    "cfSetTempo",
+    "cfPlaySFXByIndex",
+    "cfHaltSound",
+    "cfSetTempoDivider",
+    "cfChanSetTempoDivider",
+    "cfNoteFillSet",
+    "cfPitchSlide",
+    "cfPlayMusicByIndex",
+}
+MULTI_ARG_V3 = {
+    "cfChangeVolume2",  # [discarded_byte, delta]
+    "cfSendFMI",  # [reg, data]
+    "cfAlterModulation",  # [byte_for_psg, byte_for_fm]
+    "cfFM3SpecialMode",  # 4 raw bytes
+    "cfSetSSGEG",  # 4 raw bytes
+    "cfFMVolEnv",  # [envIndex, operatorMask]
+    "cfChanFMCommand",  # [reg, data]
+    "cfSetLFO",  # [lfoByte, panByte]
+}
+ALL_MNEMONICS_V3 = ZERO_ARG_V3 | SINGLE_ARG_V3 | MULTI_ARG_V3 | {
+    "cfPanningAMSFMS", "cfModulation", "cfSetVoice",
+    "cfConditionalJump", "cfRepeatAtPos", "cfJumpTo", "cfJumpToGosub", "cfLoopContinuousSFX",
+}
+
 # Voice-bank macros (op1..op4 positional, matches VoiceParams::op[] order).
 VOICE_MULTI = {
     "smpsVcDetune",
@@ -300,6 +367,20 @@ def convert_instruction(line):
         return {"smpsMod": True}
     if m == "smpsModOff":
         return {"smpsMod": False}
+    # SMPS driver-version-3 mnemonics -- see ALL_MNEMONICS_V3's own comment
+    # for what's NOT covered here (the 5 jump/loop/gosub-target flags).
+    if m in ZERO_ARG_V3:
+        return m
+    if m in SINGLE_ARG_V3:
+        return {m: hx(line.args[0]) if line.args else None}
+    if m in MULTI_ARG_V3:
+        return {m: args_to_json(line.args)}
+    if m == "cfPanningAMSFMS":
+        return {m: args_to_json(line.args)}
+    if m == "cfModulation":
+        return {m: args_to_json(line.args)}
+    if m == "cfSetVoice":
+        return {m: args_to_json(line.args) if len(line.args) > 1 else hx(line.args[0])}
     # Unknown mnemonic -- pass through raw so nothing silently vanishes; a
     # human needs to look at this rather than have data quietly dropped.
     return {"_unrecognized_macro": m, "_args": args_to_json(line.args)}
@@ -616,6 +697,7 @@ def convert_file(path):
     current_name = None
     current_flat = []
     note_state = None
+    used_driver_v3 = [False]  # list so the nested loop below can mutate it (no nonlocal needed for a single flag read)
 
     def flush():
         nonlocal current_name, current_flat, note_state
@@ -666,6 +748,8 @@ def convert_file(path):
         elif line.mnemonic == "smpsReturn":
             pass  # block end IS the implicit return -- no event emitted, per schema
         else:
+            if line.mnemonic in ALL_MNEMONICS_V3:
+                used_driver_v3[0] = True
             current_flat.append(("event", convert_instruction(line)))
         i += 1
     flush()
@@ -673,7 +757,14 @@ def convert_file(path):
     for w in warnings:
         print(f"WARNING: {w}", file=sys.stderr)
 
-    return {"header": header, "voices": voices, "SMPSplaylist": playlist}
+    result = {"header": header, "voices": voices, "SMPSplaylist": playlist}
+    if used_driver_v3[0]:
+        # At least one SMPS driver-version-3 (Sonic 3/Flamedriver-compatible)
+        # mnemonic was seen -- tag the whole song so json_to_header.py/
+        # compiler.c compile it against the matching flag table instead of
+        # the driver-version-1 default.
+        result["driverVersion"] = 3
+    return result
 
 
 class HexEncoder(json.JSONEncoder):

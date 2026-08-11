@@ -90,6 +90,7 @@ extern uint8_t debug_cheat, debug_mode;
 extern uint8_t jpad2_hold,  jpad2_press;
 extern uint8_t jpad1_hold1, jpad1_press1;
 extern uint8_t jpad1_hold2, jpad1_press2;
+extern uint8_t jpad1_hold_ext, jpad1_press_ext;
 
 extern uint32_t vbla_count;
 

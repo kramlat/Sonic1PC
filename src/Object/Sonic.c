@@ -7,6 +7,8 @@
 #include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Object.h"
+#include "Object/DebugList.h"
+#include "Object/DrownCount.h"
 #include "Object/Splash.h"
 #include "PLC.h"
 #include "Sound.h"
@@ -444,13 +446,15 @@ static void Sonic_Floor(Object *obj) {
     int16_t dist0, dist1, clip;
     uint8_t hit_angle;
     switch (angle) {
-    case 0x00: // Moving down
+    case 0x00: { // Moving down
         // Collide with walls
-        if ((dist0 = GetDistance2_Left(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL)) < 0) {
+        int16_t wall_left = GetDistance2_Left(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL);
+        int16_t wall_right = GetDistance2_Right(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL);
+        if ((dist0 = wall_left) < 0) {
             obj->pos.l.x.f.u -= dist0;
             obj->xsp = 0;
         }
-        if ((dist0 = GetDistance2_Right(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL)) < 0) {
+        if ((dist0 = wall_right) < 0) {
             obj->pos.l.x.f.u += dist0;
             obj->xsp = 0;
         }
@@ -485,6 +489,7 @@ static void Sonic_Floor(Object *obj) {
             }
         }
         break;
+    }
     case 0x40: // Moving left
         // Collide with walls
         if ((dist0 = GetDistance2_Left(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL)) < 0) {
@@ -766,6 +771,21 @@ static signed int ReactToItem(Object *obj) {
             case 0x00: // Enemy
                 return React_Enemy(obj, hit);
             case 0xC0: // Special
+                if ((hit->col_type & 0x3F) == 0x0B) { // Caterkiller spiked body segment
+                    hit->status.o.f.flag7 = true; // mark segment touched -- read by Obj_Caterkiller to fragmentate
+                    return React_ChkHurt(obj, hit);
+                }
+                if ((hit->col_type & 0x3F) == 0x0C) { // Yadrin -- narrow "face" hitbox at the top only
+                    int16_t penetration = (int16_t)((y + height) - (hit->pos.l.y.f.u - hit_height));
+                    if (penetration < 8) {
+                        int16_t face_left = (int16_t)(hit->pos.l.x.f.u - 4);
+                        if (hit->status.o.f.x_flip)
+                            face_left -= 16;
+                        if (x < (int16_t)(face_left + 24) && (int16_t)(x + width) > face_left)
+                            return React_ChkHurt(obj, hit);
+                    }
+                    return React_Enemy(obj, hit);
+                }
                 break;
             case 0x80: // Hurt
                 return React_ChkHurt(obj, hit);
@@ -1164,8 +1184,15 @@ static void Sonic_LevelBound(Object *obj) {
         obj->inertia = 0;
     }
 
-    // Fall off the bottom boundary
-    if ((limit_btm2 + SCREEN_HEIGHT) < obj->pos.l.y.f.u) {
+    // Fall off the bottom boundary. FixBugs: use whichever of limit_btm2
+    // (the level's static bottom boundary) and limit_btm1 (the camera's
+    // own, possibly-DynamicLevelEvents-extended clamp) is currently
+    // deeper -- the original code only ever considers limit_btm2, which
+    // doesn't account for the camera boundary being in the middle of
+    // (or having already finished) lowering itself, killing Sonic in
+    // legitimately-reachable deep areas a zone's own DLE has unlocked.
+    uint16_t kill_plane = (limit_btm1 > limit_btm2) ? limit_btm1 : limit_btm2;
+    if ((kill_plane + SCREEN_HEIGHT) < obj->pos.l.y.f.u) {
         if (level_id == LEVEL_ID(ZoneId_SBZ, 1) && obj->pos.l.x.f.u >= 0x2000) {
             // Go to SBZ3 if falling off at the end of SBZ2
             last_lamp = 0;
@@ -1549,9 +1576,10 @@ static bool Sonic_SpinDash(Object *obj) {
     return true;
 }
 
-// Water entry/exit: adjusts speed for being underwater and spawns the
-// splash effect. Stage 1 of the water subsystem -- air/drowning countdown,
-// bubbles, and real dynamic water height are still TODO.
+// Water entry/exit: adjusts speed for being underwater, spawns the splash
+// effect, and (on entry) spawns the drowning countdown's master tracker
+// (Object/DrownCount.h) at its fixed slot. LZWindTunnels/LZWaterSlides
+// (movement inside wind tunnel/water-slide chunks) are still TODO.
 static void Sonic_Water(Object *obj) {
     if (LEVEL_ZONE(level_id) != ZoneId_LZ)
         return;
@@ -1561,6 +1589,7 @@ static void Sonic_Water(Object *obj) {
         if (!obj->status.p.f.underwater)
             return;
         obj->status.p.f.underwater = false;
+        ResumeMusic(); // replenish air and resume music if necessary
 
         sonspeed_max = 0x600;
         sonspeed_acc = 0xC;
@@ -1583,6 +1612,11 @@ static void Sonic_Water(Object *obj) {
         if (obj->status.p.f.underwater)
             return;
         obj->status.p.f.underwater = true;
+        ResumeMusic(); // replenish air (music won't resume here, we've only just entered water)
+
+        objects[DROWNCOUNT_SLOT].type = ObjId_DrownCount;
+        objects[DROWNCOUNT_SLOT].routine = 0;
+        objects[DROWNCOUNT_SLOT].scratch.u8[0] = DROWNCOUNT_MASTER_BIT | 1; // subtype -- selects the master tracker path
 
         sonspeed_max = 0x300;
         sonspeed_acc = 0x6;
@@ -1651,42 +1685,276 @@ static void GameOver(Object* obj) {
     }
 }
 
+#define DEBUG_MOVE_DELAY 12  // frames to wait when holding D-Pad before accelerating
+#define DEBUG_START_SPEED 15 // initial movement speed when first holding D-Pad
+
 extern const uint8_t Mappings_RingREV01[]; // From Object/Ring.c
+
+// Looks up one frame's own piece data in a normal (non-raw) per-frame
+// mapping table -- same lookup Object.c's BuildSprites does (word offset
+// table, then a piece-count byte, then that many 5-byte pieces).
+static const uint8_t *DebugMode_LookupFrame(const uint8_t *mappings, uint8_t frame, uint8_t *piece_count_out) {
+    const uint8_t *mapping_ind = mappings + (frame << 1);
+    const uint8_t *piece_data = mappings + ((mapping_ind[0] << 8) | mapping_ind[1]);
+    *piece_count_out = *piece_data;
+    return piece_data + 1;
+}
+
+// Scratch buffer a subtype variant's frame stack gets assembled into --
+// composed once per preview refresh (item change / subtype adjust), not
+// per-frame, so it doesn't need double-buffering against BuildSprites
+// reading the previous frame's contents. Header shape matches a normal
+// (non-raw) single-frame mapping table: 2-byte offset (always 2, pointing
+// right past itself) + 1-byte piece count + that many 5-byte pieces.
+#define DEBUG_STACK_MAX_PIECES 16
+static uint8_t debug_stack_buffer[2 + 1 + DEBUG_STACK_MAX_PIECES * 5];
+
+// Composites a variant's frame stack (per your direction: several of the
+// object's own real frames, each independently offset, drawn together --
+// e.g. a Monitor's box frame plus its content icon frame) into
+// debug_stack_buffer, and points obj at it.
+// A stacked layer's own piece coordinate plus its DebugFramePiece offset can
+// exceed a real sprite piece's int8_t range (Ring's row/column preview in
+// particular -- 6 extra rings at 0x20 apart reaches 192). Clamping instead
+// of letting the (uint8_t)(int8_t) cast wrap keeps the preview visually
+// sane (it just compresses toward the screen-relative edge) rather than
+// producing garbage jumbled positions.
+static int8_t DebugMode_ClampOffset(int value) {
+    if (value < -128)
+        return -128;
+    if (value > 127)
+        return 127;
+    return (int8_t)value;
+}
+
+static void DebugMode_BuildStack(Object *obj, const uint8_t *base_mappings, const DebugFramePiece *stack, uint8_t stack_count) {
+    uint8_t total = 0;
+    uint8_t *out = debug_stack_buffer + 3;
+    for (uint8_t i = 0; i < stack_count; i++) {
+        uint8_t count;
+        const uint8_t *pieces = DebugMode_LookupFrame(base_mappings, stack[i].frame, &count);
+        for (uint8_t p = 0; p < count && total < DEBUG_STACK_MAX_PIECES; p++, total++, pieces += 5) {
+            *out++ = (uint8_t)DebugMode_ClampOffset((int8_t)pieces[0] + stack[i].y_off); // ypos
+            *out++ = pieces[1];                                                          // size
+            *out++ = pieces[2];                                                          // tile hi
+            *out++ = pieces[3];                                                          // tile lo
+            *out++ = (uint8_t)DebugMode_ClampOffset((int8_t)pieces[4] + stack[i].x_off); // xpos
+        }
+    }
+    debug_stack_buffer[0] = 0;
+    debug_stack_buffer[1] = 2; // offset from buffer start to the piece-count byte at index 2
+    debug_stack_buffer[2] = total;
+
+    obj->mappings = debug_stack_buffer;
+    obj->frame = 0;
+    obj->render.f.raw_mappings = false;
+}
+
+// Refreshes the debug object's displayed sprite for whatever's currently
+// selected in the active zone's DebugList, at the current debug_subtype --
+// matches Debug_ShowItem, extended (per your direction) to also update the
+// preview as debug_subtype itself is adjusted -- including compositing a
+// multi-frame stack when the matched variant has one -- so what you see is
+// what you'll actually place. A NULL_ENTRY placeholder (or any real entry
+// that forgot to set mappings) shows a Ring instead of nothing/garbage --
+// purely a safety fallback, since spawning is still blocked by type ==
+// ObjId_Null regardless of what the preview sprite looks like.
+static void DebugMode_RefreshPreview(Object *obj, const DebugListEntry *item) {
+    if (item->mappings == NULL) {
+        obj->mappings = Mappings_RingREV01;
+        obj->tile = TILE_MAP(0, 1, 0, 0, 0x7B2);
+        obj->frame = 0;
+        obj->render.f.raw_mappings = false;
+        return;
+    }
+
+    obj->mappings = item->mappings;
+    obj->tile = item->tile;
+    obj->frame = item->frame;
+    obj->render.f.raw_mappings = false;
+
+    if (item->variants != NULL) {
+        uint8_t key = (uint8_t)((debug_subtype >> item->variant_shift) & item->variant_mask);
+        for (uint8_t i = 0; i < item->variant_count; i++) {
+            if (item->variants[i].subtype_key != key)
+                continue;
+            const DebugSubtypeVariant *v = &item->variants[i];
+            DebugMode_BuildStack(obj, (const uint8_t*)item->mappings, v->stack, v->stack_count);
+            uint16_t base_tile = v->tile_override ? v->tile_override : item->tile;
+            if (v->flip || v->pal_add || v->tile_override) {
+                uint16_t tile = base_tile & (uint16_t)~(TILE_PALETTE_AND | TILE_X_FLIP_AND | TILE_Y_FLIP_AND);
+                uint16_t pal = (uint16_t)(((base_tile & TILE_PALETTE_AND) >> TILE_PALETTE_SHIFT) + v->pal_add) & 3;
+                tile |= (pal << TILE_PALETTE_SHIFT) & TILE_PALETTE_AND;
+                if (v->flip & 1)
+                    tile |= TILE_X_FLIP_AND;
+                if (v->flip & 2)
+                    tile |= TILE_Y_FLIP_AND;
+                obj->tile = tile;
+            }
+            break;
+        }
+    }
+}
+
+// Steps debug_subtype to the next/previous value -- per your direction, an
+// item with a variants table can ONLY ever land on one of that table's own
+// listed subtype_key values (wrapping at each end), never anything outside
+// it, so cycling can never produce an undefined subtype (e.g. a Monitor
+// past Goggles, which would read past Mappings_Monitor's real table). Only
+// the bits covered by variant_shift/variant_mask change -- other bits in
+// the subtype byte (e.g. Spikes' movement-type nibble, which variants
+// doesn't cover) are left alone. Entries with no variants table (subtype
+// only affects size/position, e.g. InvisibleBarrier) keep the old
+// free ++/-- behavior -- there's no unsafe value to avoid there.
+static void DebugMode_StepSubtype(const DebugListEntry *item, bool dec) {
+    if (item->variants == NULL || item->variant_count == 0) {
+        if (dec)
+            debug_subtype--;
+        else
+            debug_subtype++;
+        return;
+    }
+
+    uint8_t key = (uint8_t)((debug_subtype >> item->variant_shift) & item->variant_mask);
+    int idx = -1;
+    for (uint8_t i = 0; i < item->variant_count; i++) {
+        if (item->variants[i].subtype_key == key) {
+            idx = i;
+            break;
+        }
+    }
+
+    int new_idx;
+    if (idx < 0)
+        new_idx = 0; // current value isn't a listed one -- snap to the first defined entry
+    else if (dec)
+        new_idx = (idx == 0) ? (int)item->variant_count - 1 : idx - 1;
+    else
+        new_idx = (idx == (int)item->variant_count - 1) ? 0 : idx + 1;
+
+    uint8_t new_key = item->variants[new_idx].subtype_key;
+    uint8_t shifted_mask = (uint8_t)(item->variant_mask << item->variant_shift);
+    debug_subtype = (uint8_t)((debug_subtype & (uint8_t)~shifted_mask) | ((new_key << item->variant_shift) & shifted_mask));
+}
+
+// Selects a (possibly new) item from the active zone's DebugList, resetting
+// debug_subtype to that item's own default, and refreshes the preview.
+static void DebugMode_ShowItem(Object *obj) {
+    int count;
+    const DebugListEntry *list = DebugList_Get(&count);
+    if (debug_item >= count)
+        debug_item = 0;
+    const DebugListEntry *item = &list[debug_item];
+    debug_subtype = item->subtype;
+    DebugMode_RefreshPreview(obj, item);
+}
 
 // Debug (object placement) mode -- entered by pressing B while debug_cheat
 // is active (see the "Enter debug mode" check below), exited by pressing B
 // again. debug_use doubles as a routine selector matching the
 // disassembly's DebugMode: 1 (set by that B-press check) means "just
 // entered, run one-time setup", 2 means "already active".
-//
-// This is currently a minimal core -- free 8-direction movement and the
-// entry/exit transitions -- not the full original feature. Not yet ported:
-// cycling through and spawning the per-zone object list (DebugList in the
-// disassembly), which is why the displayed object is always a ring rather
-// than whatever's currently selected.
 static void DebugMode(Object *obj) {
     if (debug_use == 1) {
         // One-time setup: temporarily unlock the level's Y boundaries (so
-        // debug mode can fly anywhere), and show a placeholder object
-        // (a ring -- always item 0 in every zone's real debug list) in
-        // place of Sonic.
+        // debug mode can fly anywhere), pick a valid starting item, and
+        // show its placeholder sprite in place of Sonic.
         limit_top_db = limit_top2;
         limit_btm_db = limit_btm1;
         limit_top2 = 0;
         limit_btm1 = 0x800 - 224;
 
-        obj->mappings = Mappings_RingREV01;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x7B2);
-        obj->frame = 0;
         obj->render.b = 0;
+        obj->render.f.align_fg = true; // obj->pos tracks world/playfield space (see the free-movement code below), not raw screen coords -- BuildSprites needs this to convert it correctly
         obj->priority = 2;
         obj->width_pixels = 8;
+        DebugMode_ShowItem(obj);
 
+        debug_speed_timer = DEBUG_MOVE_DELAY;
+        debug_speed = DEBUG_START_SPEED;
         debug_use = 2;
     }
 
-    // Exit back to normal Sonic.
-    if (jpad1_press1 & JPAD_B) {
+    // Free movement (matches Debug_Move): held D-Pad accelerates from
+    // DEBUG_START_SPEED up to a max of 0xFF over time, released D-Pad
+    // resets back to the slow initial speed next time it's held again.
+    uint8_t held_dir = jpad1_hold1 & (JPAD_UP | JPAD_DOWN | JPAD_LEFT | JPAD_RIGHT);
+    if (!(jpad1_press1 & (JPAD_UP | JPAD_DOWN | JPAD_LEFT | JPAD_RIGHT))) {
+        if (held_dir) {
+            if (--debug_speed_timer == 0) {
+                debug_speed_timer = 1; // keeps retriggering every frame once ramped
+                if (++debug_speed == 0)
+                    debug_speed = 0xFF; // clamp at max once it wraps
+            }
+        } else {
+            debug_speed_timer = DEBUG_MOVE_DELAY;
+            debug_speed = DEBUG_START_SPEED;
+        }
+    }
+
+    if (held_dir) {
+        int32_t speed = ((int32_t)(debug_speed + 1)) << (16 - 4); // /16, matches the real >>4 subpixel scale-down
+        if (jpad1_hold1 & JPAD_UP)
+            obj->pos.l.y.v -= speed;
+        if (jpad1_hold1 & JPAD_DOWN)
+            obj->pos.l.y.v += speed;
+        if (jpad1_hold1 & JPAD_LEFT)
+            obj->pos.l.x.v -= speed;
+        if (jpad1_hold1 & JPAD_RIGHT)
+            obj->pos.l.x.v += speed;
+    }
+
+    // Item cycling / spawning / subtype adjust / exit (matches
+    // Debug_ChgItem) -- mutually exclusive per frame, same as the real
+    // ASM's own if/elseif chain. Every branch (including exit) still falls
+    // through to DisplaySprite at the end, matching Debug_Action's own
+    // "bsr Debug_Control / jmp DisplaySprite" shape: real hardware displays
+    // the debug object every single frame it runs, regardless of which of
+    // these branches fired that frame.
+    int count;
+    const DebugListEntry *list = DebugList_Get(&count);
+
+    if (jpad1_press_ext & JPAD_EXT_Y) {
+        // Cycle back one item -- / on keyboard, a physical gamepad's Y
+        // button (see Backend/Joypad.h's JPAD_EXT_Y comment). Real Sonic 1
+        // does this with Hold A + Press C instead, but that's an awkward
+        // chord with no natural keyboard/pad equivalent once C is also
+        // "spawn item" on its own; a dedicated button reads better here.
+        if (debug_item == 0)
+            debug_item = (uint8_t)(count - 1);
+        else
+            debug_item--;
+        DebugMode_ShowItem(obj);
+    } else if (jpad1_press1 & JPAD_A) {
+        // Cycle forward one item.
+        debug_item++;
+        if (debug_item >= count)
+            debug_item = 0;
+        DebugMode_ShowItem(obj);
+    } else if (jpad1_press1 & JPAD_C) {
+        // Spawn the currently-selected item at the debug object's position.
+        const DebugListEntry *item = &list[debug_item];
+        if (item->type != ObjId_Null) {
+            Object *spawned = FindFreeObj();
+            if (spawned != NULL) {
+                spawned->pos.l.x.f.u = obj->pos.l.x.f.u;
+                spawned->pos.l.y.f.u = obj->pos.l.y.f.u;
+                spawned->scratch.u8[0] = debug_subtype; // obSubtype -- read by each object's own Init routine
+                spawned->type = item->type;
+            }
+        }
+    } else if (jpad1_press_ext & (JPAD_EXT_SUBTYPE_DEC | JPAD_EXT_SUBTYPE_INC)) {
+        // Adjust the selected item's subtype before spawning -- not a real
+        // Sonic 1 feature (there's no per-instance subtype editing in the
+        // original debug mode), added per your direction. Right stick
+        // left/right, ,/. or [/] on keyboard (see JPAD_EXT_SUBTYPE_*).
+        if (jpad1_press_ext & JPAD_EXT_SUBTYPE_DEC)
+            DebugMode_StepSubtype(&list[debug_item], true);
+        if (jpad1_press_ext & JPAD_EXT_SUBTYPE_INC)
+            DebugMode_StepSubtype(&list[debug_item], false);
+        DebugMode_RefreshPreview(obj, &list[debug_item]);
+    } else if (jpad1_press1 & JPAD_B) {
+        // Exit back to normal Sonic.
         debug_use = 0;
 
         limit_top2 = limit_top_db;
@@ -1698,21 +1966,9 @@ static void DebugMode(Object *obj) {
         obj->anim = SonAnimId_Walk;
         obj->width_pixels = 24;
         obj->render.f.align_fg = true;
-        return;
     }
 
-    // Free movement (matches the movement half of the disassembly's
-    // Debug_Control; no speed ramp-up yet -- just pressed/held both move
-    // at a fixed pace).
-    const int32_t speed = 4 << 16;
-    if (jpad1_hold1 & JPAD_UP)
-        obj->pos.l.y.v -= speed;
-    if (jpad1_hold1 & JPAD_DOWN)
-        obj->pos.l.y.v += speed;
-    if (jpad1_hold1 & JPAD_LEFT)
-        obj->pos.l.x.v -= speed;
-    if (jpad1_hold1 & JPAD_RIGHT)
-        obj->pos.l.x.v += speed;
+    DisplaySprite(obj);
 }
 
 // Sonic object

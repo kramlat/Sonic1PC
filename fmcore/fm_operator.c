@@ -68,18 +68,27 @@ static uint16_t SineLookup(uint32_t phase_index, int *negative) {
 // formula) -- but calibrated against a real, concrete constraint instead of
 // being an arbitrary guess: a human takes roughly 9ms to perceive a
 // discrete event, so even the FASTEST possible rate must take noticeably
-// longer than that to be audible as a note at all, not a silent click. The
-// previous version of this code violated that badly (measured: full decay
+// longer than that to be audible as a note at all, not a silent click. An
+// earlier version of this code violated that badly (measured: full decay
 // in under 1ms for typical rate values -- see the conversation this fix
-// came out of). Rates now span a smooth geometric curve from
-// RATE_TIME_MIN_MS (fastest, rate=max) to RATE_TIME_MAX_MS (slowest,
-// rate=1), built once into small per-tick-step tables (attack is
-// multiplicative -- exponential approach to 0, matching the real chip's
-// general shape even if not its exact curve; decay/release are additive,
-// tracked in Q8 fixed point so slow rates can step less than 1 unit/tick
-// without just rounding to a no-op).
+// came out of), which got RATE_TIME_MIN_MS bumped to 12ms. That overshot
+// the other way once FM SFX actually started reaching this code at all
+// (LoadSFX previously never loaded a voice, so this envelope timing was
+// never actually audible on a real short SFX until that got fixed) --
+// max-rate (AR/D1R/D2R=31) blips like SndB5's ring chime read as
+// noticeably sluggish/mushy at 12ms instead of the sharp transient real
+// hardware produces. Retuned to 4ms: still well clear of the sub-1ms
+// "inaudible click" floor that caused the original bump, but snappy enough
+// for punchy percussive SFX. Re-tune by ear via ParadoxComposer's voice
+// preview if it still feels off in either direction. Rates now span a
+// smooth geometric curve from RATE_TIME_MIN_MS (fastest, rate=max) to
+// RATE_TIME_MAX_MS (slowest, rate=1), built once into small per-tick-step
+// tables (attack is multiplicative -- exponential approach to 0, matching
+// the real chip's general shape even if not its exact curve; decay/release
+// are additive, tracked in Q8 fixed point so slow rates can step less than
+// 1 unit/tick without just rounding to a no-op).
 #define OP_UPDATE_RATE      53267u // SOUND_FM_CLOCK/144, see FMOperator_SetFreq's derivation comment
-#define RATE_TIME_MIN_MS    12.0   // fastest rate (AR/D1R/D2R=31, RR=15): time to traverse full scale
+#define RATE_TIME_MIN_MS    4.0    // fastest rate (AR/D1R/D2R=31, RR=15): time to traverse full scale
 #define RATE_TIME_MAX_MS    3000.0 // slowest rate (=1): time to traverse full scale
 #define ENV_FULL_Q8         (1023u << 8)
 

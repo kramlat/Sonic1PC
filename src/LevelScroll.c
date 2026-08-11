@@ -372,42 +372,6 @@ void Deform_GHZ(void)
 #endif
 }
 
-void Deform_LZ(void) {
-#ifdef SCP_REV00
-	BGScroll_Block1(scrshift_x << 7, scrshift_y << 7);
-	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-
-	int16_t fg_x = -scrpos_x.f.u;
-	int16_t bg_x = -bg_scrpos_x.f.u;
-	int16_t *bufp = &hscroll_buffer[0][0];
-	for (int i = 0; i < SCREEN_HEIGHT; i++) { *bufp++ = fg_x; *bufp++ = bg_x; }
-#else
-	BGScroll_XY(scrshift_x << 7, scrshift_y << 7);
-	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-
-	uint8_t d2 = (uint8_t)lz_deform;
-	uint8_t d3 = d2;
-	lz_deform += 0x80;
-
-	d2 += (uint8_t)bg_scrpos_y.f.u;
-	d3 += (uint8_t)scrpos_y.f.u;
-
-	int16_t fg_x_base = -scrpos_x.f.u;
-	int16_t bg_x_base = -bg_scrpos_x.f.u;
-	int16_t *bufp = &hscroll_buffer[0][0];
-
-	for (int i = 0; i < SCREEN_HEIGHT; i++) {
-		if ((scrpos_y.f.u + i) >= (uint16_t)wtr_pos1) {
-			*bufp++ = fg_x_base + (int16_t)Lz_Scroll_Data[d3];
-			*bufp++ = bg_x_base + (int16_t)Drown_WobbleData[d2];
-		} else {
-			*bufp++ = fg_x_base; *bufp++ = bg_x_base;
-		}
-		d2++; d3++;
-	}
-#endif
-}
-
 void Deform_MZ(void) {
 #ifdef SCP_REV00
 	BGScroll_Block1((scrshift_x << 6) * 3, 0);
@@ -549,7 +513,7 @@ void Deform_SBZ(void) {
 
 static void (*deform_routines[ZoneId_Num])(void) = {
 	/* ZoneId_GHZ  */ Deform_GHZ,
-	/* ZoneId_LZ   */ Deform_LZ,
+	/* ZoneId_LZ   */ NULL, // BG scroll + ripple both moved to LZWaterFeatures() -- see LZWaterFeatures.c
 	/* ZoneId_MZ   */ Deform_MZ,
 	/* ZoneId_SLZ  */ Deform_SLZ,
 	/* ZoneId_SYZ  */ Deform_SYZ,

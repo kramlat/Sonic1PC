@@ -2,12 +2,21 @@
 
 #include "Video.h"
 #include "Level.h"
+#include "LevelCollision.h"
 #include "LevelScroll.h"
 
 #include "Object/Sonic.h"
 #include "Object/Splash.h"
 #include "Object/Waterfall.h"
 #include "Object/PathSwapper.h"
+#include "Object/AirBubbles.h"
+#include "Object/DrownCount.h"
+#include "Object/WaterSurface.h"
+#include "Object/InvisibleBarrier.h"
+
+#include "Game.h"
+#include "PLC.h"
+#include "Sound.h"
 
 #include "Macros.h"
 
@@ -66,6 +75,32 @@ void Obj_Newtron(Object *obj);
 void Obj_GHZEdge(Object *obj);
 void Obj_Credits(Object *obj);
 void Obj_Waterfall(Object *obj);
+void Obj_GiantRing(Object *obj);
+void Obj_RingFlash(Object *obj);
+void Obj_HiddenBonus(Object *obj);
+void Obj_BasicPlatform(Object *obj);
+void Obj_SmashWall(Object *obj);
+void Obj_Scenery(Object *obj);
+void Obj_CollapseLedge(Object *obj);
+void Obj_CollapseFloor(Object *obj);
+void Obj_Helix(Object *obj);
+void Obj_MarbleBrick(Object *obj);
+void Obj_Button(Object *obj);
+void Obj_SmashBlock(Object *obj);
+void Obj_MovingBlock(Object *obj);
+void Obj_LargeGrass(Object *obj);
+void Obj_GrassFire(Object *obj);
+void Obj_LavaTag(Object *obj);
+void Obj_Caterkiller(Object *obj);
+void Obj_LavaMaker(Object *obj);
+void Obj_LavaBall(Object *obj);
+void Obj_GlassBlock(Object *obj);
+void Obj_Basaran(Object *obj);
+void Obj_ChainStomp(Object *obj);
+void Obj_GeyserMaker(Object *obj);
+void Obj_LavaGeyser(Object *obj);
+void Obj_PushBlock(Object *obj);
+void Obj_Yadrin(Object *obj);
 
 static void (*object_func[])(Object*) = {
 	/* ObjId_Null                */ NULL,
@@ -76,9 +111,9 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_05                  */ Obj_Null,
 	/* ObjId_06                  */ Obj_Null,
 	/* ObjId_07                  */ Obj_Null,
-	/* ObjId_Splash                  */ Obj_Splash,
+	/* ObjId_Splash              */ Obj_Splash,
 	/* ObjId_SpecialSonic        */ Obj_SpecialSonic,
-	/* ObjId_0A                  */ Obj_Null,
+	/* ObjId_DrownCount          */ Obj_DrownCount,
 	/* ObjId_0B                  */ Obj_Null,
 	/* ObjId_0C                  */ Obj_Null,
 	/* ObjId_Signpost            */ Obj_Signpost,
@@ -87,16 +122,16 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_10                  */ Obj_Null,
 	/* ObjId_GHZBridge           */ Obj_GHZBridge,
 	/* ObjId_12                  */ Obj_Null,
-	/* ObjId_13                  */ Obj_Null,
-	/* ObjId_14                  */ Obj_Null,
+	/* ObjId_LavaMaker           */ Obj_LavaMaker,
+	/* ObjId_LavaBall            */ Obj_LavaBall,
 	/* ObjId_SwingingPlatform    */ Obj_SwingingPlatform,
 	/* ObjId_16                  */ Obj_Null,
-	/* ObjId_17                  */ Obj_Null,
-	/* ObjId_18                  */ Obj_Null,
+	/* ObjId_Helix               */ Obj_Helix,
+	/* ObjId_BasicPlatform       */ Obj_BasicPlatform,
 	/* ObjId_19                  */ Obj_Null,
-	/* ObjId_1A                  */ Obj_Null,
-	/* ObjId_WaterSurface        */ Obj_Null,
-	/* ObjId_1C                  */ Obj_Null,
+	/* ObjId_CollapseLedge       */ Obj_CollapseLedge,
+	/* ObjId_WaterSurface        */ Obj_WaterSurface,
+	/* ObjId_Scenery             */ Obj_Scenery,
 	/* ObjId_1D                  */ Obj_Null,
 	/* ObjId_1E                  */ Obj_Null,
 	/* ObjId_Crabmeat            */ Obj_Crabmeat,
@@ -115,20 +150,20 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_2C                  */ Obj_Null,
 	/* ObjId_2D                  */ Obj_Null,
 	/* ObjId_MonitorItem         */ Obj_MonitorItem,
-	/* ObjId_2F                  */ Obj_Null,
-	/* ObjId_30                  */ Obj_Null,
-	/* ObjId_31                  */ Obj_Null,
-	/* ObjId_32                  */ Obj_Null,
-	/* ObjId_33                  */ Obj_Null,
+	/* ObjId_LargeGrass          */ Obj_LargeGrass,
+	/* ObjId_GlassBlock          */ Obj_GlassBlock,
+	/* ObjId_ChainStomp          */ Obj_ChainStomp,
+	/* ObjId_Button              */ Obj_Button,
+	/* ObjId_PushBlock           */ Obj_PushBlock,
 	/* ObjId_TitleCard           */ Obj_TitleCard,
-	/* ObjId_35                  */ Obj_Null,
+	/* ObjId_GrassFire           */ Obj_GrassFire,
 	/* ObjId_Spikes              */ Obj_Spikes,
 	/* ObjId_RingLoss            */ Obj_RingLoss,
 	/* ObjId_ShieldInvincibility */ Obj_ShieldInvincibility,
 	/* ObjId_GameOverCard        */ Obj_GameOverCard,
 	/* ObjId_GotThroughCard      */ Obj_GotThroughCard,
 	/* ObjId_GHZRock             */ Obj_GHZRock,
-	/* ObjId_3C                  */ Obj_Null,
+	/* ObjId_SmashWall           */ Obj_SmashWall,
 	/* ObjId_3D                  */ Obj_Null,
 	/* ObjId_3E                  */ Obj_Null,
 	/* ObjId_3F                  */ Obj_Null,
@@ -138,22 +173,22 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_43                  */ Obj_Null,
 	/* ObjId_GHZEdge             */ Obj_GHZEdge,
 	/* ObjId_45                  */ Obj_Null,
-	/* ObjId_46                  */ Obj_Null,
+	/* ObjId_MarbleBrick         */ Obj_MarbleBrick,
 	/* ObjId_Bumper              */ Obj_Null,//Bumper,
 	/* ObjId_48                  */ Obj_Null,
 	/* ObjId_49                  */ Obj_Waterfall,
 	/* ObjId_4A                  */ Obj_Null,
-	/* ObjId_4B                  */ Obj_Null,
-	/* ObjId_4C                  */ Obj_Null,
-	/* ObjId_4D                  */ Obj_Null,
+	/* ObjId_GiantRing           */ Obj_GiantRing,
+	/* ObjId_GeyserMaker         */ Obj_GeyserMaker,
+	/* ObjId_LavaGeyser          */ Obj_LavaGeyser,
 	/* ObjId_4E                  */ Obj_Null,
 	/* ObjId_4F                  */ Obj_Null,
-	/* ObjId_50                  */ Obj_Null,
-	/* ObjId_51                  */ Obj_Null,
-	/* ObjId_52                  */ Obj_Null,
-	/* ObjId_53                  */ Obj_Null,
-	/* ObjId_54                  */ Obj_Null,
-	/* ObjId_55                  */ Obj_Null,
+	/* ObjId_Yadrin              */ Obj_Yadrin,
+	/* ObjId_SmashBlock          */ Obj_SmashBlock,
+	/* ObjId_MovingBlock         */ Obj_MovingBlock,
+	/* ObjId_CollapseFloor       */ Obj_CollapseFloor,
+	/* ObjId_LavaTag             */ Obj_LavaTag,
+	/* ObjId_Basaran             */ Obj_Basaran,
 	/* ObjId_56                  */ Obj_Null,
 	/* ObjId_57                  */ Obj_Null,
 	/* ObjId_BigSpikeBall        */ Obj_BigSpikeBall,
@@ -168,7 +203,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_61                  */ Obj_Null,
 	/* ObjId_62                  */ Obj_Null,
 	/* ObjId_63                  */ Obj_Null,
-	/* ObjId_64                  */ Obj_Null,
+	/* ObjId_Bubble              */ Obj_Bubble,
 	/* ObjId_65                  */ Obj_Null,
 	/* ObjId_66                  */ Obj_Null,
 	/* ObjId_67                  */ Obj_Null,
@@ -181,19 +216,19 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_6E                  */ Obj_Null,
 	/* ObjId_6F                  */ Obj_Null,
 	/* ObjId_70                  */ Obj_Null,
-	/* ObjId_71                  */ Obj_Null,
+	/* ObjId_InvisibleBarrier    */ Obj_InvisibleBarrier,
 	/* ObjId_72                  */ Obj_Null,
 	/* ObjId_73                  */ Obj_Null,
 	/* ObjId_74                  */ Obj_Null,
 	/* ObjId_75                  */ Obj_Null,
 	/* ObjId_76                  */ Obj_Null,
 	/* ObjId_77                  */ Obj_Null,
-	/* ObjId_78                  */ Obj_Null,
+	/* ObjId_Caterkiller         */ Obj_Caterkiller,
 	/* ObjId_Checkpoint          */ Obj_Checkpoint,
 	/* ObjId_7A                  */ Obj_Null,
 	/* ObjId_7B                  */ Obj_Null,
-	/* ObjId_7C                  */ Obj_Null,
-	/* ObjId_7D                  */ Obj_Null,
+	/* ObjId_RingFlash           */ Obj_RingFlash,
+	/* ObjId_HiddenBonus         */ Obj_HiddenBonus,
 	/* ObjId_7E                  */ Obj_Null,
 	/* ObjId_7F                  */ Obj_Null,
 	/* ObjId_80                  */ Obj_Null,
@@ -433,7 +468,7 @@ void BuildSprites(uint8_t *sprite_io) {
 					x = obj->pos.s.x;
 					y = obj->pos.s.y;
 				}
-				
+
 				//Get object mappings to use
 				const uint8_t *mappings;
 				uint8_t pieces;
@@ -654,6 +689,243 @@ void Platform_SetStand(Object *obj) {
 	obj->status.o.f.player_stand = true;
 }
 
+// Time bonus lookup, indexed by (total seconds / 15), clamped to the last
+// entry (0 points) for times of 5 minutes or more.
+#define TIME_BONUSES_NUM 20
+static const uint16_t time_bonuses[TIME_BONUSES_NUM] = {
+    5000, 5000, 1000, 500,  // 0:00 - 0:59
+    400,  400,  300,  300,  // 1:00 - 1:59
+    200,  200,  200,  200,  // 2:00 - 2:59
+    100,  100,  100,  100,  // 3:00 - 3:59
+    50,   50,   50,   50,   // 4:00 - 4:59
+};
+
+// Loads the end-of-act "GOT THROUGH" title card sequence -- shared by
+// Signpost (routine 6, level's own goal) and Prison (routine $E, boss
+// capsule's own animal release). Idempotent: real hardware's own first
+// check is "already loaded? then don't do it again" (objects[23] is the
+// fixed reserved slot the real v_endcard byte corresponds to), so it's
+// safe to call from multiple objects/frames.
+void GotThroughAct(void) {
+    if (objects[23].type != ObjId_Null)
+        return;
+
+    // Reset game state
+    limit_left2 = limit_right2;
+    invincibility = false;
+    time_count = false;
+
+    // Load "Got through" card
+    objects[23].type = ObjId_GotThroughCard;
+    NewPLC(PlcId_TitleCard);
+    endact_bonus = true;
+
+    // Time Bonus
+#ifdef SCP_FIX_BUGS
+    // Time doesn't update while Debug Mode is enabled, which always
+    // results in an annoying, unskippable 50,000 point time bonus
+    // with it enabled.
+    if (!debug_mode)
+#endif
+    {
+        uint16_t total_sec = (uint16_t)level_time.min * 60 + level_time.sec;
+        uint16_t index = total_sec / 15;
+        if (index >= TIME_BONUSES_NUM)
+            index = TIME_BONUSES_NUM - 1;
+        time_bonus = time_bonuses[index];
+    }
+
+    // Ring Bonus
+    ring_bonus = rings * 10;
+
+    PlayMusic(bgm_GotThrough);
+}
+
+// Smashes a block into `count` fragment objects flying off at their own
+// preset speed (frag_speeds: `count` {xsp,ysp} pairs) -- shared by GHZ/SLZ
+// smashable walls and (eventually) MZ's smashable blocks. The object's
+// CURRENT frame is used to look up its own raw per-piece mapping data
+// (same "raw mappings" convention as Obj_MonitorItem's own frame->sub-
+// mapping lookup, see its own comment); each fragment gets the NEXT
+// consecutive 5-byte raw piece. The parent object itself becomes the
+// first fragment (routine 4) rather than being replaced -- matches real
+// hardware's own "movea.l a0,a1" reuse. Always uses the modern/FixBugs
+// object-allocation order (FindNextFreeObj, not FindFreeObj) -- the real
+// driver's un-fixed alternative additionally back-dates any fragment that
+// landed earlier in object RAM than the parent so it still renders the
+// same frame it's spawned on, which needs a second immediate-display call
+// this project doesn't have a use for anywhere else, so it's not ported.
+void SmashObject(Object *obj, int count, const int16_t *frag_speeds) {
+    uint8_t id = obj->type;
+    uint8_t render = obj->render.b;
+    uint16_t tile = obj->tile;
+    uint8_t priority = obj->priority;
+    uint8_t width_pixels = obj->width_pixels;
+    int16_t x = obj->pos.l.x.f.u;
+    int16_t y = obj->pos.l.y.f.u;
+
+    const uint8_t *piece = (const uint8_t *)obj->mappings + (obj->frame << 1);
+    piece = (const uint8_t *)obj->mappings + (((piece[0] << 8) | piece[1]) + 1);
+
+    Object *prev = obj;
+    for (int i = 0; i < count; i++) {
+        Object *frag = obj;
+        if (i > 0) {
+            frag = FindNextFreeObj(prev);
+            if (frag == NULL)
+                break;
+            piece += 5;
+        }
+        frag->routine = 4;
+        frag->type = id;
+        frag->mappings = piece;
+        frag->render.b = render;
+        frag->render.f.raw_mappings = true;
+        frag->pos.l.x.f.u = x;
+        frag->pos.l.y.f.u = y;
+        frag->tile = tile;
+        frag->priority = priority;
+        frag->width_pixels = width_pixels;
+        frag->xsp = *frag_speeds++;
+        frag->ysp = *frag_speeds++;
+        prev = frag;
+    }
+    PlaySound(sfx_WallSmash);
+}
+
+// Shatters a collapsible platform into fragment pieces that each fall on
+// their own delay (real hardware's shared "FragmentatePlatform"
+// subroutine -- GHZ's collapsing ledges and MZ/SLZ/SBZ's collapsing
+// floors are, per the real disasm's own framing, "more or less direct
+// copies of each other" and share this exact fragment-spawning
+// mechanism). Structurally identical to SmashObject (find-next-free-obj,
+// raw-mappings per-piece assignment) except each fragment gets a FALL
+// DELAY byte instead of an immediate launch velocity -- delays[i] is
+// written to scratch offset 0x10 (objoff_38, `collapsible_timedelay` in
+// the real disasm -- both GHZ's and MZ/SLZ/SBZ's own Scratch structs use
+// this same offset, hence no caller-supplied offset parameter here).
+void FragmentatePlatform(Object *obj, int count, const uint8_t *delays) {
+    uint8_t id = obj->type;
+    uint8_t render = obj->render.b;
+    uint16_t tile = obj->tile;
+    uint8_t priority = obj->priority;
+    uint8_t width_pixels = obj->width_pixels;
+    int16_t x = obj->pos.l.x.f.u;
+    int16_t y = obj->pos.l.y.f.u;
+
+    const uint8_t *piece = (const uint8_t *)obj->mappings + (obj->frame << 1);
+    piece = (const uint8_t *)obj->mappings + (((piece[0] << 8) | piece[1]) + 1);
+
+    Object *prev = obj;
+    for (int i = 0; i < count; i++) {
+        Object *frag = obj;
+        if (i > 0) {
+            frag = FindNextFreeObj(prev);
+            if (frag == NULL)
+                break;
+            piece += 5;
+        }
+        frag->routine = 6;
+        frag->type = id;
+        frag->mappings = piece;
+        frag->render.b = render;
+        frag->render.f.raw_mappings = true;
+        frag->pos.l.x.f.u = x;
+        frag->pos.l.y.f.u = y;
+        frag->tile = tile;
+        frag->priority = priority;
+        frag->width_pixels = width_pixels;
+        frag->scratch.u8[0x10] = delays[i]; // collapsible_timedelay (objoff_38)
+        prev = frag;
+    }
+    DisplaySprite(obj);
+    PlaySound(sfx_Collapse);
+}
+
+// Sloped platform collision (GHZ collapsing ledges, SLZ seesaws) -- same
+// core "is Sonic's foot inside the platform's top surface" check as
+// Platform3 (reused directly), except the platform's own top Y comes from
+// a per-column heightmap instead of a flat offset. heightmap has
+// `x_rad*2` entries, one per pixel column across the platform's full
+// width (mirrored if the object is currently x-flipped).
+// Looks one 16px tile ahead of the object's own right/left edge for a
+// solid wall -- real hardware's own thin wrappers around FindWall (angle
+// buffer output/snap-to-flat-wall adjustment omitted here: none of this
+// project's current callers need it, only the "did we hit something"
+// distance). x_off is the real subroutine's own already-offset input
+// (e.g. `obActWid` for the right wall, `~obActWid` for the left wall --
+// callers should replicate the real ASM's own `not.w` pre-negation
+// exactly, not just negate the plain width, to match real hardware's
+// off-by-one).
+int16_t ObjHitWallRight(Object *obj, int16_t x_off) {
+    uint8_t angle;
+    return FindWall(obj, (int16_t)(obj->pos.l.x.f.u + x_off), obj->pos.l.y.f.u, META_SOLID_TOP, 0, 0x10, &angle);
+}
+
+int16_t ObjHitWallLeft(Object *obj, int16_t x_off) {
+    uint8_t angle;
+    return FindWall(obj, (int16_t)(obj->pos.l.x.f.u + x_off), obj->pos.l.y.f.u, META_SOLID_TOP, 0, -0x10, &angle);
+}
+
+// Real hardware's own ObjHitCeiling: distance from the object's own top
+// edge (obj->y_rad above center) to the nearest solid ceiling directly
+// above it, using the same "check a tile from below" heightmap-flip
+// convention already established by GetDistance_Up/GetDistance2_Up in
+// LevelCollision.c/Sonic.c (META_Y_FLIP flip, -0x10 increment, ^0xF query
+// coordinate). Negative return means a ceiling was hit.
+int16_t ObjHitCeiling(Object *obj) {
+    uint8_t angle;
+    return FindFloor(obj, obj->pos.l.x.f.u, (int16_t)((obj->pos.l.y.f.u - obj->y_rad) ^ 0xF), META_SOLID_TOP, META_Y_FLIP, -0x10, &angle);
+}
+
+// Real hardware's own ChkObjectVisible: strict on-screen check against the
+// visible 320x224 frame with NO margin (unlike IS_OFFSCREEN's own wider
+// culling margin) -- used by spawner objects that are themselves invisible
+// (so render.f.on_screen, only ever set by BuildSprites for objects that
+// call DisplaySprite, is never meaningfully set for them) to decide
+// whether it's OK to spawn something visibly right now.
+bool ChkObjectVisible(Object *obj) {
+    int16_t x = (int16_t)(obj->pos.l.x.f.u - scrpos_x.f.u);
+    if (x < 0 || x >= SCREEN_WIDTH)
+        return false;
+    int16_t y = (int16_t)(obj->pos.l.y.f.u - scrpos_y.f.u);
+    if (y < 0 || y >= SCREEN_HEIGHT)
+        return false;
+    return true;
+}
+
+// Real hardware's own ChkPartiallyVisible: same idea as ChkObjectVisible,
+// but true as long as the object's own width_pixels/y_rad-sized box
+// overlaps the screen at all (not just its center point) -- used by
+// PushBlock to decide when it's safe to "exist" again after being forced
+// back to its spawn position offscreen.
+bool ChkPartiallyVisible(Object *obj) {
+    int16_t x = (int16_t)(obj->pos.l.x.f.u - scrpos_x.f.u);
+    if ((x + obj->width_pixels) < 0 || (x - obj->width_pixels) >= SCREEN_WIDTH)
+        return false;
+    int16_t y = (int16_t)(obj->pos.l.y.f.u - scrpos_y.f.u);
+    if ((y + obj->y_rad) < 0 || (y - obj->y_rad) >= SCREEN_HEIGHT)
+        return false;
+    return true;
+}
+
+void SlopeObject(Object *obj, uint16_t x_rad, const uint8_t *heightmap) {
+    if (player->ysp < 0)
+        return;
+
+    int16_t x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+    if (x_off < 0 || x_off >= (int16_t)(x_rad << 1))
+        return;
+
+    uint16_t column = (uint16_t)x_off;
+    if (obj->render.f.x_flip)
+        column = (uint16_t)(~column + (x_rad << 1));
+    column >>= 1;
+
+    int16_t top = (int16_t)(obj->pos.l.y.f.u - heightmap[column]);
+    Platform3(obj, top);
+}
+
 bool ExitPlatform(Object *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p) {
 	uint16_t x_dia = x_rad2 << 1;
 	
@@ -696,14 +968,18 @@ static void Solid_ResetFloor(Object *obj, Object *pla) {
 	obj->status.o.f.player_stand = true;
 }
 
-static int32_t Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off) {
+// y_base is the object's own top-surface Y position collision is measured
+// against -- ordinarily obj->pos.l.y.f.u (see Solid_ChkEnter below), but
+// SolidObject_Heightmap passes a per-column value read from a heightmap
+// instead (MZ's large grass platforms).
+static int32_t Solid_ChkEnterY(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t y_base, int16_t *x_off, int16_t *y_off) {
 	//Check if player is in horizontal range
 	*x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
 	uint16_t x_dia = x_rad << 1;
 	if (*x_off >= 0 && *x_off <= x_dia) {
 		//Check if player is in vertical range
 		y_rad += player->y_rad;
-		*y_off = player->pos.l.y.f.u - obj->pos.l.y.f.u + 4 + y_rad;
+		*y_off = player->pos.l.y.f.u - y_base + 4 + y_rad;
 		uint16_t y_dia = y_rad << 1;
 		
 		if (*y_off >= 0 && *y_off < y_dia) {
@@ -811,6 +1087,67 @@ static int32_t Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, int16
 		player->status.p.f.pushing = false;
 	}
 	return 0;
+}
+
+// Real hardware's own Solid_ChkEnter/Solid_ChkCollision (two labels for
+// the same code) -- exported (unlike the rest of SolidObject's own
+// internals) because PushBlock calls this directly instead of going
+// through the full SolidObject dispatch: it layers its own extra
+// "falling off a ledge"/"snapping to a ledge" states on top of the same
+// 0=off/2=riding pair SolidObject itself already manages here, and needs
+// the collision type AND x_off (to know which way to push the block) that
+// only this lower-level entry point exposes.
+int32_t Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off) {
+	return Solid_ChkEnterY(obj, x_rad, y_rad, obj->pos.l.y.f.u, x_off, y_off);
+}
+
+// Solid object collision against a per-column heightmap instead of a flat
+// top surface (MZ's large grass platforms -- the platform's own top Y
+// varies across its width, e.g. the hill-shaped types). heightmap has one
+// entry per 2px column across the platform's full width (mirrored if the
+// object is currently x-flipped), same convention as SlopeObject. Unlike
+// SolidObject, this has no "already riding" state of its own -- the real
+// hardware's own LargeGrass object tracks that itself and calls
+// SlopeObject_AssumeStoodOn instead while riding (see below).
+int32_t SolidObject_Heightmap(Object *obj, uint16_t x_rad, uint16_t y_rad, const uint8_t *heightmap) {
+	int16_t x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+	uint16_t x_dia = x_rad << 1;
+	if (x_off < 0 || x_off > x_dia)
+		return 0;
+
+	uint16_t column = (uint16_t)x_off;
+	if (obj->render.f.x_flip)
+		column = (uint16_t)(~column + x_dia);
+	column >>= 1;
+
+	int16_t spot_y = (int16_t)(obj->pos.l.y.f.u - (int16_t)(heightmap[column] - heightmap[0]));
+
+	int16_t x_off_o, y_off_o;
+	return Solid_ChkEnterY(obj, x_rad, y_rad, spot_y, &x_off_o, &y_off_o);
+}
+
+// Aligns Sonic to a heightmap-sloped platform's surface while he's already
+// known to be standing on it (real hardware's own SlopeObject_AssumeStoodOn,
+// used by MZ's large grass platforms while riding -- unlike SlopeObject,
+// this doesn't do any landing detection of its own, it just repositions).
+// prev_x is the object's own X position as of just before this frame's
+// movement -- Sonic is nudged by however far the platform has since moved,
+// same idea as MvSonicOnPtfm's own prev_x parameter (LargeGrass itself
+// never moves horizontally, so its own caller always passes its CURRENT X,
+// making this a no-op; a future horizontally-moving heightmap platform,
+// e.g. SLZ's seesaw, would pass a genuinely earlier X here).
+void SlopeObject_AssumeStoodOn(Object *obj, uint16_t x_rad, const uint8_t *heightmap, int16_t prev_x) {
+	if (!player->status.p.f.object_stand)
+		return;
+
+	int16_t x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+	uint16_t column = (uint16_t)x_off;
+	if (obj->render.f.x_flip)
+		column = (uint16_t)(~column + (x_rad << 1));
+	column >>= 1;
+
+	player->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u - heightmap[column] - player->y_rad);
+	player->pos.l.x.f.u -= (int16_t)(prev_x - obj->pos.l.x.f.u);
 }
 
 int32_t SolidObject(Object *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off) {

@@ -42,11 +42,17 @@ uint8_t demo_num;
 #define LEVSEL_VRAM_MAIN    (VRAM_BG + (LEVSEL_START_ROW << 7) + (LEVSEL_START_COL << 1))
 #define LEVSEL_FONT_VRAM    0xD000 // ArtTile_Level_Select_Font ($680) * 32 bytes/tile
 #define LEVSEL_SNDTEST_COL  (LEVSEL_LINE_LENGTH - 8) // column offset for the 2-digit sound number
-// Highest registered sound/SFX ID (see the dispatch table near the top of
-// Sound.c) -- real hardware derives this from the assembled SoundIndex
-// table's own size instead of a fixed constant, but that same effect here
-// is just "the last ID we actually have data for".
-#define LEVSEL_SNDTEST_MAX  (0xD0 - 0x80)
+// Highest registered sound/SFX ID, 0-based offset from bgm_GHZ (see
+// enum SoundID, Sound.h) -- real hardware derives this from the assembled
+// SoundIndex table's own size instead of a fixed constant, but that same
+// effect here is just "the last ID we actually have data for". Was
+// hard-coded as the real hardware's own $80-$D0 ID range until the
+// SoundID enum got renumbered to start at 1 (driver-version-3 work,
+// "0 is reserved -- id==0 means silence/stop") -- this constant (and the
+// display/dispatch below) went stale at the same time and was silently
+// selecting IDs $80-$D0, none of which exist in the renumbered sound_table
+// (always NULL), so the sound test played nothing at all until this fix.
+#define LEVSEL_SNDTEST_MAX  (sfx_Waterfall - bgm_GHZ)
 
 // Persists across visits to level select, same as the real v_levselsound
 // RAM variable (never reset on entry -- picks up where you left off).
@@ -118,13 +124,16 @@ static void LevSelTextLoad(int selected) {
         const char *text = levsel_text[row];
         size_t len = strlen(text);
         if (row == LEVSEL_SNDTEST_ROW) {
-            // Overlay the current sound test number (0x80-based, 2 hex
-            // digits) at its own fixed column, same as the real driver's
-            // LevSel_DrawSnd -- rebuilt into a scratch buffer each draw
-            // rather than mutating the static levsel_text entry.
+            // Overlay the current sound test number (0-based, 2 hex
+            // digits -- matches the renumbered SoundID enum's own
+            // bgm_GHZ=1 start, not the real hardware's $80-based IDs
+            // anymore) at its own fixed column, same spot the real
+            // driver's LevSel_DrawSnd used -- rebuilt into a scratch
+            // buffer each draw rather than mutating the static
+            // levsel_text entry.
             for (int col = 0; col < LEVSEL_LINE_LENGTH; col++)
                 sndtest_line[col] = (col < (int)len) ? text[col] : ' ';
-            int id = 0x80 + levsel_sound;
+            int id = levsel_sound;
             sndtest_line[LEVSEL_SNDTEST_COL + 0] = hex_digits[(id >> 4) & 0xF];
             sndtest_line[LEVSEL_SNDTEST_COL + 1] = hex_digits[id & 0xF];
             text = sndtest_line;
@@ -202,7 +211,16 @@ static void LevelSelect(void) {
 
         if (jpad1_press1 & (JPAD_A | JPAD_B | JPAD_C | JPAD_START)) {
             if (item == LEVSEL_SNDTEST_ROW)
-                QueueSound2((uint8_t)(0x80 + levsel_sound)); // stays in the loop -- doesn't exit level select
+                // Plays through the new JSON tree-walking engine (verified
+                // byte-identical to the byte-VM across the whole real
+                // content set) rather than QueueSound2's byte-VM route --
+                // first real (non-debug-tool) place this engine runs in
+                // actual gameplay. levsel_sound is the 0-based on-screen
+                // number; bgm_GHZ (1) is the enum's own first real ID (0
+                // is reserved as the silence/stop sentinel -- see its own
+                // comment in Sound.h). Stays in the loop -- doesn't exit
+                // level select.
+                Sound_PlayFromJSON((uint8_t)(bgm_GHZ + levsel_sound));
             else
                 break;
         }
@@ -428,7 +446,7 @@ void GM_Title(void) {
     // Fade in
     PaletteFadeIn();
 
-    PlayMusic(0x8A);
+    PlayMusic(bgm_Title);
 
     // Level select cheat entry state (see TitleCheatStep/Tit_ChkLevSel).
     uint8_t cheat_progress = 0;

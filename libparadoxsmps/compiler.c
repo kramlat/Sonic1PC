@@ -219,11 +219,13 @@ typedef struct {
 
     ErrorContext *err;
     int synthetic_label_counter;
+    int driver_version; // 1 (default) or 3 -- see SMPS driver-version-3 plan; selects emit_event vs emit_event_v3
 } Emitter;
 
 static void em_init(Emitter *em, ErrorContext *err) {
     memset(em, 0, sizeof(*em));
     em->err = err;
+    em->driver_version = 1;
 }
 
 static void em_free(Emitter *em) {
@@ -357,7 +359,263 @@ static int zero_arg_op_code(const char *event) {
 // emit_event -- json_to_header.py:214-319
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// emit_event_v3/emit_simple_v3 -- SMPS driver-version-3 (Sonic 3/Flamedriver-
+// compatible) coordination flags. C port of json_to_header.py's own
+// emit_event_v3/emit_simple_v3/ZERO_ARG_OPS_V3/SIMPLE_OPS_V3 -- keep these
+// two byte-for-byte in sync, same convention the driver-version-1 pair
+// above already follows. See the SMPS driver-version-3 plan for the full
+// researched flag table this mirrors.
+// ---------------------------------------------------------------------------
+
+static int zero_arg_op_code_v3(const char *event, int *out_sub) {
+    static const struct {
+        const char *name;
+        int code;
+        int sub; // -1 = not an extended ($FF-prefixed) flag
+    } table[] = {
+        {"cfPreventAttack", 0xE7, -1}, {"cfSilenceStopTrack", 0xE3, -1}, {"cfStopTrack", 0xF2, -1},
+        {"cfJumpReturn", 0xF9, -1},    {"cfDisableModulation", 0xFA, -1}, {"cfResetSpindashRev", 0xFF, 0x07},
+    };
+    for (size_t i = 0; i < sizeof(table) / sizeof(table[0]); i++)
+        if (strcmp(event, table[i].name) == 0) {
+            *out_sub = table[i].sub;
+            return table[i].code;
+        }
+    return -1;
+}
+
+static int simple_op_code_v3(const char *mnemonic, int *out_sub, int *out_argc) {
+    static const struct {
+        const char *name;
+        int code, sub, argc;
+    } table[] = {
+        {"cfDetune", 0xE1, -1, 1},          {"cfFadeInToPrevious", 0xE2, -1, 1},
+        {"cfSetVolume", 0xE4, -1, 1},       {"cfChangeVolume2", 0xE5, -1, 2},
+        {"cfChangeVolume", 0xE6, -1, 1},    {"cfNoteFill", 0xE8, -1, 1},
+        {"cfPlayDACSample", 0xEA, -1, 1},   {"cfChangePSGVolume", 0xEC, -1, 1},
+        {"cfSetKey", 0xED, -1, 1},          {"cfSendFMI", 0xEE, -1, 2},
+        {"cfAlterModulation", 0xF1, -1, 2}, {"cfSetPSGNoise", 0xF3, -1, 1},
+        {"cfSetModulation", 0xF4, -1, 1},   {"cfSetPSGVolEnv", 0xF5, -1, 1},
+        {"cfChangeTransposition", 0xFB, -1, 1}, {"cfToggleAltFreqMode", 0xFD, -1, 1},
+        {"cfFM3SpecialMode", 0xFE, -1, 4},
+        {"cfSetTempo", 0xFF, 0x00, 1}, {"cfPlaySFXByIndex", 0xFF, 0x01, 1}, {"cfHaltSound", 0xFF, 0x02, 1},
+        {"cfSetTempoDivider", 0xFF, 0x04, 1}, {"cfSetSSGEG", 0xFF, 0x05, 4}, {"cfFMVolEnv", 0xFF, 0x06, 2},
+        {"cfChanSetTempoDivider", 0xFF, 0x08, 1}, {"cfChanFMCommand", 0xFF, 0x09, 2},
+        {"cfNoteFillSet", 0xFF, 0x0A, 1}, {"cfPitchSlide", 0xFF, 0x0B, 1}, {"cfSetLFO", 0xFF, 0x0C, 2},
+        {"cfPlayMusicByIndex", 0xFF, 0x0D, 1},
+    };
+    for (size_t i = 0; i < sizeof(table) / sizeof(table[0]); i++)
+        if (strcmp(mnemonic, table[i].name) == 0) {
+            *out_sub = table[i].sub;
+            *out_argc = table[i].argc;
+            return table[i].code;
+        }
+    return -1;
+}
+
+static void emit_simple_v3(Emitter *em, const char *mnemonic, const PJValue *value) {
+    int sub, argc;
+    int op = simple_op_code_v3(mnemonic, &sub, &argc);
+    if (op < 0)
+        ps_fail(em->err, "%s: byte encoding not yet implemented in the driverVersion-3 compiler", mnemonic);
+    int is_array = pj_type(value) == PJ_ARRAY;
+    int n = is_array ? (int)pj_array_size(value) : 1;
+    if (n != argc)
+        ps_fail(em->err, "%s: expected %d arg(s), got %d", mnemonic, argc, n);
+    em_byte(em, op);
+    if (sub >= 0)
+        em_byte(em, sub);
+    for (int i = 0; i < n; i++)
+        em_byte(em, unhex_int(is_array ? pj_array_get(value, (size_t)i) : value, 0) & 0xFF);
+}
+
+static void emit_event_v3(Emitter *em, const PJValue *event) {
+    if (pj_type(event) == PJ_STRING) {
+        const char *s = pj_get_string(event, "");
+        int sub;
+        int op = zero_arg_op_code_v3(s, &sub);
+        if (op < 0)
+            ps_fail(em->err, "bare event '%s': not implemented (driverVersion 3)", s);
+        em_byte(em, op);
+        if (sub >= 0)
+            em_byte(em, sub);
+        return;
+    }
+
+    PJValue *v;
+
+    if ((v = pj_object_get(event, "note")) != NULL) {
+        em_byte(em, note_value_internal(em->err, pj_get_string(v, "")));
+        PJValue *dur = pj_object_get(event, "duration");
+        if (dur)
+            em_byte(em, unhex_int(dur, 0) & 0xFF);
+        return;
+    }
+    if (pj_object_has(event, "tie") || pj_object_has(event, "inheritedNote")) {
+        em_byte(em, unhex_int(pj_object_get(event, "duration"), 0) & 0xFF);
+        return;
+    }
+    if ((v = pj_object_get(event, "cfPanningAMSFMS")) != NULL) {
+        const char *direction = pj_get_string(pj_array_get(v, 0), "");
+        static const struct {
+            const char *name;
+            int value;
+        } pan_values[] = {
+            {"panLeft", 0x80}, {"panRight", 0x40}, {"panCentre", 0xC0}, {"panCenter", 0xC0}, {"panNone", 0x00},
+        };
+        int base = 0;
+        for (size_t i = 0; i < sizeof(pan_values) / sizeof(pan_values[0]); i++)
+            if (strcmp(direction, pan_values[i].name) == 0)
+                base = pan_values[i].value;
+        em_byte(em, 0xE0);
+        em_byte(em, (base + unhex_int(pj_array_get(v, 1), 0)) & 0xFF);
+        return;
+    }
+    if ((v = pj_object_get(event, "cfModulation")) != NULL) {
+        em_byte(em, 0xF0);
+        for (size_t i = 0; i < pj_array_size(v); i++)
+            em_byte(em, unhex_int(pj_array_get(v, i), 0) & 0xFF);
+        return;
+    }
+    if ((v = pj_object_get(event, "cfSetVoice")) != NULL) {
+        em_byte(em, 0xEF);
+        if (pj_type(v) == PJ_ARRAY) {
+            for (size_t i = 0; i < pj_array_size(v); i++)
+                em_byte(em, unhex_int(pj_array_get(v, i), 0) & 0xFF);
+        } else {
+            em_byte(em, unhex_int(v, 0) & 0xFF);
+        }
+        return;
+    }
+    if ((v = pj_object_get(event, "cfConditionalJump")) != NULL) {
+        em_byte(em, 0xEB);
+        em_byte(em, unhex_int(pj_array_get(v, 0), 0) & 0xFF);
+        em_word_placeholder(em, as_block_name(pj_array_get(v, 1)), 0); // rel-1
+        return;
+    }
+    if ((v = pj_object_get(event, "cfRepeatAtPos")) != NULL) {
+        const PJValue *idx = pj_array_get(v, 0);
+        const PJValue *cnt = pj_array_get(v, 1);
+        char *label = new_synthetic_label(em);
+        em_mark_block(em, label);
+        for (size_t i = 2; i < pj_array_size(v); i++)
+            emit_event_v3(em, pj_array_get(v, i));
+        em_byte(em, 0xF7);
+        em_byte(em, unhex_int(idx, 0) & 0xFF);
+        em_byte(em, unhex_int(cnt, 0) & 0xFF);
+        em_word_placeholder(em, label, 0); // rel-1
+        free(label);
+        return;
+    }
+    if ((v = pj_object_get(event, "cfJumpTo")) != NULL) {
+        em_byte(em, 0xF6);
+        em_word_placeholder(em, as_block_name(v), 0); // rel-1
+        return;
+    }
+    if ((v = pj_object_get(event, "cfJumpToGosub")) != NULL) {
+        em_byte(em, 0xF8);
+        em_word_placeholder(em, as_block_name(v), 1); // abs
+        return;
+    }
+    if ((v = pj_object_get(event, "cfLoopContinuousSFX")) != NULL) {
+        em_byte(em, 0xFC);
+        em_word_placeholder(em, as_block_name(v), 0); // rel-1
+        return;
+    }
+    if ((v = pj_object_get(event, "cfCopyData")) != NULL) {
+        em_byte(em, 0xFF);
+        em_byte(em, 0x03);
+        em_word_placeholder(em, as_block_name(pj_array_get(v, 0)), 1); // abs
+        em_byte(em, unhex_int(pj_array_get(v, 1), 0) & 0xFF);
+        return;
+    }
+
+    static const char *simple_mnemonics_v3[] = {
+        "cfDetune", "cfFadeInToPrevious", "cfSetVolume", "cfChangeVolume2", "cfChangeVolume", "cfNoteFill",
+        "cfPlayDACSample", "cfChangePSGVolume", "cfSetKey", "cfSendFMI", "cfAlterModulation", "cfSetPSGNoise",
+        "cfSetModulation", "cfSetPSGVolEnv", "cfChangeTransposition", "cfToggleAltFreqMode", "cfFM3SpecialMode",
+        "cfSetTempo", "cfPlaySFXByIndex", "cfHaltSound", "cfSetTempoDivider", "cfSetSSGEG", "cfFMVolEnv",
+        "cfChanSetTempoDivider", "cfChanFMCommand", "cfNoteFillSet", "cfPitchSlide", "cfSetLFO", "cfPlayMusicByIndex",
+    };
+    for (size_t i = 0; i < sizeof(simple_mnemonics_v3) / sizeof(simple_mnemonics_v3[0]); i++) {
+        if (pj_object_has(event, simple_mnemonics_v3[i])) {
+            emit_simple_v3(em, simple_mnemonics_v3[i], pj_object_get(event, simple_mnemonics_v3[i]));
+            return;
+        }
+    }
+
+    ps_fail(em->err, "unrecognized event (driverVersion 3, no matching mnemonic found)");
+}
+
+// ---------------------------------------------------------------------------
+// smpsCall target tracking -- see the main compile loop's own comment for
+// why this exists (auto-appending an explicit smpsReturn for blocks that
+// rely on the JSON schema's "block end IS the implicit return" convention,
+// which this byte compiler has no native concept of).
+// ---------------------------------------------------------------------------
+
+#define MAX_CALL_TARGETS 256
+
+typedef struct {
+    const char *names[MAX_CALL_TARGETS];
+    size_t count;
+} CallTargetSet;
+
+static void call_target_add(CallTargetSet *set, const char *name) {
+    for (size_t i = 0; i < set->count; i++)
+        if (strcmp(set->names[i], name) == 0)
+            return;
+    if (set->count < MAX_CALL_TARGETS)
+        set->names[set->count++] = name;
+}
+
+static int call_target_has(const CallTargetSet *set, const char *name) {
+    for (size_t i = 0; i < set->count; i++)
+        if (strcmp(set->names[i], name) == 0)
+            return 1;
+    return 0;
+}
+
+// Recurses into inline smpsLoop/smpsJump bodies too (a smpsCall can appear
+// nested inside one), harmlessly skipping the idx/cnt string entries at a
+// smpsLoop body's own start (pj_object_get(event,"smpsCall") on a raw
+// PJ_STRING node is never true, so those are just no-ops here).
+static void scan_events_for_calls(const PJValue *events, CallTargetSet *set) {
+    for (size_t i = 0; i < pj_array_size(events); i++) {
+        const PJValue *event = pj_array_get(events, i);
+        if (pj_type(event) != PJ_OBJECT)
+            continue;
+        const PJValue *v;
+        if ((v = pj_object_get(event, "smpsCall")) != NULL)
+            call_target_add(set, as_block_name(v));
+        if ((v = pj_object_get(event, "smpsLoop")) != NULL)
+            scan_events_for_calls(v, set);
+        if ((v = pj_object_get(event, "smpsJump")) != NULL)
+            scan_events_for_calls(v, set);
+    }
+}
+
+// A block's own last JSON event genuinely ends control flow through it --
+// stop/return outright, or an unconditional diversion (jumpTo/inline
+// smpsJump, which per the schema is always "no count = forever", never
+// falls through). smpsLoop deliberately doesn't count: it CAN fall
+// through once its own repeat count is exhausted, and already compiles
+// its own real $F7 either way.
+static int event_is_terminal(const PJValue *event) {
+    if (pj_type(event) == PJ_STRING) {
+        const char *s = pj_get_string(event, "");
+        return strcmp(s, "smpsStop") == 0 || strcmp(s, "smpsStopSpecial") == 0 || strcmp(s, "smpsFade") == 0 ||
+               strcmp(s, "smpsReturn") == 0;
+    }
+    return pj_object_has(event, "jumpTo") || pj_object_has(event, "smpsJump");
+}
+
 static void emit_event(Emitter *em, const PJValue *event) {
+    if (em->driver_version >= 3) {
+        emit_event_v3(em, event);
+        return;
+    }
     if (pj_type(event) == PJ_STRING) {
         const char *s = pj_get_string(event, "");
         int op = zero_arg_op_code(s);
@@ -619,12 +877,36 @@ static void compile_song_internal(Emitter *em, const PJValue *data) {
     // own comment), so unlike the retired Qt/C++ port, there is no separate
     // order list to pass in or keep in sync.
     const PJValue *playlist = pj_object_get(data, "SMPSplaylist");
+
+    // asm_to_json.py deliberately drops explicit smpsReturn instructions
+    // ("block end IS the implicit return -- no event emitted, per schema"),
+    // but this compiler has no such implicit-return concept -- a smpsCall
+    // target block that ends without an explicit terminator just falls
+    // through into whatever bytes come next in the compiled stream (real
+    // hardware has no bounds checking), landing on unrelated data. Found
+    // via the JSON-engine cross-verification effort: Mus82_LZ's own
+    // Call02 (called from both FM3 and FM4) has no terminating event, so
+    // the old byte-VM was falling through into the NEXT playlist block
+    // (FM4) and re-triggering things that were never meant to run there.
+    // Fix: scan every block for smpsCall targets first, then auto-append
+    // an explicit smpsReturn ($E3) after any such block whose own last
+    // event isn't already a real terminator (stop/return/unconditional
+    // jump -- smpsLoop doesn't count, since it can fall through once
+    // exhausted and already gets its own real $F7 either way).
+    CallTargetSet call_targets = {0};
+    for (size_t i = 0; i < pj_object_size(playlist); i++)
+        scan_events_for_calls(pj_object_value_at(playlist, i), &call_targets);
+
     for (size_t i = 0; i < pj_object_size(playlist); i++) {
         const char *name = pj_object_key_at(playlist, i);
         const PJValue *events = pj_object_value_at(playlist, i);
         em_mark_block(em, name);
         for (size_t e = 0; e < pj_array_size(events); e++)
             emit_event(em, pj_array_get(events, e));
+        size_t n = pj_array_size(events);
+        int last_is_terminal = n > 0 && event_is_terminal(pj_array_get(events, n - 1));
+        if (call_target_has(&call_targets, name) && !last_is_terminal)
+            em_byte(em, 0xE3); // smpsReturn
     }
 
     if (voice_bank_name[0] != '\0') {
@@ -645,11 +927,13 @@ PSCompileResult ps_compile_song(const PJValue *song) {
     memset(err.message, 0, sizeof(err.message));
     Emitter em;
     em_init(&em, &err);
+    em.driver_version = unhex_int(pj_object_get(song, "driverVersion"), 1);
 
     if (setjmp(err.jmp) == 0) {
         compile_song_internal(&em, song);
         result.success = 1;
         result.byte_count = em.len;
+        result.driver_version = em.driver_version;
         result.bytes = (uint8_t *)malloc(em.len ? em.len : 1);
         memcpy(result.bytes, em.buf, em.len);
     } else {

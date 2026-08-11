@@ -21,6 +21,11 @@ static void Spike_Hurt(Object *obj) {
     // Check if player can be hurt
     if (invincibility)
         return;
+    // "Proper Spike Bug Fix" -- without this, touching spikes while still
+    // flashing from a previous hit can hurt Sonic a second time.
+    Scratch_Sonic *scratch = (Scratch_Sonic *)&player->scratch;
+    if (scratch->flash_time)
+        return;
     if (player->routine >= 4)
         return;
 

@@ -118,6 +118,16 @@ set(
   "src/Object/Ring.c"
   "src/Object/Splash.c"
   "src/Object/Splash.h"
+  "src/Object/AirBubbles.c"
+  "src/Object/AirBubbles.h"
+  "src/Object/DrownCount.c"
+  "src/Object/DrownCount.h"
+  "src/Object/WaterSurface.c"
+  "src/Object/WaterSurface.h"
+  "src/Object/InvisibleBarrier.c"
+  "src/Object/InvisibleBarrier.h"
+  "src/Object/DebugList.c"
+  "src/Object/DebugList.h"
   "src/Object/Waterfall.c"
   "src/Object/Waterfall.h"
   "src/Object/Monitor.c"
@@ -138,6 +148,56 @@ set(
   "src/Object/Credits.c"
   "src/Object/Animal.c"
   "src/Object/Points.c"
+  "src/Object/GiantRing.c"
+  "src/Object/GiantRing.h"
+  "src/Object/HiddenBonus.c"
+  "src/Object/HiddenBonus.h"
+  "src/Object/BasicPlatform.c"
+  "src/Object/BasicPlatform.h"
+  "src/Object/SmashWall.c"
+  "src/Object/SmashWall.h"
+  "src/Object/Scenery.c"
+  "src/Object/Scenery.h"
+  "src/Object/CollapseLedge.c"
+  "src/Object/CollapseLedge.h"
+  "src/Object/CollapseFloor.c"
+  "src/Object/CollapseFloor.h"
+  "src/Object/Helix.c"
+  "src/Object/Helix.h"
+  "src/Object/MarbleBrick.c"
+  "src/Object/MarbleBrick.h"
+  "src/Object/Button.c"
+  "src/Object/Button.h"
+  "src/Object/SmashBlock.c"
+  "src/Object/SmashBlock.h"
+  "src/Object/MovingBlock.c"
+  "src/Object/MovingBlock.h"
+  "src/Object/LargeGrass.c"
+  "src/Object/LargeGrass.h"
+  "src/Object/GrassFire.c"
+  "src/Object/GrassFire.h"
+  "src/Object/LavaTag.c"
+  "src/Object/LavaTag.h"
+  "src/Object/Caterkiller.c"
+  "src/Object/Caterkiller.h"
+  "src/Object/LavaMaker.c"
+  "src/Object/LavaMaker.h"
+  "src/Object/LavaBall.c"
+  "src/Object/LavaBall.h"
+  "src/Object/GlassBlock.c"
+  "src/Object/GlassBlock.h"
+  "src/Object/Basaran.c"
+  "src/Object/Basaran.h"
+  "src/Object/ChainStomp.c"
+  "src/Object/ChainStomp.h"
+  "src/Object/GeyserMaker.c"
+  "src/Object/GeyserMaker.h"
+  "src/Object/LavaGeyser.c"
+  "src/Object/LavaGeyser.h"
+  "src/Object/PushBlock.c"
+  "src/Object/PushBlock.h"
+  "src/Object/Yadrin.c"
+  "src/Object/Yadrin.h"
   # Backend
   "src/Backend/MegaDrive.c"
   "src/Backend/MegaDrive.h"
@@ -244,7 +304,42 @@ set(ASM
     "Mappings/Animals1"
     "Mappings/Animals2"
     "Mappings/Animals3"
-    "Mappings/SSResultEmerald")
+    "Mappings/SSResultEmerald"
+    "Mappings/WaterSurface"
+    "Mappings/Bubbles"
+    "Mappings/GiantRing"
+    "Mappings/RingFlash"
+    "Mappings/HiddenBonuses"
+    "Mappings/GHZPlatforms"
+    "Mappings/SYZPlatforms"
+    "Mappings/SLZPlatforms"
+    "Mappings/SmashableWalls"
+    "Mappings/Scenery"
+    "Mappings/CollapsingLedge"
+    "Mappings/CollapsingFloors"
+    "Mappings/SpikedPoleHelix"
+    "Mappings/MZBricks"
+    "Mappings/Button"
+    "Mappings/SmashableGreenBlock"
+    "Mappings/MovingBlocks"
+    "Mappings/LZMovingBlocks"
+    "Mappings/MZLargeGrassyPlatforms"
+    "Mappings/Fireballs"
+    "Mappings/LavaTag"
+    "Mappings/Caterkiller"
+    "Mappings/MZLargeGreenGlassBlocks"
+    "Mappings/Basaran"
+    "Mappings/ChainedStompers"
+    "Mappings/LavaGeyser"
+    "Mappings/PushableBlocks"
+    "Mappings/Yadrin"
+    "Animation/LavaGeyser"
+    "Animation/Yadrin"
+    "Animation/Fireballs"
+    "Animation/Basaran"
+    "Animation/Bubbles"
+    "Animation/DrowningCountdown"
+    "Animation/GrassFire")
 
 set(RESOURCES
     "Icon"
@@ -515,6 +610,54 @@ set(RESOURCES
     "DAC/clap"
     "DAC/tom"
     "DAC/bongo"
+    "DAC/s3snare"
+    "DAC/s3tom"
+    "DAC/s3kick"
+    "DAC/muffled_snare"
+    "DAC/crash"
+    "DAC/ride"
+    "DAC/metal_hit_1"
+    "DAC/metal_hit_2"
+    "DAC/metal_hit_3"
+    "DAC/s3clap"
+    "DAC/etom"
+    "DAC/pitched_snare"
+    "DAC/s3timpani"
+    "DAC/quick_loose_snare"
+    "DAC/click"
+    "DAC/power_kick"
+    "DAC/quick_glass_crash"
+    "DAC/glass_crash_snare"
+    "DAC/glass_crash"
+    "DAC/glass_crash_kick"
+    "DAC/quiet_glass_crash"
+    "DAC/snare_kick"
+    "DAC/xbass_kick"
+    "DAC/dance_snare"
+    "DAC/loose_kick"
+    "DAC/mod_loose_kick"
+    "DAC/wood_block"
+    "DAC/wood_block_2"
+    "DAC/conga"
+    "DAC/hit_drum_1"
+    "DAC/hit_drum_2"
+    "DAC/hit_drum_3"
+    "DAC/metal_crash_hit"
+    "DAC/low_echo_clap"
+    "DAC/hiphop_kick"
+    "DAC/dance_kick"
+    "DAC/hiphop_kick_2"
+    "DAC/hiphop_kick_3"
+    "DAC/deep_hit"
+    "DAC/wood_block_3"
+    "DAC/unused"
+    "DAC/reverse"
+    "DAC/psytrance_kick"
+    "DAC/psytrance_snare"
+    "DAC/cowbell"
+    "DAC/rimshot"
+    "DAC/cuica"
+    "DAC/guiro"
     "PCM/sega"
     "PSG/psg1"
     "PSG/psg2"
@@ -884,10 +1027,27 @@ add_library(paradoxsmps STATIC
   "libparadoxsmps/converter.h")
 set_target_properties(paradoxsmps PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
 
+# SonicCore links this directly now too -- the SMPS runtime engine (Sound.c)
+# walks PJValue JSON trees straight at playback time (see the "SMPS runtime:
+# walk JSON directly" plan) instead of a precompiled byte stream, so the
+# actual game binary needs the JSON value model at runtime, not just the
+# offline compiler tools.
+target_link_libraries(SonicCore PUBLIC paradoxsmps)
+target_include_directories(SonicCore PUBLIC "${CMAKE_SOURCE_DIR}/libparadoxsmps")
+
 add_executable(jsonc2h_tool "libparadoxsmps/jsonc2h_main.c")
 target_link_libraries(jsonc2h_tool PRIVATE paradoxsmps)
 target_include_directories(jsonc2h_tool PRIVATE "${CMAKE_SOURCE_DIR}/libparadoxsmps")
 set_target_properties(jsonc2h_tool PROPERTIES OUTPUT_NAME jsonc2h)
+
+# jsonc2rawh: companion to jsonc2h_tool above, but embeds a song's own
+# SOURCE TEXT (not compiled bytes) as a C string -- for the JSON
+# tree-walking runtime engine, which parses and plays a song's PJValue
+# tree directly rather than a compiled byte stream.
+add_executable(jsonc2rawh_tool "libparadoxsmps/jsonc2rawh_main.c")
+target_link_libraries(jsonc2rawh_tool PRIVATE paradoxsmps)
+target_include_directories(jsonc2rawh_tool PRIVATE "${CMAKE_SOURCE_DIR}/libparadoxsmps")
+set_target_properties(jsonc2rawh_tool PROPERTIES OUTPUT_NAME jsonc2rawh)
 
 # asm2json: migration tool (not part of the game build), converts a real
 # SMPS2ASM .asm song/SFX file to ParadoxSMPS JSONC -- see converter.c's own
@@ -916,6 +1076,19 @@ function(add_paradoxsmps_song JSONC_FILE ARRAY_NAME)
     DEPENDS jsonc2h_tool "${IN_DIR}/${JSONC_FILE}")
 
   target_sources(SonicCore PRIVATE "${OUT_H}")
+
+  # Companion raw-JSON-text header, alongside the compiled-bytes one above
+  # -- Sound.c's sound_table_json[] (parallel to sound_table[]) includes
+  # these so the sound test (and anything else, eventually) can play a
+  # song through the JSON engine instead of the byte-VM.
+  set(OUT_JSON_H "${OUT_DIR}/${ARRAY_NAME}_json.h")
+  add_custom_command(
+    OUTPUT "${OUT_JSON_H}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}"
+    COMMAND jsonc2rawh_tool "${IN_DIR}/${JSONC_FILE}" "${OUT_JSON_H}" "${ARRAY_NAME}"
+    DEPENDS jsonc2rawh_tool "${IN_DIR}/${JSONC_FILE}")
+
+  target_sources(SonicCore PRIVATE "${OUT_JSON_H}")
 endfunction()
 
 # Full music/SFX catalog. res/Music/ also contains "E0 - Spin Dash Rev.asm"
@@ -1088,6 +1261,18 @@ if(BUILD_TESTS)
     add_executable(SonicSoundWav "tests/sound_wav_main.c")
     target_link_libraries(SonicSoundWav PRIVATE SonicCore)
 
+    # Throwaway smoke test for SMPS driver-version-3 (Sonic 3/Flamedriver-
+    # compatible coordination flags) -- see the SMPS driver-version-3 plan's
+    # own verification section. Not registered as a ctest.
+    add_executable(V3FlagTest "tests/v3_flag_test_main.c")
+    target_link_libraries(V3FlagTest PRIVATE SonicCore)
+
+    # A/B verification for the "SMPS runtime: walk JSON directly" plan --
+    # renders the same song through the byte-VM and the JSON engine and
+    # diffs the PCM. Not registered as a ctest.
+    add_executable(JsonABTest "tests/json_ab_test_main.c")
+    target_link_libraries(JsonABTest PRIVATE SonicCore)
+
     # Voice isolation tool: plays a real song at real speed through the actual
     # gameplay driver, muting every FM channel except one currently loaded
     # with a chosen voice index (PSG/DAC muted entirely) -- see
@@ -1208,7 +1393,7 @@ if(BUILD_TESTS)
     set_source_files_properties("fmcore/fm_operator.c" "fmcore/fm_voice.c" PROPERTIES LANGUAGE C)
 
     set_target_properties(
-      SonicJoypadTest SonicSoundTrace SonicSoundWav ParadoxComposer SonicVoiceIsolate SMPSInspector FMCoreSynth
+      SonicJoypadTest SonicSoundTrace SonicSoundWav V3FlagTest ParadoxComposer SonicVoiceIsolate SMPSInspector FMCoreSynth
       PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
   endif()
 

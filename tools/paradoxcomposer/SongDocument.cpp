@@ -172,12 +172,12 @@ QMap<int, QString> SongDocument::dacSampleNamesForBlock(const QJsonArray &header
             continue;
         const QJsonArray args = entry.value("smpsHeaderDAC").toArray();
         if (args.size() > 0 && args.at(0).toString() == blockName) {
-            // Row numbering matches AudioEngine::previewDacSample's own
-            // scheme exactly -- 0-6 are the 7 base DAC_SAMPLE_* samples
-            // (Sonic 1's own Kick/Snare/Timpani plus Sonic 2's
-            // Scratch/Clap/Tom/Bongo, folded into this project's own
-            // extended DAC scheme -- see Sound.h's DAC_SAMPLE_* comment),
-            // 7+ are pitch-shifted variants of Timpani/Tom/Bongo.
+            // Row numbering matches AudioEngine::previewDacSample and
+            // Sound.c's own dac_notes[] table exactly: row N is note byte
+            // $81+N (SND_dKick and up). Keep this list in sync with
+            // dac_notes[] (src/Sound.c) whenever a note gets added, moved,
+            // or re-pointed there -- there's no shared source for the two
+            // right now, this is a manual mirror.
             QMap<int, QString> names;
             names[0] = "Kick";
             names[1] = "Snare";
@@ -196,6 +196,83 @@ QMap<int, QString> SongDocument::dacSampleNamesForBlock(const QJsonArray &header
             names[14] = "HiBongo";
             names[15] = "MidBongo";
             names[16] = "LowBongo";
+            names[17] = "S3Snare";
+            names[18] = "S3HiTom";
+            names[19] = "S3MidTom";
+            names[20] = "S3LowTom";
+            names[21] = "S3FloorTom";
+            names[22] = "S3Kick";
+            names[23] = "MuffledSnare";
+            names[24] = "Crash";
+            names[25] = "Ride";
+            names[26] = "LowMetalHit";
+            names[27] = "FloorMetalHit";
+            names[28] = "HighMetalHit";
+            names[29] = "HigherMetalHit";
+            names[30] = "MidMetalHit";
+            names[31] = "S3Clap";
+            names[32] = "ElectricHiTom";
+            names[33] = "ElectricMidTom";
+            names[34] = "ElectricLowTom";
+            names[35] = "ElectricFloorTom";
+            names[36] = "TightSnare";
+            names[37] = "MidPitchedSnare";
+            names[38] = "LooseSnare";
+            names[39] = "LooserSnare";
+            names[40] = "S3HiTimpani";
+            names[41] = "S3LowTimpani";
+            names[42] = "S3MidTimpani";
+            names[43] = "QuickLooseSnare";
+            names[44] = "Click";
+            names[45] = "PowerKick";
+            names[46] = "QuickGlassCrash";
+            names[47] = "GlassCrashSnare";
+            names[48] = "GlassCrash";
+            names[49] = "GlassCrashKick";
+            names[50] = "QuietGlassCrash";
+            names[51] = "OddSnareKick";
+            names[52] = "Claves";
+            names[53] = "DanceSnare";
+            names[54] = "LooseKick";
+            names[55] = "HandDrum";
+            names[56] = "PowerTom";
+            names[57] = "HiWoodBlock";
+            names[58] = "LowWoodBlock";
+            names[59] = "HiConga";
+            names[60] = "HiConga2";
+            names[61] = "GavelHitDrum";
+            names[62] = "GavelHitDrum2";
+            names[63] = "GunshotHitDrum";
+            names[64] = "GunshotHitDrum2";
+            names[65] = "HitDrum3A";
+            names[66] = "HitDrum3B";
+            names[67] = "HitDrum3C";
+            names[68] = "HitDrum3D";
+            names[69] = "HitDrum3E";
+            names[70] = "MetalCrashHit";
+            names[71] = "EchoClap";
+            names[72] = "LowEchoClap";
+            names[73] = "HipHopKick";
+            names[74] = "HipHopKickLow"; // same sample as row 73, lower rate
+            names[75] = "DanceKick";
+            names[76] = "HipHopKick2"; // different sample, sounds like a record scratch
+            names[77] = "HipHopKick3";
+            names[78] = "DeepHit";
+            names[79] = "WoodBlock3";
+            names[80] = "Unused";
+            names[81] = "ReverseCymbal";
+            names[82] = "PsytranceKick";
+            names[83] = "PsytranceKickHi";
+            names[84] = "PsytranceKickLow";
+            names[85] = "PsytranceKickFloor";
+            names[86] = "PsytranceSnare";
+            names[87] = "PsytranceSnareHi";
+            names[88] = "PsytranceSnareLow";
+            names[89] = "PsytranceSnareFloor";
+            names[90] = "Cowbell";
+            names[91] = "Rimshot";
+            names[92] = "Cuica";
+            names[93] = "Guiro";
             return names;
         }
     }

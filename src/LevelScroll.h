@@ -32,7 +32,10 @@ extern uint16_t cam_x_delay;
 extern uint8_t cam_y_delay;
 
 extern const int8_t Drown_WobbleData[];
+extern const int8_t Lz_Scroll_Data[];
 //Level scroll functions
 void ApplyScrollUpdate(int16_t current_y, int16_t previous_y, uint8_t *block_state, uint16_t *flags, uint16_t up_bit, uint16_t down_bit);
 void BgScrollSpeed(int16_t x, int16_t y);
 void DeformLayers(void);
+void BGScroll_XY(int32_t x_off, int32_t y_off);
+void BGScroll_Block1(int32_t x, uint8_t bit);

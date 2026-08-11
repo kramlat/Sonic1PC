@@ -231,8 +231,16 @@ void Obj_MonitorItem(Object *obj) {
             switch (obj->anim) // I'm not doing an else if chain LOL
             {
             case 1: // Eggman
-                HurtSonic(player,obj);
-                break; // Nothing
+                // Matches real hardware's FixBugs fix (reuses Spikes_Hurt's
+                // own guard logic and Y-position undo, since that's what
+                // the real disasm's own fix literally jumps into) --
+                // without these checks, the monitor would still hurt Sonic
+                // while invincible/flashing/already hurt.
+                if (!invincibility && scratch->flash_time == 0 && player->routine < 4) {
+                    player->pos.l.y.v -= (int32_t)player->ysp << 8;
+                    HurtSonic(player, obj);
+                }
+                break;
             case 2: // Sonic
                 ExtraLife();
                 break;

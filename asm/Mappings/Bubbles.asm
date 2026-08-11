@@ -1,5 +1,6 @@
 ; ---------------------------------------------------------------------------
-; Sprite mappings - bubbles (LZ)
+; Sprite mappings - bubbles, small/medium/large + bursting + countdown
+; number digits (partial and full) + bubble maker (LZ)
 ; ---------------------------------------------------------------------------
 Map_Bub_internal:
 		dc.w @bubble1-Map_Bub_internal
@@ -25,40 +26,42 @@ Map_Bub_internal:
 		dc.w @bubmaker2-Map_Bub_internal
 		dc.w @bubmaker3-Map_Bub_internal
 		dc.w @blank-Map_Bub_internal
+
+; Each piece: ypos, size(((w-1)&3)<<2)|((h-1)&3), tileHigh, tileLow, xpos
 @bubble1:	dc.b 1
-		dc.b $FC, 0, 0,	0, $FC	; bubbles, increasing in size
+		dc.b $FC, 0, 0, 0, $FC
 @bubble2:	dc.b 1
-		dc.b $FC, 0, 0,	1, $FC
+		dc.b $FC, 0, 0, 1, $FC
 @bubble3:	dc.b 1
-		dc.b $FC, 0, 0,	2, $FC
+		dc.b $FC, 0, 0, 2, $FC
 @bubble4:	dc.b 1
-		dc.b $F8, 5, 0,	3, $F8
+		dc.b $F8, 5, 0, 3, $F8
 @bubble5:	dc.b 1
-		dc.b $F8, 5, 0,	7, $F8
+		dc.b $F8, 5, 0, 7, $F8
 @bubble6:	dc.b 1
 		dc.b $F4, $A, 0, $B, $F4
 @bubblefull:	dc.b 1
 		dc.b $F0, $F, 0, $14, $F0
 @burst1:	dc.b 4
-		dc.b $F0, 5, 0,	$24, $F0 ; large bubble bursting
-		dc.b $F0, 5, 8,	$24, 0
-		dc.b 0,	5, $10,	$24, $F0
-		dc.b 0,	5, $18,	$24, 0
+		dc.b $F0, 5, 0, $24, $F0
+		dc.b $F0, 5, 8, $24, 0
+		dc.b 0, 5, $10, $24, $F0
+		dc.b 0, 5, $18, $24, 0
 @burst2:	dc.b 4
-		dc.b $F0, 5, 0,	$28, $F0
-		dc.b $F0, 5, 8,	$28, 0
-		dc.b 0,	5, $10,	$28, $F0
-		dc.b 0,	5, $18,	$28, 0
+		dc.b $F0, 5, 0, $28, $F0
+		dc.b $F0, 5, 8, $28, 0
+		dc.b 0, 5, $10, $28, $F0
+		dc.b 0, 5, $18, $28, 0
 @zero_sm:	dc.b 1
-		dc.b $F4, 6, 0,	$2C, $F8 ; small, partially-formed countdown numbers
+		dc.b $F4, 6, 0, $2C, $F8
 @five_sm:	dc.b 1
-		dc.b $F4, 6, 0,	$32, $F8
+		dc.b $F4, 6, 0, $32, $F8
 @three_sm:	dc.b 1
-		dc.b $F4, 6, 0,	$38, $F8
+		dc.b $F4, 6, 0, $38, $F8
 @one_sm:	dc.b 1
-		dc.b $F4, 6, 0,	$3E, $F8
+		dc.b $F4, 6, 0, $3E, $F8
 @zero:		dc.b 1
-		dc.b $F4, 6, $20, $44, $F8 ; fully-formed countdown numbers
+		dc.b $F4, 6, $20, $44, $F8
 @five:		dc.b 1
 		dc.b $F4, 6, $20, $4A, $F8
 @four:		dc.b 1
@@ -70,10 +73,10 @@ Map_Bub_internal:
 @one:		dc.b 1
 		dc.b $F4, 6, $20, $62, $F8
 @bubmaker1:	dc.b 1
-		dc.b $F8, 5, 0,	$68, $F8
+		dc.b $F8, 5, 0, $68, $F8
 @bubmaker2:	dc.b 1
-		dc.b $F8, 5, 0,	$6C, $F8
+		dc.b $F8, 5, 0, $6C, $F8
 @bubmaker3:	dc.b 1
-		dc.b $F8, 5, 0,	$70, $F8
+		dc.b $F8, 5, 0, $70, $F8
 @blank:		dc.b 0
 		even

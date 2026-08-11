@@ -261,19 +261,15 @@ void AudioEngine::previewDacSample(int row) {
         m_previewIsPsg = false;
     }
     // Row numbering matches SongDocument::dacSampleNamesForBlock's own
-    // scheme exactly -- see its comment for the full table. 0-6 are the 7
-    // base samples (matches DAC_SAMPLE_* order exactly); 7+ are pitch
-    // variants of Timpani/Tom/Bongo.
-    if (row >= 0 && row <= 6)
-        Sound_DebugPreviewDacSample(row);
-    else if (row >= 7 && row <= 10)
-        Sound_DebugPreviewDacVariant(DAC_SAMPLE_TIMPANI, row - 7); // 0=Hi,1=Mid,2=Low,3=Floor
-    else if (row >= 11 && row <= 13)
-        Sound_DebugPreviewDacVariant(DAC_SAMPLE_TOM, row - 11); // 0=Mid,1=Low,2=Floor
-    else if (row >= 14 && row <= 16)
-        Sound_DebugPreviewDacVariant(DAC_SAMPLE_BONGO, row - 14); // 0=Hi,1=Mid,2=Low
-    else
+    // scheme exactly: row N is note byte $81+N, straight into Sound.c's
+    // dac_notes[] table (the same one the real game's note dispatch uses),
+    // via Sound_DebugPreviewDacNote -- covers the whole wired-up percussion
+    // kit (currently $81-$DE), not just the original 7 base samples + their
+    // pitch variants.
+    int noteByte = 0x81 + row;
+    if (!Sound_DebugHasDacNote(noteByte))
         return; // not a real DAC row -- nothing to trigger
+    Sound_DebugPreviewDacNote(noteByte);
     m_dacPreviewActive = true;
 }
 
@@ -297,7 +293,12 @@ void AudioEngine::playSong(const QByteArray &compiledBytes, bool isSfx) {
     m_songBytes = compiledBytes; // keep the buffer alive -- Sound.c only stores the pointer
     m_songIsSfx = isSfx;
     m_songFrameCount = 0;
-    Sound_DebugPlayRawSong(reinterpret_cast<const uint8_t *>(m_songBytes.constData()), isSfx ? 1 : 0);
+    // driver_version hardcoded to 0 (driver-version-1) here -- no v3-authored
+    // .jsonc exists yet, and threading SongDocument's own "driverVersion"
+    // header field through MainWindow/AudioEngine's playSong() is real future
+    // work once that's needed, not done in this pass (see the SMPS
+    // driver-version-3 plan's own "explicitly out of scope" section).
+    Sound_DebugPlayRawSong(reinterpret_cast<const uint8_t *>(m_songBytes.constData()), isSfx ? 1 : 0, 0);
     m_playingSong = true;
 }
 

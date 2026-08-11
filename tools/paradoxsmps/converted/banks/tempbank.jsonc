@@ -1,0 +1,61 @@
+{
+    "paradoxVoiceBank": true,
+    "voices": [
+        {
+            "name": "",
+            "operators": [
+                {
+                    "smpsVcAmpMod": "0X0",
+                    "smpsVcAttackRate": "0X13",
+                    "smpsVcCoarseFreq": "0X1",
+                    "smpsVcDecayLevel": "0X0",
+                    "smpsVcDecayRate1": "0X3",
+                    "smpsVcDecayRate2": "0X0",
+                    "smpsVcDetune": "0X0",
+                    "smpsVcRateScale": "0X1",
+                    "smpsVcReleaseRate": "0XF",
+                    "smpsVcTotalLevel": "0X0"
+                },
+                {
+                    "smpsVcAmpMod": "0X0",
+                    "smpsVcAttackRate": "0XD",
+                    "smpsVcCoarseFreq": "0X1",
+                    "smpsVcDecayLevel": "0X1",
+                    "smpsVcDecayRate1": "0XE",
+                    "smpsVcDecayRate2": "0X0",
+                    "smpsVcDetune": "0X0",
+                    "smpsVcRateScale": "0X2",
+                    "smpsVcReleaseRate": "0XF",
+                    "smpsVcTotalLevel": "0X27"
+                },
+                {
+                    "smpsVcAmpMod": "0X0",
+                    "smpsVcAttackRate": "0XE",
+                    "smpsVcCoarseFreq": "0X7",
+                    "smpsVcDecayLevel": "0XF",
+                    "smpsVcDecayRate1": "0XE",
+                    "smpsVcDecayRate2": "0X0",
+                    "smpsVcDetune": "0X0",
+                    "smpsVcRateScale": "0X2",
+                    "smpsVcReleaseRate": "0XF",
+                    "smpsVcTotalLevel": "0X28"
+                },
+                {
+                    "smpsVcAmpMod": "0X0",
+                    "smpsVcAttackRate": "0XE",
+                    "smpsVcCoarseFreq": "0X1",
+                    "smpsVcDecayLevel": "0X1",
+                    "smpsVcDecayRate1": "0XE",
+                    "smpsVcDecayRate2": "0X0",
+                    "smpsVcDetune": "0X0",
+                    "smpsVcRateScale": "0X2",
+                    "smpsVcReleaseRate": "0XF",
+                    "smpsVcTotalLevel": "0X18"
+                }
+            ],
+            "smpsVcAlgorithm": "0X2",
+            "smpsVcFeedback": "0X7",
+            "smpsVcUnusedBits": "0X0"
+        }
+    ]
+}

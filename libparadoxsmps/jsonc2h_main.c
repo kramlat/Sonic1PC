@@ -80,6 +80,10 @@ int main(int argc, char **argv) {
         fprintf(out, "\n");
     }
     fprintf(out, "};\n");
+    // Sound.c's sound_table_driver_ver[] references this by name (e.g.
+    // `[bgm_GHZ] = Mus81_GHZ_DRIVERVER,`) so the JSON's own "driverVersion"
+    // field stays the single source of truth all the way to the runtime.
+    fprintf(out, "#define %s_DRIVERVER %d\n", array_name, result.driver_version);
     fclose(out);
 
     fprintf(stderr, "Wrote %zu bytes to %s\n", result.byte_count, out_path);

@@ -11,6 +11,11 @@
 #include "Resource/Mappings/RingREV01.h"
 #endif
 
+// Ring formation offsets, indexed by (subtype>>4)&0xF -- see Ring.c's own
+// spawn loop. Exposed here so Object/DebugList.c's placement preview can
+// read the real values instead of keeping its own copy.
+extern const int8_t ring_pos[16][2];
+
 typedef struct {
     uint8_t subtype; // 0x28
     uint8_t pad[0x9]; // 0x29-0x31

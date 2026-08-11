@@ -55,6 +55,7 @@ uint8_t debug_cheat, debug_mode;
 uint8_t jpad2_hold, jpad2_press; // Joypad 2 state
 uint8_t jpad1_hold1, jpad1_press1; // Joypad 1 state
 uint8_t jpad1_hold2, jpad1_press2; // Sonic controls
+uint8_t jpad1_hold_ext, jpad1_press_ext; // Extended (non-Genesis) bindings -- see Backend/Joypad.h
 
 uint32_t vbla_count;
 
@@ -74,6 +75,11 @@ void ReadJoypads(void) {
     state = Joypad_GetState2();
     jpad2_press = state & ~jpad2_hold;
     jpad2_hold = state;
+
+    // Read extended (non-Genesis) bindings
+    state = Joypad_GetExtState1();
+    jpad1_press_ext = state & ~jpad1_hold_ext;
+    jpad1_hold_ext = state;
 }
 
 // Game entry point
