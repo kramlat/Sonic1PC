@@ -176,7 +176,7 @@ static void DrawPianoRow(SDL_Renderer *r, int strip_x, int y, int strip_w, int r
 }
 
 int main(int argc, char **argv) {
-    uint8_t song_id = (argc > 1) ? (uint8_t)strtol(argv[1], NULL, 16) : 0x81;
+    uint8_t song_id = (argc > 1) ? (uint8_t)strtol(argv[1], NULL, 16) : 0x01;
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
         fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());

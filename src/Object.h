@@ -121,7 +121,7 @@ typedef enum {
 	/*69*/ ObjId_69,
 	/*6A*/ ObjId_6A,
 	/*6B*/ ObjId_6B,
-	/*6C*/ ObjId_6C,
+	/*6C*/ ObjId_VanishPlatform,
 	/*6D*/ ObjId_6D,
 	/*6E*/ ObjId_6E,
 	/*6F*/ ObjId_6F,

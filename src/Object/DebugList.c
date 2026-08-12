@@ -35,6 +35,7 @@ extern const uint8_t Mappings_HiddenBonuses[]; // Object/HiddenBonus.c
 extern const uint8_t Mappings_SLZPlatforms[];     // Object/BasicPlatform.c
 extern const uint8_t Mappings_SYZPlatforms[];     // Object/BasicPlatform.c
 extern const uint8_t Mappings_CollapsingFloors[]; // Object/CollapseFloor.c
+extern const uint8_t Mappings_VanishingPlatforms[]; // Object/VanishingPlatform.c
 extern const uint8_t Mappings_Scenery[];          // Object/Scenery.c (SLZ fireball launcher variant)
 extern const uint8_t Mappings_MZBricks[];             // Object/MarbleBrick.c
 extern const uint8_t Mappings_SmashableGreenBlock[];  // Object/SmashBlock.c
@@ -332,7 +333,7 @@ static const DebugListEntry DebugList_SBZ[] = {
     NULL_ENTRY, // Scrap Stomp -- not ported
     NULL_ENTRY, // Saws -- not ported
     NULL_ENTRY, // Scrap Stomp -- not ported
-    NULL_ENTRY, // Vanishing Platform -- not ported
+    {ObjId_VanishPlatform, Mappings_VanishingPlatforms, TILE_MAP(0, 2, 0, 0, 0x4C3), 0, 0, NULL, 0, 0, 0}, // ArtTile_SBZ_Vanishing_Block | Tile_Pal3
     NULL_ENTRY, // Flamethrower -- not ported
     NULL_ENTRY, // Flamethrower -- not ported
     NULL_ENTRY, // Electro -- not ported

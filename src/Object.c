@@ -83,6 +83,7 @@ void Obj_SmashWall(Object *obj);
 void Obj_Scenery(Object *obj);
 void Obj_CollapseLedge(Object *obj);
 void Obj_CollapseFloor(Object *obj);
+void Obj_VanishPlatform(Object *obj);
 void Obj_Helix(Object *obj);
 void Obj_MarbleBrick(Object *obj);
 void Obj_Button(Object *obj);
@@ -211,7 +212,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_69                  */ Obj_Null,
 	/* ObjId_6A                  */ Obj_Null,
 	/* ObjId_6B                  */ Obj_Null,
-	/* ObjId_6C                  */ Obj_Null,
+	/* ObjId_VanishPlatform      */ Obj_VanishPlatform,
 	/* ObjId_6D                  */ Obj_Null,
 	/* ObjId_6E                  */ Obj_Null,
 	/* ObjId_6F                  */ Obj_Null,

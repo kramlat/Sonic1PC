@@ -48,7 +48,7 @@ void Obj_SwingingPlatform(Object *obj) {
 
             if (LEVEL_ZONE(level_id) == ZoneId_SLZ) {
                 obj->mappings = Mappings_SLZSwing;
-                obj->tile = TILE_MAP(0, 2, 0, 0, 0x300); // ArtTile_SLZ_Swing
+                obj->tile = TILE_MAP(0, 2, 0, 0, 0x3DC); // ArtTile_SLZ_Swing
                 obj->width_pixels = 0x20;
                 obj->y_rad = 0x10;
                 obj->col_type = 0x99;
@@ -56,7 +56,7 @@ void Obj_SwingingPlatform(Object *obj) {
 
             if (LEVEL_ZONE(level_id) == ZoneId_SBZ) {
                 obj->mappings = Mappings_BigSpikedBall;
-                obj->tile = TILE_MAP(0, 0, 0, 0, 0x300); // ArtTile_SBZ_Swing
+                obj->tile = TILE_MAP(0, 0, 0, 0, 0x391); // ArtTile_SBZ_Swing (Art_SYZSpike1, reused for SBZ)
                 obj->width_pixels = 0x18;
                 obj->y_rad = 0x18;
                 obj->col_type = 0x86;
