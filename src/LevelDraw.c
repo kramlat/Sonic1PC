@@ -597,8 +597,6 @@ void LoadTiles(const uint8_t *source, uint16_t count) {
 #include "Resource/Art/GHZWaterfall.h"
 #include "Resource/Art/BigRing.h"
 
-#define ArtTile_Giant_Ring 0x400
-
 static void AniArt_GiantRing(void) {
     const uint16_t size = 14;
 
@@ -666,11 +664,6 @@ typedef void (*MagmaShiftFunc)(const uint8_t*, uint16_t);
 #include "Resource/Art/MZLava1.h"
 #include "Resource/Art/MZLava2.h"
 #include "Resource/Art/MZTorch.h"
-
-#define ArtTile_MZ_Animated_Magma 0x2E2
-#define ArtTile_MZ_Animated_Lava 0x2D2
-#define ArtTile_MZ_Torch 0x2F2
-
 
 void MagmaRow_Shift0(const uint8_t *src, uint16_t lines) {
 	do {
@@ -791,7 +784,7 @@ void AniArt_MZLava(void) {
 		if (++level_anim[LAVA_ANIM].frame >= 3)
 			level_anim[LAVA_ANIM].frame = 0;
 		const uint8_t *src = Art_MZLava1 + (level_anim[LAVA_ANIM].frame * TILE_COUNT * TILE_SIZE);
-		VDP_SeekVRAM(ArtTile_MZ_Animated_Magma * TILE_SIZE);
+		VDP_SeekVRAM(ArtTile_MZ_Animated_Lava * TILE_SIZE);
 		LoadTiles(src, TILE_COUNT - 1);
 	}
 }
@@ -808,7 +801,7 @@ void AniArt_MZMagma(void) {
 		level_anim[MAGMA_ANIM].time = 2 - 1;
 		uint32_t bank_offset = (uint32_t)level_anim[LAVA_ANIM].frame << 9;
 		const uint8_t *magma_art = Art_MZLava2 + bank_offset;
-		VDP_SeekVRAM(ArtTile_MZ_Animated_Lava * TILE_SIZE);
+		VDP_SeekVRAM(ArtTile_MZ_Animated_Magma * TILE_SIZE);
 		uint8_t osc_val = (uint8_t)(oscillatory.state[4][0] >> 8);
 		for (int chunk = 0; chunk < 4; chunk++) {
 			uint8_t table_idx = (osc_val * 2) & 0x1E;
@@ -835,9 +828,6 @@ void AniArt_MZTorch(void) {
 #define SBZ_SMOKE1       0 // uses time and frame (v_lani0)
 #define SBZ_SMOKE2       1 // uses time and frame (v_lani1)
 #define SBZ_SMOKE_TIMER  2 // frame = primary puff cooldown (v_lani2_frame), time = secondary puff cooldown (v_lani2_time)
-
-#define ArtTile_SBZ_Smoke_Puff_1 0x448
-#define ArtTile_SBZ_Smoke_Puff_2 0x454
 
 #include "Resource/Art/SBZSmoke.h"
 

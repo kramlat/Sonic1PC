@@ -2,6 +2,7 @@
 
 #include "PLC.h"
 
+#include "Constants.h"
 #include "Nemesis.h"
 
 #include "Backend/VDP.h"
@@ -166,11 +167,11 @@ typedef struct {
 static const PLCList PLC_Main = {
     5,
     (const PLC[]) {
-        { Art_Lamppost,      0xD800 }, // moved from 0xF400 to make room for the Spin Dash dust (see Splash.h)
-        { Art_HUD,           0xD940 },
-        { Art_HUDLife,       0xFA80 },
-        { Art_Ring,          0xF640 },
-        { Art_Points,        0xF2E0 },
+        { Art_Lamppost,      0xD800 }, // moved from ART_VRAM(ArtTile_Lamppost) to make room for the Spin Dash dust (see Splash.h)
+        { Art_HUD,           ART_VRAM(ArtTile_HUD) },
+        { Art_HUDLife,       ART_VRAM(ArtTile_Lives_Counter) },
+        { Art_Ring,          ART_VRAM(ArtTile_Ring) },
+        { Art_Points,        ART_VRAM(ArtTile_Points) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -179,9 +180,9 @@ static const PLCList PLC_Main = {
 static const PLCList PLC_Main2 = {
     3,
     (const PLC[]) {
-        { Art_Monitor,       0xD000 },
-        { Art_Shield,        0xA820 },
-        { Art_Invincibility, 0xAB80 },
+        { Art_Monitor,       ART_VRAM(ArtTile_Monitor) },
+        { Art_Shield,        ART_VRAM(ArtTile_Shield) },
+        { Art_Invincibility, ART_VRAM(ArtTile_Invincibility) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -190,7 +191,7 @@ static const PLCList PLC_Main2 = {
 static const PLCList PLC_Explode = {
     1,
     (const PLC[]) {
-        { Art_Explosion,     0xB400 },
+        { Art_Explosion,     ART_VRAM(ArtTile_Explosion) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -199,7 +200,7 @@ static const PLCList PLC_Explode = {
 static const PLCList PLC_GameOver = {
     1,
     (const PLC[]) {
-        { Art_GameOver,      0xABC0 },
+        { Art_GameOver,      ART_VRAM(ArtTile_Game_Over) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -208,28 +209,28 @@ static const PLCList PLC_GameOver = {
 static const PLCList PLC_GHZ = {
     10,
     (const PLC[]) {
-        { Art_GHZStalk,      0x6B00 },
-        { Art_GHZRock,       0x7A00 },
-        { Art_Crabmeat,      0x8000 },
-        { Art_BuzzBomber,    0x8880 },
-        { Art_Chopper,       0x8F60 },
-        { Art_Newtron,       0x9360 },
-        { Art_Motobug,       0x9E00 },
-        { Art_Spikes,        0xA360 },
-        { Art_SpringH,       0xA460 },
-        { Art_SpringV,       0xA660 },
+        { Art_GHZStalk,      ART_VRAM(ArtTile_GHZ_Flower_Stalk) },
+        { Art_GHZRock,       ART_VRAM(ArtTile_GHZ_Purple_Rock) },
+        { Art_Crabmeat,      ART_VRAM(ArtTile_Crabmeat) },
+        { Art_BuzzBomber,    ART_VRAM(ArtTile_Buzz_Bomber) },
+        { Art_Chopper,       ART_VRAM(ArtTile_Chopper) },
+        { Art_Newtron,       ART_VRAM(ArtTile_Newtron) },
+        { Art_Motobug,       ART_VRAM(ArtTile_Moto_Bug) },
+        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
+        { Art_SpringH,       ART_VRAM(ArtTile_Spring_Horizontal) },
+        { Art_SpringV,       ART_VRAM(ArtTile_Spring_Vertical) },
     }
 };
 
 static const PLCList PLC_GHZ2 = {
     6,
     (const PLC[]) {
-        { Art_GHZSwing,      0x7000 },
-        { Art_GHZBridge,     0x71C0 },
-        { Art_GHZLog,        0x7300 },
-        { Art_GHZBall,       0x7540 },
-        { Art_GHZWall1,      0xA1E0 },
-        { Art_GHZWall2,      0x6980 },
+        { Art_GHZSwing,      ART_VRAM(ArtTile_GHZ_MZ_Swing) },
+        { Art_GHZBridge,     ART_VRAM(ArtTile_GHZ_Bridge) },
+        { Art_GHZLog,        ART_VRAM(ArtTile_GHZ_Spike_Pole) },
+        { Art_GHZBall,       ART_VRAM(ArtTile_GHZ_Giant_Ball) },
+        { Art_GHZWall1,      ART_VRAM(ArtTile_GHZ_SLZ_Smashable_Wall) },
+        { Art_GHZWall2,      ART_VRAM(ArtTile_GHZ_Edge_Wall) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -238,35 +239,35 @@ static const PLCList PLC_GHZ2 = {
 static const PLCList PLC_LZ = {
     10,
     (const PLC[]) {
-        { Art_LZBlock1,      0x3C00 },
-        { Art_LZBlock2,      0x3E00 },
-        { Art_Water,         0x6000 },
-        { Art_LZSpikeBall,   0x6200 },
-        { Art_FlapDoor,      0x6500 },
-        { Art_Bubbles,       0x6900 },
-        { Art_LZBlock3,      0x7780 },
-        { Art_LZDoor1,       0x7880 },
-        { Art_Harpoon,       0x7980 },
-        { Art_Burrobot,      0x94C0 },
+        { Art_LZBlock1,      ART_VRAM(ArtTile_LZ_Block_1) },
+        { Art_LZBlock2,      ART_VRAM(ArtTile_LZ_Block_2) },
+        { Art_Water,         ART_VRAM(ArtTile_LZ_Water_Surface) },
+        { Art_LZSpikeBall,   ART_VRAM(ArtTile_LZ_Spikeball_Chain) },
+        { Art_FlapDoor,      ART_VRAM(ArtTile_LZ_Flapping_Door) },
+        { Art_Bubbles,       ART_VRAM(ArtTile_LZ_Bubbles) },
+        { Art_LZBlock3,      ART_VRAM(ArtTile_LZ_Moving_Block) },
+        { Art_LZDoor1,       ART_VRAM(ArtTile_LZ_Door) },
+        { Art_Harpoon,       ART_VRAM(ArtTile_LZ_Harpoon) },
+        { Art_Burrobot,      ART_VRAM(ArtTile_Burrobot) },
     }
 };
 
 static const PLCList PLC_LZ2 = {
     13,
     (const PLC[]) {
-        { Art_LZPole,        0x7BC0 },
-        { Art_LZDoor2,       0x7CC0 },
-        { Art_LZWheel,       0x7EC0 },
-        { Art_Gargoyle,      0x5D20 },
-        { Art_LZSonic,       0x8800 },
-        { Art_LZPlatfm,      0x89E0 },
-        { Art_Orbinaut,      0x8CE0 },
-        { Art_Jaws,          0x90C0 },
-        { Art_LZSwitch,      0xA1E0 },
-        { Art_Cork,          0xA000 },
-        { Art_Spikes,        0xA360 },
-        { Art_SpringH,       0xA460 },
-        { Art_SpringV,       0xA660 },
+        { Art_LZPole,        ART_VRAM(ArtTile_LZ_Pole) },
+        { Art_LZDoor2,       ART_VRAM(ArtTile_LZ_Blocks) },
+        { Art_LZWheel,       ART_VRAM(ArtTile_LZ_Conveyor_Belt) },
+        { Art_Gargoyle,      ART_VRAM(ArtTile_LZ_Gargoyle) },
+        { Art_LZSonic,       ART_VRAM(ArtTile_LZ_Sonic_Drowning) },
+        { Art_LZPlatfm,      ART_VRAM(ArtTile_LZ_Rising_Platform) },
+        { Art_Orbinaut,      ART_VRAM(ArtTile_LZ_Orbinaut) },
+        { Art_Jaws,          ART_VRAM(ArtTile_Jaws) },
+        { Art_LZSwitch,      ART_VRAM(ArtTile_GHZ_SLZ_Smashable_Wall) },
+        { Art_Cork,          ART_VRAM(ArtTile_LZ_Cork) },
+        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
+        { Art_SpringH,       ART_VRAM(ArtTile_Spring_Horizontal) },
+        { Art_SpringV,       ART_VRAM(ArtTile_Spring_Vertical) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -275,26 +276,26 @@ static const PLCList PLC_LZ2 = {
 static const PLCList PLC_MZ = {
     9,
     (const PLC[]) {
-        { Art_MZMetal,       0x6000 },
-        { Art_MZFire,        0x68A0 },
-        { Art_GHZSwing,      0x7000 },
-        { Art_MZGlass,       0x71C0 },
-        { Art_Lava,          0x7500 },
-        { Art_BuzzBomber,    0x8880 },
-        { Art_Yadrin,        0x8F60 },
-        { Art_Basaran,       0x9700 },
-        { Art_Caterkiller,   0x9FE0 },
+        { Art_MZMetal,       ART_VRAM(ArtTile_MZ_Spike_Stomper) },
+        { Art_MZFire,        ART_VRAM(ArtTile_MZ_Fireball) },
+        { Art_GHZSwing,      ART_VRAM(ArtTile_GHZ_MZ_Swing) },
+        { Art_MZGlass,       ART_VRAM(ArtTile_MZ_Glass_Pillar) },
+        { Art_Lava,          ART_VRAM(ArtTile_MZ_Lava) },
+        { Art_BuzzBomber,    ART_VRAM(ArtTile_Buzz_Bomber) },
+        { Art_Yadrin,        ART_VRAM(ArtTile_Yadrin) },
+        { Art_Basaran,       ART_VRAM(ArtTile_Basaran) },
+        { Art_Caterkiller,   ART_VRAM(ArtTile_MZ_SYZ_Caterkiller) },
     }
 };
 
 static const PLCList PLC_MZ2 = {
     5,
     (const PLC[]) {
-        { Art_MZSwitch,      0xA260 },
-        { Art_Spikes,        0xA360 },
-        { Art_SpringH,       0xA460 },
-        { Art_SpringV,       0xA660 },
-        { Art_MZBlock,       0x5700 },
+        { Art_MZSwitch,      ART_VRAM(ArtTile_Button_Main) },
+        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
+        { Art_SpringH,       ART_VRAM(ArtTile_Spring_Horizontal) },
+        { Art_SpringV,       ART_VRAM(ArtTile_Spring_Vertical) },
+        { Art_MZBlock,       ART_VRAM(ArtTile_MZ_Block) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -303,26 +304,26 @@ static const PLCList PLC_MZ2 = {
 static const PLCList PLC_SLZ = {
     8,
     (const PLC[]) {
-        { Art_Bomb,          0x8520 },
-        { Art_Orbinaut,      0x8520 },
-        { Art_MZFire,        0x9000 },
-        { Art_SLZBlock,      0x9C00 },
-        { Art_SLZWall,       0xA260 },
-        { Art_Spikes,        0xA360 },
-        { Art_SpringH,       0xA460 },
-        { Art_SpringV,       0xA660 },
+        { Art_Bomb,          ART_VRAM(ArtTile_SLZ_Orbinaut) }, // shares the Orbinaut slot -- not simultaneously loaded
+        { Art_Orbinaut,      ART_VRAM(ArtTile_SLZ_Orbinaut) },
+        { Art_MZFire,        ART_VRAM(ArtTile_SLZ_Fireball) },
+        { Art_SLZBlock,      ART_VRAM(ArtTile_SLZ_Collapsing_Floor) },
+        { Art_SLZWall,       ART_VRAM(ArtTile_Button_Main) },
+        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
+        { Art_SpringH,       ART_VRAM(ArtTile_Spring_Horizontal) },
+        { Art_SpringV,       ART_VRAM(ArtTile_Spring_Vertical) },
     }
 };
 
 static const PLCList PLC_SLZ2 = {
     6,
     (const PLC[]) {
-        { Art_Seesaw,        0x6E80 },
-        { Art_Fan,           0x7400 },
-        { Art_Pylon,         0x7980 },
-        { Art_SLZSwing,      0x7B80 },
-        { Art_SLZCannon,     0x9B00 },
-        { Art_SLZSpike,      0x9E00 },
+        { Art_Seesaw,        ART_VRAM(ArtTile_SLZ_Seesaw) },
+        { Art_Fan,           ART_VRAM(ArtTile_SLZ_Fan) },
+        { Art_Pylon,         ART_VRAM(ArtTile_SLZ_Pylon) },
+        { Art_SLZSwing,      ART_VRAM(ArtTile_SLZ_Swing) },
+        { Art_SLZCannon,     ART_VRAM(ArtTile_SLZ_Fireball_Launcher) },
+        { Art_SLZSpike,      ART_VRAM(ArtTile_SLZ_Spikeball) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -331,24 +332,24 @@ static const PLCList PLC_SLZ2 = {
 static const PLCList PLC_SYZ = {
     4,
     (const PLC[]) {
-        { Art_Crabmeat,      0x8000 },
-        { Art_BuzzBomber,    0x8880 },
-        { Art_Yadrin,        0x8F60 },
-        { Art_Roller,        0x9700 },
+        { Art_Crabmeat,      ART_VRAM(ArtTile_Crabmeat) },
+        { Art_BuzzBomber,    ART_VRAM(ArtTile_Buzz_Bomber) },
+        { Art_Yadrin,        ART_VRAM(ArtTile_Yadrin) },
+        { Art_Roller,        ART_VRAM(ArtTile_Roller) },
     }
 };
 
 static const PLCList PLC_SYZ2 = {
     8,
     (const PLC[]) {
-        { Art_Bumper,        0x7000 },
-        { Art_SYZSpike1,     0x72C0 },
-        { Art_SYZSpike2,     0x7740 },
-        { Art_Caterkiller,   0x9FE0 },
-        { Art_LZSwitch,      0xA1E0 },
-        { Art_Spikes,        0xA360 },
-        { Art_SpringH,       0xA460 },
-        { Art_SpringV,       0xA660 },
+        { Art_Bumper,        ART_VRAM(ArtTile_SYZ_Bumper) },
+        { Art_SYZSpike1,     ART_VRAM(ArtTile_SYZ_Big_Spikeball) },
+        { Art_SYZSpike2,     ART_VRAM(ArtTile_SYZ_Spikeball_Chain) },
+        { Art_Caterkiller,   ART_VRAM(ArtTile_MZ_SYZ_Caterkiller) },
+        { Art_LZSwitch,      ART_VRAM(ArtTile_GHZ_SLZ_Smashable_Wall) },
+        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
+        { Art_SpringH,       ART_VRAM(ArtTile_Spring_Horizontal) },
+        { Art_SpringV,       ART_VRAM(ArtTile_Spring_Vertical) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -357,36 +358,36 @@ static const PLCList PLC_SYZ2 = {
 static const PLCList PLC_SBZ = {
     11,
     (const PLC[]) {
-        { Art_Stomper,       0x5800 },
-        { Art_SBZDoor1,      0x5D00 },
-        { Art_Girder,        0x5E00 },
-        { Art_Ballhog,       0x6040 },
-        { Art_SBZWheel1,     0x6880 },
-        { Art_SBZWheel2,     0x6900 },
-        { Art_SYZSpike1,     0x7220 },
-        { Art_Cutter,        0x76A0 },
-        { Art_FlamePipe,     0x7B20 },
-        { Art_SBZFloor,      0x7EA0 },
-        { Art_SBZBlock,      0x9860 },
+        { Art_Stomper,       ART_VRAM(ArtTile_SBZ_Moving_Block_Short) },
+        { Art_SBZDoor1,      ART_VRAM(ArtTile_SBZ_Door) },
+        { Art_Girder,        ART_VRAM(ArtTile_SBZ_Girder) },
+        { Art_Ballhog,       ART_VRAM(ArtTile_Ball_Hog) },
+        { Art_SBZWheel1,     ART_VRAM(ArtTile_SBZ_Disc) },
+        { Art_SBZWheel2,     ART_VRAM(ArtTile_SBZ_Junction) },
+        { Art_SYZSpike1,     ART_VRAM(ArtTile_SBZ_Swing) },
+        { Art_Cutter,        ART_VRAM(ArtTile_SBZ_Saw) },
+        { Art_FlamePipe,     ART_VRAM(ArtTile_SBZ_Flamethrower) },
+        { Art_SBZFloor,      ART_VRAM(ArtTile_SBZ_Collapsing_Floor) },
+        { Art_SBZBlock,      ART_VRAM(ArtTile_SBZ_Vanishing_Block) },
     }
 };
 
 static const PLCList PLC_SBZ2 = {
     13,
     (const PLC[]) {
-        { Art_Caterkiller,   0x5600 },
-        { Art_Bomb,          0x8000 },
-        { Art_Orbinaut,      0x8520 },
-        { Art_SlideFloor,    0x8C00 },
-        { Art_SBZDoor2,      0x8DE0 },
-        { Art_Electric,      0x8FC0 },
-        { Art_TrapDoor,      0x9240 },
-        { Art_SBZFloor,      0x7F20 },
-        { Art_SPinPform,     0x9BE0 },
-        { Art_LZSwitch,      0xA1E0 },
-        { Art_Spikes,        0xA360 },
-        { Art_SpringH,       0xA460 },
-        { Art_SpringV,       0xA660 },
+        { Art_Caterkiller,   ART_VRAM(ArtTile_SBZ_Caterkiller) },
+        { Art_Bomb,          ART_VRAM(ArtTile_Bomb) },
+        { Art_Orbinaut,      ART_VRAM(ArtTile_SBZ_Orbinaut) },
+        { Art_SlideFloor,    ART_VRAM(ArtTile_SBZ_Moving_Block_Long) },
+        { Art_SBZDoor2,      ART_VRAM(ArtTile_SBZ_Horizontal_Door) },
+        { Art_Electric,      ART_VRAM(ArtTile_SBZ_Electric_Orb) },
+        { Art_TrapDoor,      ART_VRAM(ArtTile_SBZ_Trap_Door) },
+        { Art_SBZFloor,      0x7F20 }, // SBZ2's own variant offset for the same art -- no separate real constant
+        { Art_SPinPform,     ART_VRAM(ArtTile_SBZ_Spinning_Platform) },
+        { Art_LZSwitch,      ART_VRAM(ArtTile_GHZ_SLZ_Smashable_Wall) },
+        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
+        { Art_SpringH,       ART_VRAM(ArtTile_Spring_Horizontal) },
+        { Art_SpringV,       ART_VRAM(ArtTile_Spring_Vertical) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -395,7 +396,7 @@ static const PLCList PLC_SBZ2 = {
 static const PLCList PLC_TitleCard = {
    1,
     (const PLC[]) {
-        { Art_TitleCard,     0xB000 },
+        { Art_TitleCard,     ART_VRAM(ArtTile_Title_Card) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -404,12 +405,12 @@ static const PLCList PLC_TitleCard = {
 static const PLCList PLC_Boss = {
     6,
     (const PLC[]) {
-        { Art_Eggman,        0x8000 },
-        { Art_Weapons,       0x8D80 },
-        { Art_Prison,        0x93A0 },
-        { Art_Bomb,          0xA300 },
-        { Art_SLZSpike,      0xA300 },
-        { Art_Exhaust,       0xA540 },
+        { Art_Eggman,        ART_VRAM(ArtTile_Eggman) },
+        { Art_Weapons,       ART_VRAM(ArtTile_Eggman_Weapons) },
+        { Art_Prison,        ART_VRAM(ArtTile_Prison_Capsule) },
+        { Art_Bomb,          ART_VRAM(ArtTile_Eggman_Spikeball) },
+        { Art_SLZSpike,      ART_VRAM(ArtTile_Eggman_Spikeball) },
+        { Art_Exhaust,       ART_VRAM(ArtTile_Eggman_Exhaust) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -418,9 +419,9 @@ static const PLCList PLC_Boss = {
 static const PLCList PLC_Signpost = {
     3,
     (const PLC[]) {
-        { Art_Signpost,      0xD000 },
-        { Art_HiddenBonus,   0x96C0 },
-        { Art_BigFlash,      0x8C40 },
+        { Art_Signpost,      ART_VRAM(ArtTile_Signpost) },
+        { Art_HiddenBonus,   ART_VRAM(ArtTile_Hidden_Points) },
+        { Art_BigFlash,      ART_VRAM(ArtTile_Giant_Ring_Flash) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -429,7 +430,7 @@ static const PLCList PLC_Signpost = {
 static const PLCList PLC_Warp = {
     1,
     (const PLC[]) {
-        { Art_Warp,          0x8C40 },
+        { Art_Warp,          ART_VRAM(ArtTile_Giant_Ring_Flash) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -438,27 +439,27 @@ static const PLCList PLC_Warp = {
 static const PLCList PLC_SpecialStage = {
     17,
     (const PLC[]) {
-        { Art_SSClouds,      0x0000 },
-        { Art_SSBack,        0x0A20 },
-        { Art_SSWall,        0x2840 },
-        { Art_Bumper,        0x4760 },
-        { Art_SSGoal,        0x4A20 },
-        { Art_SSSpeed,       0x4C60 },
-        { Art_SSRotate,      0x5E00 },
-        { Art_SSLife,        0x6E00 },
-        { Art_SSTwinkle,     0x7E00 },
-        { Art_SSChecker,     0x8E00 },
-        { Art_SSGhost,       0x9E00 },
-        { Art_SSWarp,        0xAE00 },
-        { Art_SSGlass,       0xBE00 },
-        { Art_SSEmerald,     0xEE00 },
-        { Art_SSZone1,       0xF2E0 },
-        { Art_SSZone2,       0xF400 },
-        { Art_SSZone3,       0xF520 },
+        { Art_SSClouds,      ART_VRAM(ArtTile_SS_Background_Clouds) },
+        { Art_SSBack,        ART_VRAM(ArtTile_SS_Background_Fish) },
+        { Art_SSWall,        ART_VRAM(ArtTile_SS_Wall) },
+        { Art_Bumper,        ART_VRAM(ArtTile_SS_Bumper) },
+        { Art_SSGoal,        ART_VRAM(ArtTile_SS_Goal) },
+        { Art_SSSpeed,       ART_VRAM(ArtTile_SS_Up_Down) },
+        { Art_SSRotate,      ART_VRAM(ArtTile_SS_R_Block) },
+        { Art_SSLife,        ART_VRAM(ArtTile_SS_Extra_Life) },
+        { Art_SSTwinkle,     ART_VRAM(ArtTile_SS_Emerald_Sparkle) },
+        { Art_SSChecker,     ART_VRAM(ArtTile_SS_Red_White_Block) },
+        { Art_SSGhost,       ART_VRAM(ArtTile_SS_Ghost_Block) },
+        { Art_SSWarp,        ART_VRAM(ArtTile_SS_W_Block) },
+        { Art_SSGlass,       ART_VRAM(ArtTile_SS_Glass) },
+        { Art_SSEmerald,     ART_VRAM(ArtTile_SS_Emerald) },
+        { Art_SSZone1,       ART_VRAM(ArtTile_SS_Zone_1) },
+        { Art_SSZone2,       ART_VRAM(ArtTile_SS_Zone_2) },
+        { Art_SSZone3,       ART_VRAM(ArtTile_SS_Zone_3) },
         // These last 3 are unused
-        { Art_SSZone4,       0xF2E0 },
-        { Art_SSZone5,       0xF400 },
-        { Art_SSZone6,       0xF520 },
+        { Art_SSZone4,       ART_VRAM(ArtTile_SS_Zone_4) },
+        { Art_SSZone5,       ART_VRAM(ArtTile_SS_Zone_5) },
+        { Art_SSZone6,       ART_VRAM(ArtTile_SS_Zone_6) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -467,8 +468,8 @@ static const PLCList PLC_SpecialStage = {
 static const PLCList PLC_GHZAnimals = {
     2,
     (const PLC[]) {
-        { Art_Rabbit,        0xB000 },
-        { Art_Flicky,        0xB240 },
+        { Art_Rabbit,        ART_VRAM(ArtTile_Animal_1) },
+        { Art_Flicky,        ART_VRAM(ArtTile_Animal_2) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -477,8 +478,8 @@ static const PLCList PLC_GHZAnimals = {
 static const PLCList PLC_LZAnimals = {
     2,
     (const PLC[]) {
-        { Art_Penguin,       0xB000 },
-        { Art_Seal,          0xB240 },
+        { Art_Penguin,       ART_VRAM(ArtTile_Animal_1) },
+        { Art_Seal,          ART_VRAM(ArtTile_Animal_2) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -487,8 +488,8 @@ static const PLCList PLC_LZAnimals = {
 static const PLCList PLC_MZAnimals = {
     2,
     (const PLC[]) {
-        { Art_Squirrel,      0xB000 },
-        { Art_Seal,          0xB240 },
+        { Art_Squirrel,      ART_VRAM(ArtTile_Animal_1) },
+        { Art_Seal,          ART_VRAM(ArtTile_Animal_2) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -497,8 +498,8 @@ static const PLCList PLC_MZAnimals = {
 static const PLCList PLC_SLZAnimals = {
     2,
     (const PLC[]) {
-        { Art_Pig,           0xB000 },
-        { Art_Flicky,        0xB240 },
+        { Art_Pig,           ART_VRAM(ArtTile_Animal_1) },
+        { Art_Flicky,        ART_VRAM(ArtTile_Animal_2) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -507,8 +508,8 @@ static const PLCList PLC_SLZAnimals = {
 static const PLCList PLC_SYZAnimals = {
     2,
     (const PLC[]) {
-        { Art_Pig,           0xB000 },
-        { Art_Chicken,       0xB240 },
+        { Art_Pig,           ART_VRAM(ArtTile_Animal_1) },
+        { Art_Chicken,       ART_VRAM(ArtTile_Animal_2) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -517,8 +518,8 @@ static const PLCList PLC_SYZAnimals = {
 static const PLCList PLC_SBZAnimals = {
     2,
     (const PLC[]) {
-        { Art_Rabbit,        0xB000 },
-        { Art_Chicken,       0xB240 },
+        { Art_Rabbit,        ART_VRAM(ArtTile_Animal_1) },
+        { Art_Chicken,       ART_VRAM(ArtTile_Animal_2) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -527,8 +528,8 @@ static const PLCList PLC_SBZAnimals = {
 static const PLCList PLC_SSResult = {
     2,
     (const PLC[]) {
-        { Art_ResultEm,      0xA820 },
-        { Art_MiniSonic,     0xAA20 },
+        { Art_ResultEm,      ART_VRAM(ArtTile_SS_Results_Emeralds) },
+        { Art_MiniSonic,     ART_VRAM(ArtTile_Mini_Sonic) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -537,19 +538,19 @@ static const PLCList PLC_SSResult = {
 static const PLCList PLC_Ending = {
     13,
     (const PLC[]) {
-        { Art_GHZStalk,      0x6B00 },
-        { Art_EndFlower,     0x7400 },
-        { Art_EndEm,         0x78A0 },
-        { Art_EndSonic,      0x7C20 },
-        { Art_EndEggman,     0xA480 },
-        { Art_Rabbit,        0xAA60 },
-        { Art_Chicken,       0xACA0 },
-        { Art_Penguin,       0xAE60 },
-        { Art_Seal,          0xB0A0 },
-        { Art_Pig,           0xB260 },
-        { Art_Flicky,        0xB4A0 },
-        { Art_Squirrel,      0xB660 },
-        { Art_EndStH,        0xB8A0 },
+        { Art_GHZStalk,      ART_VRAM(ArtTile_GHZ_Flower_Stalk) },
+        { Art_EndFlower,     ART_VRAM(ArtTile_Ending_Flowers) },
+        { Art_EndEm,         ART_VRAM(ArtTile_Ending_Emeralds) },
+        { Art_EndSonic,      ART_VRAM(ArtTile_Ending_Sonic) },
+        { Art_EndEggman,     ART_VRAM(ArtTile_Ending_Eggman) },
+        { Art_Rabbit,        ART_VRAM(ArtTile_Ending_Rabbit) },
+        { Art_Chicken,       ART_VRAM(ArtTile_Ending_Chicken) },
+        { Art_Penguin,       ART_VRAM(ArtTile_Ending_Penguin) },
+        { Art_Seal,          ART_VRAM(ArtTile_Ending_Seal) },
+        { Art_Pig,           ART_VRAM(ArtTile_Ending_Pig) },
+        { Art_Flicky,        ART_VRAM(ArtTile_Ending_Flicky) },
+        { Art_Squirrel,      ART_VRAM(ArtTile_Ending_Squirrel) },
+        { Art_EndStH,        ART_VRAM(ArtTile_Ending_STH) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -558,9 +559,9 @@ static const PLCList PLC_Ending = {
 static const PLCList PLC_TryAgain = {
     3,
     (const PLC[]) {
-        { Art_EndEm,         0x78A0 },
-        { Art_TryAgain,      0x7C20 },
-        { Art_CreditText,    0xB400 },
+        { Art_EndEm,         ART_VRAM(ArtTile_Try_Again_Emeralds) },
+        { Art_TryAgain,      ART_VRAM(ArtTile_Try_Again_Eggman) },
+        { Art_CreditText,    ART_VRAM(ArtTile_Credits_Font) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -569,9 +570,9 @@ static const PLCList PLC_TryAgain = {
 static const PLCList PLC_EggmanSBZ2 = {
     3,
     (const PLC[]) {
-        { Art_SBZBlock,      0xA300 },
-        { Art_SBZ2Eggman,    0x8000 },
-        { Art_LZSwitch,      0x9400 },
+        { Art_SBZBlock,      ART_VRAM(ArtTile_Eggman_Trap_Floor) },
+        { Art_SBZ2Eggman,    ART_VRAM(ArtTile_Eggman) },
+        { Art_LZSwitch,      0x9400 }, // Eggman-SBZ2 boss's own reuse of the switch/wall art -- no separate real constant
     }
 };
 // ---------------------------------------------------------------------------
@@ -580,11 +581,11 @@ static const PLCList PLC_EggmanSBZ2 = {
 static const PLCList PLC_FZBoss = {
     5,
     (const PLC[]) {
-        { Art_FZEggman,      0x7400 },
-        { Art_FZBoss,        0x6000 },
-        { Art_Eggman,        0x8000 },
-        { Art_SBZ2Eggman,    0x8E00 },
-        { Art_Exhaust,       0xA540 },
+        { Art_FZEggman,      ART_VRAM(ArtTile_FZ_Eggman_Fleeing) },
+        { Art_FZBoss,        ART_VRAM(ArtTile_FZ_Boss) },
+        { Art_Eggman,        ART_VRAM(ArtTile_Eggman) },
+        { Art_SBZ2Eggman,    ART_VRAM(ArtTile_FZ_Eggman_No_Vehicle) },
+        { Art_Exhaust,       ART_VRAM(ArtTile_Eggman_Exhaust) },
     }
 };
 
