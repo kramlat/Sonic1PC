@@ -143,6 +143,9 @@ void Obj_BossGreenHill(Object *obj);
 void Obj_BossBall(Object *obj);
 void Obj_PrisonCapsule(Object *obj);
 void Obj_VanishSonic(Object *obj);
+void Obj_MagicSwitch(Object *obj);
+void Obj_BallHog(Object *obj);
+void Obj_Cannonball(Object *obj);
 
 static void (*object_func[])(Object*) = {
 	/* ObjId_Null                */ NULL,
@@ -174,10 +177,10 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_CollapseLedge       */ Obj_CollapseLedge,
 	/* ObjId_WaterSurface        */ Obj_WaterSurface,
 	/* ObjId_Scenery             */ Obj_Scenery,
-	/* ObjId_1D                  */ Obj_Null,
-	/* ObjId_1E                  */ Obj_Null,
+	/* ObjId_MagicSwitch         */ Obj_MagicSwitch,
+	/* ObjId_BallHog             */ Obj_BallHog,
 	/* ObjId_Crabmeat            */ Obj_Crabmeat,
-	/* ObjId_20                  */ Obj_Null,
+	/* ObjId_Cannonball          */ Obj_Cannonball,
 	/* ObjId_HUD                 */ Obj_HUD,
 	/* ObjId_BuzzBomber          */ Obj_BuzzBomber,
 	/* ObjId_BuzzMissile         */ Obj_BuzzMissile,
