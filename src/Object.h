@@ -76,7 +76,7 @@ typedef enum {
 	/*3C*/ ObjId_SmashWall,
 	/*3D*/ ObjId_BossGreenHill,
 	/*3E*/ ObjId_PrisonCapsule,
-	/*3F*/ ObjId_3F,
+	/*3F*/ ObjId_ExplosionBomb,
 	/*40*/ ObjId_Motobug,
 	/*41*/ ObjId_Spring,
 	/*42*/ ObjId_Newtron,

@@ -2281,12 +2281,6 @@
       },
       {
         "smpsAlterVol": "0x7"
-      },
-      {
-        "smpsJump": []
-      },
-      {
-        "smpsJump": []
       }
     ],
     "Mus84_SLZ_PSG3": [

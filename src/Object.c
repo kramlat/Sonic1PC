@@ -57,6 +57,7 @@ void Obj_Ring(Object *obj);
 void Obj_Monitor(Object *obj);
 void Obj_Checkpoint(Object *obj);
 void Obj_Explosion(Object *obj);
+void Obj_ExplosionBomb(Object *obj);
 void Obj_Chopper(Object *obj);
 void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
@@ -211,7 +212,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_SmashWall           */ Obj_SmashWall,
 	/* ObjId_BossGreenHill       */ Obj_BossGreenHill,
 	/* ObjId_PrisonCapsule       */ Obj_PrisonCapsule,
-	/* ObjId_3F                  */ Obj_Null,
+	/* ObjId_ExplosionBomb       */ Obj_ExplosionBomb,
 	/* ObjId_Motobug             */ Obj_Motobug,
 	/* ObjId_Spring              */ Obj_Spring,
 	/* ObjId_Newtron             */ Obj_Newtron,
@@ -677,8 +678,8 @@ void BossDefeated(Object *obj) {
 	if (exp == NULL)
 		return;
 
-	exp->type = ObjId_Explosion;
-	exp->routine = 2; // plain explosion (real id_Explosion, not id_ExplosionItem) -- no animal, no points
+	exp->type = ObjId_ExplosionBomb; // real Object 3F "Explosion" -- fiery boss-wreckage variant (Map_ExplodeBomb + sfx_Bomb), not id_ExplosionItem
+	exp->routine = 0;
 	exp->pos.l.x.f.u = obj->pos.l.x.f.u;
 	exp->pos.l.y.f.u = obj->pos.l.y.f.u;
 

@@ -75,8 +75,8 @@ static void GBall_UpdateBase(Object *obj, Scratch_BossBall *scratch) {
     obj->status.b = parent->status.b;
 
     if (parent->status.o.f.flag7) { // has boss been beaten?
-        obj->type = ObjId_Explosion;
-        obj->routine = 2; // plain explosion -- no animal, no points
+        obj->type = ObjId_ExplosionBomb;
+        obj->routine = 0;
     }
 }
 
@@ -160,8 +160,8 @@ static void GBall_Base2(Object *obj, Scratch_BossBall *scratch) {
 static void GBall_Link(Object *obj, Scratch_BossBall *scratch) {
     Object *parent = &objects[scratch->parent_index];
     if (parent->status.o.f.flag7) { // has Eggman's defeated flag been set?
-        obj->type = ObjId_Explosion;
-        obj->routine = 2; // plain explosion -- no animal, no points
+        obj->type = ObjId_ExplosionBomb;
+        obj->routine = 0;
         return;
     }
     DisplaySprite(obj);
@@ -186,8 +186,8 @@ static void GBall_Ball(Object *obj, Scratch_BossBall *scratch) {
         return;
     }
 
-    obj->type = ObjId_Explosion;
-    obj->routine = 2; // plain explosion -- no animal, no points
+    obj->type = ObjId_ExplosionBomb;
+    obj->routine = 0;
 }
 
 void Obj_BossBall(Object *obj) {

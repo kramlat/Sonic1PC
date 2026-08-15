@@ -4,7 +4,7 @@
 #include "LevelCollision.h"
 
 extern const uint8_t Mappings_BallHog[]; // From Object/BallHog.c
-void Obj_Explosion(Object *obj); // From Object/Explosion.c -- avoid Explosion.h's own #include of the Mappings_Explosion resource (ODR)
+void Obj_ExplosionBomb(Object *obj); // From Object/Explosion.c -- avoid Explosion.h's own #include of the Mappings_Explosion resource (ODR)
 
 // Object 20 - cannonball that Ball Hog throws (SBZ)
 
@@ -28,9 +28,9 @@ static bool CBal_ChkExplode(Object *obj, Scratch_Cannonball *scratch) {
     if (--scratch->time >= 0)
         return false;
 
-    obj->type = ObjId_Explosion;
-    obj->routine = 2; // plain explosion (real id_Explosion, not id_ExplosionItem) -- no animal, no points
-    Obj_Explosion(obj); // real falls straight into the explosion object's own code this same frame
+    obj->type = ObjId_ExplosionBomb; // real Object 3F "Explosion" (Map_ExplodeBomb + sfx_Bomb)
+    obj->routine = 0;
+    Obj_ExplosionBomb(obj); // real falls straight into the explosion object's own code this same frame
     return true;
 }
 

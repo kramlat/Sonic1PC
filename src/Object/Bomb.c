@@ -140,8 +140,8 @@ static void Bom_Action_Walking(Object *obj, Scratch_Bomb *scratch) {
 static void Bom_Action_WaitAndExplode(Object *obj, Scratch_Bomb *scratch) {
     if (--scratch->time >= 0)
         return;
-    obj->type = ObjId_Explosion;
-    obj->routine = 2; // plain explosion (real id_Explosion, not id_ExplosionItem) -- no animal, no points; the actual shrapnel burst comes from the separate fuse object's own Bom_BurnFuseAndExplode
+    obj->type = ObjId_ExplosionBomb; // real Object 3F "Explosion" (Map_ExplodeBomb + sfx_Bomb); the actual shrapnel burst comes from the separate fuse object's own Bom_BurnFuseAndExplode
+    obj->routine = 0;
 }
 
 static void Bom_Action(Object *obj, Scratch_Bomb *scratch) {

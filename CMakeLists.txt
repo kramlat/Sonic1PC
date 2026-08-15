@@ -682,6 +682,7 @@ set(RESOURCES
     "Palette/SSCyc1"
     "Palette/SSCyc2"
     ${ASM}
+    "Mappings/ExplodeBomb"
     "Layout/GHZ1"
     "Layout/GHZ2"
     "Layout/GHZ3"
