@@ -87,7 +87,7 @@ typedef enum {
 	/*47*/ ObjId_Bumper,
 	/*48*/ ObjId_BossBall,
 	/*49*/ ObjId_Waterfall,
-	/*4A*/ ObjId_4A,
+	/*4A*/ ObjId_VanishSonic,
 	/*4B*/ ObjId_GiantRing,
 	/*4C*/ ObjId_GeyserMaker,
 	/*4D*/ ObjId_LavaGeyser,

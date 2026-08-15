@@ -142,6 +142,7 @@ void Obj_Teleporter(Object *obj);
 void Obj_BossGreenHill(Object *obj);
 void Obj_BossBall(Object *obj);
 void Obj_PrisonCapsule(Object *obj);
+void Obj_VanishSonic(Object *obj);
 
 static void (*object_func[])(Object*) = {
 	/* ObjId_Null                */ NULL,
@@ -218,7 +219,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_Bumper              */ Obj_Bumper,
 	/* ObjId_BossBall            */ Obj_BossBall,
 	/* ObjId_Waterfall           */ Obj_Waterfall,
-	/* ObjId_4A                  */ Obj_Null,
+	/* ObjId_VanishSonic         */ Obj_VanishSonic,
 	/* ObjId_GiantRing           */ Obj_GiantRing,
 	/* ObjId_GeyserMaker         */ Obj_GeyserMaker,
 	/* ObjId_LavaGeyser          */ Obj_LavaGeyser,
