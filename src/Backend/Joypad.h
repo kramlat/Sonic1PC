@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 //Joypad bitmask
@@ -32,3 +33,9 @@
 uint8_t Joypad_GetState1(void);
 uint8_t Joypad_GetState2(void);
 uint8_t Joypad_GetExtState1(void);
+
+// Debug console only (Console.c) -- toggles the backend's text-input mode
+// (SDL_StartTextInput/StopTextInput on the SDL2 backend) so typed
+// characters arrive as proper SDL_TEXTINPUT events instead of having to
+// hand-decode raw scancodes/shift state.
+void Joypad_SetTextInputMode(bool enable);

@@ -27,3 +27,11 @@ void System_Quit(void) {
 	//Quit SDL2
 	SDL_Quit();
 }
+
+// Debug console only (Console.c) -- see Backend/Joypad.h's own comment on
+// why these small SDL-specific hooks are forward-declared at their call
+// site rather than exposed through a header, matching MegaDrive.c's own
+// System_Init/System_Quit convention.
+void System_SetClipboardText(const char *text) {
+	SDL_SetClipboardText(text);
+}

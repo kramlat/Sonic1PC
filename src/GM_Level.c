@@ -1,5 +1,6 @@
 #include "GM_Level.h"
 
+#include "Console.h"
 #include "Demo.h"
 #include "Game.h"
 #include "Sound.h"
@@ -433,6 +434,10 @@ GM_Level_Branch:;
     while (1) {
         // Handle pausing the game when pressing Start
         PauseGame();
+
+        // Debug console (SonicSmoke only -- see Console.c's own comment).
+        // No-ops immediately unless console_enabled AND currently open.
+        ConsoleUpdate();
 
         // Run frame
         vbla_routine = 0x08;

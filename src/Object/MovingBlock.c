@@ -140,7 +140,7 @@ void Obj_MovingBlock(Object *obj) {
         obj->render.b = 0;
         obj->render.f.align_fg = true;
 
-        uint8_t index = (obj->scratch.u8[0] >> 3) & 0xF;
+        uint8_t index = obj->scratch.u8[0] >> 4;
         if (index >= 5)
             index = 0;
         obj->width_pixels = mblock_var[index].width;

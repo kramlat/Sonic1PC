@@ -3,6 +3,7 @@
 
 #include "../VDP.h"
 #include "../../Video.h"
+#include "../../Console.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -303,6 +304,168 @@ static void DrawZ80Peek(void) {
     }
 }
 
+// ---------------------------------------------------------------------
+// Debug console overlay (Console.c) -- SonicSmoke only, console_enabled
+// stays false in the real Sonic executable so none of this ever runs
+// there. Needs a real alphabet (command text, variable names), unlike
+// Z80 Peek's hex-only font above, so it gets its own small embedded 3x5
+// dot-matrix font instead of extending Art_Text (which was never meant
+// to cover more than hex digits) -- each glyph written as literal
+// on/off rows right here so it's checkable by eye, not a giant opaque
+// hex table. Uppercase-only (lowercase input is folded to uppercase for
+// display; the console's own command parsing is untouched -- see
+// Console.c, which stores/compares the original typed case).
+// ---------------------------------------------------------------------
+
+// One row per array entry, low 3 bits = left/mid/right pixel (bit2=left).
+static bool GetGlyphRows(char c, uint8_t rows[5]) {
+    if (c >= 'a' && c <= 'z')
+        c = (char)(c - 'a' + 'A');
+    switch (c) {
+        case '0': rows[0]=7; rows[1]=5; rows[2]=5; rows[3]=5; rows[4]=7; return true;
+        case '1': rows[0]=2; rows[1]=6; rows[2]=2; rows[3]=2; rows[4]=7; return true;
+        case '2': rows[0]=7; rows[1]=1; rows[2]=7; rows[3]=4; rows[4]=7; return true;
+        case '3': rows[0]=7; rows[1]=1; rows[2]=3; rows[3]=1; rows[4]=7; return true;
+        case '4': rows[0]=5; rows[1]=5; rows[2]=7; rows[3]=1; rows[4]=1; return true;
+        case '5': rows[0]=7; rows[1]=4; rows[2]=7; rows[3]=1; rows[4]=7; return true;
+        case '6': rows[0]=7; rows[1]=4; rows[2]=7; rows[3]=5; rows[4]=7; return true;
+        case '7': rows[0]=7; rows[1]=1; rows[2]=1; rows[3]=1; rows[4]=1; return true;
+        case '8': rows[0]=7; rows[1]=5; rows[2]=7; rows[3]=5; rows[4]=7; return true;
+        case '9': rows[0]=7; rows[1]=5; rows[2]=7; rows[3]=1; rows[4]=7; return true;
+        case 'A': rows[0]=2; rows[1]=5; rows[2]=7; rows[3]=5; rows[4]=5; return true;
+        case 'B': rows[0]=6; rows[1]=5; rows[2]=6; rows[3]=5; rows[4]=6; return true;
+        case 'C': rows[0]=3; rows[1]=4; rows[2]=4; rows[3]=4; rows[4]=3; return true;
+        case 'D': rows[0]=6; rows[1]=5; rows[2]=5; rows[3]=5; rows[4]=6; return true;
+        case 'E': rows[0]=7; rows[1]=4; rows[2]=6; rows[3]=4; rows[4]=7; return true;
+        case 'F': rows[0]=7; rows[1]=4; rows[2]=6; rows[3]=4; rows[4]=4; return true;
+        case 'G': rows[0]=3; rows[1]=4; rows[2]=5; rows[3]=5; rows[4]=3; return true;
+        case 'H': rows[0]=5; rows[1]=5; rows[2]=7; rows[3]=5; rows[4]=5; return true;
+        case 'I': rows[0]=7; rows[1]=2; rows[2]=2; rows[3]=2; rows[4]=7; return true;
+        case 'J': rows[0]=1; rows[1]=1; rows[2]=1; rows[3]=5; rows[4]=2; return true;
+        case 'K': rows[0]=5; rows[1]=5; rows[2]=6; rows[3]=5; rows[4]=5; return true;
+        case 'L': rows[0]=4; rows[1]=4; rows[2]=4; rows[3]=4; rows[4]=7; return true;
+        case 'M': rows[0]=5; rows[1]=7; rows[2]=7; rows[3]=5; rows[4]=5; return true;
+        case 'N': rows[0]=5; rows[1]=7; rows[2]=7; rows[3]=7; rows[4]=5; return true;
+        case 'O': rows[0]=2; rows[1]=5; rows[2]=5; rows[3]=5; rows[4]=2; return true;
+        case 'P': rows[0]=6; rows[1]=5; rows[2]=6; rows[3]=4; rows[4]=4; return true;
+        case 'Q': rows[0]=2; rows[1]=5; rows[2]=5; rows[3]=2; rows[4]=1; return true;
+        case 'R': rows[0]=6; rows[1]=5; rows[2]=6; rows[3]=5; rows[4]=5; return true;
+        case 'S': rows[0]=3; rows[1]=4; rows[2]=2; rows[3]=1; rows[4]=6; return true;
+        case 'T': rows[0]=7; rows[1]=2; rows[2]=2; rows[3]=2; rows[4]=2; return true;
+        case 'U': rows[0]=5; rows[1]=5; rows[2]=5; rows[3]=5; rows[4]=2; return true;
+        case 'V': rows[0]=5; rows[1]=5; rows[2]=5; rows[3]=5; rows[4]=2; return true;
+        case 'W': rows[0]=5; rows[1]=5; rows[2]=7; rows[3]=7; rows[4]=5; return true;
+        case 'X': rows[0]=5; rows[1]=5; rows[2]=2; rows[3]=5; rows[4]=5; return true;
+        case 'Y': rows[0]=5; rows[1]=5; rows[2]=2; rows[3]=2; rows[4]=2; return true;
+        case 'Z': rows[0]=7; rows[1]=1; rows[2]=2; rows[3]=4; rows[4]=7; return true;
+        case '=': rows[0]=0; rows[1]=7; rows[2]=0; rows[3]=7; rows[4]=0; return true;
+        case '_': rows[0]=0; rows[1]=0; rows[2]=0; rows[3]=0; rows[4]=7; return true;
+        case '-': rows[0]=0; rows[1]=0; rows[2]=7; rows[3]=0; rows[4]=0; return true;
+        case '.': rows[0]=0; rows[1]=0; rows[2]=0; rows[3]=0; rows[4]=2; return true;
+        case ',': rows[0]=0; rows[1]=0; rows[2]=0; rows[3]=2; rows[4]=4; return true;
+        case '\'':rows[0]=2; rows[1]=2; rows[2]=0; rows[3]=0; rows[4]=0; return true;
+        case '?': rows[0]=7; rows[1]=1; rows[2]=2; rows[3]=0; rows[4]=2; return true;
+        case ':': rows[0]=0; rows[1]=2; rows[2]=0; rows[3]=2; rows[4]=0; return true;
+        case '>': rows[0]=4; rows[1]=2; rows[2]=1; rows[3]=2; rows[4]=4; return true;
+        case '<': rows[0]=1; rows[1]=2; rows[2]=4; rows[3]=2; rows[4]=1; return true;
+        case '/': rows[0]=1; rows[1]=1; rows[2]=2; rows[3]=4; rows[4]=4; return true;
+        case ' ': rows[0]=0; rows[1]=0; rows[2]=0; rows[3]=0; rows[4]=0; return true;
+        default:  return false; // unsupported char -- caller skips it (blank space)
+    }
+}
+
+#define CONSOLE_GLYPH_W 3
+#define CONSOLE_GLYPH_H 5
+#define CONSOLE_GLYPH_SCALE 2 // on-screen pixels per font-pixel
+#define CONSOLE_CHAR_W ((CONSOLE_GLYPH_W + 1) * CONSOLE_GLYPH_SCALE) // +1 column of spacing
+#define CONSOLE_CHAR_H ((CONSOLE_GLYPH_H + 2) * CONSOLE_GLYPH_SCALE) // +2 rows of spacing
+
+static void DrawConsoleChar(char c, int x, int y, SDL_Color color) {
+    uint8_t rows[5];
+    if (!GetGlyphRows(c, rows))
+        return;
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+    for (int row = 0; row < CONSOLE_GLYPH_H; row++) {
+        for (int col = 0; col < CONSOLE_GLYPH_W; col++) {
+            if (!(rows[row] & (1 << (CONSOLE_GLYPH_W - 1 - col))))
+                continue;
+            SDL_Rect r = {x + col * CONSOLE_GLYPH_SCALE, y + row * CONSOLE_GLYPH_SCALE,
+                          CONSOLE_GLYPH_SCALE, CONSOLE_GLYPH_SCALE};
+            SDL_RenderFillRect(renderer, &r);
+        }
+    }
+}
+
+static void DrawConsoleText(const char *text, int x, int y, SDL_Color color) {
+    int cx = x;
+    for (const char *c = text; *c != '\0'; c++) {
+        DrawConsoleChar(*c, cx, y, color);
+        cx += CONSOLE_CHAR_W;
+    }
+}
+
+static void DrawConsole(void) {
+    if (!console_enabled || !Console_IsOpen())
+        return;
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 10, 10, 20, 220);
+    SDL_Rect bg = {0, 0, TEXTURE_WIDTH * SCREEN_SCALE, (CONSOLE_LOG_LINES + 2) * CONSOLE_CHAR_H};
+    SDL_RenderFillRect(renderer, &bg);
+
+    const SDL_Color white = {255, 255, 255, 255};
+    const SDL_Color green = {120, 255, 120, 255};
+
+    int y = CONSOLE_CHAR_H / 2;
+    for (int i = CONSOLE_LOG_LINES - 1; i >= 0; i--) {
+        const char *line = Console_GetLogLine(i);
+        if (line != NULL)
+            DrawConsoleText(line, CONSOLE_CHAR_W, y, white);
+        y += CONSOLE_CHAR_H;
+    }
+
+    // Input line with a simple blinking-block cursor at the current
+    // position (Console_GetCursor is always end-of-buffer for now, no
+    // mid-line editing -- see Console.c's own comment).
+    char prompt[CONSOLE_LINE_LEN + 2];
+    snprintf(prompt, sizeof(prompt), "> %s", Console_GetInputLine());
+    DrawConsoleText(prompt, CONSOLE_CHAR_W, y, green);
+    if (((SDL_GetTicks() / 400) & 1) == 0) {
+        int cursor_x = CONSOLE_CHAR_W + (2 + Console_GetCursor()) * CONSOLE_CHAR_W;
+        SDL_SetRenderDrawColor(renderer, 120, 255, 120, 255);
+        SDL_Rect cur = {cursor_x, y, CONSOLE_CHAR_W - CONSOLE_GLYPH_SCALE, CONSOLE_CHAR_H - CONSOLE_GLYPH_SCALE};
+        SDL_RenderFillRect(renderer, &cur);
+    }
+}
+
+// Debug console only -- saves the raw pre-overlay frame (this file's own
+// CRT-blur history buffer, already exactly what was actually displayed
+// each frame sans DrawCountdownPie/DrawZ80Peek/DrawConsole, all of which
+// draw AFTER this buffer is populated) as an uncompressed PPM -- no
+// external image library needed for a debug-only dump.
+#ifdef CRT_MOTION_BLUR
+bool Render_SaveScreenshot(const char *path) {
+    FILE *f = fopen(path, "wb");
+    if (!f)
+        return false;
+    fprintf(f, "P6\n%d %d\n255\n", TEXTURE_WIDTH, TEXTURE_HEIGHT);
+    for (int y = 0; y < TEXTURE_HEIGHT; y++) {
+        for (int x = 0; x < TEXTURE_WIDTH; x++) {
+            const uint8_t *px = (const uint8_t *)&prev_frame[y][x]; // R,G,B,A byte order (SDL_PIXELFORMAT_RGBA8888)
+            uint8_t rgb[3] = {px[0], px[1], px[2]};
+            fwrite(rgb, 1, 3, f);
+        }
+    }
+    fclose(f);
+    return true;
+}
+#else
+bool Render_SaveScreenshot(const char *path) {
+    (void)path;
+    return false; // no frame history buffer without CRT_MOTION_BLUR
+}
+#endif
+
 static void DrawCountdownPie(void) {
     if (!countdown_pie_active)
         return;
@@ -441,12 +604,14 @@ void Render_Screen(const uint32_t* screen) {
             SDL_RenderCopy(renderer, texture, NULL, NULL);
             DrawCountdownPie();
             DrawZ80Peek();
+            DrawConsole();
             SDL_RenderPresent(renderer);
         }
     } else {
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         DrawCountdownPie();
         DrawZ80Peek();
+        DrawConsole();
         SDL_RenderPresent(renderer);
     }
 

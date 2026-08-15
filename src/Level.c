@@ -860,7 +860,7 @@ void DynamicLevelEvents(void) {
                     break;
                 limit_top2 = 0x340 - SCREEN_TALLADD;
                 limit_btm1 = 0x340 - SCREEN_TALLADD;
-                if ((uint16_t)scrpos_x.f.u < (0xA90 - SCREEN_WIDEADD2))
+                if ((uint16_t)scrpos_x.f.u >= (0xA90 - SCREEN_WIDEADD2))
                     break;
                 limit_btm1 = 0x500 - SCREEN_TALLADD;
                 if ((uint16_t)scrpos_y.f.u < (0x370 + SCREEN_TALLADD))
@@ -889,8 +889,9 @@ void DynamicLevelEvents(void) {
                     break;
                 }
                 if (limit_top2 != (uint16_t)(0x500 - SCREEN_TALLADD)) {
-                    if ((uint16_t)scrpos_y.f.u >= (0x500 + SCREEN_TALLADD))
-                        limit_top2 = 0x500 - SCREEN_TALLADD;
+                    if ((uint16_t)scrpos_y.f.u < (0x500 + SCREEN_TALLADD))
+                        break; // real ASM's blo.s .exit here returns immediately, skipping the $E70 check below entirely
+                    limit_top2 = 0x500 - SCREEN_TALLADD;
                 }
 #endif
                 if ((uint16_t)scrpos_x.f.u < (0xE70 - SCREEN_WIDEADD2))

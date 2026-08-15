@@ -141,7 +141,9 @@ static void PushB_SolidAction(Object *obj, Scratch_PushBlock *scratch, uint16_t 
     switch (obj->routine_sec) {
     case 2: { // Sonic is standing on the block
         int16_t x_off;
-        if (!ExitPlatform(obj, x_rad, x_rad, &x_off))
+        if (ExitPlatform(obj, x_rad, x_rad, &x_off))
+            obj->routine_sec = 0; // released -- back to "not on platform" so pushing works again
+        else
             MvSonicOnPtfm(obj, (int16_t)(obj->pos.l.y.f.u - y_rad2), prev_x);
         return;
     }

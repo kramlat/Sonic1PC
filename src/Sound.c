@@ -1222,7 +1222,7 @@ static uint16_t ReadWord(const uint8_t *p) { return (uint16_t)((p[0] << 8) | p[1
 static void ResetChannel(SoundChannel *ch) { memset(ch, 0, sizeof(*ch)); }
 
 static void StartChannel(SoundChipSet *cs, SoundChannel *ch, const uint8_t *song_base, const uint8_t *data,
-                          int8_t transpose, uint8_t volume) {
+                          int8_t transpose, uint8_t volume, const uint8_t *voice_bank) {
     ResetChannel(ch);
     ch->song_base = song_base;
     ch->data_ptr = data;
@@ -1231,6 +1231,7 @@ static void StartChannel(SoundChipSet *cs, SoundChannel *ch, const uint8_t *song
     ch->tempo_divider = cs->duration_mult; // Per-track duration multiplier, overridable by $E5
     ch->active = 1;
     ch->duration_timeout = 0; // read the first command immediately on the next tick
+    ch->voice_bank = voice_bank;
 }
 
 // JSON-engine equivalent of StartChannel -- events is a real PJValue*
@@ -1444,7 +1445,7 @@ static void LoadMusic(SoundChipSet *cs, const uint8_t *song, uint8_t music_id, u
     const uint8_t *p = song;
     uint16_t voice_off = ReadWord(p);
     p += 2;
-    cs->voice_bank = song + voice_off;
+    const uint8_t *voice_bank = song + voice_off;
     cs->driver_version = driver_version;
     cs->spindash_rev = 0;
     cs->halt_flag = 0;
@@ -1490,7 +1491,7 @@ static void LoadMusic(SoundChipSet *cs, const uint8_t *song, uint8_t music_id, u
         p += 2;
         int8_t dac_pitch = (int8_t)*p++;
         uint8_t dac_vol = *p++;
-        StartChannel(cs, &cs->channels[SOUND_CHANNEL_DAC], song, song + dac_off, dac_pitch, dac_vol);
+        StartChannel(cs, &cs->channels[SOUND_CHANNEL_DAC], song, song + dac_off, dac_pitch, dac_vol, voice_bank);
         cs->dac_pan = 0xC0; // Default: full L+R, until/unless the DAC track's own $E0 changes it
     } else {
         ResetChannel(&cs->channels[SOUND_CHANNEL_DAC]);
@@ -1509,7 +1510,7 @@ static void LoadMusic(SoundChipSet *cs, const uint8_t *song, uint8_t music_id, u
             p += 2;
             int8_t pitch = (int8_t)*p++;
             uint8_t vol = *p++;
-            StartChannel(cs, ch, song, song + off, pitch, vol);
+            StartChannel(cs, ch, song, song + off, pitch, vol, voice_bank);
         } else {
             ResetChannel(ch);
         }
@@ -1524,7 +1525,7 @@ static void LoadMusic(SoundChipSet *cs, const uint8_t *song, uint8_t music_id, u
             uint8_t vol = *p++;
             uint8_t mod = *p++;
             uint8_t voice = *p++;
-            StartChannel(cs, ch, song, song + off, pitch, vol);
+            StartChannel(cs, ch, song, song + off, pitch, vol, voice_bank);
             (void)mod; // Real driver reads this byte into a scratch register and never stores it anywhere -- the
                        // envelope index always starts wherever it was left (immediately overwritten by the first
                        // real note/rest/bare-duration event's own reset anyway, see FinishTrackUpdate).
@@ -1570,7 +1571,7 @@ static void LoadSFX(SoundChipSet *cs, const uint8_t *song, uint8_t driver_versio
     const uint8_t *p = song;
     uint16_t voice_off = ReadWord(p);
     p += 2;
-    cs->voice_bank = song + voice_off;
+    const uint8_t *voice_bank = song + voice_off;
     cs->driver_version = driver_version;
     // SFX headers only carry a dividing-timing (duration multiplier) byte
     // -- no main_tempo/periodic-correction byte at all, so SFX playback
@@ -1592,7 +1593,7 @@ static void LoadSFX(SoundChipSet *cs, const uint8_t *song, uint8_t driver_versio
         int idx = SFXChannelIndex(chanid);
         if (idx < 0)
             continue;
-        StartChannel(cs, &cs->channels[idx], song, song + off, pitch, vol);
+        StartChannel(cs, &cs->channels[idx], song, song + off, pitch, vol, voice_bank);
     }
 }
 
@@ -1988,8 +1989,8 @@ static void TickChannel_FlagsV3(SoundChipSet *cs, SoundChannel *ch, int channel_
             if (v & 0x80)
                 ch->data_ptr++; // foreign-song voice-bank byte -- consumed, not acted on
             ch->voice_index = idx;
-            if (is_fm && cs->voice_bank)
-                FM_LoadVoice(cs->fm, ch, channel_index, cs->voice_bank + (size_t)idx * 25);
+            if (is_fm && ch->voice_bank)
+                FM_LoadVoice(cs->fm, ch, channel_index, ch->voice_bank + (size_t)idx * 25);
             break;
         }
         case 0xF0: // cfModulation -- identical shape/semantics to v1's $F0
@@ -2943,9 +2944,9 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
             case 0xEF: { // smpsFMvoice / smpsSetvoice
                 uint8_t voice_index = *ch->data_ptr++;
                 ch->voice_index = voice_index;
-                if (is_fm && cs->voice_bank) {
+                if (is_fm && ch->voice_bank) {
                     if (getenv("SONIC_VOL_TRACE")) fprintf(stdout, "BYTE ch%d voice_index=%u volume=%u\n", channel_index, voice_index, ch->volume);
-                    FM_LoadVoice(cs->fm, ch, channel_index, cs->voice_bank + (size_t)voice_index * 25);
+                    FM_LoadVoice(cs->fm, ch, channel_index, ch->voice_bank + (size_t)voice_index * 25);
                 }
                 break;
             }

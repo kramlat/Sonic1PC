@@ -97,7 +97,16 @@ typedef struct {
                             // voice bank, before ch->volume is added as an
                             // offset (see FM_LoadVoice/FM_ApplyVolume)
     uint8_t feedback_algo; // FM only
-    const uint8_t *voice_ptr; // FM SFX only
+    // This channel's own currently-loaded song/SFX's FM voice table
+    // (25 bytes/voice, see smpsSetvoice/$EF) -- per-channel, NOT
+    // per-chip-set: sound_sfx's channels can each be playing a DIFFERENT
+    // SFX concurrently (e.g. one channel mid-Jump SFX while another
+    // starts Chain Rising), so a single chip-set-wide "current voice
+    // bank" would have a channel still mid-track hit a LATER $EF using
+    // whatever a newer, unrelated SFX on a sibling channel just
+    // overwrote it with -- same reasoning as json_playlist/json_voices
+    // below. Set once by StartChannel, read by both $EF handlers.
+    const uint8_t *voice_bank;
     uint32_t loop_counters[3];
 
     // Driver-version-3 (Sonic 3/Flamedriver-compatible flags, see
@@ -211,7 +220,6 @@ typedef struct {
     uint8_t queue[SOUND_QUEUE_SIZE];
     SN76489 psg;
     struct YM2612 *fm; // Backend/YM2612.h -- one physical chip per chip set, same dual-chip-set idea as psg
-    const uint8_t *voice_bank; // Current song's FM voice table (25 bytes/voice) -- see smpsSetvoice/$EF
 
     // JSON-tree-walking playback engine (SoundJSON.c) -- staged alongside
     // the byte-VM fields above, see SoundChannel's own comment. json_song

@@ -1,6 +1,7 @@
 #include "SDL.h"
 #include <stdbool.h>
 #include "../../Game.h"
+#include "../../Console.h"
 
 #include "Backend/Joypad.h"
 
@@ -43,11 +44,45 @@ int Input_HandleEvents(void) {
 					OpenFirstPad(); // fall back to another pad, if any
 				}
 				break;
+			case SDL_KEYDOWN:
+				// Debug console only (SonicSmoke) -- console_enabled stays
+				// false in the real Sonic executable, so this whole block
+				// is dead weight there, never touching normal gameplay
+				// input handling below (which reads polled key state, not
+				// events, so it's unaffected either way).
+				if (console_enabled) {
+					if (e.key.keysym.scancode == SDL_SCANCODE_GRAVE && !e.key.repeat) {
+						Console_Toggle();
+					} else if (Console_IsOpen()) {
+						switch (e.key.keysym.scancode) {
+							case SDL_SCANCODE_BACKSPACE: Console_HandleKey(ConsoleKey_Backspace); break;
+							case SDL_SCANCODE_RETURN:    Console_HandleKey(ConsoleKey_Enter);     break;
+							case SDL_SCANCODE_UP:        Console_HandleKey(ConsoleKey_Up);        break;
+							case SDL_SCANCODE_DOWN:      Console_HandleKey(ConsoleKey_Down);      break;
+							default: break;
+						}
+					}
+				}
+				break;
+			case SDL_TEXTINPUT:
+				if (console_enabled && Console_IsOpen())
+					Console_HandleText(e.text.text);
+				break;
 			default:
 				break;
 		}
 	}
 	return 0;
+}
+
+// Debug console only (Console.c, via Backend/Joypad.h's
+// Joypad_SetTextInputMode wrapper) -- SDL_TEXTINPUT events (used above)
+// only fire while text-input mode is active.
+void Input_SetTextInputMode(bool enable) {
+	if (enable)
+		SDL_StartTextInput();
+	else
+		SDL_StopTextInput();
 }
 
 

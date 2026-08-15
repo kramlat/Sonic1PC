@@ -30,6 +30,7 @@
 //               Sound ID to play during the countdown (default: GHZ, $81).
 
 #include "Backend/MegaDrive.h"
+#include "Console.h"
 #include "Demo.h"
 #include "Game.h"
 #include "Level.h"
@@ -102,6 +103,11 @@ int main(int argc, char *argv[]) {
 
     if (zone >= 0)
         cli_start_level = LEVEL_ID(zone, act);
+
+    // Quake-style debug console (Console.c) -- SonicSmoke only, press
+    // backtick in-game to open it. Real Sonic's own src/Main.c never
+    // sets this, so the feature stays fully inert there.
+    console_enabled = true;
 
     return MegaDrive_Start(&s1_header);
 }

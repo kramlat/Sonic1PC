@@ -56,6 +56,8 @@ set(
   # Game
   "src/Constants.h"
   "src/Macros.h"
+  "src/Console.c"
+  "src/Console.h"
   "src/Kosinski.c"
   "src/Kosinski.h"
   "src/Nemesis.c"

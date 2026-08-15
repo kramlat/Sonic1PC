@@ -32,6 +32,8 @@ void Obj_MarbleBrick(Object *obj) {
         obj->render.f.align_fg = true;
         obj->priority = 3;
         obj->width_pixels = 32 / 2;
+        obj->y_rad = 30 / 2; // obHeight -- ObjFloorDist measures from here
+        obj->x_rad = 30 / 2; // obWidth
         scratch->orig_y = obj->pos.l.y.f.u;
         break;
     case 2: { // Action
@@ -66,14 +68,17 @@ void Obj_MarbleBrick(Object *obj) {
                         obj->pos.l.y.f.u += floor_dist;
                         obj->ysp = 0;
                         scratch->orig_y = obj->pos.l.y.f.u;
-                        // Real hardware also checks whether the block landed on
-                        // a lava-tile chunk (REV01 only) to decide whether to
-                        // keep wobbling (Type04) or go fully static (Type00) --
-                        // this project's floor-collision API doesn't expose the
-                        // landed chunk ID, so landed bricks always keep the
-                        // slow lava-wobble here (closer to the REV01 intent
-                        // than always going static).
-                        obj->scratch.u8[0] = 4;
+
+                        // Real hardware (REV01) checks whether the block
+                        // landed on a lava-tile block (ID $16A and above,
+                        // same Map16 collision index space this project
+                        // preserves verbatim from the real ROM's conversion --
+                        // only the outer chunk grouping changed) to decide
+                        // whether to keep wobbling (Type04) or go fully
+                        // static (Type00).
+                        const uint8_t *tile = FindNearestTile(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u + obj->y_rad);
+                        uint16_t block_id = ((tile[0] << 8) | tile[1]) & META_TILE;
+                        obj->scratch.u8[0] = (block_id >= 0x16A) ? 4 : 0;
                     }
                 }
                 break;
