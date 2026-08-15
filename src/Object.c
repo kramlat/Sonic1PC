@@ -17,6 +17,7 @@
 #include "Game.h"
 #include "PLC.h"
 #include "Sound.h"
+#include "MathUtil.h"
 
 #include "Macros.h"
 
@@ -102,6 +103,45 @@ void Obj_GeyserMaker(Object *obj);
 void Obj_LavaGeyser(Object *obj);
 void Obj_PushBlock(Object *obj);
 void Obj_Yadrin(Object *obj);
+void Obj_SpinningLight(Object *obj);
+void Obj_Bumper(Object *obj);
+void Obj_Roller(Object *obj);
+void Obj_SpikeBall(Object *obj);
+void Obj_FloatingBlock(Object *obj);
+void Obj_SidewaysStomper(Object *obj);
+void Obj_LavaWall(Object *obj);
+void Obj_LZWaterfall(Object *obj);
+void Obj_FlapDoor(Object *obj);
+void Obj_Harpoon(Object *obj);
+void Obj_Pole(Object *obj);
+void Obj_Gargoyle(Object *obj);
+void Obj_LabyrinthBlock(Object *obj);
+void Obj_LabyrinthConvey(Object *obj);
+void Obj_Jaws(Object *obj);
+void Obj_Burrobot(Object *obj);
+void Obj_Orbinaut(Object *obj);
+void Obj_Bomb(Object *obj);
+void Obj_Elevator(Object *obj);
+void Obj_CirclingPlatform(Object *obj);
+void Obj_Staircase(Object *obj);
+void Obj_Pylon(Object *obj);
+void Obj_Fan(Object *obj);
+void Obj_Seesaw(Object *obj);
+void Obj_Electrocuter(Object *obj);
+void Obj_SmallDoor(Object *obj);
+void Obj_SBZConveyor(Object *obj);
+void Obj_Flamethrower(Object *obj);
+void Obj_GirderBlock(Object *obj);
+void Obj_ScrapStomp(Object *obj);
+void Obj_SpinPlatform(Object *obj);
+void Obj_RunningDisc(Object *obj);
+void Obj_RotatingJunction(Object *obj);
+void Obj_Saw(Object *obj);
+void Obj_SpinConveyor(Object *obj);
+void Obj_Teleporter(Object *obj);
+void Obj_BossGreenHill(Object *obj);
+void Obj_BossBall(Object *obj);
+void Obj_PrisonCapsule(Object *obj);
 
 static void (*object_func[])(Object*) = {
 	/* ObjId_Null                */ NULL,
@@ -115,18 +155,18 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_Splash              */ Obj_Splash,
 	/* ObjId_SpecialSonic        */ Obj_SpecialSonic,
 	/* ObjId_DrownCount          */ Obj_DrownCount,
-	/* ObjId_0B                  */ Obj_Null,
-	/* ObjId_0C                  */ Obj_Null,
+	/* ObjId_Pole                */ Obj_Pole,
+	/* ObjId_FlapDoor            */ Obj_FlapDoor,
 	/* ObjId_Signpost            */ Obj_Signpost,
 	/* ObjId_TitleSonic          */ Obj_TitleSonic,
 	/* ObjId_PSB                 */ Obj_PSB,
 	/* ObjId_10                  */ Obj_Null,
 	/* ObjId_GHZBridge           */ Obj_GHZBridge,
-	/* ObjId_12                  */ Obj_Null,
+	/* ObjId_SpinningLight       */ Obj_SpinningLight,
 	/* ObjId_LavaMaker           */ Obj_LavaMaker,
 	/* ObjId_LavaBall            */ Obj_LavaBall,
 	/* ObjId_SwingingPlatform    */ Obj_SwingingPlatform,
-	/* ObjId_16                  */ Obj_Null,
+	/* ObjId_Harpoon             */ Obj_Harpoon,
 	/* ObjId_Helix               */ Obj_Helix,
 	/* ObjId_BasicPlatform       */ Obj_BasicPlatform,
 	/* ObjId_19                  */ Obj_Null,
@@ -146,10 +186,10 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_Explosion           */ Obj_Explosion,
 	/* ObjId_Animal              */ Obj_Animals,
 	/* ObjId_Points              */ Obj_Points,
-	/* ObjId_2A                  */ Obj_Null,
+	/* ObjId_SmallDoor           */ Obj_SmallDoor,
 	/* ObjId_Chopper             */ Obj_Chopper,
-	/* ObjId_2C                  */ Obj_Null,
-	/* ObjId_2D                  */ Obj_Null,
+	/* ObjId_Jaws                */ Obj_Jaws,
+	/* ObjId_Burrobot            */ Obj_Burrobot,
 	/* ObjId_MonitorItem         */ Obj_MonitorItem,
 	/* ObjId_LargeGrass          */ Obj_LargeGrass,
 	/* ObjId_GlassBlock          */ Obj_GlassBlock,
@@ -165,24 +205,24 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_GotThroughCard      */ Obj_GotThroughCard,
 	/* ObjId_GHZRock             */ Obj_GHZRock,
 	/* ObjId_SmashWall           */ Obj_SmashWall,
-	/* ObjId_3D                  */ Obj_Null,
-	/* ObjId_3E                  */ Obj_Null,
+	/* ObjId_BossGreenHill       */ Obj_BossGreenHill,
+	/* ObjId_PrisonCapsule       */ Obj_PrisonCapsule,
 	/* ObjId_3F                  */ Obj_Null,
 	/* ObjId_Motobug             */ Obj_Motobug,
 	/* ObjId_Spring              */ Obj_Spring,
 	/* ObjId_Newtron             */ Obj_Newtron,
-	/* ObjId_43                  */ Obj_Null,
+	/* ObjId_Roller              */ Obj_Roller,
 	/* ObjId_GHZEdge             */ Obj_GHZEdge,
-	/* ObjId_45                  */ Obj_Null,
+	/* ObjId_SidewaysStomper     */ Obj_SidewaysStomper,
 	/* ObjId_MarbleBrick         */ Obj_MarbleBrick,
-	/* ObjId_Bumper              */ Obj_Null,//Bumper,
-	/* ObjId_48                  */ Obj_Null,
-	/* ObjId_49                  */ Obj_Waterfall,
+	/* ObjId_Bumper              */ Obj_Bumper,
+	/* ObjId_BossBall            */ Obj_BossBall,
+	/* ObjId_Waterfall           */ Obj_Waterfall,
 	/* ObjId_4A                  */ Obj_Null,
 	/* ObjId_GiantRing           */ Obj_GiantRing,
 	/* ObjId_GeyserMaker         */ Obj_GeyserMaker,
 	/* ObjId_LavaGeyser          */ Obj_LavaGeyser,
-	/* ObjId_4E                  */ Obj_Null,
+	/* ObjId_LavaWall            */ Obj_LavaWall,
 	/* ObjId_4F                  */ Obj_Null,
 	/* ObjId_Yadrin              */ Obj_Yadrin,
 	/* ObjId_SmashBlock          */ Obj_SmashBlock,
@@ -190,35 +230,35 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_CollapseFloor       */ Obj_CollapseFloor,
 	/* ObjId_LavaTag             */ Obj_LavaTag,
 	/* ObjId_Basaran             */ Obj_Basaran,
-	/* ObjId_56                  */ Obj_Null,
-	/* ObjId_57                  */ Obj_Null,
+	/* ObjId_FloatingBlock       */ Obj_FloatingBlock,
+	/* ObjId_SpikeBall           */ Obj_SpikeBall,
 	/* ObjId_BigSpikeBall        */ Obj_BigSpikeBall,
-	/* ObjId_59                  */ Obj_Null,
-	/* ObjId_5A                  */ Obj_Null,
-	/* ObjId_5B                  */ Obj_Null,
-	/* ObjId_5C                  */ Obj_Null,
-	/* ObjId_5D                  */ Obj_Null,
-	/* ObjId_5E                  */ Obj_Null,
-	/* ObjId_5F                  */ Obj_Null,
-	/* ObjId_60                  */ Obj_Null,
-	/* ObjId_61                  */ Obj_Null,
-	/* ObjId_62                  */ Obj_Null,
-	/* ObjId_63                  */ Obj_Null,
+	/* ObjId_Elevator            */ Obj_Elevator,
+	/* ObjId_CirclingPlatform    */ Obj_CirclingPlatform,
+	/* ObjId_Staircase           */ Obj_Staircase,
+	/* ObjId_Pylon               */ Obj_Pylon,
+	/* ObjId_Fan                 */ Obj_Fan,
+	/* ObjId_Seesaw              */ Obj_Seesaw,
+	/* ObjId_Bomb                */ Obj_Bomb,
+	/* ObjId_Orbinaut            */ Obj_Orbinaut,
+	/* ObjId_LabyrinthBlock      */ Obj_LabyrinthBlock,
+	/* ObjId_Gargoyle            */ Obj_Gargoyle,
+	/* ObjId_LabyrinthConvey     */ Obj_LabyrinthConvey,
 	/* ObjId_Bubble              */ Obj_Bubble,
-	/* ObjId_65                  */ Obj_Null,
-	/* ObjId_66                  */ Obj_Null,
-	/* ObjId_67                  */ Obj_Null,
-	/* ObjId_68                  */ Obj_Null,
-	/* ObjId_69                  */ Obj_Null,
-	/* ObjId_6A                  */ Obj_Null,
-	/* ObjId_6B                  */ Obj_Null,
+	/* ObjId_LZWaterfall         */ Obj_LZWaterfall,
+	/* ObjId_Junction            */ Obj_RotatingJunction,
+	/* ObjId_RunningDisc         */ Obj_RunningDisc,
+	/* ObjId_SBZConveyor         */ Obj_SBZConveyor,
+	/* ObjId_SpinPlatform        */ Obj_SpinPlatform,
+	/* ObjId_Saw                 */ Obj_Saw,
+	/* ObjId_ScrapStomp          */ Obj_ScrapStomp,
 	/* ObjId_VanishPlatform      */ Obj_VanishPlatform,
-	/* ObjId_6D                  */ Obj_Null,
-	/* ObjId_6E                  */ Obj_Null,
-	/* ObjId_6F                  */ Obj_Null,
-	/* ObjId_70                  */ Obj_Null,
+	/* ObjId_Flamethrower        */ Obj_Flamethrower,
+	/* ObjId_Electrocuter        */ Obj_Electrocuter,
+	/* ObjId_SpinConvey          */ Obj_SpinConveyor,
+	/* ObjId_GirderBlock         */ Obj_GirderBlock,
 	/* ObjId_InvisibleBarrier    */ Obj_InvisibleBarrier,
-	/* ObjId_72                  */ Obj_Null,
+	/* ObjId_Teleporter          */ Obj_Teleporter,
 	/* ObjId_73                  */ Obj_Null,
 	/* ObjId_74                  */ Obj_Null,
 	/* ObjId_75                  */ Obj_Null,
@@ -612,6 +652,41 @@ void RememberState(Object *obj) {
 		//On-screen
 		DisplaySprite(obj);
 	}
+}
+
+//Boss subroutines (shared by all bosses)
+
+// Modified variant of SpeedToPos, moving a boss's own fixed-point base
+// position (obBossX/obBossY, kept separately from its visible/bobbing
+// position) by its current xsp/ysp.
+void BossMove(Object *obj, dword_s *boss_x, dword_s *boss_y) {
+	boss_x->v += obj->xsp << 8;
+	boss_y->v += obj->ysp << 8;
+}
+
+// Periodically spawns a small explosion particle near a defeated boss.
+void BossDefeated(Object *obj) {
+	if ((uint8_t)frame_count & 7) // limits spawning explosions to every 8 frames
+		return;
+
+	Object *exp = FindFreeObj();
+	if (exp == NULL)
+		return;
+
+	exp->type = ObjId_Explosion;
+	exp->routine = 2; // plain explosion (real id_Explosion, not id_ExplosionItem) -- no animal, no points
+	exp->pos.l.x.f.u = obj->pos.l.x.f.u;
+	exp->pos.l.y.f.u = obj->pos.l.y.f.u;
+
+	uint32_t rand = RandomNumber();
+	int16_t rand_x = (int16_t)(((uint8_t)rand >> 2) - 0x20);
+	exp->pos.l.x.f.u = (int16_t)(exp->pos.l.x.f.u + rand_x);
+
+	// Unlike the X-position, no shift is made for the Y-position. It's
+	// hard to tell if it was intentional or not, but all explosions are
+	// biased downwards because of this.
+	int16_t rand_y = (int16_t)((uint8_t)(rand >> 8) >> 3);
+	exp->pos.l.y.f.u = (int16_t)(exp->pos.l.y.f.u + rand_y);
 }
 
 //Platform and solid objects
@@ -1076,6 +1151,18 @@ static int32_t Solid_ChkEnterY(Object *obj, uint16_t x_rad, uint16_t y_rad, int1
 								//Land on object
 								player->pos.l.y.f.u -= *y_off + 1;
 								Solid_ResetFloor(obj, player);
+								// Bug fix: real hardware only clears the
+								// pushing flag here if Sonic was airborne
+								// (Solid_ResetFloor -> Sonic_ResetOnFloor,
+								// itself conditional on in_air) -- landing on
+								// top while still grounded (e.g. climbing an
+								// object he was just pushing) leaves the
+								// pushing flag stuck, showing the Push
+								// animation while just standing/walking on
+								// top. Sonic 2 and Sonic 3 & Knuckles clear
+								// it unconditionally here instead.
+								player->status.p.f.pushing = false;
+								obj->status.o.f.player_push = false;
 								obj->routine_sec = 2;
 								obj->status.o.f.player_stand = true;
 								return -1;

@@ -1,9 +1,8 @@
 ; ---------------------------------------------------------------------------
-; Animation script - advancing wall of lava (MZ)
+; Animation script - advancing wall of lava (MZ act 2)
 ; ---------------------------------------------------------------------------
 
+Ani_LWall:	dc.w @lavawall-Ani_LWall
 
-
-Ani_LWall:	dc.w @wall-Ani_LWall
-@wall:		dc.b 9,	0, 1, 2, 3, $FF
+@lavawall:	dc.b 9,	0, 1, 2, 3, $FF
 		even

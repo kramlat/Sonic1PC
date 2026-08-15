@@ -106,9 +106,9 @@ void Obj_DrownCount(Object *obj) {
         }
 
         {
-            // TODO: wind tunnels aren't ported yet (LZWaterFeatures.c), so
-            // the real .notunnel branch (nudging drown_origX rightwards
-            // while Sonic's in one) is skipped for now.
+            if (tunnel_mode)
+                scratch->orig_x += 4; // drift with Sonic while he's in a wind tunnel
+
             uint8_t a = obj->angle;
             obj->angle++;
             a &= 0x7F;

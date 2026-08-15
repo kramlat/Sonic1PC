@@ -36,8 +36,15 @@ static void Obj_BigSpikeBall_Type02(Object *obj) {
 static void Obj_BigSpikeBall_Type03(Object *obj) {
     Scratch_BigSpikeBall *scratch = (Scratch_BigSpikeBall*)&obj->scratch;
 
-    // Update angle based on speed
-    obj->angle += scratch->speed;
+    // Real hardware does `add.w speed,obAngle(a0)` -- a 16-bit add into a
+    // word straddling obAngle and the following (otherwise-unused) byte,
+    // with only the high byte (obj->angle) ever read back for CalcSine.
+    // That makes the effective turn rate speed/256 per frame rather than
+    // the raw speed value.
+    uint16_t accum = (uint16_t)((obj->angle << 8) | scratch->angle_frac);
+    accum = (uint16_t)(accum + (uint16_t)scratch->speed);
+    obj->angle = (uint8_t)(accum >> 8);
+    scratch->angle_frac = (uint8_t)accum;
 
     // Calculate circular movement
     int16_t sin, cos;

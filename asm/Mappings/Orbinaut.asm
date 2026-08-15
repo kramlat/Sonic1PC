@@ -1,5 +1,5 @@
 ; ---------------------------------------------------------------------------
-; Sprite mappings - Orbinaut enemy (LZ,	SLZ, SBZ)
+; Sprite mappings - Orbinaut enemy (LZ, SLZ, SBZ)
 ; ---------------------------------------------------------------------------
 Map_Orb_internal:
 		dc.w @normal-Map_Orb_internal
@@ -13,5 +13,5 @@ Map_Orb_internal:
 @angry:		dc.b 1
 		dc.b $F4, $A, 0, $12, $F4
 @spikeball:	dc.b 1
-		dc.b $F8, 5, 0,	$1B, $F8
+		dc.b $F8, 5, 0, $1B, $F8
 		even

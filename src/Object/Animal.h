@@ -10,9 +10,9 @@
 
 //Animal Assets
 #ifndef Animals_Build
-extern cont uint8_t Mappings_Animals1[];
-extern cont uint8_t Mappings_Animals2[];
-extern cont uint8_t Mappings_Animals3[];
+extern const uint8_t Mappings_Animals1[];
+extern const uint8_t Mappings_Animals2[];
+extern const uint8_t Mappings_Animals3[];
 #endif
 
 // Animal Variables

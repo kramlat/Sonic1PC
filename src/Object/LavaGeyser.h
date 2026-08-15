@@ -4,6 +4,7 @@
 #include "Object.h"
 
 typedef struct {
+    uint8_t pad0[8];      // 0x28-0x2F -- scratch.u8[0] here aliases obSubtype
     int16_t orig_y;      // 0x30
     uint8_t parent_index;  // 0x3C on real hardware (pointer there) -- meaning
                             // depends on which of the (up to) 3 spawned pieces

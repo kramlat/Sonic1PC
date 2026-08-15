@@ -786,6 +786,10 @@ static signed int ReactToItem(Object *obj) {
                     }
                     return React_Enemy(obj, hit);
                 }
+                if ((hit->col_type & 0x3F) == 0x17 || (hit->col_type & 0x3F) == 0x21) { // SYZ bumper / LZ pole -- own routine reads/clears col_property each frame
+                    hit->col_property++;
+                    return 0;
+                }
                 break;
             case 0x80: // Hurt
                 return React_ChkHurt(obj, hit);
@@ -1008,6 +1012,9 @@ static void Sonic_MoveRight(Object *obj) {
 static void Sonic_Move(Object *obj) {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
+    if (f_slidemode)
+        goto Sonic_AngleSpeed;
+
     if (!jump_only) {
         if (!scratch->control_lock) {
             // Move left and right according to held direction
@@ -1109,6 +1116,7 @@ static void Sonic_Move(Object *obj) {
     }
 
     // Calculate global speed from inertia
+Sonic_AngleSpeed:;
     int16_t sin, cos;
     CalcSine(obj->angle, &sin, &cos);
     obj->xsp = (cos * obj->inertia) >> 8;
@@ -1162,6 +1170,10 @@ static void Sonic_ChkRoll(Object *obj) {
 }
 
 static void Sonic_Roll(Object *obj) {
+    // Don't allow rolling while on a water slide
+    if (f_slidemode)
+        return;
+
     // Check if we can and are trying to roll
     if (jump_only || ((obj->inertia < 0) ? -obj->inertia : obj->inertia) < 0x80)
         return;
@@ -1275,6 +1287,9 @@ static void Sonic_RollRight(Object *obj) {
 static void Sonic_RollSpeed(Object *obj) {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
+    if (f_slidemode)
+        goto Sonic_AngledRollSpeed;
+
     if (!jump_only) {
         if (!scratch->control_lock) {
             // Move left and right according to held direction
@@ -1304,6 +1319,7 @@ static void Sonic_RollSpeed(Object *obj) {
     }
 
     // Calculate global speed from inertia
+Sonic_AngledRollSpeed:;
     int16_t sin, cos;
     CalcSine(obj->angle, &sin, &cos);
     obj->ysp = (sin * obj->inertia) >> 8;
@@ -1545,6 +1561,12 @@ static void Sonic_ReleaseSpindash(Object *obj) {
 }
 
 static void Sonic_UpdateSpindash(Object *obj) {
+    // Bug fix (part 2 of the monitor fix): guarantee the Spin Dash
+    // animation is set as soon as we know we're spin dashing, before
+    // Monitor's own Mon_SolidSides push-vs-break check (which now also
+    // exempts this animation, see Monitor.c) gets a chance to run this
+    // same frame and see a stale Push animation instead.
+    obj->anim = SonAnimId_SpinDash;
     if (jpad1_hold2 & JPAD_DOWN) {
         Sonic_ChargingSpindash(obj);
         return;

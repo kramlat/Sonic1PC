@@ -47,8 +47,7 @@ extern const uint8_t Mappings_RingREV00[]; // From Object/Ring.c
 #else
 extern const uint8_t Mappings_RingREV01[]; // From Object/Ring.c
 #endif
-// From Object/Bumper.c
-#include "Resource/Mappings/Bumper.h"
+extern const uint8_t Mappings_Bumper[]; // From Object/Bumper.c
 
 #include "Resource/Mappings/SSDown.h"
 #include "Resource/Mappings/SSEmerald.h"

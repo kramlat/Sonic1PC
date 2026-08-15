@@ -21,12 +21,24 @@ static bool But_MZBlock(Object *obj) {
         if (!block->render.f.on_screen || block->type != ObjId_PushBlock)
             continue;
 
+        // Real ASM's interval test isn't a simple one-sided range -- it
+        // accepts the block's edge approaching the button's own reference
+        // edge from either direction, with a different allowed margin per
+        // side (X is symmetric; Y allows more slack above than below).
         int16_t x_off = (int16_t)(block->pos.l.x.f.u - 0x10 - left);
-        if (x_off < 0 || x_off >= 0x20)
+        if (x_off >= 0) {
+            if (x_off > 0x20)
+                continue;
+        } else if (x_off < -0x20) {
             continue;
+        }
         int16_t y_off = (int16_t)(block->pos.l.y.f.u - 0x10 - top);
-        if (y_off < 0 || y_off >= 0x10)
+        if (y_off >= 0) {
+            if (y_off > 0x10)
+                continue;
+        } else if (y_off < -0x20) {
             continue;
+        }
 
         return true;
     }
@@ -65,7 +77,7 @@ void Obj_Button(Object *obj) {
             // layouts also happen to have this bit set for unrelated
             // reasons, making the unguarded check unsafe).
             if ((int8_t)subtype < 0 && LEVEL_ZONE(level_id) == ZoneId_MZ)
-                pressed = But_MZBlock(obj);
+                pressed = But_MZBlock(obj) || obj->status.o.f.player_stand;
             else
                 pressed = obj->status.o.f.player_stand;
 

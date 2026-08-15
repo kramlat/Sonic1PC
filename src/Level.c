@@ -534,6 +534,9 @@ uint8_t endact_bonus;
 uint8_t sonicend;
 uint16_t lz_deform;
 uint8_t f_switch[0x10];
+bool f_wtunneldisallow = false;
+uint8_t obj63_loaded[0x80];
+bool f_slidemode = false;
 
 Oscillatory oscillatory;
 
@@ -777,9 +780,47 @@ void DynamicLevelEvents(void) {
                     dle_routine -= 2;
                 if ((uint16_t)scrpos_x.f.u < (0x2960 - SCREEN_WIDEADD2))
                     break;
-                // TODO spawn boss
+                {
+                    Object *boss = FindFreeObj();
+                    if (boss != NULL) {
+                        boss->type = ObjId_BossGreenHill;
+                        boss->pos.l.x.f.u = 0x2960 + 0x100;
+                        boss->pos.l.y.f.u = 0x300 - 0x80;
+                    }
+                }
+                QueueSound1(bgm_Boss);
+                lock_screen = true;
+                dle_routine += 2;
+                AddPLC(PlcId_Boss);
+                break;
+            case 4:
+                // Continuously pin the left boundary to the camera's
+                // current position so Sonic can't scroll back out of the
+                // boss arena for the rest of the fight.
+                limit_left2 = (uint16_t)scrpos_x.f.u;
                 break;
             }
+            break;
+        }
+        break;
+    case ZoneId_LZ:
+        switch (LEVEL_ACT(level_id)) {
+        case 0: case 1: // Acts 1 & 2 -- no events
+            break;
+        case 2: // Act 3
+            if (f_switch[0xF] &&
+                !(LEVEL_LAYOUT_FG(5)[12] == 0x17 && LEVEL_LAYOUT_FG(5)[13] == 0x18)) {
+                // MJ: modify level layout (P128 overwrites two chunks instead
+                // of one) -- opens an exit from the water slide section by
+                // replacing the slide-through chunks DynWater_LZ3 opened
+                // earlier with a slide+landing pair.
+                LEVEL_LAYOUT_FG(5)[12] = 0x17;
+                LEVEL_LAYOUT_FG(5)[13] = 0x18;
+                QueueSound2(sfx_Rumbling);
+            }
+            // TODO spawn boss (id_BossLabyrinth not ported yet)
+            break;
+        case 3: // Act 4 (SBZ3) -- TODO
             break;
         }
         break;
@@ -1012,6 +1053,7 @@ void ObjPosLoad(void) {
         objstate_left = 1;
         objstate_right = 1;
         memset(objstate, 0, sizeof(objstate));
+        memset(obj63_loaded, 0, sizeof(obj63_loaded));
 
         // Load immediately on-screen objects
         int16_t load_x = (scrpos_x.f.u - 0x80) & ~0x7F;

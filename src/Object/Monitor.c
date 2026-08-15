@@ -84,7 +84,11 @@ void Obj_Monitor(Object *obj) {
             int16_t x_off, y_off;
             int32_t solid = Mon_SolidSides(obj, 26, 15, &x_off, &y_off);
 
-            if (solid && (player->ysp < 0 || player->anim != SonAnimId_Roll)) {
+            // Bug fix: spin dashing right next to a monitor wouldn't break
+            // it, since Mon_SolidSides' own push/stand handling only backed
+            // off for the Roll animation, not the (still curled-up, about
+            // to release) Spin Dash animation.
+            if (solid && (player->ysp < 0 || (player->anim != SonAnimId_Roll && player->anim != SonAnimId_SpinDash))) {
                 if (solid < 0) {
                     // Stand on monitor
                     player->pos.l.y.f.u -= y_off;

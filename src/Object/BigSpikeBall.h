@@ -14,7 +14,7 @@ typedef struct {
     int16_t orig_y;     // 0x38
     int16_t orig_x;     // 0x3A
     uint8_t radius;     // 0x3C
-    uint8_t unused;     // 0x3D
+    uint8_t angle_frac; // 0x3D -- sub-angle accumulator -- see Obj_BigSpikeBall_Type03 for why this is needed
     int16_t speed;      // 0x3E
 } Scratch_BigSpikeBall;
 

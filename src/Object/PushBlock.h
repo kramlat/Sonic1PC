@@ -4,6 +4,7 @@
 #include "Object.h"
 
 typedef struct {
+    uint8_t pad0[8];      // 0x28-0x2F -- scratch.u8[0] here aliases obSubtype/on-stomper flag
     int16_t lava_speed; // 0x30 -- X-speed remembered from just before landing on lava
     bool on_lava;          // 0x32
     int16_t orig_x;           // 0x34

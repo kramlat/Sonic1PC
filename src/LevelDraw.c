@@ -809,7 +809,7 @@ void AniArt_MZMagma(void) {
 		uint32_t bank_offset = (uint32_t)level_anim[LAVA_ANIM].frame << 9;
 		const uint8_t *magma_art = Art_MZLava2 + bank_offset;
 		VDP_SeekVRAM(ArtTile_MZ_Animated_Lava * TILE_SIZE);
-		uint8_t osc_val = (uint8_t)oscillatory.state[4][0];
+		uint8_t osc_val = (uint8_t)(oscillatory.state[4][0] >> 8);
 		for (int chunk = 0; chunk < 4; chunk++) {
 			uint8_t table_idx = (osc_val * 2) & 0x1E;
 			MagmaShiftFunc ApplyShift = MagmaDistortionTable[(table_idx >> 1) & 15];
@@ -829,6 +829,108 @@ void AniArt_MZTorch(void) {
 		VDP_SeekVRAM(ArtTile_MZ_Torch * TILE_SIZE);
 		LoadTiles(src, TILE_COUNT - 1);
 	}
+}
+
+// Level Animation Index Mappings for Scrap Brain Zone
+#define SBZ_SMOKE1       0 // uses time and frame (v_lani0)
+#define SBZ_SMOKE2       1 // uses time and frame (v_lani1)
+#define SBZ_SMOKE_TIMER  2 // frame = primary puff cooldown (v_lani2_frame), time = secondary puff cooldown (v_lani2_time)
+
+#define ArtTile_SBZ_Smoke_Puff_1 0x448
+#define ArtTile_SBZ_Smoke_Puff_2 0x454
+
+#include "Resource/Art/SBZSmoke.h"
+
+// Background pollution smoke -- two independently-timed puffs, each
+// cycling through 7 animation frames before going blank and waiting out
+// a cooldown (3 seconds for the primary puff, 2 for the secondary) before
+// starting again. The "blank" write reuses Art_SBZSmoke's own first
+// size/2 tiles (written twice) rather than storing a separate blank asset.
+void AniArt_SBZSmoke(void) {
+	const uint8_t SIZE = 12;
+
+	// Primary puff
+	if (level_anim[SBZ_SMOKE_TIMER].frame == 0) {
+		if (--level_anim[SBZ_SMOKE1].time < 0) {
+			level_anim[SBZ_SMOKE1].time = 8 - 1;
+			VDP_SeekVRAM(ArtTile_SBZ_Smoke_Puff_1 * TILE_SIZE);
+			uint8_t frame = level_anim[SBZ_SMOKE1].frame++;
+			frame &= 7;
+			if (frame == 0) {
+				level_anim[SBZ_SMOKE_TIMER].frame = 3 * 60;
+				LoadTiles(Art_SBZSmoke, SIZE / 2 - 1);
+				LoadTiles(Art_SBZSmoke, SIZE / 2 - 1);
+			} else {
+				LoadTiles(Art_SBZSmoke + (frame - 1) * SIZE * TILE_SIZE, SIZE - 1);
+			}
+		}
+	} else {
+		level_anim[SBZ_SMOKE_TIMER].frame--;
+	}
+
+	// Secondary puff
+	if (level_anim[SBZ_SMOKE_TIMER].time == 0) {
+		if (--level_anim[SBZ_SMOKE2].time < 0) {
+			level_anim[SBZ_SMOKE2].time = 8 - 1;
+			VDP_SeekVRAM(ArtTile_SBZ_Smoke_Puff_2 * TILE_SIZE);
+			uint8_t frame = level_anim[SBZ_SMOKE2].frame++;
+			frame &= 7;
+			if (frame == 0) {
+				level_anim[SBZ_SMOKE_TIMER].time = 2 * 60;
+				LoadTiles(Art_SBZSmoke, SIZE / 2 - 1);
+				LoadTiles(Art_SBZSmoke, SIZE / 2 - 1);
+			} else {
+				LoadTiles(Art_SBZSmoke + (frame - 1) * SIZE * TILE_SIZE, SIZE - 1);
+			}
+		}
+	} else {
+		level_anim[SBZ_SMOKE_TIMER].time--;
+	}
+}
+
+// Level Animation Index Mapping for the ending sequence
+#define ENDING_BIG_FLOWER_TIMER   1 // uses time and frame (v_lani1) -- same slot GHZ's own big flower uses
+#define ENDING_SMALL_FLOWER_TIMER 2 // uses time and frame (v_lani2) -- same slot GHZ's own small flower uses, safe to share since the two zones never run at once
+
+// Ending sequence -- big flower. Its first half reuses GHZ's own big-flower
+// VRAM slot and art (Art_GHZFlowerLarge) directly, just on the ending's own
+// independent timer. Real hardware also writes a *second* flower here
+// (ArtTile_GHZ_Big_Flower_2, a "sunflower wall" sourced from RAM --
+// v_128x128 chunk buffer, repurposed as scratch space and filled in by the
+// ending sequence's own setup code) -- deferred along with Flower_3/
+// Flower_4 below until the ending game mode itself (no GM_Ending.c yet) is
+// ported far enough to know what that setup step needs to look like.
+static void AniArt_Ending_BigFlower(void) {
+	if (--level_anim[ENDING_BIG_FLOWER_TIMER].time < 0) {
+		level_anim[ENDING_BIG_FLOWER_TIMER].time = 8 - 1;
+		uint8_t frame = level_anim[ENDING_BIG_FLOWER_TIMER].frame++ & 1;
+
+		VDP_SeekVRAM(0x6B80); // ArtTile_GHZ_Big_Flower_1 * TILE_SIZE
+		VDP_WriteVRAM(Art_GHZFlowerLarge + (frame * 16 * 0x20), 16 * 0x20);
+
+		// TODO: 2nd flower (ArtTile_GHZ_Big_Flower_2, RAM-sourced) once
+		// GM_Ending.c's own setup step exists to populate it.
+	}
+}
+
+// Ending sequence -- small flower (reuses GHZ's own small-flower VRAM slot
+// and art, Art_GHZFlowerSmall, just with a different frame sequence/timing
+// since the ending runs its own independent animation here).
+static void AniArt_Ending_SmallFlower(void) {
+	if (--level_anim[ENDING_SMALL_FLOWER_TIMER].time < 0) {
+		level_anim[ENDING_SMALL_FLOWER_TIMER].time = 8 - 1;
+
+		static const uint8_t seq[8] = { 0, 0, 0, 1, 2, 2, 2, 1 };
+		uint8_t frame = seq[level_anim[ENDING_SMALL_FLOWER_TIMER].frame++ & 7];
+
+		VDP_SeekVRAM(0x6D80); // ArtTile_GHZ_Small_Flower * TILE_SIZE
+		VDP_WriteVRAM(Art_GHZFlowerSmall + (frame * 12 * 0x20), 12 * 0x20);
+	}
+}
+
+void AniArt_Ending(void) {
+	AniArt_Ending_BigFlower();
+	AniArt_Ending_SmallFlower();
 }
 
 void AnimateLevelGfx(void) {
@@ -858,8 +960,10 @@ void AnimateLevelGfx(void) {
     case ZoneId_SYZ:
         break;
     case ZoneId_SBZ:
+        AniArt_SBZSmoke();
         break;
     case ZoneId_EndZ:
+        AniArt_Ending();
         break;
     }
 }

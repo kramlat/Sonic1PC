@@ -1,12 +1,12 @@
 ; ---------------------------------------------------------------------------
-; Animation script - Orbinaut enemy
+; Animation script - Orbinaut enemy (LZ/SLZ)
 ; ---------------------------------------------------------------------------
 
-
-
 Ani_Orb:	dc.w @normal-Ani_Orb
-		dc.w @angers-Ani_Orb
-@normal:	dc.b $F, 0, $FF
+		dc.w @angry-Ani_Orb
+
+@normal:	dc.b 15, 0, $FF
 		even
-@angers:	dc.b $F, 1, 2, $FE, 1
+
+@angry:		dc.b 15, 1, 2, $FE, 1
 		even

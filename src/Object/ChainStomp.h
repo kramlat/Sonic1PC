@@ -4,6 +4,7 @@
 #include "Object.h"
 
 typedef struct {
+    uint8_t pad0[8];      // 0x28-0x2F -- scratch.u8[0] here aliases obSubtype
     int16_t orig_y;      // 0x30
     uint16_t current;      // 0x32 -- current extension, 8.8 fixed point (high byte = integer pixels)
     uint16_t length;         // 0x34 -- max extension length, 8.8 fixed point (block only, meaningfully;

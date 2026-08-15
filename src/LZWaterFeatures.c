@@ -1,7 +1,10 @@
 #include "LZWaterFeatures.h"
 
+#include "Backend/Joypad.h"
+#include "Game.h"
 #include "Level.h"
 #include "LevelScroll.h"
+#include "Object/Sonic.h"
 #include "Video.h"
 #include "Sound.h"
 
@@ -204,14 +207,136 @@ static void LZDynamicWater(void) {
         wtr_pos2--;
 }
 
+// left, top, right, bottom boundaries per wind tunnel zone
+static const int16_t LZWind_Data[5][4] = {
+    { 0xA80, 0x300, 0xC10, 0x380 },  // LZ act 1, 1st zone
+    { 0xF80, 0x100, 0x1410, 0x180 }, // LZ act 1, 2nd zone
+    { 0x460, 0x400, 0x710, 0x480 },  // LZ act 2
+    { 0xA20, 0x600, 0x1610, 0x6E0 }, // LZ act 3
+    { 0xC80, 0x600, 0x13D0, 0x680 }, // LZ act 4 (reuses SBZ3's layout, see project notes)
+};
+
+// Matches LZWindTunnels in the disassembly.
+static void LZWindTunnels(void) {
+    if (debug_use)
+        return;
+
+    int act = LEVEL_ACT(level_id);
+    int base_row = (act == 0) ? 0 : (1 + act);
+    int count = (act == 0) ? 2 : 1;
+
+    for (int i = 0; i < count; i++) {
+        const int16_t *zone = LZWind_Data[base_row + i];
+        int16_t left = zone[0], top = zone[1], right = zone[2], bottom = zone[3];
+
+        if (player->pos.l.x.f.u < left || player->pos.l.x.f.u >= right)
+            continue;
+        if (player->pos.l.y.f.u < top || player->pos.l.y.f.u >= bottom)
+            continue;
+
+        // Inside a tunnel zone
+        if (((uint8_t)frame_count & 0x3F) == 0)
+            QueueSound2(sfx_Waterfall);
+
+        if (f_wtunneldisallow)
+            return;
+        if (player->routine >= 4) {
+            tunnel_mode = 0;
+            return;
+        }
+        tunnel_mode = 1;
+
+        // "Suction" pre-zone: nudge Sonic towards the tunnel mouth before
+        // he's actually inside it.
+        int16_t d0 = (int16_t)(player->pos.l.x.f.u - 128);
+        if (d0 < left) {
+            int16_t dy = (act == 1) ? -2 : 2; // LZ act 2 nudges the opposite way
+            player->pos.l.y.f.u = (int16_t)(player->pos.l.y.f.u + dy);
+        }
+
+        player->pos.l.x.f.u = (int16_t)(player->pos.l.x.f.u + 4);
+        player->xsp = 0x400;
+        player->ysp = 0;
+        player->anim = SonAnimId_Float2;
+        player->status.p.f.in_air = true;
+        player->status.p.f.roll_jump = false; // Bug fix (Knuckles in Sonic 2's own equivalent)
+
+        if (jpad1_hold2 & JPAD_UP) {
+            // Bug fix (also from Knuckles in Sonic 2): don't let Sonic rise
+            // above the tunnel's own top boundary.
+            if (player->pos.l.y.f.u > top)
+                player->pos.l.y.f.u--;
+        }
+        if (jpad1_hold2 & JPAD_DOWN)
+            player->pos.l.y.f.u++;
+
+        return;
+    }
+
+    // Not inside any tunnel zone
+    if (tunnel_mode)
+        player->anim = SonAnimId_Walk;
+    tunnel_mode = 0;
+}
+
+static const int8_t Slide_Speeds[21] = {
+    10, 10, 10, 10, -10, -10, -10, -10, 11, 11, 11, 11, -11, -11, -11, -11, -12, -12, -12, -12, -11,
+};
+// 128x128 foreground chunk IDs that mark water-slide surfaces in LZ,
+// positionally parallel with Slide_Speeds above.
+static const uint8_t Slide_Chunks[21] = {
+    0x05, 0x06, 0x09, 0x0A, 0xFA, 0xFB, 0xFC, 0xFD, 0x0B, 0x0C, 0x0D, 0x0E,
+    0x15, 0x16, 0xF8, 0xF9, 0x19, 0x1A, 0x1B, 0x1C, 0x17,
+};
+
+// Matches LZWaterSlides in the disassembly.
+static void LZWaterSlides(void) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)&player->scratch;
+
+    if (player->status.p.f.in_air) {
+        if (f_slidemode) {
+            scratch->control_lock = 5;
+            f_slidemode = false;
+        }
+        return;
+    }
+
+    uint8_t chunk = LEVEL_LAYOUT_FG((player->pos.l.y.f.u >> 7) & 0xF)[(player->pos.l.x.f.u >> 7) & 0x7F];
+
+    int match = -1;
+    for (int i = 0; i < 21; i++) {
+        if (Slide_Chunks[i] == chunk) {
+            match = i;
+            break;
+        }
+    }
+
+    if (match < 0) {
+        if (f_slidemode) {
+            scratch->control_lock = 5;
+            f_slidemode = false;
+        }
+        return;
+    }
+
+    int8_t speed = Slide_Speeds[match];
+    player->status.p.f.x_flip = speed < 0;
+    player->inertia = (int16_t)(speed << 8);
+    player->anim = SonAnimId_WaterSlid;
+    f_slidemode = true;
+
+    if (((uint8_t)frame_count & 0x1F) == 0)
+        QueueSound2(sfx_Waterfall);
+}
+
 // Matches LZWaterFeatures in the disassembly.
 void LZWaterFeatures(void) {
     if (LEVEL_ZONE(level_id) != ZoneId_LZ)
         return;
 
     if (!nobgscroll && player->routine < 6) {
-        // TODO: LZWindTunnels(), LZWaterSlides() -- Sonic movement inside
-        // wind tunnels and water slide chunks aren't ported yet.
+        LZWindTunnels();
+        LZWaterSlides();
         LZDynamicWater();
     }
 
