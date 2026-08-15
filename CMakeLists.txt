@@ -210,34 +210,18 @@ set(
   "src/Backend/YM2612.h"
   "src/Backend/SN76489.h")
 
-# Two interchangeable implementations of YM2612.h's C API -- both kept fully
-# buildable so switching is a one-line config change, not a code change.
-# "fmcore" (default): the in-house engine (fmcore/fm_voice.h), built and
-# validated this session against real ymfm output plus an actual shipped
-# voice (SndB5's ring chime) by ear -- see the fmcore/ folder's own framing
-# comments for what it is/isn't (musically correct, not cycle-accurate).
-# "ymfm": the original reference-accurate implementation this project used
-# before fmcore existed, kept available (not deleted) as a fallback/
-# comparison point until fmcore has more mileage, per explicit instruction
-# not to remove it while there's still any doubt.
-set(SOUND_FM_BACKEND "fmcore" CACHE STRING "YM2612 backend: 'fmcore' (default, in-house engine) or 'ymfm' (previous reference implementation)")
-set_property(CACHE SOUND_FM_BACKEND PROPERTY STRINGS fmcore ymfm)
-
-if(SOUND_FM_BACKEND STREQUAL "fmcore")
-  list(APPEND SONIC_CORE_SOURCES
-    "src/Backend/YM2612_FMCore.c"
-    "fmcore/fm_operator.c"
-    "fmcore/fm_operator.h"
-    "fmcore/fm_voice.c"
-    "fmcore/fm_voice.h")
-  set_source_files_properties("fmcore/fm_operator.c" "fmcore/fm_voice.c" "src/Backend/YM2612_FMCore.c" PROPERTIES LANGUAGE C)
-else()
-  list(APPEND SONIC_CORE_SOURCES
-    "src/Backend/YM2612.cpp"
-    "contrib/ymfm/src/ymfm_opn.cpp"
-    "contrib/ymfm/src/ymfm_ssg.cpp"
-    "contrib/ymfm/src/ymfm_adpcm.cpp")
-endif()
+# fmcore (fmcore/fm_voice.h) is the only YM2612.h implementation -- the
+# in-house engine, now the settled choice. The ymfm-based alternative
+# backend and its verification jigs (FMCoreVerify/FMCoreAlgCheck) have been
+# removed; fmcore had enough mileage validated against them that they're no
+# longer needed as an ongoing reference.
+list(APPEND SONIC_CORE_SOURCES
+  "src/Backend/YM2612_FMCore.c"
+  "fmcore/fm_operator.c"
+  "fmcore/fm_operator.h"
+  "fmcore/fm_voice.c"
+  "fmcore/fm_voice.h")
+set_source_files_properties("fmcore/fm_operator.c" "fmcore/fm_voice.c" "src/Backend/YM2612_FMCore.c" PROPERTIES LANGUAGE C)
 
 add_library(SonicCore STATIC ${SONIC_CORE_SOURCES})
 
@@ -862,54 +846,6 @@ set(BUILD_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 # per-config properties, which only multi-config generators actually read.
 set_target_properties(Sonic PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                         "${BUILD_DIRECTORY}/$<CONFIG>")
-
-# ##############################################################################
-# fmcore -- from-scratch YM2612 core side project (see fmcore/fm_operator.h) #
-# ##############################################################################
-# Completely independent of SonicCore/the game -- a single operator so far,
-# verified against ymfm (contrib/ymfm) rather than the game's own YM2612.cpp
-# wrapper, since the point is comparing against a known-good reference
-# implementation directly, not anything game-specific.
-add_executable(FMCoreVerify
-  "fmcore/fm_operator.c"
-  "fmcore/fm_operator.h"
-  "fmcore/fmcore_verify_main.c"
-  "contrib/ymfm/src/ymfm_opn.cpp"
-  "contrib/ymfm/src/ymfm_ssg.cpp"
-  "contrib/ymfm/src/ymfm_adpcm.cpp")
-target_include_directories(FMCoreVerify PRIVATE "contrib/ymfm/src")
-set_target_properties(FMCoreVerify PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
-                                               RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
-if(NOT WIN32)
-  target_link_libraries(FMCoreVerify PRIVATE m)
-endif()
-# fmcore_verify_main.c is C++ (uses ymfm's C++ API + <vector>/<math.h>
-# directly) even though it #includes fm_operator.h's C API -- force it to
-# compile as C++ despite the .c extension, same reasoning as C_EXTENSIONS
-# elsewhere in this file when a file's real language doesn't match its
-# CMake-inferred one.
-set_source_files_properties("fmcore/fmcore_verify_main.c" PROPERTIES LANGUAGE CXX)
-
-# Same idea as FMCoreVerify, but exercises all 8 of the real YM2612's fixed
-# algorithms through fm_voice.h's free-form connect[][] graph instead of
-# just isolating a single operator -- see fmcore_algcheck_main.c's own
-# comment for what this is actually checking.
-add_executable(FMCoreAlgCheck
-  "fmcore/fm_operator.c"
-  "fmcore/fm_operator.h"
-  "fmcore/fm_voice.c"
-  "fmcore/fm_voice.h"
-  "fmcore/fmcore_algcheck_main.c"
-  "contrib/ymfm/src/ymfm_opn.cpp"
-  "contrib/ymfm/src/ymfm_ssg.cpp"
-  "contrib/ymfm/src/ymfm_adpcm.cpp")
-target_include_directories(FMCoreAlgCheck PRIVATE "contrib/ymfm/src")
-set_target_properties(FMCoreAlgCheck PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
-                                                 RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
-if(NOT WIN32)
-  target_link_libraries(FMCoreAlgCheck PRIVATE m)
-endif()
-set_source_files_properties("fmcore/fmcore_algcheck_main.c" PROPERTIES LANGUAGE CXX)
 
 # ##############################################################################
 # Backends #

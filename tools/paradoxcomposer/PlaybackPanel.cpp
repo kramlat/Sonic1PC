@@ -7,15 +7,18 @@
 
 PlaybackPanel::PlaybackPanel(QWidget *parent) : QWidget(parent) {
     m_sfxCheck = new QCheckBox("This is an SFX, not a music track", this);
+    m_ladderCheck = new QCheckBox("Authentic hardware sound (ladder effect)", this);
     m_playButton = new QPushButton("Play compiled song", this);
     m_stopButton = new QPushButton("Stop", this);
     m_statusLabel = new QLabel("Idle", this);
 
     connect(m_playButton, &QPushButton::clicked, this, [this]() { emit playRequested(m_sfxCheck->isChecked()); });
     connect(m_stopButton, &QPushButton::clicked, this, &PlaybackPanel::stopRequested);
+    connect(m_ladderCheck, &QCheckBox::toggled, this, &PlaybackPanel::ladderEffectToggled);
 
     auto *layout = new QVBoxLayout(this);
     layout->addWidget(m_sfxCheck);
+    layout->addWidget(m_ladderCheck);
     layout->addWidget(m_playButton);
     layout->addWidget(m_stopButton);
     layout->addWidget(m_statusLabel);

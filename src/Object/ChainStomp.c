@@ -166,6 +166,16 @@ static void CStom_Spikes(Object *obj, Scratch_ChainStomp *scratch) {
 }
 
 static void CStom_Chain(Object *obj, Scratch_ChainStomp *scratch) {
+    // Real ASM sets these once every tick this routine runs (not just at
+    // spawn): obHeight=256/2 + the custom-height render bit, since the
+    // chain can be up to 256px tall and the default ~32px assumed cull
+    // height would treat most of a long chain as off-screen.
+    // 128 doesn't fit in y_rad's signed int8_t range -- stored via its
+    // bit-identical uint8_t cast (-128), which BuildSprites' own
+    // yrad_height cull path already reinterprets back to unsigned 128 (see
+    // its own comment on exactly this pattern, added for this same reason).
+    obj->y_rad = (int8_t)(uint8_t)(256 / 2);
+    obj->render.f.yrad_height = true;
     Object *parent = &objects[scratch->parent_index];
     Scratch_ChainStomp *pscratch = (Scratch_ChainStomp *)&parent->scratch;
     obj->frame = (uint8_t)((((uint8_t)(pscratch->current >> 8)) >> 5) + 3);

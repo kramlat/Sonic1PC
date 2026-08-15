@@ -549,6 +549,12 @@ int Sound_DebugPlayRawSongJSON(const char *json_text, uint8_t is_sfx, uint8_t dr
 // SOUND_CHANNEL_FM_BASE.. are FM/DAC (see Sound.h's own layout comment).
 void Sound_DebugSetChannelMuted(int channel_index, uint8_t muted);
 
+// Debug/tooling only (ParadoxComposer): toggles the YM2612 ladder-effect
+// approximation (see YM2612_SetLadderEffect) on sound_music's own chip --
+// same one Sound_DebugPlayRawSong(..., is_sfx=0) plays through -- so the
+// Playback panel can A/B a compiled song clean vs authentic-hardware.
+void Sound_DebugSetLadderEffect(int enabled);
+
 // Debug/tooling only (ParadoxComposer): standalone DAC-sample preview for a
 // DAC-home block's own keyboard (per your direction: "list DAC samples on
 // keys... and actually play the samples"), independent of any song/SFX

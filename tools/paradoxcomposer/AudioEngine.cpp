@@ -311,6 +311,18 @@ void AudioEngine::setChannelMuted(int channelIndex, bool muted) {
     Sound_DebugSetChannelMuted(channelIndex, muted ? 1 : 0);
 }
 
+void AudioEngine::setLadderEffect(bool enabled) {
+    // Both playback paths: the standalone preview chip (voice/PSG/DAC
+    // preview, m_fm) and the real sequencer's own chip (song playback,
+    // reached via Sound_DebugSetLadderEffect -> sound_music.fm) -- so
+    // whichever one is actually making sound picks up the change live,
+    // letting you A/B a voice or an SFX against how it'll really play in
+    // the game, not just how it sounds in isolation.
+    if (m_fm)
+        YM2612_SetLadderEffect(m_fm, enabled ? 1 : 0);
+    Sound_DebugSetLadderEffect(enabled ? 1 : 0);
+}
+
 void AudioEngine::tick() {
     const uint32_t samplesPerFrame = SAMPLE_RATE / 60;
     std::vector<int32_t> mix(2 * samplesPerFrame, 0);

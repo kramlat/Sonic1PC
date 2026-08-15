@@ -710,19 +710,13 @@ void ColIndexLoad(void) {
 
 // Dynamic level events
 void DynamicLevelEvents(void) {
-    // MZ1's own "opened up the stomper hole" transition (below) is checked
-    // against Sonic's own position rather than the camera's -- everywhere
-    // else in this function matches real hardware and stays camera-based
-    // (scrpos_x/y). That one transition is the exception because it's the
-    // one that extends the kill-plane deeper (see Sonic_LevelBound):
-    // gating it on the camera's own lagging position meant falling fast
-    // enough let Sonic outrun the camera and hit the still-unextended
-    // kill-plane before the trigger ever fired. If another such
-    // "outrun the camera and die" case turns up elsewhere, fix it the
-    // same way -- Sonic's own position for that one specific extending
-    // transition, not a blanket swap.
-    int16_t sonic_x = player->pos.l.x.f.u;
-    int16_t sonic_y = player->pos.l.y.f.u;
+    // Every transition in this function is camera-based (scrpos_x/y),
+    // matching real hardware exactly -- MZ1's own case 0 used to special-
+    // case a fabricated Sonic-position check here (mistakenly borrowed from
+    // PushBlock's own, unrelated stomper-button trigger zone), which made
+    // that transition permanently unreachable once Sonic walked past the
+    // made-up X window. Real hardware's own DLE_MZ1_0 has no X-gate at all,
+    // just camera Y crossing $340 -- see that case's own comment.
 
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_GHZ:
@@ -801,16 +795,17 @@ void DynamicLevelEvents(void) {
                 if ((uint16_t)scrpos_x.f.u < (0xD00 - SCREEN_WIDEADD2))
                     break;
                 limit_btm1 = 0x340 - SCREEN_TALLADD;
-                // The one transition in this whole function checked
-                // against Sonic's own position rather than the camera's
-                // -- see this function's own top-of-function comment.
-                // Also requires Sonic to be horizontally near the chained
-                // stomper itself (same X-range PushBlock's own MZ1
-                // stomper-button hardcoding uses) before opening up the
-                // lower boundary, not just having fallen deep enough.
-                if ((uint16_t)sonic_x < 0xA20 || (uint16_t)sonic_x >= 0xAA1)
-                    break;
-                if (sonic_y < (0x340 + SCREEN_TALLADD))
+                // Matches the real DLE_MZ1_0 exactly: the only gate here is
+                // the camera's own Y position crossing $340 -- no X check of
+                // any kind. An earlier version of this added a fabricated
+                // sonic_x window (mistakenly borrowed from PushBlock's own,
+                // unrelated stomper-button trigger zone) plus a switch to
+                // Sonic's own Y instead of the camera's -- neither exists in
+                // real hardware's own DLE_MZ1_0, and the X-gate specifically
+                // made this transition permanently unreachable once Sonic
+                // walked past that window, even though the real (camera-Y-
+                // only) condition had already been satisfied.
+                if ((uint16_t)scrpos_y.f.u < (0x340 + SCREEN_TALLADD))
                     break;
                 dle_routine += 2;
                 break;

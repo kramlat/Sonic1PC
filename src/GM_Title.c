@@ -215,12 +215,12 @@ static void LevelSelect(void) {
                 // byte-identical to the byte-VM across the whole real
                 // content set) rather than QueueSound2's byte-VM route --
                 // first real (non-debug-tool) place this engine runs in
-                // actual gameplay. levsel_sound is the 0-based on-screen
-                // number; bgm_GHZ (1) is the enum's own first real ID (0
-                // is reserved as the silence/stop sentinel -- see its own
-                // comment in Sound.h). Stays in the loop -- doesn't exit
-                // level select.
-                Sound_PlayFromJSON((uint8_t)(bgm_GHZ + levsel_sound));
+                // actual gameplay. levsel_sound is fed straight through as
+                // the sound ID, matching real Sonic 1's own sound test
+                // numbering directly (this project's own core underneath,
+                // same on-screen behavior). Stays in the loop -- doesn't
+                // exit level select.
+                Sound_PlayFromJSON((uint8_t)(levsel_sound));
             else
                 break;
         }

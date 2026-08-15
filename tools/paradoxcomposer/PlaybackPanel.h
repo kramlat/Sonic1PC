@@ -19,10 +19,12 @@ public:
 signals:
     void playRequested(bool isSfx);
     void stopRequested();
+    void ladderEffectToggled(bool enabled);
 
 private:
     QPushButton *m_playButton;
     QPushButton *m_stopButton;
     QCheckBox *m_sfxCheck;
+    QCheckBox *m_ladderCheck;
     QLabel *m_statusLabel;
 };

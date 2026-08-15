@@ -80,6 +80,13 @@ void Sound_Init(void) {
     SN76489_Init(&sound_sfx.psg);
     sound_music.fm = YM2612_Create();
     sound_sfx.fm = YM2612_Create();
+    // Music runs the clean/mathematically-correct FM core (an "enhanced
+    // soundtrack" -- the real chip's DAC ladder-effect distortion is a
+    // property of the real hardware's imperfections, not the composers'
+    // intent), while SFX keep the authentic per-hardware character voice
+    // banks were originally tuned around. See YM2612_SetLadderEffect.
+    YM2612_SetLadderEffect(sound_music.fm, 0);
+    YM2612_SetLadderEffect(sound_sfx.fm, 1);
     // Default DAC pan (full L+R) -- LoadMusic() also sets this when a song
     // with its own DAC track loads, but PlaySegaSound_Trigger() (and any
     // other direct-to-DAC playback) runs independently of that, so without
@@ -945,14 +952,14 @@ static void DAC_Generate(SoundChipSet *cs, int32_t *out, uint32_t count, uint32_
 static void PSG_SetAttenuation(SN76489 *chip, int channel, uint8_t atten4) {
     if (atten4 > 0x0F)
         atten4 = 0x0F;
-    if (getenv("SONIC_PSG_TRACE")) fprintf(stderr, "[%u] PSGATTEN ch%d=%u\n", sound_trace_frame, channel, atten4);
+    if (getenv("SONIC_PSG_TRACE")) fprintf(stdout, "[%u] PSGATTEN ch%d=%u\n", sound_trace_frame, channel, atten4);
     SN76489_Write(chip, (uint8_t)(0x80 | (channel << 5) | 0x10 | atten4));
 }
 
 static void PSG_SetTonePeriod(SN76489 *chip, int channel, uint16_t period10) {
     if (period10 > 0x3FF)
         period10 = 0x3FF;
-    if (getenv("SONIC_PSG_TRACE")) fprintf(stderr, "[%u] PSGPERIOD ch%d=%u\n", sound_trace_frame, channel, period10);
+    if (getenv("SONIC_PSG_TRACE")) fprintf(stdout, "[%u] PSGPERIOD ch%d=%u\n", sound_trace_frame, channel, period10);
     SN76489_Write(chip, (uint8_t)(0x80 | (channel << 5) | (period10 & 0x0F)));
     SN76489_Write(chip, (uint8_t)((period10 >> 4) & 0x3F));
 }
@@ -973,7 +980,7 @@ static void FMPortChannel(int channel_index, int *port_offset, int *chan_in_port
 
 static void FM_WriteReg(YM2612 *fm, int port_offset, uint8_t reg, uint8_t data) {
     if (getenv("SONIC_FM_TRACE"))
-        fprintf(stderr, "[%u] FMREG port=%d reg=$%02X data=$%02X\n", sound_trace_frame, port_offset, reg, data);
+        fprintf(stdout, "[%u] FMREG port=%d reg=$%02X data=$%02X\n", sound_trace_frame, port_offset, reg, data);
     YM2612_Write(fm, (uint32_t)port_offset, reg);
     YM2612_Write(fm, (uint32_t)port_offset + 1, data);
 }
@@ -1013,7 +1020,7 @@ static int FM_IsCarrier(uint8_t algorithm, int op) {
 }
 
 static void FM_ApplyVolume(YM2612 *fm, SoundChannel *sch, int channel_index) {
-    if (getenv("SONIC_VOL_TRACE")) fprintf(stderr, "[%u] APPLYVOL ch%d volume=%u\n", sound_trace_frame, channel_index, sch->volume);
+    if (getenv("SONIC_VOL_TRACE")) fprintf(stdout, "[%u] APPLYVOL ch%d volume=%u\n", sound_trace_frame, channel_index, sch->volume);
     int port, ch;
     FMPortChannel(channel_index, &port, &ch);
     for (int op = 0; op < 4; op++) {
@@ -1034,43 +1041,40 @@ static void FM_ApplyVolume(YM2612 *fm, SoundChannel *sch, int channel_index) {
 // the exact layout this mirrors) into a channel's 4 operators + algorithm/
 // feedback registers.
 static void FM_LoadVoice(YM2612 *fm, SoundChannel *sch, int channel_index, const uint8_t *voice) {
-    int port, ch;
-    FMPortChannel(channel_index, &port, &ch);
-
     // Algorithm is 4 bits (0-7 real hardware, 8-15 fmcore-original -- see
     // fm_voice.c's own comment): low 3 bits as always, plus bit7 as the
     // high algorithm bit ("0"=real algorithm 0-7, "1"=custom fmcore
     // algorithm 8-15). Real hardware register $B0 leaves bits 6-7 unused/
     // ignored, so this is harmless if this exact byte were ever loaded on
-    // real silicon (or the ymfm backend) -- it just sees algorithm 0-7's
-    // low bits and silently ignores bit7. Feedback stays bits3-5, unchanged
-    // from real hardware's own layout.
+    // real silicon -- it just sees algorithm 0-7's low bits and silently
+    // ignores bit7. Feedback stays bits3-5, unchanged from real hardware's
+    // own layout.
     sch->feedback_algo = (uint8_t)((((voice[0] >> 7) & 1) << 3) | (voice[0] & 7));
-    FM_WriteReg(fm, port, (uint8_t)(0xB0 + ch), voice[0]); // algorithm(+high bit)/feedback -- every bit meaningful or genuinely inert on both backends
 
     // voice[] is stored op1,op3,op2,op4 per row (see smps.c's
     // smpsVcTotalLevel comment -- matches the SCHG FM voice format table
     // and the real driver's FMInstrumentOperatorTable register-write
     // sequence). For natural operator index op (0=op1..3=op4), its byte
     // position within each row is pos_map[op] below (self-inverse: op2 and
-    // op3 swap positions, op1/op4 stay put). The YM2612 register address
-    // per operator is separately just op*4, naturally sequential -- no
-    // hardware remap needed.
+    // op3 swap positions, op1/op4 stay put).
     static const int pos_map[4] = {0, 2, 1, 3};
+    uint8_t op_regs[4][6];
     for (int op = 0; op < 4; op++) {
-        int slot = op * 4;
         int pos = pos_map[op];
-        FM_WriteReg(fm, port, (uint8_t)(0x30 + slot + ch), voice[1 + pos]);  // DT/MUL
-        FM_WriteReg(fm, port, (uint8_t)(0x50 + slot + ch), voice[5 + pos]);  // RS/AR
-        FM_WriteReg(fm, port, (uint8_t)(0x60 + slot + ch), voice[9 + pos]);  // AM/D1R
-        FM_WriteReg(fm, port, (uint8_t)(0x70 + slot + ch), voice[13 + pos]); // D2R
-        FM_WriteReg(fm, port, (uint8_t)(0x80 + slot + ch), voice[17 + pos]); // D1L/RR
+        op_regs[op][0] = voice[1 + pos];  // DT/MUL
+        op_regs[op][1] = voice[5 + pos];  // RS/AR
+        op_regs[op][2] = voice[9 + pos];  // AM/D1R
+        op_regs[op][3] = voice[13 + pos]; // D2R
+        op_regs[op][4] = voice[17 + pos]; // D1L/RR
 
         uint8_t base_tl = voice[21 + pos] & 0x7F;
         sch->fm_base_tl[op] = base_tl;
         int add = FM_IsCarrier(sch->feedback_algo, op) ? sch->volume : 0;
-        FM_WriteReg(fm, port, (uint8_t)(0x40 + slot + ch), FM_ClampTL(base_tl + add));
+        op_regs[op][5] = FM_ClampTL(base_tl + add); // TL
     }
+    if (getenv("SONIC_FM_TRACE"))
+        fprintf(stdout, "[%u] FMVOICELOAD channel_index=%d alg_fb=$%02X\n", sound_trace_frame, channel_index, voice[0]);
+    YM2612_LoadVoice(fm, channel_index - SOUND_CHANNEL_FM_BASE, voice[0], op_regs);
 }
 
 // JSON-engine equivalent of FM_LoadVoice above -- reads a voice object's
@@ -1080,40 +1084,39 @@ static void FM_LoadVoice(YM2612 *fm, SoundChannel *sch, int channel_index, const
 // pos_map/write-order shuffle needed: slot op*4 reads straight from
 // operators[op].
 static void FM_LoadVoiceJSON(YM2612 *fm, SoundChannel *sch, int channel_index, const PJValue *voice) {
-    int port, ch;
-    FMPortChannel(channel_index, &port, &ch);
-
     int alg = JsonUnhexInt(pj_object_get(voice, "smpsVcAlgorithm"), 0);
     int fb = JsonUnhexInt(pj_object_get(voice, "smpsVcFeedback"), 0);
     int ub = JsonUnhexInt(pj_object_get(voice, "smpsVcUnusedBits"), 0);
     uint8_t byte0 = (uint8_t)((((alg >> 3) & 1) << 7) | ((ub & 1) << 6) | ((fb & 7) << 3) | (alg & 7));
     sch->feedback_algo = (uint8_t)((((byte0 >> 7) & 1) << 3) | (byte0 & 7));
-    FM_WriteReg(fm, port, (uint8_t)(0xB0 + ch), byte0);
 
     const PJValue *ops = pj_object_get(voice, "operators");
+    uint8_t op_regs[4][6];
     for (int op = 0; op < 4; op++) {
         const PJValue *o = pj_array_get(ops, (size_t)op);
-        int slot = op * 4;
         int dt = JsonUnhexInt(pj_object_get(o, "smpsVcDetune"), 0);
         int mul = JsonUnhexInt(pj_object_get(o, "smpsVcCoarseFreq"), 0);
-        FM_WriteReg(fm, port, (uint8_t)(0x30 + slot + ch), (uint8_t)(((dt & 7) << 4) | (mul & 0xF)));
+        op_regs[op][0] = (uint8_t)(((dt & 7) << 4) | (mul & 0xF)); // DT/MUL
         int rs = JsonUnhexInt(pj_object_get(o, "smpsVcRateScale"), 0);
         int ar = JsonUnhexInt(pj_object_get(o, "smpsVcAttackRate"), 0);
-        FM_WriteReg(fm, port, (uint8_t)(0x50 + slot + ch), (uint8_t)(((rs & 3) << 6) | (ar & 0x1F)));
+        op_regs[op][1] = (uint8_t)(((rs & 3) << 6) | (ar & 0x1F)); // RS/AR
         int am = JsonUnhexInt(pj_object_get(o, "smpsVcAmpMod"), 0);
         int d1r = JsonUnhexInt(pj_object_get(o, "smpsVcDecayRate1"), 0);
-        FM_WriteReg(fm, port, (uint8_t)(0x60 + slot + ch), (uint8_t)(((am & 1) << 7) | (d1r & 0x1F)));
+        op_regs[op][2] = (uint8_t)(((am & 1) << 7) | (d1r & 0x1F)); // AM/D1R
         int d2r = JsonUnhexInt(pj_object_get(o, "smpsVcDecayRate2"), 0);
-        FM_WriteReg(fm, port, (uint8_t)(0x70 + slot + ch), (uint8_t)(d2r & 0x1F));
+        op_regs[op][3] = (uint8_t)(d2r & 0x1F); // D2R
         int d1l = JsonUnhexInt(pj_object_get(o, "smpsVcDecayLevel"), 0);
         int rr = JsonUnhexInt(pj_object_get(o, "smpsVcReleaseRate"), 0);
-        FM_WriteReg(fm, port, (uint8_t)(0x80 + slot + ch), (uint8_t)(((d1l & 0xF) << 4) | (rr & 0xF)));
+        op_regs[op][4] = (uint8_t)(((d1l & 0xF) << 4) | (rr & 0xF)); // D1L/RR
 
         uint8_t base_tl = (uint8_t)(JsonUnhexInt(pj_object_get(o, "smpsVcTotalLevel"), 0) & 0x7F);
         sch->fm_base_tl[op] = base_tl;
         int add = FM_IsCarrier(sch->feedback_algo, op) ? sch->volume : 0;
-        FM_WriteReg(fm, port, (uint8_t)(0x40 + slot + ch), FM_ClampTL(base_tl + add));
+        op_regs[op][5] = FM_ClampTL(base_tl + add); // TL
     }
+    if (getenv("SONIC_FM_TRACE"))
+        fprintf(stdout, "[%u] FMVOICELOAD channel_index=%d alg_fb=$%02X\n", sound_trace_frame, channel_index, byte0);
+    YM2612_LoadVoice(fm, channel_index - SOUND_CHANNEL_FM_BASE, byte0, op_regs);
 }
 
 // Pan direction is whole-channel only -- hard left, hard right, center
@@ -1145,7 +1148,7 @@ static void FM_KeyOnOff(YM2612 *fm, int channel_index, int on) {
     int chan_code = ch + ((channel_index - SOUND_CHANNEL_FM_BASE >= 3) ? 4 : 0);
     uint8_t op_mask = on ? 0xF0 : 0x00; // all 4 operators on/off together
     if (getenv("SONIC_FM_TRACE"))
-        fprintf(stderr, "[%u] FMKEY channel_index=%d chan_code=$%02X on=%d\n", sound_trace_frame, channel_index, chan_code, on);
+        fprintf(stdout, "[%u] FMKEY channel_index=%d chan_code=$%02X on=%d\n", sound_trace_frame, channel_index, chan_code, on);
     YM2612_Write(fm, 0, 0x28);
     YM2612_Write(fm, 1, (uint8_t)(op_mask | chan_code));
 }
@@ -1285,6 +1288,20 @@ static const PJValue *JsonResolveBlock(const PJValue *playlist, const char *name
 // chip set's previous one first, if any -- the actual mechanism fixing
 // "music leaks", see the plan's own Context section).
 static void LoadMusicJSON(SoundChipSet *cs, PJValue *song, uint8_t music_id, uint8_t driver_version) {
+    // smpsPSGform ($E7 etc.) redirects the noise generator's own mode
+    // (shift rate/FB, see SN76489.c) -- a chip-wide resource, not per-
+    // channel, and real hardware never actually guarantees it resets
+    // between songs either. But unlike real hardware (which re-applies a
+    // per-track-stored noise byte whenever a track regains control of its
+    // channel -- see s1.sounddriver.asm's cfSetPSGNoise/StopSpecialSFX),
+    // nothing here was re-asserting it, so once ANY song/SFX used PSGform,
+    // every later song/SFX that also touches the noise channel without its
+    // own PSGform inherited that stale sync-mode setting -- audible as an
+    // unrelated sound now ringing/tracking a tone channel's pitch instead
+    // of playing clean noise. Reset to the default (periodic, lowest rate)
+    // whenever a fresh song loads; if it wants something else, its own
+    // event stream sets that moments later during normal playback.
+    SN76489_Write(&cs->psg, 0xE0);
     if (cs->json_song)
         pj_free(cs->json_song);
     cs->json_song = song;
@@ -1389,6 +1406,12 @@ static void LoadMusicJSON(SoundChipSet *cs, PJValue *song, uint8_t music_id, uin
 // the caller (Sound_DebugLoadSFXJSON), not owned per-chip-set the way a
 // single "current song" is.
 static void LoadSFXJSON(SoundChipSet *cs, const PJValue *song, const PJValue *playlist, uint8_t driver_version) {
+    // See LoadMusicJSON's own comment on this -- same stale noise-control-
+    // register leak applies to SFX (arguably more visibly, since SFX play
+    // back to back far more often than songs load). Chip-wide, not a
+    // per-channel reset, so it doesn't conflict with this function's own
+    // "don't reset channels this SFX doesn't target" rule below.
+    SN76489_Write(&cs->psg, 0xE0);
     cs->driver_version = driver_version;
     const PJValue *voices = pj_object_get(song, "voices");
     const PJValue *header = pj_object_get(song, "header");
@@ -1417,6 +1440,7 @@ static void LoadSFXJSON(SoundChipSet *cs, const PJValue *song, const PJValue *pl
 }
 
 static void LoadMusic(SoundChipSet *cs, const uint8_t *song, uint8_t music_id, uint8_t driver_version) {
+    SN76489_Write(&cs->psg, 0xE0); // see LoadMusicJSON's comment on this (byte-VM equivalent)
     const uint8_t *p = song;
     uint16_t voice_off = ReadWord(p);
     p += 2;
@@ -1542,6 +1566,7 @@ static int SFXChannelIndex(uint8_t chanid) {
 // those may belong to whatever's already playing (e.g. music sharing the
 // chip set, or another SFX's other channels).
 static void LoadSFX(SoundChipSet *cs, const uint8_t *song, uint8_t driver_version) {
+    SN76489_Write(&cs->psg, 0xE0); // see LoadMusicJSON's comment on this (byte-VM equivalent)
     const uint8_t *p = song;
     uint16_t voice_off = ReadWord(p);
     p += 2;
@@ -1708,7 +1733,25 @@ void SlowDownMusic(void) {
         sound_music.tempo_timeout = sound_music.main_tempo;
 }
 
-void Sound_Pause(void) { sound_music.paused = 1; }
+void Sound_Pause(void) {
+    sound_music.paused = 1;
+    // Real hardware's own PauseMusic doesn't just freeze the tempo governor --
+    // it explicitly key-offs every FM channel (reg $28) and silences every
+    // PSG channel before halting (s1.sounddriver.asm). Without this, whatever
+    // note was sounding at the moment of pause just keeps ringing indefinitely
+    // (TickChipSet returns immediately while paused, so nothing ever reaches
+    // the note's own natural release/duration-out). SFX (sound_sfx) are
+    // intentionally left untouched -- this project keeps sound_music and
+    // sound_sfx as fully independent chip sets (see Sound.h), so "pause
+    // music" only ever needs to reach sound_music's own channels.
+    for (int i = 0; i < 6; i++) {
+        SoundChannel *ch = &sound_music.channels[SOUND_CHANNEL_FM_BASE + i];
+        ch->key_on = 0;
+        FM_KeyOnOff(sound_music.fm, SOUND_CHANNEL_FM_BASE + i, 0);
+    }
+    for (int i = 0; i < 4; i++)
+        PSG_SetAttenuation(&sound_music.psg, i, 0x0F);
+}
 void Sound_Resume(void) { sound_music.paused = 0; }
 
 void PlaySound(uint8_t id) {
@@ -1756,9 +1799,21 @@ static int PSGRegisterChannel(int channel_index) {
     return -1;
 }
 
-static void SilenceIfPSG(SN76489 *psg, int psg_chan) {
+static void SilenceIfPSG(SN76489 *psg, int psg_chan, int is_noise) {
     if (psg_chan >= 0)
         PSG_SetAttenuation(psg, psg_chan, 0x0F);
+    // A noise-redirected track (smpsPSGform) writes its own note frequencies
+    // to physical channel 2 (PSG3's tone period doubles as the noise
+    // generator's "sync to tone 2" pitch source -- see PSG_SetTonePeriod's
+    // own ch->psg_noise special-case), but every attenuation/volume write
+    // for such a track -- including this one -- only ever targeted the
+    // redirected noise channel (psg_chan, already 3 here). Channel 2's own
+    // attenuation register was never touched by a noise-mode track at all,
+    // so whatever it was last left at just kept ringing at that track's
+    // final frequency indefinitely, with nothing in the track's own
+    // lifecycle (not even its own smpsStop) ever able to silence it.
+    if (is_noise)
+        PSG_SetAttenuation(psg, 2, 0x0F);
 }
 
 // Real driver's FinishTrackUpdate: every track update that isn't a
@@ -1846,9 +1901,11 @@ static void TickChannel_FlagsV3(SoundChipSet *cs, SoundChannel *ch, int channel_
             break;
         case 0xE3: // cfSilenceStopTrack -- silences then stops, same end state as cfStopTrack ($F2) below
             ch->active = 0;
-            SilenceIfPSG(&cs->psg, psg_reg_chan);
+            SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
             if (is_fm)
                 FM_KeyOnOff(cs->fm, channel_index, 0);
+            if (is_dac)
+                cs->dac_playing = 0;
             return;
         case 0xE4: { // cfSetVolume -- absolute set. "cpl" (one's complement) matches Flamedriver's own encoding.
             uint8_t raw = *ch->data_ptr++;
@@ -1953,16 +2010,18 @@ static void TickChannel_FlagsV3(SoundChipSet *cs, SoundChannel *ch, int channel_
         }
         case 0xF2: // cfStopTrack
             ch->active = 0;
-            SilenceIfPSG(&cs->psg, psg_reg_chan);
+            SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
             if (is_fm)
                 FM_KeyOnOff(cs->fm, channel_index, 0);
+            if (is_dac)
+                cs->dac_playing = 0;
             return;
         case 0xF3: { // cfSetPSGNoise -- PSG only; param 0 explicitly clears noise mode (v1's $F3 has no such clear case)
             uint8_t v = *ch->data_ptr++;
             if (psg_chan >= 0) {
                 if (v == 0) {
                     ch->psg_noise = 0;
-                    SilenceIfPSG(&cs->psg, 3);
+                    SilenceIfPSG(&cs->psg, 3, 1); // 1: leaving noise mode -- also clean up channel 2 (see SilenceIfPSG's own comment)
                 } else if (psg_chan == 2 && cs->psg_count < 4) {
                     SN76489_Write(&cs->psg, v);
                     ch->psg_noise = 1;
@@ -2155,7 +2214,7 @@ static void JsonPushReturn(SoundChannel *ch, const PJValue *events, size_t index
     }
 }
 
-static void JsonPopReturn(SoundChannel *ch) {
+static void JsonPopReturn(SoundChipSet *cs, SoundChannel *ch, int channel_index, int is_fm, int is_dac, int psg_reg_chan) {
     if (ch->json_return_sp > 0) {
         ch->json_return_sp--;
         ch->json_events = ch->json_return_stack[ch->json_return_sp].events;
@@ -2164,7 +2223,18 @@ static void JsonPopReturn(SoundChannel *ch) {
         ch->json_loop_idx = ch->json_return_stack[ch->json_return_sp].loop_idx;
         ch->json_loop_body_start = ch->json_return_stack[ch->json_return_sp].loop_body_start;
     } else {
-        ch->active = 0; // stack underflow -- nothing to return to, matches real hardware running off the end
+        // Stack underflow -- nothing to return to, matches real hardware
+        // running off the end. Every other channel-terminating path
+        // (smpsStop/cfStopTrack/smpsStopSpecial/smpsFade) explicitly keys
+        // off and silences PSG before deactivating; this one was silently
+        // skipping that, so a track that ends via a bare smpsReturn instead
+        // of an explicit stop event left its last note ringing forever.
+        ch->active = 0;
+        SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
+        if (is_fm)
+            FM_KeyOnOff(cs->fm, channel_index, 0);
+        if (is_dac)
+            cs->dac_playing = 0;
     }
 }
 
@@ -2235,7 +2305,7 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
                     continue;
                 }
             }
-            JsonPopReturn(ch);
+            JsonPopReturn(cs, ch, channel_index, is_fm, is_dac, psg_reg_chan);
             if (!ch->active || !ch->json_events)
                 return;
             continue;
@@ -2277,13 +2347,15 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
             }
             if (strcmp(s, "smpsStop") == 0 || strcmp(s, "smpsStopSpecial") == 0 || strcmp(s, "smpsFade") == 0) {
                 ch->active = 0;
-                SilenceIfPSG(&cs->psg, psg_reg_chan);
+                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
                 if (is_fm)
                     FM_KeyOnOff(cs->fm, channel_index, 0);
+                if (is_dac)
+                    cs->dac_playing = 0;
                 return;
             }
             if (strcmp(s, "smpsReturn") == 0) {
-                JsonPopReturn(ch);
+                JsonPopReturn(cs, ch, channel_index, is_fm, is_dac, psg_reg_chan);
                 continue;
             }
             if (strcmp(s, "smpsClearPush") == 0 || strcmp(s, "smpsWeirdD1LRR") == 0)
@@ -2307,7 +2379,7 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
             if (raw < 0) {
                 continue; // unrecognized note name -- skip rather than crash
             } else if (raw == 0x80) { // rest
-                SilenceIfPSG(&cs->psg, psg_reg_chan);
+                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
                 if (is_fm)
                     FM_KeyOnOff(cs->fm, channel_index, 0);
                 ch->key_on = 0;
@@ -2427,7 +2499,7 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
             // no-op, argument already consumed via the generic pj_object_get above
         } else if (strcmp(key, "smpsPSGform") == 0) {
             int form = JsonUnhexInt(v, 0);
-            if (getenv("SONIC_PSG_TRACE")) fprintf(stderr, "JSON smpsPSGform ch%d psg_chan=%d psg_count=%u form=%d\n", channel_index, psg_chan, cs->psg_count, form);
+            if (getenv("SONIC_PSG_TRACE")) fprintf(stdout, "JSON smpsPSGform ch%d psg_chan=%d psg_count=%u form=%d\n", channel_index, psg_chan, cs->psg_count, form);
             if (psg_chan == 2 && cs->psg_count < 4) {
                 SN76489_Write(&cs->psg, (uint8_t)form);
                 ch->psg_noise = 1;
@@ -2436,7 +2508,7 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
             uint8_t voice_index = (uint8_t)JsonUnhexInt(v, 0);
             ch->voice_index = voice_index;
             if (is_fm && ch->json_voices) {
-                if (getenv("SONIC_VOL_TRACE")) fprintf(stderr, "JSON ch%d voice_index=%u volume=%u\n", channel_index, voice_index, ch->volume);
+                if (getenv("SONIC_VOL_TRACE")) fprintf(stdout, "JSON ch%d voice_index=%u volume=%u\n", channel_index, voice_index, ch->volume);
                 const PJValue *voice = pj_array_get(ch->json_voices, voice_index);
                 if (voice)
                     FM_LoadVoiceJSON(cs->fm, ch, channel_index, voice);
@@ -2562,7 +2634,7 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
         ch->note_timeout--;
         if (ch->note_timeout == 0 && ch->key_on) {
             ch->key_on = 0;
-            SilenceIfPSG(&cs->psg, psg_reg_chan);
+            SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
             if (is_fm)
                 FM_KeyOnOff(cs->fm, channel_index, 0);
         }
@@ -2707,7 +2779,7 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
 
             if (b == 0x80) {
                 ch->key_on = 0;
-                SilenceIfPSG(&cs->psg, psg_reg_chan);
+                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
                 if (is_fm)
                     FM_KeyOnOff(cs->fm, channel_index, 0);
                 ch->note_timeout = ch->note_timeout_master; // see the note-on branch below for why not `dur`
@@ -2828,9 +2900,11 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
                 break;
             case 0xE4: // smpsFade -- stops this track; fade-in-to-previous-song isn't implemented
                 ch->active = 0;
-                SilenceIfPSG(&cs->psg, psg_reg_chan);
+                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
                 if (is_fm)
                     FM_KeyOnOff(cs->fm, channel_index, 0);
+                if (is_dac)
+                    cs->dac_playing = 0;
                 return;
             case 0xE5: ch->tempo_divider = *ch->data_ptr++; break; // smpsChanTempoDiv -- per-track duration multiplier override
             case 0xE6: { // smpsAlterVol -- designed for FM, effective immediately
@@ -2860,15 +2934,17 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
             case 0xED: break; // smpsClearPush -- clears sfx_Push's "pushing block" game-state flag, unrelated to the sound engine
             case 0xEE: // smpsStopSpecial
                 ch->active = 0;
-                SilenceIfPSG(&cs->psg, psg_reg_chan);
+                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
                 if (is_fm)
                     FM_KeyOnOff(cs->fm, channel_index, 0);
+                if (is_dac)
+                    cs->dac_playing = 0;
                 return;
             case 0xEF: { // smpsFMvoice / smpsSetvoice
                 uint8_t voice_index = *ch->data_ptr++;
                 ch->voice_index = voice_index;
                 if (is_fm && cs->voice_bank) {
-                    if (getenv("SONIC_VOL_TRACE")) fprintf(stderr, "BYTE ch%d voice_index=%u volume=%u\n", channel_index, voice_index, ch->volume);
+                    if (getenv("SONIC_VOL_TRACE")) fprintf(stdout, "BYTE ch%d voice_index=%u volume=%u\n", channel_index, voice_index, ch->volume);
                     FM_LoadVoice(cs->fm, ch, channel_index, cs->voice_bank + (size_t)voice_index * 25);
                 }
                 break;
@@ -2886,9 +2962,11 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
             case 0xF1: ch->mod_active = 1; break; // smpsModOn -- re-enable without resetting stored parameters
             case 0xF2: // smpsStop
                 ch->active = 0;
-                SilenceIfPSG(&cs->psg, psg_reg_chan);
+                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
                 if (is_fm)
                     FM_KeyOnOff(cs->fm, channel_index, 0);
+                if (is_dac)
+                    cs->dac_playing = 0;
                 return;
             case 0xF3: { // smpsPSGform -- irreversibly redirects this track to drive the real
                          // hardware noise channel (SN76489 channel 3) instead of its own tone
@@ -3131,6 +3209,13 @@ int Sound_DebugPlayRawSongJSON(const char *json_text, uint8_t is_sfx, uint8_t dr
 static PJValue *sound_json_sfx_cache[0x100];
 
 void Sound_PlayFromJSON(uint8_t id) {
+    // Stamps which sound ID just triggered into the SONIC_FM_TRACE/
+    // SONIC_PSG_TRACE log, so a trace file can be positively tied to a
+    // specific repro attempt instead of relying on frame numbers alone --
+    // two different runs of the same song/SFX can otherwise produce
+    // identical-looking tails purely by coincidence (looping content).
+    if (getenv("SONIC_FM_TRACE") || getenv("SONIC_PSG_TRACE"))
+        fprintf(stdout, "[%u] SOUNDTEST id=$%02X\n", sound_trace_frame, id);
     const char *json_text = sound_table_json[id];
     if (!json_text)
         return; // unmapped ID -- same "clean skip" contract as DispatchQueue's NULL sound_table check
@@ -3165,6 +3250,10 @@ void Sound_DebugSetChannelMuted(int channel_index, uint8_t muted) {
     if (channel_index < 0 || channel_index >= SOUND_CHANNELS)
         return;
     sound_music.channels[channel_index].debug_muted = muted;
+}
+
+void Sound_DebugSetLadderEffect(int enabled) {
+    YM2612_SetLadderEffect(sound_music.fm, enabled);
 }
 
 // Dedicated scratch chip-set for standalone DAC preview -- DAC_Trigger/

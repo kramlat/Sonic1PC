@@ -71,6 +71,14 @@ public:
     // channel_index's meaning (PSG 0-3, then FM/DAC).
     void setChannelMuted(int channelIndex, bool muted);
 
+    // Playback panel's ladder-effect checkbox -- toggles the real chip's DAC
+    // nonlinearity approximation (YM2612_SetLadderEffect) on both playback
+    // paths: the standalone preview YM2612 (m_fm, previewVoice/etc.) and
+    // song playback (Sound_DebugSetLadderEffect, sound_music's own chip).
+    // Takes effect immediately/live, same as the mute checkboxes -- no need
+    // to stop and restart playback to hear the change.
+    void setLadderEffect(bool enabled);
+
 signals:
     // Emitted once per 60Hz tick while a song is playing -- frameCount
     // resets to 0 on playSong(). Used by the piano roll's playhead (an

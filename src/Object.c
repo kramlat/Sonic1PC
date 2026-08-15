@@ -455,7 +455,14 @@ void BuildSprites(uint8_t *sprite_io) {
 					//Get object Y position
 					if (obj->render.f.yrad_height) {
 						int16_t oy = obj->pos.l.y.f.u - *scrpos[1];
-						if ((oy + obj->y_rad) < 0 || (oy - obj->y_rad) >= SCREEN_HEIGHT)
+						// Real hardware zero-extends this byte (moveq #0,d0 / move.b
+						// obHeight(a0),d0) rather than sign-extending it -- matters
+						// because fragmentated objects (see FragmentatePlatform) never
+						// get y_rad re-initialized on freshly allocated slots, so it
+						// can hold garbage >=128 that must still read as a large
+						// positive height here, not a negative one.
+						uint8_t height = (uint8_t)obj->y_rad;
+						if ((oy + height) < 0 || (oy - height) >= SCREEN_HEIGHT)
 							continue;
 						y = 128 + oy; //VDP sprites start at 128
 					} else {
@@ -652,14 +659,14 @@ void PlatformObject_CustomHeight(Object *obj, uint16_t x_rad, int16_t height) {
 	top -= by;
 	if (top < -16)
 		return;
-	
+
 	//Check if player can collide with platform
 	if ((lock_multi & 0x80) || player->routine >= 6)
 		return;
-	
+
 	//Clip on top of platform
 	player->pos.l.y.f.u = top + py + 3;
-	
+
 	//Modify platform state
 	obj->routine += 2;
 	Platform_SetStand(obj);

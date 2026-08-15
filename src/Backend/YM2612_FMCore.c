@@ -1,10 +1,8 @@
-// Alternate YM2612.h implementation backed by fmcore (../../fmcore/fm_voice.h)
-// instead of ymfm -- see fmcore/fm_operator.h's own header comment for what
-// fmcore is and isn't (musically correct, not cycle-accurate). Selected in
-// place of YM2612.cpp (the ymfm-backed implementation, kept fully intact and
-// still buildable) via CMakeLists.txt's SOUND_FM_BACKEND option -- both
-// files implement the exact same YM2612.h C API, so nothing outside this
-// file and its CMake wiring needs to know or care which one is active.
+// YM2612.h's implementation, backed by fmcore (../../fmcore/fm_voice.h) --
+// see fmcore/fm_operator.h's own header comment for what fmcore is and
+// isn't (musically correct, not cycle-accurate). The previous ymfm-backed
+// alternative (YM2612.cpp) has been removed now that fmcore is the settled
+// choice; this is the only YM2612.h implementation in the project.
 //
 // Register decoding here mirrors Sound.c's own FM_LoadVoice/FM_WriteReg
 // comments exactly (natural op*4 register addressing per operator, no
@@ -49,6 +47,8 @@ struct YM2612 {
 
     uint32_t tick_accum;
     int16_t last_sample_l, last_sample_r;
+
+    bool ladder_effect; // see YM2612_SetLadderEffect / ApplyLadderEffect
 };
 
 // Approximate LFO rates (Hz) for freq_sel 0-7 -- commonly cited real-hardware
@@ -236,6 +236,57 @@ void YM2612_Write(YM2612 *chip, uint32_t offset, uint8_t data) {
 uint8_t YM2612_PeekReg(const YM2612 *chip, int port, uint8_t reg) { return chip->reg_shadow[port & 1][reg]; }
 uint8_t YM2612_PeekKeyOn(const YM2612 *chip) { return chip->keyon_mask; }
 
+void YM2612_LoadVoice(YM2612 *chip, int channel_index, uint8_t alg_fb_byte, const uint8_t op_regs[4][6]) {
+    int port = channel_index / 3;
+    int ch = channel_index % 3;
+    uint8_t *shadow = chip->reg_shadow[port];
+
+    shadow[0xB0 + ch] = alg_fb_byte;
+    SyncAlgorithm(chip, port, ch); // also resyncs op0, see its own comment
+
+    static const uint8_t reg_base[6] = {0x30, 0x50, 0x60, 0x70, 0x80, 0x40}; // DT/MUL, RS/AR, AM/D1R, D2R, D1L/RR, TL
+    for (int op = 0; op < 4; op++) {
+        int slot = op * 4;
+        for (int r = 0; r < 6; r++)
+            shadow[reg_base[r] + slot + ch] = op_regs[op][r];
+        SyncOperator(chip, port, ch, op);
+    }
+}
+
+void YM2612_SetLadderEffect(YM2612 *chip, int enabled) { chip->ladder_effect = enabled != 0; }
+
+// Approximation of the real YM2612's DAC "ladder effect" -- a documented
+// nonlinearity in each channel's own output stage (the real chip's internal
+// accumulator is wider than what its DAC actually resolves cleanly; see
+// Nemesis's SpritesMind.net writeup "YM2612 DAC Distortion (ladder
+// effect)"). The general, well-corroborated shape of it: small signals near
+// zero get reproduced with much finer resolution than large ones, i.e. a
+// segmented/companding response rather than a straight linear one, which is
+// what produces its characteristic extra grain/distortion on quiet and
+// sustained tones.
+//
+// IMPORTANT CAVEAT: this reproduces that documented SHAPE (quantization
+// step width widening geometrically with signal magnitude), not Nemesis's
+// exact published per-sample lookup table -- that table wasn't available
+// while writing this, so treat this as a deliberate, labeled approximation
+// rather than a byte-exact port. If the real table turns up later (e.g.
+// Nuked-OPN2's source), swap the two arrays below for it.
+static int16_t ApplyLadderEffect(int16_t sample) {
+    static const int32_t SEG_BOUND[8] = {0, 512, 1024, 2048, 4096, 8192, 16384, 32768};
+    static const int32_t SEG_STEP[8]  = {1, 2, 4, 8, 16, 32, 64, 128};
+
+    int32_t sign = sample < 0 ? -1 : 1;
+    int32_t mag = sample < 0 ? -(int32_t)sample : (int32_t)sample;
+
+    int seg = 0;
+    while (seg < 7 && mag >= SEG_BOUND[seg + 1])
+        seg++;
+
+    int32_t step = SEG_STEP[seg];
+    mag = (mag / step) * step;
+    return (int16_t)(sign * mag);
+}
+
 void YM2612_Generate(YM2612 *chip, int32_t *out, uint32_t count, uint32_t sample_rate, uint32_t clock_rate) {
     uint32_t native_rate = clock_rate / 144; // matches fm_operator.c's own OP_UPDATE_RATE derivation (SOUND_FM_CLOCK/144)
     for (uint32_t i = 0; i < count; i++) {
@@ -267,6 +318,11 @@ void YM2612_Generate(YM2612 *chip, int32_t *out, uint32_t count, uint32_t sample
             int32_t mix_l = 0, mix_r = 0;
             for (int ch = 0; ch < FM_CHANNEL_COUNT; ch++) {
                 int16_t sample = FMVoice_Clock(&chip->voice[ch], lfo_unipolar);
+                // Real hardware's ladder effect happens in each channel's
+                // own output stage, before the pan-gated L/R sum below --
+                // not a distortion of the already-mixed bus.
+                if (chip->ladder_effect)
+                    sample = ApplyLadderEffect(sample);
                 if (chip->pan[ch] & 0x80)
                     mix_l += sample;
                 if (chip->pan[ch] & 0x40)

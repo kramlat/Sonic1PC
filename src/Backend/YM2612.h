@@ -6,9 +6,8 @@
 extern "C" {
 #endif
 
-// Opaque handle around ymfm's ym2612 class (see /ymfm) -- kept behind a
-// plain C interface so the rest of this C99 project never needs to know
-// it's linking against C++.
+// Opaque handle around fmcore's in-house YM2612 implementation
+// (Backend/YM2612_FMCore.c, backed by fmcore/fm_voice.h).
 typedef struct YM2612 YM2612;
 
 YM2612 *YM2612_Create(void);
@@ -38,6 +37,28 @@ uint8_t YM2612_PeekReg(const YM2612 *chip, int port, uint8_t reg);
 // 0-5) -- $28 itself only ever encodes one channel's state per write (see
 // YM2612_Write's own comment), so this isn't just another PeekReg lookup.
 uint8_t YM2612_PeekKeyOn(const YM2612 *chip);
+
+// Bulk voice load: writes a full voice's register set (the $B0+ch
+// algorithm/feedback byte, plus each of the 4 operators' 6 registers --
+// op_regs[op][0..5] in DT/MUL, RS/AR, AM/D1R, D2R, D1L/RR, TL order,
+// matching FM_LoadVoice's/FM_LoadVoiceJSON's own FM_WriteReg call order in
+// Sound.c) directly into the shadow and resyncs each operator exactly once
+// (5 total: 1 algorithm + 4 operators), instead of the 25 individual
+// register writes a real hardware-faithful load takes -- each of which
+// would otherwise trigger its own full operator resync (SyncOperator
+// reassembles ALL 6 of an operator's fields from the shadow on every
+// single register write, so loading one operator's 6 registers one at a
+// time redundantly resyncs it 6 times when only the last write matters).
+// channel_index is this project's own flat 0-5 FM channel index (matches
+// YM2612_Write's other callers' convention).
+void YM2612_LoadVoice(YM2612 *chip, int channel_index, uint8_t alg_fb_byte, const uint8_t op_regs[4][6]);
+
+// Toggles emulation of the real chip's DAC "ladder effect" -- a documented
+// nonlinearity in the channel output stage (see YM2612_FMCore.c's own
+// comment on ApplyLadderEffect for details/caveats). Off by default. Per
+// chip, not global, so e.g. sound_music.fm can run clean while sound_sfx.fm
+// stays authentic to the real hardware's characteristic distortion.
+void YM2612_SetLadderEffect(YM2612 *chip, int enabled);
 
 #ifdef __cplusplus
 }

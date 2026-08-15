@@ -83,7 +83,7 @@ MainWindow::MainWindow(const QString &repoRoot, QWidget *parent) : QMainWindow(p
     // itself (header + content) so it holds regardless of which mode
     // (Mdi/Floating) it's currently in.
     voiceBankContainer->setFixedSize(880, 570);
-    playbackContainer->setFixedSize(300, 190);
+    playbackContainer->setFixedSize(300, 215); // +25px for the new ladder-effect checkbox row
 
     // Default layout on first run only -- loadLayout() restores whatever
     // was last saved (via closeEvent()'s saveLayout()) if present, per your
@@ -210,6 +210,8 @@ MainWindow::MainWindow(const QString &repoRoot, QWidget *parent) : QMainWindow(p
     connect(m_bytesPanel, &BytesPanel::compileRequested, this, &MainWindow::compileCurrentDocument);
     connect(m_playbackPanel, &PlaybackPanel::playRequested, this, &MainWindow::playCompiledSong);
     connect(m_playbackPanel, &PlaybackPanel::stopRequested, this, &MainWindow::stopSong);
+    connect(m_playbackPanel, &PlaybackPanel::ladderEffectToggled, this,
+            [this](bool enabled) { m_audio.setLadderEffect(enabled); });
 
     if (!m_audio.init())
         QMessageBox::warning(this, "Audio", "Could not initialize SDL audio -- playback will be silent.");
