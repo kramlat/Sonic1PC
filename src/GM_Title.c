@@ -235,7 +235,7 @@ static void LevelSelect(void) {
         level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
         score = 0;
 #ifndef SCP_REV00
-        score_life = 5000;
+        score_life = 50000;
 #endif
     } else {
         level_id = levsel_levels[item];
@@ -317,7 +317,7 @@ static void PlayLevel(void) {
     memset(emerald_list, 0, sizeof(emerald_list));
     continues = 0;
 #ifndef SCP_REV00
-    score_life = 5000;
+    score_life = 50000;
 #endif
    FadeOutMusic();
 }
@@ -564,7 +564,7 @@ void GM_Title(void) {
             level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
             score = 0;
 #ifndef SCP_REV00
-            score_life = 5000;
+            score_life = 50000;
 #endif
             return;
         }

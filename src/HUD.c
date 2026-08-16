@@ -190,8 +190,6 @@ void HUD_Update(void) {
         }
 
         // Update lives
-        if (life_count)
-            HUD_Lives();
     } else {
         // Update position
         HUD_WriteHex(0xDC40, (scrpos_x.f.u << 16) | player->pos.l.x.f.u);
@@ -212,5 +210,12 @@ void HUD_Update(void) {
 
         // Update sprite count
         HUD_WriteNumber2(0xDEC0, sprite_count, &hud_dec[4], 1);
+     }
+
+    // Update lives
+    if (life_count) {
+        life_count = false;
+        HUD_Lives();
     }
+
 }

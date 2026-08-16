@@ -7,6 +7,9 @@
 extern const uint8_t MZ_ScrollArray[], SBZ_ScrollArray[];
 extern int16_t scroll_block1_size, scroll_block2_size, scroll_block3_size, scroll_block4_size;
 extern const dword_s* bg_pos_table[];
+extern const dword_s* bg_pos_table_dup[];
+extern const dword_s* bg_pos_table_y[];
+extern const dword_s* bg_pos_table_y_dup[];
 
 size_t CalcVRAMPos(int16_t sx, int16_t sy, int16_t x, int16_t y);
 size_t CalcVRAMPos_2(int16_t sx, int16_t x, int16_t y);
@@ -19,9 +22,9 @@ void DrawFlipXY(const uint8_t* block, size_t offset);
 void DrawBlock(const uint8_t* meta, const uint8_t* block, size_t offset);
 void DrawChunks(int16_t sx, int16_t sy, const uint8_t* layout, size_t offset);
 void LoadTilesFromStart(void);
-void DrawBGScrollBlock1(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset);
-void DrawBGScrollBlock2(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset);
-void DrawBGScrollBlock3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset);
+void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset);
+void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset);
+void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset);
 void LoadTilesAsYouMove(void);
 void LoadTilesAsYouMove_BGOnly(void);
 void AnimateLevelGfx(void);

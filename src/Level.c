@@ -555,14 +555,17 @@ void AddPoints(uint16_t points) {
     if ((score += points) >= 999999)
         score = 999999;
 
-    // Check if we should be rewarded an extra life
+    // Check if we should be rewarded an extra life every 50000 points.
+    // Real REV01 hardware has this same mechanic (repurposed from an unused
+    // REV00 high-score-copy value), but hard-gates the actual award to the
+    // Japanese region only -- overseas carts silently update the
+    // requirement and never get the life. Sonic 2 onward removed that
+    // region gate, awarding it everywhere; matching that here instead.
     if (score >= score_life) {
-        score_life += 5000;
-#ifndef SCP_JP
+        score_life += 50000;
         lives++;
         life_count++;
         PlayMusic(bgm_ExtraLife);
-#endif
     }
 #endif
 }
@@ -919,8 +922,18 @@ void DynamicLevelEvents(void) {
                 limit_btm1 = 0x210 - SCREEN_TALLADD; // boss_mz_y
                 if ((uint16_t)scrpos_x.f.u < (0x17F0 - SCREEN_WIDEADD2)) // boss_mz_x-0x10
                     break;
-                // TODO spawn boss (id_BossMarble at boss_mz_x+0x1F0, boss_mz_y+0x1C), queue bgm_Boss, lock_screen=true, AddPLC(PlcId_Boss)
+                {
+                    Object *boss = FindFreeObj();
+                    if (boss != NULL) {
+                        boss->type = ObjId_BossMarble;
+                        boss->pos.l.x.f.u = 0x1800 + 0x1F0; // boss_mz_x+0x1F0
+                        boss->pos.l.y.f.u = 0x210 + 0x1C;   // boss_mz_y+0x1C
+                    }
+                }
+                QueueSound1(bgm_Boss);
+                lock_screen = true;
                 dle_routine += 2;
+                AddPLC(PlcId_Boss);
                 break;
             case 2: // DLE_MZ3_End
                 limit_left2 = scrpos_x.f.u; // camera-freeze at the level's end, deliberately still camera-based

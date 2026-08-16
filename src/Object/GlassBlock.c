@@ -151,8 +151,6 @@ static void Glass_Main(Object *obj, Scratch_GlassBlock *scratch) {
     }
     obj->y_rad = (int8_t)height;
 
-    obj->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + height);
-
     // Spawns the pillar (reusing this very object) and its sheen
     // companion. If object RAM is full when spawning the sheen, the
     // pillar itself is simply left without one -- real hardware's own

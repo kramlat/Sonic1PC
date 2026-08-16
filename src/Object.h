@@ -29,7 +29,7 @@ typedef enum {
 	/*0D*/ ObjId_Signpost,
 	/*0E*/ ObjId_TitleSonic,
 	/*0F*/ ObjId_PSB,
-	/*10*/ ObjId_10,
+	/*10*/ ObjId_GHZTunnel, // real slot 10 was an unused/deleted beta object (a Sonic artwork test) -- repurposed here
 	/*11*/ ObjId_GHZBridge,
 	/*12*/ ObjId_SpinningLight,
 	/*13*/ ObjId_LavaMaker,
@@ -128,8 +128,8 @@ typedef enum {
 	/*70*/ ObjId_GirderBlock,
 	/*71*/ ObjId_InvisibleBarrier,
 	/*72*/ ObjId_Teleporter,
-	/*73*/ ObjId_73,
-	/*74*/ ObjId_74,
+	/*73*/ ObjId_BossMarble,
+	/*74*/ ObjId_BossFire,
 	/*75*/ ObjId_75,
 	/*76*/ ObjId_76,
 	/*77*/ ObjId_77,
@@ -197,7 +197,7 @@ typedef union {
 		unsigned int roll_jump : 1;    //Set when jumping from a roll
 		unsigned int pushing : 1;      //Set if we're pushing
 		unsigned int underwater : 1;   //Set if we're underwater
-		unsigned int flag7 : 1;        //Unused
+		unsigned int must_roll : 1;    //GHZTunnel-forced "pinball mode" -- can't jump out of or stop a roll while set
 	} f;
 	uint8_t b;
 } PlayerStatus;

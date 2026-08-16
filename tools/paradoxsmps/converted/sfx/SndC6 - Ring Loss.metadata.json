@@ -1,0 +1,42 @@
+{
+    "blocks": {
+        "SndC6_Ring_Loss_FM4": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 0
+                }
+            ]
+        },
+        "SndC6_Ring_Loss_FM5": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 0
+                }
+            ]
+        }
+    }
+}

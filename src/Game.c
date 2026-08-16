@@ -103,7 +103,7 @@ void EntryPoint(void) {
         memset(emerald_list, 0, sizeof(emerald_list));
         continues = 0;
 #ifndef SCP_REV00
-        score_life = 5000;
+        score_life = 50000;
 #endif
         if (cli_start_special) {
             gamemode = GameMode_Special;

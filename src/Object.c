@@ -47,6 +47,7 @@ void Obj_SpecialSonic(Object *obj);
 void Obj_Signpost(Object *obj);
 void Obj_TitleSonic(Object *obj);
 void Obj_PSB(Object *obj);
+void Obj_GHZTunnel(Object *obj);
 void Obj_GHZBridge(Object *obj);
 void Obj_Crabmeat(Object *obj);
 void Obj_HUD(Object *obj);
@@ -142,6 +143,8 @@ void Obj_SpinConveyor(Object *obj);
 void Obj_Teleporter(Object *obj);
 void Obj_BossGreenHill(Object *obj);
 void Obj_BossBall(Object *obj);
+void Obj_BossMarble(Object *obj);
+void Obj_BossFire(Object *obj);
 void Obj_PrisonCapsule(Object *obj);
 void Obj_VanishSonic(Object *obj);
 void Obj_MagicSwitch(Object *obj);
@@ -165,7 +168,7 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_Signpost            */ Obj_Signpost,
 	/* ObjId_TitleSonic          */ Obj_TitleSonic,
 	/* ObjId_PSB                 */ Obj_PSB,
-	/* ObjId_10                  */ Obj_Null,
+	/* ObjId_GHZTunnel           */ Obj_GHZTunnel,
 	/* ObjId_GHZBridge           */ Obj_GHZBridge,
 	/* ObjId_SpinningLight       */ Obj_SpinningLight,
 	/* ObjId_LavaMaker           */ Obj_LavaMaker,
@@ -264,8 +267,8 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_GirderBlock         */ Obj_GirderBlock,
 	/* ObjId_InvisibleBarrier    */ Obj_InvisibleBarrier,
 	/* ObjId_Teleporter          */ Obj_Teleporter,
-	/* ObjId_73                  */ Obj_Null,
-	/* ObjId_74                  */ Obj_Null,
+	/* ObjId_BossMarble          */ Obj_BossMarble,
+	/* ObjId_BossFire            */ Obj_BossFire,
 	/* ObjId_75                  */ Obj_Null,
 	/* ObjId_76                  */ Obj_Null,
 	/* ObjId_77                  */ Obj_Null,

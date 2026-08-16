@@ -73,7 +73,7 @@ static void BGHZ_ShipStart(Object *obj, Scratch_BossGreenHill *scratch) {
 }
 
 static void BGHZ_Defeated(Object *obj, Scratch_BossGreenHill *scratch) {
-    AddPoints(100);
+    AddPoints(1000); // real ASM passes literal 100, but its own AddPoints takes points/10 -- this project's AddPoints takes the full displayed value
     obj->routine_sec = 8; // BGHZ_Explode
     scratch->generic_timer = 0xB3;
 }

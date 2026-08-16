@@ -131,7 +131,7 @@ static void Geyser_Main(Object *obj, Scratch_LavaGeyser *scratch) {
     // "fixed", since it's unclear whether that's visually load-bearing.
     middle->y_rad = (int8_t)(256 / 2);
     middle->render.f.yrad_height = true;
-    middle->routine = 6; // BigLavaWall
+    middle->routine = 4; // BigLavaWall
     mscratch->parent_index = (uint8_t)(obj - objects);
 
     if (subtype != 0) {

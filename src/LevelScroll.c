@@ -387,9 +387,18 @@ void Deform_MZ(void) {
 	int16_t *bufp = &hscroll_buffer[0][0];
 	for (int i = 0; i < SCREEN_HEIGHT; i++) { *bufp++ = fg_x; *bufp++ = bg_x; }
 #else
-	BGScroll_Block1((scrshift_x << 6) * 3, SCROLL_FLAG_RIGHT); // bit 3
-	BGScroll_Block3(scrshift_x << 6, SCROLL_FLAG_DOWN2);       // bit 5
-	BGScroll_Block2(scrshift_x << 7, SCROLL_FLAG_UP2);         // bit 4
+	// Real ASM passes these as raw bit-INDICES (2, 6, 4) to bset, not the
+	// named SCROLL_FLAG_* masks -- BGScroll_Block1/2/3 use the base bit for
+	// a leftward/decreasing scroll and base+1 for rightward/increasing (see
+	// their own real-ASM comment: "d6 = bit to set for redraw direction").
+	// Block1's and Block3's masks here were previously off by one bit
+	// (SCROLL_FLAG_RIGHT/DOWN2, i.e. index 3/5, instead of the real 2/6),
+	// corrupting which rows/edges Draw_MZ's bit-masking logic (0xA8 = bits
+	// 7,5,3) thinks need redrawing. Block2's SCROLL_FLAG_UP2 (index 4) was
+	// already correct.
+	BGScroll_Block1((scrshift_x << 6) * 3, SCROLL_FLAG_LEFT);  // bit 2 (real: moveq #2,d6)
+	BGScroll_Block3(scrshift_x << 6, (uint8_t)(1 << 6));       // bit 6 (real: moveq #6,d6)
+	BGScroll_Block2(scrshift_x << 7, SCROLL_FLAG_UP2);         // bit 4 (real: moveq #4,d6)
 
 	int16_t y_off = 0x200;
 	int16_t dy = scrpos_y.f.u - 0x1C8;

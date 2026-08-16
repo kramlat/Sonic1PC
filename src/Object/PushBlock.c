@@ -181,9 +181,9 @@ static void PushB_SolidAction(Object *obj, Scratch_PushBlock *scratch, uint16_t 
     }
 }
 
-static void PushB_LavaPlatform(Object *obj, Scratch_PushBlock *scratch) {
+static void PushB_LavaPlatform(Object *obj, Scratch_PushBlock *scratch, int16_t prev_x) {
     int16_t x_rad = (int16_t)(obj->width_pixels + 11 /* sonic_solid_width */);
-    PushB_SolidAction(obj, scratch, (uint16_t)x_rad, 32 / 2, 34 / 2, obj->pos.l.x.f.u);
+    PushB_SolidAction(obj, scratch, (uint16_t)x_rad, 32 / 2, 34 / 2, prev_x);
     PushB_SpawnLavaGeysers(obj);
     PushB_Display(obj, scratch);
 }
@@ -198,6 +198,15 @@ static void PushB_Sunken(Object *obj, Scratch_PushBlock *scratch) {
 // geyser underneath it, drifting until it hits a wall, and slowly sinking
 // once it stops moving.
 static void PushB_OnLava(Object *obj, Scratch_PushBlock *scratch) {
+    // Captured BEFORE SpeedToPos moves the block via its own drift velocity
+    // below -- MvSonicOnPtfm (inside PushB_SolidAction) needs the block's
+    // PRE-drift X to compute how far it moved this frame and carry Sonic
+    // along by that same amount. Capturing it any later (e.g. inside
+    // PushB_LavaPlatform, after the block has already moved) makes the
+    // carry delta always zero, so Sonic never rides a drifting block --
+    // it just slides out from under him every frame it's moving.
+    int16_t prev_x = obj->pos.l.x.f.u;
+
     if (obj->routine_sec < 4)
         SpeedToPos(obj); // routine_sec 4/6 do their own SpeedToPos inside PushB_SolidAction
 
@@ -216,7 +225,7 @@ static void PushB_OnLava(Object *obj, Scratch_PushBlock *scratch) {
                 obj->pos.l.y.f.l = 0;
             }
         }
-        PushB_LavaPlatform(obj, scratch);
+        PushB_LavaPlatform(obj, scratch, prev_x);
         return;
     }
 
@@ -226,7 +235,7 @@ static void PushB_OnLava(Object *obj, Scratch_PushBlock *scratch) {
         // sinks impossibly slowly (a fraction of a pixel per frame).
         obj->pos.l.y.v += 0x2000 + 1;
         if ((uint8_t)obj->pos.l.y.f.l < 160) {
-            PushB_LavaPlatform(obj, scratch);
+            PushB_LavaPlatform(obj, scratch, prev_x);
             return;
         }
         PushB_Sunken(obj, scratch);
@@ -238,7 +247,7 @@ static void PushB_OnLava(Object *obj, Scratch_PushBlock *scratch) {
     if (hit < 0)
         obj->xsp = 0; // hit a wall -- stop moving, don't start sinking until next frame
 
-    PushB_LavaPlatform(obj, scratch);
+    PushB_LavaPlatform(obj, scratch, prev_x);
 }
 
 static void PushB_Action(Object *obj, Scratch_PushBlock *scratch) {

@@ -90,6 +90,7 @@ typedef enum
 void Sonic_Animate(Object *obj);
 void Sonic_LoadGfx(Object *obj);
 void Sonic_ResetOnFloor(Object *obj);
+void Sonic_ChkRoll(Object *obj);
 int32_t HurtSonic(Object *obj, Object *src);
 int32_t KillSonic(Object *obj, Object *src);
 

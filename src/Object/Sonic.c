@@ -1153,7 +1153,7 @@ Sonic_AngleSpeed:;
     }
 }
 
-static void Sonic_ChkRoll(Object *obj) {
+void Sonic_ChkRoll(Object *obj) {
     // Enter roll state
     if (obj->status.p.f.in_ball)
         return;
@@ -1308,13 +1308,22 @@ static void Sonic_RollSpeed(Object *obj) {
                 obj->inertia = 0;
         }
 
-        // Uncurl when we've come to a stop
+        // Uncurl when we've come to a stop -- unless must_roll (GHZTunnel)
+        // is forcing us to stay rolling, in which case give an extra push
+        // in whichever direction we're currently facing instead (real
+        // Sonic_KeepRolling: "magically gives Sonic an extra push if he's
+        // going to stop rolling where it's not allowed, such as in an
+        // S-curve").
         if (obj->inertia == 0) {
-            obj->status.p.f.in_ball = false;
-            obj->y_rad = SONIC_HEIGHT;
-            obj->x_rad = SONIC_WIDTH;
-            obj->anim = SonAnimId_Wait;
-            obj->pos.l.y.f.u -= SONIC_BALL_SHIFT;
+            if (obj->status.p.f.must_roll) {
+                obj->inertia = obj->status.p.f.x_flip ? (int16_t)-0x400 : (int16_t)0x400;
+            } else {
+                obj->status.p.f.in_ball = false;
+                obj->y_rad = SONIC_HEIGHT;
+                obj->x_rad = SONIC_WIDTH;
+                obj->anim = SonAnimId_Wait;
+                obj->pos.l.y.f.u -= SONIC_BALL_SHIFT;
+            }
         }
     }
 
@@ -2120,7 +2129,10 @@ void Obj_Sonic(Object* obj) {
                 Sonic_Floor(obj);
                 break;
             case 4: // In ball, not in air
-                if (Sonic_Jump(obj))
+                // Real Obj01_MdRoll skips the jump check entirely while
+                // pinball_mode/must_roll is set (GHZTunnel) -- can't jump
+                // out of a forced roll.
+                if (!obj->status.p.f.must_roll && Sonic_Jump(obj))
                     break;
                 Sonic_RollRepel(obj);
                 Sonic_RollSpeed(obj);
