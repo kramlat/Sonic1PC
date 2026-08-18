@@ -57,7 +57,7 @@ static void Obj_Ring_SetupRing(Object *obj, uint8_t index, int16_t x, int16_t y,
 #else
     ring->mappings = Mappings_RingREV01;
 #endif
-    ring->tile = TILE_MAP(0, 1, 0, 0, 0x7B2);
+    ring->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
     ring->render.b = 0;
     ring->render.f.align_fg = true;
     ring->priority = 2;
@@ -181,7 +181,7 @@ static void Obj_RingLoss_SetupRing(Object *obj, int16_t *xsp, int16_t *ysp, word
 #else
     ring->mappings = Mappings_RingREV01;
 #endif
-    ring->tile = TILE_MAP(0, 1, 0, 0, 0x7B2);
+    ring->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
     ring->render.b = 0;
     ring->render.f.align_fg = true;
     ring->priority = 3;

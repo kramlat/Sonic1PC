@@ -125,16 +125,16 @@ void Obj_MovingBlock(Object *obj) {
     case 0: { // Main
         obj->routine += 2;
         obj->mappings = Mappings_MovingBlocks;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x2B8); // ArtTile_MZ_Block | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_MZ_Block); // | Tile_Pal3
 
         if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
             obj->mappings = Mappings_LZMovingBlocks;
-            obj->tile = TILE_MAP(0, 2, 0, 0, 0x3BC); // ArtTile_LZ_Moving_Block | Tile_Pal3
+            obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Moving_Block); // | Tile_Pal3
             obj->y_rad = 14 / 2;
         } else if (LEVEL_ZONE(level_id) == ZoneId_SBZ) {
-            obj->tile = TILE_MAP(0, 1, 0, 0, 0x2C0); // ArtTile_SBZ_Moving_Block_Short | Tile_Pal2
+            obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_SBZ_Moving_Block_Short); // | Tile_Pal2
             if (obj->scratch.u8[0] != 0x28)
-                obj->tile = TILE_MAP(0, 2, 0, 0, 0x460); // ArtTile_SBZ_Moving_Block_Long | Tile_Pal3
+                obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Moving_Block_Long); // | Tile_Pal3
         }
 
         obj->render.b = 0;

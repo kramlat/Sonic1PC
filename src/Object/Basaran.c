@@ -141,7 +141,7 @@ void Obj_Basaran(Object *obj) {
     case 0: // Main
         obj->routine += 2;
         obj->mappings = Mappings_Basaran;
-        obj->tile = TILE_MAP(1, 0, 0, 0, 0x4B8); // ArtTile_Basaran | Tile_Prio
+        obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Basaran); // | Tile_Prio
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->y_rad = 24 / 2;

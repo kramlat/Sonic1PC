@@ -19,10 +19,10 @@ typedef struct {
 // used), subtype 3 is GHZ's own bridge stump. Collision type is always
 // col_none (0) for every variant, so it's not part of this table.
 static const SceneryVariant scenery_variants[4] = {
-    { NULL, TILE_MAP(0, 2, 0, 0, 0x4D8), 0, 16 / 2, 2 }, // ArtTile_SLZ_Fireball_Launcher | Tile_Pal3 (mappings filled in below, needs Mappings_Scenery)
-    { NULL, TILE_MAP(0, 2, 0, 0, 0x4D8), 0, 16 / 2, 2 },
-    { NULL, TILE_MAP(0, 2, 0, 0, 0x4D8), 0, 16 / 2, 2 },
-    { NULL, TILE_MAP(0, 2, 0, 0, 0x38E), 1, 32 / 2, 1 }, // ArtTile_GHZ_Bridge | Tile_Pal3 -- Mappings_GHZBridge filled in below
+    { NULL, TILE_MAP(0, 2, 0, 0, ArtTile_SLZ_Fireball_Launcher), 0, 16 / 2, 2 }, // | Tile_Pal3 (mappings filled in below, needs Mappings_Scenery)
+    { NULL, TILE_MAP(0, 2, 0, 0, ArtTile_SLZ_Fireball_Launcher), 0, 16 / 2, 2 },
+    { NULL, TILE_MAP(0, 2, 0, 0, ArtTile_SLZ_Fireball_Launcher), 0, 16 / 2, 2 },
+    { NULL, TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Bridge), 1, 32 / 2, 1 }, // | Tile_Pal3 -- Mappings_GHZBridge filled in below
 };
 
 void Obj_Scenery(Object *obj) {

@@ -52,7 +52,7 @@ void Obj_FlapDoor(Object *obj) {
     case 0:
         obj->routine += 2;
         obj->mappings = Mappings_FlappingDoor;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x328); // ArtTile_LZ_Flapping_Door | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Flapping_Door); // | Tile_Pal3
         obj->render.f.align_fg = true;
         obj->width_pixels = 80 / 2;
         scratch->time = (int16_t)(obj->scratch.u8[0] * 60);

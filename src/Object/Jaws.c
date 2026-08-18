@@ -29,7 +29,7 @@ void Obj_Jaws(Object *obj) {
     case 0: {
         obj->routine += 2;
         obj->mappings = Mappings_Jaws;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x486); // ArtTile_Jaws | Tile_Pal2
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Jaws); // | Tile_Pal2
         obj->render.f.align_fg = true;
         obj->col_type = 0x0A; // col_32x24 | col_badnik
         obj->priority = 4;

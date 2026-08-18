@@ -93,7 +93,7 @@ static void SpinC_Solid(Object *obj, Scratch_LCon *scratch) {
 static void SpinC_Main_Platform(Object *obj, Scratch_LCon *scratch, uint8_t subtype) {
     obj->routine = 2; // advance to SpinC_Solid
     obj->mappings = Mappings_SpinningPlatforms;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x4DF); // ArtTile_SBZ_Spinning_Platform
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Spinning_Platform);
     obj->width_pixels = 32 / 2;
     obj->render.f.align_fg = true;
     obj->priority = 4;

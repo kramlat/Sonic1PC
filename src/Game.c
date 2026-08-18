@@ -174,9 +174,8 @@ void WriteVRAMBuffers(void) {
     else
         VDP_WriteCRAM(&dry_palette[0][0], 0x40);
 
-    // Copy buffers
-    VDP_SeekVRAM(VRAM_SPRITES);
-    VDP_WriteVRAM((const uint8_t*)sprite_buffer, sizeof(sprite_buffer));
+    // Copy buffers -- sprite_buffer no longer gets copied into VRAM; VDP_Render
+    // reads it directly via VDP_SetSpriteBuffer (see Video.c's VDPSetupGame).
     VDP_SeekVRAM(VRAM_HSCROLL);
     VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
 }
@@ -291,9 +290,8 @@ void VBlank(void) {
         else
             VDP_WriteCRAM(&dry_palette[0][0], 0x40);
 
-        // Copy buffers
-        VDP_SeekVRAM(VRAM_SPRITES);
-        VDP_WriteVRAM((const uint8_t*)sprite_buffer, sizeof(sprite_buffer));
+        // Copy buffers -- sprite_buffer no longer gets copied into VRAM; VDP_Render
+        // reads it directly via VDP_SetSpriteBuffer (see Video.c's VDPSetupGame).
         VDP_SeekVRAM(VRAM_HSCROLL);
         VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
 
@@ -352,9 +350,8 @@ void VBlank(void) {
         VDP_SeekCRAM(0);
         VDP_WriteCRAM(&dry_palette[0][0], 0x40);
 
-        // Copy buffers
-        VDP_SeekVRAM(VRAM_SPRITES);
-        VDP_WriteVRAM((const uint8_t*)sprite_buffer, sizeof(sprite_buffer));
+        // Copy buffers -- sprite_buffer no longer gets copied into VRAM; VDP_Render
+        // reads it directly via VDP_SetSpriteBuffer (see Video.c's VDPSetupGame).
         VDP_SeekVRAM(VRAM_HSCROLL);
         VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
 
@@ -391,9 +388,8 @@ void VBlank(void) {
         else
             VDP_WriteCRAM(&dry_palette[0][0], 0x40);
 
-        // Copy buffers
-        VDP_SeekVRAM(VRAM_SPRITES);
-        VDP_WriteVRAM((const uint8_t*)sprite_buffer, sizeof(sprite_buffer));
+        // Copy buffers -- sprite_buffer no longer gets copied into VRAM; VDP_Render
+        // reads it directly via VDP_SetSpriteBuffer (see Video.c's VDPSetupGame).
         VDP_SeekVRAM(VRAM_HSCROLL);
         VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
 

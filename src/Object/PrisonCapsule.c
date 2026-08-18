@@ -29,7 +29,7 @@ static bool Pri_OutOfRange(int16_t x) {
 
 static void Pri_Main(Object *obj, Scratch_PrisonCapsule *scratch) {
     obj->mappings = Mappings_PrisonCapsule;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x49D); // ArtTile_Prison_Capsule
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Prison_Capsule);
     obj->render.f.align_fg = true;
     scratch->orig_y = obj->pos.l.y.f.u;
 

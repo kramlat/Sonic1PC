@@ -107,7 +107,7 @@ static void Stair_Main(Object *obj, Scratch_Staircase *scratch) {
 
         block->type = ObjId_Staircase;
         block->mappings = Mappings_Staircase;
-        block->tile = TILE_MAP(0, 2, 0, 0, 0); // ArtTile_Level | Tile_Pal3
+        block->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
         block->render.f.align_fg = true;
         block->priority = 3;
         block->width_pixels = 32 / 2;

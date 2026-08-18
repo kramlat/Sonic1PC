@@ -18,7 +18,7 @@ void Obj_Crabmeat_Construct(Object *obj) {
 
     // Initialize object drawing information
     obj->mappings = Mappings_Crabmeat;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x400);
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Crabmeat);
     obj->render.b = 0;
     obj->render.f.align_fg = true;
     obj->priority = 3;
@@ -102,7 +102,7 @@ void Obj_Crabmeat_Projectile_Construct(Object *obj) {
 
     // Initialize object drawing information
     obj->mappings = Mappings_Crabmeat;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x400);
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Crabmeat);
     obj->render.b = 0;
     obj->render.f.align_fg = true;
     obj->priority = 3;

@@ -13,7 +13,7 @@ void Obj_GHZRock(Object* obj) {
 
         // Set object drawing information
         obj->mappings = Mappings_GHZRock;
-        obj->tile = TILE_MAP(0, 3, 0, 0, 0x3D0);
+        obj->tile = TILE_MAP(0, 3, 0, 0, ArtTile_GHZ_Purple_Rock);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->width_pixels = 19;

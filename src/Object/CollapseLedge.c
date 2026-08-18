@@ -44,7 +44,7 @@ void Obj_CollapseLedge(Object *obj) {
     case 0: // Main
         obj->routine += 2;
         obj->mappings = Mappings_CollapsingLedge;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0);
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level);
         obj->render.b &= 0x03;
         obj->render.f.align_fg = true;
         obj->priority = 4;

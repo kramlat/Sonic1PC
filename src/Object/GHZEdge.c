@@ -103,7 +103,7 @@ void Obj_GHZEdge(Object *obj)
 
         // Set object drawing information
         obj->mappings = Mappings_GHZEdge;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x34C);
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Edge_Wall);
         obj->render.f.align_fg = true;
         obj->width_pixels = 8;
         obj->priority = 6;

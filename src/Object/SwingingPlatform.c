@@ -38,7 +38,7 @@ void Obj_SwingingPlatform(Object *obj) {
         case 0: { // Swing_Main
             obj->routine += 2;
             obj->mappings = Mappings_GHZSwing;
-            obj->tile = TILE_MAP(0, 2, 0, 0, 0x380); // ArtTile_GHZ_MZ_Swing
+            obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_MZ_Swing);
             obj->render.f.align_fg = true;
             obj->priority = 3;
             obj->width_pixels = 0x18;
@@ -48,7 +48,7 @@ void Obj_SwingingPlatform(Object *obj) {
 
             if (LEVEL_ZONE(level_id) == ZoneId_SLZ) {
                 obj->mappings = Mappings_SLZSwing;
-                obj->tile = TILE_MAP(0, 2, 0, 0, 0x3DC); // ArtTile_SLZ_Swing
+                obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SLZ_Swing);
                 obj->width_pixels = 0x20;
                 obj->y_rad = 0x10;
                 obj->col_type = 0x99;
@@ -56,7 +56,7 @@ void Obj_SwingingPlatform(Object *obj) {
 
             if (LEVEL_ZONE(level_id) == ZoneId_SBZ) {
                 obj->mappings = Mappings_BigSpikedBall;
-                obj->tile = TILE_MAP(0, 0, 0, 0, 0x391); // ArtTile_SBZ_Swing (Art_SYZSpike1, reused for SBZ)
+                obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Swing); // (Art_SYZSpike1, reused for SBZ)
                 obj->width_pixels = 0x18;
                 obj->y_rad = 0x18;
                 obj->col_type = 0x86;
@@ -119,7 +119,7 @@ void Obj_SwingingPlatform(Object *obj) {
 
             if (subtype & 0x10) { // is object type $1X? (unused in real levels)
                 obj->mappings = Mappings_GHZBall;
-                obj->tile = TILE_MAP(0, 2, 0, 0, 0x396); // ArtTile_GHZ_Giant_Ball
+                obj->tile = TILE_MAP(0, 2, 0, 0, (ArtTile_GHZ_Giant_Ball));
                 obj->frame = 1;
                 obj->priority = 2;
                 obj->col_type = 0x81;

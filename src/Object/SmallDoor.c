@@ -36,7 +36,7 @@ void Obj_SmallDoor(Object *obj) {
     if (obj->routine == 0) {
         obj->routine = 2; // advance to ADoor_OpenShut
         obj->mappings = Mappings_SmallDoor;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x2E8); // ArtTile_SBZ_Door | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Door); // | Tile_Pal3
         obj->render.f.align_fg = true;
         obj->width_pixels = 16 / 2;
         obj->priority = 4;

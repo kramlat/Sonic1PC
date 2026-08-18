@@ -167,7 +167,7 @@
 
 #define ArtTile_Sonic 0x780
 #define ArtTile_Points 0x797
-#define ArtTile_Lamppost 0x7A0
+#define ArtTile_Lamppost 0x6C0
 #define ArtTile_Ring 0x7B2
 #define ArtTile_Lives_Counter 0x7D4
 #define ArtTile_Lives_Counter_Num (ArtTile_Lives_Counter+9)

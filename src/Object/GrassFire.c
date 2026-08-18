@@ -64,7 +64,7 @@ void Obj_GrassFire(Object *obj) {
     case 0: // Main
         obj->routine += 2;
         obj->mappings = Mappings_Fireballs;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x345); // ArtTile_MZ_Fireball
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_MZ_Fireball);
         scratch->orig_x = obj->pos.l.x.f.u;
         obj->render.b = 0;
         obj->render.f.align_fg = true;

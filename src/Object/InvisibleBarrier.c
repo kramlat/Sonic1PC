@@ -4,11 +4,7 @@
 #include "LevelScroll.h"
 #include "Macros.h"
 
-// Not #include "Object/Monitor.h" -- that header directly #includes its own
-// Resource/Mappings/Monitor.h (an array *definition*), so including it here
-// too would give this translation unit a duplicate definition and fail to
-// link (same reasoning as Object/DebugList.c's own comment on this).
-extern const uint8_t Mappings_Monitor[];
+#include "Resource/Mappings/InvisibleBarrier.h"
 
 // Sonic's own half-width, for solid-object collision purposes -- matches
 // real Sonic 1's sonic_solid_width (22/2).
@@ -24,8 +20,19 @@ void Obj_InvisibleBarrier(Object *obj) {
     switch (obj->routine) {
     case 0: // Invis_Main
         obj->routine = 2;
-        obj->mappings = Mappings_Monitor;
-        obj->tile = TILE_MAP(1, 0, 0, 0, 0x680); // real ASM ORs in Tile_Prio, unlike the real monitor object itself
+        // Real hardware's own debug-only preview uses a dedicated mapping
+        // (Map_Invis -- 4 tightly-packed Eggman-icon tiles, no monitor box),
+        // not Monitor's own box+icon combo frames.
+        obj->mappings = Mappings_InvisibleBarrier;
+        obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor); // real ASM ORs in Tile_Prio, unlike the real monitor object itself
+        // Mappings_InvisibleBarrier only has 3 valid frames (0-2), unlike
+        // the old Mappings_Monitor reuse (12 frames) -- a pooled slot's
+        // stale leftover obj->frame from some earlier, differently-framed
+        // occupant is now much more likely to read out of bounds, so it
+        // needs an explicit reset here (real ASM never sets obFrame
+        // either, but its own Map_Invis is looked up by real hardware's
+        // own debug tools differently -- doesn't need this same care).
+        obj->frame = 0;
         obj->render.f.align_fg = true;
         obj->width_pixels = (uint8_t)((((scratch->subtype >> 4) & 0xF) + 1) * 8);
         // Fallthrough

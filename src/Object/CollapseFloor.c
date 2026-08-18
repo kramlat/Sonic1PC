@@ -29,12 +29,12 @@ void Obj_CollapseFloor(Object *obj) {
     case 0: // Main
         obj->routine += 2;
         obj->mappings = Mappings_CollapsingFloors;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x2B8); // ArtTile_MZ_Block | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_MZ_Block); // | Tile_Pal3
         if (LEVEL_ZONE(level_id) == ZoneId_SLZ) {
-            obj->tile = TILE_MAP(0, 2, 0, 0, 0x4E0); // ArtTile_SLZ_Collapsing_Floor | Tile_Pal3
+            obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SLZ_Collapsing_Floor); // | Tile_Pal3
             obj->frame += 2;
         } else if (LEVEL_ZONE(level_id) == ZoneId_SBZ) {
-            obj->tile = TILE_MAP(0, 2, 0, 0, 0x3F5); // ArtTile_SBZ_Collapsing_Floor | Tile_Pal3
+            obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Collapsing_Floor); // | Tile_Pal3
         }
         obj->render.b = 0;
         obj->render.f.align_fg = true;

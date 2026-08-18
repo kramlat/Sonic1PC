@@ -14,7 +14,7 @@ void Obj_Explosion_Animal(Object *obj) {
 void Obj_Explosion_Construct(Object *obj) {
     // Set object drawing information
     obj->mappings = Mappings_Explosion;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x5A0);
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Explosion);
     obj->render.b = 0;
     obj->render.f.align_fg = true;
     obj->priority = 1;
@@ -71,7 +71,7 @@ void Obj_Explosion(Object *obj) {
 void Obj_ExplosionBomb_Construct(Object *obj) {
     // Set object drawing information
     obj->mappings = Mappings_ExplodeBomb;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x5A0);
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Explosion);
     obj->render.b = 0;
     obj->render.f.align_fg = true;
     obj->priority = 1;

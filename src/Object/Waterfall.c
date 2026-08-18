@@ -1,11 +1,21 @@
 #include "Waterfall.h"
 
+#include "Game.h"
+#include "Level.h"
 #include "LevelScroll.h"
 #include "Sound.h"
+
+#include "Resource/Mappings/WaterfallMarker.h"
 
 // Invisible waterfall sound effect trigger (GHZ). No sprite -- it just
 // plays the SFX periodically while in range, and deletes itself once the
 // camera scrolls far enough away.
+//
+// Debug-only marker: no real hardware precedent for this specific object
+// (it's genuinely invisible even in real hardware's own debug mode), but
+// following the same convention as InvisibleBarrier/LavaTag's own markers
+// -- a tight 2x2 icon cluster, goggles instead of Eggman (swimming/water
+// association) so it doesn't get confused with those.
 void Obj_Waterfall(Object *obj) {
     switch (obj->routine) {
         case 0: // WSnd_Main
@@ -14,6 +24,13 @@ void Obj_Waterfall(Object *obj) {
             break;
 
         case 2: { // WSnd_PlaySnd
+            if (debug_cheat) {
+                obj->mappings = Mappings_WaterfallMarker;
+                obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
+                obj->frame = 0;
+                DisplaySprite(obj);
+            }
+
             // Only play the waterfall SFX every 64 frames -- scratch.u8[0]
             // is a free-running countdown local to this object.
             if (obj->scratch.u8[0]-- == 0) {

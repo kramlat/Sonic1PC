@@ -1,7 +1,13 @@
 #include "PathSwapper.h"
 
+#include "Game.h"
 #include "Level.h"
 #include "LevelCollision.h"
+#include "LevelScroll.h"
+#include "Macros.h"
+
+#include "Resource/Mappings/PathSwapper.h"
+#include "Sound.h"
 
 // Object 03 - Path Swapper / Collision Switcher. See PathSwapper.h and
 // s1disasm ProjectSonic1TwoEight's "_incObj/03 Collision Switcher.asm" (the
@@ -9,9 +15,12 @@
 // (vertical trigger line checked via X-crossing = MainX, horizontal trigger
 // line checked via Y-crossing = MainY), each with a forward and a backward
 // crossing, each independently choosing a target collision path and Sonic's
-// sprite priority. Purely invisible/logic-only in normal play (no debug
-// on-screen marker rendering here, unlike the real disassembly's optional
-// DebugPathSwappers build).
+// sprite priority. Purely invisible/logic-only in normal play -- except
+// when DebugPathSwappers (real hardware's own Two-Eight-branch feature,
+// unconditionally on here) is active: while debug_cheat is set, it stays
+// visible (4 ring pieces, arranged per its own subtype -- vertical or
+// horizontal, one of 3 sizes) and plays the lamppost SFX on every crossing,
+// instead of instantly deleting itself.
 
 #define PSWAP_BIT_SIZE_MASK      0x03
 #define PSWAP_BIT_HORIZONTAL     0x04
@@ -44,6 +53,9 @@ static void PSwapper_Trigger(Object *obj, Scratch_PathSwapper *scratch, bool for
     player->tile &= ~0x8000;
     if (priority)
         player->tile |= 0x8000;
+
+    if (debug_cheat)
+        PlaySound(sfx_Lamppost);
 }
 
 static void PSwapper_MainX(Object *obj) {
@@ -109,6 +121,16 @@ void Obj_PathSwapper(Object *obj) {
     case 0: { // PSwapper_Init
         scratch->size = PSwapper_Sizes[scratch->subtype & PSWAP_BIT_SIZE_MASK];
 
+        // Debug-only preview (see file header) -- harmless to set up
+        // unconditionally even when debug_cheat is off, since the object
+        // just never gets displayed in that case.
+        obj->mappings = Mappings_PathSwapper;
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring); // | Tile_Pal2
+        obj->render.f.align_fg = true;
+        obj->width_pixels = 32 / 2;
+        obj->priority = 5;
+        obj->frame = scratch->subtype & (PSWAP_BIT_SIZE_MASK | PSWAP_BIT_HORIZONTAL);
+
         if (scratch->subtype & PSWAP_BIT_HORIZONTAL) {
             obj->routine = 4; // PSwapper_MainY
             // If Sonic spawned already below the trigger line, treat it as
@@ -128,5 +150,20 @@ void Obj_PathSwapper(Object *obj) {
     case 4:
         PSwapper_MainY(obj);
         break;
+    }
+
+    if (debug_cheat) {
+        // Stay visible and tracked like any normal object while the debug
+        // cheat is active (matches real hardware's own DebugPathSwappers).
+        RememberState(obj);
+        return;
+    }
+
+    // Otherwise: purely invisible/logic-only. Matches RememberState's own
+    // off-screen handling (respawn-flag clear + delete) but never displays.
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
+        if (obj->respawn_index)
+            objstate[obj->respawn_index] &= 0x7F;
+        ObjectDelete(obj);
     }
 }

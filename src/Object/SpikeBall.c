@@ -53,7 +53,7 @@ static void SBall_ChkDel(Object *obj, Scratch_SpikeBall *scratch) {
 static void SBall_Main(Object *obj, Scratch_SpikeBall *scratch) {
     obj->routine += 2;
     obj->mappings = Mappings_SpikeBallSYZ;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x3BA); // ArtTile_SYZ_Spikeball_Chain
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SYZ_Spikeball_Chain);
     obj->render.b = 0;
     obj->render.f.align_fg = true;
     obj->priority = 4;
@@ -66,7 +66,7 @@ static void SBall_Main(Object *obj, Scratch_SpikeBall *scratch) {
     if (is_lz) {
         obj->col_type = 0; // col_none -- LZ: chain doesn't hurt Sonic
         obj->mappings = Mappings_SpikeBallLZ;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x310); // ArtTile_LZ_Spikeball_Chain
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Spikeball_Chain);
     }
 
     uint8_t subtype = obj->scratch.u8[0];

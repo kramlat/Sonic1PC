@@ -1,14 +1,23 @@
 #include "RunningDisc.h"
 
+#include "Game.h"
 #include "Level.h"
 #include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Object/Sonic.h"
 #include "Resource/Mappings/RunningDisc.h"
+#include "Resource/Mappings/RunningDiscMarker.h"
 
 // This is just the invisible object that controls Sonic, as well as the
 // small circular spot that moves inside the gear. The gear graphics
 // themselves are part of the level chunks.
+//
+// Debug-only marker: works exactly like SBZConveyor's own touch-and-carry
+// trigger (Disc_MoveSonic mirrors Conveyor_MoveSonic almost exactly), so it
+// gets the same 4 speed-shoe-icon corner marker -- scaled to the gear's
+// square attach trigger (triggersize) instead of a rectangle, and drawn as
+// a second sprite at the gear's own center since the spot's own sprite
+// still needs its normal display too.
 
 static bool Disc_OutOfRange(int16_t x) {
     uint16_t obj_pos = (uint16_t)x & 0xFF80;
@@ -92,16 +101,43 @@ static void Disc_Action(Object *obj, Scratch_RunningDisc *scratch) {
     Disc_MoveSonic(scratch);
     Disc_MoveSpot(obj, scratch);
 
-    if (Disc_OutOfRange(scratch->orig_x))
+    if (Disc_OutOfRange(scratch->orig_x)) {
         ObjectDelete(obj);
-    else
+        return;
+    }
+
+    if (debug_cheat) {
+        // Draw the marker as a separate sprite at the gear's own center,
+        // saving/restoring the spot's own fields around it -- this object
+        // only has room for one sprite's worth of state at a time.
+        int16_t spot_x = obj->pos.l.x.f.u;
+        int16_t spot_y = obj->pos.l.y.f.u;
+        const void *spot_mappings = obj->mappings;
+        uint16_t spot_tile = obj->tile;
+        uint8_t spot_frame = obj->frame;
+
+        obj->pos.l.x.f.u = scratch->orig_x;
+        obj->pos.l.y.f.u = scratch->orig_y;
+        obj->col_type = 0; // marker itself has no collision
+        obj->mappings = Mappings_RunningDiscMarker;
+        obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
+        obj->frame = (scratch->triggersize == 0x48) ? 0 : 1; // 0 = large, 1 = small (leftover, practically unused)
         DisplaySprite(obj);
+
+        obj->pos.l.x.f.u = spot_x;
+        obj->pos.l.y.f.u = spot_y;
+        obj->mappings = spot_mappings;
+        obj->tile = spot_tile;
+        obj->frame = spot_frame;
+    }
+
+    DisplaySprite(obj);
 }
 
 static void Disc_Main(Object *obj, Scratch_RunningDisc *scratch) {
     obj->routine = 2; // advance to Disc_Action
     obj->mappings = Mappings_RunningDisc;
-    obj->tile = TILE_MAP(1, 2, 0, 0, 0x344); // ArtTile_SBZ_Disc | Tile_Pal3 | Tile_Prio
+    obj->tile = TILE_MAP(1, 2, 0, 0, ArtTile_SBZ_Disc); // | Tile_Pal3 | Tile_Prio
     obj->render.f.align_fg = true;
     obj->priority = 4;
     obj->width_pixels = 16 / 2;

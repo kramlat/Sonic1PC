@@ -26,7 +26,17 @@
 //Object draw queue
 struct SpriteQueue {
 	uint32_t size;
-	Object *obj[0x3F];
+	// 0x3F (63) was undersized: this per-priority-tier bucket is this
+	// port's own internal pre-sort mechanism, not something modeled on real
+	// hardware (real Genesis VDP has no concept of per-priority sprite
+	// buckets, just one flat 80-slot table) -- DisplaySprite silently drops
+	// anything past this cap with zero fallback, so if enough objects ever
+	// share one priority value, a genuinely below-hardware-budget number of
+	// objects could vanish from render even while the real 80-sprite total
+	// (BUFFER_SPRITES) stays nowhere near exhausted. 0x50 matches
+	// BUFFER_SPRITES -- no single tier could legitimately need more than
+	// the real hardware total anyway.
+	Object *obj[0x50];
 } sprite_queue[8];
 
 //Object indices
@@ -145,6 +155,8 @@ void Obj_BossGreenHill(Object *obj);
 void Obj_BossBall(Object *obj);
 void Obj_BossMarble(Object *obj);
 void Obj_BossFire(Object *obj);
+void Obj_BossSpringYard(Object *obj);
+void Obj_BossBlock(Object *obj);
 void Obj_PrisonCapsule(Object *obj);
 void Obj_VanishSonic(Object *obj);
 void Obj_MagicSwitch(Object *obj);
@@ -269,8 +281,8 @@ static void (*object_func[])(Object*) = {
 	/* ObjId_Teleporter          */ Obj_Teleporter,
 	/* ObjId_BossMarble          */ Obj_BossMarble,
 	/* ObjId_BossFire            */ Obj_BossFire,
-	/* ObjId_75                  */ Obj_Null,
-	/* ObjId_76                  */ Obj_Null,
+	/* ObjId_BossSpringYard      */ Obj_BossSpringYard,
+	/* ObjId_BossBlock           */ Obj_BossBlock,
 	/* ObjId_77                  */ Obj_Null,
 	/* ObjId_Caterkiller         */ Obj_Caterkiller,
 	/* ObjId_Checkpoint          */ Obj_Checkpoint,

@@ -172,7 +172,7 @@ static void Glass_Main(Object *obj, Scratch_GlassBlock *scratch) {
         seg->pos.l.x.f.u = obj->pos.l.x.f.u;
         seg->pos.l.y.f.u = obj->pos.l.y.f.u;
         seg->mappings = Mappings_MZLargeGreenGlassBlocks;
-        seg->tile = TILE_MAP(1, 2, 0, 0, 0x38E); // ArtTile_MZ_Glass_Pillar | Tile_Pal3 | Tile_Prio
+        seg->tile = TILE_MAP(1, 2, 0, 0, ArtTile_MZ_Glass_Pillar); // | Tile_Pal3 | Tile_Prio
         seg->render.b = 0;
         seg->render.f.align_fg = true;
 

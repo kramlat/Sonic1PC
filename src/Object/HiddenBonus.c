@@ -37,7 +37,7 @@ void Obj_HiddenBonus(Object *obj) {
                 // Touched -- advance to Display
                 obj->routine += 2;
                 obj->mappings = Mappings_HiddenBonuses;
-                obj->tile = TILE_MAP(1, 0, 0, 0, 0x4B6);
+                obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Hidden_Points);
                 obj->render.b = 0;
                 obj->render.f.align_fg = true;
                 obj->priority = 0;

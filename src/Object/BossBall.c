@@ -85,7 +85,7 @@ static void GBall_Main(Object *obj, Scratch_BossBall *scratch) {
     obj->angle = 0x40; // vertical left and ceiling
     scratch->speed = (int16_t)-0x200; // "don't flash" sentinel, later reused as swing speed
     obj->mappings = Mappings_BossItems;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x46C); // ArtTile_Eggman_Weapons
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman_Weapons);
 
     uint8_t parent_index = scratch->parent_index;
     scratch->child_count = 0;
@@ -102,7 +102,7 @@ static void GBall_Main(Object *obj, Scratch_BossBall *scratch) {
             cur->type = ObjId_BossBall;
             cur->routine = 6; // GBall_Link
             cur->mappings = Mappings_GHZSwing;
-            cur->tile = TILE_MAP(0, 0, 0, 0, 0x380); // ArtTile_GHZ_MZ_Swing
+            cur->tile = TILE_MAP(0, 0, 0, 0, ArtTile_GHZ_MZ_Swing);
             cur->frame = 1;
             scratch->child_count++;
         }
@@ -117,7 +117,7 @@ static void GBall_Main(Object *obj, Scratch_BossBall *scratch) {
 
     last->routine = 8; // GBall_Ball
     last->mappings = Mappings_GHZBall;
-    last->tile = TILE_MAP(0, 2, 0, 0, 0x3AA); // ArtTile_GHZ_Giant_Ball | Tile_Pal3
+    last->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Giant_Ball); // | Tile_Pal3
     last->frame = 1;
     last->priority = 5;
     last->col_type = 0x01 | 0x80; // col_40x40 | col_hurt

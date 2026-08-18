@@ -1,14 +1,21 @@
 #include "Teleporter.h"
 
+#include "Game.h"
 #include "Level.h"
 #include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Object/Sonic.h"
 #include "Sound.h"
 
+#include "Resource/Mappings/TeleporterMarker.h"
+
 // Object 72 - invisible teleporter system inside tubes (SBZ act 2). Fully
-// invisible -- no mappings/art/render setup at all, just drives Sonic
-// directly through a sequence of tube-bend target coordinates.
+// invisible in normal play -- no mappings/art/render setup at all, just
+// drives Sonic directly through a sequence of tube-bend target coordinates.
+//
+// Debug-only marker: no real hardware precedent, but shows a dense 4x4
+// grid of 1-Up monitor icon tiles -- purely thematic/decorative, there's
+// no real trigger-boundary shape worth scaling to here.
 
 typedef struct { int16_t x, y; } Tele_Point;
 
@@ -188,6 +195,17 @@ void Obj_Teleporter(Object *obj) {
     case 6:
         Tele_Teleporting(obj, scratch);
         return; // never checked for out-of-range while actively teleporting
+    }
+
+    if (debug_cheat) {
+        // No collision of its own (a pooled slot's leftover col_type could
+        // otherwise leak through now that this becomes visible/on-screen
+        // for the first time) -- see LavaMaker.c's own comment on this.
+        obj->col_type = 0;
+        obj->mappings = Mappings_TeleporterMarker;
+        obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
+        obj->frame = 0;
+        DisplaySprite(obj);
     }
 
     if (Tele_OutOfRange(obj->pos.l.x.f.u))

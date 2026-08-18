@@ -71,7 +71,7 @@ void Obj_Monitor(Object *obj) {
 
         // Set object drawing information
         obj->mappings = Mappings_Monitor;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x680);
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Monitor);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->priority = 3;
@@ -219,7 +219,7 @@ void Obj_MonitorItem(Object *obj) {
 
         // Set object drawing information
         obj->mappings = Mappings_Monitor;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x680);
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Monitor);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->render.f.raw_mappings = true;

@@ -41,7 +41,7 @@ void Obj_VanishSonic(Object *obj) {
         obj->render.f.align_fg = true;
         obj->priority = 1;
         obj->width_pixels = 112 / 2;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x541); // ArtTile_Warp
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Warp);
         scratch->time = 2 * 60;
     }
 

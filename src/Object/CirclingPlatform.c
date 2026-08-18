@@ -51,7 +51,7 @@ static void Circ_Types(Object *obj, Scratch_CirclingPlatform *scratch) {
 static void Circ_Main(Object *obj, Scratch_CirclingPlatform *scratch) {
     obj->routine = 2; // advance to Circ_ChkTouch
     obj->mappings = Mappings_CirclingPlatform;
-    obj->tile = TILE_MAP(0, 2, 0, 0, 0); // ArtTile_Level | Tile_Pal3
+    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
     obj->render.f.align_fg = true;
     obj->priority = 4;
     obj->width_pixels = 48 / 2;

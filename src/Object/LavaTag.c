@@ -1,9 +1,11 @@
 #include "LavaTag.h"
 
+#include "Game.h"
 #include "Level.h"
 #include "LevelScroll.h"
 #include "Macros.h"
 #include "Resource/Mappings/LavaTag.h"
+#include "Resource/Mappings/LavaTagMarker.h"
 
 // Object 54 - invisible lava tag / hurt marker (MZ) -- this is what makes
 // MZ's lava actually damaging; the lava itself is just background art with
@@ -21,7 +23,6 @@ void Obj_LavaTag(Object *obj) {
     case 0: // Main
         obj->routine = 2;
         obj->col_type = ltag_col_types[obj->scratch.u8[0]]; // subtype selects hurt hitbox size
-        obj->mappings = Mappings_LavaTag; // blank -- genuinely invisible
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         // Fallthrough
@@ -35,6 +36,20 @@ void Obj_LavaTag(Object *obj) {
         // DisplaySprite/BuildSprites path -- so, same idea, this still has
         // to go through that path every frame even though the blank
         // mapping means nothing is ever actually drawn.
+        //
+        // Debug-only marker: Sonic 2's identical Obj31 ("Lava collision
+        // marker") shows a "?" icon at each hurt-box corner, scaled to the
+        // real hitbox size, while its own placement/debug mode is active --
+        // Sonic 1 has no "?" monitor type, so this substitutes the Eggman
+        // icon instead (same one InvisibleBarrier's own Map_Invis uses).
+        if (debug_cheat) {
+            obj->mappings = Mappings_LavaTagMarker;
+            obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
+            obj->frame = obj->scratch.u8[0]; // subtype selects the matching scaled frame
+        } else {
+            obj->mappings = Mappings_LavaTag; // blank -- genuinely invisible
+        }
+
         if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;

@@ -161,7 +161,14 @@ uint8_t Input_GetState1(void) {
 		int16_t ry = pad ? SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY) : 0;
 		if ((key_state[SDL_SCANCODE_O] || ry < -STICK_DEADZONE) && VRAMADDR > 0)
 			VRAMADDR = VRAMADDR - 0x200;
-		if ((key_state[SDL_SCANCODE_L] || ry > STICK_DEADZONE) && VRAMADDR < 0xF800)
+		// VDP_DrawScanline's own palette-display overlay reads up to
+		// VRAMADDR+0x963 bytes ahead of this cursor (the highest of its four
+		// 8-row blocks, offset 0x600, at i=15/y=95, plus its own +3 byte
+		// span) -- capping the cursor at 0xF800 still let that window run
+		// off the end of the 64KB vdp_vram array. 0xF600 is the highest
+		// multiple of the 0x200 step that keeps every block's read in
+		// bounds.
+		if ((key_state[SDL_SCANCODE_L] || ry > STICK_DEADZONE) && VRAMADDR < 0xF600)
 			VRAMADDR = VRAMADDR + 0x200;
 	}
 

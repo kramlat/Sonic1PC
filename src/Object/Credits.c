@@ -8,7 +8,7 @@ void Obj_Credits_Construct(Object *obj) {
 
     // Set object drawing information
     obj->mappings = Mappings_Credits;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x5A0);
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Credits_Font);
     obj->frame = credits_num;
     obj->render.b = 0;
     obj->priority = 0;
@@ -16,7 +16,7 @@ void Obj_Credits_Construct(Object *obj) {
 
 void Obj_Credits_SonicTeamPresents(Object *obj) {
     // Display "SONIC TEAM PRESENTS" text
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0xA6);
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Sonic_Team_Font);
     obj->frame = 10;
 }
 

@@ -108,7 +108,7 @@ void Obj_Roller(Object *obj) {
             obj->ysp = 0;
             obj->routine += 2;
             obj->mappings = Mappings_Roller;
-            obj->tile = TILE_MAP(0, 0, 0, 0, 0x4B8); // ArtTile_Roller
+            obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Roller);
             obj->render.b = 0;
             obj->render.f.align_fg = true;
             obj->priority = 4;

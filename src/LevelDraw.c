@@ -696,7 +696,7 @@ void AniArt_GHZFlowerLarge(void) {
         uint8_t frame = level_anim[1].frame++ & 1;
 
         // Write to VRAM
-        VDP_SeekVRAM(0x6B80);
+        VDP_SeekVRAM(ART_VRAM(ArtTile_GHZ_Big_Flower_1));
         VDP_WriteVRAM(Art_GHZFlowerLarge + (frame * 16 * 0x20), 16 * 0x20);
     }
 }
@@ -714,7 +714,7 @@ void AniArt_GHZFlowerSmall(void) {
             level_anim[2].time = 127;
 
         // Write to VRAM
-        VDP_SeekVRAM(0x6D80);
+        VDP_SeekVRAM(ART_VRAM(ArtTile_GHZ_Small_Flower));
         VDP_WriteVRAM(Art_GHZFlowerSmall + (frame * 12 * 0x20), 12 * 0x20);
     }
 }
@@ -960,7 +960,7 @@ static void AniArt_Ending_BigFlower(void) {
 		level_anim[ENDING_BIG_FLOWER_TIMER].time = 8 - 1;
 		uint8_t frame = level_anim[ENDING_BIG_FLOWER_TIMER].frame++ & 1;
 
-		VDP_SeekVRAM(0x6B80); // ArtTile_GHZ_Big_Flower_1 * TILE_SIZE
+		VDP_SeekVRAM(ART_VRAM(ArtTile_GHZ_Big_Flower_1));
 		VDP_WriteVRAM(Art_GHZFlowerLarge + (frame * 16 * 0x20), 16 * 0x20);
 
 		// TODO: 2nd flower (ArtTile_GHZ_Big_Flower_2, RAM-sourced) once
@@ -978,7 +978,7 @@ static void AniArt_Ending_SmallFlower(void) {
 		static const uint8_t seq[8] = { 0, 0, 0, 1, 2, 2, 2, 1 };
 		uint8_t frame = seq[level_anim[ENDING_SMALL_FLOWER_TIMER].frame++ & 7];
 
-		VDP_SeekVRAM(0x6D80); // ArtTile_GHZ_Small_Flower * TILE_SIZE
+		VDP_SeekVRAM(ART_VRAM(ArtTile_GHZ_Small_Flower));
 		VDP_WriteVRAM(Art_GHZFlowerSmall + (frame * 12 * 0x20), 12 * 0x20);
 	}
 }

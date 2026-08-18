@@ -12,7 +12,7 @@ static void CBal_Main(Object *obj, Scratch_Cannonball *scratch) {
     obj->routine = 2; // advance to CBal_Bounce
     obj->y_rad = 14 / 2;
     obj->mappings = Mappings_BallHog;
-    obj->tile = TILE_MAP(0, 1, 0, 0, 0x302); // ArtTile_Ball_Hog | Tile_Pal2
+    obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ball_Hog); // | Tile_Pal2
     obj->render.f.align_fg = true;
     obj->priority = 3; // above Ball Hog
     obj->col_type = 0x07 | 0x80; // col_12x12 | col_hurt

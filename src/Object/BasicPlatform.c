@@ -150,7 +150,7 @@ void Obj_BasicPlatform(Object *obj) {
     case 0: // Main
         obj->routine += 2;
 
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0); // ArtTile_Level | Tile_Pal3 (real hardware's palette lines are 1-indexed -- Tile_Pal3 = 0-indexed line 2)
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3 (real hardware's palette lines are 1-indexed -- Tile_Pal3 = 0-indexed line 2)
         obj->mappings = Mappings_GHZPlatforms;
         obj->width_pixels = 64 / 2;
 

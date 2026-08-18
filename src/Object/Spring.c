@@ -18,7 +18,7 @@ void Obj_Spring(Object* obj) {
 
         // Set object drawing information
         obj->mappings = Mappings_Spring;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x523);
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Spring_Horizontal);
         obj->render.f.align_fg = true;
         obj->width_pixels = 16;
         obj->priority = 4;
@@ -29,7 +29,7 @@ void Obj_Spring(Object* obj) {
             obj->routine = 8;
             obj->anim = 1;
             obj->frame = 3;
-            obj->tile = TILE_MAP(0, 0, 0, 0, 0x533);
+            obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Spring_Vertical);
             obj->width_pixels = 8;
         }
         if (scratch->subtype & 0x20) {
@@ -40,7 +40,7 @@ void Obj_Spring(Object* obj) {
 
         // Check if yellow spring
         if (scratch->subtype & 0x02)
-            obj->tile |= TILE_MAP(0, 1, 0, 0, 0);
+            obj->tile |= TILE_MAP(0, 1, 0, 0, ArtTile_Level);
         scratch->power = spring_power[(scratch->subtype & 0xF) >> 1];
         break;
     case 2: // Up

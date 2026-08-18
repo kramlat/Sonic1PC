@@ -35,7 +35,7 @@ void Obj_GeyserMaker(Object *obj) {
     case 0: // Main
         obj->routine += 2;
         obj->mappings = Mappings_LavaGeyser;
-        obj->tile = TILE_MAP(1, 3, 0, 0, 0x3A8); // ArtTile_MZ_Lava | Tile_Pal4 | Tile_Prio
+        obj->tile = TILE_MAP(1, 3, 0, 0, ArtTile_MZ_Lava); // | Tile_Pal4 | Tile_Prio
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->priority = 1;

@@ -3,7 +3,7 @@
 // Helper function for initialization
 void Obj_Chopper_Construct(Object *obj, Scratch_Chopper *scratch) {
     obj->mappings = Mappings_Chopper;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x47B);
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Chopper);
     obj->render.b = 0;
     obj->render.f.align_fg = true; obj->priority = 4;
     obj->col_type = 0x09;

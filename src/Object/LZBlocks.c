@@ -115,7 +115,7 @@ static void LBlk_Nudge(Object *obj, Scratch_LBlock *scratch) {
 static void LBlk_Main(Object *obj, Scratch_LBlock *scratch) {
     obj->routine += 2;
     obj->mappings = Mappings_LZBlocks;
-    obj->tile = TILE_MAP(0, 2, 0, 0, 0x3E6); // ArtTile_LZ_Blocks | Tile_Pal3
+    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Blocks); // | Tile_Pal3
     obj->render.b = 0;
     obj->render.f.align_fg = true;
     obj->priority = 3;

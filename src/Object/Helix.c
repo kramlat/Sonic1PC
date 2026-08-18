@@ -28,7 +28,7 @@ void Obj_Helix(Object *obj) {
     case 0: { // Main
         obj->routine += 2;
         obj->mappings = Mappings_SpikedPoleHelix;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x398); // ArtTile_GHZ_Spike_Pole | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Spike_Pole); // | Tile_Pal3
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->priority = 3;

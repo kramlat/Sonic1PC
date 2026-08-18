@@ -123,7 +123,7 @@ static void Jun_Main(Object *obj, Scratch_Junction *scratch) {
 
     for (int i = 0; i < count; i++) {
         targets[i]->mappings = Mappings_RotatingJunction;
-        targets[i]->tile = TILE_MAP(0, 2, 0, 0, 0x348); // ArtTile_SBZ_Junction | Tile_Pal3
+        targets[i]->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Junction); // | Tile_Pal3
         targets[i]->render.f.align_fg = true;
         targets[i]->width_pixels = 112 / 2;
     }

@@ -14,9 +14,23 @@
 static void Elec_Main(Object *obj, Scratch_Electrocuter *scratch) {
     obj->routine = 2; // advance to Elec_Shock
     obj->mappings = Mappings_Electrocuter;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x47E); // ArtTile_SBZ_Electric_Orb
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Electric_Orb);
     obj->render.f.align_fg = true;
     obj->width_pixels = 80 / 2;
+    // AnimateSprite only resets anim_frame/frame_time when obj->anim !=
+    // obj->prev_anim. Setting just obj->anim = 0 here isn't enough: if a
+    // pooled slot's stale prev_anim also happens to already be 0 (a very
+    // common leftover value across object types), that reset guard never
+    // fires, and AnimateSprite reads anim_script[1 + obj->anim_frame] with
+    // obj->anim_frame still holding whatever garbage the slot's previous
+    // occupant left behind -- an unbounded out-of-bounds read that
+    // corrupts frame/render/routine, both for this object and (via shared
+    // sprite-buffer/queue corruption) neighboring ones. All four fields
+    // AnimateSprite's guard depends on must be reset directly.
+    obj->anim = 0;
+    obj->prev_anim = 0;
+    obj->anim_frame = 0;
+    obj->frame_time.b = 0;
 
     uint16_t freq = (uint16_t)(obj->scratch.u8[0] << 4);
     scratch->freq = (uint16_t)(freq - 1);

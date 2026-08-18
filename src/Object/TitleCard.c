@@ -100,7 +100,7 @@ void Obj_GotThroughCard(Object *obj) {
                 frame += LEVEL_ACT(level_id);
             a1->frame = frame;
             a1->mappings = Mappings_GotThrough;
-            a1->tile = TILE_MAP(1, 0, 0, 0, 0x580);
+            a1->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Title_Card);
             a1->width_pixels = 0;
             a1->render.b = 0;
             a1->priority = 0;
@@ -227,7 +227,7 @@ void Obj_TitleCard(Object *obj) {
 
             a1->frame = d0;
             a1->mappings = Mappings_TitleCard;
-            a1->tile = TILE_MAP(1, 0, 0, 0, 0x580);
+            a1->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Title_Card);
             a1->width_pixels = 0;
             a1->render.b = 0;
             a1->priority = 0;

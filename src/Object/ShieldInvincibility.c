@@ -22,11 +22,11 @@ void Obj_ShieldInvincibility(Object* obj) {
         // Check if invincibility or shield
         if (!obj->anim) {
             // Shield
-            obj->tile = TILE_MAP(0, 0, 0, 0, 0x541);
+            obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Shield);
         } else {
             // Invincibility
             obj->routine += 2;
-            obj->tile = TILE_MAP(0, 0, 0, 0, 0x55C);
+            obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Invincibility);
         }
         break;
     case 2: // Shield

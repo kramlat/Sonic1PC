@@ -143,7 +143,7 @@ void Obj_LargeGrass(Object *obj) {
     case 0: { // Main
         obj->routine += 2;
         obj->mappings = Mappings_MZLargeGrassyPlatforms;
-        obj->tile = TILE_MAP(1, 2, 0, 0, 0); // ArtTile_Level | Tile_Pal3 | Tile_Prio
+        obj->tile = TILE_MAP(1, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3 | Tile_Prio
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->priority = 5;

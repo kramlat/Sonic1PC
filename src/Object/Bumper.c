@@ -65,7 +65,7 @@ void Obj_Bumper(Object *obj) {
     case 0:
         obj->routine += 2;
         obj->mappings = Mappings_Bumper;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x380); // ArtTile_SYZ_Bumper
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SYZ_Bumper);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->width_pixels = 32 / 2;

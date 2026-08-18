@@ -15,7 +15,7 @@ void Obj_BuzzExplode(Object *obj) {
 
 void Obj_BuzzMissile_Construct(Object* obj) {
         obj->mappings = Mappings_BuzzMissile;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x444);
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Buzz_Bomber);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->priority = 3;
@@ -124,7 +124,7 @@ void Obj_BuzzMissile(Object *obj) {
 void Obj_BuzzBomber_Construct(Object *obj) {
     // Set object drawing information
     obj->mappings = Mappings_BuzzBomber;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x444);
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Buzz_Bomber);
     obj->render.b = 0;
     obj->render.f.align_fg = true;
     obj->priority = 3;

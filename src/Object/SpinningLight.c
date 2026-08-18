@@ -28,7 +28,7 @@ void Obj_SpinningLight(Object *obj) {
     case 0:
         obj->routine += 2;
         obj->mappings = Mappings_Light;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0); // ArtTile_Level (part of the level's own already-loaded graphics)
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Level); // ArtTile_Level (part of the level's own already-loaded graphics)
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->width_pixels = 32 / 2;

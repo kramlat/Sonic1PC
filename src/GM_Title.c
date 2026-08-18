@@ -40,7 +40,7 @@ uint8_t demo_num;
 #define LEVSEL_START_ROW    4
 #define LEVSEL_START_COL    8
 #define LEVSEL_VRAM_MAIN    (VRAM_BG + (LEVSEL_START_ROW << 7) + (LEVSEL_START_COL << 1))
-#define LEVSEL_FONT_VRAM    0xD000 // ArtTile_Level_Select_Font ($680) * 32 bytes/tile
+#define LEVSEL_FONT_VRAM    ART_VRAM(ArtTile_Level_Select_Font)
 #define LEVSEL_SNDTEST_COL  (LEVSEL_LINE_LENGTH - 8) // column offset for the 2-digit sound number
 // Highest registered sound/SFX ID, 0-based offset from bgm_GHZ (see
 // enum SoundID, Sound.h) -- real hardware derives this from the assembled

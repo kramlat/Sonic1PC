@@ -108,7 +108,7 @@ static void SStom_Main(Object *obj, Scratch_SideStomp *scratch) {
         seg->pos.l.y.f.u = obj->pos.l.y.f.u;
         seg->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + sstom_vars[i].xoff);
         seg->mappings = Mappings_SidewaysStomper;
-        seg->tile = TILE_MAP(0, 0, 0, 0, 0x300); // ArtTile_MZ_Spike_Stomper
+        seg->tile = TILE_MAP(0, 0, 0, 0, ArtTile_MZ_Spike_Stomper);
         seg->render.b = 0;
         seg->render.f.align_fg = true;
 

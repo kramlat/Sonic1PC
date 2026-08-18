@@ -13,7 +13,7 @@ void Obj_TitleSonic(Object* obj)
 
         // Set object drawing information
         obj->mappings = Mappings_TitleSonic;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x300);
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Title_Sonic);
         obj->priority = 1;
 
         // Initialize state

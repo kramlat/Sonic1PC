@@ -25,7 +25,7 @@ void Obj_Pylon(Object *obj) {
     if (obj->routine == 0) {
         obj->routine = 2; // advance to Pyl_Display
         obj->mappings = Mappings_Pylon;
-        obj->tile = TILE_MAP(1, 0, 0, 0, 0x3CC); // ArtTile_SLZ_Pylon | Tile_Prio
+        obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_SLZ_Pylon); // | Tile_Prio
         obj->width_pixels = 32 / 2;
         obj->render.b = 0; // screen-fixed positioning mode (explicit, matches FixBugs)
     }

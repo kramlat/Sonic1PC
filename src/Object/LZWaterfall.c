@@ -36,7 +36,7 @@ static void WFall_Main(Object *obj) {
     obj->routine += 4; // tentatively WFall_Display
 
     obj->mappings = Mappings_LZWaterfalls;
-    obj->tile = TILE_MAP(0, 2, 0, 0, 0x259); // ArtTile_LZ_Splash | Tile_Pal3
+    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Splash); // | Tile_Pal3
     obj->render.f.align_fg = true; // real ASM ORs this bit in rather than clearing others first
     obj->width_pixels = 48 / 2;
     obj->priority = 1;

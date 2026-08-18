@@ -942,6 +942,52 @@ void DynamicLevelEvents(void) {
             break;
         }
         break;
+    case ZoneId_SYZ:
+        switch (LEVEL_ACT(level_id)) {
+        case 0: // Act 1 -- no events
+            break;
+        case 1: // Act 2
+            limit_btm1 = 0x520 - SCREEN_TALLADD;
+            if ((uint16_t)scrpos_x.f.u < (0x25A0 - SCREEN_WIDEADD2))
+                break;
+            limit_btm1 = 0x420 - SCREEN_TALLADD;
+            if ((uint16_t)player->pos.l.y.f.u < 0x4D0)
+                break;
+            limit_btm1 = 0x520 - SCREEN_TALLADD;
+            break;
+        case 2: // Act 3
+            switch (dle_routine) {
+            case 0: // DLE_SYZ3_Main
+                if ((uint16_t)scrpos_x.f.u < (0x2AC0 - SCREEN_WIDEADD2)) // boss_syz_x-0x140
+                    break;
+                {
+                    Object *blocks = FindFreeObj();
+                    if (blocks != NULL)
+                        blocks->type = ObjId_BossBlock;
+                }
+                dle_routine += 2;
+                break;
+            case 2: // DLE_SYZ3_Boss
+                if ((uint16_t)scrpos_x.f.u < (0x2C00 - SCREEN_WIDEADD2)) // boss_syz_x
+                    break;
+                limit_btm1 = 0x4CC - SCREEN_TALLADD; // boss_syz_y
+                {
+                    Object *boss = FindFreeObj();
+                    if (boss != NULL)
+                        boss->type = ObjId_BossSpringYard;
+                }
+                QueueSound1(bgm_Boss);
+                lock_screen = true;
+                dle_routine += 2;
+                AddPLC(PlcId_Boss);
+                break;
+            case 4: // DLE_SYZ3_End
+                limit_left2 = scrpos_x.f.u; // camera-freeze at the level's end, deliberately still camera-based
+                break;
+            }
+            break;
+        }
+        break;
     default:
         break;
     }

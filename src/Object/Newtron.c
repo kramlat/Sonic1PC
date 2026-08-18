@@ -15,7 +15,7 @@ void Obj_Newtron(Object* obj) {
 
         // Set object drawing information
         obj->mappings = Mappings_Newtron;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x49B);
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Newtron);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->priority = 4;
@@ -44,7 +44,7 @@ void Obj_Newtron(Object* obj) {
             obj->anim = 1;
 
             if (scratch->subtype) {
-                obj->tile = TILE_MAP(0, 1, 0, 0, 0x49B);
+                obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Newtron);
                 obj->routine_sec = 8;
                 obj->anim = 4;
             }
@@ -75,7 +75,7 @@ void Obj_Newtron(Object* obj) {
                 obj->ysp = 0;
                 obj->routine_sec += 2;
                 obj->anim = 2;
-                if (obj->tile & TILE_MAP(0, 1, 0, 0, 0)) // Condition never met
+                if (obj->tile & TILE_MAP(0, 1, 0, 0, ArtTile_Level)) // Condition never met
                     obj->anim++;
                 obj->col_type = 0x0D;
                 obj->xsp = 0x200;

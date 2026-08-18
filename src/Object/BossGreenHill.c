@@ -41,7 +41,7 @@ static void BGHZ_Main(Object *obj, Scratch_BossGreenHill *scratch) {
         sub->pos.l.x.f.u = obj->pos.l.x.f.u;
         sub->pos.l.y.f.u = obj->pos.l.y.f.u;
         sub->mappings = Mappings_Eggman;
-        sub->tile = TILE_MAP(0, 0, 0, 0, 0x400); // ArtTile_Eggman
+        sub->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman);
         sub->render.f.align_fg = true;
         sub->width_pixels = 64 / 2;
         sub->priority = 3;

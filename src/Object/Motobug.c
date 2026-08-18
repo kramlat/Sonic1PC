@@ -12,7 +12,7 @@ void Obj_Motobug(Object* obj) {
     case 0: // Initialization
         // Set object drawing information
         obj->mappings = Mappings_Motobug;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x4F0);
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Moto_Bug);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->priority = 4;

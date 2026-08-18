@@ -16,7 +16,7 @@ static const uint8_t Gar_SpitRate[8] = { 30, 60, 90, 120, 150, 180, 210, 240 };
 static void Gar_Main(Object *obj, Scratch_Gargoyle *scratch) {
     obj->routine += 2;
     obj->mappings = Mappings_Gargoyle;
-    obj->tile = TILE_MAP(0, 2, 0, 0, 0x2E9); // ArtTile_LZ_Gargoyle | Tile_Pal3
+    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Gargoyle); // | Tile_Pal3
     obj->render.f.align_fg = true;
     obj->priority = 3;
     obj->width_pixels = 32 / 2;
@@ -73,7 +73,7 @@ static bool Gar_FireBall(Object *obj) {
     obj->y_rad = 16 / 2;
     obj->x_rad = 16 / 2;
     obj->mappings = Mappings_Gargoyle;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x2E9); // ArtTile_LZ_Gargoyle (different palette line than head)
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Gargoyle); // (different palette line than head)
     obj->render.f.align_fg = true;
     obj->priority = 4;
     obj->col_type = 0x18 | 0x80; // col_8x8 | col_hurt

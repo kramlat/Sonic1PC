@@ -50,8 +50,8 @@ void Obj_Button(Object *obj) {
     case 0: // Main
         obj->routine += 2;
         obj->mappings = Mappings_Button;
-        obj->tile = (LEVEL_ZONE(level_id) == ZoneId_MZ) ? TILE_MAP(0, 2, 0, 0, 0x513) // ArtTile_Button_Main | Tile_Pal3
-                                                          : TILE_MAP(0, 0, 0, 0, 0x513); // ArtTile_Button_Main
+        obj->tile = (LEVEL_ZONE(level_id) == ZoneId_MZ) ? TILE_MAP(0, 2, 0, 0, ArtTile_Button_Main) // | Tile_Pal3
+                                                          : TILE_MAP(0, 0, 0, 0, ArtTile_Button_Main);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->width_pixels = 32 / 2;

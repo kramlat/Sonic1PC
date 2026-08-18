@@ -149,7 +149,7 @@ static void LCon_Wheel(Object *obj) {
 static void LCon_Main_Platform(Object *obj, Scratch_LCon *scratch, uint8_t subtype) {
     obj->routine += 2;
     obj->mappings = Mappings_LZConveyor;
-    obj->tile = TILE_MAP(0, 2, 0, 0, 0x3F6); // ArtTile_LZ_Conveyor_Belt | Tile_Pal3
+    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Conveyor_Belt); // | Tile_Pal3
     obj->render.f.align_fg = true;
     obj->width_pixels = 32 / 2;
     obj->priority = 4;
@@ -157,7 +157,7 @@ static void LCon_Main_Platform(Object *obj, Scratch_LCon *scratch, uint8_t subty
     if (subtype == 0x7F) {
         // Decorative wheel
         obj->routine += 4; // -> LCon_Wheel
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x3F6); // palette line 1
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Conveyor_Belt); // palette line 1
         obj->priority = 1;
         LCon_Wheel(obj);
         return;

@@ -2,7 +2,7 @@
 
 void Obj_Points_Construct(Object *obj) {
 	obj->mappings = Mappings_Points;
-	obj->tile = TILE_MAP(0, 1, 0, 0, 0x797);
+	obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Points);
 	obj->render.b = 4;
 	obj->priority = 1;
 	obj->width_pixels = 8;

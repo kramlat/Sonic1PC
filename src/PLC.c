@@ -167,7 +167,7 @@ typedef struct {
 static const PLCList PLC_Main = {
     5,
     (const PLC[]) {
-        { Art_Lamppost,      0xD800 }, // moved from ART_VRAM(ArtTile_Lamppost) to make room for the Spin Dash dust (see Splash.h)
+        { Art_Lamppost,      ART_VRAM(ArtTile_Lamppost) }, // moved from ART_VRAM(ArtTile_Lamppost) to make room for the Spin Dash dust (see Splash.h)
         { Art_HUD,           ART_VRAM(ArtTile_HUD) },
         { Art_HUDLife,       ART_VRAM(ArtTile_Lives_Counter) },
         { Art_Ring,          ART_VRAM(ArtTile_Ring) },

@@ -127,7 +127,7 @@ static void Elev_Main(Object *obj, Scratch_Elevator *scratch) {
     obj->scratch.u8[0] = Elev_Var2[idx].type; // repurpose subtype -> action type
 
     obj->mappings = Mappings_Elevator;
-    obj->tile = TILE_MAP(0, 2, 0, 0, 0); // ArtTile_Level | Tile_Pal3
+    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
     obj->render.f.align_fg = true;
     obj->priority = 4;
     scratch->orig_x = obj->pos.l.x.f.u;

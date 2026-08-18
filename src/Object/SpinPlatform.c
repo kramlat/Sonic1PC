@@ -58,7 +58,7 @@ void Obj_SpinPlatform(Object *obj) {
     if (obj->routine == 0) {
         obj->routine = 2; // advance to Spin_Trapdoor
         obj->mappings = Mappings_Trapdoor;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x492); // ArtTile_SBZ_Trap_Door | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Trap_Door); // | Tile_Pal3
         obj->render.f.align_fg = true;
         obj->width_pixels = 128 / 2; // FixBugs: real hardware used 256/2 here, causing screen-wrap issues
 
@@ -68,7 +68,7 @@ void Obj_SpinPlatform(Object *obj) {
         if (subtype & 0x80) { // spinning platform, not a trapdoor
             obj->routine = 4; // advance to Spin_Spinner
             obj->mappings = Mappings_SpinningPlatforms;
-            obj->tile = TILE_MAP(0, 0, 0, 0, 0x4DF); // ArtTile_SBZ_Spinning_Platform
+            obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Spinning_Platform);
             obj->width_pixels = 32 / 2;
             obj->anim = 2;
 

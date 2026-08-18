@@ -27,17 +27,17 @@ const animalvar_t AnimalVariables[] = {
 
 // Animal End VRAM
 const uint16_t AnimalEndVram[] = {
-    TILE_MAP(0, 0, 0, 0, 0x5A5), // End Flicky
-    TILE_MAP(0, 0, 0, 0, 0x5A5), // End Flicky
-    TILE_MAP(0, 0, 0, 0, 0x5A5), // End Flicky
-    TILE_MAP(0, 0, 0, 0, 0x553), // End Rabbit
-    TILE_MAP(0, 0, 0, 0, 0x553), // End Rabbit
-    TILE_MAP(0, 0, 0, 0, 0x573), // End Penguin
-    TILE_MAP(0, 0, 0, 0, 0x573), // End Penguin
-    TILE_MAP(0, 0, 0, 0, 0x585), // End Seal
-    TILE_MAP(0, 0, 0, 0, 0x593), // End Pig
-    TILE_MAP(0, 0, 0, 0, 0x565), // End Chicken
-    TILE_MAP(0, 0, 0, 0, 0x5B3)  // End Squirrel
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Flicky),
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Flicky),
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Flicky),
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Rabbit),
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Rabbit),
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Penguin),
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Penguin),
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Seal),
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Pig),
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Chicken),
+    TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Squirrel)
 };
 
 // Animal End Map
@@ -204,9 +204,9 @@ void Obj_Animals_FromEnemy(Object *obj, Scratch_Animals *scratch) {
     scratch->ysp = AnimalVariables[scratch->routine].ysp;
     obj->mappings = AnimalVariables[scratch->routine].mappings;
 
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x580);
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Animal_1);
     if (scratch->routine & 1) {
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x592);
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Animal_2);
     }
 
     obj->x_rad = 0xC;

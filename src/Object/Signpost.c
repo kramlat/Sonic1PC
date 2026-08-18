@@ -29,7 +29,7 @@ void Obj_Signpost(Object* obj) {
 
         // Set object drawing information
         obj->mappings = Mappings_Signpost;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x680);
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Signpost);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->width_pixels = 24;
@@ -79,7 +79,7 @@ void Obj_Signpost(Object* obj) {
 #else
                 sparkle->mappings = Mappings_RingREV01;
 #endif
-                sparkle->tile = TILE_MAP(0, 1, 0, 0, 0x7B2);
+                sparkle->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
                 sparkle->render.b = 0;
                 sparkle->render.f.align_fg = true;
                 sparkle->priority = 2;

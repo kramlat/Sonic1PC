@@ -60,7 +60,7 @@ void Obj_GirderBlock(Object *obj) {
     if (obj->routine == 0) {
         obj->routine = 2; // advance to Gird_Action
         obj->mappings = Mappings_GirderBlock;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x2F0); // ArtTile_SBZ_Girder | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Girder); // | Tile_Pal3
         obj->render.f.align_fg = true;
         obj->priority = 4;
         obj->width_pixels = 192 / 2;

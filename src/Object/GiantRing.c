@@ -11,7 +11,7 @@ void Obj_GiantRing(Object *obj) {
     switch (obj->routine) {
     case 0: // Main
         obj->mappings = Mappings_GiantRing;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x400); // ArtTile_Giant_Ring | Tile_Pal2 (real hardware's palette lines are 1-indexed -- Tile_Pal2 = 0-indexed line 1)
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Giant_Ring); // | Tile_Pal2 (real hardware's palette lines are 1-indexed -- Tile_Pal2 = 0-indexed line 1)
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->width_pixels = 128 / 2;
@@ -70,7 +70,7 @@ void Obj_RingFlash(Object *obj) {
     case 0: // Main
         obj->routine += 2;
         obj->mappings = Mappings_RingFlash;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x462); // ArtTile_Giant_Ring_Flash | Tile_Pal2
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Giant_Ring_Flash); // | Tile_Pal2
         obj->render.f.align_fg = true; // x_flip (if set by GiantRing's Collect case, above) is untouched by this
         obj->priority = 0;
         obj->width_pixels = 64 / 2;

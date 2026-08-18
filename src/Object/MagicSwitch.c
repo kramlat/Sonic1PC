@@ -48,7 +48,7 @@ void Obj_MagicSwitch(Object *obj) {
     if (obj->routine == 0) {
         obj->routine = 2; // advance to Swi_Action
         obj->mappings = Mappings_UnusedSwitch;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0); // ArtTile_Level | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
         obj->render.f.align_fg = true;
         scratch->orig_y = obj->pos.l.y.f.u;
         obj->width_pixels = 32 / 2;

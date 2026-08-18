@@ -218,7 +218,7 @@ static void CStom_Main(Object *obj, Scratch_ChainStomp *scratch) {
         seg->pos.l.x.f.u = obj->pos.l.x.f.u;
         seg->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + cstom_vars[i].yoff);
         seg->mappings = Mappings_ChainedStompers;
-        seg->tile = TILE_MAP(0, 0, 0, 0, 0x300); // ArtTile_MZ_Spike_Stomper
+        seg->tile = TILE_MAP(0, 0, 0, 0, ArtTile_MZ_Spike_Stomper);
         seg->render.b = 0;
         seg->render.f.align_fg = true;
 

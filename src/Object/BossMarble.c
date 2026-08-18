@@ -55,7 +55,7 @@ static void BossMarble_Main(Object *obj, Scratch_BossMarble *scratch) {
         sub->pos.l.x.f.u = obj->pos.l.x.f.u;
         sub->pos.l.y.f.u = obj->pos.l.y.f.u;
         sub->mappings = Mappings_Eggman;
-        sub->tile = TILE_MAP(0, 0, 0, 0, 0x400); // ArtTile_Eggman
+        sub->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman);
         sub->render.f.align_fg = true;
         sub->width_pixels = 64 / 2;
 
@@ -401,7 +401,7 @@ static void BossMarble_TubeMain(Object *obj, Scratch_BossMarble *scratch) {
     }
 
     obj->mappings = Mappings_BossItems;
-    obj->tile = TILE_MAP(0, 1, 0, 0, 0x46C); // ArtTile_Eggman_Weapons | Tile_Pal2
+    obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Eggman_Weapons); // | Tile_Pal2
     obj->frame = 4; // tube frame (Boss Items.asm)
     BMZ_SetBits(obj, scratch);
 }

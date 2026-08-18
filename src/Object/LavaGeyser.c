@@ -108,7 +108,7 @@ static void Geyser_Main(Object *obj, Scratch_LavaGeyser *scratch) {
         }
         seg->type = ObjId_LavaGeyser;
         seg->mappings = Mappings_LavaGeyser;
-        seg->tile = TILE_MAP(0, 3, 0, 0, 0x3A8); // ArtTile_MZ_Lava | Tile_Pal4
+        seg->tile = TILE_MAP(0, 3, 0, 0, ArtTile_MZ_Lava); // | Tile_Pal4
         seg->render.b = 0;
         seg->render.f.align_fg = true;
         seg->width_pixels = 112 / 2;
@@ -139,7 +139,7 @@ static void Geyser_Main(Object *obj, Scratch_LavaGeyser *scratch) {
         if (bottom != NULL) {
             bottom->type = ObjId_LavaGeyser;
             bottom->mappings = Mappings_LavaGeyser;
-            bottom->tile = TILE_MAP(0, 3, 0, 0, 0x3B8); // ArtTile_MZ_Lava | Tile_Pal4, +0x10 pattern for the bottom tip's own art
+            bottom->tile = TILE_MAP(0, 3, 0, 0, (ArtTile_MZ_Lava+0x10)); // | Tile_Pal4
             bottom->render.b = 0;
             bottom->render.f.align_fg = true;
             bottom->width_pixels = 112 / 2;

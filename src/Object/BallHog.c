@@ -13,7 +13,7 @@ static void Hog_Main(Object *obj) {
     obj->y_rad = 38 / 2;
     obj->x_rad = 16 / 2;
     obj->mappings = Mappings_BallHog;
-    obj->tile = TILE_MAP(0, 1, 0, 0, 0x302); // ArtTile_Ball_Hog | Tile_Pal2
+    obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ball_Hog); // | Tile_Pal2
     obj->render.f.align_fg = true;
     obj->priority = 4;
     obj->col_type = 0x05; // col_24x36 | col_badnik

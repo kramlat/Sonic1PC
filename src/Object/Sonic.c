@@ -1793,7 +1793,7 @@ static void DebugMode_BuildStack(Object *obj, const uint8_t *base_mappings, cons
 static void DebugMode_RefreshPreview(Object *obj, const DebugListEntry *item) {
     if (item->mappings == NULL) {
         obj->mappings = Mappings_RingREV01;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x7B2);
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
         obj->frame = 0;
         obj->render.f.raw_mappings = false;
         return;
@@ -1992,7 +1992,7 @@ static void DebugMode(Object *obj) {
         limit_btm1 = limit_btm_db;
 
         obj->mappings = Mappings_Sonic;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x780);
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Sonic);
         obj->frame = 0;
         obj->anim = SonAnimId_Walk;
         obj->width_pixels = 24;
@@ -2076,7 +2076,7 @@ void Obj_Sonic(Object* obj) {
 
         // Set object drawing information
         obj->mappings = Mappings_Sonic;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x780);
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Sonic);
         obj->priority = 2;
         obj->width_pixels = 24;
         obj->render.b = 0;

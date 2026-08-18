@@ -25,7 +25,7 @@ static void BossFire_Main(Object *obj, Scratch_BossFire *scratch) {
     obj->y_rad = 16 / 2;
     obj->x_rad = 16 / 2;
     obj->mappings = Mappings_Fireballs;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x345); // ArtTile_MZ_Fireball
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_MZ_Fireball);
     obj->render.f.align_fg = true;
     obj->priority = 5;
     scratch->boss_y = obj->pos.l.y.f.u;

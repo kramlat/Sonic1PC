@@ -158,7 +158,7 @@ static void Bom_Action(Object *obj, Scratch_Bomb *scratch) {
 static void Bom_Main(Object *obj, Scratch_Bomb *scratch) {
     obj->routine = 2; // advance to Bom_Action
     obj->mappings = Mappings_Bomb;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x400); // ArtTile_Bomb
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Bomb);
     obj->render.b = 0;
     obj->render.f.align_fg = true;
     obj->priority = 3;

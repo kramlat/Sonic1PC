@@ -126,7 +126,7 @@ void Obj_Burrobot(Object *obj) {
         obj->y_rad = 38 / 2;
         obj->x_rad = 16 / 2;
         obj->mappings = Mappings_Burrobot;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x4A6); // ArtTile_Burrobot
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Burrobot);
         obj->render.f.align_fg = true;
         obj->priority = 4;
         obj->col_type = 0x05; // col_24x36 | col_badnik

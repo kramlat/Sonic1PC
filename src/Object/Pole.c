@@ -98,7 +98,7 @@ void Obj_Pole(Object *obj) {
     case 0:
         obj->routine += 2;
         obj->mappings = Mappings_PoleThatBreaks;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x3DE); // ArtTile_LZ_Pole | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Pole); // | Tile_Pal3
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->width_pixels = 16 / 2;

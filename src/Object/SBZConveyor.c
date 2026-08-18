@@ -1,13 +1,21 @@
 #include "SBZConveyor.h"
 
+#include "Game.h"
 #include "Level.h"
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
+
+#include "Resource/Mappings/SBZConveyorMarker.h"
 
 // Object 68 - conveyor belts (SBZ)
 //
 // This is just the invisible object that moves Sonic horizontally. The
 // conveyor belt graphics themselves are part of the level chunks.
+//
+// Debug-only marker: no real hardware precedent, but shows 4 speed-shoe
+// monitor icon tiles scaled to the trigger's real width (wide/narrow,
+// matching Conv_Main's own 2-way choice) -- same corner-scaling idea as
+// LavaTagMarker.
 
 static void Conveyor_MoveSonic(Object *obj, Scratch_SBZConveyor *scratch) {
     int16_t half_width = scratch->width;
@@ -51,6 +59,17 @@ void Obj_SBZConveyor(Object *obj) {
         Conv_Main(obj, scratch);
 
     Conveyor_MoveSonic(obj, scratch);
+
+    if (debug_cheat) {
+        // No collision of its own (a pooled slot's leftover col_type could
+        // otherwise leak through now that this becomes visible/on-screen
+        // for the first time) -- see LavaMaker.c's own comment on this.
+        obj->col_type = 0;
+        obj->mappings = Mappings_SBZConveyorMarker;
+        obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
+        obj->frame = (scratch->width == 256 / 2) ? 0 : 1; // 0 = wide, 1 = narrow
+        DisplaySprite(obj);
+    }
 
     if (Conv_OutOfRange(obj->pos.l.x.f.u))
         ObjectDelete(obj);

@@ -14,7 +14,7 @@ void Obj_HUD(Object* obj) {
 
         // Initialize object drawing information
         obj->mappings = Mappings_HUD;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x6CA);
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_HUD);
         obj->render.b = 0;
         obj->priority = 0;
         // Fallthrough

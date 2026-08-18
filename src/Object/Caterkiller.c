@@ -283,8 +283,8 @@ void Obj_Caterkiller(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_Caterkiller;
         obj->tile = (LEVEL_ZONE(level_id) == ZoneId_SBZ)
-            ? TILE_MAP(0, 1, 0, 0, 0x2B0)  // ArtTile_SBZ_Caterkiller | Tile_Pal2
-            : TILE_MAP(0, 1, 0, 0, 0x4FF); // ArtTile_MZ_SYZ_Caterkiller | Tile_Pal2
+            ? TILE_MAP(0, 1, 0, 0, ArtTile_SBZ_Caterkiller)  // | Tile_Pal2
+            : TILE_MAP(0, 1, 0, 0, ArtTile_MZ_SYZ_Caterkiller); // | Tile_Pal2
 
         obj->render.b &= 0x03; // keep only the spawn-time x/y flip
         obj->render.f.align_fg = true;

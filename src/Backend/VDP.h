@@ -69,6 +69,16 @@ void VDP_SetPlaneALocation(size_t loc);
 void VDP_SetPlaneBLocation(size_t loc);
 void VDP_SetSpriteLocation(size_t loc);
 void VDP_SetHScrollLocation(size_t loc);
+
+// PC-only: registers a sprite table living in its own dedicated buffer,
+// entirely outside the emulated VRAM address space, instead of one copied
+// into vdp_vram at a VDP_SetSpriteLocation offset. Real hardware has no such
+// option (the sprite table always lives in VRAM, sharing address space with
+// everything else there) -- this exists so the sprite table's own size
+// isn't constrained by neighboring VRAM regions (the plane nametables,
+// HScroll table, or anything else placed nearby). Call once during setup;
+// VDP_Render reads from this buffer instead of vdp_vram when set.
+void VDP_SetSpriteBuffer(const uint16_t *buffer);
 void VDP_SetPlaneSize(size_t w, size_t h);
 void VDP_SetBackgroundColour(uint8_t index);
 void VDP_SetVScroll(int16_t scroll_a, int16_t scroll_b);

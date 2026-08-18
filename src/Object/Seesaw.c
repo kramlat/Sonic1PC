@@ -96,7 +96,7 @@ static void See_Seesaw_StoodOn(Object *obj, Scratch_Seesaw *scratch) {
 static void See_Main(Object *obj, Scratch_Seesaw *scratch) {
     obj->routine = 2; // advance to See_Seesaw_Platform
     obj->mappings = Mappings_Seesaw;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x374); // ArtTile_SLZ_Seesaw
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SLZ_Seesaw);
     obj->render.f.align_fg = true;
     obj->priority = 4;
     obj->width_pixels = 96 / 2;
@@ -142,7 +142,7 @@ static void See_Spikeball_Action_Align(Object *obj, Scratch_Seesaw *scratch, Obj
 static void See_Spikeball_Setup(Object *obj, Scratch_Seesaw *scratch) {
     obj->routine = 8; // advance to See_Spikeball_Action
     obj->mappings = Mappings_SeesawBall;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x4F0); // ArtTile_SLZ_Spikeball
+    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SLZ_Spikeball);
     obj->render.f.align_fg = true;
     obj->priority = 4;
     obj->col_type = 0x0B | 0x80; // col_16x16 | col_hurt

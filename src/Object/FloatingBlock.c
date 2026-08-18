@@ -266,11 +266,11 @@ static void FBlock_Action(Object *obj, Scratch_FloatingBlock *scratch) {
 static bool FBlock_Main(Object *obj, Scratch_FloatingBlock *scratch) {
     obj->routine += 2;
     obj->mappings = Mappings_FloatingBlock;
-    obj->tile = TILE_MAP(0, 2, 0, 0, 0); // ArtTile_Level | Tile_Pal3
+    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
 
     bool is_lz = LEVEL_ZONE(level_id) == ZoneId_LZ;
     if (is_lz)
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x3C4); // ArtTile_LZ_Door | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Door); // | Tile_Pal3
 
     obj->render.b = 0;
     obj->render.f.align_fg = true;

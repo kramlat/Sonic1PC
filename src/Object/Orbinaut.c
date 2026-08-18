@@ -97,11 +97,11 @@ static void Orb_Main(Object *obj, Scratch_Orbinaut *scratch) {
 
     ZoneId zone = LEVEL_ZONE(level_id);
     if (zone == ZoneId_SBZ)
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x429); // ArtTile_SBZ_Orbinaut
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Orbinaut);
     else
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x429); // ArtTile_SLZ_Orbinaut | Tile_Pal2
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_SLZ_Orbinaut); // | Tile_Pal2
     if (zone == ZoneId_LZ)
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x467); // ArtTile_LZ_Orbinaut
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Orbinaut);
 
     obj->render.f.align_fg = true;
     obj->priority = 4;

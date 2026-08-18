@@ -82,8 +82,8 @@ void Obj_LavaBall(Object *obj) {
         obj->x_rad = 16 / 2;
         obj->mappings = Mappings_Fireballs;
         obj->tile = (LEVEL_ZONE(level_id) == ZoneId_SLZ)
-            ? TILE_MAP(0, 0, 0, 0, 0x480)  // ArtTile_SLZ_Fireball
-            : TILE_MAP(0, 0, 0, 0, 0x345); // ArtTile_MZ_Fireball
+            ? TILE_MAP(0, 0, 0, 0, ArtTile_SLZ_Fireball)
+            : TILE_MAP(0, 0, 0, 0, ArtTile_MZ_Fireball);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->priority = 3;

@@ -26,7 +26,8 @@ void VDPSetupGame(void) {
 	//Initialize VDP state
 	VDP_SetPlaneALocation(VRAM_FG);
 	VDP_SetPlaneBLocation(VRAM_BG);
-	VDP_SetSpriteLocation(VRAM_SPRITES);
+	VDP_SetSpriteLocation(VRAM_SPRITES); // unused once VDP_SetSpriteBuffer is registered below, kept set for consistency/documentation
+	VDP_SetSpriteBuffer(&sprite_buffer[0][0]); // sprite table lives in its own buffer, not VRAM -- see VDP_SetSpriteBuffer's own comment
 	VDP_SetHScrollLocation(VRAM_HSCROLL);
 	VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
 	VDP_SetBackgroundColour(0);

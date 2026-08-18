@@ -288,9 +288,9 @@ static void PushB_Main(Object *obj, Scratch_PushBlock *scratch) {
     obj->y_rad = 30 / 2;
     obj->x_rad = 30 / 2;
     obj->mappings = Mappings_PushableBlocks;
-    obj->tile = TILE_MAP(0, 2, 0, 0, 0x2B8); // ArtTile_MZ_Block | Tile_Pal3
+    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_MZ_Block); // | Tile_Pal3
     if (LEVEL_ZONE(level_id) == ZoneId_LZ)
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x3DE); // ArtTile_LZ_Push_Block | Tile_Pal3 (unused)
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Push_Block); // | Tile_Pal3 (unused)
     obj->render.b = 0;
     obj->render.f.align_fg = true;
     obj->priority = 3;
@@ -302,7 +302,7 @@ static void PushB_Main(Object *obj, Scratch_PushBlock *scratch) {
     obj->frame = pushb_vars[subtype & 1].frame;
 
     if (subtype != 0)
-        obj->tile = TILE_MAP(1, 2, 0, 0, 0x2B8); // ArtTile_MZ_Block | Tile_Pal3 | Tile_Prio -- always MZ's own tile here, even in LZ (matches real hardware's own apparent oversight)
+        obj->tile = TILE_MAP(1, 2, 0, 0, ArtTile_MZ_Block); // | Tile_Pal3 | Tile_Prio -- always MZ's own tile here, even in LZ (matches real hardware's own apparent oversight)
 
     if (obj->respawn_index) {
         objstate[obj->respawn_index] &= 0x7F;

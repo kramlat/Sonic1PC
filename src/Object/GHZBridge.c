@@ -134,7 +134,7 @@ void Obj_GHZBridge(Object *obj) {
 
         // Set object drawing information
         obj->mappings = Mappings_GHZBridge;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x38E);
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Bridge);
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->priority = 3;
@@ -177,7 +177,7 @@ void Obj_GHZBridge(Object *obj) {
                 segscratch->base_y = y;
                 seg->pos.l.x.f.u = x;
                 seg->mappings = Mappings_GHZBridge;
-                seg->tile = TILE_MAP(0, 2, 0, 0, 0x38E);
+                seg->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Bridge);
                 seg->render.b = 0;
                 seg->render.f.align_fg = true;
                 seg->priority = 3;

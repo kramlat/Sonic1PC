@@ -206,7 +206,7 @@ static void Sto_Main(Object *obj, Scratch_ScrapStomp *scratch) {
     obj->frame = (uint8_t)idx;
 
     obj->mappings = Mappings_StomperDoor;
-    obj->tile = TILE_MAP(0, 1, 0, 0, 0x2C0); // ArtTile_SBZ_Moving_Block_Short | Tile_Pal2 (SBZ1/2)
+    obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_SBZ_Moving_Block_Short); // | Tile_Pal2 (SBZ1/2)
 
     if (LEVEL_ZONE(level_id) == ZoneId_LZ) { // SBZ3
         bool already_loaded = (obj6B & 1) != 0;
@@ -219,7 +219,7 @@ static void Sto_Main(Object *obj, Scratch_ScrapStomp *scratch) {
         }
 
         // Ancient lift at the start of SBZ3
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x1F0); // ArtTile_Level + 0x1F0 | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, (ArtTile_Level+0x1F0)); // | Tile_Pal3
         if (obj->pos.l.x.f.u == (int16_t)0xA80 && obj->respawn_index != 0 &&
             (objstate[obj->respawn_index] & 1)) {
             // Prevent a pre-switched ancient lift from reappearing after

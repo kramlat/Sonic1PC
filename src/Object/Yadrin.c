@@ -65,7 +65,7 @@ void Obj_Yadrin(Object *obj) {
     switch (obj->routine) {
     case 0: { // Main -- falls until it lands, invisible the whole time
         obj->mappings = Mappings_Yadrin;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x47B); // ArtTile_Yadrin | Tile_Pal2
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Yadrin); // | Tile_Pal2
         obj->render.b = 0;
         obj->render.f.align_fg = true;
         obj->priority = 4;

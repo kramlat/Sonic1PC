@@ -94,7 +94,7 @@ static void LWall_Main(Object *obj, Scratch_LavaWall *scratch) {
 
         seg->type = ObjId_LavaWall;
         seg->mappings = Mappings_LavaWall;
-        seg->tile = TILE_MAP(0, 3, 0, 0, 0x3A8); // ArtTile_MZ_Lava | Tile_Pal4
+        seg->tile = TILE_MAP(0, 3, 0, 0, ArtTile_MZ_Lava); // | Tile_Pal4
         seg->render.b = 0;
         seg->render.f.align_fg = true;
         seg->width_pixels = 160 / 2;

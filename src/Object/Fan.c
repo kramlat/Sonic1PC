@@ -94,7 +94,7 @@ void Obj_Fan(Object *obj) {
     if (obj->routine == 0) {
         obj->routine = 2; // advance to Fan_Action
         obj->mappings = Mappings_Fan;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x3A0); // ArtTile_SLZ_Fan | Tile_Pal3
+        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SLZ_Fan); // | Tile_Pal3
         obj->render.f.align_fg = true;
         obj->width_pixels = 32 / 2;
         obj->priority = 4;

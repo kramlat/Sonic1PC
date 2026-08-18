@@ -33,6 +33,7 @@ static uint8_t *vdp_vram_p;
 static uint16_t *vdp_cram_p;
 
 static size_t vdp_plane_a_location, vdp_plane_b_location, vdp_sprite_location, vdp_hscroll_location;
+static const uint16_t *vdp_sprite_buffer_ext = NULL; // see VDP_SetSpriteBuffer
 static size_t vdp_plane_w, vdp_plane_h;
 static uint8_t vdp_background_colour;
 
@@ -185,6 +186,10 @@ void VDP_SetSpriteLocation(size_t loc) {
 	vdp_sprite_location = loc;
 }
 
+void VDP_SetSpriteBuffer(const uint16_t *buffer) {
+	vdp_sprite_buffer_ext = buffer;
+}
+
 void VDP_SetHScrollLocation(size_t loc) {
 	loc &= ~0x3FF;
 	#ifdef VDP_SANITY
@@ -233,7 +238,12 @@ void VDP_SetHIntEnable(bool enable) {
 //VDP rendering
 #define SCREEN_PITCH SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2)
 
-#define SCANLINE_SPRITES 40
+// Real H40-mode Genesis hardware caps this at 40 (320px / 8px-per-unit) --
+// raised to match the new BUFFER_SPRITES (Video.h) for the same reason: a
+// deliberate accuracy trade-off for this PC port, not a bug fix. Kept in
+// sync with BUFFER_SPRITES since a single scanline can never legitimately
+// need more sprites than the whole-frame total.
+#define SCANLINE_SPRITES 0x78 // keep in sync with Video.h's BUFFER_SPRITES -- see that constant's own comment
 
 static uint32_t vdp_screen_internal[SCREEN_HEIGHT][SCREEN_PITCH];
 static uint8_t vdp_mask_internal[SCREEN_HEIGHT][SCREEN_PITCH];
@@ -563,8 +573,13 @@ void VDP_Render(void) {
 	memset(vdp_sprite_cache, 0, sizeof(vdp_sprite_cache));
 
 	for (uint8_t i = 0;;) {
-		//Get sprite values
-		const uint16_t *sprite = (const uint16_t*)(vdp_vram + vdp_sprite_location + ((uint16_t)i << 3));
+		//Get sprite values -- from the dedicated external buffer if one's
+		//been registered (see VDP_SetSpriteBuffer), otherwise fall back to
+		//the real-hardware-accurate VRAM location for anything that doesn't
+		//use it.
+		const uint16_t *sprite = vdp_sprite_buffer_ext != NULL
+			? (vdp_sprite_buffer_ext + ((uint16_t)i << 2))
+			: (const uint16_t*)(vdp_vram + vdp_sprite_location + ((uint16_t)i << 3));
 		uint16_t sprite_y = sprite[0];
 		uint16_t sprite_sl = sprite[1];
 		uint8_t sprite_width = (sprite_sl & SPRITE_SL_W_AND) >> SPRITE_SL_W_SHIFT;
