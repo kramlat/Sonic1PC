@@ -1,6 +1,7 @@
 #include "SmashBlock.h"
 
 #include "Level.h"
+#include "LevelScroll.h"
 #include "Macros.h"
 #include "Object/Sonic.h"
 
@@ -89,7 +90,7 @@ void Obj_SmashBlock(Object *obj) {
         SpeedToPos(obj);
         obj->ysp += 0x38; // gravity
 
-        if (!obj->render.f.on_screen) {
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;
         }

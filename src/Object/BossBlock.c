@@ -2,6 +2,7 @@
 
 #include "BossSpringYard.h"
 #include "Level.h"
+#include "LevelScroll.h"
 #include "LevelCollision.h"
 #include "Macros.h"
 #include "Resource/Mappings/SYZBossBlocks.h"
@@ -135,7 +136,7 @@ static void BossBlock_Action(Object *obj, Scratch_BossBlock *scratch) {
 }
 
 static void BossBlock_Frag(Object *obj) {
-    if (!obj->render.f.on_screen) {
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         ObjectDelete(obj);
         return;
     }

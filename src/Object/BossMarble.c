@@ -274,7 +274,7 @@ static void BMZ_Escape(Object *obj, Scratch_BossMarble *scratch) {
 
     if (limit_right2 != (uint16_t)(0x1800 + 0x160)) { // boss_mz_end
         limit_right2 += 2; // keep unlocking the screen bounds
-    } else if (!obj->render.f.on_screen) {
+    } else if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         ObjectDelete(obj); // has Eggman left the screen?
         return;
     }
@@ -362,7 +362,7 @@ writeAnim:
         return;
     }
     obj->anim = 6; // facepanic
-    if (!obj->render.f.on_screen) {
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         ObjectDelete(obj);
         return;
     }
@@ -376,7 +376,7 @@ static void BossMarble_FlameMain(Object *obj, Scratch_BossMarble *scratch) {
 
     if (parent->routine_sec >= 8) { // Escape
         obj->anim = 0xB; // escapeflame -- thruster animation for takeoff
-        if (!obj->render.f.on_screen) {
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;
         }
@@ -394,7 +394,7 @@ static void BossMarble_TubeMain(Object *obj, Scratch_BossMarble *scratch) {
     Object *parent = &objects[scratch->parent_index];
 
     if (parent->routine_sec == 8) { // Escape
-        if (!obj->render.f.on_screen) {
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;
         }

@@ -113,7 +113,7 @@ case 6: { // FragmentPiece — matches ASM's Ledge_FragmentPiece
 
     // .fragmentFall:
     ObjectFall(obj);
-    if (!obj->render.f.on_screen) {
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         ObjectDelete(obj);
         return;
     }

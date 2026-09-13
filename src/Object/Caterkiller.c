@@ -241,7 +241,7 @@ static void Cat_Fragment(Object *obj) {
     ObjectFall(obj);
 
     if (obj->ysp < 0) {
-        if (!obj->render.f.on_screen) {
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             Cat_Despawn(obj);
             return;
         }
@@ -255,7 +255,7 @@ static void Cat_Fragment(Object *obj) {
         obj->ysp = (int16_t)-0x400; // bounce
     }
 
-    if (!obj->render.f.on_screen) {
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         Cat_Despawn(obj);
         return;
     }

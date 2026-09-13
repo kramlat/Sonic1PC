@@ -102,7 +102,7 @@ void Obj_CollapseFloor(Object *obj) {
         }
 
         ObjectFall(obj);
-        if (!obj->render.f.on_screen) {
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;
         }

@@ -388,7 +388,7 @@ static void BSYZ_Escape(Object *obj, Scratch_BossSpringYard *scratch) {
 
     if (limit_right2 != (uint16_t)SYZ_BOSS_END) {
         limit_right2 += 2; // keep unlocking the screen bounds
-    } else if (!obj->render.f.on_screen) {
+    } else if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         ObjectDelete(obj); // has Eggman left the screen?
         return;
     }
@@ -418,12 +418,9 @@ static void BossSpringYard_ShipMain(Object *obj, Scratch_BossSpringYard *scratch
     DisplaySprite(obj);
 }
 
-// Shared tail for the face/flame/spike sub-objects: syncs position/status
-// from the ship and displays. Face/flame use BSYZ_Display, which adds the
-// animation step first; the spike sets its own frame directly (it isn't
-// Animation_Eggman-driven at all -- real ASM never calls AnimateSprite for
-// it either) and must skip animating, same reasoning as BossMarble.c's own
-// BMZ_SetBits/TubeMain split.
+// Shared tail for the face/flame sub-objects: syncs position/status
+// from the ship and displays, animating first (both are Animation_Eggman
+// driven, unlike the spike -- see BossSpringYard_SpikeMain's own comment).
 static void BSYZ_SetBits(Object *obj, Scratch_BossSpringYard *scratch) {
     Object *parent = &objects[scratch->parent_index];
     obj->pos.l.x.f.u = parent->pos.l.x.f.u;
@@ -477,7 +474,7 @@ static void BossSpringYard_FaceMain(Object *obj, Scratch_BossSpringYard *scratch
     obj->anim = anim;
 
     if (parent->routine_sec == 10) { // Escape -- extra on-screen-delete check once fully escaping
-        if (!obj->render.f.on_screen) {
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;
         }
@@ -492,7 +489,7 @@ static void BossSpringYard_FlameMain(Object *obj, Scratch_BossSpringYard *scratc
 
     if (parent->routine_sec == 10) { // Escape
         obj->anim = 0xB; // escapeflame -- thruster animation for takeoff
-        if (!obj->render.f.on_screen) {
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;
         }
@@ -515,7 +512,7 @@ static void BossSpringYard_SpikeMain(Object *obj, Scratch_BossSpringYard *scratc
     Scratch_BossSpringYard *pscratch = (Scratch_BossSpringYard *)&parent->scratch;
 
     if (parent->routine_sec == 10) { // Escape
-        if (!obj->render.f.on_screen) {
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;
         }
@@ -554,8 +551,17 @@ static void BossSpringYard_SpikeMain(Object *obj, Scratch_BossSpringYard *scratc
     if (parent->col_type != 0 && !pscratch->spike_disabled)
         obj->col_type = 0x04 | 0x80; // col_8x32 | col_hurt
 
-    BSYZ_Display(obj, scratch);
-    BSYZ_SetBits(obj, scratch);
+    // Display direct -- the spike sets its own frame/mappings/tile above
+    // (it is NOT Animation_Eggman-driven, unlike the face/flame), so it
+    // must not route through BSYZ_Display/BSYZ_SetBits: AnimateSprite
+    // would overwrite obj->frame from Animation_Eggman, and SetBits would
+    // reset obj->pos.l.y.f.u back to the parent's own Y, wiping out the
+    // d0>>2 extension offset applied just above. Sync the x_flip bits the
+    // same way SetBits does, then display with position/frame intact.
+    uint8_t flip = parent->status.b & 3;
+    obj->status.b = parent->status.b;
+    obj->render.b = (uint8_t)((obj->render.b & ~3) | flip);
+    DisplaySprite(obj);
 }
 
 void Obj_BossSpringYard(Object *obj) {

@@ -1,6 +1,8 @@
 #include "Bomb.h"
 
 #include "Level.h"
+#include "LevelScroll.h"
+#include "Macros.h"
 #include "Object/Sonic.h"
 #include "Resource/Animation/Bomb.h"
 #include "Resource/Mappings/Bomb.h"
@@ -21,7 +23,7 @@ static void Bom_Shrapnel(Object *obj) {
 
     AnimateSprite(obj, Animation_Bomb);
 
-    if (!obj->render.f.on_screen) {
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         ObjectDelete(obj);
         return;
     }

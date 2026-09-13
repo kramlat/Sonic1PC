@@ -1,4 +1,7 @@
 #define Buzz_Build
+#include "Level.h"
+#include "LevelScroll.h"
+#include "Macros.h"
 #include "BuzzBomber.h"
 
 #include "Resource/Mappings/BuzzBomber.h"
@@ -76,7 +79,7 @@ void Obj_BuzzMissile_Fire(Object *obj) {
 
 void Obj_BuzzMissile_NewtFire(Object *obj) {
     // Delete once off-screen
-    if (!obj->render.f.on_screen)
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u))
         ObjectDelete(obj);
     else {
         // Move and animate

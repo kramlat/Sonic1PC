@@ -85,7 +85,7 @@ static void Orb_CircleSpikeball(Object *obj, Scratch_Orbinaut *scratch) {
 
 static void Orb_FiredSpikeball(Object *obj) {
     SpeedToPos(obj);
-    if (!obj->render.f.on_screen) {
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         ObjectDelete(obj);
         return;
     }

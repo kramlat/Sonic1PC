@@ -71,172 +71,183 @@ void Obj_Bubble(Object *obj) {
     Scratch_Bubble *scratch = (Scratch_Bubble*)&obj->scratch;
 
     switch (obj->routine) {
-    case 0: // Bub_Main
-        obj->routine = 2;
-        Bubble_Construct(obj);
+        case 0: // Bub_Main
+            obj->routine = 2;
+            Bubble_Construct(obj);
 
-        if (scratch->subtype & BUBBLE_MAKER_BIT) {
-            obj->routine = 0xA;
-            scratch->time = scratch->subtype & 0x7F;
-            scratch->timebase = scratch->time;
-            obj->anim = 6;
-            goto bubbleMaker;
-        }
+            if (scratch->subtype & BUBBLE_MAKER_BIT) {
+                obj->routine = 0xA;
+                scratch->time = scratch->subtype & 0x7F;
+                scratch->timebase = scratch->time;
+                obj->anim = 6;
+                goto bubbleMaker;
+            }
 
-        obj->anim = scratch->subtype;
-        scratch->orig_x = obj->pos.l.x.f.u;
-        obj->ysp = -0x88;
-        obj->angle = (uint8_t)RandomNumber();
-        // Fallthrough
-    case 2: // Bub_Inflate
-        // Always falls straight into Bub_ChkWater below every frame it
-        // runs, regardless of whether AnimateSprite's afRoutine has
-        // advanced obRoutine to 4 yet -- matches the real ASM, which has
-        // no branch back after this and just runs both routines in the
-        // same tick until the jump table starts dispatching straight to
-        // Bub_ChkWater on its own once obRoutine actually reaches 4.
-        AnimateSprite(obj, Animation_Bubbles);
-        if (obj->frame == 6)
-            scratch->inhalable = 1;
-        // Fallthrough
-    case 4: { // Bub_ChkWater
-        if (obj->pos.l.y.f.u <= wtr_pos1) {
-            // Reached (or passed) the surface -- burst.
-            obj->routine = 6;
-            obj->anim += 3;
-            goto bursting;
-        }
-
-        obj->pos.l.x.f.u = Bubble_Wobble(scratch->orig_x, &obj->angle);
-
-        if (scratch->inhalable) {
-            // FixBugs: large bubbles shouldn't be inhalable while debug
-            // mode is active (real hardware bug -- debug-spawned objects
-            // could still be "collected").
-            if (!debug_use && Bubble_ChkSonic(obj)) {
-                ResumeMusic();
-                PlaySound(sfx_Bubble);
-
-                player->xsp = 0;
-                player->ysp = 0;
-                player->inertia = 0;
-                player->anim = SonAnimId_GetAir;
-                ((Scratch_Sonic*)&player->scratch)->control_lock = 35;
-                ((Scratch_Sonic*)&player->scratch)->jumping = false;
-                player->status.p.f.pushing = false;
-                player->status.p.f.roll_jump = false;
-
-                if (player->status.p.f.in_ball) {
-                    player->status.p.f.in_ball = false;
-                    player->y_rad = SONIC_HEIGHT;
-                    player->x_rad = SONIC_WIDTH;
-                    player->pos.l.y.f.u -= (SONIC_HEIGHT - SONIC_BALL_HEIGHT);
-                }
-
+            obj->anim = scratch->subtype;
+            scratch->orig_x = obj->pos.l.x.f.u;
+            obj->ysp = -0x88;
+            obj->angle = (uint8_t)RandomNumber();
+            // Fallthrough
+        case 2: // Bub_Inflate
+            // Always falls straight into Bub_ChkWater below every frame it
+            // runs, regardless of whether AnimateSprite's afRoutine has
+            // advanced obRoutine to 4 yet -- matches the real ASM, which has
+            // no branch back after this and just runs both routines in the
+            // same tick until the jump table starts dispatching straight to
+            // Bub_ChkWater on its own once obRoutine actually reaches 4.
+            AnimateSprite(obj, Animation_Bubbles);
+            if (obj->frame == 6)
+                scratch->inhalable = 1;
+            // Fallthrough
+        case 4: { // Bub_ChkWater
+            if (obj->pos.l.y.f.u <= wtr_pos1) {
+                // Reached (or passed) the surface -- burst.
                 obj->routine = 6;
                 obj->anim += 3;
                 goto bursting;
             }
-        }
 
-        SpeedToPos(obj);
-        if (!obj->render.f.on_screen) {
-            ObjectDelete(obj);
-            return;
-        }
-        DisplaySprite(obj);
-        break;
-    }
+            obj->pos.l.x.f.u = Bubble_Wobble(scratch->orig_x, &obj->angle);
 
-    bursting:
-    case 6: // Bub_Bursting
-        AnimateSprite(obj, Animation_Bubbles);
-        if (!obj->render.f.on_screen) {
-            ObjectDelete(obj);
-            return;
-        }
-        DisplaySprite(obj);
-        break;
+            if (scratch->inhalable) {
+                // FixBugs: large bubbles shouldn't be inhalable while debug
+                // mode is active (real hardware bug -- debug-spawned objects
+                // could still be "collected").
+                if (!debug_use && Bubble_ChkSonic(obj)) {
+                    ResumeMusic();
+                    PlaySound(sfx_Bubble);
 
-    case 8: // Bub_BurstDelete
-        ObjectDelete(obj);
-        break;
+                    player->xsp = 0;
+                    player->ysp = 0;
+                    player->inertia = 0;
+                    player->anim = SonAnimId_GetAir;
+                    ((Scratch_Sonic*)&player->scratch)->control_lock = 35;
+                    ((Scratch_Sonic*)&player->scratch)->jumping = false;
+                    player->status.p.f.pushing = false;
+                    player->status.p.f.roll_jump = false;
 
-    bubbleMaker:
-    case 0xA: { // Bub_BubbleMaker
-        if (!scratch->bubbleflag) {
-            if (obj->pos.l.y.f.u > wtr_pos1 && obj->render.f.on_screen) {
-                if (--scratch->randomtime < 0) {
-                    scratch->bubbleflag = 1;
-
-                    uint16_t rnd;
-                    do {
-                        rnd = (uint16_t)RandomNumber();
-                    } while ((rnd & 7) >= 6);
-                    scratch->minicount = (uint8_t)(rnd & 7);
-
-                    scratch->typelist_start = (uint8_t)(rnd & 0xC);
-
-                    if (--scratch->time < 0) {
-                        scratch->time = scratch->timebase;
-                        scratch->bubbleflag |= 0x8000;
+                    if (player->status.p.f.in_ball) {
+                        player->status.p.f.in_ball = false;
+                        player->y_rad = SONIC_HEIGHT;
+                        player->x_rad = SONIC_WIDTH;
+                        player->pos.l.y.f.u -= (SONIC_HEIGHT - SONIC_BALL_HEIGHT);
                     }
-                    goto spawnBubble;
-                }
-                goto bmAnimate;
-            }
-            goto bmDisplay;
-        }
 
-        if (--scratch->randomtime >= 0)
-            goto bmAnimate;
-
-    spawnBubble: {
-        scratch->randomtime = (int16_t)(RandomNumber() & 0x1F);
-
-        Object *bub = FindFreeObj();
-        if (bub != NULL) {
-            bub->type = ObjId_Bubble;
-            bub->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + (int16_t)((RandomNumber() & 0xF) - 8));
-            bub->pos.l.y.f.u = obj->pos.l.y.f.u;
-
-            uint8_t idx = scratch->minicount;
-            Scratch_Bubble *bubScratch = (Scratch_Bubble*)&bub->scratch;
-            bubScratch->subtype = Bub_BblTypes[scratch->typelist_start + idx];
-
-            if (scratch->bubbleflag & 0x8000) {
-                if ((RandomNumber() & 3) == 0) {
-                    if (!(scratch->bubbleflag & 0x4000)) {
-                        scratch->bubbleflag |= 0x4000;
-                        bubScratch->subtype = 2;
-                    }
-                } else if (scratch->minicount == 0) {
-                    if (!(scratch->bubbleflag & 0x4000)) {
-                        scratch->bubbleflag |= 0x4000;
-                        bubScratch->subtype = 2;
-                    }
+                    obj->routine = 6;
+                    obj->anim += 3;
+                    goto bursting;
                 }
             }
-        }
 
-        if (--scratch->minicount == 0xFF) {
-            scratch->randomtime = (int16_t)(0x80 + (RandomNumber() & 0x7F));
-            scratch->bubbleflag = 0;
-        }
-        goto bmAnimate;
-    }
-
-    bmAnimate:
-        AnimateSprite(obj, Animation_Bubbles);
-
-    bmDisplay:
-        if (!obj->render.f.on_screen) {
-            ObjectDelete(obj);
-            return;
-        }
-        if (obj->pos.l.y.f.u > wtr_pos1)
+            SpeedToPos(obj);
+            // Delete gate uses IS_OFFSCREEN (a direct position test) rather
+            // than on_screen (a cached flag set by BuildSprites only AFTER an
+            // object is drawn). On a freshly-spawned bubble, on_screen is
+            // false -- checking it here would delete the bubble before it
+            // was ever displayed, and since it was never displayed,
+            // on_screen would never become true, making the deletion
+            // permanent. IS_OFFSCREEN is valid on the object's very first
+            // frame, which is exactly what the delete gate needs. Matches
+            // Spikes.c's own use of IS_OFFSCREEN for its delete gate.
+            if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
+                ObjectDelete(obj);
+                return;
+            }
             DisplaySprite(obj);
-        break;
-    }
+            break;
+        }
+
+        bursting:
+        case 6: // Bub_Bursting
+            AnimateSprite(obj, Animation_Bubbles);
+            // Same on_screen -> IS_OFFSCREEN fix as case 4 above.
+            if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
+                ObjectDelete(obj);
+                return;
+            }
+            DisplaySprite(obj);
+            break;
+
+        case 8: // Bub_BurstDelete
+            ObjectDelete(obj);
+            break;
+
+        bubbleMaker:
+        case 0xA: { // Bub_BubbleMaker
+            if (!scratch->bubbleflag) {
+                if (obj->pos.l.y.f.u > wtr_pos1 && obj->render.f.on_screen) {
+                    if (--scratch->randomtime < 0) {
+                        scratch->bubbleflag = 1;
+
+                        uint16_t rnd;
+                        do {
+                            rnd = (uint16_t)RandomNumber();
+                        } while ((rnd & 7) >= 6);
+                        scratch->minicount = (uint8_t)(rnd & 7);
+
+                        scratch->typelist_start = (uint8_t)(rnd & 0xC);
+
+                        if (--scratch->time < 0) {
+                            scratch->time = scratch->timebase;
+                            scratch->bubbleflag |= 0x8000;
+                        }
+                        goto spawnBubble;
+                    }
+                    goto bmAnimate;
+                }
+                goto bmDisplay;
+            }
+
+            if (--scratch->randomtime >= 0)
+                goto bmAnimate;
+
+        spawnBubble: {
+            scratch->randomtime = (int16_t)(RandomNumber() & 0x1F);
+
+            Object *bub = FindFreeObj();
+            if (bub != NULL) {
+                bub->type = ObjId_Bubble;
+                bub->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + (int16_t)((RandomNumber() & 0xF) - 8));
+                bub->pos.l.y.f.u = obj->pos.l.y.f.u;
+
+                uint8_t idx = scratch->minicount;
+                Scratch_Bubble *bubScratch = (Scratch_Bubble*)&bub->scratch;
+                bubScratch->subtype = Bub_BblTypes[scratch->typelist_start + idx];
+
+                if (scratch->bubbleflag & 0x8000) {
+                    if ((RandomNumber() & 3) == 0) {
+                        if (!(scratch->bubbleflag & 0x4000)) {
+                            scratch->bubbleflag |= 0x4000;
+                            bubScratch->subtype = 2;
+                        }
+                    } else if (scratch->minicount == 0) {
+                        if (!(scratch->bubbleflag & 0x4000)) {
+                            scratch->bubbleflag |= 0x4000;
+                            bubScratch->subtype = 2;
+                        }
+                    }
+                }
+            }
+
+            if (--scratch->minicount == 0xFF) {
+                scratch->randomtime = (int16_t)(0x80 + (RandomNumber() & 0x7F));
+                scratch->bubbleflag = 0;
+            }
+            goto bmAnimate;
+        }
+
+        bmAnimate:
+            AnimateSprite(obj, Animation_Bubbles);
+
+        bmDisplay:
+            // Same on_screen -> IS_OFFSCREEN fix as case 4/6 above.
+            if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
+                ObjectDelete(obj);
+                return;
+            }
+            if (obj->pos.l.y.f.u > wtr_pos1)
+                DisplaySprite(obj);
+            break;
+        }
     }
 }

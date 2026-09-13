@@ -95,13 +95,6 @@ void Obj_DrownCount(Object *obj) {
             // Reached the surface -- switch to the flashing animation.
             obj->routine = 6;
             obj->anim += 7;
-#ifdef SCP_FIX_BUGS
-            // Fixes an out-of-bounds animation read when a medium bubble
-            // (anim 14) reaches the surface: 14+7=21 is past the table's
-            // last entry (13, blank) -- clamp back to blank instead.
-            if (obj->anim >= 14)
-                obj->anim = 13;
-#endif
             goto display;
         }
 
@@ -118,7 +111,14 @@ void Obj_DrownCount(Object *obj) {
         Drown_ShowNumber(obj, scratch);
 
         SpeedToPos(obj);
-        if (!obj->render.f.on_screen) {
+        // Delete gate uses IS_OFFSCREEN (direct position test), not
+        // on_screen (cached flag set only AFTER the object is drawn by
+        // BuildSprites). On a freshly-spawned bubble on_screen is false,
+        // so checking it here would delete the object before it was ever
+        // displayed -- and since it was never displayed, on_screen would
+        // never become true, making the deletion permanent. Same fix as
+        // AirBubbles.c; same reasoning.
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;
         }
@@ -128,6 +128,11 @@ void Obj_DrownCount(Object *obj) {
     display:
     case 6: // Drown_Display
     case 0xE:
+        // Fixes an out-of-bounds animation read when a medium bubble
+        // (anim 14) reaches the surface: 14+7=21 is past the table's
+        // last entry (13, blank) -- clamp back to blank instead.
+        if (obj->anim >= 14)
+            obj->anim = 13;
         Drown_ShowNumber(obj, scratch);
         AnimateSprite(obj, Animation_DrowningCountdown);
         DisplaySprite(obj);
@@ -139,14 +144,15 @@ void Obj_DrownCount(Object *obj) {
         break;
 
     case 0xC: // Drown_AirLeft
-        if (air > 12) {
+        if (air > 12 || air == 0) {
             ObjectDelete(obj);
             return;
         }
 
         if (--scratch->num_time != 0) {
             AnimateSprite(obj, Animation_DrowningCountdown);
-            if (!obj->render.f.on_screen) {
+            // Same on_screen -> IS_OFFSCREEN fix as case 4 above.
+            if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
                 ObjectDelete(obj);
                 return;
             }
@@ -160,122 +166,122 @@ void Obj_DrownCount(Object *obj) {
 
     countdown:
     case 0xA: { // Drown_Countdown -- the master tracker, never displays
-        if (scratch->restart_time) {
-            // Sonic is already drowning -- count down to the death state.
-            if (--scratch->restart_time != 0) {
-                SpeedToPos(player);
-                player->ysp += 0x10; // sink faster
-                goto checkSpawnExtraBubbles;
-            }
-            player->routine = 6; // Sonic_Death
-            return;
-        }
-
-        if (player->routine >= 6 || !player->status.p.f.underwater)
-            return;
-
-        if (--scratch->num_time >= 0)
-            goto checkSpawnExtraBubbles;
-        scratch->num_time = 59;
-
-        scratch->extra_bub_flag = 1;
-        scratch->extra_bubbles = (uint8_t)(RandomNumber() & 1);
-
-        if (air == 25 || air == 20 || air == 15) {
-            PlaySound(sfx_Warning);
-        } else if (air <= 12) {
-            if (air == 12)
-                QueueSound1(bgm_Drowning);
-
-            if (--scratch->display_time < 0) {
-                scratch->display_time = scratch->type;
-                scratch->extra_bub_flag |= 0x80;
-            }
-        }
-
-        if (--air == 0xFFFF) {
-            // Sonic drowns here. Calling ResumeMusic() this way (rather
-            // than ResumeLevelMusic() directly) matches the real ASM --
-            // air is 0xFFFF (just wrapped) at this point, so ResumeMusic's
-            // own "air <= 12" gate is false and it skips the music-restore
-            // branch entirely, only resetting air to 30 and clearing the
-            // countdown display timer. The actual death jingle comes from
-            // Sonic_Death separately once restart_time expires below.
-            ResumeMusic();
-            lock_multi = 0x81;
-            PlaySound(sfx_Drown);
-            scratch->extra_bubbles = 10;
-            scratch->extra_bub_flag = 1;
-            scratch->restart_time = 2 * 60;
-
-            Sonic_ResetOnFloor(player);
-            player->anim = SonAnimId_Drown;
-            player->status.p.f.in_air = true;
-            player->tile |= TILE_PRIORITY_AND;
-            player->ysp = 0;
-            player->xsp = 0;
-            player->inertia = 0;
-            nobgscroll = true;
-            player->routine = 2; // Sonic_Control
-            time_count = false;
-        }
-
-    checkSpawnExtraBubbles:
-        if (!scratch->extra_bub_flag)
-            return;
-        if (scratch->restart_time == 0) {
-            if (--scratch->delay_time >= 0)
-                return;
-        }
-
-    {
-        scratch->delay_time = (int16_t)(RandomNumber() & 0xF);
-
-        Object *bub = FindFreeObj();
-        if (bub != NULL) {
-            bub->type = ObjId_DrownCount;
-            Scratch_DrownCount *bubScratch = (Scratch_DrownCount*)&bub->scratch;
-
-            int16_t off = 6;
-            if (player->status.p.f.x_flip) {
-                off = -6;
-                bub->angle = 0x40;
-            }
-            bub->pos.l.x.f.u = (int16_t)(player->pos.l.x.f.u + off);
-            bub->pos.l.y.f.u = player->pos.l.y.f.u;
-            bubScratch->subtype = 6; // small bubble
-
             if (scratch->restart_time) {
-                scratch->delay_time &= 7;
-                bub->pos.l.y.f.u = (int16_t)(player->pos.l.y.f.u - 12);
-                bub->angle = (uint8_t)RandomNumber();
-                if ((frame_count & 3) == 0)
-                    bubScratch->subtype = 0xE; // medium bubble
-            } else if (scratch->extra_bub_flag & 0x80) {
-                uint16_t air_anim = air >> 1;
-                bool spawnNumber = false;
-                if ((RandomNumber() & 3) == 0) {
-                    if (!(scratch->extra_bub_flag & 0x40)) {
-                        scratch->extra_bub_flag |= 0x40;
-                        spawnNumber = true;
-                    }
-                } else if (!scratch->extra_bubbles) {
-                    if (!(scratch->extra_bub_flag & 0x40)) {
-                        scratch->extra_bub_flag |= 0x40;
-                        spawnNumber = true;
-                    }
+                // Sonic is already drowning -- count down to the death state.
+                if (--scratch->restart_time != 0) {
+                    SpeedToPos(player);
+                    player->ysp += 0x10; // sink faster
+                    goto checkSpawnExtraBubbles;
                 }
-                if (spawnNumber) {
-                    bubScratch->subtype = (uint8_t)air_anim;
-                    bubScratch->num_time = 28;
+                player->routine = 6; // Sonic_Death
+                return;
+            }
+
+            if (player->routine >= 6 || !player->status.p.f.underwater)
+                return;
+
+            if (--scratch->num_time >= 0)
+                goto checkSpawnExtraBubbles;
+            scratch->num_time = 59;
+
+            scratch->extra_bub_flag = 1;
+            scratch->extra_bubbles = (uint8_t)(RandomNumber() & 1);
+
+            if (air == 25 || air == 20 || air == 15) {
+                PlaySound(sfx_Warning);
+            } else if (air <= 12) {
+                if (air == 12)
+                    QueueSound1(bgm_Drowning);
+
+                if (--scratch->display_time < 0) {
+                    scratch->display_time = scratch->type;
+                    scratch->extra_bub_flag |= 0x80;
                 }
             }
-        }
 
-        if (--scratch->extra_bubbles == 0xFF)
-            scratch->extra_bub_flag = 0;
-        return;
-    }
-    }
+            if (--air == 0xFFFF) {
+                // Sonic drowns here. Calling ResumeMusic() this way (rather
+                // than ResumeLevelMusic() directly) matches the real ASM --
+                // air is 0xFFFF (just wrapped) at this point, so ResumeMusic's
+                // own "air <= 12" gate is false and it skips the music-restore
+                // branch entirely, only resetting air to 30 and clearing the
+                // countdown display timer. The actual death jingle comes from
+                // Sonic_Death separately once restart_time expires below.
+                ResumeMusic();
+                lock_multi = 0x81;
+                PlaySound(sfx_Drown);
+                scratch->extra_bubbles = 10;
+                scratch->extra_bub_flag = 1;
+                scratch->restart_time = 2 * 60;
+
+                Sonic_ResetOnFloor(player);
+                player->anim = SonAnimId_Drown;
+                player->status.p.f.in_air = true;
+                player->tile |= TILE_PRIORITY_AND;
+                player->ysp = 0;
+                player->xsp = 0;
+                player->inertia = 0;
+                nobgscroll = true;
+                player->routine = 2; // Sonic_Control
+                time_count = false;
+            }
+
+        checkSpawnExtraBubbles:
+            if (!scratch->extra_bub_flag)
+                return;
+            if (scratch->restart_time == 0) {
+                if (--scratch->delay_time >= 0)
+                    return;
+            }
+
+            {
+                scratch->delay_time = (int16_t)(RandomNumber() & 0xF);
+
+                Object *bub = FindFreeObj();
+                if (bub != NULL) {
+                    bub->type = ObjId_DrownCount;
+                    Scratch_DrownCount *bubScratch = (Scratch_DrownCount*)&bub->scratch;
+
+                    int16_t off = 6;
+                    if (player->status.p.f.x_flip) {
+                        off = -6;
+                        bub->angle = 0x40;
+                    }
+                    bub->pos.l.x.f.u = (int16_t)(player->pos.l.x.f.u + off);
+                    bub->pos.l.y.f.u = player->pos.l.y.f.u;
+                    bubScratch->subtype = 6; // small bubble
+
+                    if (scratch->restart_time) {
+                        scratch->delay_time &= 7;
+                        bub->pos.l.y.f.u = (int16_t)(player->pos.l.y.f.u - 12);
+                        bub->angle = (uint8_t)RandomNumber();
+                        if ((frame_count & 3) == 0)
+                            bubScratch->subtype = 0xE; // medium bubble
+                    } else if (scratch->extra_bub_flag & 0x80) {
+                        uint16_t air_anim = air >> 1;
+                        bool spawnNumber = false;
+                        if ((RandomNumber() & 3) == 0) {
+                            if (!(scratch->extra_bub_flag & 0x40)) {
+                                scratch->extra_bub_flag |= 0x40;
+                                spawnNumber = true;
+                            }
+                        } else if (!scratch->extra_bubbles) {
+                            if (!(scratch->extra_bub_flag & 0x40)) {
+                                scratch->extra_bub_flag |= 0x40;
+                                spawnNumber = true;
+                            }
+                        }
+                        if (spawnNumber) {
+                            bubScratch->subtype = (uint8_t)air_anim;
+                            bubScratch->num_time = 28;
+                        }
+                    }
+                }
+
+                if (--scratch->extra_bubbles == 0xFF)
+                    scratch->extra_bub_flag = 0;
+                return;
+            }
+        }
     }
 }

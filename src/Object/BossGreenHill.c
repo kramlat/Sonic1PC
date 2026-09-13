@@ -214,7 +214,7 @@ static void BGHZ_Escape(Object *obj, Scratch_BossGreenHill *scratch) {
 
     if (limit_right2 != (uint16_t)(0x2960 + 0x160)) { // boss_ghz_end
         limit_right2 += 2; // keep unlocking the screen bounds
-    } else if (!obj->render.f.on_screen) {
+    } else if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         ObjectDelete(obj); // has Eggman left the screen?
         return;
     }
@@ -295,7 +295,7 @@ writeAnim:
         return;
     }
     obj->anim = 6; // facepanic
-    if (!obj->render.f.on_screen) {
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         ObjectDelete(obj);
         return;
     }
@@ -309,7 +309,7 @@ static void BGHZ_FlameMain(Object *obj, Scratch_BossGreenHill *scratch) {
 
     if (parent->routine_sec == 12) { // Escape
         obj->anim = 0xB; // escapeflame -- thruster animation for takeoff
-        if (!obj->render.f.on_screen) {
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;
         }

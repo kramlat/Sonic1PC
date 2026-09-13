@@ -1,6 +1,8 @@
 #include "RotatingJunction.h"
 
 #include "Level.h"
+#include "LevelScroll.h"
+#include "Macros.h"
 #include "Object/Sonic.h"
 #include "Resource/Mappings/RotatingJunction.h"
 
@@ -42,7 +44,7 @@ static void Jun_ChgPos(Object *obj) {
 static void Jun_Action(Object *obj, Scratch_Junction *scratch) {
     Jun_Rotate(obj, scratch);
 
-    if (!obj->render.f.on_screen) {
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
         RememberState(obj);
         return;
     }
