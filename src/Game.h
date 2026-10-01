@@ -56,7 +56,7 @@ extern bool cli_start_special;
 extern int32_t cli_special_stage;
 // If non-NULL, ReadJoypads() (Game.c) calls this each frame instead of
 // reading the real joypad, letting an external "AI"/bot control Sonic --
-// e.g. for SonicDemoRecord --ai. Must return a JPAD_* bitmask (see
+// e.g. the AI pipe in tests/ai_pipe.h (not wired into the app yet). Must return a JPAD_* bitmask (see
 // Backend/Joypad.h) of currently-held buttons.
 extern uint8_t (*cli_ai_control_hook)(void);
 

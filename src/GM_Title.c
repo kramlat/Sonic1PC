@@ -469,6 +469,10 @@ void GM_Title(void) {
         vbla_routine = 0x04;
         WaitForVBla();
 
+        // The mode was changed from outside (e.g. an in-app demo recording request): leave.
+        if ((gamemode & 0x7F) != GameMode_Title)
+            return;
+
         // Run game and load PLCs
         ExecuteObjects();
         DeformLayers();

@@ -190,6 +190,10 @@ void GM_Special(void) {
 		//Run frame
 		vbla_routine = 0x0A;
 		WaitForVBla();
+
+		//The mode was changed from outside (e.g. an in-app demo recording request): leave
+		if ((gamemode & 0x7F) != GameMode_Special)
+			return;
 		
 		MoveSonicInDemo();
 		jpad1_hold2  = jpad1_hold1;

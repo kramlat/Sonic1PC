@@ -18,6 +18,7 @@ void RegisterStaircaseTests(void);
 void RegisterOscillatorTests(void);
 void RegisterSceneryTests(void);
 void RegisterAudioMuteTests(void);
+void RegisterDemoRecordTests(void);
 void RegisterObjCollisionTests(void);
 void RegisterWaterSplitTests(void);
 void RegisterGiantRingTests(void);
@@ -52,6 +53,7 @@ int main(void) {
     RegisterOscillatorTests();
     RegisterSceneryTests();
     RegisterAudioMuteTests();
+    RegisterDemoRecordTests();
 
     printf("Object collision tests:\n");
     RegisterObjCollisionTests();

@@ -36,6 +36,23 @@ noise and the DAC individually (`Sound_SetChannelMuted`, masks inside `YM2612_Se
 unmuting resumes in step). SDL is now only used for gamepads (SDL_GameController, for Steam Input), the software renderer and timing.
 Not persisted yet (settings reset each launch). Phonon was considered and rejected: it plays media files, it has no push-PCM path.
 
+**Settings file** (`~/.local/share/SonicPC/Sonic1Settings.cfg`, YAML via yaml-cpp, `Backend/Qt/Settings.{h,cpp}`): music/SFX mute and volume,
+the muted chip channels, and the video state (fullscreen, and the windowed size and position -- position is ignored on Wayland) plus the log file
+and the demo recorder's last choices. Loaded before the window is built (so the menus show it), saved ~0.5 s after any change and on exit
+(atomically, via a temp file). A missing or broken file means defaults; unknown channel names are ignored. YAML is for settings only -- demo files stay plain.
+
+**Demo recording / playback** (Tools menu, same visibility as View: debug builds, or after the debug code). *Record Demo...* asks for a zone/act
+(or special stage), an optional start position and frame limit, and a folder; the game restarts that level from whatever screen it is on and
+records until *Stop Recording* (Start stays the pause button) or the frame limit; the game keeps running. Files are named
+`Zone Z Act A[ xX yY] <stamp>.bin` and use the original recorder's format (see Demo.h). *Play Demo...* picks a file, reads the level from its name
+(or asks), sets the attract-mode state and plays it, then returns to the Sega screen, like an attract demo. Special stage demos can't be played
+back yet (the special stage has no demo loading). Game side: `Demo_RequestRecording/Playback` + `Demo_ServiceRequests` (called each VBlank); the
+title and special stage loops leave when the mode is changed from outside. Dev hooks: `SONIC_QT_RECORD=zone,act,frames,file`, `SONIC_QT_PLAY=file,zone,act`.
+
+**The separate `SonicDemoRecord` executable is gone** (target, `tests/demo_record_main.c`, `tests/timestamp.*`, the `DEMO_OUTPUT_DIR` build setting, and
+the recorder-only paths in `Demo.c`: exit on stop, Start-to-stop). Recording is the Tools menu now. Not carried over: `--ai` / `--ai-pipe` (a bot or an
+external process driving Sonic live while recording). `tests/ai_pipe.{c,h}` and the game's `cli_ai_control_hook` are still there, unused, to wire into the app.
+
 **Logging** (View > Logging, debug mode only): Start/Stop Logging, Log File... (file used the next time logging starts) and Show Log.
 `DEBUG_LOG("category", "fmt", ...)` (src/DebugLog.h) costs one flag test while off; entries go to an 8192-entry ring (Log window: filter,
 auto-scroll, save) and, if chosen, to a file (flushed per line). Currently logged: game mode changes, level start, checkpoints, hurt/death,

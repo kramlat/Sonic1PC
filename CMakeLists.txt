@@ -1085,10 +1085,13 @@ if(TRUE)
   # The window: a QMainWindow (menu bar) with the game frame drawn as a texture on a
   # QOpenGLWidget; see src/Backend/Qt/QtHost.h.
   find_package(Qt6 REQUIRED COMPONENTS Widgets OpenGLWidgets Multimedia)
+  find_package(yaml-cpp REQUIRED) # the settings file (src/Backend/Qt/Settings.cpp)
   target_sources(SonicCore PRIVATE "src/Backend/Qt/QtHost.cpp" "src/Backend/Qt/QtHost.h"
                                 "src/Backend/Qt/QtAudio.cpp" "src/Backend/Qt/QtAudio.h"
+                                "src/Backend/Qt/Settings.cpp" "src/Backend/Qt/Settings.h"
+                                "src/Backend/Qt/DemoTools.cpp" "src/Backend/Qt/DemoTools.h"
                                 "src/Backend/Qt/DebugViewers.cpp" "src/Backend/Qt/DebugViewers.h")
-  target_link_libraries(SonicCore PUBLIC Qt6::Widgets Qt6::OpenGLWidgets Qt6::Multimedia)
+  target_link_libraries(SonicCore PUBLIC Qt6::Widgets Qt6::OpenGLWidgets Qt6::Multimedia yaml-cpp::yaml-cpp)
 endif()
 
 # libm -- Sound.c computes PSG note periods from note frequencies (pow/exp2)
@@ -1353,8 +1356,8 @@ if(BUILD_TESTS)
   enable_testing()
 
   # Showcase only wants the tools relevant to producing/recording pre-scripted
-  # footage (SonicSmoke to play back scripted movement, SonicDemoRecord to
-  # capture it) plus the main Sonic binary itself -- not the rest of the
+  # footage (SonicSmoke to play back scripted movement; demos are recorded in
+  # the main Sonic app's Tools menu) plus the main Sonic binary itself -- not the rest of the
   # developer-diagnostic toolkit (unit tests, joypad/sound-trace tools, the
   # FM voice editor, etc), which have no role in producing showcase footage.
   if(CMAKE_BUILD_TYPE STREQUAL "Showcase")
@@ -1372,7 +1375,7 @@ if(BUILD_TESTS)
                                "tests/test_leveldraw.c" "tests/test_levelcollision.c"
                                "tests/test_prison.c" "tests/test_lz3wall.c"
                                "tests/test_bosslz.c" "tests/test_lzconveyor.c"
-                               "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_staircase.c" "tests/test_oscillator.c" "tests/test_scenery.c" "tests/test_audiomute.c" "tests/test_objcollision.c"
+                               "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_staircase.c" "tests/test_oscillator.c" "tests/test_scenery.c" "tests/test_audiomute.c" "tests/test_demorecord.c" "tests/test_objcollision.c"
                                "tests/test_giantring.c" "tests/test_checkpoint.c")
     target_link_libraries(SonicTests PRIVATE SonicCore)
     set_target_properties(SonicTests PROPERTIES C_STANDARD 99
@@ -1392,24 +1395,6 @@ if(BUILD_TESTS)
   set_target_properties(SonicSmoke PROPERTIES C_STANDARD 99
                                                C_STANDARD_REQUIRED ON
                                                C_EXTENSIONS OFF)
-
-  # Demo recorder: play a level/special stage for real (or via the --ai
-  # control hook) and record the input to a demo file in the same format
-  # Demo.c plays back -- see tests/demo_record_main.c. Interactive tool, not
-  # registered as a ctest.
-  add_executable(SonicDemoRecord "tests/demo_record_main.c" "tests/ai_pipe.c"
-                                  "tests/timestamp.c")
-  target_link_libraries(SonicDemoRecord PRIVATE SonicCore)
-  set_target_properties(SonicDemoRecord PROPERTIES C_STANDARD 99
-                                                     C_STANDARD_REQUIRED ON
-                                                     C_EXTENSIONS OFF)
-
-  # Default --out location: bindir/demos, alongside the built executables,
-  # so recordings land somewhere predictable regardless of the working
-  # directory SonicDemoRecord is invoked from.
-  set(DEMO_OUTPUT_DIR "${BUILD_DIRECTORY}/${CMAKE_BUILD_TYPE}/demos")
-  file(MAKE_DIRECTORY "${DEMO_OUTPUT_DIR}")
-  target_compile_definitions(SonicDemoRecord PRIVATE DEMO_OUTPUT_DIR="${DEMO_OUTPUT_DIR}")
 
   if(SONIC_FULL_DEV_TOOLS)
     # Joypad test tool: a small SDL2 window showing a row of icons (the four
@@ -1577,7 +1562,7 @@ if(BUILD_TESTS)
       PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
   endif()
 
-  set_target_properties(SonicSmoke SonicDemoRecord PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
+  set_target_properties(SonicSmoke PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
 
   # One headless smoke test per zone. "Still running when the timeout hits"
   # is success (the game loop never exits on its own) -- a crash, an early

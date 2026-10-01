@@ -270,6 +270,7 @@ static void UpdateZ80Peek(void) {
 }
 
 void VBlank(void) {
+    Demo_ServiceRequests(); // in-app demo recording requests (Demo.h)
     UpdateZ80Peek();
 
     uint8_t routine = vbla_routine;

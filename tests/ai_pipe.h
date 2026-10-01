@@ -2,7 +2,8 @@
 
 #include <stdint.h>
 
-// External-controller gamepad pipe for SonicDemoRecord --ai-pipe. Kept in
+// External-controller gamepad pipe (it drove the old SonicDemoRecord --ai-pipe; currently not used by
+// any target, kept to be wired into the app's demo recording later). Kept in
 // its own translation unit, deliberately never including any game headers:
 // unistd.h's pause() collides with the game's global `pause` variable
 // (Level.h) if both land in the same file.

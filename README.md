@@ -5,7 +5,9 @@ Sonic the Hedgehog (1991, Sega Genesis / MegaDrive) C Port
 ## Dependencies
 
 * Qt 6 (Widgets and OpenGLWidgets) -- the game window, menu bar and debug tools
-* SDL2 -- audio, gamepads and the software renderer that draws the frame
+* Qt 6 Multimedia -- audio
+* yaml-cpp -- the settings file (`~/.local/share/SonicPC/Sonic1Settings.cfg`)
+* SDL2 -- gamepads and the software renderer that draws the frame
 * pkg-config (for builds that require static-linkage)
 
 ## Building

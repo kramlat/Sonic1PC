@@ -397,13 +397,17 @@ GM_Level_Branch:;
     btn_pushtime1 = 0;
 
     const uint8_t* demo_data;
-    if (demo < 0)
+    if (cli_demo_override)
+        demo_data = cli_demo_override; // a demo loaded from a file (Tools > Play Demo / the CLI hook)
+    else if (demo < 0)
         demo_data = ending_demo_ptr[credits_num - 1];
     else
         demo_data = intro_demo_ptr[LEVEL_ZONE(level_id)];
     btn_pushtime2 = demo_data[1] - 1;
     if (demo < 0)
         demo_length = (credits_num == 4) ? 510 : 540; // Credits length
+    else if (cli_demo_length >= 0)
+        demo_length = (uint16_t)cli_demo_length; // length of the loaded demo
     else
         demo_length = 1800; // Demo length
 

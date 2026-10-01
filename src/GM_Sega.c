@@ -64,6 +64,8 @@ void GM_Sega(void) {
     do {
         vbla_routine = 0x02;
         WaitForVBla();
+        if ((gamemode & 0x7F) != GameMode_Sega)
+            return; // the mode was changed from outside (e.g. an in-app demo recording request)
     } while (PCycle_Sega());
 
     PlaySegaSound();
@@ -76,6 +78,8 @@ void GM_Sega(void) {
     do {
         vbla_routine = 0x02;
         WaitForVBla();
+        if ((gamemode & 0x7F) != GameMode_Sega)
+            return; // as above
         if (!demo_length)
             break;
     } while (!(jpad1_press1 & JPAD_START));

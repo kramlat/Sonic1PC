@@ -32,6 +32,7 @@
 
 #include "../../DebugPeek.h"
 #include "../../DebugLog.h"
+#include "Settings.h"
 
 // VDP memory views (Backend/VDP.h -- not included: it is a C-only header).
 extern "C" {
@@ -1007,7 +1008,7 @@ private:
 // Log window + logging control (DebugLog.c)
 // ---------------------------------------------------------------------------
 
-QString g_log_file; // chosen log file; empty = keep the log in memory only
+QString &g_log_file = Settings::Get().log_file; // chosen log file (remembered in the settings); empty = in memory only
 
 class LogViewer : public QWidget {
 public:
@@ -1206,6 +1207,7 @@ void ChooseLogFile(QWidget *parent) {
 	                                            "Text files (*.txt *.log);;All files (*)");
 	if (!path.isEmpty())
 		g_log_file = path; // applies the next time logging starts
+		Settings::SaveSoon();
 }
 
 void SetSoundSnapshot(bool active, const Z80PeekData *data) {

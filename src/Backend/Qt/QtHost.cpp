@@ -1,6 +1,8 @@
 #include "QtHost.h"
 #include "DebugViewers.h"
 #include "QtAudio.h"
+#include "DemoTools.h"
+#include "Settings.h"
 #include "../../DebugPeek.h"
 #include "../../DebugLog.h"
 
@@ -14,6 +16,8 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QSlider>
+#include <QStatusBar>
+#include <QGuiApplication>
 #include <QWidgetAction>
 #include <QOpenGLWidget>
 #include <QPainter>
@@ -131,17 +135,27 @@ public:
 		view = new GameView(this);
 		setCentralWidget(view);
 		menuBar()->setNativeMenuBar(false); // keep the menu bar inside the window (no KDE/macOS global menu export)
+		statusBar()->setSizeGripEnabled(false); // messages from the Tools menu (demo recording) appear here
 		BuildMenus();
 	}
 
 	GameView *view;
+
+	// Window geometry is only remembered once the saved state has been restored (see QtHost_Init).
+	void StartTrackingGeometry() { tracking = true; }
 
 	// Shows or hides the debug tools menu to match the game's debug mode.
 	void SyncDebugMenu() {
 		bool available = Peek_DebugToolsAvailable() != 0;
 		if (debug_menu->isVisible() != available)
 			debug_menu->setVisible(available);
+		if (tools_menu->isVisible() != available)
+			tools_menu->setVisible(available);
 		if (available) {
+			bool recording = DemoTools::Recording();
+			record_action->setEnabled(!recording);
+			stop_record_action->setEnabled(recording);
+			play_action->setEnabled(!recording);
 			// keep the menu item in step with the log (it can also be started/stopped from the Log window)
 			const char *wanted = DebugViewers::IsLogging() ? "Stop Logging" : "Start Logging";
 			if (log_toggle->text() != wanted)
@@ -152,6 +166,9 @@ public:
 	void ToggleFullscreen() {
 		bool to_fullscreen = !isFullScreen();
 		menuBar()->setVisible(!to_fullscreen);
+		statusBar()->setVisible(!to_fullscreen);
+		Settings::Get().fullscreen = to_fullscreen;
+		Settings::SaveSoon();
 		view->setCursor(to_fullscreen ? Qt::BlankCursor : Qt::ArrowCursor);
 		if (to_fullscreen)
 			showFullScreen();
@@ -163,17 +180,44 @@ public:
 protected:
 	void closeEvent(QCloseEvent *e) override {
 		g_should_quit = true;
+		Settings::Save(); // final write: audio state and video state
 		QMainWindow::closeEvent(e);
 	}
 
+	// The windowed size and position are remembered (not while fullscreen: that keeps the windowed one).
+	void resizeEvent(QResizeEvent *e) override {
+		QMainWindow::resizeEvent(e);
+		RememberGeometry();
+	}
+	void moveEvent(QMoveEvent *e) override {
+		QMainWindow::moveEvent(e);
+		RememberGeometry();
+	}
+
 private:
+	void RememberGeometry() {
+		if (!tracking || isFullScreen() || isMaximized() || !isVisible())
+			return;
+		Settings::Data &d = Settings::Get();
+		d.has_window_geometry = true;
+		d.window_width = width();
+		d.window_height = height();
+		d.window_x = x();
+		d.window_y = y();
+		Settings::SaveSoon();
+	}
+	bool tracking = false;
+
 	// One row of the Audio menu: a mute check box and a volume slider for one output (music or effects).
 	void AddOutput(QMenu *menu, const char *label, bool (*enabled)(void), void (*set_enabled)(bool), int (*volume)(void),
 	               void (*set_volume)(int)) {
 		QAction *on = menu->addAction(label);
 		on->setCheckable(true);
 		on->setChecked(enabled());
-		connect(on, &QAction::toggled, this, [set_enabled](bool checked) { set_enabled(checked); });
+		connect(on, &QAction::toggled, this, [set_enabled](bool checked) {
+			set_enabled(checked);
+			Settings::SaveSoon();
+		});
 
 		auto *row = new QWidget;
 		auto *layout = new QHBoxLayout(row);
@@ -184,7 +228,10 @@ private:
 		slider->setValue(volume());
 		slider->setMinimumWidth(140);
 		layout->addWidget(slider);
-		connect(slider, &QSlider::valueChanged, this, [set_volume](int v) { set_volume(v); });
+		connect(slider, &QSlider::valueChanged, this, [set_volume](int v) {
+			set_volume(v);
+			Settings::SaveSoon();
+		});
 		auto *action = new QWidgetAction(menu);
 		action->setDefaultWidget(row);
 		menu->addAction(action);
@@ -200,14 +247,17 @@ private:
 
 		// Checked = audible. Numbering matches SOUND_MUTE_* in Sound.h.
 		QMenu *channels = audio->addMenu("Channels");
-		static const char *const names[] = {"FM 1", "FM 2", "FM 3", "FM 4", "FM 5", "FM 6", "PSG Tone 1", "PSG Tone 2", "PSG Tone 3", "PSG Noise", "DAC (samples)"};
+		const char *const *names = Settings::kChannelNames;
 		for (int i = 0; i < 11; i++) {
 			if (i == 6 || i == 10)
 				channels->addSeparator();
 			QAction *a = channels->addAction(names[i]);
 			a->setCheckable(true);
 			a->setChecked(!Sound_IsChannelMuted(i));
-			connect(a, &QAction::toggled, this, [i](bool audible) { Sound_SetChannelMuted(i, !audible); });
+			connect(a, &QAction::toggled, this, [i](bool audible) {
+				Sound_SetChannelMuted(i, !audible);
+				Settings::SaveSoon();
+			});
 			channel_actions.push_back(a);
 		}
 		channels->addSeparator();
@@ -220,6 +270,8 @@ private:
 
 	std::vector<QAction *> channel_actions;
 	QAction *debug_menu = nullptr;
+	QAction *tools_menu = nullptr;
+	QAction *record_action = nullptr, *stop_record_action = nullptr, *play_action = nullptr;
 	QAction *log_toggle = nullptr;
 
 	// The menu bar. Add new menus/entries here. Don't use '&' mnemonics: Alt is
@@ -248,6 +300,19 @@ private:
 		connect(log_menu->addAction("Show Log"), &QAction::triggered, this, [this] { DebugViewers::ShowLogViewer(this); });
 		connect(view_menu->addAction("Object RAM"), &QAction::triggered, this, [this] { DebugViewers::ShowObjectViewer(this); });
 
+		// Tools: demo recording and playback. Like View, only while debug mode is active (see SyncDebugMenu).
+		QMenu *tools = menuBar()->addMenu("Tools");
+		tools_menu = tools->menuAction();
+		tools_menu->setVisible(false);
+		record_action = tools->addAction("Record Demo...");
+		connect(record_action, &QAction::triggered, this, [this] { DemoTools::RecordDialog(this); });
+		stop_record_action = tools->addAction("Stop Recording");
+		stop_record_action->setEnabled(false);
+		connect(stop_record_action, &QAction::triggered, this, [] { DemoTools::StopRecording(); });
+		tools->addSeparator();
+		play_action = tools->addAction("Play Demo...");
+		connect(play_action, &QAction::triggered, this, [this] { DemoTools::PlayDialog(this); });
+
 		BuildAudioMenu();
 
 		QMenu *help = menuBar()->addMenu("Help");
@@ -272,6 +337,7 @@ int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rg
 	static char *argv[] = { arg0, nullptr };
 	g_app = new QApplication(argc, argv);
 
+	Settings::Load(); // before the window: the menus read the live audio state it applies
 	g_window = new MainWindow();
 	g_window->setWindowTitle(title);
 	if (icon_rgb16 != nullptr) {
@@ -281,9 +347,19 @@ int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rg
 	g_window->view->setMinimumSize(width / 2, height / 2);
 	g_window->view->setFrame(QImage(width, height, QImage::Format_RGBX8888));
 	g_window->resize(width, height); // the client area is the view; the menu bar sits above it
+	const Settings::Data &saved = Settings::Get();
+	if (saved.has_window_geometry) {
+		g_window->resize(saved.window_width, saved.window_height);
+		// Wayland compositors place windows themselves, so a saved position only applies elsewhere.
+		if (!QGuiApplication::platformName().startsWith("wayland") && !QGuiApplication::platformName().startsWith("offscreen"))
+			g_window->move(saved.window_x, saved.window_y);
+	}
 	g_window->show();
 	g_window->view->setFocus();
 	g_app->processEvents();
+	g_window->StartTrackingGeometry();
+	if (saved.fullscreen)
+		g_window->ToggleFullscreen();
 
 	// Developer hooks (used by automated checks, harmless otherwise):
 	//   SONIC_QT_OPEN=vdp,sound,objects   open those debug viewers at startup
@@ -306,6 +382,7 @@ int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rg
 }
 
 void QtHost_Quit(void) {
+	Settings::Save();
 	delete g_window;
 	g_window = nullptr;
 	delete g_app;
@@ -315,6 +392,7 @@ void QtHost_Quit(void) {
 void QtHost_PumpEvents(void) {
 	if (g_app != nullptr) {
 		g_window->SyncDebugMenu();
+		DemoTools::Poll(g_window);
 		g_app->processEvents();
 
 		static int frames = 0;
