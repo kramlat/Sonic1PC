@@ -5,7 +5,9 @@
 #include "Game.h"
 #include "Level.h"
 #include "LevelScroll.h"
+#include "Demo.h"
 #include "Object.h"
+#include "Object/DebugList.h"
 #include "Object/SpecialResult.h"
 #include "Object/SpecialSonic.h"
 #include "PLC.h"
@@ -313,6 +315,49 @@ static void SSLoad_AdvancesEveryAttemptAndSkipsCollectedEmeralds(void) {
     CHECK_EQ(last_special, 2);
 }
 
+static void SSonic_DebugModeEntersPlacesAndExits(void) {
+    Reset();
+    debug_mode = true;
+    jpad1_press1 = JPAD_B;
+    Obj_SpecialSonic(player);
+    jpad1_press1 = 0;
+    CHECK_EQ(debug_use, 1);
+    gamemode = GameMode_Special;
+    Obj_SpecialSonic(player); // setup frame: rotation holds still
+    CHECK_EQ(debug_use, 2);
+    CHECK_EQ(ss_rotate, 0);
+
+    int count;
+    const DebugListEntry *list = DebugList_Get(&count);
+    CHECK_EQ(count, 13); // ring, bumper, 11 animals
+    CHECK_EQ(list[1].type, ObjId_Bumper);
+
+    jpad1_press1 = JPAD_C; // place the selected ring
+    Obj_SpecialSonic(player);
+    jpad1_press1 = JPAD_B; // leave
+    Obj_SpecialSonic(player);
+    jpad1_press1 = 0;
+    CHECK_EQ(debug_use, 0);
+    CHECK_EQ(ss_rotate, 0x40);
+    CHECK(player->status.p.f.in_air);
+    debug_mode = false;
+}
+
+static void SSDemo_FeedsTheStageDemoInput(void) {
+    Reset();
+    demo = 1;
+    btn_pushtime1 = 0;
+    btn_pushtime2 = intro_demo_ptr[7][1] - 1;
+    for (int i = 0; i < intro_demo_ptr[7][1]; i++) {
+        MoveSonicInDemo();
+        CHECK_EQ(jpad1_hold1, intro_demo_ptr[7][0]); // the first record is held for its whole duration
+    }
+    MoveSonicInDemo();
+    CHECK_EQ(jpad1_hold1, intro_demo_ptr[7][2]); // then the second record takes over
+    demo = 0;
+    jpad1_hold1 = jpad1_press1 = 0;
+}
+
 void RegisterSpecialStageTests(void) {
     RUN_TEST(SSonic_RingSparklesAndCounts);
     RUN_TEST(SSonic_FiftyRingsGiveOneContinue);
@@ -328,4 +373,6 @@ void RegisterSpecialStageTests(void) {
     RUN_TEST(GiantRing_EndCardLeadsToTheSpecialStage);
     RUN_TEST(SSBackground_CycleRunsOnTheOriginalSchedule);
     RUN_TEST(SSLoad_AdvancesEveryAttemptAndSkipsCollectedEmeralds);
+    RUN_TEST(SSonic_DebugModeEntersPlacesAndExits);
+    RUN_TEST(SSDemo_FeedsTheStageDemoInput);
 }

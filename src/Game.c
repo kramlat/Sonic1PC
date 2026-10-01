@@ -110,6 +110,7 @@ void EntryPoint(void) {
         score_life = 5000;
 #endif
         if (cli_start_special) {
+            demo = cli_force_demo ? 1 : 0; // with --demo, the special stage plays it back too
             gamemode = GameMode_Special;
         } else {
             // demo > 0 makes MoveSonicInDemo() (Demo.c) drive Sonic from

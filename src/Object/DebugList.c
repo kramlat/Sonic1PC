@@ -70,6 +70,9 @@ extern const uint8_t Mappings_Bomb[];                 // Object/Bomb.c
 extern const uint8_t Mappings_Roller[];               // Object/Roller.c
 extern const uint8_t Mappings_Light[];                // Object/SpinningLight.c
 extern const uint8_t Mappings_Bumper[];               // Object/Bumper.c
+extern const uint8_t Mappings_Animals1[];
+extern const uint8_t Mappings_Animals2[];
+extern const uint8_t Mappings_Animals3[];
 extern const uint8_t Mappings_FloatingBlock[];        // Object/FloatingBlock.c
 extern const uint8_t Mappings_RunningDisc[];          // Object/RunningDisc.c
 extern const uint8_t Mappings_SpinningPlatforms[];    // Object/SpinPlatform.c
@@ -502,14 +505,23 @@ static const DebugListEntry DebugList_SBZ[] = {
 };
 
 // ---------------------------------------------------------------------------
-// Ending sequence / Special Stage (shared list) -- REV01 cleared this list
-// down to just two Ring entries (the 2nd is a blank frame, matching the
-// real disassembly's own "second one is blank" comment); this project has
-// no SCP_REV00 build path for this list, so only the REV01 shape is here.
+// Ending sequence / Special Stage (shared list) -- the REV00 list: ring,
+// bumper, then the animals (FixBugs art tiles). The second REV01 blank ring is dropped.
 // ---------------------------------------------------------------------------
 static const DebugListEntry DebugList_EndingSS[] = {
     {ObjId_Ring, Mappings_RingREV01, TILE_MAP(0, 1, 0, 0, ArtTile_Ring), 0, 0, NULL, 0, 0, 0},
-    {ObjId_Ring, Mappings_RingREV01, TILE_MAP(0, 1, 0, 0, ArtTile_Ring), 0, 8, NULL, 0, 0, 0},
+    {ObjId_Bumper, Mappings_Bumper, TILE_MAP(0, 0, 0, 0, ArtTile_SYZ_Bumper), 0, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals2, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Flicky), 0xA, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals2, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Flicky), 0xB, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals2, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Flicky), 0xC, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals1, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Rabbit), 0xD, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals1, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Rabbit), 0xE, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals1, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Penguin), 0xF, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals1, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Penguin), 0x10, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals2, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Seal), 0x11, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals3, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Pig), 0x12, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals2, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Chicken), 0x13, 0, NULL, 0, 0, 0},
+    {ObjId_Animal, Mappings_Animals3, TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Squirrel), 0x14, 0, NULL, 0, 0, 0},
 };
 
 const DebugListEntry *DebugList_Get(int *count_out) {

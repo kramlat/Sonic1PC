@@ -12,6 +12,7 @@
 #include "Object/DrownCount.h"
 #include "Object/Splash.h"
 #include "PLC.h"
+#include "SpecialStage.h"
 #include "Sound.h"
 
 #include <string.h>
@@ -1894,15 +1895,22 @@ static void DebugMode_ShowItem(Object *obj) {
 // again. debug_use doubles as a routine selector matching the
 // disassembly's DebugMode: 1 (set by that B-press check) means "just
 // entered, run one-time setup", 2 means "already active".
-static void DebugMode(Object *obj) {
+void Sonic_DebugMode(Object *obj) {
     if (debug_use == 1) {
         // One-time setup: temporarily unlock the level's Y boundaries (so
         // debug mode can fly anywhere), pick a valid starting item, and
         // show its placeholder sprite in place of Sonic.
-        limit_top_db = limit_top2;
-        limit_btm_db = limit_btm1;
-        limit_top2 = 0;
-        limit_btm1 = 0x800 - 224;
+        if (gamemode == GameMode_Special) {
+            // No level bounds to unlock here; freeze the stage rotation so the
+            // view holds still while placing objects.
+            ss_rotate = 0;
+            ss_angle.f.u = 0;
+        } else {
+            limit_top_db = limit_top2;
+            limit_btm_db = limit_btm1;
+            limit_top2 = 0;
+            limit_btm1 = 0x800 - 224;
+        }
 
         obj->render.b = 0;
         obj->render.f.align_fg = true; // obj->pos tracks world/playfield space (see the free-movement code below), not raw screen coords -- BuildSprites needs this to convert it correctly
@@ -1997,13 +2005,22 @@ static void DebugMode(Object *obj) {
         // Exit back to normal Sonic.
         debug_use = 0;
 
-        limit_top2 = limit_top_db;
-        limit_btm1 = limit_btm_db;
+        if (gamemode == GameMode_Special) {
+            // Resume the stage as a rolling ball at the normal spin speed.
+            ss_angle.f.u = 0;
+            ss_rotate = 0x40;
+            obj->priority = 0;
+            obj->status.p.f.in_ball = true;
+            obj->status.p.f.in_air = true;
+        } else {
+            limit_top2 = limit_top_db;
+            limit_btm1 = limit_btm_db;
+        }
 
         obj->mappings = Mappings_Sonic;
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Sonic);
         obj->frame = 0;
-        obj->anim = SonAnimId_Walk;
+        obj->anim = (gamemode == GameMode_Special) ? SonAnimId_Roll : SonAnimId_Walk;
         obj->width_pixels = 24;
         obj->render.f.align_fg = true;
     }
@@ -2017,7 +2034,7 @@ void Obj_Sonic(Object* obj) {
 
     // Run debug mode code while in debug mode
     if (debug_use) {
-        DebugMode(obj);
+        Sonic_DebugMode(obj);
         return;
     }
 

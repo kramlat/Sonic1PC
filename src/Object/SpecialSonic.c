@@ -363,9 +363,14 @@ static void SS_Main(Object *obj) {
 }
 
 static void SS_Control(Object *obj) {
-    // (Debug mode isn't wired into the special stage yet.)
     Scratch_SpecialSonic *s = SC(obj);
     s->touched_id = 0;
+
+    // B enters debug mode when the cheat is active
+    if (debug_mode && (jpad1_press1 & JPAD_B)) {
+        debug_use = 1;
+        return;
+    }
 
     if (!obj->status.p.f.in_air) { // while touching a block
         SS_Jump(obj);
@@ -410,6 +415,11 @@ static void SS_ExitStageUnused(Object *obj) {
 }
 
 void Obj_SpecialSonic(Object *obj) {
+    if (debug_use) {
+        Sonic_DebugMode(obj);
+        SS_FixCamera(obj);
+        return;
+    }
     switch (obj->routine) {
     case 0:
         SS_Main(obj);

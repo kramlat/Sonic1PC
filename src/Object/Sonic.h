@@ -89,6 +89,7 @@ typedef enum
 //Sonic functions
 void Sonic_Animate(Object *obj);
 void Sonic_LoadGfx(Object *obj);
+void Sonic_DebugMode(Object *obj); // object placement mode (debug_use != 0); shared with the special stage Sonic
 void Sonic_ResetOnFloor(Object *obj);
 void Sonic_ChkRoll(Object *obj);
 void Sonic_CancelSpindash(void); // drops a charging spin dash (flag, rev count, dust), e.g. when a seesaw launches Sonic

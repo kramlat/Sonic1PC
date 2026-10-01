@@ -169,12 +169,14 @@ static void SS_RunStage(void) {
 	SlowDownMusic();
 	PlayMusic(bgm_SS);
 	
-	//TODO: load demos
+	//Start the demo input from its first record (the stage demo is hardcoded to the Special Stage entry)
+	btn_pushtime1 = 0;
+	btn_pushtime2 = (cli_demo_override ? cli_demo_override : intro_demo_ptr[7])[1] - 1;
 	
 	rings = 0;
 	life_num = 0;
 	debug_use = false;
-	demo_length = 1800;
+	demo_length = (cli_demo_override && cli_demo_length >= 0) ? (uint16_t)cli_demo_length : 1800;
 	
 	//Handle debug mode cheat. Debug builds skip the "hold A" requirement
 	//too -- debug_cheat alone (itself unconditionally on in debug builds,
