@@ -19,3 +19,6 @@ libs/install
 
 # Tracker-specific metadata written next to the converted music; the game never reads it
 tools/paradoxsmps/converted/music/*.metadata.json
+
+# SonLVL compiles its object definitions from the .cs files and caches the result here
+SonLVL INI Files/dllcache/
