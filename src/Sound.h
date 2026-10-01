@@ -66,7 +66,7 @@ typedef struct {
     const uint8_t *song_base;
     int8_t transpose;
     uint8_t volume;
-    uint8_t ams_fms_pan;   // FM/DAC only
+    uint8_t ams_fms_pan;   // FM: the $B4 value (pan bits 7-6, AMS 5-4, FMS 2-0) -- $C0 at start, written on every voice load (SetVoice) and by $E0
     uint8_t voice_index;   // FM/PSG only
     uint8_t vol_env_index; // PSG only
     uint8_t stack_pointer;
@@ -129,6 +129,9 @@ typedef struct {
     uint8_t return_sp;
     uint8_t active;  // 0 once smpsStop/smpsStopSpecial ($F2/$EE) is hit, or channel unused by the loaded song
     uint8_t key_on;  // 1 while gated on (audible); cleared during a note-fill release tail or on a rest
+    uint8_t has_note;   // the track holds a note frequency (Freq != 0/-1): set by a note, cleared by a rest byte
+    uint8_t no_attack;  // PlaybackControl bit 4: $E7 was read -- this note doesn't re-attack (no key-off, no envelope/modulation/note-fill reset)
+    uint8_t dac_sample; // DAC track: SavedDAC, the sample byte a bare duration replays ($80 = rest)
     uint8_t mod_active; // smpsModOn/smpsModOff ($F1/$F4) -- parameters stored above are not yet applied per-frame (TODO)
     uint8_t debug_muted; // Debug/tooling only (ParadoxComposer): forces silence regardless of ch->volume -- see Sound_DebugSetChannelMuted
 
@@ -329,13 +332,25 @@ typedef struct {
     // (Sega sound), since they're the same physical DAC.
     uint8_t dac_pan;
 
-    uint8_t paused; // Sound_Pause()/Sound_Resume() -- freezes tempo advancement (sound_music only)
+    uint8_t paused; // Sound_Pause()/Sound_Resume() -- freezes the whole chip set (both sets, like the original driver)
+
+    // Music only (see LoadMusic / SpeedUpMusic / the 1-up crossfade in Sound.c):
+    uint8_t speedup;        // f_speedup: speed shoes -- a new song starts at its sped-up tempo while set
+    uint8_t fadein_active;  // f_fadein_flag: fading back in after the 1-up jingle
+    uint8_t fadein_counter; // v_fadein_counter: steps left
+    uint8_t fadein_delay;   // v_fadein_delay: frames until the next step
+    uint8_t dac_fadein_muted; // the DAC track runs but plays no samples until the fade-in ends
+    uint8_t abort_track;    // set by a coordination flag that replaced the whole song mid-update (1-up restore)
 
     // v_sndprio equivalent -- tracks the priority of whatever's currently
     // occupying sound_sfx's channels, so a lower-priority PlaySound() can't
     // cut it off (matches CycleSoundQueue's ".blo .nextinput" reject). Not
     // meaningful for sound_music (music always just replaces outright).
     uint8_t current_priority;
+    uint8_t fadeout_counter; // v_fadeout_counter: steps left in a music fade-out (0 = not fading)
+    uint8_t fadeout_delay;   // v_fadeout_delay: frames until the next fade step
+    uint8_t push_playing;  // f_push_playing: the push sound is playing and must not restart (cleared by its own $ED)
+    uint8_t ring_speaker;  // v_ring_speaker: alternates sfx_Ring between the right (sfx_Ring) and left (sfx_RingLeft) speakers
 } SoundChipSet;
 
 extern SoundChipSet sound_music; // Dedicated chip set for music
@@ -515,6 +530,9 @@ void Sound_Resume(void);
 // (writing PSG registers / decoding DPCM samples as it goes). Call this
 // once per frame, before Sound_Generate().
 void Sound_Frame(void);
+
+// Debug tooling: called whenever a track takes an $F6 jump (normally its song loop), with the driver's frame count.
+extern void (*sound_jump_hook)(const SoundChipSet *cs, int channel_index, uint32_t frame, uint32_t target);
 
 // Diagnostic: when enabled, logs every note/duration/coordination-flag
 // event TickChannel decodes to stderr, so a real song's playback can be

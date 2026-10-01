@@ -757,7 +757,15 @@ static void emit_event(Emitter *em, const PJValue *event) {
 // emit_voice -- json_to_header.py:331-372
 // ---------------------------------------------------------------------------
 
-static const int kOpWriteOrder[4] = {0, 2, 1, 3};
+// Byte order of each operator row in a compiled voice. "operators" in the JSON keeps smps2asm's macro
+// argument order (smpsVcTotalLevel op1,op2,op3,op4), and for the Sonic 1 driver (and S3K / Flamedriver,
+// driver version 3) smps2asm emits those rows as arguments 4, 3, 2, 1 -- see the original's
+// _smps2asm_inc.asm ("smpsDcb (vcDT4<<4)+vcCF4, (vcDT3<<4)+vcCF3, ..."). The driver then writes the
+// four bytes to registers +0, +8, +4, +C: argument 4 is the chip's operator 1 and argument 1 is
+// operator 4 (which is why argument 1's TL always gets the carrier mask). (This used to emit arguments
+// 1, 3, 2, 4, reversing every voice's operators: e.g. GHZ voice $02's quiet x15 feedback operator
+// became a full-level one, which is noise.)
+static const int kOpWriteOrder[4] = {3, 2, 1, 0};
 
 static void op_field(const PJValue *ops, const char *key, int out[4]) {
     for (int i = 0; i < 4; i++) {

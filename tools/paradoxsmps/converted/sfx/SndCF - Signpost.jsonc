@@ -99,6 +99,9 @@
       {
         "note": "Rst",
         "duration": "0x4"
+      },
+      {
+        "jumpTo": "SndCF_Signpost_FM5"
       }
     ],
     "SndCF_Signpost_FM5": [

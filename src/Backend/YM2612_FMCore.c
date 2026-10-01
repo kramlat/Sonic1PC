@@ -4,13 +4,15 @@
 // alternative (YM2612.cpp) has been removed now that fmcore is the settled
 // choice; this is the only YM2612.h implementation in the project.
 //
-// Register decoding here mirrors Sound.c's own FM_LoadVoice/FM_WriteReg
-// comments exactly (natural op*4 register addressing per operator, no
-// hardware slot remap needed at the register-address level -- confirmed
-// empirically against real ymfm output during the fmcore integration work,
-// see the conversation this came out of for the verification trace) and
-// FM_KeyOnOff (all bits4-7 = natural op1-op4 key state, channel decode
-// matches YM2612_PeekKeyOn's own established pattern below).
+// Register decoding: the four operator rows of each register block ($30, $40, ... $80, +0/+4/+8/+C) are
+// the chip's operators 1, 3, 2, 4 -- register +4 is operator 3 and +8 is operator 2 (MAME's ym2612 core:
+// OPN_SLOT(r) = (r >> 2) & 3 with SLOT1=0, SLOT3=1, SLOT2=2, SLOT4=3). fmcore's ops[] and its algorithm
+// table use the chip's operator numbering (algorithm 0 is op1->op2->op3->op4, i.e. registers
+// +0 -> +8 -> +4 -> +C), so SyncOperator maps a register row to its operator with kRowToOp. The sound
+// driver's own carrier mask agrees: the original FMSlotMask puts algorithm 4's carriers at $48 and $4C.
+// (This used to treat register +4 as operator 2, which swapped operators 2 and 3 in every algorithm
+// where they differ -- most voices had the wrong routing, and the track volume landed on a modulator.)
+// Key-on ($28) bits 4-7 are operators 1-4 in the chip's numbering, so they index ops[] directly.
 
 #include "YM2612.h"
 
@@ -23,6 +25,8 @@
 
 struct YM2612 {
     FMVoice voice[FM_CHANNEL_COUNT];
+    void (*write_hook)(void *ctx, uint32_t offset, uint8_t data); // dev tooling: sees every register write
+    void *write_hook_ctx;
 
     // Same shadow-register approach as the ymfm backend (YM2612.cpp) --
     // real hardware is write-only, and register writes here only ever
@@ -65,12 +69,14 @@ static int ChannelIndex(int port, int ch) { return port * 3 + ch; }
 // Reassembles one operator's full parameter set from the shadow and pushes
 // it to fm_operator.c -- called after ANY of that operator's 6 registers
 // change, so all of them (including ones this particular write didn't
-// touch) stay current. op_index (0-3) is the natural op*4 slot index,
-// which is also directly the FMVoice ops[] index -- no remap (see this
-// file's own top comment).
-static void SyncOperator(YM2612 *chip, int port, int ch, int op_index) {
+// touch) stay current. row (0-3) is the register row (+0/+4/+8/+C); the operator it
+// belongs to is kRowToOp[row] (see this file's top comment).
+static const int kRowToOp[4] = {0, 2, 1, 3};
+
+static void SyncOperator(YM2612 *chip, int port, int ch, int row) {
     uint8_t *shadow = chip->reg_shadow[port];
-    int slot = op_index * 4;
+    int slot = row * 4;
+    int op_index = kRowToOp[row];
     uint8_t dt_mul = shadow[0x30 + slot + ch];
     uint8_t tl = shadow[0x40 + slot + ch];
     uint8_t rs_ar = shadow[0x50 + slot + ch];
@@ -153,7 +159,14 @@ YM2612 *YM2612_Create(void) {
 
 void YM2612_Destroy(YM2612 *chip) { free(chip); }
 
+void YM2612_SetWriteHook(YM2612 *chip, void (*hook)(void *ctx, uint32_t offset, uint8_t data), void *ctx) {
+    chip->write_hook = hook;
+    chip->write_hook_ctx = ctx;
+}
+
 void YM2612_Write(YM2612 *chip, uint32_t offset, uint8_t data) {
+    if (chip->write_hook)
+        chip->write_hook(chip->write_hook_ctx, offset, data);
     int port = (int)(offset >> 1);
     if ((offset & 1) == 0) {
         chip->latched_addr[port] = data;
@@ -202,8 +215,8 @@ void YM2612_Write(YM2612 *chip, uint32_t offset, uint8_t data) {
         return; // not a valid channel row -- nothing to do
 
     if (reg >= 0x30 && reg <= 0x8F) {
-        int op_index = (int)((reg - 0x30) / 4) % FM_VOICE_OP_COUNT; // op*4 spacing, see this file's top comment
-        SyncOperator(chip, port, ch, op_index);
+        int row = (int)((reg - 0x30) / 4) % FM_VOICE_OP_COUNT; // register row +0/+4/+8/+C, see this file's top comment
+        SyncOperator(chip, port, ch, row);
     } else if (reg >= 0xB0 && reg <= 0xB2) {
         SyncAlgorithm(chip, port, ch);
     } else if (reg >= 0xB4 && reg <= 0xB6) {
@@ -242,16 +255,24 @@ void YM2612_LoadVoice(YM2612 *chip, int channel_index, uint8_t alg_fb_byte, cons
     int ch = channel_index % 3;
     uint8_t *shadow = chip->reg_shadow[port];
 
+    // Dev tooling: report the register writes this bulk load stands for (see YM2612_SetWriteHook).
+    #define HOOK(reg, val) do { if (chip->write_hook) { chip->write_hook(chip->write_hook_ctx, (uint32_t)(port * 2), (uint8_t)(reg)); \
+                                    chip->write_hook(chip->write_hook_ctx, (uint32_t)(port * 2 + 1), (uint8_t)(val)); } } while (0)
+
     shadow[0xB0 + ch] = alg_fb_byte;
+    HOOK(0xB0 + ch, alg_fb_byte);
     SyncAlgorithm(chip, port, ch); // also resyncs op0, see its own comment
 
     static const uint8_t reg_base[6] = {0x30, 0x50, 0x60, 0x70, 0x80, 0x40}; // DT/MUL, RS/AR, AM/D1R, D2R, D1L/RR, TL
-    for (int op = 0; op < 4; op++) {
-        int slot = op * 4;
-        for (int r = 0; r < 6; r++)
-            shadow[reg_base[r] + slot + ch] = op_regs[op][r];
-        SyncOperator(chip, port, ch, op);
+    for (int row = 0; row < 4; row++) { // op_regs[] is in register-row order (+0/+4/+8/+C)
+        int slot = row * 4;
+        for (int r = 0; r < 6; r++) {
+            shadow[reg_base[r] + slot + ch] = op_regs[row][r];
+            HOOK(reg_base[r] + slot + ch, op_regs[row][r]);
+        }
+        SyncOperator(chip, port, ch, row);
     }
+    #undef HOOK
 }
 
 void YM2612_SetLadderEffect(YM2612 *chip, int enabled) { chip->ladder_effect = enabled != 0; }

@@ -988,6 +988,9 @@
           "0x1",
           "0x4"
         ]
+      },
+      {
+        "jumpTo": "Mus82_LZ_Jump01"
       }
     ],
     "Mus82_LZ_Jump01": [
@@ -1019,9 +1022,6 @@
           },
           {
             "note": "G6"
-          },
-          {
-            "note": "C6"
           },
           {
             "note": "C6",
@@ -1368,7 +1368,7 @@
         "duration": "0x12"
       },
       {
-        "note": "E5",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1376,7 +1376,7 @@
         "duration": "0x12"
       },
       {
-        "note": "D5",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1384,7 +1384,7 @@
         "duration": "0x12"
       },
       {
-        "note": "C5",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1408,7 +1408,7 @@
         "duration": "0x12"
       },
       {
-        "note": "E5",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1416,7 +1416,7 @@
         "duration": "0x12"
       },
       {
-        "note": "D5",
+        "inheritedNote": true,
         "duration": "0x6"
       }
     ],
@@ -1467,15 +1467,15 @@
             "duration": "0xC"
           },
           {
-            "note": "E6",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
-            "note": "E6",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
-            "note": "E6",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1487,11 +1487,11 @@
             "duration": "0x3"
           },
           {
-            "note": "E6",
+            "inheritedNote": true,
             "duration": "0x9"
           },
           {
-            "note": "E6",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
@@ -1509,11 +1509,11 @@
             "duration": "0x3"
           },
           {
-            "note": "G6",
+            "inheritedNote": true,
             "duration": "0x9"
           },
           {
-            "note": "G6",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1525,19 +1525,19 @@
             "duration": "0xC"
           },
           {
-            "note": "B6",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
-            "note": "B6",
+            "inheritedNote": true,
             "duration": "0x3"
           },
           {
-            "note": "B6",
+            "inheritedNote": true,
             "duration": "0x9"
           },
           {
-            "note": "B6",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1548,11 +1548,11 @@
             "duration": "0x3"
           },
           {
-            "note": "Bb6",
+            "inheritedNote": true,
             "duration": "0x9"
           },
           {
-            "note": "Bb6",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1564,7 +1564,7 @@
             "duration": "0xC"
           },
           {
-            "note": "E6",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1572,9 +1572,6 @@
           },
           {
             "note": "F6"
-          },
-          {
-            "note": "A6"
           },
           {
             "note": "A6",
@@ -1593,15 +1590,15 @@
         "duration": "0xC"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1612,19 +1609,19 @@
         "duration": "0xC"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0x9"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1635,15 +1632,15 @@
         "duration": "0xC"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1654,19 +1651,19 @@
         "duration": "0xC"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0x9"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0x6"
       }
     ],
@@ -1687,11 +1684,11 @@
         "duration": "0x3"
       },
       {
-        "note": "G6",
+        "inheritedNote": true,
         "duration": "0x9"
       },
       {
-        "note": "G6",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1702,7 +1699,7 @@
         "duration": "0xC"
       },
       {
-        "note": "F6",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
@@ -1710,11 +1707,11 @@
         "duration": "0x3"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0x9"
       },
       {
-        "note": "E6",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1725,7 +1722,7 @@
         "duration": "0xC"
       },
       {
-        "note": "A6",
+        "inheritedNote": true,
         "duration": "0xC"
       }
     ],
@@ -1779,15 +1776,15 @@
             "duration": "0xC"
           },
           {
-            "note": "G6",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
-            "note": "G6",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
-            "note": "G6",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1799,11 +1796,11 @@
             "duration": "0x3"
           },
           {
-            "note": "G6",
+            "inheritedNote": true,
             "duration": "0x9"
           },
           {
-            "note": "G6",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
@@ -1811,7 +1808,7 @@
             "duration": "0xC"
           },
           {
-            "note": "Cs7",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1822,11 +1819,11 @@
             "duration": "0x3"
           },
           {
-            "note": "B6",
+            "inheritedNote": true,
             "duration": "0x9"
           },
           {
-            "note": "B6",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1838,7 +1835,7 @@
             "duration": "0xC"
           },
           {
-            "note": "D7",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
@@ -1846,11 +1843,11 @@
             "duration": "0x3"
           },
           {
-            "note": "Cs7",
+            "inheritedNote": true,
             "duration": "0x9"
           },
           {
-            "note": "Cs7",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1861,11 +1858,11 @@
             "duration": "0x3"
           },
           {
-            "note": "D7",
+            "inheritedNote": true,
             "duration": "0x9"
           },
           {
-            "note": "D7",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1877,7 +1874,7 @@
             "duration": "0xC"
           },
           {
-            "note": "G6",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -1904,7 +1901,7 @@
         "duration": "0xC"
       },
       {
-        "note": "C7",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
@@ -1912,11 +1909,11 @@
         "duration": "0x3"
       },
       {
-        "note": "B6",
+        "inheritedNote": true,
         "duration": "0x9"
       },
       {
-        "note": "B6",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1927,7 +1924,7 @@
         "duration": "0xC"
       },
       {
-        "note": "A6",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
@@ -1935,11 +1932,11 @@
         "duration": "0x3"
       },
       {
-        "note": "G6",
+        "inheritedNote": true,
         "duration": "0x9"
       },
       {
-        "note": "G6",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1950,7 +1947,7 @@
         "duration": "0xC"
       },
       {
-        "note": "C7",
+        "inheritedNote": true,
         "duration": "0xC"
       }
     ],
@@ -1973,11 +1970,11 @@
         "smpsNoteFill": "0x3"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
@@ -1995,42 +1992,42 @@
             "smpsNoteFill": "0xE"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
             "smpsNoteFill": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -2055,36 +2052,36 @@
             "smpsCall": "Mus82_LZ_Call08"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x3"
           },
           {
             "smpsNoteFill": "0xE"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
             "smpsNoteFill": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x3"
           },
           {
             "smpsNoteFill": "0xE"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
@@ -2097,11 +2094,11 @@
             "smpsNoteFill": "0xE"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
@@ -2199,126 +2196,126 @@
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
         "smpsNoteFill": "0xE"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
         "smpsNoteFill": "0x3"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
         "smpsNoteFill": "0x3"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
         "smpsNoteFill": "0xE"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
         "smpsNoteFill": "0x3"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       }
     ],
@@ -2342,7 +2339,7 @@
         "duration": "0x6"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {

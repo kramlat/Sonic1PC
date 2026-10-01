@@ -394,9 +394,6 @@
         "duration": "0xC"
       },
       {
-        "note": "Rst"
-      },
-      {
         "note": "Rst",
         "duration": "0x6"
       },
@@ -475,9 +472,6 @@
             "duration": "0x12"
           },
           {
-            "note": "Fs4"
-          },
-          {
             "note": "Fs4",
             "duration": "0xC"
           },
@@ -525,9 +519,6 @@
       {
         "note": "E5",
         "duration": "0xC"
-      },
-      {
-        "note": "Rst"
       },
       {
         "note": "Rst",
@@ -584,9 +575,6 @@
             "duration": "0x12"
           },
           {
-            "note": "D6"
-          },
-          {
             "note": "D6",
             "duration": "0x1E"
           }
@@ -620,9 +608,6 @@
       {
         "note": "G6",
         "duration": "0xC"
-      },
-      {
-        "note": "Rst"
       },
       {
         "note": "Rst",
@@ -681,9 +666,6 @@
             "duration": "0x12"
           },
           {
-            "note": "B5"
-          },
-          {
             "note": "B5",
             "duration": "0x1E"
           }
@@ -719,15 +701,15 @@
         "duration": "0xC"
       },
       {
-        "note": "Rst"
-      },
-      {
         "note": "Rst",
         "duration": "0x6"
       },
       {
         "note": "D6",
         "duration": "0x4E"
+      },
+      {
+        "jumpTo": "Mus90_Continue_Screen_FM5"
       }
     ],
     "Mus90_Continue_Screen_FM5": [],

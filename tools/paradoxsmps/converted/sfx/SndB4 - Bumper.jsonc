@@ -176,6 +176,9 @@
       {
         "note": "Rst",
         "duration": "0x1"
+      },
+      {
+        "jumpTo": "SndB4_Bumper_Jump00"
       }
     ],
     "SndB4_Bumper_Jump00": [

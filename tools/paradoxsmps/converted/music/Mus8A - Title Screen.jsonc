@@ -261,6 +261,9 @@
     "Mus8A_Title_Screen_FM5": [
       {
         "smpsAlterNote": "0x3"
+      },
+      {
+        "jumpTo": "Mus8A_Title_Screen_FM1"
       }
     ],
     "Mus8A_Title_Screen_FM1": [
@@ -289,9 +292,6 @@
       {
         "note": "D6",
         "duration": "0xF"
-      },
-      {
-        "note": "Rst"
       },
       {
         "note": "Rst",
@@ -423,9 +423,6 @@
         "note": "Rst"
       },
       {
-        "note": "G3"
-      },
-      {
         "note": "G3",
         "duration": "0x12"
       },
@@ -510,9 +507,6 @@
         "note": "Rst"
       },
       {
-        "note": "A2"
-      },
-      {
         "note": "A2",
         "duration": "0x6C"
       },
@@ -555,9 +549,6 @@
         "note": "Rst"
       },
       {
-        "note": "D6"
-      },
-      {
         "note": "D6",
         "duration": "0xF"
       },
@@ -612,9 +603,6 @@
       {
         "note": "Rst",
         "duration": "0x6"
-      },
-      {
-        "note": "E6"
       },
       {
         "note": "E6",
@@ -690,9 +678,6 @@
         "note": "Rst"
       },
       {
-        "note": "B5"
-      },
-      {
         "note": "B5",
         "duration": "0xF"
       },
@@ -747,9 +732,6 @@
       {
         "note": "Rst",
         "duration": "0x6"
-      },
-      {
-        "note": "Cs6"
       },
       {
         "note": "Cs6",
@@ -819,21 +801,21 @@
             "smpsNoteFill": "0xC"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
             "smpsNoteFill": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
             "smpsNoteFill": "0xC"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           }
         ]
@@ -842,28 +824,28 @@
         "smpsNoteFill": "0x3"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
         "smpsNoteFill": "0xE"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x12"
       },
       {
         "smpsNoteFill": "0x3"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
         "smpsNoteFill": "0xF"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       "smpsStop"
@@ -973,6 +955,9 @@
       },
       {
         "note": "Kick"
+      },
+      {
+        "jumpTo": "Mus8A_Title_Screen_PSG1"
       }
     ],
     "Mus8A_Title_Screen_PSG1": [],

@@ -371,6 +371,9 @@
     "Mus83_MZ_FM3": [
       {
         "smpsAlterNote": "0x2"
+      },
+      {
+        "jumpTo": "Mus83_MZ_FM1"
       }
     ],
     "Mus83_MZ_FM1": [
@@ -408,9 +411,6 @@
           {
             "note": "Rst",
             "duration": "0x3"
-          },
-          {
-            "note": "A6"
           },
           {
             "note": "A6",
@@ -548,9 +548,6 @@
         "duration": "0x3"
       },
       {
-        "note": "B6"
-      },
-      {
         "note": "B6",
         "duration": "0x6"
       },
@@ -579,9 +576,6 @@
       },
       "smpsNoAttack",
       {
-        "note": "F6"
-      },
-      {
         "note": "F6",
         "duration": "0x4D"
       },
@@ -606,11 +600,11 @@
         "duration": "0x3"
       },
       {
-        "note": "E5",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "E5",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -659,9 +653,6 @@
           {
             "note": "A6",
             "duration": "0xC"
-          },
-          {
-            "note": "Rst"
           },
           {
             "note": "Rst",
@@ -743,9 +734,6 @@
           {
             "note": "F6",
             "duration": "0xC"
-          },
-          {
-            "note": "Rst"
           },
           {
             "note": "Rst",
@@ -890,9 +878,6 @@
         "duration": "0xC"
       },
       {
-        "note": "Rst"
-      },
-      {
         "note": "Rst",
         "duration": "0x18"
       },
@@ -915,9 +900,6 @@
       {
         "note": "C7",
         "duration": "0x3"
-      },
-      {
-        "note": "Rst"
       },
       {
         "note": "Rst",
@@ -951,11 +933,11 @@
         "duration": "0x3"
       },
       {
-        "note": "E4",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "E4",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -1007,9 +989,6 @@
           {
             "note": "F6",
             "duration": "0xC"
-          },
-          {
-            "note": "Rst"
           },
           {
             "note": "Rst",
@@ -1091,9 +1070,6 @@
           {
             "note": "D6",
             "duration": "0xC"
-          },
-          {
-            "note": "Rst"
           },
           {
             "note": "Rst",
@@ -1244,9 +1220,6 @@
         "duration": "0xC"
       },
       {
-        "note": "Rst"
-      },
-      {
         "note": "Rst",
         "duration": "0x18"
       },
@@ -1269,9 +1242,6 @@
       {
         "note": "A6",
         "duration": "0x3"
-      },
-      {
-        "note": "Rst"
       },
       {
         "note": "Rst",
@@ -1422,9 +1392,6 @@
             "note": "Rst"
           },
           {
-            "note": "B3"
-          },
-          {
             "note": "B3",
             "duration": "0x6"
           },
@@ -1449,9 +1416,6 @@
           {
             "note": "E4",
             "duration": "0x6"
-          },
-          {
-            "note": "B3"
           },
           {
             "note": "B3",
@@ -1519,9 +1483,6 @@
             "note": "Rst"
           },
           {
-            "note": "E4"
-          },
-          {
             "note": "E4",
             "duration": "0x6"
           },
@@ -1546,9 +1507,6 @@
           {
             "note": "Ab4",
             "duration": "0x6"
-          },
-          {
-            "note": "B4"
           },
           {
             "note": "B4",
@@ -2000,11 +1958,11 @@
         "duration": "0x3"
       },
       {
-        "note": "E5",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "E5",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -2373,11 +2331,11 @@
         "duration": "0x3"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
@@ -2385,11 +2343,11 @@
         "duration": "0xC"
       },
       {
-        "note": "Kick",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
-        "note": "Kick",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {

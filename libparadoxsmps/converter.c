@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #define ARR_N(a) (sizeof(a) / sizeof((a)[0]))
 
@@ -279,6 +280,14 @@ static PSLineList tokenize(const char *text) {
         char *mnemonic = (char *)malloc(p + 1);
         memcpy(mnemonic, stripped, p);
         mnemonic[p] = '\0';
+        // Assembler directives that carry no song data -- e.g. the `include "_smps2asm_inc.asm"` a song
+        // source needs to assemble on its own -- are dropped here so they can't be mistaken for song lines.
+        if (strcasecmp(mnemonic, "include") == 0) {
+            free(mnemonic);
+            free(stripped);
+            free(comment);
+            continue;
+        }
         char **args = NULL;
         size_t arg_count = 0;
         if (p < len) {
@@ -702,6 +711,11 @@ static StrSet find_header_start_labels(const PJValue *header) {
 
 typedef struct {
     char *last_note; // owned or NULL; persists across dc.b/dc.w lines within one block
+    // The assembler sees consecutive dc.b lines as ONE byte stream: a note that ends a line takes the
+    // duration that starts the next line, and a line-ending smpsNoAttack ties into it. `pending` is the
+    // last event of the previous dc.b line when it is such an open note (or the smpsNoAttack marker);
+    // any other statement in between (a label or a command) clears it -- see the converter's main loop.
+    PJValue *pending;
 } NoteStreamState;
 
 static NoteStreamState note_state_new(void) {
@@ -730,6 +744,18 @@ static bool is_number_token(const char *tok) {
 static void note_state_consume(NoteStreamState *st, char **tokens, size_t count, FlatList *out) {
     PJValue *local_last = NULL;
     size_t i = 0;
+    if (st->pending && count > 0 && is_number_token(tokens[0])) {
+        if (pj_type(st->pending) == PJ_OBJECT) {
+            // "nC6" at the end of the previous line, "$08" here: that note's own duration. (Treating the $08
+            // as a separate bare duration repeated the note, and the duration-less note reused the previous
+            // length -- an extra note that knocked the channel out of sync, e.g. GHZ FM1 / PSG2.)
+            pj_object_set(st->pending, "duration", hx(tokens[0]));
+            i = 1;
+        } else {
+            local_last = st->pending; // a smpsNoAttack ending the previous line: the number below is its tie
+        }
+    }
+    st->pending = NULL;
     while (i < count) {
         const char *tok = tokens[i];
         if (is_note_token(tok)) {
@@ -758,14 +784,14 @@ static void note_state_consume(NoteStreamState *st, char **tokens, size_t count,
                 // ALREADY sounding by this many more ticks.
                 pj_object_set(ev, "tie", pj_new_bool(true));
                 pj_object_set(ev, "duration", hx(tok));
-            } else if (st->last_note == NULL) {
-                // Bare duration with no local note anywhere in this block --
-                // this block is a smpsCall target and inherits its pitch
-                // from the calling context at playback time.
-                pj_object_set(ev, "inheritedNote", pj_new_bool(true));
-                pj_object_set(ev, "duration", hx(tok));
             } else {
-                pj_object_set(ev, "note", pj_new_string(st->last_note + 1));
+                // A bare duration replays whatever note is sounding at that moment -- which is NOT always the
+                // last note written above it (after a smpsCall it is the called block's last note, and a
+                // transposition change in between doesn't apply). So it stays a bare duration in the JSON
+                // ("inheritedNote", compiled as just the duration byte, as in the original), instead of being
+                // rewritten as a repeat of the textually previous note (which played e.g. the wrong pitch in
+                // the Credits medley right after a smpsCall).
+                pj_object_set(ev, "inheritedNote", pj_new_bool(true));
                 pj_object_set(ev, "duration", hx(tok));
             }
             FlatItem fi = {0};
@@ -793,8 +819,12 @@ static void note_state_consume(NoteStreamState *st, char **tokens, size_t count,
             i += 1;
         }
     }
+    // An open note (no duration yet) or a smpsNoAttack as the last thing on this line may take a duration
+    // from the start of the next dc.b line.
+    if (local_last && ((pj_type(local_last) == PJ_OBJECT && pj_object_get(local_last, "note") && !pj_object_get(local_last, "duration")) ||
+                       (pj_type(local_last) == PJ_STRING && strcmp(pj_get_string(local_last, ""), "smpsNoAttack") == 0)))
+        st->pending = local_last;
 }
-
 // ---------------------------------------------------------------------------
 // Cross-segment jump-target promotion -- asm_to_json.py:506-568. See that
 // function's own comment for why this fixpoint iteration is needed (real
@@ -994,6 +1024,14 @@ PSConvertResult ps_convert_asm(const char *text) {
         note_state = note_state_new();                                                                                 \
     } while (0)
 
+    // Whether the current block's last statement ended control flow (return/stop/jump). A block that
+    // reaches the next top-level label without one FALLS THROUGH into it -- e.g. Mus86_SBZ_Call01 runs on
+    // into Mus86_SBZ_Call0A. smpsReturn is dropped from the JSON ("block end is the implicit return"), so
+    // that fall-through is made explicit with a jumpTo the next block; otherwise the compiler would end the
+    // block with a return (it appends one to called blocks), skipping the code below the label.
+    bool block_terminated = true;
+    bool unreachable = false; // after a return/stop/jump, until the next label
+
     size_t i = idx;
     while (i < lines.count) {
         const PSLine *line = &lines.items[i];
@@ -1004,8 +1042,21 @@ PSConvertResult ps_convert_asm(const char *text) {
             i = next_i;
             continue;
         }
+        // Anything but a dc.b/dc.w line breaks the byte stream for note/duration pairing (see NoteStreamState).
+        if (line->label != NULL || (line->mnemonic != NULL && strcmp(line->mnemonic, "dc.b") != 0 && strcmp(line->mnemonic, "dc.w") != 0))
+            note_state.pending = NULL;
         if (line->label != NULL) {
+            unreachable = false; // a label can be jumped to
             if (strset_contains(&top_level, line->label)) {
+                if (current_name != NULL && current_flat.count > 0 && !block_terminated) {
+                    PJValue *ev = pj_new_object();
+                    pj_object_set(ev, "jumpTo", pj_new_string(line->label));
+                    FlatItem fi = {0};
+                    fi.kind = FI_EVENT;
+                    fi.event = ev;
+                    flat_push(&current_flat, fi);
+                }
+                block_terminated = true;
                 FLUSH();
                 current_name = line->label;
             }
@@ -1017,6 +1068,17 @@ PSConvertResult ps_convert_asm(const char *text) {
             continue;
         }
         if (line->mnemonic == NULL) { i++; continue; }
+        // Statements after a return/stop/jump and before the next label can never run (nothing can jump
+        // to an unlabelled line) -- e.g. the unused passage after Mus91_Credits_Call1A's smpsReturn, whose
+        // label is commented out. Keeping them glued them onto the previous block, which then played them.
+        if (unreachable) {
+            i++;
+            continue;
+        }
+        block_terminated = strcmp(line->mnemonic, "smpsReturn") == 0 || strcmp(line->mnemonic, "smpsStop") == 0 ||
+                           strcmp(line->mnemonic, "smpsStopSpecial") == 0 || strcmp(line->mnemonic, "smpsFade") == 0 ||
+                           strcmp(line->mnemonic, "smpsJump") == 0;
+        unreachable = block_terminated;
         if (strcmp(line->mnemonic, "dc.b") == 0 || strcmp(line->mnemonic, "dc.w") == 0) {
             note_state_consume(&note_state, line->args, line->arg_count, &current_flat);
         } else if (strcmp(line->mnemonic, "smpsLoop") == 0) {

@@ -116,7 +116,7 @@
           "0x0",
           "0xF",
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x7"
           },
           {

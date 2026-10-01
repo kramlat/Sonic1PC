@@ -479,9 +479,6 @@
             "duration": "0x4"
           },
           {
-            "note": "F6"
-          },
-          {
             "note": "F6",
             "duration": "0x2"
           },
@@ -577,9 +574,6 @@
           {
             "note": "E6",
             "duration": "0xA"
-          },
-          {
-            "note": "D6"
           },
           {
             "note": "D6",
@@ -1056,9 +1050,6 @@
       {
         "note": "E5",
         "duration": "0x8"
-      },
-      {
-        "note": "C5"
       },
       {
         "note": "C5",
@@ -1547,6 +1538,9 @@
       },
       {
         "smpsAlterNote": "0x0"
+      },
+      {
+        "jumpTo": "Mus85_SYZ_Jump00"
       }
     ],
     "Mus85_SYZ_Jump00": [
@@ -1621,9 +1615,6 @@
       {
         "note": "Cs7",
         "duration": "0x3"
-      },
-      {
-        "note": "Rst"
       },
       {
         "note": "Rst",
@@ -1728,9 +1719,6 @@
       {
         "note": "D7",
         "duration": "0x2"
-      },
-      {
-        "note": "Rst"
       },
       {
         "note": "Rst",
@@ -1891,9 +1879,6 @@
         "duration": "0x7"
       },
       {
-        "note": "Cs4"
-      },
-      {
         "note": "Cs4",
         "duration": "0x1"
       },
@@ -1914,9 +1899,6 @@
       {
         "note": "Cs4",
         "duration": "0x4"
-      },
-      {
-        "note": "Rst"
       },
       {
         "note": "Rst",
@@ -2016,7 +1998,7 @@
       {
         "smpsJump": [
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x2"
           },
           {
@@ -2034,35 +2016,35 @@
         "duration": "0x6"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x4"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x2"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x4"
       },
       {
@@ -2098,9 +2080,6 @@
           {
             "note": "Kick",
             "duration": "0x6"
-          },
-          {
-            "note": "Snare"
           },
           {
             "note": "Snare"
@@ -2152,27 +2131,27 @@
             "duration": "0x6"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x10"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x2"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x4"
           },
           {
@@ -2206,9 +2185,6 @@
           {
             "note": "Kick",
             "duration": "0x6"
-          },
-          {
-            "note": "Snare"
           },
           {
             "note": "Snare"
@@ -2257,7 +2233,7 @@
             "duration": "0x6"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x4"
           },
           {
@@ -2290,9 +2266,6 @@
       {
         "note": "Snare",
         "duration": "0xA"
-      },
-      {
-        "note": "Kick"
       },
       {
         "note": "Kick",

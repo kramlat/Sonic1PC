@@ -432,9 +432,6 @@
             "duration": "0xF"
           },
           {
-            "note": "Rst"
-          },
-          {
             "note": "Rst",
             "duration": "0x3"
           },
@@ -532,9 +529,6 @@
           {
             "note": "G3",
             "duration": "0x12"
-          },
-          {
-            "note": "Fs3"
           },
           {
             "note": "Fs3",
@@ -693,9 +687,6 @@
         "duration": "0xC"
       },
       {
-        "note": "A2"
-      },
-      {
         "note": "A2",
         "duration": "0x12"
       },
@@ -771,9 +762,6 @@
             "duration": "0x12"
           },
           {
-            "note": "D6"
-          },
-          {
             "note": "D6",
             "duration": "0x1E"
           },
@@ -836,9 +824,6 @@
       },
       {
         "note": "D6"
-      },
-      {
-        "note": "Cs6"
       },
       {
         "note": "Cs6",
@@ -938,9 +923,6 @@
             "duration": "0x12"
           },
           {
-            "note": "B5"
-          },
-          {
             "note": "B5",
             "duration": "0x1E"
           },
@@ -1036,9 +1018,6 @@
       {
         "note": "Fs7",
         "duration": "0xC"
-      },
-      {
-        "note": "G7"
       },
       {
         "note": "G7",
@@ -1275,21 +1254,21 @@
             "smpsNoteFill": "0xC"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
             "smpsNoteFill": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
             "smpsNoteFill": "0xC"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           }
         ]
@@ -1305,21 +1284,21 @@
         "smpsNoteFill": "0xE"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x12"
       },
       {
         "smpsNoteFill": "0x3"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       {
         "smpsNoteFill": "0xF"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0xC"
       },
       "smpsStop"

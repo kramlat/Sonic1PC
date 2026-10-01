@@ -278,6 +278,9 @@
           "panLeft",
           "0x0"
         ]
+      },
+      {
+        "jumpTo": "Mus88_Extra_Life_Jump01"
       }
     ],
     "Mus88_Extra_Life_Jump01": [
@@ -292,19 +295,19 @@
         "duration": "0x6"
       },
       {
-        "note": "E7",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "E7",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "E7",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "E7",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -342,19 +345,19 @@
         "duration": "0x6"
       },
       {
-        "note": "Cs7",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "Cs7",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "Cs7",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "Cs7",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -400,6 +403,9 @@
           "panLeft",
           "0x0"
         ]
+      },
+      {
+        "jumpTo": "Mus88_Extra_Life_Jump00"
       }
     ],
     "Mus88_Extra_Life_Jump00": [
@@ -451,19 +457,19 @@
         "duration": "0x6"
       },
       {
-        "note": "Cs7",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "Cs7",
+        "inheritedNote": true,
         "duration": "0x3"
       },
       {
-        "note": "Cs7",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
-        "note": "Cs7",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -483,6 +489,9 @@
       {
         "note": "Cs7",
         "duration": "0x18"
+      },
+      {
+        "jumpTo": "Mus88_Extra_Life_PSG2"
       }
     ],
     "Mus88_Extra_Life_PSG2": [],
@@ -495,7 +504,7 @@
         "duration": "0x12"
       },
       {
-        "note": "HiTimpani",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {
@@ -503,11 +512,11 @@
         "duration": "0x9"
       },
       {
-        "note": "VLowTimpani",
+        "inheritedNote": true,
         "duration": "0x9"
       },
       {
-        "note": "VLowTimpani",
+        "inheritedNote": true,
         "duration": "0x6"
       },
       {

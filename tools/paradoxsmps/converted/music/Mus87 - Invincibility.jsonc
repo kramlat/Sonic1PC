@@ -206,6 +206,9 @@
     "Mus87_Invincibility_FM5": [
       {
         "smpsAlterNote": "0x3"
+      },
+      {
+        "jumpTo": "Mus87_Invincibility_FM1"
       }
     ],
     "Mus87_Invincibility_FM1": [
@@ -240,9 +243,6 @@
           {
             "note": "D6",
             "duration": "0xF"
-          },
-          {
-            "note": "Rst"
           },
           {
             "note": "Rst",
@@ -323,9 +323,6 @@
           {
             "note": "Rst",
             "duration": "0x3"
-          },
-          {
-            "note": "B5"
           },
           {
             "note": "B5",
@@ -512,9 +509,6 @@
                 "duration": "0x12"
               },
               {
-                "note": "Fs3"
-              },
-              {
                 "note": "Fs3",
                 "duration": "0xC"
               },
@@ -684,9 +678,6 @@
                 "duration": "0x12"
               },
               {
-                "note": "D6"
-              },
-              {
                 "note": "D6",
                 "duration": "0x1E"
               },
@@ -794,9 +785,6 @@
                 "duration": "0x12"
               },
               {
-                "note": "B5"
-              },
-              {
                 "note": "B5",
                 "duration": "0x1E"
               },
@@ -885,21 +873,21 @@
             "smpsNoteFill": "0xC"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
             "smpsNoteFill": "0x3"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
             "smpsNoteFill": "0xC"
           },
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0xC"
           }
         ]
@@ -1023,9 +1011,6 @@
             "duration": "0x12"
           },
           {
-            "note": "Kick"
-          },
-          {
             "note": "Kick",
             "duration": "0xC"
           },
@@ -1085,8 +1070,7 @@
             "note": "Snare"
           }
         ]
-      },
-      "smpsStop"
+      }
     ]
   }
 }

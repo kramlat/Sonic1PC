@@ -329,6 +329,9 @@
           "0x6",
           "0x4"
         ]
+      },
+      {
+        "jumpTo": "Mus8D_FZ_Jump03"
       }
     ],
     "Mus8D_FZ_Jump03": [
@@ -394,9 +397,6 @@
           {
             "note": "E6",
             "duration": "0x60"
-          },
-          {
-            "note": "Rst"
           },
           {
             "note": "Rst",
@@ -497,9 +497,6 @@
       {
         "note": "Rst",
         "duration": "0x12"
-      },
-      {
-        "note": "C4"
       },
       {
         "note": "C4",
@@ -628,9 +625,6 @@
       },
       {
         "note": "G3"
-      },
-      {
-        "note": "F3"
       },
       {
         "note": "F3"
@@ -1097,19 +1091,19 @@
                 "duration": "0xC"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x9"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x3"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x6"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x6"
               },
               {
@@ -1126,35 +1120,35 @@
                 "duration": "0xC"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x6"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0xC"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0xC"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0xC"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x9"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x3"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x6"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x6"
               },
               {
@@ -1173,49 +1167,49 @@
                 "duration": "0x6"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0xC"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x6"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x6"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0xC"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x6"
               }
             ]
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x9"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x3"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0xC"
           },
           {
-            "note": "Snare",
+            "inheritedNote": true,
             "duration": "0x6"
           },
           {

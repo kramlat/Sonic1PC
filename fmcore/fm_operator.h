@@ -46,8 +46,10 @@ typedef struct {
     // (this is NOT the same thing as the register TL field, which gets
     // added on top of whatever the EG produces).
     FMEnvState env_state;
+    unsigned char keyed; // currently keyed on (key-on is edge-triggered, see FMOperator_KeyOn)
     uint32_t env_level;    // 10-bit view, what FMOperator_Clock actually reads
-    uint32_t env_level_q8; // Q8 fixed-point accumulator backing env_level for decay/release (attack is multiplicative, doesn't need one) -- lets slow rates step less than 1 whole unit/tick instead of rounding to a no-op
+    uint8_t eg_div;        // samples since the last envelope tick (the chip's EG ticks every 3 samples)
+    uint32_t eg_cnt;       // envelope counter (12 bits, skips 0), see EnvelopeStep
 
     // Raw register-style parameters, same fields/ranges as a real YM2612
     // operator (DT 0-7, MUL 0-15, RS 0-3, AR/D1R/D2R 0-31, D1L/RR 0-15,

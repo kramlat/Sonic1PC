@@ -42,6 +42,10 @@ uint8_t YM2612_PeekKeyOn(const YM2612 *chip);
 // unmuting picks up in the right place.
 void YM2612_SetMuteMask(YM2612 *chip, uint8_t mask);
 
+// Dev tooling (tests/fm_compare_main.c): called with every YM2612_Write before it is applied, so the same
+// register stream can be replayed into a reference emulator. NULL to remove.
+void YM2612_SetWriteHook(YM2612 *chip, void (*hook)(void *ctx, uint32_t offset, uint8_t data), void *ctx);
+
 // Bulk voice load: writes a full voice's register set (the $B0+ch
 // algorithm/feedback byte, plus each of the 4 operators' 6 registers --
 // op_regs[op][0..5] in DT/MUL, RS/AR, AM/D1R, D2R, D1L/RR, TL order,

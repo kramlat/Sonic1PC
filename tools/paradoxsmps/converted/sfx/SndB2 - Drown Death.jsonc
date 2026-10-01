@@ -117,7 +117,7 @@
             "duration": "0x5"
           },
           {
-            "note": "A0",
+            "inheritedNote": true,
             "duration": "0x5"
           },
           {
@@ -152,7 +152,7 @@
             "duration": "0x4"
           },
           {
-            "note": "C1",
+            "inheritedNote": true,
             "duration": "0x5"
           },
           {

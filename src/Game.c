@@ -248,6 +248,7 @@ static void UpdateZ80Peek(void) {
     }
 
     Z80PeekData peek;
+    static const int kTLRow[4] = {0, 2, 1, 3}; // operators 1-4 live in register rows +0, +8, +4, +C
     for (int port = 0; port < 2; port++) {
         for (int ch = 0; ch < 3; ch++) {
             peek.fm_alg_fb[port][ch] = YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0xB0 + ch));
@@ -255,7 +256,7 @@ static void UpdateZ80Peek(void) {
             peek.fm_freq[port][ch] = (uint16_t)((YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0xA4 + ch)) & 0x3F) << 8 |
                                                 YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0xA0 + ch)));
             for (int op = 0; op < 4; op++)
-                peek.fm_tl[port][ch][op] = YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0x40 + op * 4 + ch));
+                peek.fm_tl[port][ch][op] = YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0x40 + kTLRow[op] * 4 + ch)); // operator op+1
         }
     }
     peek.fm_keyon = YM2612_PeekKeyOn(sound_music.fm);

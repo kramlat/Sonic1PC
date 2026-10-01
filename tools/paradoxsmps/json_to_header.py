@@ -486,7 +486,7 @@ def emit_event(em, event, driver_version=1):
 # D1L/RR row, TL row.
 # ---------------------------------------------------------------------------
 
-OP_WRITE_ORDER = [0, 2, 1, 3]  # natural op index -> physical write-order position (self-inverse)
+OP_WRITE_ORDER = [3, 2, 1, 0]  # smps2asm emits macro args 4,3,2,1 for driver versions 1 and 3 (see compiler.c's kOpWriteOrder)
 
 
 def emit_voice(em, voice):

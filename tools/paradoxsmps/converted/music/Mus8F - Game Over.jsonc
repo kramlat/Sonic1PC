@@ -381,9 +381,6 @@
         "duration": "0x12"
       },
       {
-        "note": "B5"
-      },
-      {
         "note": "B5",
         "duration": "0xC"
       },
@@ -466,9 +463,6 @@
       },
       {
         "note": "Rst"
-      },
-      {
-        "note": "D7"
       },
       {
         "note": "D7",
@@ -598,9 +592,6 @@
         "duration": "0x15"
       },
       {
-        "note": "Fs3"
-      },
-      {
         "note": "Fs3",
         "duration": "0xC"
       },
@@ -726,6 +717,9 @@
       {
         "note": "G7",
         "duration": "0x1B"
+      },
+      {
+        "jumpTo": "Mus8F_Game_Over_PSG1"
       }
     ],
     "Mus8F_Game_Over_PSG1": [],

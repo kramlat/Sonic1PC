@@ -212,6 +212,9 @@
           "panCenter",
           "0x0"
         ]
+      },
+      {
+        "jumpTo": "Mus94_SSRG_Loop00"
       }
     ],
     "Mus94_SSRG_Loop00": [
@@ -419,9 +422,6 @@
             "duration": "0x2"
           },
           {
-            "note": "Rst"
-          },
-          {
             "note": "Rst",
             "duration": "0x2"
           },
@@ -484,9 +484,6 @@
           {
             "note": "A6",
             "duration": "0x2"
-          },
-          {
-            "note": "Rst"
           },
           {
             "note": "Rst",
@@ -614,9 +611,6 @@
             "duration": "0x2"
           },
           {
-            "note": "Rst"
-          },
-          {
             "note": "Rst",
             "duration": "0x6"
           },
@@ -675,9 +669,6 @@
           {
             "note": "Cs7",
             "duration": "0x2"
-          },
-          {
-            "note": "Rst"
           },
           {
             "note": "Rst",
@@ -973,6 +964,9 @@
     "Mus94_SSRG_PSG2": [
       {
         "smpsPSGvoice": "0x1"
+      },
+      {
+        "jumpTo": "Mus94_SSRG_Loop04"
       }
     ],
     "Mus94_SSRG_Loop04": [

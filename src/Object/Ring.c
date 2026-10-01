@@ -79,15 +79,18 @@ static void CollectRing(void) {
     rings++;
     ring_count |= 1;
 
-    // Check if we should get an extra life
-    // TODO: sound
+    // The ring sound, or the extra-life jingle instead when this ring earns a life (100 and 200 rings).
+    uint8_t sound = sfx_Ring;
     if (rings >= 100 && !(life_num & 1)) {
         life_num |= 1;
         ExtraLife();
+        sound = bgm_ExtraLife;
     } else if (rings >= 200 && !(life_num & 2)) {
         life_num |= 2;
         ExtraLife();
+        sound = bgm_ExtraLife;
     }
+    QueueSound2(sound); // like the original (the driver alternates the ring's speaker itself)
 }
 
 void Obj_Ring(Object *obj) {

@@ -142,7 +142,7 @@
           "0x0",
           "0x10",
           {
-            "note": "D3",
+            "inheritedNote": true,
             "duration": "0x2"
           },
           {

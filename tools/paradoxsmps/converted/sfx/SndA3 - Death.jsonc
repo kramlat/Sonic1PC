@@ -104,7 +104,7 @@
           "0x0",
           "0x2F",
           {
-            "note": "Ab3",
+            "inheritedNote": true,
             "duration": "0x1"
           },
           {

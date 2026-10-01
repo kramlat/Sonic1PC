@@ -371,6 +371,9 @@
     "Mus8E_Sonic_Got_Through_FM1": [
       {
         "smpsSetvoice": "0x0"
+      },
+      {
+        "jumpTo": "Mus8E_Sonic_Got_Through_PSG1"
       }
     ],
     "Mus8E_Sonic_Got_Through_PSG1": [
@@ -402,9 +405,6 @@
       {
         "note": "G5",
         "duration": "0xC"
-      },
-      {
-        "note": "B6"
       },
       {
         "note": "B6",
@@ -634,6 +634,9 @@
           "0x2",
           "0x5"
         ]
+      },
+      {
+        "jumpTo": "Mus8E_Sonic_Got_Through_PSG2"
       }
     ],
     "Mus8E_Sonic_Got_Through_PSG2": [
@@ -667,15 +670,15 @@
         "duration": "0xC"
       },
       {
-        "note": "C6"
-      },
-      {
         "note": "C6",
         "duration": "0x9"
       },
       {
         "note": "B5",
         "duration": "0x33"
+      },
+      {
+        "jumpTo": "Mus8E_Sonic_Got_Through_PSG3"
       }
     ],
     "Mus8E_Sonic_Got_Through_PSG3": [
@@ -741,7 +744,7 @@
         "duration": "0x9"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x33"
       },
       "smpsStop"

@@ -136,6 +136,9 @@
       {
         "note": "Rst",
         "duration": "0x1"
+      },
+      {
+        "jumpTo": "SndB9_Collapse_FM4"
       }
     ],
     "SndB9_Collapse_FM4": [

@@ -99,7 +99,7 @@
           "0x0",
           "0x26",
           {
-            "note": "Cs3",
+            "inheritedNote": true,
             "duration": "0x2"
           },
           "smpsNoAttack",

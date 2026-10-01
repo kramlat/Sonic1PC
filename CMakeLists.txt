@@ -1375,7 +1375,7 @@ if(BUILD_TESTS)
                                "tests/test_leveldraw.c" "tests/test_levelcollision.c"
                                "tests/test_prison.c" "tests/test_lz3wall.c"
                                "tests/test_bosslz.c" "tests/test_lzconveyor.c"
-                               "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_staircase.c" "tests/test_oscillator.c" "tests/test_scenery.c" "tests/test_audiomute.c" "tests/test_demorecord.c" "tests/test_objcollision.c"
+                               "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_staircase.c" "tests/test_oscillator.c" "tests/test_scenery.c" "tests/test_audiomute.c" "tests/test_demorecord.c" "tests/test_sounddriver.c" "tests/test_objcollision.c"
                                "tests/test_giantring.c" "tests/test_checkpoint.c")
     target_link_libraries(SonicTests PRIVATE SonicCore)
     set_target_properties(SonicTests PROPERTIES C_STANDARD 99
@@ -1557,8 +1557,17 @@ if(BUILD_TESTS)
     set_target_properties(FMCoreSynth PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
     set_source_files_properties("fmcore/fm_operator.c" "fmcore/fm_voice.c" PROPERTIES LANGUAGE C)
 
+    # FMCompare: the game's FM output (fmcore) against Nuked-OPN2, a cycle-accurate YM2612, on the same
+    # register writes -- see tests/fm_compare_main.c.
+    # SoundSync: per-channel loop lengths of every song (channels drifting out of sync) -- see tests/sound_sync_main.c.
+    add_executable(SoundSync "tests/sound_sync_main.c")
+    target_link_libraries(SoundSync PRIVATE SonicCore)
+    add_executable(FMCompare "tests/fm_compare_main.c" "${NUKED_OPN2_DIR}/ym3438.c")
+    target_include_directories(FMCompare PRIVATE "${NUKED_OPN2_DIR}")
+    target_link_libraries(FMCompare PRIVATE SonicCore)
+
     set_target_properties(
-      SonicJoypadTest SonicSoundTrace SonicSoundWav V3FlagTest ParadoxComposer SonicVoiceIsolate SMPSInspector FMCoreSynth
+      SonicJoypadTest SonicSoundTrace SonicSoundWav V3FlagTest ParadoxComposer SonicVoiceIsolate SMPSInspector FMCoreSynth FMCompare SoundSync
       PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
   endif()
 

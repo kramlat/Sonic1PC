@@ -42,6 +42,8 @@ void Sound_SetTrace(int enabled) { sound_trace_enabled = enabled; }
 // eye, e.g. to check whether two channels sharing a voice for a rhythmically
 // -locked part actually line up or have drifted apart.
 static uint32_t sound_trace_frame = 0;
+// Debug tooling (tests/sound_sync_main.c): called whenever a track takes its $F6 jump (the song loop).
+void (*sound_jump_hook)(const SoundChipSet *cs, int channel_index, uint32_t frame, uint32_t target) = NULL;
 #define SOUND_TRACE(...)                          \
     do {                                            \
         if (sound_trace_enabled) {                  \
@@ -800,10 +802,9 @@ static int PSGStepEnvelope(SoundChannel *ch) {
         return -1; // Terminator -- hold (index does NOT advance)
     ch->vol_env_index++;
 
-    int vol = (int)ch->volume + delta;
-    if (vol < 0 || vol > 0x0F)
-        vol = 0x0F; // Real driver clamps both overflow AND underflow to silence, not to loudest
-    return vol;
+    // add.w d0,d6 / cmpi.b #$10,d6 / blo: an 8-bit sum, $10 and up (including "negative" wraps) = silent
+    uint8_t vol = (uint8_t)(ch->volume + (uint8_t)delta);
+    return vol >= 0x10 ? 0x0F : vol;
 }
 
 // Driver-version-3 only: steps an FM channel's "volume flutter" envelope
@@ -1010,10 +1011,10 @@ static uint8_t FM_ClampTL(int tl) { return (uint8_t)(tl < 0 ? 0 : (tl > 127 ? 12
 // index to that bit position. (This was previously {3,2,1,0}, derived
 // against the op4,op3,op2,op1 order used before that fix -- left stale when
 // the write order changed, silently marking op1 as algorithm 0-3's carrier
-// instead of the real op4, and similarly wrong elsewhere.) Entries 8-15
-// derived directly from FM_VOICE_ALGORITHM_CONNECT[8..15]'s own carrier
-// sets (fmcore/fm_voice.c), same FM_SLOT_BIT remap applied for consistency.
-static const uint8_t FM_SLOT_MASK[16] = {8, 8, 8, 8, 0xA, 0xE, 0xE, 0xF, 8, 0xC, 8, 8, 0xA, 0xF, 0xF, 0xF};
+// instead of the real op4, and similarly wrong elsewhere.) Bit k is operator k+1 in the chip's own
+// numbering (bit 1 = $48 = operator 2, bit 2 = $44 = operator 3). Entries 8-15 are derived directly from
+// FM_VOICE_ALGORITHM_CONNECT[8..15]'s carriers (fmcore/fm_voice.c), which use that same numbering.
+static const uint8_t FM_SLOT_MASK[16] = {8, 8, 8, 8, 0xA, 0xE, 0xE, 0xF, 8, 0xA, 8, 8, 0xC, 0xF, 0xF, 0xF};
 static const int FM_SLOT_BIT[4] = {0, 2, 1, 3}; // natural op1..op4 -> FMSlotMask bit position
 
 static int FM_IsCarrier(uint8_t algorithm, int op) {
@@ -1041,6 +1042,8 @@ static void FM_ApplyVolume(YM2612 *fm, SoundChannel *sch, int channel_index) {
 // Loads one 25-byte voice block (see smps.c's smpsVcTotalLevel comment for
 // the exact layout this mirrors) into a channel's 4 operators + algorithm/
 // feedback registers.
+static void FM_SetPan(YM2612 *fm, int channel_index, uint8_t value);
+
 static void FM_LoadVoice(YM2612 *fm, SoundChannel *sch, int channel_index, const uint8_t *voice) {
     // Algorithm is 4 bits (0-7 real hardware, 8-15 fmcore-original -- see
     // fm_voice.c's own comment): low 3 bits as always, plus bit7 as the
@@ -1076,6 +1079,7 @@ static void FM_LoadVoice(YM2612 *fm, SoundChannel *sch, int channel_index, const
     if (getenv("SONIC_FM_TRACE"))
         fprintf(stdout, "[%u] FMVOICELOAD channel_index=%d alg_fb=$%02X\n", sound_trace_frame, channel_index, voice[0]);
     YM2612_LoadVoice(fm, channel_index - SOUND_CHANNEL_FM_BASE, voice[0], op_regs);
+    FM_SetPan(fm, channel_index, sch->ams_fms_pan); // SetVoice ends by writing $B4 = AMSFMSPan
 }
 
 // JSON-engine equivalent of FM_LoadVoice above -- reads a voice object's
@@ -1091,10 +1095,15 @@ static void FM_LoadVoiceJSON(YM2612 *fm, SoundChannel *sch, int channel_index, c
     uint8_t byte0 = (uint8_t)((((alg >> 3) & 1) << 7) | ((ub & 1) << 6) | ((fb & 7) << 3) | (alg & 7));
     sch->feedback_algo = (uint8_t)((((byte0 >> 7) & 1) << 3) | (byte0 & 7));
 
+    // operators[] is in smps2asm macro-argument order, the reverse of the chip's numbering: argument 4
+    // is operator 1. op_regs[] is in register-row order (+0, +4, +8, +C = operators 1, 3, 2, 4), so row r
+    // takes argument kRowToArg[r] -- the same placement the compiled byte-stream voices get (see
+    // libparadoxsmps compiler.c's kOpWriteOrder and FM_LoadVoice).
+    static const int kRowToArg[4] = {3, 1, 2, 0};
     const PJValue *ops = pj_object_get(voice, "operators");
     uint8_t op_regs[4][6];
-    for (int op = 0; op < 4; op++) {
-        const PJValue *o = pj_array_get(ops, (size_t)op);
+    for (int op = 0; op < 4; op++) { // op = register row
+        const PJValue *o = pj_array_get(ops, (size_t)kRowToArg[op]);
         int dt = JsonUnhexInt(pj_object_get(o, "smpsVcDetune"), 0);
         int mul = JsonUnhexInt(pj_object_get(o, "smpsVcCoarseFreq"), 0);
         op_regs[op][0] = (uint8_t)(((dt & 7) << 4) | (mul & 0xF)); // DT/MUL
@@ -1118,6 +1127,7 @@ static void FM_LoadVoiceJSON(YM2612 *fm, SoundChannel *sch, int channel_index, c
     if (getenv("SONIC_FM_TRACE"))
         fprintf(stdout, "[%u] FMVOICELOAD channel_index=%d alg_fb=$%02X\n", sound_trace_frame, channel_index, byte0);
     YM2612_LoadVoice(fm, channel_index - SOUND_CHANNEL_FM_BASE, byte0, op_regs);
+    FM_SetPan(fm, channel_index, sch->ams_fms_pan); // as FM_LoadVoice
 }
 
 // Pan direction is whole-channel only -- hard left, hard right, center
@@ -1231,8 +1241,9 @@ static void StartChannel(SoundChipSet *cs, SoundChannel *ch, const uint8_t *song
     ch->volume = volume;
     ch->tempo_divider = cs->duration_mult; // Per-track duration multiplier, overridable by $E5
     ch->active = 1;
-    ch->duration_timeout = 0; // read the first command immediately on the next tick
+    ch->duration_timeout = 1; // the first decrement reaches 0 and reads the first command (move.b #1,DurationTimeout)
     ch->voice_bank = voice_bank;
+    ch->ams_fms_pan = 0xC0; // both speakers (InitMusicPlayback / Sound_PlaySFX: move.b #$C0,AMSFMSPan)
 }
 
 // JSON-engine equivalent of StartChannel -- events is a real PJValue*
@@ -1254,7 +1265,8 @@ static void StartChannelJSON(SoundChipSet *cs, SoundChannel *ch, const PJValue *
     ch->volume = volume;
     ch->tempo_divider = cs->duration_mult;
     ch->active = 1;
-    ch->duration_timeout = 0;
+    ch->duration_timeout = 1; // see StartChannel
+    ch->ams_fms_pan = 0xC0;
 }
 
 // "cFM5"-style channel-ID names, as used by smpsHeaderSFXChannel -- same
@@ -1441,7 +1453,33 @@ static void LoadSFXJSON(SoundChipSet *cs, const PJValue *song, const PJValue *pl
     }
 }
 
+static uint8_t SpeedUpTempo(uint8_t music_id, uint8_t fallback);
+static void SilenceChips(SoundChipSet *cs);
+static void FadeInToPrevious(SoundChipSet *cs);
+
+// The 1-up jingle: playing it saves the running song (v_1up_ram_copy); its final $E4 (cfFadeInToPrevious)
+// brings that song back and fades it in.
+static SoundChipSet saved_music;
+static uint8_t one_up_playing = 0; // f_1up_playing
+
 static void LoadMusic(SoundChipSet *cs, const uint8_t *song, uint8_t music_id, uint8_t driver_version) {
+    // Sound_PlayBGM: the 1-up jingle saves the song it interrupts (and is ignored while already playing);
+    // any other song drops a saved one and any fade-in in progress.
+    if (cs == &sound_music) {
+        if (music_id == bgm_ExtraLife) {
+            if (one_up_playing)
+                return;
+            saved_music = *cs;
+            one_up_playing = 1;
+        } else {
+            one_up_playing = 0;
+            cs->fadein_active = 0;
+            cs->fadein_counter = 0;
+            cs->dac_fadein_muted = 0;
+        }
+    }
+    // InitMusicPlayback: silence everything first, so no note of the previous song hangs on.
+    SilenceChips(cs);
     SN76489_Write(&cs->psg, 0xE0); // see LoadMusicJSON's comment on this (byte-VM equivalent)
     const uint8_t *p = song;
     uint16_t voice_off = ReadWord(p);
@@ -1453,6 +1491,7 @@ static void LoadMusic(SoundChipSet *cs, const uint8_t *song, uint8_t music_id, u
     cs->continuous_sfx_flag = 0;
     cs->cont_sfx_loop_cnt = 0;
     cs->fade_to_prev_flag = 0;
+    cs->fadeout_counter = 0; // a new song ends any fade-out
     // A DAC percussion override ($88-$91, see the coordination-flag switch
     // below) only ever gets set by a song's own DAC track and is never
     // implicitly cleared by anything else -- without resetting it here, a
@@ -1469,6 +1508,8 @@ static void LoadMusic(SoundChipSet *cs, const uint8_t *song, uint8_t music_id, u
     cs->main_tempo = *p++;
     cs->base_main_tempo = cs->main_tempo; // Cached so SlowDownMusic can restore it
     cs->current_music_id = music_id;      // For SpeedUpMusic's per-song SpeedUpIndex lookup
+    if (cs->speedup)                      // speed shoes still on: the new song starts sped up (f_speedup survives)
+        cs->main_tempo = SpeedUpTempo(music_id, cs->main_tempo);
     cs->tempo_timeout = cs->main_tempo;
 
     // The byte stream's DAC/FM region always has exactly fm_count total
@@ -1598,8 +1639,36 @@ static void LoadSFX(SoundChipSet *cs, const uint8_t *song, uint8_t driver_versio
     }
 }
 
+// FMSilenceAll + PSGSilenceAll: every FM channel keyed off with all four operators at TL $7F, every PSG
+// channel (and the noise channel) at full attenuation -- nothing from the previous song keeps sounding.
+static void SilenceChips(SoundChipSet *cs) {
+    for (int i = 0; i < 6; i++)
+        FM_KeyOnOff(cs->fm, SOUND_CHANNEL_FM_BASE + i, 0);
+    for (int port = 0; port <= 2; port += 2)
+        for (int ch = 0; ch < 3; ch++)
+            for (int row = 0; row < 4; row++)
+                FM_WriteReg(cs->fm, port, (uint8_t)(0x40 + row * 4 + ch), 0x7F);
+    for (int i = 0; i < 4; i++)
+        PSG_SetAttenuation(&cs->psg, i, 0x0F);
+    cs->dac_playing = 0;
+}
+
 void QueueSound1(uint8_t id) { sound_music.queue[SOUND_QUEUE_NORMAL] = id; }
-void QueueSound2(uint8_t id) { sound_sfx.queue[SOUND_QUEUE_SPECIAL] = id; }
+static int IsSfxId(uint8_t id);
+static uint8_t SfxPriority(uint8_t id);
+// QueueSound2 (objects) and PlaySound go through the same path, as on the original (both just fill a
+// queue slot that CycleSoundQueue arbitrates). Of several requests in one frame, the highest priority
+// wins (a later equal one replaces an earlier one); the priority check against the sound already
+// playing happens when the request is dispatched (DispatchSfx).
+void QueueSound2(uint8_t id) {
+    if (!IsSfxId(id)) {
+        PlaySound(id); // music or a command: same handling as PlaySound
+        return;
+    }
+    uint8_t pending = sound_sfx.queue[SOUND_QUEUE_SPECIAL];
+    if (pending == 0 || SfxPriority(id) >= SfxPriority(pending))
+        sound_sfx.queue[SOUND_QUEUE_SPECIAL] = id;
+}
 
 static void DispatchQueue(SoundChipSet *cs, int slot) {
     uint8_t id = cs->queue[slot];
@@ -1616,6 +1685,38 @@ static void DispatchQueue(SoundChipSet *cs, int slot) {
         LoadMusic(cs, song, id, driver_version);
     else
         LoadSFX(cs, song, driver_version);
+}
+
+// Sound_PlaySFX's checks for the sound-effect chip set: priority against what's playing (CycleSoundQueue),
+// the ring sound alternating speakers, and the push sound not restarting while it plays.
+static void DispatchSfx(SoundChipSet *cs) {
+    uint8_t id = cs->queue[SOUND_QUEUE_SPECIAL];
+    if (id == 0)
+        return;
+    cs->queue[SOUND_QUEUE_SPECIAL] = 0;
+
+    // A new sound must be at least as important as the one playing. Priorities of $80 and up (the
+    // jump sound, the waterfall) are never stored, so anything may replace those sounds.
+    uint8_t priority = SfxPriority(id);
+    if (priority < cs->current_priority)
+        return;
+    if (!(priority & 0x80))
+        cs->current_priority = priority;
+
+    if (id == sfx_Ring) {
+        if (cs->ring_speaker == 0)
+            id = sfx_RingLeft; // every other ring plays in the left speaker
+        cs->ring_speaker ^= 1;
+    }
+    if (id == sfx_Push) {
+        if (cs->push_playing)
+            return; // still pushing: let the sound finish (its $ED allows the next one)
+        cs->push_playing = 0x80;
+    }
+
+    const uint8_t *song = sound_table[id];
+    if (song)
+        LoadSFX(cs, song, sound_table_driver_ver[id]);
 }
 
 // ---------------------------------------------------------------------
@@ -1661,6 +1762,15 @@ void PlayMusic(uint8_t id) {
 }
 
 void StopAllSound(void) {
+    // Clears all driver state and silences the chips (FMSilenceAll / PSGSilenceAll).
+    SilenceChips(&sound_music);
+    SilenceChips(&sound_sfx);
+    one_up_playing = 0;
+    sound_music.speedup = 0;
+    sound_music.fadeout_counter = 0;
+    sound_music.fadein_active = 0;
+    sound_music.fadein_counter = 0;
+    sound_music.dac_fadein_muted = 0;
     memset(&sound_music.channels, 0, sizeof(sound_music.channels));
     memset(&sound_sfx.channels, 0, sizeof(sound_sfx.channels));
     sound_music.dac_playing = 0;
@@ -1674,19 +1784,77 @@ void StopAllSound(void) {
     // letting StopAllSound() leave an in-progress PCM clip alone is what
     // reproduces that behavior instead.
     sound_sfx.current_priority = 0;
+    sound_sfx.push_playing = 0;
+    sound_sfx.ring_speaker = 0;
+    sound_sfx.queue[SOUND_QUEUE_SPECIAL] = 0;
     for (int i = 0; i < 3; i++)
         PSG_SetAttenuation(&sound_music.psg, i, 0x0F);
     for (int i = 0; i < 4; i++)
         PSG_SetAttenuation(&sound_sfx.psg, i, 0x0F);
 }
 
-void FadeOutMusic(void) {
-    // TODO: real behavior ramps volume down over several frames via a
-    // dedicated fade coordination step; this just cuts it immediately.
+// Stops the music chip set outright (the end of a fade-out; StopAllSound for the music side).
+static void StopMusicChips(void) {
     memset(&sound_music.channels, 0, sizeof(sound_music.channels));
     sound_music.dac_playing = 0;
-    for (int i = 0; i < 3; i++)
+    sound_music.fadeout_counter = 0;
+    for (int i = 0; i < 6; i++)
+        FM_KeyOnOff(sound_music.fm, SOUND_CHANNEL_FM_BASE + i, 0);
+    for (int i = 0; i < 4; i++)
         PSG_SetAttenuation(&sound_music.psg, i, 0x0F);
+}
+
+// FadeOutMusic: the DAC stops at once, the speed-shoes tempo is dropped, and DoFadeOut then lowers the
+// FM and PSG tracks one step every 4 frames, $28 steps in all (~2.7 s), before stopping everything.
+// (The original also stops the sound effects here, because they share the music's channels; with
+// separate chips for effects, they just keep playing.)
+void FadeOutMusic(void) {
+    sound_music.fadeout_delay = 3;
+    sound_music.fadeout_counter = 0x28;
+    SoundChannel *dac = &sound_music.channels[SOUND_CHANNEL_DAC];
+    dac->active = 0;
+    sound_music.dac_playing = 0;
+    sound_music.main_tempo = sound_music.base_main_tempo; // clr.b f_speedup
+    sound_music.speedup = 0;
+}
+
+// DoFadeOut: one fade step on the music chip set (called each frame while fading, before the tracks).
+static void DoFadeOut(SoundChipSet *cs) {
+    if (cs->fadeout_delay != 0) {
+        cs->fadeout_delay--;
+        return;
+    }
+    if (--cs->fadeout_counter == 0) {
+        StopMusicChips();
+        return;
+    }
+    cs->fadeout_delay = 3;
+    for (int i = 0; i < 6; i++) {
+        int idx = SOUND_CHANNEL_FM_BASE + i;
+        SoundChannel *ch = &cs->channels[idx];
+        if (!ch->active)
+            continue;
+        ch->volume++;
+        if (ch->volume & 0x80) { // addq.b / bpl: past $7F the track is stopped
+            ch->active = 0;
+            FM_KeyOnOff(cs->fm, idx, 0);
+        } else {
+            FM_ApplyVolume(cs->fm, ch, idx);
+        }
+    }
+    for (int i = 0; i < 4; i++) {
+        int idx = SOUND_CHANNEL_PSG_BASE + i;
+        SoundChannel *ch = &cs->channels[idx];
+        if (!ch->active)
+            continue;
+        ch->volume++;
+        int reg = ch->psg_noise ? 3 : i;
+        if (ch->volume >= 0x10) {
+            ch->active = 0; // stopped; the channel keeps its last (quiet) level, as on the original
+        } else if (ch->key_on && !ch->debug_muted) {
+            PSG_SetAttenuation(&cs->psg, reg, ch->volume); // SetPSGVolume
+        }
+    }
 }
 
 void PlaySegaSound(void) {
@@ -1721,41 +1889,64 @@ static const uint8_t speedup_index[8] = {
     0x05, // Extra Life
 };
 
-void SpeedUpMusic(void) {
-    int index = sound_music.current_music_id - bgm_GHZ;
+// The sped-up tempo for a song (SpeedUpIndex); songs past the table keep `fallback` (the original would read
+// past the table's end there).
+static uint8_t SpeedUpTempo(uint8_t music_id, uint8_t fallback) {
+    int index = music_id - bgm_GHZ;
     if (index < 0 || index >= (int)(sizeof(speedup_index) / sizeof(speedup_index[0])))
-        return; // Out of SpeedUpIndex's real range -- leave tempo alone (see comment above)
-    sound_music.main_tempo = speedup_index[index];
-    if (sound_music.tempo_timeout > sound_music.main_tempo)
-        sound_music.tempo_timeout = sound_music.main_tempo;
+        return fallback;
+    return speedup_index[index];
+}
+
+// While the 1-up jingle plays, speed shoes change the SAVED song (it returns sped up / normal), not the jingle.
+void SpeedUpMusic(void) {
+    SoundChipSet *t = one_up_playing ? &saved_music : &sound_music;
+    t->speedup = 0x80;
+    t->main_tempo = SpeedUpTempo(t->current_music_id, t->main_tempo);
+    t->tempo_timeout = t->main_tempo; // the original resets the timeout too
 }
 
 void SlowDownMusic(void) {
-    sound_music.main_tempo = sound_music.base_main_tempo;
-    if (sound_music.tempo_timeout > sound_music.main_tempo)
-        sound_music.tempo_timeout = sound_music.main_tempo;
+    SoundChipSet *t = one_up_playing ? &saved_music : &sound_music;
+    t->speedup = 0;
+    t->main_tempo = t->base_main_tempo;
+    t->tempo_timeout = t->main_tempo; // the original resets the timeout too
 }
 
+// PauseMusic: the whole driver stops (music AND effects, and queued requests wait), FM output is cut by
+// clearing every channel's panning ($B4 = 0) and keying it off, and the PSG is silenced. Unpausing writes each
+// playing FM track's panning back; notes resume with the next note of each track.
 void Sound_Pause(void) {
-    sound_music.paused = 1;
-    // Real hardware's own PauseMusic doesn't just freeze the tempo governor --
-    // it explicitly key-offs every FM channel (reg $28) and silences every
-    // PSG channel before halting (s1.sounddriver.asm). Without this, whatever
-    // note was sounding at the moment of pause just keeps ringing indefinitely
-    // (TickChipSet returns immediately while paused, so nothing ever reaches
-    // the note's own natural release/duration-out). SFX (sound_sfx) are
-    // intentionally left untouched -- this project keeps sound_music and
-    // sound_sfx as fully independent chip sets (see Sound.h), so "pause
-    // music" only ever needs to reach sound_music's own channels.
-    for (int i = 0; i < 6; i++) {
-        SoundChannel *ch = &sound_music.channels[SOUND_CHANNEL_FM_BASE + i];
-        ch->key_on = 0;
-        FM_KeyOnOff(sound_music.fm, SOUND_CHANNEL_FM_BASE + i, 0);
+    SoundChipSet *sets[2] = {&sound_music, &sound_sfx};
+    for (int k = 0; k < 2; k++) {
+        SoundChipSet *cs = sets[k];
+        if (cs->paused)
+            continue;
+        cs->paused = 1;
+        for (int i = 0; i < 6; i++) {
+            FM_SetPan(cs->fm, SOUND_CHANNEL_FM_BASE + i, 0);
+            FM_KeyOnOff(cs->fm, SOUND_CHANNEL_FM_BASE + i, 0);
+            cs->channels[SOUND_CHANNEL_FM_BASE + i].key_on = 0;
+        }
+        for (int i = 0; i < 4; i++)
+            PSG_SetAttenuation(&cs->psg, i, 0x0F);
     }
-    for (int i = 0; i < 4; i++)
-        PSG_SetAttenuation(&sound_music.psg, i, 0x0F);
 }
-void Sound_Resume(void) { sound_music.paused = 0; }
+
+void Sound_Resume(void) {
+    SoundChipSet *sets[2] = {&sound_music, &sound_sfx};
+    for (int k = 0; k < 2; k++) {
+        SoundChipSet *cs = sets[k];
+        if (!cs->paused)
+            continue;
+        cs->paused = 0;
+        for (int i = 0; i < 6; i++) {
+            SoundChannel *ch = &cs->channels[SOUND_CHANNEL_FM_BASE + i];
+            if (ch->active)
+                FM_SetPan(cs->fm, SOUND_CHANNEL_FM_BASE + i, ch->ams_fms_pan);
+        }
+    }
+}
 
 void PlaySound(uint8_t id) {
     DEBUG_LOG("sound", "sfx $%02X", id);
@@ -1780,14 +1971,17 @@ void PlaySound(uint8_t id) {
         return;
     }
 
-    if (id < SOUND_ID_SFX_FIRST || id > SOUND_ID_SPECIAL_LAST)
+    if (!IsSfxId(id))
         return; // Not a valid ID (matches the real driver's silent reject)
+    QueueSound2(id); // priority is checked when the request is dispatched (DispatchSfx)
+}
 
-    uint8_t priority = sound_priorities[id - SOUND_ID_SFX_FIRST];
-    if (priority < sound_sfx.current_priority)
-        return; // Lower priority than what's already committed to play -- ignored
-    sound_sfx.current_priority = priority;
-    QueueSound2(id);
+static int IsSfxId(uint8_t id) {
+    return id >= SOUND_ID_SFX_FIRST && id <= SOUND_ID_SPECIAL_LAST;
+}
+
+static uint8_t SfxPriority(uint8_t id) {
+    return IsSfxId(id) ? sound_priorities[id - SOUND_ID_SFX_FIRST] : 0x90;
 }
 
 // ---------------------------------------------------------------------
@@ -1842,24 +2036,27 @@ static void ResetModulationIfActive(SoundChannel *ch) {
 // later reload here uses the raw, unhalved byte straight from the stream --
 // that's not a bug, it's what the real disassembly does (loc_71DFE reads
 // 3(a0) directly, never re-halving it).
-static void StepModulation(SoundChannel *ch) {
+// Returns 1 when the modulation value changed (DoModulation only returns to its caller -- which then
+// writes the new frequency -- on that path).
+static int StepModulation(SoundChannel *ch) {
     if (!ch->mod_active || !ch->modulation_ptr)
-        return;
+        return 0;
     if (ch->modulation_wait > 0) {
         ch->modulation_wait--;
-        return;
+        return 0;
     }
     if (--ch->modulation_speed != 0)
-        return;
+        return 0;
     const uint8_t *p = ch->modulation_ptr;
     ch->modulation_speed = p[1];
     if (ch->modulation_steps != 0) {
         ch->modulation_steps--;
         ch->modulation_val = (int16_t)(ch->modulation_val + ch->modulation_delta);
-    } else {
-        ch->modulation_steps = p[3];
-        ch->modulation_delta = (int8_t)(-ch->modulation_delta);
+        return 1;
     }
+    ch->modulation_steps = p[3];
+    ch->modulation_delta = (int8_t)(-ch->modulation_delta);
+    return 0;
 }
 
 static int debug_isolate_voice = -1; // see Sound_DebugIsolateVoice's own comment in Sound.h
@@ -1890,10 +2087,12 @@ static void TickChannel_FlagsV3(SoundChipSet *cs, SoundChannel *ch, int channel_
     switch (b) {
         case 0xE0: { // cfPanningAMSFMS -- FM and DAC; no-op for PSG (can't set panning), same as v1's $E0
             uint8_t v = *ch->data_ptr++;
-            if (is_fm)
-                FM_SetPan(cs->fm, channel_index, v);
-            else if (is_dac)
+            if (is_fm) {
+                ch->ams_fms_pan = (uint8_t)((ch->ams_fms_pan & 0x37) | v); // andi.b #$37 / or.b: new pan, old AMS/FMS kept
+                FM_SetPan(cs->fm, channel_index, ch->ams_fms_pan);
+            } else if (is_dac) {
                 cs->dac_pan = v & 0xC0;
+            }
             break;
         }
         case 0xE1: // cfDetune -- absolute set (distinct from Transpose; see the detune-aware
@@ -2612,6 +2811,339 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
     }
 }
 
+// SetDuration: the raw duration times the track's tempo divider, as an 8-bit result (the original adds
+// it up with add.b, so it wraps rather than clamping). Kept as SavedDuration for later bare reuse.
+static void SetTrackDuration(SoundChannel *ch, uint8_t raw) {
+    uint8_t d = raw;
+    uint8_t div = ch->tempo_divider;
+    // .multloop: subq.b #1,d1 / beq / add.b d5,d0 -- divider 0 behaves like 256
+    for (uint8_t n = (uint8_t)(div - 1); n != 0; n--)
+        d = (uint8_t)(d + raw);
+    ch->saved_duration = d;
+}
+
+// PSGUpdateFreq: period = note + modulation + detune (the original adds detune for PSG as for FM;
+// so does Flamedriver). A noise-redirected track writes PSG3's period, which the noise channel reads
+// in "sync to tone 3" mode (that's how noise pitch is controlled).
+static void WritePSGFrequency(SoundChipSet *cs, SoundChannel *ch, int psg_reg_chan, int modulation_val) {
+    int period = (int)PSGPeriodForNote(ch->note_index) + modulation_val + ch->detune;
+    if (period < 1)
+        period = 1;
+    if (period > 1023)
+        period = 1023;
+    PSG_SetTonePeriod(&cs->psg, ch->psg_noise ? 2 : psg_reg_chan, (uint16_t)period);
+}
+
+// PSGDoVolFX / PSGUpdateVolFX + SetPSGVolume: volume plus the envelope's next step, 0x10 and up
+// meaning silence. On a note's first frame (note_on) it runs even with no envelope (plain volume);
+// afterwards only tracks with an envelope update. Nothing is written while the track rests, or
+// for a $E7 note whose note fill has run out.
+static void PSGVolumeFX(SoundChipSet *cs, SoundChannel *ch, int psg_reg_chan, int note_on) {
+    if (!note_on && ch->voice_index == 0)
+        return;
+    int vol = ch->volume;
+    if (ch->voice_index != 0) {
+        int step = PSGStepEnvelope(ch);
+        if (step < 0)
+            return; // envelope finished (VolEnvHold): hold the last volume, nothing written
+        vol = step;
+    }
+    if ((uint8_t)vol >= 0x10)
+        vol = 0x0F;
+    if (!ch->key_on)
+        return;
+    if (ch->no_attack && ch->note_timeout_master != 0 && ch->note_timeout == 0)
+        return;
+    PSG_SetAttenuation(&cs->psg, psg_reg_chan, ch->debug_muted ? 0x0F : (uint8_t)vol);
+}
+
+// Frames between reads (".notegoing"): note fill countdown, envelope, modulation.
+static void TrackNoteGoing(SoundChipSet *cs, SoundChannel *ch, int channel_index, int is_fm, int psg_chan,
+                           int psg_reg_chan) {
+    // NoteTimeoutUpdate: 0 = note fill off. When it runs out the track goes to rest (key off / silence)
+    // and nothing else happens this frame.
+    if (ch->note_timeout != 0) {
+        if (--ch->note_timeout == 0) {
+            ch->key_on = 0;
+            if (is_fm)
+                FM_KeyOnOff(cs->fm, channel_index, 0);
+            else
+                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
+            return;
+        }
+    }
+
+    if (psg_chan >= 0)
+        PSGVolumeFX(cs, ch, psg_reg_chan, 0);
+
+    // FM volume-flutter envelope (driver-version-3's cfFMVolEnv); no-op for driver version 1.
+    if (is_fm && ch->key_on && ch->fm_vol_env_index > 0) {
+        if (FMStepVolEnv(ch))
+            FM_ApplyVolume(cs->fm, ch, channel_index);
+    }
+
+    // DoModulation, then the frequency update -- only when modulation produced a new value.
+    if (StepModulation(ch)) {
+        if (psg_chan >= 0) {
+            if (ch->key_on)
+                WritePSGFrequency(cs, ch, psg_reg_chan, ch->modulation_val);
+        } else if (is_fm) {
+            FM_SetFrequency(cs->fm, channel_index, ch->note_index, ch->modulation_val + ch->detune);
+        }
+    }
+}
+
+// Sonic 1 coordination flags (driver version 1), $E0-$FF except $E7 (handled by the caller as the
+// "do not attack" flag for both drivers). Same contract as TickChannel_FlagsV3: reads its parameter
+// bytes from ch->data_ptr; a flag that stops the track clears ch->active.
+static void TickChannel_FlagsV1(SoundChipSet *cs, SoundChannel *ch, int channel_index, int is_fm, int is_dac,
+                                int psg_chan, int psg_reg_chan, uint8_t b) {
+    switch (b) {
+        case 0xE0: { // smpsPan -- FM and DAC; no-op for PSG (can't set panning)
+            uint8_t v = *ch->data_ptr++;
+            if (is_fm) {
+                ch->ams_fms_pan = (uint8_t)((ch->ams_fms_pan & 0x37) | v); // andi.b #$37 / or.b: new pan, old AMS/FMS kept
+                FM_SetPan(cs->fm, channel_index, ch->ams_fms_pan);
+            } else if (is_dac) {
+                cs->dac_pan = v & 0xC0;
+            }
+            break;
+        }
+        case 0xE1: ch->detune = (int8_t)*ch->data_ptr++; break; // smpsAlterNote / cfDetune -- a fine frequency offset (added to the FM F-number / PSG period), NOT a transposition: Labyrinth's $02 is a chorus detune, not +2 semitones
+        case 0xE2: ch->data_ptr++; break; // smpsNop -- argument byte, no effect
+        case 0xE3: // smpsReturn
+            if (ch->return_sp > 0)
+                ch->data_ptr = ch->return_stack[--ch->return_sp];
+            break;
+        case 0xE4: // smpsFade / cfFadeInToPrevious -- the 1-up jingle's end: bring back the song it interrupted
+            if (cs == &sound_music && one_up_playing) {
+                FadeInToPrevious(cs);
+                return;
+            }
+            ch->active = 0;
+            SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
+            if (is_fm)
+                FM_KeyOnOff(cs->fm, channel_index, 0);
+            if (is_dac)
+                cs->dac_playing = 0;
+            return;
+        case 0xE5: ch->tempo_divider = *ch->data_ptr++; break; // smpsChanTempoDiv -- per-track duration multiplier override
+        case 0xE6: { // smpsAlterVol -- designed for FM, effective immediately
+            int max = is_fm ? 0x7F : 0x0F; // FM TL is 7-bit; PSG attenuation only uses the low nibble
+            int v = (int)ch->volume + (int8_t)*ch->data_ptr++;
+            ch->volume = (uint8_t)(v < 0 ? 0 : (v > max ? max : v));
+            if (is_fm)
+                FM_ApplyVolume(cs->fm, ch, channel_index);
+            break;
+        }
+        case 0xE8: // smpsNoteFill / cfNoteTimeout -- sets the running timeout as well as the master
+            ch->note_timeout = *ch->data_ptr;
+            ch->note_timeout_master = *ch->data_ptr++;
+            break;
+        case 0xE9: ch->transpose = (int8_t)(ch->transpose + (int8_t)*ch->data_ptr++); break; // smpsChangeTransposition
+        case 0xEA: // smpsSetTempoMod / cfSetTempo -- main tempo AND its timeout ("and reset timeout (!)")
+            cs->main_tempo = *ch->data_ptr;
+            cs->base_main_tempo = *ch->data_ptr;
+            cs->tempo_timeout = *ch->data_ptr++;
+            break;
+        case 0xEB: { // smpsSetTempoDiv -- chip-set-wide duration multiplier, propagates to every track's own copy
+            uint8_t v = *ch->data_ptr++;
+            cs->duration_mult = v;
+            for (int i = 0; i < SOUND_CHANNELS; i++)
+                cs->channels[i].tempo_divider = v;
+            break;
+        }
+        case 0xEC: { // smpsPSGAlterVol / cfChangePSGVolume -- add.b: wraps instead of clamping; for PSG, $10 and up
+                     // (including a "negative" wrap) means silent at output, and a later decrease comes back
+                     // from the true value. For FM it only takes effect on the next $EF voice load.
+            int8_t delta = (int8_t)*ch->data_ptr++;
+            if (is_fm) {
+                int v = (int)ch->volume + delta;
+                ch->volume = (uint8_t)(v < 0 ? 0 : (v > 0x7F ? 0x7F : v));
+            } else {
+                ch->volume = (uint8_t)(ch->volume + (uint8_t)delta);
+            }
+            break;
+        }
+        case 0xED: cs->push_playing = 0; break; // smpsClearPush -- the push sound may be started again (see PlaySound)
+        case 0xEE: // smpsStopSpecial
+            ch->active = 0;
+            SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
+            if (is_fm)
+                FM_KeyOnOff(cs->fm, channel_index, 0);
+            if (is_dac)
+                cs->dac_playing = 0;
+            return;
+        case 0xEF: { // smpsFMvoice / smpsSetvoice
+            uint8_t voice_index = *ch->data_ptr++;
+            ch->voice_index = voice_index;
+            if (is_fm && ch->voice_bank) {
+                if (getenv("SONIC_VOL_TRACE")) fprintf(stdout, "BYTE ch%d voice_index=%u volume=%u\n", channel_index, voice_index, ch->volume);
+                FM_LoadVoice(cs->fm, ch, channel_index, ch->voice_bank + (size_t)voice_index * 25);
+            }
+            break;
+        }
+        case 0xF0: // smpsModSet -- also immediately activates modulation on real
+                   // hardware (cfModulation's own bset #3), no separate $F1 needed
+            ch->modulation_ptr = ch->data_ptr; // raw stream bytes, reread later by StepModulation's step-count reload
+            ch->modulation_wait = *ch->data_ptr++;
+            ch->modulation_speed = *ch->data_ptr++;
+            ch->modulation_delta = (int8_t)*ch->data_ptr++;
+            ch->modulation_steps = (uint8_t)(*ch->data_ptr++ >> 1); // halved, matches the real driver's lsr.b #1
+            ch->modulation_val = 0;
+            ch->mod_active = 1;
+            break;
+        case 0xF1: ch->mod_active = 1; break; // smpsModOn -- re-enable without resetting stored parameters
+        case 0xF2: // smpsStop
+            ch->active = 0;
+            SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
+            if (is_fm)
+                FM_KeyOnOff(cs->fm, channel_index, 0);
+            if (is_dac)
+                cs->dac_playing = 0;
+            return;
+        case 0xF3: { // smpsPSGform -- irreversibly redirects this track to drive the real
+                     // hardware noise channel (SN76489 channel 3) instead of its own tone
+                     // channel. Only safe on PSG3 ("without bugs" per the real driver's own
+                     // documentation), and only when the 4th PSG slot isn't already dedicated
+                     // to noise on its own (psg_count==4).
+            uint8_t v = *ch->data_ptr++;
+            if (psg_chan == 2 && cs->psg_count < 4) {
+                SN76489_Write(&cs->psg, v); // v is already a valid $E0-$E7 noise-control byte
+                ch->psg_noise = 1;
+            }
+            break;
+        }
+        case 0xF4: ch->mod_active = 0; break; // smpsModOff
+        case 0xF5: ch->voice_index = *ch->data_ptr++; break; // smpsPSGvoice
+        case 0xF6: { // smpsJump
+            const uint8_t *word_pos = ch->data_ptr;
+            int16_t rel = (int16_t)ReadWord(word_pos);
+            ch->data_ptr = word_pos + 1 + rel;
+            if (sound_jump_hook)
+                sound_jump_hook(cs, channel_index, sound_trace_frame, (uint32_t)(word_pos - ch->song_base));
+            break;
+        }
+        case 0xF7: { // smpsLoop
+            uint8_t index = *ch->data_ptr++;
+            uint8_t loops = *ch->data_ptr++;
+            const uint8_t *word_pos = ch->data_ptr;
+            int16_t rel = (int16_t)ReadWord(word_pos);
+            const uint8_t *target = word_pos + 1 + rel;
+            ch->data_ptr = word_pos + 2;
+            if (index < 3) {
+                if (ch->loop_counters[index] == 0)
+                    ch->loop_counters[index] = loops;
+                ch->loop_counters[index]--;
+                if (ch->loop_counters[index] != 0)
+                    ch->data_ptr = target;
+            }
+            break;
+        }
+        case 0xF8: { // smpsCall -- ABSOLUTE offset from song start (the compiler's own "abs" patch kind,
+                     // json_to_header.py's emit_event: `em.word_placeholder(value, "abs")`), NOT relative
+                     // like smpsJump/smpsLoop's "rel-1" -- found via the JSON-engine cross-verification
+                     // effort: GHZ's own FM1 smpsCall into Call02 was silently landing on the WRONG (but
+                     // coincidentally plausible-sounding) nearby data under the old word_pos+1+rel math.
+            const uint8_t *word_pos = ch->data_ptr;
+            uint16_t target_off = ReadWord(word_pos);
+            const uint8_t *target = ch->song_base + target_off;
+            if (ch->return_sp < 2)
+                ch->return_stack[ch->return_sp++] = word_pos + 2;
+            ch->data_ptr = target;
+            break;
+        }
+        case 0xF9: // smpsMaxRelRate / cfOpF9 -- D1L/RR of operators 3 and 4 to $0F, always on FM1 (part I, channel 0)
+            FM_WriteReg(cs->fm, 0, 0x88, 0x0F);
+            FM_WriteReg(cs->fm, 0, 0x8C, 0x0F);
+            break;
+        default: ch->data_ptr++; break; // Unknown/reserved flag -- consume one arg byte defensively
+    }
+}
+
+// cfFadeInToPrevious ($E4, the 1-up jingle's last command): the saved song comes back with every track at rest
+// and 40 steps quieter, FM voices reloaded, and DoFadeIn brings it back up; its drums stay silent until then.
+static void FadeInToPrevious(SoundChipSet *cs) {
+    struct YM2612 *fm = cs->fm;
+    SN76489 psg = cs->psg;
+    uint8_t queue[SOUND_QUEUE_SIZE];
+    memcpy(queue, cs->queue, sizeof(queue));
+    *cs = saved_music;            // the song and all driver variables...
+    cs->fm = fm;                  // ...but the chips stay as they are
+    cs->psg = psg;
+    memcpy(cs->queue, queue, sizeof(queue));
+    one_up_playing = 0;
+    cs->paused = 0;
+    cs->dac_fadein_muted = 1;
+    cs->dac_playing = 0;
+
+    uint8_t add = (uint8_t)(0x28 - cs->fadein_counter); // a fade-in already under way continues from where it was
+    for (int i = 0; i < 6; i++) {
+        int idx = SOUND_CHANNEL_FM_BASE + i;
+        SoundChannel *ch = &cs->channels[idx];
+        if (!ch->active)
+            continue;
+        ch->key_on = 0;           // at rest until its next note
+        FM_KeyOnOff(fm, idx, 0);
+        ch->volume = (uint8_t)(ch->volume + add);
+        if (ch->json_active) {
+            if (ch->json_voices)
+                FM_LoadVoiceJSON(fm, ch, idx, pj_array_get(ch->json_voices, ch->voice_index));
+        } else if (ch->voice_bank) {
+            FM_LoadVoice(fm, ch, idx, ch->voice_bank + (size_t)ch->voice_index * 25);
+        }
+    }
+    for (int i = 0; i < 4; i++) {
+        int idx = SOUND_CHANNEL_PSG_BASE + i;
+        SoundChannel *ch = &cs->channels[idx];
+        if (!ch->active)
+            continue;
+        ch->key_on = 0;
+        SilenceIfPSG(&cs->psg, ch->psg_noise ? 3 : i, ch->psg_noise);
+        ch->volume = (uint8_t)(ch->volume + add);
+    }
+    cs->fadein_active = 1;
+    cs->fadein_counter = 0x28;
+    cs->fadein_delay = 0;
+    cs->abort_track = 1; // the track that ran $E4 was the jingle's: stop processing it this frame
+}
+
+// DoFadeIn: one step every 3 frames, each making every FM and PSG track one notch louder.
+static void DoFadeIn(SoundChipSet *cs) {
+    if (cs->fadein_delay != 0) {
+        cs->fadein_delay--;
+        return;
+    }
+    if (cs->fadein_counter == 0) {
+        cs->fadein_active = 0;
+        cs->dac_fadein_muted = 0; // drums back on
+        return;
+    }
+    cs->fadein_counter--;
+    cs->fadein_delay = 2;
+    for (int i = 0; i < 6; i++) {
+        int idx = SOUND_CHANNEL_FM_BASE + i;
+        SoundChannel *ch = &cs->channels[idx];
+        if (!ch->active)
+            continue;
+        ch->volume--;
+        FM_ApplyVolume(cs->fm, ch, idx);
+    }
+    for (int i = 0; i < 4; i++) {
+        SoundChannel *ch = &cs->channels[SOUND_CHANNEL_PSG_BASE + i];
+        if (!ch->active)
+            continue;
+        ch->volume--;
+        if (ch->key_on && !ch->debug_muted)
+            PSG_SetAttenuation(&cs->psg, ch->psg_noise ? 3 : i, ch->volume < 0x10 ? ch->volume : 0x0F);
+    }
+}
+
+// One track, one frame. Mirrors the real driver's FMUpdateTrack / PSGUpdateTrack / DACUpdateTrack (and
+// Flamedriver's zUpdateFMorPSGTrack, which has the same shape): the duration counter is decremented
+// FIRST, and the next command is read on the same frame it reaches 0 -- so a note of duration d lasts
+// exactly d frames. (This used to decrement, return, and only read on the following frame, making every
+// note one frame too long: all music and effects ran slow, short notes most of all.)
 static void TickChannel(SoundChipSet *cs, int channel_index) {
     SoundChannel *ch = &cs->channels[channel_index];
     if (!ch->active)
@@ -2627,404 +3159,115 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
     int is_dac = (channel_index == SOUND_CHANNEL_DAC);
     int is_fm = (channel_index >= SOUND_CHANNEL_FM_BASE && channel_index < SOUND_CHANNEL_FM_BASE + 6);
 
-    // Note-fill release tail: gate off early, before the command stream
-    // advances to the next byte. Matches the real driver's
-    // NoteTimeoutUpdate exactly: note_timeout==0 means the feature is
-    // inactive (never decremented, never fires) -- it is NOT "already
-    // expired, fire now". Only a nonzero note_timeout counts down, and
-    // firing happens the instant it reaches 0 from that countdown, not on
-    // every subsequent frame it happens to read as 0.
-    if (ch->note_timeout > 0) {
-        ch->note_timeout--;
-        if (ch->note_timeout == 0 && ch->key_on) {
-            ch->key_on = 0;
-            SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
-            if (is_fm)
-                FM_KeyOnOff(cs->fm, channel_index, 0);
-        }
-    }
-
-    // Volume envelope: steps every governed tick regardless of whether a
-    // new note/command is being read this tick, same as the real driver's
-    // PSGUpdateVolFX running independently of PSGUpdateTrack.
-    if (psg_chan >= 0 && ch->key_on) {
-        int vol = PSGStepEnvelope(ch);
-        if (vol >= 0)
-            PSG_SetAttenuation(&cs->psg, psg_reg_chan, ch->debug_muted ? 0x0F : (uint8_t)vol);
-    }
-
-    // FM volume-flutter envelope (driver-version-3's cfFMVolEnv) -- steps
-    // every governed tick same as the PSG one above, independent of flag
-    // processing. fm_vol_env_index defaults to 0 (disabled) for every
-    // driver-version-1 channel, so this is a no-op there.
-    if (is_fm && ch->key_on && ch->fm_vol_env_index > 0) {
-        if (FMStepVolEnv(ch))
-            FM_ApplyVolume(cs->fm, ch, channel_index);
-    }
-
-    if (ch->duration_timeout > 0) {
-        ch->duration_timeout--;
-        // Modulation (vibrato/pitch-bend, $F0-$F1/$F4) only steps while a
-        // note is being held, not on the frame it's (re)triggered -- matches
-        // the real driver only calling DoModulation from its "notegoing"
-        // path, never from the fresh-note-on path.
-        if (ch->mod_active) {
-            StepModulation(ch);
-            if (ch->key_on) {
-                if (psg_chan >= 0 && !ch->psg_noise) {
-                    int period = (int)PSGPeriodForNote(ch->note_index) + ch->modulation_val - ch->detune;
-                    if (period < 1)
-                        period = 1;
-                    if (period > 1023)
-                        period = 1023;
-                    PSG_SetTonePeriod(&cs->psg, psg_reg_chan, (uint16_t)period);
-                } else if (is_fm) {
-                    // detune subtracted (not added) here to match PSG's own
-                    // sign above -- PSG period and FM frequency move in
-                    // OPPOSITE directions for the same "higher pitch" (lower
-                    // period, higher fnum), so a single detune field needs
-                    // opposite signs to sound like the same pitch offset on
-                    // both chip types (driver-version-3 only -- always 0 for
-                    // driver-version-1 channels, so no behavior change there).
-                    FM_SetFrequency(cs->fm, channel_index, ch->note_index, ch->modulation_val + ch->detune);
-                }
-            }
-        }
+    if (--ch->duration_timeout != 0) { // uint8_t: 0 wraps to 255, like subq.b
+        if (!is_dac)
+            TrackNoteGoing(cs, ch, channel_index, is_fm, psg_chan, psg_reg_chan);
         return;
     }
 
-    // JSON-tree-walking engine takes over here once the shared per-tick
-    // governor logic above (note-fill, envelopes, modulation) has run --
-    // see TickChannelJSON's own comment. Dispatch is per-CHANNEL
-    // (ch->json_active, set by StartChannelJSON), not per-chip-set: SFX
-    // are loaded via LoadSFXJSON, which deliberately never sets
-    // cs->json_song (SFX trees aren't chip-set-owned), so a
-    // cs->json_song-based check here left every JSON-loaded SFX channel
-    // falling through to the byte-VM with a NULL data_ptr.
+    ch->no_attack = 0; // bclr #4,PlaybackControl -- $E7 may set it again while reading below
+
+    // JSON-tree-walking engine: reads this track's next event(s) itself (see TickChannelJSON).
     if (ch->json_active) {
         TickChannelJSON(cs, ch, channel_index);
         return;
     }
 
-    while (ch->active && ch->duration_timeout == 0) {
-        uint8_t b = *ch->data_ptr++;
-
-        if (b == 0xE7) { // smpsNoAttack (v1) / cfPreventAttack (v3) -- hold the current pitch, don't retrigger.
-                          // Real driver-version-3 semantics are actually "set a
-                          // flag that suppresses the NEXT note's own retrigger",
-                          // not an immediate hold action -- but both produce the
-                          // same audible result (no fresh attack/envelope reset)
-                          // for how this flag is actually used in real songs
-                          // (always immediately followed by a note), so v3
-                          // channels deliberately share this exact v1 code path
-                          // rather than threading a separate pending-flag through
-                          // the shared note-on logic.
-            uint8_t raw = *ch->data_ptr;
-            if (raw < 0x80) {
-                // "Dividing timing": the raw duration byte from the stream
-                // gets multiplied here, once, and the *multiplied* value is
-                // what's kept/reused (SavedDuration is post-multiplication
-                // on real hardware) -- matches the real driver's
-                // "move.b SMPS_Track.SavedDuration,DurationTimeout" reuse
-                // path, which does no further multiplying.
-                int scaled = (int)raw * (int)ch->tempo_divider;
-                ch->saved_duration = (uint8_t)(scaled > 0xFF ? 0xFF : scaled);
-                ch->data_ptr++;
-            }
-            uint8_t dur = ch->saved_duration ? ch->saved_duration : 1;
-            ch->duration_timeout = dur;
-            // Note fill ($E8) is the number of frames the note is *allowed
-            // to play*, not a release-tail subtracted from duration -- 0
-            // means disabled, and must stay exactly 0 (not fall back to
-            // dur), or the note-timeout gate above would still fire right
-            // at the note's own natural end and cut off the PSG envelope's
-            // decay tail even with note-fill "off". Matches FinishTrackUpdate's
-            // unconditional "move.b NoteTimeoutMaster,NoteTimeout".
-            ch->note_timeout = ch->note_timeout_master;
-            ch->key_on = 1;
-            SOUND_TRACE("ch%d: $E7 no-attack dur=%u\n", channel_index, dur);
+    // Read coordination flags up to the next note / rest / duration byte.
+    uint8_t b;
+    for (;;) {
+        b = *ch->data_ptr++;
+        if (b < 0xE0)
             break;
-        }
-
-        if (b < 0x80) { // Bare duration, no note prefix: keep playing the
-                         // currently-held note/pitch (no new frequency write --
-                         // this does NOT retrigger the note), just change how
-                         // long for.
-            int scaled = (int)b * (int)ch->tempo_divider;
-            ch->saved_duration = (uint8_t)(scaled > 0xFF ? 0xFF : scaled);
-            uint8_t dur = ch->saved_duration ? ch->saved_duration : 1;
-            ch->duration_timeout = dur;
-            ch->note_timeout = ch->note_timeout_master; // see the real note-on branch below for why not `dur`
-            // FinishTrackUpdate resets VolEnvIndex unconditionally on every
-            // track update except smpsNoAttack ($E7) -- including this bare-
-            // duration case. The pitch doesn't retrigger, but the volume
-            // envelope DOES restart from the top here, producing a fresh
-            // attack-decay swell at the same held pitch -- this is what
-            // actually produces LZ's "echo" character on a held note broken
-            // into several bare-duration continuation bytes (e.g.
-            // "nE6, $0C, $0C, $0C, $06"): four envelope swells at one
-            // pitch, not four separate note-on events.
-            if (psg_chan >= 0)
-                ch->vol_env_index = 0;
-            ResetModulationIfActive(ch);
-            SOUND_TRACE("ch%d: bare-duration raw=$%02X dur=%u\n", channel_index, b, dur);
-            break;
-        }
-
-        if (b < 0xE0) { // Note byte: 0x80 = rest, else pitch relative to C0
-            uint8_t raw = *ch->data_ptr;
-            if (raw < 0x80) {
-                int scaled = (int)raw * (int)ch->tempo_divider;
-                ch->saved_duration = (uint8_t)(scaled > 0xFF ? 0xFF : scaled);
-                ch->data_ptr++;
-            }
-            uint8_t dur = ch->saved_duration ? ch->saved_duration : 1;
-            ch->duration_timeout = dur;
-
-            if (b == 0x80) {
-                ch->key_on = 0;
-                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
-                if (is_fm)
-                    FM_KeyOnOff(cs->fm, channel_index, 0);
-                ch->note_timeout = ch->note_timeout_master; // see the note-on branch below for why not `dur`
-                if (psg_chan >= 0)
-                    ch->vol_env_index = 0; // FinishTrackUpdate resets this unconditionally, rests included
-                ResetModulationIfActive(ch);
-                SOUND_TRACE("ch%d: rest dur=%u\n", channel_index, dur);
-            } else if (is_dac) {
-                // Sonic1PC's own EXTENDED DAC scheme (per your direction) --
-                // a superset of real Sonic 1's own note-byte layout,
-                // incorporating Sonic 2's four extra percussion samples
-                // (Scratch/Clap/Tom/Bongo) at renumbered slots so both fit
-                // without collision (real Sonic 2 uses $83 for Clap and $87
-                // for Bongo, which real Sonic 1 already uses for Timpani and
-                // the "SEGA!" PCM clip respectively -- moved to $85 and $DF
-                // here instead). $81-$87 are the 7 base DPCM samples (Kick/
-                // Snare/Timpani/Scratch/Clap/Tom/Bongo). $88-$91 are
-                // pitch-shifted variants of Timpani/Tom/Bongo -- same DPCM
-                // data as their own base sample, just played back at a
-                // different rate (real driver's DACUpdateTrack: any sample
-                // byte with bit 3 set gets rewritten to its base sample
-                // after stashing a rate into zTimpani_Pitch). $DF is the
-                // "SEGA!" PCM clip, given the highest possible note-byte
-                // slot ($E0+ is coordination-flag territory) so it never
-                // has to move again. See dac_notes above for every note's
-                // own sample/rate. Pitch overrides persist across other
-                // samples playing in between, same as real hardware's "this
-                // affects the raw pitch of the base sample, meaning it will
-                // use this value from then on" -- see
-                // cs->dac_pitch_override_sample/rate. NOTE: this project
-                // models that persistence with a single shared
-                // override-sample/rate pair (matching real hardware's own
-                // apparent single-register redirect-and-restash mechanism,
-                // as best understood from the disassembly), so interleaving
-                // Timpani/Tom/Bongo variants (e.g. a Bongo variant right
-                // after a Timpani one) means only the MOST RECENT family's
-                // override is remembered -- not independently verified
-                // against real hardware for the 3-family case, since real
-                // Sonic 1 only ever had Timpani to test this with.
-                DAC_TriggerByNoteByte(cs, b);
-                ch->key_on = 1;
-                ch->note_timeout = dur;
-            } else {
-                int note_index = (int)(b - 0x81) + ch->transpose;
-                ch->note_index = note_index;
-                ResetModulationIfActive(ch); // reset before this note's first frequency write, so modulation_val is 0 for it
-                if (psg_chan >= 0) {
-                    // A noise-redirected track's own notes DO still set a
-                    // period -- just not its own (real hardware has no
-                    // period register on the noise channel at all). Real
-                    // driver's PSGUpdateFreq: when VoiceControl marks a
-                    // track as noise-redirected ($E0), it overrides the
-                    // channel-select bits to $C0 ("PSG channel 2") before
-                    // writing the frequency, unconditionally -- i.e. it
-                    // hijacks PSG channel 2's own period register. That's
-                    // exactly the register SN76489's noise generator reads
-                    // from in "sync" mode (shift_rate==3, which $F3's real
-                    // $E7 usage always selects -- see SN76489.c), so this is
-                    // how a composer actually controls noise pitch: not via
-                    // a noise-specific register (there isn't one), but by
-                    // repurposing PSG2's period register through whichever
-                    // track got redirected. Skipping this (as this code
-                    // used to) leaves the noise generator reading whatever
-                    // stale/unrelated value PSG2's own track last set,
-                    // independent of the noise track's own authored notes
-                    // -- audibly, every noise hit ends up the same pitch
-                    // regardless of what note is written.
-                    PSG_SetTonePeriod(&cs->psg, ch->psg_noise ? 2 : psg_reg_chan, (uint16_t)((int)PSGPeriodForNote(note_index) - ch->detune));
-                    PSG_SetAttenuation(&cs->psg, psg_reg_chan, ch->debug_muted ? 0x0F : ch->volume);
-                    ch->vol_env_index = 0; // Every new note restarts its volume envelope from the top
-                } else if (is_fm) {
-                    FM_SetFrequency(cs->fm, channel_index, note_index, ch->modulation_val + ch->detune);
-                    if (debug_isolate_voice < 0 || ch->voice_index == debug_isolate_voice)
-                        FM_KeyOnOff(cs->fm, channel_index, 1);
-                }
-                ch->key_on = 1;
-                // Note fill ($E8) is the number of frames the note is
-                // *allowed to play*, not a release-tail subtracted from
-                // duration -- must stay exactly note_timeout_master (0 =
-                // disabled, never fires), not fall back to `dur`, or the
-                // gate above would fire right at the note's own natural
-                // end even with note-fill "off", cutting off the PSG
-                // envelope before it can restart on the next bare-duration
-                // continuation. Matches FinishTrackUpdate's unconditional
-                // "move.b NoteTimeoutMaster,NoteTimeout".
-                ch->note_timeout = ch->note_timeout_master;
-                SOUND_TRACE("ch%d: note byte=$%02X note_index=%d dur=%u vol=%u transpose=%d\n", channel_index, b,
-                            note_index, dur, ch->volume, (int)ch->transpose);
-            }
-            break;
-        }
-
-        // Coordination flags ($E0-$FF, except $E7 handled above). Driver-
-        // version-3 channels dispatch through a completely separate table
-        // (TickChannel_FlagsV3, defined above) -- the byte values below mean
-        // something else entirely on that table for most of this range, so
-        // this switch stays exactly as it always has for driver-version-1
-        // (the default, everything currently shipped) with zero risk of
-        // behavior change.
-        if (cs->driver_version >= 3) {
-            TickChannel_FlagsV3(cs, ch, channel_index, is_fm, is_dac, psg_chan, psg_reg_chan, b);
+        if (b == 0xE7) { // smpsNoAttack / cfPreventAttack (both drivers): don't re-attack the next note
+            ch->no_attack = 1;
             continue;
         }
-        switch (b) {
-            case 0xE0: { // smpsPan -- FM and DAC; no-op for PSG (can't set panning)
-                uint8_t v = *ch->data_ptr++;
-                if (is_fm)
-                    FM_SetPan(cs->fm, channel_index, v);
-                else if (is_dac)
-                    cs->dac_pan = v & 0xC0;
-                break;
-            }
-            case 0xE1: ch->transpose = (int8_t)*ch->data_ptr++; break; // smpsDetune -- SETS the channel key displacement (same field the header's pitch byte and $E9 use)
-            case 0xE2: ch->data_ptr++; break; // smpsNop -- argument byte, no effect
-            case 0xE3: // smpsReturn
-                if (ch->return_sp > 0)
-                    ch->data_ptr = ch->return_stack[--ch->return_sp];
-                break;
-            case 0xE4: // smpsFade -- stops this track; fade-in-to-previous-song isn't implemented
-                ch->active = 0;
-                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
-                if (is_fm)
-                    FM_KeyOnOff(cs->fm, channel_index, 0);
-                if (is_dac)
-                    cs->dac_playing = 0;
-                return;
-            case 0xE5: ch->tempo_divider = *ch->data_ptr++; break; // smpsChanTempoDiv -- per-track duration multiplier override
-            case 0xE6: { // smpsAlterVol -- designed for FM, effective immediately
-                int max = is_fm ? 0x7F : 0x0F; // FM TL is 7-bit; PSG attenuation only uses the low nibble
-                int v = (int)ch->volume + (int8_t)*ch->data_ptr++;
-                ch->volume = (uint8_t)(v < 0 ? 0 : (v > max ? max : v));
-                if (is_fm)
-                    FM_ApplyVolume(cs->fm, ch, channel_index);
-                break;
-            }
-            case 0xE8: ch->note_timeout_master = *ch->data_ptr++; break; // smpsNoteFill
-            case 0xE9: ch->transpose = (int8_t)(ch->transpose + (int8_t)*ch->data_ptr++); break; // smpsChangeTransposition
-            case 0xEA: cs->main_tempo = *ch->data_ptr++; break; // smpsSetTempoMod -- chip-set-wide, music only
-            case 0xEB: { // smpsSetTempoDiv -- chip-set-wide duration multiplier, propagates to every track's own copy
-                uint8_t v = *ch->data_ptr++;
-                cs->duration_mult = v;
-                for (int i = 0; i < SOUND_CHANNELS; i++)
-                    cs->channels[i].tempo_divider = v;
-                break;
-            }
-            case 0xEC: { // smpsPSGAlterVol -- designed for PSG; for FM only takes effect on the next $EF voice load
-                int max = is_fm ? 0x7F : 0x0F;
-                int v = (int)ch->volume + (int8_t)*ch->data_ptr++;
-                ch->volume = (uint8_t)(v < 0 ? 0 : (v > max ? max : v));
-                break;
-            }
-            case 0xED: break; // smpsClearPush -- clears sfx_Push's "pushing block" game-state flag, unrelated to the sound engine
-            case 0xEE: // smpsStopSpecial
-                ch->active = 0;
-                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
-                if (is_fm)
-                    FM_KeyOnOff(cs->fm, channel_index, 0);
-                if (is_dac)
-                    cs->dac_playing = 0;
-                return;
-            case 0xEF: { // smpsFMvoice / smpsSetvoice
-                uint8_t voice_index = *ch->data_ptr++;
-                ch->voice_index = voice_index;
-                if (is_fm && ch->voice_bank) {
-                    if (getenv("SONIC_VOL_TRACE")) fprintf(stdout, "BYTE ch%d voice_index=%u volume=%u\n", channel_index, voice_index, ch->volume);
-                    FM_LoadVoice(cs->fm, ch, channel_index, ch->voice_bank + (size_t)voice_index * 25);
-                }
-                break;
-            }
-            case 0xF0: // smpsModSet -- also immediately activates modulation on real
-                       // hardware (cfModulation's own bset #3), no separate $F1 needed
-                ch->modulation_ptr = ch->data_ptr; // raw stream bytes, reread later by StepModulation's step-count reload
-                ch->modulation_wait = *ch->data_ptr++;
-                ch->modulation_speed = *ch->data_ptr++;
-                ch->modulation_delta = (int8_t)*ch->data_ptr++;
-                ch->modulation_steps = (uint8_t)(*ch->data_ptr++ >> 1); // halved, matches the real driver's lsr.b #1
-                ch->modulation_val = 0;
-                ch->mod_active = 1;
-                break;
-            case 0xF1: ch->mod_active = 1; break; // smpsModOn -- re-enable without resetting stored parameters
-            case 0xF2: // smpsStop
-                ch->active = 0;
-                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
-                if (is_fm)
-                    FM_KeyOnOff(cs->fm, channel_index, 0);
-                if (is_dac)
-                    cs->dac_playing = 0;
-                return;
-            case 0xF3: { // smpsPSGform -- irreversibly redirects this track to drive the real
-                         // hardware noise channel (SN76489 channel 3) instead of its own tone
-                         // channel. Only safe on PSG3 ("without bugs" per the real driver's own
-                         // documentation), and only when the 4th PSG slot isn't already dedicated
-                         // to noise on its own (psg_count==4).
-                uint8_t v = *ch->data_ptr++;
-                if (psg_chan == 2 && cs->psg_count < 4) {
-                    SN76489_Write(&cs->psg, v); // v is already a valid $E0-$E7 noise-control byte
-                    ch->psg_noise = 1;
-                }
-                break;
-            }
-            case 0xF4: ch->mod_active = 0; break; // smpsModOff
-            case 0xF5: ch->voice_index = *ch->data_ptr++; break; // smpsPSGvoice
-            case 0xF6: { // smpsJump
-                const uint8_t *word_pos = ch->data_ptr;
-                int16_t rel = (int16_t)ReadWord(word_pos);
-                ch->data_ptr = word_pos + 1 + rel;
-                break;
-            }
-            case 0xF7: { // smpsLoop
-                uint8_t index = *ch->data_ptr++;
-                uint8_t loops = *ch->data_ptr++;
-                const uint8_t *word_pos = ch->data_ptr;
-                int16_t rel = (int16_t)ReadWord(word_pos);
-                const uint8_t *target = word_pos + 1 + rel;
-                ch->data_ptr = word_pos + 2;
-                if (index < 3) {
-                    if (ch->loop_counters[index] == 0)
-                        ch->loop_counters[index] = loops;
-                    ch->loop_counters[index]--;
-                    if (ch->loop_counters[index] != 0)
-                        ch->data_ptr = target;
-                }
-                break;
-            }
-            case 0xF8: { // smpsCall -- ABSOLUTE offset from song start (the compiler's own "abs" patch kind,
-                         // json_to_header.py's emit_event: `em.word_placeholder(value, "abs")`), NOT relative
-                         // like smpsJump/smpsLoop's "rel-1" -- found via the JSON-engine cross-verification
-                         // effort: GHZ's own FM1 smpsCall into Call02 was silently landing on the WRONG (but
-                         // coincidentally plausible-sounding) nearby data under the old word_pos+1+rel math.
-                const uint8_t *word_pos = ch->data_ptr;
-                uint16_t target_off = ReadWord(word_pos);
-                const uint8_t *target = ch->song_base + target_off;
-                if (ch->return_sp < 2)
-                    ch->return_stack[ch->return_sp++] = word_pos + 2;
-                ch->data_ptr = target;
-                break;
-            }
-            case 0xF9: break; // smpsMaxRelRate -- FM-only, no-op for PSG
-            default: ch->data_ptr++; break; // Unknown/reserved flag -- consume one arg byte defensively
+        if (cs->driver_version >= 3)
+            TickChannel_FlagsV3(cs, ch, channel_index, is_fm, is_dac, psg_chan, psg_reg_chan, b);
+        else
+            TickChannel_FlagsV1(cs, ch, channel_index, is_fm, is_dac, psg_chan, psg_reg_chan, b);
+        if (cs->abort_track) { // the whole song was swapped (1-up restore): this track's update is over
+            cs->abort_track = 0;
+            return;
         }
+        if (!ch->active)
+            return;
     }
+
+    // FMDoNext: every note, rest or bare duration keys the FM channel off first (unless $E7), so the
+    // key-on below re-attacks it. A bare duration therefore re-attacks the same pitch.
+    if (is_fm && !ch->no_attack)
+        FM_KeyOnOff(cs->fm, channel_index, 0);
+
+    int new_note = 0, rest = 0;
+    if (b >= 0x80) {
+        if (b == 0x80) {
+            rest = 1;
+        } else if (is_dac) {
+            ch->dac_sample = b; // SavedDAC
+        } else {
+            new_note = 1;
+            ch->has_note = 1;
+            ch->note_index = (int)(b - 0x81) + ch->transpose;
+        }
+        // A duration byte may follow; otherwise the previous duration is reused.
+        uint8_t raw = *ch->data_ptr;
+        if (raw < 0x80) {
+            ch->data_ptr++;
+            SetTrackDuration(ch, raw);
+        }
+    } else {
+        SetTrackDuration(ch, b); // bare duration: same note/sample again, new length
+    }
+    if (rest && is_dac)
+        ch->dac_sample = 0x80;
+
+    // FinishTrackUpdate
+    ch->duration_timeout = ch->saved_duration; // 0 means 256 frames, as on the original (subq from 0 wraps)
+    if (!ch->no_attack) {
+        ch->note_timeout = ch->note_timeout_master;
+        ch->vol_env_index = 0;
+        ResetModulationIfActive(ch);
+    }
+
+    if (is_dac) {
+        // DACUpdateTrack plays SavedDAC for a sample byte AND for a bare duration (a kick followed by
+        // "$0C, $0C" plays three kicks); a rest leaves the DAC alone.
+        if (ch->dac_sample != 0x80 && ch->dac_sample != 0 && !cs->dac_fadein_muted) {
+            DAC_TriggerByNoteByte(cs, ch->dac_sample);
+            ch->key_on = 1;
+        }
+        return;
+    }
+
+    if (rest) {
+        // TrackSetRest / PSGSetFreq's rest: track at rest (frequency cleared), channel silenced.
+        ch->has_note = 0;
+        ch->key_on = 0;
+        SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
+        SOUND_TRACE("ch%d: rest dur=%u\n", channel_index, ch->saved_duration);
+        return;
+    }
+    // A bare duration replays the last note -- also after note fill silenced it (that keeps the
+    // frequency) -- but not after a rest byte, which clears it.
+    if (!new_note && !ch->has_note)
+        return;
+    ch->key_on = 1;
+
+    if (psg_chan >= 0) {
+        // PSGDoNoteOn: frequency (note + detune; modulation starts from 0), then PSGDoVolFX.
+        WritePSGFrequency(cs, ch, psg_reg_chan, 0);
+        PSGVolumeFX(cs, ch, psg_reg_chan, 1);
+    } else if (is_fm) {
+        // FMPrepareNote + FMNoteOn. With $E7 the key-on lands on a still-keyed channel, which a real
+        // YM2612 ignores: the note changes pitch without a new attack.
+        FM_SetFrequency(cs->fm, channel_index, ch->note_index, ch->detune);
+        if (debug_isolate_voice < 0 || ch->voice_index == debug_isolate_voice)
+            FM_KeyOnOff(cs->fm, channel_index, 1);
+    }
+    SOUND_TRACE("ch%d: note=%d dur=%u vol=%u transpose=%d no_attack=%u\n", channel_index, ch->note_index,
+                ch->saved_duration, ch->volume, (int)ch->transpose, ch->no_attack);
 }
 
 // ---------------------------------------------------------------------
@@ -3063,22 +3306,30 @@ static void TickChipSet(SoundChipSet *cs) {
         }
     }
 
+    if (cs->fadeout_counter != 0)
+        DoFadeOut(cs);
+    if (cs->fadein_active)
+        DoFadeIn(cs);
+
     DispatchQueue(cs, SOUND_QUEUE_NORMAL);
-    DispatchQueue(cs, SOUND_QUEUE_SPECIAL);
+    if (cs == &sound_sfx)
+        DispatchSfx(cs);
+    else
+        DispatchQueue(cs, SOUND_QUEUE_SPECIAL);
+
+    int was_active[SOUND_CHANNELS];
+    for (int i = 0; i < SOUND_CHANNELS; i++)
+        was_active[i] = cs->channels[i].active;
 
     for (int i = 0; i < SOUND_CHANNELS; i++)
         TickChannel(cs, i);
 
-    // Once everything in this chip set has finished playing, release any
-    // priority claim -- matches v_sndprio only mattering while something's
-    // actually still occupying the channels it was set for.
-    if (cs->current_priority != 0) {
-        int any_active = 0;
+    // cfStopTrack on an SFX track clears v_sndprio: as soon as any effect track ends, any sound may
+    // play again.
+    if (cs == &sound_sfx) {
         for (int i = 0; i < SOUND_CHANNELS; i++)
-            if (cs->channels[i].active)
-                any_active = 1;
-        if (!any_active)
-            cs->current_priority = 0;
+            if (was_active[i] && !cs->channels[i].active)
+                cs->current_priority = 0;
     }
 }
 
@@ -3112,60 +3363,58 @@ bool Sound_IsChannelMuted(int channel) {
     return channel >= 0 && channel < SOUND_MUTE_CHANNELS && (channel_mute_mask & (1u << channel)) != 0;
 }
 
+// Mix levels, in hardware proportions (Mega Drive): the DAC replaces FM6's output at the same full scale as an
+// FM channel, and one PSG channel at full volume is about half an FM channel's peak (Genesis Plus GX: PSG max
+// 2800 vs FM 8192, x1.5 PSG preamp). Here an FM channel and the DAC are +-8191/8192 at full scale and a PSG
+// channel +-8191, so PSG is scaled by 51%. The whole mix is then multiplied by SOUND_MIX_GAIN, chosen from
+// measured song peaks so that loud passages sit at the output's soft-clip threshold rather than far past it.
+// (FM used to be multiplied by 10 on its own, tuned when the FM synth's envelopes and modulation were wrong
+// and its output much weaker; with correct FM that buried the PSG ~5x and the DAC ~10x.)
+// SONIC_MIX_GAIN (percent) overrides the master gain for A/B testing.
+#define SOUND_PSG_LEVEL_PERCENT 51
+#define SOUND_MIX_GAIN_PERCENT  100
+
+static int MixGainPercent(void) {
+    const char *env = getenv("SONIC_MIX_GAIN");
+    return env ? atoi(env) : SOUND_MIX_GAIN_PERCENT;
+}
+
 static void GenerateSet(SoundChipSet *set, bool is_music, int32_t *out, uint32_t count, uint32_t sample_rate) {
     // Audio menu channel mutes: FM1-6 are bits 0-5, PSG tones 1-3 + noise are bits 6-9 (see Sound.h).
     YM2612_SetMuteMask(set->fm, (uint8_t)(channel_mute_mask & 0x3F));
     set->psg.mute_mask = (uint8_t)((channel_mute_mask >> 6) & 0xF);
 
-    static int32_t psg_scratch[SOUND_SCRATCH_MAX];
+    const int gain = MixGainPercent();
     uint32_t n = count < SOUND_SCRATCH_MAX ? count : SOUND_SCRATCH_MAX;
-    memset(psg_scratch, 0, n * sizeof(int32_t));
+    static int32_t scratch[2 * SOUND_SCRATCH_MAX];
+
+    // PSG (mono, duplicated into both speakers -- the SN76489 has no panning)
+    static int32_t psg[SOUND_SCRATCH_MAX];
+    memset(psg, 0, n * sizeof(int32_t));
     if (!getenv("SONIC_FM_ONLY") && debug_isolate_voice < 0)
-        SN76489_Generate(&set->psg, psg_scratch, n, sample_rate, SOUND_PSG_CLOCK);
+        SN76489_Generate(&set->psg, psg, n, sample_rate, SOUND_PSG_CLOCK);
     for (uint32_t i = 0; i < n; i++) {
-        out[2 * i + 0] += psg_scratch[i];
-        out[2 * i + 1] += psg_scratch[i];
+        int32_t v = (int32_t)((int64_t)psg[i] * SOUND_PSG_LEVEL_PERCENT * gain / 10000);
+        out[2 * i + 0] += v;
+        out[2 * i + 1] += v;
     }
 
-    // Multiplies FM's contribution to the mix by a fixed gain before adding
-    // it in -- real TL/attenuation register math is unaffected, this only
-    // scales FM's overall level in the final mix relative to PSG/DAC, which
-    // is otherwise measurably ~5-6x quieter than PSG+DAC even when playing
-    // fully correct, byte-verified voice data (see the RMS comparison this
-    // was based on). SONIC_FM_GAIN=N overrides the default for A/B testing.
-    const char *fm_gain_env = getenv("SONIC_FM_GAIN");
-    int fm_gain = fm_gain_env ? atoi(fm_gain_env) : 10;
-    if (fm_gain != 1) {
-        static int32_t fm_scratch[2 * SOUND_SCRATCH_MAX];
-        uint32_t fn = count < SOUND_SCRATCH_MAX ? count : SOUND_SCRATCH_MAX;
-        memset(fm_scratch, 0, 2 * fn * sizeof(int32_t));
-        YM2612_Generate(set->fm, fm_scratch, fn, sample_rate, SOUND_FM_CLOCK);
-        for (uint32_t i = 0; i < 2 * fn; i++)
-            out[i] += fm_scratch[i] * fm_gain;
-    } else {
-        YM2612_Generate(set->fm, out, count, sample_rate, SOUND_FM_CLOCK);
-    }
+    // FM
+    memset(scratch, 0, 2 * n * sizeof(int32_t));
+    YM2612_Generate(set->fm, scratch, n, sample_rate, SOUND_FM_CLOCK);
+    for (uint32_t i = 0; i < 2 * n; i++)
+        out[i] += (int32_t)((int64_t)scratch[i] * gain / 100);
+
     if (!getenv("SONIC_FM_ONLY") && debug_isolate_voice < 0) {
-        // sound_sfx has no DAC-sample track -- real hardware's SFX RAM
-        // layout (v_sfx_track_ram) never allocates one (only FM3-5/PSG1-3),
-        // and SFXChannelIndex() never routes any SFX channel ID to
-        // SOUND_CHANNEL_DAC either, so sound_sfx.channels[DAC] can never
-        // become active. PCM stays for both, since the separate "SEGA!"
-        // PCM clip ($E1/$87) can legitimately trigger from either chip
-        // set's own track data.
-        if (channel_mute_mask & (1u << SOUND_MUTE_DAC)) {
-            // Muted: still run the sample channels (so they stay in step), but discard the output.
-            static int32_t discard[2 * SOUND_SCRATCH_MAX];
-            uint32_t dn = count < SOUND_SCRATCH_MAX ? count : SOUND_SCRATCH_MAX;
-            memset(discard, 0, 2 * dn * sizeof(int32_t));
-            if (is_music)
-                DAC_Generate(set, discard, dn, sample_rate);
-            PCM_Generate(set, discard, dn, sample_rate);
-        } else {
-            if (is_music)
-                DAC_Generate(set, out, count, sample_rate);
-            PCM_Generate(set, out, count, sample_rate);
-        }
+        // DAC samples and the "SEGA!" PCM clip (sound_sfx has no DAC track -- see SFXChannelIndex -- but the
+        // PCM clip can come from either chip set). Muted: still run them so they stay in step, output dropped.
+        memset(scratch, 0, 2 * n * sizeof(int32_t));
+        if (is_music)
+            DAC_Generate(set, scratch, n, sample_rate);
+        PCM_Generate(set, scratch, n, sample_rate);
+        if (!(channel_mute_mask & (1u << SOUND_MUTE_DAC)))
+            for (uint32_t i = 0; i < 2 * n; i++)
+                out[i] += (int32_t)((int64_t)scratch[i] * gain / 100);
     }
 }
 

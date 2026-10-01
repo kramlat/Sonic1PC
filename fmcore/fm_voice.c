@@ -122,7 +122,11 @@ int16_t FMVoice_Clock(FMVoice *voice, float lfo_am_unipolar) {
         int32_t ext_phase_mod = 0;
         for (int from = 0; from < FM_VOICE_OP_COUNT; from++) {
             if (voice->connect[from][to])
-                ext_phase_mod += prev_sample[from] << 9; // same scale FMOperator's own self-feedback uses, see fm_operator.c
+                // Hardware scale (MAME fm.cpp's op_calc "pm << 15" into 16.16 phase, Nuked-OPN2): a modulator's
+                // output (+-8191) moves the next operator's phase by output / 2 sine-table steps. One table
+                // step is 1 << 12 of our phase (see fm_operator.c), so output << 11. (This used to be << 9:
+                // 4x too little modulation, so every FM voice sounded duller and smoother than on the chip.)
+                ext_phase_mod += prev_sample[from] << 11;
         }
         int16_t sample = FMOperator_ClockMod(&voice->ops[to], ext_phase_mod, am_atten);
         if (voice->connect[to][FM_VOICE_OUT])

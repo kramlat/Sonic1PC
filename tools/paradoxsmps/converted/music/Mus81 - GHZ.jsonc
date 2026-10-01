@@ -706,7 +706,7 @@
             "duration": "0x8"
           },
           {
-            "note": "C6",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -745,9 +745,6 @@
           {
             "tie": true,
             "duration": "0x38"
-          },
-          {
-            "note": "C6"
           },
           {
             "note": "C6",
@@ -947,9 +944,6 @@
         "duration": "0x10"
       },
       {
-        "note": "C7"
-      },
-      {
         "note": "C7",
         "duration": "0x8"
       },
@@ -974,9 +968,6 @@
         "duration": "0x8"
       },
       {
-        "note": "B6"
-      },
-      {
         "note": "B6",
         "duration": "0x10"
       },
@@ -997,7 +988,7 @@
         "duration": "0x8"
       },
       {
-        "note": "A6",
+        "inheritedNote": true,
         "duration": "0x8"
       },
       {
@@ -1668,9 +1659,6 @@
         "duration": "0x3B"
       },
       {
-        "note": "Rst"
-      },
-      {
         "note": "Rst",
         "duration": "0x4"
       },
@@ -1954,19 +1942,19 @@
             "duration": "0x18"
           },
           {
-            "note": "F5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "F5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "F5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "F5",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -1983,19 +1971,19 @@
             "duration": "0x18"
           },
           {
-            "note": "E5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "E5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "E5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "E5",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -2012,19 +2000,19 @@
             "duration": "0x18"
           },
           {
-            "note": "Eb5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "Eb5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "Eb5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "Eb5",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -2041,19 +2029,19 @@
             "duration": "0x18"
           },
           {
-            "note": "A5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "A5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "A5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "A5",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -2263,9 +2251,6 @@
       {
         "tie": true,
         "duration": "0x3C"
-      },
-      {
-        "note": "Rst"
       },
       {
         "note": "Rst",
@@ -2588,19 +2573,19 @@
             "duration": "0x18"
           },
           {
-            "note": "D5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "D5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "D5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "D5",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -2617,19 +2602,19 @@
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -2646,19 +2631,19 @@
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -2675,19 +2660,19 @@
             "duration": "0x18"
           },
           {
-            "note": "F5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "F5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "F5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "F5",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -2876,9 +2861,6 @@
       {
         "tie": true,
         "duration": "0x3C"
-      },
-      {
-        "note": "Rst"
       },
       {
         "note": "Rst",
@@ -3449,7 +3431,7 @@
         "duration": "0x10"
       },
       {
-        "note": "F5",
+        "inheritedNote": true,
         "duration": "0x18"
       },
       {
@@ -3650,7 +3632,7 @@
             "duration": "0x10"
           },
           {
-            "note": "G6",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -3668,7 +3650,7 @@
             "duration": "0x18"
           },
           {
-            "note": "A5",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -3849,9 +3831,6 @@
             "duration": "0x38"
           },
           {
-            "note": "C6"
-          },
-          {
             "note": "C6",
             "duration": "0x8"
           },
@@ -3888,19 +3867,19 @@
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x18"
           },
           {
-            "note": "C5",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -3930,17 +3909,17 @@
         "duration": "0x10"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x10"
       },
       {
-        "note": "MaxPSG",
+        "inheritedNote": true,
         "duration": "0x10"
       },
       {
         "smpsJump": [
           {
-            "note": "MaxPSG",
+            "inheritedNote": true,
             "duration": "0x8"
           }
         ]
@@ -3989,7 +3968,7 @@
             "duration": "0x10"
           },
           {
-            "note": "Kick",
+            "inheritedNote": true,
             "duration": "0x8"
           },
           {
@@ -4015,11 +3994,11 @@
         "duration": "0x8"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x8"
       },
       {
-        "note": "Snare",
+        "inheritedNote": true,
         "duration": "0x8"
       },
       {
@@ -4045,7 +4024,7 @@
                     "duration": "0x10"
                   },
                   {
-                    "note": "Kick",
+                    "inheritedNote": true,
                     "duration": "0x8"
                   },
                   {
@@ -4071,11 +4050,11 @@
                 "duration": "0x8"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x8"
               },
               {
-                "note": "Snare",
+                "inheritedNote": true,
                 "duration": "0x8"
               }
             ]

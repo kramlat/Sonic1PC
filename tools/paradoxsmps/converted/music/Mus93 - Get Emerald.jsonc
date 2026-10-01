@@ -214,6 +214,9 @@
     "Mus93_Get_Emerald_FM3": [
       {
         "smpsAlterNote": "0x2"
+      },
+      {
+        "jumpTo": "Mus93_Get_Emerald_FM1"
       }
     ],
     "Mus93_Get_Emerald_FM1": [
@@ -425,6 +428,9 @@
             "smpsPSGAlterVol": "0x3"
           }
         ]
+      },
+      {
+        "jumpTo": "Mus93_Get_Emerald_DAC"
       }
     ],
     "Mus93_Get_Emerald_DAC": [],

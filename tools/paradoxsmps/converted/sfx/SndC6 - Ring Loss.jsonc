@@ -104,31 +104,31 @@
         "duration": "0x2"
       },
       {
-        "note": "A5",
+        "inheritedNote": true,
         "duration": "0x5"
       },
       {
-        "note": "A5",
+        "inheritedNote": true,
         "duration": "0x5"
       },
       {
-        "note": "A5",
+        "inheritedNote": true,
         "duration": "0x5"
       },
       {
-        "note": "A5",
+        "inheritedNote": true,
         "duration": "0x5"
       },
       {
-        "note": "A5",
+        "inheritedNote": true,
         "duration": "0x5"
       },
       {
-        "note": "A5",
+        "inheritedNote": true,
         "duration": "0x5"
       },
       {
-        "note": "A5",
+        "inheritedNote": true,
         "duration": "0x3A"
       },
       "smpsStop"
@@ -146,23 +146,23 @@
         "duration": "0x2"
       },
       {
-        "note": "G5",
+        "inheritedNote": true,
         "duration": "0x5"
       },
       {
-        "note": "G5",
+        "inheritedNote": true,
         "duration": "0x15"
       },
       {
-        "note": "G5",
+        "inheritedNote": true,
         "duration": "0x2"
       },
       {
-        "note": "G5",
+        "inheritedNote": true,
         "duration": "0x5"
       },
       {
-        "note": "G5",
+        "inheritedNote": true,
         "duration": "0x32"
       },
       "smpsStop"
