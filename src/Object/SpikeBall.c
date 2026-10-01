@@ -1,5 +1,6 @@
 #include "SpikeBall.h"
 
+#include <string.h>
 #include "Level.h"
 #include "LevelScroll.h"
 #include "Macros.h"
@@ -88,6 +89,11 @@ static void SBall_Main(Object *obj, Scratch_SpikeBall *scratch) {
         Object *link = FindNextFreeObj(obj);
         if (link == NULL)
             break;
+
+        // FindNextFreeObj returns slots with stale bytes (the original zeroes them on
+        // delete): a leftover frame/anim made the chain links draw nothing.
+        memset(link, 0, sizeof(Object));
+        link->mappings = NULL;
 
         scratch->children++;
         scratch->child_idx[scratch->children - 1] = (uint8_t)(link - objects);

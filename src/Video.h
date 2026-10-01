@@ -42,6 +42,7 @@ extern int16_t hscroll_buffer[SCREEN_HEIGHT][2];
 
 //Video interface
 void VDPSetupGame(void);
+void VDPDisableWaterSplit(void);
 void WaitForVBla(void);
 void ClearScreen(void);
 void CopyTilemap(const uint8_t *tilemap, size_t offset, size_t width, size_t height);

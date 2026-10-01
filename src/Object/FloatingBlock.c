@@ -45,7 +45,19 @@ static void FBlock_MoveUD(Object *obj, Scratch_FloatingBlock *scratch, uint8_t o
     obj->pos.l.y.f.u = (int16_t)(scratch->orig_y - d0);
 }
 
+// Port change (not in the original): LZ1's switch-3 door sits across the
+// first wind tunnel. The original only disabled the tunnel while Sonic was
+// left of the shut door, and re-enabled it the moment the switch was pressed
+// while the door was still sliding open -- the tunnel could then push Sonic
+// into the door and kill him. Publish "fully open" so LZWindTunnels keeps
+// that tunnel off until the door is completely out of the way.
+static void FBlock_TrackLZ1TunnelDoor(const Scratch_FloatingBlock *scratch) {
+    if (LEVEL_ZONE(level_id) == ZoneId_LZ && LEVEL_ACT(level_id) == 0 && scratch->switch_id == 3)
+        f_lz1tunnel_open = (scratch->distance == 0);
+}
+
 static void FBlock_LZSmallDoor_Open(Object *obj, Scratch_FloatingBlock *scratch) {
+    FBlock_TrackLZ1TunnelDoor(scratch);
     bool is_lz1 = LEVEL_ZONE(level_id) == ZoneId_LZ && LEVEL_ACT(level_id) == 0;
 
     if (!scratch->moving) {
@@ -85,6 +97,7 @@ static void FBlock_LZSmallDoor_Open(Object *obj, Scratch_FloatingBlock *scratch)
 }
 
 static void FBlock_LZSmallDoor_Close(Object *obj, Scratch_FloatingBlock *scratch) {
+    FBlock_TrackLZ1TunnelDoor(scratch);
     if (!scratch->moving) {
         // Switches with the "alternate flag" (bit 7) don't exist anywhere
         // in the game -- kept faithfully, effectively dead code except for

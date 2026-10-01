@@ -148,12 +148,20 @@
 #include "Resource/ObjectLayout/SBZ2.h"
 #include "Resource/ObjectLayout/SBZ3.h"
 
+// Sets a 16.16 fixed-point position from a saved pixel value.
+static void LampSetPos(dword_s *pos, uint16_t pixels) {
+    pos->f.u = (int16_t)pixels;
+    pos->f.l = 0;
+}
+
 void Obj_Checkpoint_LoadInfo(void) {
     last_lamp = prev_lamp;
-    player->pos.l.x.v = lamp_state.spawn.x;
-    player->pos.l.y.v = lamp_state.spawn.y;
+    // The saved values are pixel positions (the high word of the 16.16 fixed point
+    // fields); writing them into .v put them in the fractional word, i.e. position 0.
+    LampSetPos(&player->pos.l.x, lamp_state.spawn.x);
+    LampSetPos(&player->pos.l.y, lamp_state.spawn.y);
     rings = 0;
-    life_count = lamp_state.lives;
+    life_count = 0; // the original reloads the saved value and then immediately clears it
     level_time.pad = lamp_state.time.pad;
     level_time.min = lamp_state.time.min;
     level_time.sec = lamp_state.time.sec;
@@ -164,14 +172,14 @@ void Obj_Checkpoint_LoadInfo(void) {
     wtr_routine = lamp_state.water_level.routine;
     limit_btm2 = lamp_state.limitbtm;
     limit_btm1 = lamp_state.limitbtm;
-    scrpos_x.v = lamp_state.foreground.x;
-    scrpos_y.v = lamp_state.foreground.y;
-    bg_scrpos_x.v = lamp_state.background.x;
-    bg_scrpos_y.v = lamp_state.background.y;
-    bg2_scrpos_x.v = lamp_state.background2.x;
-    bg2_scrpos_y.v = lamp_state.background2.y;
-    bg3_scrpos_x.v = lamp_state.background3.x;
-    bg3_scrpos_y.v = lamp_state.background3.y;
+    LampSetPos(&scrpos_x, lamp_state.foreground.x);
+    LampSetPos(&scrpos_y, lamp_state.foreground.y);
+    LampSetPos(&bg_scrpos_x, lamp_state.background.x);
+    LampSetPos(&bg_scrpos_y, lamp_state.background.y);
+    LampSetPos(&bg2_scrpos_x, lamp_state.background2.x);
+    LampSetPos(&bg2_scrpos_y, lamp_state.background2.y);
+    LampSetPos(&bg3_scrpos_x, lamp_state.background3.x);
+    LampSetPos(&bg3_scrpos_y, lamp_state.background3.y);
 
     if (LEVEL_ZONE(level_id) == ZoneId_LZ) {  // Is this Labyrinth Zone?
         wtr_pos2 = lamp_state.water_level.pos;
@@ -535,6 +543,7 @@ uint8_t sonicend;
 uint16_t lz_deform;
 uint8_t f_switch[0x10];
 bool f_wtunneldisallow = false;
+bool f_lz1tunnel_open = false;
 uint8_t obj63_loaded[0x80];
 bool f_slidemode = false;
 
@@ -821,7 +830,28 @@ void DynamicLevelEvents(void) {
                 LEVEL_LAYOUT_FG(5)[13] = 0x18;
                 QueueSound2(sfx_Rumbling);
             }
-            // TODO spawn boss (id_BossLabyrinth not ported yet)
+            if (dle_routine == 0) {
+#ifdef SCP_FIX_BUGS
+                // Load the boss earlier so Eggman's art has finished
+                // decompressing before he's on screen.
+                uint16_t boss_cam_x = 0x1DE0 - 0x1C0; // boss_lz_x-$1C0
+#else
+                uint16_t boss_cam_x = 0x1DE0 - 0x140; // boss_lz_x-$140
+#endif
+                if ((uint16_t)scrpos_x.f.u >= (uint16_t)(boss_cam_x - SCREEN_WIDEADD2) &&
+                    (uint16_t)scrpos_y.f.u < 0xC0 + 0x540) { // boss_lz_y+$540
+                    Object *boss = FindFreeObj();
+                    if (boss != NULL) {
+                        memset(boss, 0, sizeof(Object)); // don't inherit a stale slot
+                        boss->mappings = NULL;
+                        boss->type = ObjId_BossLabyrinth;
+                    }
+                    QueueSound1(bgm_Boss);
+                    lock_screen = true;
+                    dle_routine += 2;
+                    AddPLC(PlcId_Boss);
+                }
+            }
             break;
         case 3: // Act 4 (SBZ3) -- TODO
             break;
@@ -1074,6 +1104,15 @@ static bool ChkLoadObj(uint8_t index, const uint8_t** entry) {
     if (obj == NULL)
         return true; // Result from FindFreeObj, not d0
 
+    // FixBugs forced on (C vs ASM): the original relies on DeleteObject
+    // leaving every free slot zeroed. Here a slot can still hold stale bytes
+    // from a write after ObjectDelete -- a leftover nonzero routine made the
+    // new object skip its init entirely (e.g. LZ1's secret raft never
+    // appeared and ignored switch 2). Every level-placed object starts from
+    // a clean slot.
+    memset(obj, 0, sizeof(Object));
+    obj->mappings = NULL;
+
     obj->pos.l.x.f.u = ((*entry)[0] << 8) | ((*entry)[1] << 0);
     *entry += 2;
 
@@ -1114,6 +1153,7 @@ void ObjPosLoad(void) {
         objstate_right = 1;
         memset(objstate, 0, sizeof(objstate));
         memset(obj63_loaded, 0, sizeof(obj63_loaded));
+        f_lz1tunnel_open = false; // doors respawn shut along with objstate
 
         // Load immediately on-screen objects
         int16_t load_x = (scrpos_x.f.u - 0x80) & ~0x7F;

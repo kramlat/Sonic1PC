@@ -251,8 +251,12 @@ GM_Level_Branch:;
     bg2_scroll_flags_dup = 0;
     bg3_scroll_flags_dup = 0;
 
-    last_lamp = 0;
-    prev_lamp = 0;
+    // The lamppost counter is deliberately NOT cleared here: this runs again for
+    // every restart (dying, time over), and a restart must keep it so that
+    // LevelSizeLoad can restore the checkpoint. The original clears it only when
+    // the level actually changes -- title screen (GM_Title.c), end-of-act card
+    // (TitleCard.c), SBZ2 -> SBZ3 (Sonic.c) -- and the port already does that.
+    // (It used to be cleared here, which wiped every checkpoint on death.)
 
     // Clear screen
     ClearScreen();
@@ -270,11 +274,17 @@ GM_Level_Branch:;
     VDP_SetHIntEnable(false);
     if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
         VDP_SetHIntEnable(true);
-        // LZWaterFeatures() (called every frame from the level loop below)
-        // keeps hbla_counter and VDP's h-int counter in sync with the water
-        // surface's current scanline from here on. TODO: it doesn't yet
-        // drive the real water *height* (LZWindTunnels/LZWaterSlides/
-        // LZDynamicWater aren't ported), only its surface sway.
+        // Matches the original: all three water heights start at the act's
+        // WaterHeight entry, and the dynamic water routine and "screen is
+        // all underwater" flag are cleared. A checkpoint restore
+        // (Obj_Checkpoint_LoadInfo, via LevelSizeLoad below) overrides these
+        // afterwards. Without the routine reset, LZ3 inherited LZ1's
+        // finished routine (LZ2 never touches it) and started with water.
+        // LZ act 4 is SBZ3, see [[project_lz_act4_sbz3]].
+        static const int16_t WaterHeight[4] = { 0xB8, 0x328, 0x900, 0x228 };
+        wtr_pos1 = wtr_pos2 = wtr_pos3 = WaterHeight[LEVEL_ACT(level_id)];
+        wtr_routine = 0;
+        wtr_state = 0;
     }
     air = 30;
 
@@ -365,14 +375,6 @@ GM_Level_Branch:;
         rings = 0;
         level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
         life_num = 0;
-
-        // Initial water height at level start (checkpoint restore instead
-        // loads it from lamp_state via Obj_Checkpoint_LoadInfo). LZ act 4
-        // is SBZ3, see [[project_lz_act4_sbz3]].
-        if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
-            static const int16_t WaterHeight[4] = { 0xB8, 0x328, 0x900, 0x228 };
-            wtr_pos2 = WaterHeight[LEVEL_ACT(level_id)];
-        }
     }
 
     time_over = false;

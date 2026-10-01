@@ -231,6 +231,10 @@ extern uint8_t sonicend;
 extern uint16_t lz_deform;
 extern uint8_t f_switch[0x10];
 extern bool f_wtunneldisallow; // LZ wind tunnels aren't ported yet -- coordinated with by FloatingBlock.c and FlapDoor.c
+// FloatingBlock.c -- LZ1's switch-3 door in front of the first (underwater, lower
+// route) wind tunnel is fully open. Port change: that tunnel stays off
+// until then, see LZWindTunnels.
+extern bool f_lz1tunnel_open;
 extern uint8_t obj63_loaded[0x80]; // LZConveyor.c -- per-group "platform group already spawned" flags
 extern bool f_slidemode; // LZWaterFeatures.c -- set while Sonic is on a water slide
 

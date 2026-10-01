@@ -52,274 +52,34 @@ struct SpriteQueue {
 //Don't re-enable this until all objects are implemented
 //...Trust me
 
-void Obj_Sonic(Object *obj);
-void Obj_SpecialSonic(Object *obj);
-void Obj_Signpost(Object *obj);
-void Obj_TitleSonic(Object *obj);
-void Obj_PSB(Object *obj);
-void Obj_GHZTunnel(Object *obj);
-void Obj_GHZBridge(Object *obj);
-void Obj_Crabmeat(Object *obj);
-void Obj_HUD(Object *obj);
-void Obj_BuzzBomber(Object *obj);
-void Obj_BuzzMissile(Object *obj);
-void Obj_BuzzExplode(Object *obj);
-void Obj_Ring(Object *obj);
-void Obj_Monitor(Object *obj);
-void Obj_Checkpoint(Object *obj);
-void Obj_Explosion(Object *obj);
-void Obj_ExplosionBomb(Object *obj);
-void Obj_Chopper(Object *obj);
-void Obj_MonitorItem(Object *obj);
-void Obj_TitleCard(Object *obj);
-void Obj_GotThroughCard(Object *obj);
-void Obj_Animals(Object *obj);
-void Obj_Points(Object *obj);
-void Obj_Spikes(Object *obj);
-void Obj_RingLoss(Object *obj);
-void Obj_ShieldInvincibility(Object *obj);
-void Obj_GameOverCard(Object *obj);
-void Obj_GHZRock(Object *obj);
-void Obj_SwingingPlatform(Object *obj);
-void Obj_BigSpikeBall(Object *obj);
-void Obj_Motobug(Object *obj);
-void Obj_Spring(Object *obj);
-void Obj_Newtron(Object *obj);
-void Obj_GHZEdge(Object *obj);
-void Obj_Credits(Object *obj);
-void Obj_Waterfall(Object *obj);
-void Obj_GiantRing(Object *obj);
-void Obj_RingFlash(Object *obj);
-void Obj_HiddenBonus(Object *obj);
-void Obj_BasicPlatform(Object *obj);
-void Obj_SmashWall(Object *obj);
-void Obj_Scenery(Object *obj);
-void Obj_CollapseLedge(Object *obj);
-void Obj_CollapseFloor(Object *obj);
-void Obj_VanishPlatform(Object *obj);
-void Obj_Helix(Object *obj);
-void Obj_MarbleBrick(Object *obj);
-void Obj_Button(Object *obj);
-void Obj_SmashBlock(Object *obj);
-void Obj_MovingBlock(Object *obj);
-void Obj_LargeGrass(Object *obj);
-void Obj_GrassFire(Object *obj);
-void Obj_LavaTag(Object *obj);
-void Obj_Caterkiller(Object *obj);
-void Obj_LavaMaker(Object *obj);
-void Obj_LavaBall(Object *obj);
-void Obj_GlassBlock(Object *obj);
-void Obj_Basaran(Object *obj);
-void Obj_ChainStomp(Object *obj);
-void Obj_GeyserMaker(Object *obj);
-void Obj_LavaGeyser(Object *obj);
-void Obj_PushBlock(Object *obj);
-void Obj_Yadrin(Object *obj);
-void Obj_SpinningLight(Object *obj);
-void Obj_Bumper(Object *obj);
-void Obj_Roller(Object *obj);
-void Obj_SpikeBall(Object *obj);
-void Obj_FloatingBlock(Object *obj);
-void Obj_SidewaysStomper(Object *obj);
-void Obj_LavaWall(Object *obj);
-void Obj_LZWaterfall(Object *obj);
-void Obj_FlapDoor(Object *obj);
-void Obj_Harpoon(Object *obj);
-void Obj_Pole(Object *obj);
-void Obj_Gargoyle(Object *obj);
-void Obj_LabyrinthBlock(Object *obj);
-void Obj_LabyrinthConvey(Object *obj);
-void Obj_Jaws(Object *obj);
-void Obj_Burrobot(Object *obj);
-void Obj_Orbinaut(Object *obj);
-void Obj_Bomb(Object *obj);
-void Obj_Elevator(Object *obj);
-void Obj_CirclingPlatform(Object *obj);
-void Obj_Staircase(Object *obj);
-void Obj_Pylon(Object *obj);
-void Obj_Fan(Object *obj);
-void Obj_Seesaw(Object *obj);
-void Obj_Electrocuter(Object *obj);
-void Obj_SmallDoor(Object *obj);
-void Obj_SBZConveyor(Object *obj);
-void Obj_Flamethrower(Object *obj);
-void Obj_GirderBlock(Object *obj);
-void Obj_ScrapStomp(Object *obj);
-void Obj_SpinPlatform(Object *obj);
-void Obj_RunningDisc(Object *obj);
-void Obj_RotatingJunction(Object *obj);
-void Obj_Saw(Object *obj);
-void Obj_SpinConveyor(Object *obj);
-void Obj_Teleporter(Object *obj);
-void Obj_BossGreenHill(Object *obj);
-void Obj_BossBall(Object *obj);
-void Obj_BossMarble(Object *obj);
-void Obj_BossFire(Object *obj);
-void Obj_BossSpringYard(Object *obj);
-void Obj_BossBlock(Object *obj);
-void Obj_PrisonCapsule(Object *obj);
-void Obj_VanishSonic(Object *obj);
-void Obj_MagicSwitch(Object *obj);
-void Obj_BallHog(Object *obj);
-void Obj_Cannonball(Object *obj);
-
-static void (*object_func[])(Object*) = {
-	/* ObjId_Null                */ NULL,
-	/* ObjId_Sonic               */ Obj_Sonic,
-	/* ObjId_02                  */ Obj_Null,
-	/* ObjId_PathSwapper         */ Obj_PathSwapper,
-	/* ObjId_04                  */ Obj_Null,
-	/* ObjId_05                  */ Obj_Null,
-	/* ObjId_06                  */ Obj_Null,
-	/* ObjId_07                  */ Obj_Null,
-	/* ObjId_Splash              */ Obj_Splash,
-	/* ObjId_SpecialSonic        */ Obj_SpecialSonic,
-	/* ObjId_DrownCount          */ Obj_DrownCount,
-	/* ObjId_Pole                */ Obj_Pole,
-	/* ObjId_FlapDoor            */ Obj_FlapDoor,
-	/* ObjId_Signpost            */ Obj_Signpost,
-	/* ObjId_TitleSonic          */ Obj_TitleSonic,
-	/* ObjId_PSB                 */ Obj_PSB,
-	/* ObjId_GHZTunnel           */ Obj_GHZTunnel,
-	/* ObjId_GHZBridge           */ Obj_GHZBridge,
-	/* ObjId_SpinningLight       */ Obj_SpinningLight,
-	/* ObjId_LavaMaker           */ Obj_LavaMaker,
-	/* ObjId_LavaBall            */ Obj_LavaBall,
-	/* ObjId_SwingingPlatform    */ Obj_SwingingPlatform,
-	/* ObjId_Harpoon             */ Obj_Harpoon,
-	/* ObjId_Helix               */ Obj_Helix,
-	/* ObjId_BasicPlatform       */ Obj_BasicPlatform,
-	/* ObjId_19                  */ Obj_Null,
-	/* ObjId_CollapseLedge       */ Obj_CollapseLedge,
-	/* ObjId_WaterSurface        */ Obj_WaterSurface,
-	/* ObjId_Scenery             */ Obj_Scenery,
-	/* ObjId_MagicSwitch         */ Obj_MagicSwitch,
-	/* ObjId_BallHog             */ Obj_BallHog,
-	/* ObjId_Crabmeat            */ Obj_Crabmeat,
-	/* ObjId_Cannonball          */ Obj_Cannonball,
-	/* ObjId_HUD                 */ Obj_HUD,
-	/* ObjId_BuzzBomber          */ Obj_BuzzBomber,
-	/* ObjId_BuzzMissile         */ Obj_BuzzMissile,
-	/* ObjId_BuzzExplode         */ Obj_BuzzExplode,
-	/* ObjId_Ring                */ Obj_Ring,
-	/* ObjId_Monitor             */ Obj_Monitor,
-	/* ObjId_Explosion           */ Obj_Explosion,
-	/* ObjId_Animal              */ Obj_Animals,
-	/* ObjId_Points              */ Obj_Points,
-	/* ObjId_SmallDoor           */ Obj_SmallDoor,
-	/* ObjId_Chopper             */ Obj_Chopper,
-	/* ObjId_Jaws                */ Obj_Jaws,
-	/* ObjId_Burrobot            */ Obj_Burrobot,
-	/* ObjId_MonitorItem         */ Obj_MonitorItem,
-	/* ObjId_LargeGrass          */ Obj_LargeGrass,
-	/* ObjId_GlassBlock          */ Obj_GlassBlock,
-	/* ObjId_ChainStomp          */ Obj_ChainStomp,
-	/* ObjId_Button              */ Obj_Button,
-	/* ObjId_PushBlock           */ Obj_PushBlock,
-	/* ObjId_TitleCard           */ Obj_TitleCard,
-	/* ObjId_GrassFire           */ Obj_GrassFire,
-	/* ObjId_Spikes              */ Obj_Spikes,
-	/* ObjId_RingLoss            */ Obj_RingLoss,
-	/* ObjId_ShieldInvincibility */ Obj_ShieldInvincibility,
-	/* ObjId_GameOverCard        */ Obj_GameOverCard,
-	/* ObjId_GotThroughCard      */ Obj_GotThroughCard,
-	/* ObjId_GHZRock             */ Obj_GHZRock,
-	/* ObjId_SmashWall           */ Obj_SmashWall,
-	/* ObjId_BossGreenHill       */ Obj_BossGreenHill,
-	/* ObjId_PrisonCapsule       */ Obj_PrisonCapsule,
-	/* ObjId_ExplosionBomb       */ Obj_ExplosionBomb,
-	/* ObjId_Motobug             */ Obj_Motobug,
-	/* ObjId_Spring              */ Obj_Spring,
-	/* ObjId_Newtron             */ Obj_Newtron,
-	/* ObjId_Roller              */ Obj_Roller,
-	/* ObjId_GHZEdge             */ Obj_GHZEdge,
-	/* ObjId_SidewaysStomper     */ Obj_SidewaysStomper,
-	/* ObjId_MarbleBrick         */ Obj_MarbleBrick,
-	/* ObjId_Bumper              */ Obj_Bumper,
-	/* ObjId_BossBall            */ Obj_BossBall,
-	/* ObjId_Waterfall           */ Obj_Waterfall,
-	/* ObjId_VanishSonic         */ Obj_VanishSonic,
-	/* ObjId_GiantRing           */ Obj_GiantRing,
-	/* ObjId_GeyserMaker         */ Obj_GeyserMaker,
-	/* ObjId_LavaGeyser          */ Obj_LavaGeyser,
-	/* ObjId_LavaWall            */ Obj_LavaWall,
-	/* ObjId_4F                  */ Obj_Null,
-	/* ObjId_Yadrin              */ Obj_Yadrin,
-	/* ObjId_SmashBlock          */ Obj_SmashBlock,
-	/* ObjId_MovingBlock         */ Obj_MovingBlock,
-	/* ObjId_CollapseFloor       */ Obj_CollapseFloor,
-	/* ObjId_LavaTag             */ Obj_LavaTag,
-	/* ObjId_Basaran             */ Obj_Basaran,
-	/* ObjId_FloatingBlock       */ Obj_FloatingBlock,
-	/* ObjId_SpikeBall           */ Obj_SpikeBall,
-	/* ObjId_BigSpikeBall        */ Obj_BigSpikeBall,
-	/* ObjId_Elevator            */ Obj_Elevator,
-	/* ObjId_CirclingPlatform    */ Obj_CirclingPlatform,
-	/* ObjId_Staircase           */ Obj_Staircase,
-	/* ObjId_Pylon               */ Obj_Pylon,
-	/* ObjId_Fan                 */ Obj_Fan,
-	/* ObjId_Seesaw              */ Obj_Seesaw,
-	/* ObjId_Bomb                */ Obj_Bomb,
-	/* ObjId_Orbinaut            */ Obj_Orbinaut,
-	/* ObjId_LabyrinthBlock      */ Obj_LabyrinthBlock,
-	/* ObjId_Gargoyle            */ Obj_Gargoyle,
-	/* ObjId_LabyrinthConvey     */ Obj_LabyrinthConvey,
-	/* ObjId_Bubble              */ Obj_Bubble,
-	/* ObjId_LZWaterfall         */ Obj_LZWaterfall,
-	/* ObjId_Junction            */ Obj_RotatingJunction,
-	/* ObjId_RunningDisc         */ Obj_RunningDisc,
-	/* ObjId_SBZConveyor         */ Obj_SBZConveyor,
-	/* ObjId_SpinPlatform        */ Obj_SpinPlatform,
-	/* ObjId_Saw                 */ Obj_Saw,
-	/* ObjId_ScrapStomp          */ Obj_ScrapStomp,
-	/* ObjId_VanishPlatform      */ Obj_VanishPlatform,
-	/* ObjId_Flamethrower        */ Obj_Flamethrower,
-	/* ObjId_Electrocuter        */ Obj_Electrocuter,
-	/* ObjId_SpinConvey          */ Obj_SpinConveyor,
-	/* ObjId_GirderBlock         */ Obj_GirderBlock,
-	/* ObjId_InvisibleBarrier    */ Obj_InvisibleBarrier,
-	/* ObjId_Teleporter          */ Obj_Teleporter,
-	/* ObjId_BossMarble          */ Obj_BossMarble,
-	/* ObjId_BossFire            */ Obj_BossFire,
-	/* ObjId_BossSpringYard      */ Obj_BossSpringYard,
-	/* ObjId_BossBlock           */ Obj_BossBlock,
-	/* ObjId_77                  */ Obj_Null,
-	/* ObjId_Caterkiller         */ Obj_Caterkiller,
-	/* ObjId_Checkpoint          */ Obj_Checkpoint,
-	/* ObjId_7A                  */ Obj_Null,
-	/* ObjId_7B                  */ Obj_Null,
-	/* ObjId_RingFlash           */ Obj_RingFlash,
-	/* ObjId_HiddenBonus         */ Obj_HiddenBonus,
-	/* ObjId_7E                  */ Obj_Null,
-	/* ObjId_7F                  */ Obj_Null,
-	/* ObjId_80                  */ Obj_Null,
-	/* ObjId_81                  */ Obj_Null,
-	/* ObjId_82                  */ Obj_Null,
-	/* ObjId_83                  */ Obj_Null,
-	/* ObjId_84                  */ Obj_Null,
-	/* ObjId_85                  */ Obj_Null,
-	/* ObjId_86                  */ Obj_Null,
-	/* ObjId_87                  */ Obj_Null,
-	/* ObjId_88                  */ Obj_Null,
-	/* ObjId_89                  */ Obj_Null,
-	/* ObjId_Credits             */ Obj_Credits,
-	/* ObjId_8B                  */ Obj_Null,
-	/* ObjId_8C                  */ Obj_Null,
-};
+#include "Objects.s1.inc.c"
 
 //Object functions
+// The original zeroes a slot when its object is deleted, so every free slot it hands out
+// is clean. Slots here can still hold stale bytes (a leftover anim_frame, routine, frame...
+// made objects spawned from them misbehave or read past their animation scripts), so
+// hand out zeroed slots.
+static void ClearFreeSlot(Object *obj) {
+	memset(obj, 0, sizeof(Object));
+	obj->mappings = NULL;
+}
+
 Object *FindFreeObj(void) {
 	Object *obj = level_objects;
 	for (int i = 0; i < LEVEL_OBJECTS; i++, obj++)
-		if (obj->type == ObjId_Null)
+		if (obj->type == ObjId_Null) {
+			ClearFreeSlot(obj);
 			return obj;
+		}
 	return NULL; //Original would return the address at the end of object space, I believe
 }
 
 Object *FindNextFreeObj(Object *obj) {
 	for (; (obj - objects) < OBJECTS; obj++)
-		if (obj->type == ObjId_Null)
+		if (obj->type == ObjId_Null) {
+			ClearFreeSlot(obj);
 			return obj;
+		}
 	return NULL; //Original would return the address at the end of object space, I believe
 }
 
@@ -962,14 +722,20 @@ void FragmentatePlatform(Object *obj, int count, const uint8_t *delays) {
 // off-by-one).
 int16_t ObjHitWallRight(Object *obj, int16_t x_off) {
     uint8_t angle;
-    return FindWall(obj, (int16_t)(obj->pos.l.x.f.u + x_off), obj->pos.l.y.f.u, META_SOLID_TOP, 0, 0x10, &angle);
+    return FindWall(obj, (int16_t)(obj->pos.l.x.f.u + x_off), obj->pos.l.y.f.u, META_SOLID_LRB, 0, 0x10, &angle);
 }
 
 int16_t ObjHitWallLeft(Object *obj, int16_t x_off) {
     uint8_t angle;
-    return FindWall(obj, (int16_t)(obj->pos.l.x.f.u + x_off), obj->pos.l.y.f.u, META_SOLID_TOP, 0, -0x10, &angle);
+    return FindWall(obj, (int16_t)(obj->pos.l.x.f.u + x_off), obj->pos.l.y.f.u, META_SOLID_LRB, 0, -0x10, &angle);
 }
 
+// All three object wall/ceiling probes check the left/right/bottom solidity
+// bit (hardcoded $D in P128 -- "MJ: set solid type to check (changed from
+// $E)"), NOT the top-solid bit that ObjFloorDist uses. Top-solid data
+// describes one-way floors, so probing it for a ceiling or wall reports bogus
+// hits (e.g. LZ1's rising platforms got shoved 32px into the floor the moment
+// they started to rise).
 // Real hardware's own ObjHitCeiling: distance from the object's own top
 // edge (obj->y_rad above center) to the nearest solid ceiling directly
 // above it, using the same "check a tile from below" heightmap-flip
@@ -978,7 +744,7 @@ int16_t ObjHitWallLeft(Object *obj, int16_t x_off) {
 // coordinate). Negative return means a ceiling was hit.
 int16_t ObjHitCeiling(Object *obj) {
     uint8_t angle;
-    return FindFloor(obj, obj->pos.l.x.f.u, (int16_t)((obj->pos.l.y.f.u - obj->y_rad) ^ 0xF), META_SOLID_TOP, META_Y_FLIP, -0x10, &angle);
+    return FindFloor(obj, obj->pos.l.x.f.u, (int16_t)((obj->pos.l.y.f.u - obj->y_rad) ^ 0xF), META_SOLID_LRB, META_Y_FLIP, -0x10, &angle);
 }
 
 // Real hardware's own ChkObjectVisible: strict on-screen check against the

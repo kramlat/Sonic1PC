@@ -284,6 +284,8 @@ set(
   "src/Object/BossFire.h"
   "src/Object/BossSpringYard.c"
   "src/Object/BossSpringYard.h"
+  "src/Object/BossLabyrinth.c"
+  "src/Object/BossLabyrinth.h"
   "src/Object/BossBlock.c"
   "src/Object/BossBlock.h"
   "src/Object/PrisonCapsule.c"
@@ -1156,7 +1158,10 @@ foreach(FILENAME IN LISTS ASM)
     COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}/${DIRECTORY}"
     COMMAND clownassembler_tool -i "${IN_DIR}/${FILENAME}.asm" -o
             "${OUT_DIR}/${FILENAME}"
-    DEPENDS clownassembler_tool "${IN_DIR}/${FILENAME}.asm")
+    # Run from asm/ so that "include" paths (Mappings/_MapMacros.asm) resolve.
+    WORKING_DIRECTORY "${IN_DIR}"
+    DEPENDS clownassembler_tool "${IN_DIR}/${FILENAME}.asm"
+            "${IN_DIR}/Mappings/_MapMacros.asm")
   target_sources(SonicCore PRIVATE "${OUT_DIR}/${FILENAME}")
 endforeach()
 
@@ -1351,7 +1356,11 @@ if(BUILD_TESTS)
     # (see tests/test_plc.c, tests/test_leveldraw.c) rather than
     # reimplementing their logic.
     add_executable(SonicTests "tests/test_main.c" "tests/test_plc.c"
-                               "tests/test_leveldraw.c" "tests/test_levelcollision.c")
+                               "tests/test_leveldraw.c" "tests/test_levelcollision.c"
+                               "tests/test_prison.c" "tests/test_lz3wall.c"
+                               "tests/test_bosslz.c" "tests/test_lzconveyor.c"
+                               "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_objcollision.c"
+                               "tests/test_giantring.c" "tests/test_checkpoint.c")
     target_link_libraries(SonicTests PRIVATE SonicCore)
     set_target_properties(SonicTests PROPERTIES C_STANDARD 99
                                                  C_STANDARD_REQUIRED ON

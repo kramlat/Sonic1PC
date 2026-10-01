@@ -1,6 +1,9 @@
 #include "test.h"
 
 #include "PLC.h"
+#include "Constants.h"
+
+#include <stdbool.h>
 
 // Regression tests for the two PLC.c bugs found while debugging the
 // titlecard hang/crash (2026-08): the queue that GM_Level pushes for a GHZ
@@ -59,7 +62,36 @@ static void PLC_AddPLCDoesNotOverflowWhenFull(void) {
         CHECK(plc_buffer[i].art != NULL);
 }
 
+// The P128 migration (d414074) dropped Art_Splash from PLC_LZ along with the
+// level-art entries, but it is object art (waterfalls and splashes), not part
+// of the Kosinski level art -- every waterfall drew level tiles instead.
+extern const uint8_t Art_Splash[];
+
+static void PLC_LZLoadsWaterfallSplashArt(void) {
+    ClearPLC();
+    NewPLC(PlcId_LZ);
+    bool found = false;
+    for (int i = 0; i < 16 && plc_buffer[i].art != NULL; i++)
+        if (plc_buffer[i].art == Art_Splash && plc_buffer[i].off == ART_VRAM(ArtTile_LZ_Splash))
+            found = true;
+    CHECK(found);
+    ClearPLC();
+}
+
+// SBZ's collapsing floor art (Nem_SbzFloor) is 4 tiles, loaded at $3F5 in SBZ1 and
+// $3F9 in SBZ2. res/Art/SBZFloor used to be a copy of the 15-tile sliding-floor
+// art, so the floors drew wrong graphics and, in SBZ2, the extra tiles spilled
+// over the art after tile $3F9.
+extern const uint8_t Art_SBZFloor[];
+extern const uint8_t Art_SlideFloor[];
+static void PLC_SBZCollapsingFloorArtIsFourTiles(void) {
+    CHECK_EQ(((Art_SBZFloor[0] << 8) | Art_SBZFloor[1]) & 0x7FFF, 4);
+    CHECK(((Art_SlideFloor[0] << 8) | Art_SlideFloor[1]) != ((Art_SBZFloor[0] << 8) | Art_SBZFloor[1]));
+}
+
 void RegisterPLCTests(void) {
     RUN_TEST(PLC_DrainsExactlyFullQueue);
     RUN_TEST(PLC_AddPLCDoesNotOverflowWhenFull);
+    RUN_TEST(PLC_LZLoadsWaterfallSplashArt);
+    RUN_TEST(PLC_SBZCollapsingFloorArtIsFourTiles);
 }

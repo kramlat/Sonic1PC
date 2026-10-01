@@ -42,7 +42,7 @@ static void DynWater_LZ1(void) {
         target = 0x318;
 
         if (x < 0x1080) goto setTarget;
-        f_switch[5] |= 0x80;
+        f_switch[5] = 0x80; // real ASM overwrites the byte (forces the tunnel door closed, see FBlock_LZSmallDoor_Close)
         target = 0x5C8;
 
         if (x < 0x1380) goto setTarget;
@@ -91,7 +91,7 @@ static void DynWater_LZ3(void) {
             LEVEL_LAYOUT_FG(5)[12] = 0xF8;
             LEVEL_LAYOUT_FG(5)[13] = 0xF9;
             wtr_routine = 1;
-            PlaySound(sfx_Rumbling);
+            QueueSound2(sfx_Rumbling);
         }
 
         wtr_pos3 = target;
@@ -116,13 +116,19 @@ static void DynWater_LZ3(void) {
 
         wtr_pos3 = target;
     } else if (wtr_routine == 2) {
-        target = 0x508;
+        target = 0x508; // shallow for the lamppost
 
-        if (x >= 0x1860)
+        // Only once the camera reaches the first cork does the water rise
+        // (so the corks lift as platforms), and routine 3 waits until it has
+        // actually reached $188 -- or the camera is past the rest room.
+        // Checking "target == wtr_pos2" outside this block advanced on the
+        // very first frame (routine 1 had just snapped the water to $508),
+        // and routine 3 then snapped it straight to $188 at the lamppost.
+        if (x >= 0x1860) {
             target = 0x188;
-
-        if (x >= 0x1AF0 || target == wtr_pos2)
-            wtr_routine = 3;
+            if (x >= 0x1AF0 || target == wtr_pos2)
+                wtr_routine = 3;
+        }
 
         wtr_pos3 = target;
     } else if (wtr_routine == 3) {
@@ -135,7 +141,7 @@ static void DynWater_LZ3(void) {
                 wtr_routine = 4;
                 wtr_pos3 = 0x608;
                 wtr_pos2 = 0x7C0; // Force a starting point to speed up rising
-                f_switch[8] |= 1;
+                f_switch[8] = 1; // opens a hidden door/wall (its switch was probably cut in development)
                 return;
             }
         }
@@ -143,7 +149,15 @@ static void DynWater_LZ3(void) {
         wtr_pos3 = target;
         wtr_pos2 = target;
     } else if (wtr_routine == 4) {
+        // Boss shaft: once the camera is in the shaft, the water rises slowly
+        // towards the top of the level behind Eggman.
+#ifdef SCP_FIX_BUGS
+        // Checking the shaft's left side means hugging the left wall on the
+        // way up can no longer skip the rising water entirely.
+        if (x >= 0x1DA0)
+#else
         if (x >= 0x1E00)
+#endif
             wtr_pos3 = 0x128;
     }
 }
@@ -239,6 +253,10 @@ static void LZWindTunnels(void) {
             QueueSound2(sfx_Waterfall);
 
         if (f_wtunneldisallow)
+            return;
+        // Port change: LZ1's first tunnel stays completely off until the
+        // switch-3 door across it is fully open (see FloatingBlock.c).
+        if (act == 0 && i == 0 && !f_lz1tunnel_open)
             return;
         if (player->routine >= 4) {
             tunnel_mode = 0;

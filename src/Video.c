@@ -43,6 +43,9 @@ void VDPSetupGame(void) {
 	memset(dry_palette_dup, 0, sizeof(dry_palette_dup));
 	memset(wet_palette, 0, sizeof(wet_palette));
 	memset(wet_palette_dup, 0, sizeof(wet_palette_dup));
+
+	// The original's VDPSetupArray writes $8004: h-interrupt off.
+	VDPDisableWaterSplit();
 }
 
 void WaitForVBla(void) {

@@ -119,3 +119,10 @@ typedef struct {
     uint8_t psg_noise_fb_white;
 } Z80PeekData;
 void Render_SetZ80Peek(bool active, const Z80PeekData *data);
+
+// Toggles between windowed and borderless fullscreen (F11). Fullscreen uses
+// the desktop's current resolution (no display mode change) and scales the
+// game image up as far as it fits, preserving aspect ratio -- the leftover
+// screen area is black letterbox/pillarbox bars. No-op on backends without a
+// window.
+void Render_ToggleFullscreen(void);

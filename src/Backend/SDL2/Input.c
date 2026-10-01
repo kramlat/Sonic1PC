@@ -4,6 +4,7 @@
 #include "../../Console.h"
 
 #include "Backend/Joypad.h"
+#include "Backend/VDP.h"
 
 // Gamepad support. Deliberately uses SDL_GameController (not raw
 // SDL_Joystick) so Steam Input's virtual controller -- which SDL sees as a
@@ -45,6 +46,12 @@ int Input_HandleEvents(void) {
 				}
 				break;
 			case SDL_KEYDOWN:
+				// F11 toggles fullscreen (works in every build, not just the debug
+				// console one). Ignore key repeat so holding it doesn't flicker.
+				if (e.key.keysym.scancode == SDL_SCANCODE_F11 && !e.key.repeat) {
+					Render_ToggleFullscreen();
+					break;
+				}
 				// Debug console only (SonicSmoke) -- console_enabled stays
 				// false in the real Sonic executable, so this whole block
 				// is dead weight there, never touching normal gameplay

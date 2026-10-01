@@ -162,7 +162,30 @@ void EntryPoint(void) {
     }
 }
 
+// Turns the LZ water palette split off: no h-interrupt, line back at its
+// dormant 223, nothing deferred to HBlank, screen not "all underwater".
+// Matches the original writing $8004 (8-colour mode, h-int disabled) when
+// the title screen and special stages set up the VDP -- leaving LZ with the
+// split still armed made the title screen draw with the water palette.
+void VDPDisableWaterSplit(void) {
+    VDP_SetHIntEnable(false);
+    hbla_counter = 223;
+    VDP_SetHIntCounter(223);
+    hblank_pal = false;
+    doupdatesinhblank = false;
+    wtr_state = 0;
+}
+
 // Interrupts
+// Matches "move.w (v_hblank_hreg).w,(a5)" in the original VBlank routines:
+// re-arm the LZ water palette-swap scanline every frame. HBlank resets the
+// counter to 223 after each swap, and LZWaterFeatures (which computes the
+// line) does not run while paused, so without this the split was lost after
+// the first paused frame and the whole screen drew with the dry palette.
+static void WriteHBlankLine(void) {
+    VDP_SetHIntCounter(hbla_counter);
+}
+
 void WriteVRAMBuffers(void) {
     // Read joypad state
     ReadJoypads();
@@ -264,6 +287,19 @@ void VBlank(void) {
 
     // Run VBlank routine
     switch (routine) {
+    case 0x00:
+        // Lag frame. Only LZ does anything here in the original: rewrite
+        // the palette and the water palette-swap line so a lag frame keeps
+        // the split intact.
+        if (((gamemode & 0x7F) == GameMode_Level) && LEVEL_ZONE(level_id) == ZoneId_LZ) {
+            VDP_SeekCRAM(0);
+            if (wtr_state)
+                VDP_WriteCRAM(&wet_palette[0][0], 0x40);
+            else
+                VDP_WriteCRAM(&dry_palette[0][0], 0x40);
+            WriteHBlankLine();
+        }
+        break;
     case 0x02:
         WriteVRAMBuffers();
         // Fallthrough
@@ -289,6 +325,7 @@ void VBlank(void) {
             VDP_WriteCRAM(&wet_palette[0][0], 0x40);
         else
             VDP_WriteCRAM(&dry_palette[0][0], 0x40);
+        WriteHBlankLine();
 
         // Copy buffers -- sprite_buffer no longer gets copied into VRAM; VDP_Render
         // reads it directly via VDP_SetSpriteBuffer (see Video.c's VDPSetupGame).
@@ -387,6 +424,7 @@ void VBlank(void) {
             VDP_WriteCRAM(&wet_palette[0][0], 0x40);
         else
             VDP_WriteCRAM(&dry_palette[0][0], 0x40);
+        WriteHBlankLine();
 
         // Copy buffers -- sprite_buffer no longer gets copied into VRAM; VDP_Render
         // reads it directly via VDP_SetSpriteBuffer (see Video.c's VDPSetupGame).
@@ -434,6 +472,7 @@ void VBlank(void) {
         break;
     case 0x12:
         WriteVRAMBuffers();
+        WriteHBlankLine();
         ProcessDPLC();
         break;
     }

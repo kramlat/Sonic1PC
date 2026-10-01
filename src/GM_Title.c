@@ -356,7 +356,7 @@ void GM_Title(void) {
     VDP_SetPlaneBLocation(VRAM_BG);
     VDP_SetBackgroundColour(0x20); // Line 2, entry 0
 
-    wtr_state = 0;
+    VDPDisableWaterSplit();
 
     // Clear screen
     ClearScreen();

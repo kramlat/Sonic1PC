@@ -24,11 +24,12 @@ static void WFall_OnWater(Object *obj) {
 }
 
 static void WFall_Priority(Object *obj) {
-    obj->tile &= (uint16_t)~0x80; // render on low plane (hidden behind level chunk)
-    // LZ3 water slide wall: opened once LEVEL_LAYOUT_FG(5)[12] gets
-    // swapped to chunk $F8 by DynWater_LZ3 (see LZWaterFeatures.c).
-    if (LEVEL_LAYOUT_FG(5)[12] == 0xF8)
-        obj->tile |= 0x80; // render on high plane (visible)
+    obj->tile &= (uint16_t)~0x8000; // render on low plane (hidden behind level chunk)
+    // LZ3 water slide wall: visible only once switch $F has made
+    // DLE_LZ3 swap row 5, columns 12-13 to chunks $17/$18 (MJ: P128
+    // compares the whole word $1718). $F8/$F9 there is the closed wall.
+    if (LEVEL_LAYOUT_FG(5)[12] == 0x17 && LEVEL_LAYOUT_FG(5)[13] == 0x18)
+        obj->tile |= 0x8000; // render on high plane (visible)
     WFall_Animate(obj);
 }
 
@@ -43,7 +44,7 @@ static void WFall_Main(Object *obj) {
 
     uint8_t subtype = obj->scratch.u8[0];
     if ((int8_t)subtype < 0)
-        obj->tile |= 0x80; // high-priority VRAM tile half
+        obj->tile |= 0x8000; // high-priority flag (real ASM bsets bit 7 of obGfx's high byte)
 
     uint8_t frame = subtype & 0xF;
     obj->frame = frame;
@@ -61,11 +62,9 @@ static void WFall_Main(Object *obj) {
     if (subtype & 0x20) // subtype $A9 -- hidden splash in LZ3's changing chunk (takes priority over the above)
         obj->routine = 8;
 
-    switch (obj->routine) {
-    case 6: WFall_OnWater(obj); break;
-    case 8: WFall_Priority(obj); break;
-    default: WFall_Animate(obj); break;
-    }
+    // Real ASM falls straight into WFall_Animate here for every splash
+    // variant; routines 6/8 only take over from the next frame.
+    WFall_Animate(obj);
 }
 
 void Obj_LZWaterfall(Object *obj) {

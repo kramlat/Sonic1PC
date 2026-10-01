@@ -10,6 +10,8 @@
 #include "Resource/Mappings/PrisonCapsule.h"
 #include "Sound.h"
 
+#include <string.h>
+
 // Object 3E - prison capsule after boss fights. Only subtypes 0 (capsule)
 // and 1 (switch) are ever actually placed; 2/3 are leftovers from deleted
 // prototype subtypes, kept faithfully.
@@ -60,6 +62,22 @@ static void Pri_BodyMain(Object *obj) {
     SolidObject(obj, (uint16_t)x_rad, 48 / 2, 48 / 2, obj->pos.l.x.f.u, NULL, NULL);
 }
 
+// A FindFreeObj() slot can still carry stale bytes from whatever last lived
+// there (see BossSpringYard.c). Obj_Animals_Construct branches on the
+// subtype byte, and a leftover nonzero value sends a prison animal down the
+// ending-sequence path with the wrong art (the "bouncing Eggman cockpit").
+// Start every animal from a fully cleared slot, like the real DeleteObject
+// guarantees.
+static Object *Pri_NewAnimal(void) {
+    Object *animal = FindFreeObj();
+    if (animal != NULL) {
+        memset(animal, 0, sizeof(Object));
+        animal->mappings = NULL;
+        animal->type = ObjId_Animal;
+    }
+    return animal;
+}
+
 static void Pri_SpawnAnimals(Object *obj) {
     boss_status = 2; // set prison as being opened
     obj->routine = 0xC; // advance to Pri_Animals
@@ -71,10 +89,9 @@ static void Pri_SpawnAnimals(Object *obj) {
     int16_t delay = (2 * 60) + 34;
     int16_t x_off = -28;
     for (int i = 0; i < 8; i++) {
-        Object *animal = FindFreeObj();
+        Object *animal = Pri_NewAnimal();
         if (animal == NULL)
             return;
-        animal->type = ObjId_Animal;
         animal->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + x_off);
         animal->pos.l.y.f.u = obj->pos.l.y.f.u;
         ((Scratch_Animals *)&animal->scratch)->timer = (uint16_t)delay;
@@ -130,9 +147,8 @@ static void Pri_Explosion(Object *obj) {
 static void Pri_Animals(Object *obj) {
     if (((uint8_t)frame_count & 7) == 0) { // only spawn an animal every 8 frames
         // These animals hop out almost as soon as they are spawned in.
-        Object *animal = FindFreeObj();
+        Object *animal = Pri_NewAnimal();
         if (animal != NULL) {
-            animal->type = ObjId_Animal;
             animal->pos.l.x.f.u = obj->pos.l.x.f.u;
             animal->pos.l.y.f.u = obj->pos.l.y.f.u;
 

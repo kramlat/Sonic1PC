@@ -2,6 +2,7 @@
 #include "Game.h"
 #include "Sound.h"
 #include <stdio.h>
+#include <string.h>
 
 /* ---------------------------------------------------------------------------
 ; Object 79 - lamppost (Checkpoint)
@@ -31,7 +32,7 @@ void Obj_Checkpoint(Object *obj) {
         }
 
         case 2: { /* Lamp_Blue / Active Idle */
-            if (debug_use != 0 || lock_ctrl > 0x7F) break;
+            if (debug_use != 0 || (lock_multi & 0x80)) break; // f_playerctrl bit 7: object interaction disabled
             /* If we've already passed a newer checkpoint, turn red and stop checking */
             if ((last_lamp & 0x7F) >= (scratch->subtype & 0x7F)) {
                 objstate[obj->respawn_index] |= 1;
@@ -51,6 +52,11 @@ void Obj_Checkpoint(Object *obj) {
                 /* Spawn the twirling ball object */
                 Object* ball = FindFreeObj();
                 if (ball) {
+                    // FindFreeObj() slots can hold stale bytes (see BossSpringYard.c): a
+                    // leftover angle changes where the twirl starts, and a leftover respawn
+                    // index makes RememberState corrupt another object's respawn flags.
+                    memset(ball, 0, sizeof(Object));
+                    ball->mappings = NULL;
                     Scratch_Checkpoint* ball_scratch = (Scratch_Checkpoint*)&ball->scratch;
                     ball->type = ObjId_Checkpoint;
                     ball->routine = 6; /* Lamp_Twirl */
@@ -79,10 +85,8 @@ void Obj_Checkpoint(Object *obj) {
            break;
 
         case 6: { /* Lamp_Twirl */
-            if ((int16_t)--scratch->time < 0) {
-                obj->routine = 4;
-                break;
-            }
+            if ((int16_t)--scratch->time < 0)
+                obj->routine = 4; // like the original, still twirls once more this frame
 
             uint8_t angle = obj->angle;
             obj->angle -= 0x10;
@@ -113,23 +117,25 @@ void Obj_Checkpoint_StoreInfo(Object *obj, const Scratch_Checkpoint *scratch)
     prev_lamp = last_lamp;
 
     // Store Player position for respawn
-    // Note: Truncating the 32-bit fixed point position to 16-bit integer pixels
-    lamp_state.spawn.x = (uint16_t)obj->pos.l.x.v;
-    lamp_state.spawn.y = (uint16_t)obj->pos.l.y.v;
+    // The position words are 16.16 fixed point: the PIXEL position is the high word
+    // (f.u). Truncating .v to 16 bits kept the fractional low word instead, so
+    // the saved respawn position and camera were all 0.
+    lamp_state.spawn.x = (uint16_t)obj->pos.l.x.f.u;
+    lamp_state.spawn.y = (uint16_t)obj->pos.l.y.f.u;
 
     // Store Status variables
     lamp_state.rings    = rings;
-    lamp_state.lives    = lives;
+    lamp_state.lives    = life_count; // the original stores v_lifecount (not the lives number)
     lamp_state.time     = level_time; // Struct copy (LevelTime)
     lamp_state.dle      = dle_routine;
     lamp_state.limitbtm = limit_btm2;
 
     // Store Camera/Scroll positions
-    lamp_state.foreground.x  = (uint16_t)scrpos_x.v;
-    lamp_state.foreground.y  = (uint16_t)scrpos_y.v;
+    lamp_state.foreground.x  = (uint16_t)scrpos_x.f.u;
+    lamp_state.foreground.y  = (uint16_t)scrpos_y.f.u;
 
-    lamp_state.background.x  = (uint16_t)bg_scrpos_x.v;
-    lamp_state.background.y  = (uint16_t)bg_scrpos_y.v;
+    lamp_state.background.x  = (uint16_t)bg_scrpos_x.f.u;
+    lamp_state.background.y  = (uint16_t)bg_scrpos_y.f.u;
 
     lamp_state.background2.x = (uint16_t)bg2_scrpos_x.f.u;
     lamp_state.background2.y = (uint16_t)bg2_scrpos_y.f.u;

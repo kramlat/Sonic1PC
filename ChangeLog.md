@@ -4,6 +4,88 @@ Session notes capturing context, rationale, and outstanding work that isn't
 already recorded in code comments or commit history — written so this
 survives conversation summarization/compaction. Newest work first.
 
+## SonLVL project files: all zones now on the recomp's resources, more definitions
+
+**Status: done for every zone; checked with scripts, not opened in SonLVL itself.**
+
+`SonLVL INI Files/` now reads the recomp's own files everywhere (`../res/Art`,
+`Map16`, `Map128`, `Layout`, `ObjectLayout`, `Palette`, `Collision`,
+`../asm/Mappings`) instead of the disasm's `../../artnem` etc. `SonLVL.ini` was
+only converted up to SYZ; LZ, SLZ, SBZ, Final Zone and Ending are done now,
+plus every definition file under LZ/SLZ/SBZ/END and their `.ini` lists. File
+names were matched by content where possible (palettes, art), by name otherwise.
+`startpos=` lines are dropped from the converted sections (no export path for
+them yet); `buildscr`/`romfile` are disasm-specific and were left alone. Every
+path in the folder resolves, and every object placed in any zone's layout has a
+definition.
+
+New or corrected definitions: LZ conveyor (`$63`: spawners draw their whole
+platform group), SBZ platform conveyor (`$6F`, same), SBZ stomper/door/lift
+(`$6B`, also registered for SBZ3), MZ chained stomper (`$31`) and lava geyser
+maker (`$4C`) (both placed in MZ but had no definition), SBZ teleporter (`$72`,
+draws each route), SLZ floating blocks (`$56`, shares the SYZ definition, whose
+movement names were wrong and now follow `FBlock_TypeIndex`). The other 34
+implemented objects without a definition are spawned at runtime only
+(explosions, HUD, bosses, ...) and are not placed in layouts.
+
+**Game bug found on the way: `res/Art/SBZFloor` was the wrong art.** It was a
+copy of the 15-tile sliding-floor-trap art; the real collapsing floor art
+(`SBZ Collapsing Floor.nem`) is 4 tiles, loaded at $3F5 in SBZ1 and $3F9 in
+SBZ2. So SBZ's collapsing floors drew the wrong graphics and, in SBZ2, the extra
+tiles spilled over the art after $3F9. Replaced with the real file, and
+`test_plc.c` now pins it to 4 tiles.
+
+## Sprite mappings converted to macros (asm/Mappings)
+
+**Status: 131 of 143 files converted; every converted file verified byte-identical to its original.**
+
+The mapping sources in `asm/Mappings/*.asm` (assembled into `res/Mappings` by
+the build) now use macros instead of raw `dc.b` data: `mappingsTable`,
+`mappingsTableEntry`, `spriteHeader` (piece count is automatic, from its
+`<label>_End`) and `spritePiece x, y, w, h, tile, xflip, yflip, pal, pri`.
+They live in `asm/Mappings/_MapMacros.asm`, which each file `include`s. The
+macros are written in SN 68k (asm68k) syntax -- `\*` for the label on the
+invocation line, `@` local labels -- because clownassembler mimics SN 68k and
+rejects P128's `{INTLABEL}` version. Includes resolve relative to the working
+directory, so the assemble rule in `CMakeLists.txt` now runs from `asm/` (and
+rebuilds when the macro file changes).
+
+`tools/mapconv/mapconv.pl` did the conversion and is the safety net: it only
+keeps a file if the macro version assembles to EXACTLY the same bytes as the
+original (dry run by default, `--apply` to write). Checked against the git HEAD
+originals: 142 of 143 mapping files assemble identically; the only difference
+is `LZBlocks.asm`, where the block frame's tile word was wrong (`$FFFA`, should
+be `$FDFA`). 12 files with unusual layouts (Sonic's own mappings, DPLC data,
+title/results screens, ...) were left as they were.
+
+## Fullscreen toggle (F11)
+
+**Status: done, verified headless (window flags, scale, cursor, pixel readback); not yet seen on a real display.**
+
+F11 toggles borderless fullscreen (`SDL_WINDOW_FULLSCREEN_DESKTOP`, so the
+desktop resolution is used as-is -- no mode change), F11 again returns to the
+window. The frame is rendered at the windowed size in SDL *logical* pixels
+(`SDL_RenderSetLogicalSize`), so SDL scales the game image -- and every
+overlay (countdown pie, Z80 peek, console), which are laid out in those same
+units -- up to fit the screen while keeping the aspect ratio; the rest is
+black letterbox/pillarbox bars (`ClearLetterbox` blanks the whole target each
+frame). In the normal window the scale is exactly 1:1, so nothing changes
+there. Mouse cursor is hidden in fullscreen. Key handling is in
+`Backend/SDL2/Input.c` (works in every build, ignores key repeat); the toggle
+is `Render_ToggleFullscreen()` (declared in `Backend/VDP.h`, implemented in
+`Backend/SDL2/Render.c`).
+
+**The letterbox is a stopgap.** It exists only because the VDP still renders a
+fixed 4:3-ish 320x224. The logical size is derived from `TEXTURE_WIDTH *
+SCREEN_SCALE` (i.e. `SCREEN_WIDTH`, already parametrised via
+`SCREEN_WIDEADD/2` in the camera code), so once the VDP is adapted for
+widescreen the bars shrink on their own -- no fullscreen changes needed.
+
+Non-integer scale factors use SDL's default nearest-neighbour filtering, so on
+screens that aren't an integer multiple of the window size some pixel rows/
+columns are slightly uneven; an integer-scale mode or linear filtering are
+possible follow-ups.
+
 ## Sound playback driver (Sound.c) + PlaySound/PlayMusic API
 
 **Status: real, working driver — PSG/DAC audible, FM wired but untested by ear; tempo bugs from this session found and fixed via SCHG wiki cross-referencing.**

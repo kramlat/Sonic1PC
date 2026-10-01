@@ -143,7 +143,7 @@ void GM_Special(void) {
 	memset(nemesis_buffer, 0, sizeof(nemesis_buffer));
 	
 	//Clear other memory
-	wtr_state = 0;
+	VDPDisableWaterSplit(); // also clears wtr_state -- special stages are entered straight from levels (incl. LZ)
 	restart = false;
 	
 	//Load special stage palette and layout

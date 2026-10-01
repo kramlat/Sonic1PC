@@ -1,5 +1,8 @@
 #include "SDL_render.h"
 #include "SDL_timer.h"
+#include "SDL_events.h"
+#include "SDL_mouse.h"
+#include "SDL_video.h"
 
 #include "../VDP.h"
 #include "../../Video.h"
@@ -72,6 +75,14 @@ int Render_Init(const MD_Header* header) {
         SDL_FreeSurface(icon_surface);
     }
 
+    // Always render at the windowed size in "logical" pixels: SDL then scales
+    // the whole frame (game image and the overlays below, which are all laid
+    // out in these units) to whatever the window or fullscreen desktop is, and
+    // letterboxes to keep the aspect ratio. In the normal window it is exactly
+    // 1:1, so nothing changes there.
+    // The letterbox is a stopgap until the VDP renders widescreen: the logical
+    // size follows TEXTURE_WIDTH (i.e. SCREEN_WIDTH), so once that grows the
+    // bars shrink on their own and nothing here needs to change.
     // Show window now that the icon's been loaded
     SDL_ShowWindow(window);
 
@@ -99,6 +110,7 @@ int Render_Init(const MD_Header* header) {
         printf("Render_Init: %s\n", SDL_GetError());
         return -1;
     }
+    SDL_RenderSetLogicalSize(renderer, TEXTURE_WIDTH * SCREEN_SCALE, TEXTURE_HEIGHT * SCREEN_SCALE);
 
     // Set up our own frame clock. Used as the sole pacing source when
     // display vsync isn't trustworthy, and to keep the two in sync
@@ -113,6 +125,26 @@ int Render_Init(const MD_Header* header) {
     }
 
     return 0;
+}
+
+// Black out the whole render target before the frame is drawn, so the
+// letterbox bars in fullscreen are clean (SDL only draws inside the logical
+// viewport, leaving anything outside it with whatever was there before).
+static void ClearLetterbox(void) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+}
+
+void Render_ToggleFullscreen(void) {
+    if (window == NULL)
+        return;
+
+    bool to_fullscreen = (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) != SDL_WINDOW_FULLSCREEN_DESKTOP;
+    if (SDL_SetWindowFullscreen(window, to_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) != 0) {
+        printf("Render_ToggleFullscreen: %s\n", SDL_GetError());
+        return;
+    }
+    SDL_ShowCursor(to_fullscreen ? SDL_DISABLE : SDL_ENABLE);
 }
 
 // GM_Countdown's pie-wipe progress indicator -- see the comment on
@@ -601,6 +633,7 @@ void Render_Screen(const uint32_t* screen) {
     if (use_vsync_present) {
         // Let display vsync present at the right cadence to reduce tearing.
         for (int i = 0; i < vsync; i++) {
+            ClearLetterbox();
             SDL_RenderCopy(renderer, texture, NULL, NULL);
             DrawCountdownPie();
             DrawZ80Peek();
@@ -608,6 +641,7 @@ void Render_Screen(const uint32_t* screen) {
             SDL_RenderPresent(renderer);
         }
     } else {
+        ClearLetterbox();
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         DrawCountdownPie();
         DrawZ80Peek();

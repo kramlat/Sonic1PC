@@ -132,7 +132,7 @@ typedef enum {
 	/*74*/ ObjId_BossFire,
 	/*75*/ ObjId_BossSpringYard,
 	/*76*/ ObjId_BossBlock,
-	/*77*/ ObjId_77,
+	/*77*/ ObjId_BossLabyrinth,
 	/*78*/ ObjId_Caterkiller,
 	/*79*/ ObjId_Checkpoint,
 	/*7A*/ ObjId_7A,

@@ -1,5 +1,7 @@
 #include "SpinConveyor.h"
 
+#include <string.h>
+
 #include "Level.h"
 #include "LevelScroll.h"
 #include "LZConveyor.h"
@@ -105,6 +107,7 @@ static void SpinC_Main_Platform(Object *obj, Scratch_LCon *scratch, uint8_t subt
 
     scratch->posindex = subtype & 0xF;
     scratch->increment = 1;
+    scratch->reversed = false; // the spawner's own slot isn't cleared -- don't trust a stale byte
 
     if (convey_rev) {
         scratch->reversed = true;
@@ -142,6 +145,15 @@ static void SpinC_Main_Spawner(Object *obj, uint8_t subtype) {
         Object *plat = (i == 0) ? obj : FindNextFreeObj(obj);
         if (plat == NULL)
             break;
+
+        if (plat != obj) {
+            // FixBugs forced on (crash-class under C): a FindNextFreeObj()
+            // slot can carry stale bytes. A leftover nonzero routine skipped
+            // platform init, so the stale host pointer in scratch->points
+            // got dereferenced at the first corner. Start from a clean slot.
+            memset(plat, 0, sizeof(Object));
+            plat->mappings = NULL;
+        }
 
         plat->type = ObjId_SpinConvey;
         plat->pos.l.x.f.u = (int16_t)((data[0] << 8) | data[1]);

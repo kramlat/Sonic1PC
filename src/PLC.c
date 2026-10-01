@@ -237,10 +237,11 @@ static const PLCList PLC_GHZ2 = {
 // Pattern load cues - Labyrinth
 // ---------------------------------------------------------------------------
 static const PLCList PLC_LZ = {
-    10,
+    11,
     (const PLC[]) {
         { Art_LZBlock1,      ART_VRAM(ArtTile_LZ_Block_1) },
         { Art_LZBlock2,      ART_VRAM(ArtTile_LZ_Block_2) },
+        { Art_Splash,        ART_VRAM(ArtTile_LZ_Splash) }, // waterfalls and splash -- object art, not part of the Kosinski level art
         { Art_Water,         ART_VRAM(ArtTile_LZ_Water_Surface) },
         { Art_LZSpikeBall,   ART_VRAM(ArtTile_LZ_Spikeball_Chain) },
         { Art_FlapDoor,      ART_VRAM(ArtTile_LZ_Flapping_Door) },
