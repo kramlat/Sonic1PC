@@ -48,6 +48,30 @@ static void SpikeBall_LZChainLinksAreCleanInDirtySlots(void) {
     }
 }
 
+// The ball sits in a high slot with no free slot after it: its chain must still spawn (into the
+// free slots before it), instead of leaving a bare ball.
+static void SpikeBall_ChainSpawnsWhenNoSlotFreeAfterParent(void) {
+    for (int i = 0; i < LEVEL_OBJECTS; i++) {
+        memset(&level_objects[i], 0, sizeof(Object));
+        level_objects[i].type = i < 10 ? ObjId_Null : ObjId_Ring; // only slots 0-9 are free
+    }
+    level_id = LEVEL_ID(ZoneId_LZ, 0);
+    memset(player, 0, sizeof(Object));
+    scrpos_x.f.u = 0;
+
+    Object *ball = &level_objects[LEVEL_OBJECTS - 1];
+    memset(ball, 0, sizeof(Object));
+    ball->type = ObjId_SpikeBall;
+    ball->pos.l.x.f.u = 0x100;
+    ball->pos.l.y.f.u = 0x100;
+    ball->scratch.u8[0] = 0xD4; // an LZ1 placement: 4 links
+    Obj_SpikeBall(ball);
+
+    Scratch_SpikeBall *sc = (Scratch_SpikeBall *)&ball->scratch;
+    CHECK_EQ(sc->children, 4);
+}
+
 void RegisterSpikeBallTests(void) {
+    RUN_TEST(SpikeBall_ChainSpawnsWhenNoSlotFreeAfterParent);
     RUN_TEST(SpikeBall_LZChainLinksAreCleanInDirtySlots);
 }

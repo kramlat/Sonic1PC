@@ -1,4 +1,5 @@
 #include "Sonic.h"
+#include "DebugLog.h"
 
 #include "Game.h"
 #include "GM_Level.h"
@@ -809,6 +810,7 @@ static signed int ReactToItem(Object *obj) {
 signed int HurtSonic(Object *obj, Object *src)
 {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+    DEBUG_LOG("player", "hurt at (%d,%d) rings=%u shield=%u", obj->pos.l.x.f.u, obj->pos.l.y.f.u, rings, shield);
 
     // Lose rings and shield
     if (!shield) {
@@ -850,6 +852,7 @@ signed int HurtSonic(Object *obj, Object *src)
 
 int32_t KillSonic(Object *obj, Object *src) {
     (void)src;
+    DEBUG_LOG("player", "killed at (%d,%d) lives=%u rings=%u", obj->pos.l.x.f.u, obj->pos.l.y.f.u, lives, rings);
     Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Check if we can be killed
@@ -1583,6 +1586,18 @@ static void Sonic_UpdateSpindash(Object *obj) {
     Sonic_ReleaseSpindash(obj);
 }
 
+// Abandons a spin dash that is still charging when Sonic leaves the ground some other
+// way than releasing it (e.g. a seesaw launch). Clearing only the flag left the dust
+// companion in its Dash animation, so it kept following Sonic through the air.
+void Sonic_CancelSpindash(void) {
+    if (!(spindash_flag & 1))
+        return;
+    spindash_flag &= ~1;
+    spindash_count = 0;
+    if (objects[0x1B].anim == SplashAnim_Dash)
+        objects[0x1B].anim = SplashAnim_Null;
+}
+
 static bool Sonic_SpinDash(Object *obj) {
     if (spindash_flag & 1) {
         Sonic_UpdateSpindash(obj);
@@ -2118,7 +2133,7 @@ void Obj_Sonic(Object* obj) {
                 Sonic_SlopeRepel(obj);
                 break;
             case 2: // Not in ball, in air
-                spindash_flag &= ~1; // see-saw bug fix: don't get stuck charging if launched airborne
+                Sonic_CancelSpindash(); // see-saw bug fix: don't get stuck charging if launched airborne
                 Sonic_JumpHeight(obj);
                 Sonic_JumpDirection(obj);
                 Sonic_LevelBound(obj);
@@ -2142,7 +2157,7 @@ void Obj_Sonic(Object* obj) {
                 Sonic_SlopeRepel(obj);
                 break;
             case 6: // In ball, in air
-                spindash_flag &= ~1; // see-saw bug fix
+                Sonic_CancelSpindash(); // see-saw bug fix
                 Sonic_JumpHeight(obj);
                 Sonic_JumpDirection(obj);
                 Sonic_LevelBound(obj);

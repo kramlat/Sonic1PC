@@ -86,7 +86,11 @@ static void SBall_Main(Object *obj, Scratch_SpikeBall *scratch) {
         loop_count--;
 
     for (int i = 0; loop_count >= 0 && i <= loop_count; i++) {
-        Object *link = FindNextFreeObj(obj);
+        // The original's default is FindFreeObj (a free slot anywhere). Its optional FixBugs variant,
+        // FindNextFreeObj(parent), only looks after the ball's own slot and drops the whole chain
+        // when none is free there -- a bare ball. A link placed before the ball only costs a stray
+        // frame if it is deleted after being queued for display, which BuildSprites skips safely.
+        Object *link = FindFreeObj();
         if (link == NULL)
             break;
 

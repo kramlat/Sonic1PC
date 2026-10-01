@@ -216,6 +216,7 @@ static void See_Spikeball_InAir_FallingDown(Object *obj, Scratch_Seesaw *scratch
             parent->routine = 2; // reset seesaw back to See_Seesaw_Platform
             player->ysp = (int16_t)-obj->ysp; // bounce Sonic based on the ball's landing speed
             player->status.p.f.in_air = true;
+            Sonic_CancelSpindash(); // reset the charge so landing doesn't release it like a drop dash
             player->status.p.f.object_stand = false;
             ((Scratch_Sonic *)&player->scratch)->jumping = 0;
             player->anim = SonAnimId_Spring;

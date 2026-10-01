@@ -62,13 +62,16 @@ void OscillateNumDo(void) {
         if (!is_down) {
             oscillatory.state[i][1] += frequency;
             oscillatory.state[i][0] += oscillatory.state[i][1];
-            if ((uint8_t)(oscillatory.state[i][0] >> 8) > amplitude) {
+            // Original: `cmp.b 0(a1),d4` then `bhi` -- it only stays "up" while amplitude > value,
+            // so equality already flips to down.
+            if (!(amplitude > (uint8_t)(oscillatory.state[i][0] >> 8))) {
                 oscillatory.direction |= (1 << (15 - i));
             }
         } else {
             oscillatory.state[i][1] -= frequency;
             oscillatory.state[i][0] += oscillatory.state[i][1];
-            if ((uint8_t)(oscillatory.state[i][0] >> 8) <= amplitude) {
+            // Original: `cmp.b 0(a1),d4` then `bls` -- only flips back to up while amplitude > value.
+            if (amplitude > (uint8_t)(oscillatory.state[i][0] >> 8)) {
                 oscillatory.direction &= ~(1 << (15 - i));
             }
         }

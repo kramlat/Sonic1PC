@@ -4,6 +4,50 @@ Session notes capturing context, rationale, and outstanding work that isn't
 already recorded in code comments or commit history — written so this
 survives conversation summarization/compaction. Newest work first.
 
+## The Qt window is now THE game executable (plain-SDL2 window build dropped)
+
+**Status: builds, all 7 ctest suites pass (the smoke runs boot the Qt game with `QT_QPA_PLATFORM=offscreen`); frames and viewers verified headless, not yet looked at on a real display.**
+
+There is no `BACKEND` option any more: `bin/<config>/Sonic` is the Qt build. (A stale pre-Qt `bin/Release/Sonic` may still be lying around
+until the next Release build.) The game is now a `QMainWindow` with a real `QMenuBar` (File: Fullscreen/Quit, Help: About) and the
+frame is drawn as a texture on a `QOpenGLWidget` in the middle. Design: SDL stays for audio, gamepads and the
+rendering itself -- SDL's *software* renderer draws the frame plus all the debug overlays into a surface
+(`Render.c`, `Render_InitQt`), and `QtHost_Present` hands that surface to the widget, so none of the overlay code
+changed. Keyboard comes from Qt (`QtHost_KeyState`, same SDL scancode indexing) and Qt key events are pushed into
+SDL's queue so F11/console handling is unchanged. SDL gets the dummy video driver so it never touches the display.
+Frame pacing is the existing own-clock path (no display vsync). Files: `src/Backend/Qt/QtHost.{h,cpp}`; `#ifdef
+SCP_BACKEND_QT` in `Render.c`, `Input.c`, `System.c`.
+
+**Debug viewers (Qt backend, View menu)** -- only shown while debug mode is active (`debug_cheat`: always in debug builds,
+or after the C,C,C,C + Up/Down/Left/Right code). They replace the in-frame Tab/Alt overlays (which are disabled under Qt)
+and read real data through plain-C accessors (`VDP_Peek*` in VDP.c, `src/DebugPeek.{h,c}`, `Backend/PeekData.h`):
+*VDP Viewer* (scrolling VRAM tile sheet with palette/zoom/grid + tile inspector; live VDP CRAM, game water and dry palettes;
+sprite table in link order with a preview), *Sound Viewer* (YM2612: key, algorithm + routing, feedback, pan, block/F-num/Hz,
+TL1-4; SN76489 tones with period/Hz/attenuation dB, noise mode), *Object RAM* (all object slots + raw bytes of one). Dev
+hooks: `SONIC_QT_OPEN=vdp,sound,objects` opens them at startup, `SONIC_QT_GRAB=<prefix>` saves PNGs of every window/tab.
+Planned for this menu bar (user, 2026-10-01): a mod loader (.so/.dll with mods such as new characters or levels) that can add
+entries to a Settings menu and override things like the level select and level order.
+
+**Audio is Qt Multimedia now (SDL audio dropped).** `src/Backend/Qt/QtAudio.cpp`: two `QAudioSink`s in push mode, one for the music chip set and one
+for the sound effects, fed once per frame (soft-clipped each; created on the first frame because `Audio_Init` runs before the QApplication exists;
+no audio device = silent, not a crash). `Sound_Generate` was split into `Sound_GenerateMusic` / `Sound_GenerateSfx` (it is still exactly their sum,
+for the tools). **Audio menu**: Music and Sound Effects each get a mute check box and a volume slider; *Channels* mutes FM1-6, PSG tone 1-3, PSG
+noise and the DAC individually (`Sound_SetChannelMuted`, masks inside `YM2612_SetMuteMask` / `SN76489.mute_mask`; muted channels keep running so
+unmuting resumes in step). SDL is now only used for gamepads (SDL_GameController, for Steam Input), the software renderer and timing.
+Not persisted yet (settings reset each launch). Phonon was considered and rejected: it plays media files, it has no push-PCM path.
+
+**Logging** (View > Logging, debug mode only): Start/Stop Logging, Log File... (file used the next time logging starts) and Show Log.
+`DEBUG_LOG("category", "fmt", ...)` (src/DebugLog.h) costs one flag test while off; entries go to an 8192-entry ring (Log window: filter,
+auto-scroll, save) and, if chosen, to a file (flushed per line). Currently logged: game mode changes, level start, checkpoints, hurt/death,
+every PlaySound/PlayMusic. Add more call sites freely. Dev hook: `SONIC_QT_LOG=<file>` starts logging as soon as debug mode is on.
+Also: *Variables* viewer (src/DebugVars.c table, generated from the extern declarations; filter, group, change highlighting, double-click to
+edit) -- add a `WATCH(...)`/`WATCH_ARRAY(...)` line to expose another variable.
+
+Planned: wire the smoke test and demo recorder into this app (user, 2026-10-01), plus the mod loader below.
+
+To add menu entries: `MainWindow::BuildMenus` in `QtHost.cpp` (no `&` mnemonics -- Alt is a game key). Fullscreen
+(F11 or menu) hides the menu bar.
+
 ## SonLVL project files: all zones now on the recomp's resources, more definitions
 
 **Status: done for every zone; checked with scripts, not opened in SonLVL itself.**

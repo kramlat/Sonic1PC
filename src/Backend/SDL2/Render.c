@@ -8,6 +8,8 @@
 #include "../../Video.h"
 #include "../../Console.h"
 
+#include "../Qt/QtHost.h"
+
 #include <math.h>
 #include <stdio.h>
 
@@ -42,14 +44,14 @@
 // Icon
 #include "Resource/Icon.h"
 
-// Window and renderer
-static SDL_Window* window = NULL;
+// The frame and all overlays are rendered by SDL's software renderer into this surface,
+// which the Qt window (Backend/Qt/QtHost) then shows on a drawing widget.
+static SDL_Surface* target = NULL;
 static SDL_Renderer* renderer = NULL;
 static SDL_Texture* texture = NULL;
 
 // Render state
 int vsync;
-static int use_vsync_present; //Whether display vsync itself is trustworthy for pacing (exact 60Hz multiple)
 static Uint64 perf_freq;
 static Uint64 next_frame_time;
 
@@ -58,93 +60,35 @@ static uint32_t prev_frame[TEXTURE_HEIGHT][TEXTURE_WIDTH];
 static int prev_frame_valid;
 #endif
 
-// Backend render interface
+// Backend render interface. SDL renders (software renderer) into an RGBA surface the size of the
+// windowed logical frame, and QtHost shows that surface on a drawing widget in a QMainWindow.
+// The overlays below only need an SDL_Renderer. Frame pacing is our own clock (no display vsync).
 int Render_Init(const MD_Header* header) {
-    // Create window
-    if ((window = SDL_CreateWindow(header->title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, TEXTURE_WIDTH * SCREEN_SCALE, TEXTURE_HEIGHT * SCREEN_SCALE, SDL_WINDOW_HIDDEN)) == NULL) {
+    const int w = TEXTURE_WIDTH * SCREEN_SCALE, h = TEXTURE_HEIGHT * SCREEN_SCALE;
+    if (QtHost_Init(header->title, w, h, (const uint8_t*)res_Icon) != 0)
+        return -1;
+
+    // ABGR8888 packed = bytes R,G,B,A in memory, which is what the widget reads.
+    if ((target = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ABGR8888)) == NULL ||
+        (renderer = SDL_CreateSoftwareRenderer(target)) == NULL) {
         printf("Render_Init: %s\n", SDL_GetError());
         return -1;
     }
 
-    // Load icon
-    SDL_Surface* icon_surface;
-    if ((icon_surface = SDL_CreateRGBSurfaceWithFormatFrom((void*)res_Icon, 16, 16, 24, 16 * 3, SDL_PIXELFORMAT_RGB24)) == NULL) {
-        printf("Render_Init: %s\n", SDL_GetError());
-    } else {
-        SDL_SetWindowIcon(window, icon_surface);
-        SDL_FreeSurface(icon_surface);
-    }
-
-    // Always render at the windowed size in "logical" pixels: SDL then scales
-    // the whole frame (game image and the overlays below, which are all laid
-    // out in these units) to whatever the window or fullscreen desktop is, and
-    // letterboxes to keep the aspect ratio. In the normal window it is exactly
-    // 1:1, so nothing changes there.
-    // The letterbox is a stopgap until the VDP renders widescreen: the logical
-    // size follows TEXTURE_WIDTH (i.e. SCREEN_WIDTH), so once that grows the
-    // bars shrink on their own and nothing here needs to change.
-    // Show window now that the icon's been loaded
-    SDL_ShowWindow(window);
-
-    // Check if VSync should be used
-    SDL_DisplayMode display_mode;
-    SDL_GetWindowDisplayMode(window, &display_mode);
-    if (display_mode.refresh_rate > 0 && (display_mode.refresh_rate % 60) == 0) {
-        // Display refresh rate is a clean multiple of 60Hz -- hardware vsync
-        // itself gives us correct pacing, for free and tear-free.
-        vsync = display_mode.refresh_rate / 60;
-        use_vsync_present = 1;
-    } else {
-        // Non-standard/uneven refresh rate (75Hz, 90Hz, 144Hz, 165Hz, etc.),
-        // or none detected at all (e.g. headless). Hardware vsync's cadence
-        // can't be trusted to average out to 60Hz here, so we pace frames
-        // ourselves against a monotonic clock instead. This used to just
-        // present once with no delay at all in this case, running the game
-        // completely unthrottled.
-        vsync = 0;
-        use_vsync_present = 0;
-    }
-
-    // Create renderer
-    if ((renderer = SDL_CreateRenderer(window, -1, use_vsync_present ? SDL_RENDERER_PRESENTVSYNC : 0)) == NULL) {
-        printf("Render_Init: %s\n", SDL_GetError());
-        return -1;
-    }
-    SDL_RenderSetLogicalSize(renderer, TEXTURE_WIDTH * SCREEN_SCALE, TEXTURE_HEIGHT * SCREEN_SCALE);
-
-    // Set up our own frame clock. Used as the sole pacing source when
-    // display vsync isn't trustworthy, and to keep the two in sync
-    // (avoiding drift) when it is.
+    vsync = 0;
     perf_freq = SDL_GetPerformanceFrequency();
     next_frame_time = SDL_GetPerformanceCounter();
 
-    // Create screen texture
     if ((texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, TEXTURE_WIDTH, TEXTURE_HEIGHT)) == NULL) {
         printf("Render_Init: %s\n", SDL_GetError());
         return -1;
     }
-
     return 0;
 }
 
-// Black out the whole render target before the frame is drawn, so the
-// letterbox bars in fullscreen are clean (SDL only draws inside the logical
-// viewport, leaving anything outside it with whatever was there before).
-static void ClearLetterbox(void) {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-}
-
+// F11 / View menu: the Qt window handles fullscreen (and hides its menu bar while in it).
 void Render_ToggleFullscreen(void) {
-    if (window == NULL)
-        return;
-
-    bool to_fullscreen = (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) != SDL_WINDOW_FULLSCREEN_DESKTOP;
-    if (SDL_SetWindowFullscreen(window, to_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) != 0) {
-        printf("Render_ToggleFullscreen: %s\n", SDL_GetError());
-        return;
-    }
-    SDL_ShowCursor(to_fullscreen ? SDL_DISABLE : SDL_ENABLE);
+    QtHost_ToggleFullscreen();
 }
 
 // GM_Countdown's pie-wipe progress indicator -- see the comment on
@@ -266,74 +210,8 @@ static void DrawHexByteFont(uint8_t value, int x, int y, int scale, SDL_Color co
 // Z80 Peek: live FM/PSG register dump. See Backend/VDP.h for why this data
 // arrives pre-gathered from Game.c rather than this file reaching into
 // Sound.c itself.
-static bool z80_peek_active = false;
-static Z80PeekData z80_peek_data;
-
 void Render_SetZ80Peek(bool active, const Z80PeekData *data) {
-    z80_peek_active = active;
-    if (active && data)
-        z80_peek_data = *data;
-}
-
-static void DrawZ80Peek(void) {
-    if (!z80_peek_active)
-        return;
-    BuildHexFontTexture();
-
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
-    SDL_Rect bg = {4, 4, 300, 210};
-    SDL_RenderFillRect(renderer, &bg);
-
-    const int scale = 1, byte_w = 8 * scale * 2, row_h = 14;
-    const SDL_Color white = {255, 255, 255, 255};
-    const SDL_Color yellow = {255, 220, 80, 255};
-    const SDL_Color dim = {110, 110, 110, 255};
-    int y = 8;
-
-    // PSG: 3 tone channels (period, attenuation) + noise (shift rate/fb mode, attenuation)
-    for (int c = 0; c < 3; c++) {
-        int x = 8;
-        SDL_Color atten_color = (z80_peek_data.psg_tone_atten[c] < 15) ? yellow : dim; // <15 = audible
-        DrawHexByteFont((uint8_t)(z80_peek_data.psg_tone_period[c] >> 8), x, y, scale, white);
-        x += byte_w + 4;
-        DrawHexByteFont((uint8_t)(z80_peek_data.psg_tone_period[c] & 0xFF), x, y, scale, white);
-        x += byte_w + 10;
-        DrawHexByteFont(z80_peek_data.psg_tone_atten[c], x, y, scale, atten_color);
-        y += row_h;
-    }
-    {
-        int x = 8;
-        uint8_t noise_byte = (uint8_t)((z80_peek_data.psg_noise_fb_white << 2) | z80_peek_data.psg_noise_shift_rate);
-        SDL_Color atten_color = (z80_peek_data.psg_noise_atten < 15) ? yellow : dim;
-        DrawHexByteFont(noise_byte, x, y, scale, white);
-        x += byte_w + 10;
-        DrawHexByteFont(z80_peek_data.psg_noise_atten, x, y, scale, atten_color);
-        y += row_h + 6;
-    }
-
-    // FM: 6 channels (2 ports x 3), each: alg/feedback byte, 4 operator TL bytes, key-on dot.
-    for (int port = 0; port < 2; port++) {
-        for (int ch = 0; ch < 3; ch++) {
-            int chan_num = port * 3 + ch; // 0-5 = FM1-6
-            int x = 8;
-
-            bool keyed_on = (z80_peek_data.fm_keyon & (1 << chan_num)) != 0;
-            SDL_SetRenderDrawColor(renderer, keyed_on ? 80 : 60, keyed_on ? 220 : 60, keyed_on ? 100 : 60, 255);
-            SDL_Rect dot = {x, y + 1, 8, 8};
-            SDL_RenderFillRect(renderer, &dot);
-            x += 14;
-
-            DrawHexByteFont(z80_peek_data.fm_alg_fb[port][ch], x, y, scale, white);
-            x += byte_w + 10;
-            for (int op = 0; op < 4; op++) {
-                SDL_Color tl_color = (z80_peek_data.fm_tl[port][ch][op] < 100) ? yellow : dim;
-                DrawHexByteFont(z80_peek_data.fm_tl[port][ch][op], x, y, scale, tl_color);
-                x += byte_w + 4;
-            }
-            y += row_h;
-        }
-    }
+    QtHost_SetZ80Peek(active, data); // shown in the Sound Viewer window
 }
 
 // ---------------------------------------------------------------------
@@ -577,11 +455,12 @@ void Render_Quit(void) {
     if (texture != NULL)
         SDL_DestroyTexture(texture);
 
-    // Destroy window and renderer
+    // Destroy renderer, surface and window
     if (renderer != NULL)
         SDL_DestroyRenderer(renderer);
-    if (window != NULL)
-        SDL_DestroyWindow(window);
+    if (target != NULL)
+        SDL_FreeSurface(target);
+    QtHost_Quit();
 }
 
 // This takes in the internal VDP screen buffer positioned after the padding
@@ -630,35 +509,13 @@ void Render_Screen(const uint32_t* screen) {
     // Unlock screen texture and draw to window
     SDL_UnlockTexture(texture);
 
-    if (use_vsync_present) {
-        // Let display vsync present at the right cadence to reduce tearing.
-        for (int i = 0; i < vsync; i++) {
-            ClearLetterbox();
-            SDL_RenderCopy(renderer, texture, NULL, NULL);
-            DrawCountdownPie();
-            DrawZ80Peek();
-            DrawConsole();
-            SDL_RenderPresent(renderer);
-        }
-    } else {
-        ClearLetterbox();
-        SDL_RenderCopy(renderer, texture, NULL, NULL);
-        DrawCountdownPie();
-        DrawZ80Peek();
-        DrawConsole();
-        SDL_RenderPresent(renderer);
-    }
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    DrawCountdownPie();
+    DrawConsole();
+    QtHost_Present(target->pixels, target->pitch);
 
-    // Always pace ourselves against our own monotonic clock as the
-    // authoritative backstop, regardless of whether hardware vsync is
-    // in play. Presenting with SDL_RENDERER_PRESENTVSYNC is *supposed*
-    // to block until the display's next refresh, but that can't be
-    // trusted blindly -- SDL's dummy video driver (and some real
-    // broken drivers/VMs/remote desktop setups) silently doesn't
-    // block at all despite reporting a perfectly clean 60Hz-multiple
-    // refresh rate. If vsync did block us past our target time, this
-    // wait becomes a no-op; if it didn't, this is what actually
-    // enforces correct speed.
+    // Pace ourselves against our own monotonic clock: the Qt widget presents without
+    // waiting for the display's refresh, so this is what holds the game at 60 FPS.
     next_frame_time += perf_freq / 60;
 
     Uint64 now = SDL_GetPerformanceCounter();

@@ -38,6 +38,10 @@ uint8_t YM2612_PeekReg(const YM2612 *chip, int port, uint8_t reg);
 // YM2612_Write's own comment), so this isn't just another PeekReg lookup.
 uint8_t YM2612_PeekKeyOn(const YM2612 *chip);
 
+// Silences FM channels (bit n = channel n, 0-5) in the generated output; they keep running, so
+// unmuting picks up in the right place.
+void YM2612_SetMuteMask(YM2612 *chip, uint8_t mask);
+
 // Bulk voice load: writes a full voice's register set (the $B0+ch
 // algorithm/feedback byte, plus each of the 4 operators' 6 registers --
 // op_regs[op][0..5] in DT/MUL, RS/AR, AM/D1R, D2R, D1L/RR, TL order,

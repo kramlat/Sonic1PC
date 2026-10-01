@@ -38,6 +38,10 @@ typedef struct {
     // so the chip's clock/sample-rate ratio doesn't need to divide evenly
     // and successive calls don't drift or click at the boundary.
     uint32_t tick_accum;
+
+    // Output mute (audio menu): bits 0-2 = tone channels, bit 3 = noise. Muted channels keep
+    // running; they just aren't added to the output.
+    uint8_t mute_mask;
 } SN76489;
 
 void SN76489_Init(SN76489 *chip);

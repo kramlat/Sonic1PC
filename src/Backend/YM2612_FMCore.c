@@ -33,6 +33,7 @@ struct YM2612 {
     uint8_t reg_shadow[2][0x100];
     uint8_t latched_addr[2];
 
+    uint8_t mute_mask;  // debug/audio menu: bit n set = FM channel n is silenced (still clocked, so its state stays right)
     uint8_t keyon_mask; // decoded, persistent -- see YM2612_PeekKeyOn's own comment (Backend/YM2612.h)
     uint8_t pan[FM_CHANNEL_COUNT]; // top 2 bits of $B4+ch (L/R only -- AMS now lives on each FMVoice instead, see the $B4-$B6 write handler below; FMS/PMS is a supported-off fixed zero, see that handler's own comment)
 
@@ -323,6 +324,8 @@ void YM2612_Generate(YM2612 *chip, int32_t *out, uint32_t count, uint32_t sample
                 // not a distortion of the already-mixed bus.
                 if (chip->ladder_effect)
                     sample = ApplyLadderEffect(sample);
+                if (chip->mute_mask & (1u << ch))
+                    sample = 0;
                 if (chip->pan[ch] & 0x80)
                     mix_l += sample;
                 if (chip->pan[ch] & 0x40)
@@ -342,4 +345,8 @@ void YM2612_Generate(YM2612 *chip, int32_t *out, uint32_t count, uint32_t sample
             out[2 * i + 1] += chip->last_sample_r;
         }
     }
+}
+
+void YM2612_SetMuteMask(YM2612 *chip, uint8_t mask) {
+    chip->mute_mask = mask;
 }

@@ -1,5 +1,6 @@
 #include "Checkpoint.h"
 #include "Game.h"
+#include "DebugLog.h"
 #include "Sound.h"
 #include <stdio.h>
 #include <string.h>
@@ -115,6 +116,7 @@ void Obj_Checkpoint_StoreInfo(Object *obj, const Scratch_Checkpoint *scratch)
     // Assembly: move.b obSubtype(a0),(v_lastlamp).w
     last_lamp = scratch->subtype;
     prev_lamp = last_lamp;
+    DEBUG_LOG("level", "checkpoint %u stored at (%d,%d)", last_lamp & 0x7F, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
 
     // Store Player position for respawn
     // The position words are 16.16 fixed point: the PIXEL position is the high word

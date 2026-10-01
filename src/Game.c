@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "DebugLog.h"
 
 #include "HUD.h"
 #include "Backend/VDP.h"
@@ -132,6 +133,13 @@ void EntryPoint(void) {
     // Run game loop
     while (1) {
         SDL_Delay(1000 / 60);
+        {
+            static uint8_t logged_mode = 0xFF;
+            if ((gamemode & 0x7F) != logged_mode) {
+                DEBUG_LOG("game", "game mode %u -> %u", logged_mode, (unsigned)(gamemode & 0x7F));
+                logged_mode = (uint8_t)(gamemode & 0x7F);
+            }
+        }
         switch (gamemode & 0x7F) {
             case GameMode_Sega:
                 GM_Sega();
@@ -226,7 +234,7 @@ static void VBlank_UpdateScreen(void) {
         demo_length--;
 }
 
-#ifndef NDEBUG
+// Always built: the Sound Viewer is also available in release builds once the debug code is entered
 // Z80 Peek: gathers live FM/PSG register state and pushes it to the render
 // backend once per real frame. VBlank() (not EntryPoint()'s while(1), which
 // only iterates once per gamemode change -- every GM_*() function runs its
@@ -243,6 +251,9 @@ static void UpdateZ80Peek(void) {
     for (int port = 0; port < 2; port++) {
         for (int ch = 0; ch < 3; ch++) {
             peek.fm_alg_fb[port][ch] = YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0xB0 + ch));
+            peek.fm_pan[port][ch] = YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0xB4 + ch));
+            peek.fm_freq[port][ch] = (uint16_t)((YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0xA4 + ch)) & 0x3F) << 8 |
+                                                YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0xA0 + ch)));
             for (int op = 0; op < 4; op++)
                 peek.fm_tl[port][ch][op] = YM2612_PeekReg(sound_music.fm, port, (uint8_t)(0x40 + op * 4 + ch));
         }
@@ -257,12 +268,9 @@ static void UpdateZ80Peek(void) {
     peek.psg_noise_fb_white = sound_music.psg.noise_fb_white;
     Render_SetZ80Peek(true, &peek);
 }
-#endif
 
 void VBlank(void) {
-#ifndef NDEBUG
     UpdateZ80Peek();
-#endif
 
     uint8_t routine = vbla_routine;
     bool skip_music = false; // set by case 0x08 when deferring to HBlank

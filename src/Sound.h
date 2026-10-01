@@ -527,6 +527,23 @@ void Sound_SetTrace(int enabled);
 // whatever else shares the output buffer).
 void Sound_Generate(int32_t *out, uint32_t count, uint32_t sample_rate);
 
+// The same, but only the music chip set / only the sound-effect chip set (stereo, additive, like
+// Sound_Generate): Sound_Generate is exactly these two summed. The Qt audio backend runs them
+// through two separate sinks so music and effects get their own volume and mute.
+// Per-channel output mutes (the Qt Audio menu). Channels keep running while muted -- they are only left
+// out of the generated output -- and the mute applies to the music and the effect chip sets alike.
+enum {
+	SOUND_MUTE_FM1, SOUND_MUTE_FM2, SOUND_MUTE_FM3, SOUND_MUTE_FM4, SOUND_MUTE_FM5, SOUND_MUTE_FM6, // YM2612
+	SOUND_MUTE_PSG1, SOUND_MUTE_PSG2, SOUND_MUTE_PSG3, SOUND_MUTE_NOISE,                          // SN76489
+	SOUND_MUTE_DAC,                                                                               // DAC samples and the SEGA PCM clip
+	SOUND_MUTE_CHANNELS
+};
+void Sound_SetChannelMuted(int channel, bool muted);
+bool Sound_IsChannelMuted(int channel);
+
+void Sound_GenerateMusic(int32_t *out, uint32_t count, uint32_t sample_rate);
+void Sound_GenerateSfx(int32_t *out, uint32_t count, uint32_t sample_rate);
+
 // Debug/tooling only (ParadoxComposer): raw pointer to a song/SFX's
 // compiled data by ID (matches PlaySoundID's ID space, e.g. 0x81=GHZ),
 // NULL if that ID has no song registered.

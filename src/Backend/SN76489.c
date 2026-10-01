@@ -110,8 +110,10 @@ void SN76489_Generate(SN76489 *chip, int32_t *out, uint32_t count, uint32_t samp
 
         int32_t sample = 0;
         for (int c = 0; c < 3; c++)
-            sample += chip->tone_output[c] ? volume_table[chip->tone_atten[c]] : -volume_table[chip->tone_atten[c]];
-        sample += (chip->noise_lfsr & 1) ? volume_table[chip->noise_atten] : -volume_table[chip->noise_atten];
+            if (!(chip->mute_mask & (1u << c)))
+                sample += chip->tone_output[c] ? volume_table[chip->tone_atten[c]] : -volume_table[chip->tone_atten[c]];
+        if (!(chip->mute_mask & 8))
+            sample += (chip->noise_lfsr & 1) ? volume_table[chip->noise_atten] : -volume_table[chip->noise_atten];
 
         out[s] += sample;
     }

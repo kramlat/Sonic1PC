@@ -4,7 +4,8 @@ Sonic the Hedgehog (1991, Sega Genesis / MegaDrive) C Port
 
 ## Dependencies
 
-* SDL2 (if `BACKEND` is set to `SDL2`)
+* Qt 6 (Widgets and OpenGLWidgets) -- the game window, menu bar and debug tools
+* SDL2 -- audio, gamepads and the software renderer that draws the frame
 * pkg-config (for builds that require static-linkage)
 
 ## Building
@@ -24,7 +25,6 @@ You can also add the following flags:
 
 Name | Function
 --------|--------
-`-DBACKEND=SDL2` | Use the SDL2 backend (default)
 `-DREV01=ON` | Compile a REV01 ROM
 `-DJAPANESE=ON` | Compile a Japanese ROM
 `-DFIX_BUGS=ON` | Fix bugs that are blatant screw-ups that may harm performance (not gameplay bugs)

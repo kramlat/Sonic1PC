@@ -1,4 +1,5 @@
 #include "GM_Level.h"
+#include "DebugLog.h"
 
 #include "Console.h"
 #include "Demo.h"
@@ -93,6 +94,7 @@ void ResumeLevelMusic(void) {
 // Level gamemode
 void GM_Level(void) {
 GM_Level_Branch:;
+    DEBUG_LOG("level", "starting zone %u act %u (checkpoint %u, lives %u)", (unsigned)LEVEL_ZONE(level_id), (unsigned)(level_id & 0xFF) + 1, last_lamp & 0x7F, lives);
     // Set 'title card' flag
     gamemode |= 0x80;
 

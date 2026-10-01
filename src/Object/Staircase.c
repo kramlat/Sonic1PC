@@ -7,11 +7,10 @@
 // Object 5B - blocks that form a staircase when touched (SLZ)
 //
 // The first (parent) block doubles as the controller: it holds the shared
-// delay/touch/children_y state and keeps running Stair_Move every frame,
-// but -- faithfully to the real disassembly -- it never itself runs
-// Stair_Solid, so it's purely decorative and never solid. The other 3
-// blocks are spawned as children, each independently running Stair_Solid
-// and reading their own Y-offset out of the parent's children_y[] array.
+// delay/touch/children_y state and runs Stair_Move every frame. In the original
+// Stair_Move has no return of its own and falls straight into Stair_Solid, so the
+// parent is a solid, moving block like the 3 spawned children (which only run
+// Stair_Solid, reading their Y-offset out of the parent's children_y[] array).
 
 static bool Stair_OutOfRange(int16_t x) {
     uint16_t obj_pos = (uint16_t)x & 0xFF80;
@@ -60,7 +59,7 @@ static void Stair_Type01(Object *obj, Scratch_Staircase *scratch) {
     uint8_t half = d / 2;
     uint8_t quarter = d / 4;
 
-    scratch->children_y[1] = (uint8_t)(quarter + half); // 3D/4
+    scratch->children_y[1] = (uint8_t)((d * 3) / 4);    // 3D/4 -- floor of the sum, not quarter + half
     scratch->children_y[2] = half;                       // D/2
     scratch->children_y[3] = quarter;                     // D/4
 }
@@ -72,6 +71,8 @@ static void Stair_Move(Object *obj, Scratch_Staircase *scratch) {
     case 2: Stair_Type02(obj, scratch); break;
     }
 }
+
+static void Stair_Solid(Object *obj, Scratch_Staircase *scratch);
 
 static void Stair_Solid(Object *obj, Scratch_Staircase *scratch) {
     Object *parent = &objects[scratch->parent_index];
@@ -125,6 +126,7 @@ static void Stair_Main(Object *obj, Scratch_Staircase *scratch) {
     }
 
     Stair_Move(obj, scratch);
+    Stair_Solid(obj, scratch); // the parent falls through into Stair_Solid too
 }
 
 void Obj_Staircase(Object *obj) {
@@ -132,7 +134,10 @@ void Obj_Staircase(Object *obj) {
 
     switch (obj->routine) {
     case 0: Stair_Main(obj, scratch); break;
-    case 2: Stair_Move(obj, scratch); break;
+    case 2:
+        Stair_Move(obj, scratch);
+        Stair_Solid(obj, scratch);
+        break;
     case 4: Stair_Solid(obj, scratch); break;
     }
 

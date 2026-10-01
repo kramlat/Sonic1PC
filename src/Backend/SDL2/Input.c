@@ -1,10 +1,16 @@
 #include "SDL.h"
 #include <stdbool.h>
+#include <string.h>
 #include "../../Game.h"
 #include "../../Console.h"
 
 #include "Backend/Joypad.h"
 #include "Backend/VDP.h"
+
+#include "../Qt/QtHost.h"
+// The window is a Qt one, so the keyboard comes from QtHost (same SDL scancode indexing as
+// SDL_GetKeyboardState); gamepads still come from SDL.
+#define KEYBOARD_STATE() QtHost_KeyState()
 
 // Gamepad support. Deliberately uses SDL_GameController (not raw
 // SDL_Joystick) so Steam Input's virtual controller -- which SDL sees as a
@@ -30,6 +36,23 @@ static void OpenFirstPad(void) {
 //Backend input interface
 int Input_HandleEvents(void) {
 	SDL_Event e;
+	QtHost_PumpEvents();
+	if (QtHost_ShouldQuit())
+		return 1;
+	QtHost_KeyEvent qe;
+	while (QtHost_PollKeyEvent(&qe)) {
+		memset(&e, 0, sizeof(e));
+		e.type = SDL_KEYDOWN;
+		e.key.keysym.scancode = (SDL_Scancode)qe.scancode;
+		e.key.repeat = qe.repeat;
+		SDL_PushEvent(&e); // handled by the SDL_KEYDOWN case below, same as a real key press
+		if (qe.text[0]) {
+			memset(&e, 0, sizeof(e));
+			e.type = SDL_TEXTINPUT;
+			strncpy(e.text.text, qe.text, sizeof(e.text.text) - 1);
+			SDL_PushEvent(&e);
+		}
+	}
 	while (SDL_PollEvent(&e)) {
 		switch (e.type) {
 			case SDL_QUIT:
@@ -86,6 +109,8 @@ int Input_HandleEvents(void) {
 // Joypad_SetTextInputMode wrapper) -- SDL_TEXTINPUT events (used above)
 // only fire while text-input mode is active.
 void Input_SetTextInputMode(bool enable) {
+	(void)enable; // text arrives with the Qt key events (QtHost_PollKeyEvent), not from SDL
+	return;
 	if (enable)
 		SDL_StartTextInput();
 	else
@@ -96,7 +121,7 @@ void Input_SetTextInputMode(bool enable) {
 uint8_t Input_GetState1(void) {
 
 	//Get keyboard state
-	const uint8_t *key_state = SDL_GetKeyboardState(NULL);
+	const uint8_t *key_state = KEYBOARD_STATE();
 	uint8_t start = key_state[SDL_SCANCODE_RETURN] ? JPAD_START : 0;
 	// J/K/L -> A/B/C, and WASD -> D-pad (alongside the arrow keys below) --
 	// keeps movement and jump on separate, non-overlapping key clusters,
@@ -144,8 +169,7 @@ uint8_t Input_GetState1(void) {
 	//dump to players, and VDP_PALETTE_DISPLAY defaults to false regardless.
 #ifndef NDEBUG
 	static bool toggle_held_prev = false;
-	bool toggle_held = key_state[SDL_SCANCODE_TAB] ||
-	                    (pad && SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_BACK));
+	bool toggle_held = false; // the VDP viewer is a window opened from the View menu
 	if (toggle_held && !toggle_held_prev)
 		VDP_PALETTE_DISPLAY = !VDP_PALETTE_DISPLAY;
 	toggle_held_prev = toggle_held;
@@ -184,7 +208,7 @@ uint8_t Input_GetState1(void) {
 	//controller equivalent bound yet (all the natural analog-stick/shoulder
 	//buttons are already spoken for by VDP peek's own controls above).
 	static bool z80_peek_toggle_held_prev = false;
-	bool z80_peek_toggle_held = key_state[SDL_SCANCODE_LALT];
+	bool z80_peek_toggle_held = false; // the Sound Viewer is a window opened from the View menu
 	if (z80_peek_toggle_held && !z80_peek_toggle_held_prev)
 		Z80_PEEK_DISPLAY = !Z80_PEEK_DISPLAY;
 	z80_peek_toggle_held_prev = z80_peek_toggle_held;
@@ -199,7 +223,7 @@ uint8_t Input_GetState1(void) {
 // physical gamepad's Y button (not the Genesis-style virtual pad mapping
 // used by Input_GetState1 above -- SDL_CONTROLLER_BUTTON_Y specifically).
 uint8_t Input_GetExtState1(void) {
-	const uint8_t *key_state = SDL_GetKeyboardState(NULL);
+	const uint8_t *key_state = KEYBOARD_STATE();
 	uint8_t state = key_state[SDL_SCANCODE_SLASH] ? JPAD_EXT_Y : 0;
 	if (key_state[SDL_SCANCODE_COMMA] || key_state[SDL_SCANCODE_LEFTBRACKET])
 		state |= JPAD_EXT_SUBTYPE_DEC;

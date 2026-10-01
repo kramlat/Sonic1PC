@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.16) # Qt6's CMake package/AUTOMOC requires >= 3
 # ##############################################################################
 # Options #
 # ##############################################################################
-set(BACKEND
-    "SDL2"
-    CACHE STRING "Which backend to use (SDL2)")
+# The game is a Qt application: a QMainWindow with a menu bar, the frame drawn as a texture on a
+# QOpenGLWidget (src/Backend/Qt). SDL2 is still used for audio, gamepads and the software renderer
+# that draws the frame and its overlays. (The old plain-SDL2 window build has been dropped.)
 option(REV01 "Compile REV01 ROM" ON)
 option(JAPANESE "Compile Japanese ROM" OFF)
 option(FIX_BUGS "Fix bugs (completely screwed up code, not gameplay bugs)" OFF)
@@ -71,6 +71,11 @@ set(
   "src/Video.c"
   "src/Video.h"
   "src/Palette.c"
+  "src/DebugPeek.c"
+  "src/DebugVars.c"
+  "src/DebugLog.c"
+  "src/DebugLog.h"
+  "src/DebugPeek.h"
   "src/Palette.h"
   "src/PLC.c"
   "src/PLC.h"
@@ -1043,11 +1048,11 @@ set_target_properties(Sonic PROPERTIES RUNTIME_OUTPUT_DIRECTORY
 # Find PkgConfig for dependency linking
 find_package(PkgConfig QUIET)
 
-if(BACKEND MATCHES "SDL2")
+if(TRUE)
   target_compile_definitions(SonicCore PUBLIC SCP_BACKEND_SDL2)
   target_sources(
     SonicCore PRIVATE "src/Backend/SDL2/System.c" "src/Backend/SDL2/Render.c"
-                      "src/Backend/SDL2/Input.c" "src/Backend/SDL2/Audio.c")
+                      "src/Backend/SDL2/Input.c")
 
   # Compile and link SDL2
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -1076,6 +1081,14 @@ if(BACKEND MATCHES "SDL2")
   # SDL2::SDL2-static is the static SDL libarary. PUBLIC so it also propagates
   # to whatever links SonicCore (Sonic itself, and SonicTests).
   target_link_libraries(SonicCore PUBLIC SDL2::SDL2)
+
+  # The window: a QMainWindow (menu bar) with the game frame drawn as a texture on a
+  # QOpenGLWidget; see src/Backend/Qt/QtHost.h.
+  find_package(Qt6 REQUIRED COMPONENTS Widgets OpenGLWidgets Multimedia)
+  target_sources(SonicCore PRIVATE "src/Backend/Qt/QtHost.cpp" "src/Backend/Qt/QtHost.h"
+                                "src/Backend/Qt/QtAudio.cpp" "src/Backend/Qt/QtAudio.h"
+                                "src/Backend/Qt/DebugViewers.cpp" "src/Backend/Qt/DebugViewers.h")
+  target_link_libraries(SonicCore PUBLIC Qt6::Widgets Qt6::OpenGLWidgets Qt6::Multimedia)
 endif()
 
 # libm -- Sound.c computes PSG note periods from note frequencies (pow/exp2)
@@ -1359,7 +1372,7 @@ if(BUILD_TESTS)
                                "tests/test_leveldraw.c" "tests/test_levelcollision.c"
                                "tests/test_prison.c" "tests/test_lz3wall.c"
                                "tests/test_bosslz.c" "tests/test_lzconveyor.c"
-                               "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_objcollision.c"
+                               "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_staircase.c" "tests/test_oscillator.c" "tests/test_scenery.c" "tests/test_audiomute.c" "tests/test_objcollision.c"
                                "tests/test_giantring.c" "tests/test_checkpoint.c")
     target_link_libraries(SonicTests PRIVATE SonicCore)
     set_target_properties(SonicTests PROPERTIES C_STANDARD 99
@@ -1581,6 +1594,7 @@ if(BUILD_TESTS)
         ${CMAKE_COMMAND} -DTEST_EXE=$<TARGET_FILE:SonicSmoke>
         "-DTEST_ARGS=--zone;${ZONE_NUM}" -DTEST_TIMEOUT=15 -P
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunSmoke.cmake")
-    set_tests_properties(smoke_${ZONE_NAME} PROPERTIES TIMEOUT 30)
+    # The smoke runs boot the real game, so Qt needs a platform plugin that works without a display.
+    set_tests_properties(smoke_${ZONE_NAME} PROPERTIES TIMEOUT 30 ENVIRONMENT "QT_QPA_PLATFORM=offscreen;SDL_AUDIODRIVER=dummy")
   endforeach()
 endif()

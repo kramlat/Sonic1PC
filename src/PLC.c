@@ -305,7 +305,7 @@ static const PLCList PLC_MZ2 = {
 static const PLCList PLC_SLZ = {
     8,
     (const PLC[]) {
-        { Art_Bomb,          ART_VRAM(ArtTile_SLZ_Orbinaut) }, // shares the Orbinaut slot -- not simultaneously loaded
+        { Art_Bomb,          ART_VRAM(ArtTile_Bomb) },
         { Art_Orbinaut,      ART_VRAM(ArtTile_SLZ_Orbinaut) },
         { Art_MZFire,        ART_VRAM(ArtTile_SLZ_Fireball) },
         { Art_SLZBlock,      ART_VRAM(ArtTile_SLZ_Collapsing_Floor) },

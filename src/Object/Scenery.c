@@ -37,7 +37,8 @@ void Obj_Scenery(Object *obj) {
 
         obj->mappings = (subtype == 3) ? (const void *)Mappings_GHZBridge : (const void *)Mappings_Scenery;
         obj->tile = v->tile;
-        obj->render.b = 0;
+        // Original is `ori.b #sprite_cam_field,obRender`: keeps the X/Y flip bits from the
+        // object layout, so the scenery draws facing the way it was placed.
         obj->render.f.align_fg = true;
         obj->frame = v->frame;
         obj->width_pixels = v->width_pixels;

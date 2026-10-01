@@ -661,3 +661,43 @@ void VDP_Render(void) {
 		exit(0);
 	}
 }
+
+// Debug viewer accessors (see VDP.h)
+const uint8_t *VDP_PeekVRAM(void) {
+	return vdp_vram;
+}
+
+uint16_t VDP_PeekCRAM(int pal, int index) {
+	return vdp_cram[pal & 3][index & 0xF];
+}
+
+uint32_t VDP_PeekColour(int pal, int index) {
+	return VDP_GetColour((size_t)(((pal & 3) << 4) | (index & 0xF)));
+}
+
+int VDP_PeekSprites(VdpSpritePeek *out, int max) {
+	int n = 0;
+	uint8_t i = 0;
+	while (n < max) {
+		const uint16_t *sprite = vdp_sprite_buffer_ext != NULL
+			? (vdp_sprite_buffer_ext + ((uint16_t)i << 2))
+			: (const uint16_t*)(vdp_vram + vdp_sprite_location + ((uint16_t)i << 3));
+		uint16_t sl = sprite[1], tile = sprite[2];
+		VdpSpritePeek *e = &out[n++];
+		e->index = i;
+		e->link = (sl & SPRITE_SL_L_AND) >> SPRITE_SL_L_SHIFT;
+		e->y = (int16_t)((sprite[0] & SPRITE_Y_AND) - 128);
+		e->x = (int16_t)((sprite[3] & SPRITE_X_AND) - 128);
+		e->width = ((sl & SPRITE_SL_W_AND) >> SPRITE_SL_W_SHIFT) + 1;
+		e->height = ((sl & SPRITE_SL_H_AND) >> SPRITE_SL_H_SHIFT) + 1;
+		e->pattern = (tile & TILE_PATTERN_AND) >> TILE_PATTERN_SHIFT;
+		e->palette = (tile & TILE_PALETTE_AND) >> TILE_PALETTE_SHIFT;
+		e->priority = (tile & TILE_PRIORITY_AND) != 0;
+		e->x_flip = (tile & TILE_X_FLIP_AND) != 0;
+		e->y_flip = (tile & TILE_Y_FLIP_AND) != 0;
+		if (e->link == 0)
+			break;
+		i = e->link;
+	}
+	return n;
+}

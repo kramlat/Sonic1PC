@@ -1,7 +1,7 @@
 #include "SDL.h"
 
 #include "../MegaDrive.h"
-#include "Audio.h"
+#include "../Qt/QtAudio.h"
 
 #include <stdio.h>
 
@@ -9,9 +9,13 @@
 int System_Init(const MD_Header *header) {
 	(void)header;
 	
+	//Qt owns the window and the display; SDL only needs its event system, so give it
+	//the dummy video driver (SDL_Init(VIDEO) is what starts the event subsystem).
+	SDL_setenv("SDL_VIDEODRIVER", "dummy", 1);
+
 	//Initialize SDL2 (GAMECONTROLLER pulls in JOYSTICK too -- needed for
 	//gamepad support, including Steam Input's virtual controller)
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO) < 0) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) < 0) {
 		printf("System_Init: %s\n", SDL_GetError());
 		return -1;
 	}

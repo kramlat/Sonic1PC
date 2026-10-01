@@ -14,6 +14,10 @@ void RegisterBossLZTests(void);
 void RegisterLZConveyorTests(void);
 void RegisterLZRaftTests(void);
 void RegisterSpikeBallTests(void);
+void RegisterStaircaseTests(void);
+void RegisterOscillatorTests(void);
+void RegisterSceneryTests(void);
+void RegisterAudioMuteTests(void);
 void RegisterObjCollisionTests(void);
 void RegisterWaterSplitTests(void);
 void RegisterGiantRingTests(void);
@@ -44,6 +48,10 @@ int main(void) {
     printf("LZ raft tests:\n");
     RegisterLZRaftTests();
     RegisterSpikeBallTests();
+    RegisterStaircaseTests();
+    RegisterOscillatorTests();
+    RegisterSceneryTests();
+    RegisterAudioMuteTests();
 
     printf("Object collision tests:\n");
     RegisterObjCollisionTests();

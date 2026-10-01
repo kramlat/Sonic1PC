@@ -1,4 +1,5 @@
 #include "Sound.h"
+#include "DebugLog.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -1648,6 +1649,7 @@ static const uint8_t sound_priorities[SOUND_ID_SPECIAL_LAST - SOUND_ID_SFX_FIRST
 };
 
 void PlayMusic(uint8_t id) {
+    DEBUG_LOG("sound", "music $%02X", id);
     if (id == 0) {
         // Silence sentinel (real hardware's own $80 -- now just plain 0,
         // same value as "nothing queued", see Sound.h's enum comment) --
@@ -1756,6 +1758,7 @@ void Sound_Pause(void) {
 void Sound_Resume(void) { sound_music.paused = 0; }
 
 void PlaySound(uint8_t id) {
+    DEBUG_LOG("sound", "sfx $%02X", id);
     if (id == 0) {
         StopAllSound();
         return;
@@ -3091,14 +3094,34 @@ void Sound_Frame(void) {
 // duplicated equally into both channels.
 #define SOUND_SCRATCH_MAX 4096
 
-void Sound_Generate(int32_t *out, uint32_t count, uint32_t sample_rate) {
+// Renders one chip set (PSG + FM, and the sample channels) additively into `out`. Music and sound
+// effects are generated separately so the audio backend can run them through separate sinks (own
+// volume/mute); Sound_Generate below sums the two for everything that wants one mixed stream.
+static uint16_t channel_mute_mask = 0; // bits: see SOUND_MUTE_* in Sound.h
+
+void Sound_SetChannelMuted(int channel, bool muted) {
+    if (channel < 0 || channel >= SOUND_MUTE_CHANNELS)
+        return;
+    if (muted)
+        channel_mute_mask |= (uint16_t)(1u << channel);
+    else
+        channel_mute_mask &= (uint16_t)~(1u << channel);
+}
+
+bool Sound_IsChannelMuted(int channel) {
+    return channel >= 0 && channel < SOUND_MUTE_CHANNELS && (channel_mute_mask & (1u << channel)) != 0;
+}
+
+static void GenerateSet(SoundChipSet *set, bool is_music, int32_t *out, uint32_t count, uint32_t sample_rate) {
+    // Audio menu channel mutes: FM1-6 are bits 0-5, PSG tones 1-3 + noise are bits 6-9 (see Sound.h).
+    YM2612_SetMuteMask(set->fm, (uint8_t)(channel_mute_mask & 0x3F));
+    set->psg.mute_mask = (uint8_t)((channel_mute_mask >> 6) & 0xF);
+
     static int32_t psg_scratch[SOUND_SCRATCH_MAX];
     uint32_t n = count < SOUND_SCRATCH_MAX ? count : SOUND_SCRATCH_MAX;
     memset(psg_scratch, 0, n * sizeof(int32_t));
-    if (!getenv("SONIC_FM_ONLY") && debug_isolate_voice < 0) {
-        SN76489_Generate(&sound_music.psg, psg_scratch, n, sample_rate, SOUND_PSG_CLOCK);
-        SN76489_Generate(&sound_sfx.psg, psg_scratch, n, sample_rate, SOUND_PSG_CLOCK);
-    }
+    if (!getenv("SONIC_FM_ONLY") && debug_isolate_voice < 0)
+        SN76489_Generate(&set->psg, psg_scratch, n, sample_rate, SOUND_PSG_CLOCK);
     for (uint32_t i = 0; i < n; i++) {
         out[2 * i + 0] += psg_scratch[i];
         out[2 * i + 1] += psg_scratch[i];
@@ -3116,27 +3139,47 @@ void Sound_Generate(int32_t *out, uint32_t count, uint32_t sample_rate) {
         static int32_t fm_scratch[2 * SOUND_SCRATCH_MAX];
         uint32_t fn = count < SOUND_SCRATCH_MAX ? count : SOUND_SCRATCH_MAX;
         memset(fm_scratch, 0, 2 * fn * sizeof(int32_t));
-        YM2612_Generate(sound_music.fm, fm_scratch, fn, sample_rate, SOUND_FM_CLOCK);
-        YM2612_Generate(sound_sfx.fm, fm_scratch, fn, sample_rate, SOUND_FM_CLOCK);
+        YM2612_Generate(set->fm, fm_scratch, fn, sample_rate, SOUND_FM_CLOCK);
         for (uint32_t i = 0; i < 2 * fn; i++)
             out[i] += fm_scratch[i] * fm_gain;
     } else {
-        YM2612_Generate(sound_music.fm, out, count, sample_rate, SOUND_FM_CLOCK);
-        YM2612_Generate(sound_sfx.fm, out, count, sample_rate, SOUND_FM_CLOCK);
+        YM2612_Generate(set->fm, out, count, sample_rate, SOUND_FM_CLOCK);
     }
     if (!getenv("SONIC_FM_ONLY") && debug_isolate_voice < 0) {
         // sound_sfx has no DAC-sample track -- real hardware's SFX RAM
         // layout (v_sfx_track_ram) never allocates one (only FM3-5/PSG1-3),
         // and SFXChannelIndex() never routes any SFX channel ID to
         // SOUND_CHANNEL_DAC either, so sound_sfx.channels[DAC] can never
-        // become active. DAC_Generate(&sound_sfx,...) was a guaranteed-inert
-        // call every frame; PCM_Generate stays for both, since the separate
-        // "SEGA!" PCM clip ($E1/$87) can legitimately trigger from either
-        // chip set's own track data.
-        DAC_Generate(&sound_music, out, count, sample_rate);
-        PCM_Generate(&sound_music, out, count, sample_rate);
-        PCM_Generate(&sound_sfx, out, count, sample_rate);
+        // become active. PCM stays for both, since the separate "SEGA!"
+        // PCM clip ($E1/$87) can legitimately trigger from either chip
+        // set's own track data.
+        if (channel_mute_mask & (1u << SOUND_MUTE_DAC)) {
+            // Muted: still run the sample channels (so they stay in step), but discard the output.
+            static int32_t discard[2 * SOUND_SCRATCH_MAX];
+            uint32_t dn = count < SOUND_SCRATCH_MAX ? count : SOUND_SCRATCH_MAX;
+            memset(discard, 0, 2 * dn * sizeof(int32_t));
+            if (is_music)
+                DAC_Generate(set, discard, dn, sample_rate);
+            PCM_Generate(set, discard, dn, sample_rate);
+        } else {
+            if (is_music)
+                DAC_Generate(set, out, count, sample_rate);
+            PCM_Generate(set, out, count, sample_rate);
+        }
     }
+}
+
+void Sound_GenerateMusic(int32_t *out, uint32_t count, uint32_t sample_rate) {
+    GenerateSet(&sound_music, true, out, count, sample_rate);
+}
+
+void Sound_GenerateSfx(int32_t *out, uint32_t count, uint32_t sample_rate) {
+    GenerateSet(&sound_sfx, false, out, count, sample_rate);
+}
+
+void Sound_Generate(int32_t *out, uint32_t count, uint32_t sample_rate) {
+    Sound_GenerateMusic(out, count, sample_rate);
+    Sound_GenerateSfx(out, count, sample_rate);
 }
 
 // Debug/tooling only (ParadoxComposer): raw pointer to a song/SFX's

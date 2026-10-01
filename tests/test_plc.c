@@ -89,9 +89,24 @@ static void PLC_SBZCollapsingFloorArtIsFourTiles(void) {
     CHECK(((Art_SlideFloor[0] << 8) | Art_SlideFloor[1]) != ((Art_SBZFloor[0] << 8) | Art_SBZFloor[1]));
 }
 
+// SLZ loaded the bomb enemy art into the Orbinaut slot ($429), where the Orbinaut art
+// overwrote it, but the object reads it from ArtTile_Bomb ($400).
+extern const uint8_t Art_Bomb[];
+static void PLC_SLZLoadsBombArtAtBombTile(void) {
+    ClearPLC();
+    NewPLC(PlcId_SLZ);
+    bool found = false;
+    for (int i = 0; i < 16 && plc_buffer[i].art != NULL; i++)
+        if (plc_buffer[i].art == Art_Bomb && plc_buffer[i].off == ART_VRAM(ArtTile_Bomb))
+            found = true;
+    CHECK(found);
+    ClearPLC();
+}
+
 void RegisterPLCTests(void) {
     RUN_TEST(PLC_DrainsExactlyFullQueue);
     RUN_TEST(PLC_AddPLCDoesNotOverflowWhenFull);
     RUN_TEST(PLC_LZLoadsWaterfallSplashArt);
     RUN_TEST(PLC_SBZCollapsingFloorArtIsFourTiles);
+    RUN_TEST(PLC_SLZLoadsBombArtAtBombTile);
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MegaDrive.h"
+#include "PeekData.h" // Z80PeekData
 
 #include "Constants.h"
 #include "Macros.h"
@@ -108,17 +109,17 @@ void Render_SetCountdownPie(bool active, float fraction, int seconds_left);
 // main loop (the one place that already has direct access to both
 // SoundChipSet and the render backend) -- Render.c itself has no business
 // knowing about Sound.c's internals, so it only ever sees this plain struct.
-typedef struct {
-    uint8_t fm_alg_fb[2][3];  // [port][chan]: raw $B0+ch byte (algorithm low 3 bits, feedback next 3)
-    uint8_t fm_tl[2][3][4];   // [port][chan][operator 0=op1..3=op4]: raw $40+op*4+ch byte
-    uint8_t fm_keyon;         // last $28 write -- bit layout matches the real key-on register
-    uint16_t psg_tone_period[3];
-    uint8_t psg_tone_atten[3];
-    uint8_t psg_noise_atten;
-    uint8_t psg_noise_shift_rate;
-    uint8_t psg_noise_fb_white;
-} Z80PeekData;
+
 void Render_SetZ80Peek(bool active, const Z80PeekData *data);
+
+// Read-only views of VDP memory for the debug viewers. pal is 0-3, index 0-15.
+// VDP_PeekColour returns the RGBA8888-packed colour (0xRRGGBBAA, same packing as
+// VDP_GetColour); VDP_PeekCRAM the raw 9-bit CRAM word.
+const uint8_t *VDP_PeekVRAM(void); // VRAM_SIZE bytes
+uint16_t VDP_PeekCRAM(int pal, int index);
+uint32_t VDP_PeekColour(int pal, int index);
+// Walks the sprite table in link order; returns how many entries were written (<= max).
+int VDP_PeekSprites(VdpSpritePeek *out, int max);
 
 // Toggles between windowed and borderless fullscreen (F11). Fullscreen uses
 // the desktop's current resolution (no display mode change) and scales the
