@@ -137,6 +137,23 @@ void HUD_Lives(void) {
     } while (decs-- > 0);
 }
 
+// Hud_TimeRingBonus: writes a 4-digit bonus as 8x16 digits at the current VRAM position, blanking leading zeroes.
+static void HUD_WriteBonus(uint16_t value) {
+    static const uint16_t places[4] = { 1000, 100, 10, 1 };
+    static const uint8_t blank[64] = { 0 };
+    bool started = false;
+    for (int i = 0; i < 4; i++) {
+        uint16_t digit = 0;
+        while (value >= places[i]) {
+            value = (uint16_t)(value - places[i]);
+            digit++;
+        }
+        if (digit != 0)
+            started = true;
+        VDP_WriteVRAM(started ? Art_HUDNum + (digit << 6) : blank, 64);
+    }
+}
+
 void HUD_Base(void) {
     // Write lives and initial HUD cmd
     HUD_Lives();
@@ -218,4 +235,11 @@ void HUD_Update(void) {
         HUD_Lives();
     }
 
+    // Update the time and ring bonus numbers of the end-of-act and special stage results cards
+    if (endact_bonus) {
+        endact_bonus = false;
+        VDP_SeekVRAM(ArtTile_Bonuses * TILE_SIZE);
+        HUD_WriteBonus(time_bonus);
+        HUD_WriteBonus(ring_bonus);
+    }
 }

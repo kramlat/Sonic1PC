@@ -98,7 +98,7 @@ void Obj_RingFlash(Object *obj) {
             }
             if (obj->frame == 3) {
                 scratch->parent->routine = 6; // delete the parent Giant Ring
-                big_ring_collected = 1;
+                big_ring = 1;
                 invincibility = 0;
                 shield = 0;
             }

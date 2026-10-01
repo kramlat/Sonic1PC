@@ -177,7 +177,7 @@ static void BF_Crush(Object *obj, Scratch_BossFinal *s) {
 
     if (s->child_counter < 0) { // both cylinders are back home
         if (obj->col_property == 0) { // defeated
-            AddPoints(1000); // real ASM passes 100 -- its AddPoints takes points/10, this project's takes the full value
+            AddPoints(100); // 1000 points (AddPoints counts in tens, like the score)
             s->link = PH_FALL;
             obj->pos.l.x.f.u = FZ_X + 0x170;
             obj->pos.l.y.f.u = FZ_Y + 0x2C;

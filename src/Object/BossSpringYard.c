@@ -127,7 +127,7 @@ static void BSYZ_MoveUpdate(Object *obj, Scratch_BossSpringYard *scratch) {
 }
 
 static void BSYZ_Defeated(Object *obj, Scratch_BossSpringYard *scratch) {
-    AddPoints(1000); // real ASM passes literal 100, but its own AddPoints takes points/10 -- this project's AddPoints takes the full displayed value
+    AddPoints(100); // 1000 points (AddPoints counts in tens, like the score)
     obj->routine_sec = 6; // -> BSYZ_Explode
     scratch->generic_timer = 180;
     obj->xsp = 0;

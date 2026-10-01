@@ -220,7 +220,7 @@ void Demo_ServiceRequests(void) {
     prev_lamp = 0;
     demo = 0;
 #ifndef SCP_REV00
-    score_life = 50000;
+    score_life = 5000;
 #endif
 
     if (r->special) {

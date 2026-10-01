@@ -5,6 +5,8 @@
 #include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Video.h"
+#include "Object/Sonic.h"
+#include "Sound.h"
 
 #include "Macros.h"
 
@@ -122,7 +124,7 @@ static const struct SS_SrcMapping {
     { 0, Mappings_SSGlass, TILE_MAP(0, 1, 0, 0, 0x5F0) },
     { 0, Mappings_SSGlass, TILE_MAP(0, 2, 0, 0, 0x5F0) },
     //?
-    { 0, Mappings_SSRotate, TILE_MAP(0, 0, 0, 0, 0x2F7) },
+    { 0, Mappings_SSRotate, TILE_MAP(0, 0, 0, 0, 0x2F0) }, // R block (touched): same art as the idle one, just the other palette
     // Hit bumper
     { 1, Mappings_Bumper, TILE_MAP(0, 0, 0, 0, 0x23B) },
     { 2, Mappings_Bumper, TILE_MAP(0, 0, 0, 0, 0x23B) },
@@ -160,13 +162,13 @@ static const struct SS_SrcMapping {
     { 6, Mappings_RingREV01, TILE_MAP(0, 1, 0, 0, 0x7B2) },
     { 7, Mappings_RingREV01, TILE_MAP(0, 1, 0, 0, 0x7B2) },
 #endif
-    // Glass animation
-    { 0, Mappings_SSGlass, TILE_MAP(0, 1, 0, 0, 0x5F0) },
-    { 1, Mappings_SSGlass, TILE_MAP(0, 1, 0, 0, 0x5F0) },
-    { 2, Mappings_SSGlass, TILE_MAP(0, 1, 0, 0, 0x5F0) },
-    { 3, Mappings_SSGlass, TILE_MAP(0, 1, 0, 0, 0x5F0) },
+    // Emerald sparkles (when an emerald is collected; ArtTile_SS_Emerald_Sparkle)
+    { 0, Mappings_SSGlass, TILE_MAP(0, 1, 0, 0, 0x3F0) },
+    { 1, Mappings_SSGlass, TILE_MAP(0, 1, 0, 0, 0x3F0) },
+    { 2, Mappings_SSGlass, TILE_MAP(0, 1, 0, 0, 0x3F0) },
+    { 3, Mappings_SSGlass, TILE_MAP(0, 1, 0, 0, 0x3F0) },
     //?
-    { 2, Mappings_SSRotate, TILE_MAP(0, 1, 0, 0, 0x4F0) },
+    { 2, Mappings_SSRotate, TILE_MAP(0, 0, 0, 0, 0x4F0) }, // invisible ghost-block trigger
     //?
     { 0, Mappings_SSGlass, TILE_MAP(0, 0, 0, 0, 0x5F0) },
     { 0, Mappings_SSGlass, TILE_MAP(0, 3, 0, 0, 0x5F0) },
@@ -177,7 +179,8 @@ static const struct SS_SrcMapping {
 // Special Stage state
 word_u ss_angle;
 uint16_t ss_rotate;
-uint16_t palss_num, palss_time;
+uint16_t palss_num;
+int16_t palss_time;
 
 // uint8_t last_special;
 
@@ -186,7 +189,6 @@ uint8_t emerald_list[8];
 
 int16_t ss_drawtable[16 * 16 * 2];
 
-uint8_t ss_collected[0x100];
 
 uint8_t ss_layout[SS_DIM * SS_DIM]; // SS_DIM x SS_DIM (128x128)
 uint8_t ss_layout_tmp[SS_SRCDIM * SS_SRCDIM]; // SS_SRCDIM x SS_SRCDIM (64x64)
@@ -266,7 +268,123 @@ void SS_AniWallsRings(void) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Touched-block animations (SS_FindFreeAnimationSlot / SS_ExecuteAnimationQueue)
+// ---------------------------------------------------------------------------
+
+#define SS_ANIMATIONS 0x20
+
+static SS_Animation ss_animations[SS_ANIMATIONS];
+
+void SS_ClearAnimations(void) {
+    memset(ss_animations, 0, sizeof(ss_animations));
+}
+
+SS_Animation *SS_FindFreeAnimationSlot(void) {
+    for (int i = 0; i < SS_ANIMATIONS; i++)
+        if (ss_animations[i].id == SSAni_None)
+            return &ss_animations[i];
+    return NULL;
+}
+
+static void SS_AnimDone(SS_Animation *a) {
+    memset(a, 0, sizeof(*a));
+}
+
+// Steps a script of block IDs ending in 0. Returns the new block ID (0 = the script has ended).
+static uint8_t SS_AnimNext(SS_Animation *a, int8_t delay, const uint8_t *script) {
+    if (--a->delay >= 0)
+        return 0xFF; // not time yet
+    a->delay = delay;
+    return script[a->frame++];
+}
+
+static void SS_AniRingSparks(SS_Animation *a) {
+    static const uint8_t script[] = { SSB_Ring_Ani1, SSB_Ring_Ani2, SSB_Ring_Ani3, SSB_Ring_Ani4, 0 };
+    uint8_t id = SS_AnimNext(a, 5, script);
+    if (id == 0xFF)
+        return;
+    ss_layout[a->block] = id;
+    if (id == 0)
+        SS_AnimDone(a); // the ring is gone
+}
+
+static void SS_AniBumper(SS_Animation *a) {
+    static const uint8_t script[] = { SSB_Bumper_Ani1, SSB_Bumper_Ani2, SSB_Bumper_Ani1, SSB_Bumper_Ani2, 0 };
+    uint8_t id = SS_AnimNext(a, 7, script);
+    if (id == 0xFF)
+        return;
+    if (id == 0) {
+        ss_layout[a->block] = SSB_Bumper; // back to the idle bumper
+        SS_AnimDone(a);
+    } else {
+        ss_layout[a->block] = id;
+    }
+}
+
+static void SS_Ani1Up(SS_Animation *a) {
+    static const uint8_t script[] = { SSB_Emerald_Ani1, SSB_Emerald_Ani2, SSB_Emerald_Ani3, SSB_Emerald_Ani4, 0 };
+    uint8_t id = SS_AnimNext(a, 5, script);
+    if (id == 0xFF)
+        return;
+    ss_layout[a->block] = id;
+    if (id == 0)
+        SS_AnimDone(a);
+}
+
+static void SS_AniReverse(SS_Animation *a) {
+    static const uint8_t script[] = { SSB_R, SSB_R_Ani, SSB_R, SSB_R_Ani, 0 };
+    uint8_t id = SS_AnimNext(a, 7, script);
+    if (id == 0xFF)
+        return;
+    if (id == 0) {
+        ss_layout[a->block] = SSB_R; // back to the idle R block
+        SS_AnimDone(a);
+    } else {
+        ss_layout[a->block] = id;
+    }
+}
+
+static void SS_AniEmeraldSparks(SS_Animation *a) {
+    static const uint8_t script[] = { SSB_Emerald_Ani1, SSB_Emerald_Ani2, SSB_Emerald_Ani3, SSB_Emerald_Ani4, 0 };
+    uint8_t id = SS_AnimNext(a, 5, script);
+    if (id == 0xFF)
+        return;
+    ss_layout[a->block] = id;
+    if (id == 0) {
+        SS_AnimDone(a);
+        player->routine = 4; // Sonic's ExitStage routine: this starts the actual exit
+        QueueSound2(sfx_SSGoal);
+    }
+}
+
+static void SS_AniGlassBlock(SS_Animation *a) {
+    static const uint8_t script[] = {
+        SSB_Glass_Ani1, SSB_Glass_Ani2, SSB_Glass_Ani3, SSB_Glass_Ani4,
+        SSB_Glass_Ani1, SSB_Glass_Ani2, SSB_Glass_Ani3, SSB_Glass_Ani4, 0,
+    };
+    uint8_t id = SS_AnimNext(a, 1, script);
+    if (id == 0xFF)
+        return;
+    ss_layout[a->block] = id;
+    if (id == 0) {
+        ss_layout[a->block] = a->next_id; // the glass block becomes its weaker version (or is gone)
+        SS_AnimDone(a);
+    }
+}
+
 void SS_AniItems(void) {
+    for (int i = 0; i < SS_ANIMATIONS; i++) {
+        SS_Animation *a = &ss_animations[i];
+        switch (a->id) {
+        case SSAni_RingSparks:    SS_AniRingSparks(a); break;
+        case SSAni_Bumper:        SS_AniBumper(a); break;
+        case SSAni_1Up:           SS_Ani1Up(a); break;
+        case SSAni_Reverse:       SS_AniReverse(a); break;
+        case SSAni_EmeraldSparks: SS_AniEmeraldSparks(a); break;
+        case SSAni_GlassBlock:    SS_AniGlassBlock(a); break;
+        }
+    }
 }
 
 void SS_ShowLayout(uint8_t sprite_i) {
@@ -384,6 +502,5 @@ SS_Load_Branch:;
         tom->tile = fromm->tile;
     }
 
-    // Clear collected array
-    memset(ss_collected, 0, sizeof(ss_collected));
+    SS_ClearAnimations();
 }

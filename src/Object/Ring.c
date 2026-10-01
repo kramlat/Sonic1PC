@@ -74,7 +74,8 @@ static void ExtraLife(void) {
     life_count++;
 }
 
-static void CollectRing(void) {
+// Adds a ring and handles the sound and 100/200-ring extra lives (also used by the special stage).
+void Ring_Collect(void) {
     // Increment ring count
     rings++;
     ring_count |= 1;
@@ -152,7 +153,7 @@ void Obj_Ring(Object *obj) {
         obj->priority = 1;
 
         // Collect ring and mark as collected
-        CollectRing();
+        Ring_Collect();
         objstate[obj->respawn_index] |= (1 << scratch->index);
         // Fallthrough
     case 6: // Sparkling
@@ -281,7 +282,7 @@ void Obj_RingLoss(Object *obj) {
         obj->priority = 1;
 
         // Collect ring
-        CollectRing();
+        Ring_Collect();
         // Fallthrough
     case 6: // Sparkling
         // Animate and draw

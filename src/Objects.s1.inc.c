@@ -111,6 +111,8 @@ void Obj_BossSpikeball(Object *obj);
 void Obj_ScrapEggman(Object *obj);
 void Obj_FalseFloor(Object *obj);
 void Obj_BossFinal(Object *obj);
+void Obj_SpecialResult(Object *obj);
+void Obj_SpecialResultEmerald(Object *obj);
 void Obj_EggmanCylinder(Object *obj);
 void Obj_BossPlasma(Object *obj);
 void Obj_BossBlock(Object *obj);
@@ -247,8 +249,8 @@ static void (*object_func[])(Object*) = {
 	/* 7B ObjId_BossSpikeball       */ Obj_BossSpikeball,
 	/* 7C ObjId_RingFlash           */ Obj_RingFlash,
 	/* 7D ObjId_HiddenBonus         */ Obj_HiddenBonus,
-	/* 7E ObjId_7E                  */ Obj_Null,
-	/* 7F ObjId_7F                  */ Obj_Null,
+	/* 7E ObjId_SSResult            */ Obj_SpecialResult,
+	/* 7F ObjId_SSRChaos            */ Obj_SpecialResultEmerald,
 	/* 80 ObjId_80                  */ Obj_Null,
 	/* 81 ObjId_81                  */ Obj_Null,
 	/* 82 ObjId_ScrapEggman         */ Obj_ScrapEggman,

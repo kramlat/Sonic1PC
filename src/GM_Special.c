@@ -15,11 +15,13 @@
 #include "Demo.h"
 #include "Object/Sonic.h"
 #include "Sound.h"
+#include "HUD.h"
+#include "Object/SpecialResult.h"
 
 #include <string.h>
 
 //Special stage gamemode
-void GM_Special(void) {
+static void SS_RunStage(void) {
 	//Fade out
 	PlaySound(sfx_EnterSS);
 	PaletteWhiteOut();
@@ -29,7 +31,10 @@ void GM_Special(void) {
 	VDP_SeekVRAM(0x5000);
 	VDP_FillVRAM(0, 0x7000);
 	
-	//Load special assets
+	//Load the background first, then the art: the block art sits in VRAM areas that overlap the background's
+	//canvases, and has to win (the original loads them in this order too)
+	VDP_SetPlaneSize(64, 64); //64x64 planes: the background switches between canvases by moving them around in VRAM
+	SS_BGLoad();
 	QuickPLC(PlcId_SpecialStage);
 	
 	//Clear object memory
@@ -159,6 +164,9 @@ void GM_Special(void) {
 	
 	ss_angle.v = 0;
 	ss_rotate = 0x0040;
+	//The special stage music never speeds up in Sonic 1 (only Sonic 3 does that): drop any speed-shoes tempo carried over
+	//from the level, so neither this song nor the next level's starts sped up
+	SlowDownMusic();
 	PlayMusic(bgm_SS);
 	
 	//TODO: load demos
@@ -191,8 +199,9 @@ void GM_Special(void) {
 		vbla_routine = 0x0A;
 		WaitForVBla();
 
-		//The mode was changed from outside (e.g. an in-app demo recording request): leave
-		if ((gamemode & 0x7F) != GameMode_Special)
+		//The mode was changed from outside (e.g. an in-app demo recording request): leave. Sonic's own exit
+		//(GameMode_Level, set by the GOAL block) is handled below.
+		if ((gamemode & 0x7F) != GameMode_Special && (gamemode & 0x7F) != GameMode_Level)
 			return;
 		
 		MoveSonicInDemo();
@@ -205,11 +214,102 @@ void GM_Special(void) {
 		uint8_t sprite_i;
 		BuildSprites(&sprite_i);
 		SS_ShowLayout(sprite_i);
+		SS_BGAnimate();
 
 		//End the demo once its timer runs out
 		if (demo && !demo_length) {
 			gamemode = GameMode_Sega;
 			return;
 		}
+
+		//Exiting the stage?
+		if ((gamemode & 0x7F) != GameMode_Special)
+			break;
 	}
+
+	//A demo that exits goes back to the Sega screen
+	if (demo) {
+		gamemode = GameMode_Sega;
+		return;
+	}
+
+	//Back to the level: the next one (Got Through already picked it); past the last, the first
+	gamemode = GameMode_Level;
+	if (level_id > LEVEL_ID(ZoneId_SBZ, 2))
+		level_id = 0;
+
+	//Fade out to white while the stage spins
+	demo_length = 60;
+	palette_fade.ind = 0;
+	palette_fade.len = 0x40;
+	pal_chgspeed = 0;
+	do {
+		vbla_routine = 0x16;
+		WaitForVBla();
+		MoveSonicInDemo();
+		jpad1_hold2  = jpad1_hold1;
+		jpad1_press2 = jpad1_press1;
+		ExecuteObjects();
+		uint8_t sprite_i;
+		BuildSprites(&sprite_i);
+		SS_ShowLayout(sprite_i);
+		SS_BGAnimate();
+		if (--pal_chgspeed < 0) {
+			pal_chgspeed = 2;
+			WhiteOut_ToWhite();
+		}
+	} while (demo_length);
+
+	//Results screen
+	SS_Results();
+}
+
+void GM_Special(void) {
+	SS_RunStage();
+
+	//The stage runs the VDP with 64x64 planes that its background moves around; put the usual planes back for
+	//whatever comes next (the level, the Sega screen...)
+	VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+	VDP_SetPlaneALocation(VRAM_FG);
+	VDP_SetPlaneBLocation(VRAM_BG);
+	vid_scrpos_y_dup = vid_bg_scrpos_y_dup = 0;
+}
+
+//The special stage results screen: score tally, ring bonus, the emeralds collected so far
+void SS_Results(void) {
+	ClearScreen();
+	VDP_SetPlaneALocation(VRAM_FG);
+	VDP_SetPlaneBLocation(VRAM_BG);
+	VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+	memset(hscroll_buffer, 0, sizeof(hscroll_buffer));
+	scrpos_x.v = scrpos_y.v = 0;
+	vid_scrpos_y_dup = vid_bg_scrpos_y_dup = 0;
+
+	QuickPLC(PlcId_TitleCard); //the title card font, used by the results text
+	HUD_Base();
+	PalLoad2(PalId_SSResults); //straight to the displayed palette (PalLoad1 would only set the fade target)
+	NewPLC(PlcId_Main);
+	AddPLC(PlcId_SSResult);
+
+	score_count = 1; //update the score counter
+	endact_bonus = true; //update the ring bonus counter
+	ring_bonus = rings * 10; //100 points for each ring collected in the stage
+	PlaySound(bgm_GotThrough);
+
+	memset(objects, 0, sizeof(objects));
+	objects[SSR_CARD_SLOT].type = ObjId_SSResult;
+	restart = false;
+
+	do {
+		PauseGame();
+		vbla_routine = 0x0C;
+		WaitForVBla();
+		ExecuteObjects();
+		BuildSprites(NULL);
+		RunPLC();
+	} while (!restart || plc_buffer[0].art != NULL); //the results object signals when it is done
+
+	PlaySound(sfx_EnterSS);
+	PaletteWhiteOut();
+	restart = false;
 }

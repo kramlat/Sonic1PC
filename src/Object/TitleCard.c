@@ -204,8 +204,7 @@ void Obj_GotThroughCard(Object *obj) {
         } else {
             last_lamp = 0;
 
-            //TODO: giant ring entry isn't implemented yet -- big_ring is
-            //never set true anywhere, so this always takes the restart path.
+            // Sonic jumped into a giant ring (Obj_RingFlash set big_ring): the next screen is a special stage
             if (big_ring)
                 gamemode = GameMode_Special;
             else

@@ -149,23 +149,25 @@ static uint16_t PCyc_Color(const uint8_t *src) {
 
 typedef struct {
     uint8_t time;       // as stored in real ROM (time_arg-1 already baked in); when this reads negative, the real timer instead uses 0x1FF
+    uint8_t anim;       // background mode (SS_BG_Modes index: 0 grid, 2/4 fish morph, 6 fish, 8/$A bird morph, $C bird)
+    uint16_t bg_plane;  // nametable plane B shows: ArtTile_SS_Plane_5 (clouds/bubbles) or _6
     uint8_t pal_offset; // palette cycle offset; bit 7 selects the Pal_SSCyc2 set (PalCycle_SS_2), bit 0 (when set, PalCycle_SS_2 only) is the "extra palette line 4" flag
 } SSPalEntry;
 
-// Real hardware's own SS_Timing_Values table also carries a BG canvas mode
-// + VRAM nametable address per entry here, driving the special stage's
-// rotating-canvas 3D tunnel background (SS_BGLoad/SS_BGAnimate) -- omitted
-// since this port has no equivalent background-canvas renderer yet; only
-// the palette cycling itself (what "PalCycle_SS" literally means) is
-// ported for now.
+// The real SS_Timing_Values table: it also carries the BG mode and nametable plane per entry, which SS_BGSetMode
+// (SpecialStageBG.c) applies when an entry comes up.
+#define P5 ArtTile_SS_Plane_5
+#define P6 ArtTile_SS_Plane_6
 static const SSPalEntry ss_pal_timing[32] = {
-    { 4 - 1, 0x92 }, { 4 - 1, 0x90 }, { 4 - 1, 0x8E }, { 4 - 1, 0x8C }, { 4 - 1, 0x8B },
-    { 4 - 1, 0x80 }, { 4 - 1, 0x82 }, { 4 - 1, 0x84 }, { 4 - 1, 0x86 }, { 4 - 1, 0x88 },
-    { 8 - 1, 0x00 }, { 8 - 1, 0x0C }, { 0 - 1, 0x18 }, { 0 - 1, 0x18 }, { 8 - 1, 0x0C }, { 8 - 1, 0x00 },
-    { 4 - 1, 0x88 }, { 4 - 1, 0x86 }, { 4 - 1, 0x84 }, { 4 - 1, 0x82 }, { 4 - 1, 0x81 },
-    { 4 - 1, 0x8A }, { 4 - 1, 0x8C }, { 4 - 1, 0x8E }, { 4 - 1, 0x90 }, { 4 - 1, 0x92 },
-    { 8 - 1, 0x24 }, { 8 - 1, 0x30 }, { 0 - 1, 0x3C }, { 0 - 1, 0x3C }, { 8 - 1, 0x30 }, { 8 - 1, 0x24 },
+    { 4 - 1, 0, P6, 0x92 }, { 4 - 1, 0, P6, 0x90 }, { 4 - 1, 0, P6, 0x8E }, { 4 - 1, 0, P6, 0x8C }, { 4 - 1, 0, P6, 0x8B },
+    { 4 - 1, 0, P6, 0x80 }, { 4 - 1, 0, P6, 0x82 }, { 4 - 1, 0, P6, 0x84 }, { 4 - 1, 0, P6, 0x86 }, { 4 - 1, 0, P6, 0x88 },
+    { 8 - 1, 8, P6, 0x00 }, { 8 - 1, 0xA, P6, 0x0C }, { 0 - 1, 0xC, P6, 0x18 }, { 0 - 1, 0xC, P6, 0x18 }, { 8 - 1, 0xA, P6, 0x0C }, { 8 - 1, 8, P6, 0x00 },
+    { 4 - 1, 0, P5, 0x88 }, { 4 - 1, 0, P5, 0x86 }, { 4 - 1, 0, P5, 0x84 }, { 4 - 1, 0, P5, 0x82 }, { 4 - 1, 0, P5, 0x81 },
+    { 4 - 1, 0, P5, 0x8A }, { 4 - 1, 0, P5, 0x8C }, { 4 - 1, 0, P5, 0x8E }, { 4 - 1, 0, P5, 0x90 }, { 4 - 1, 0, P5, 0x92 },
+    { 8 - 1, 2, P5, 0x24 }, { 8 - 1, 4, P5, 0x30 }, { 0 - 1, 6, P5, 0x3C }, { 0 - 1, 6, P5, 0x3C }, { 8 - 1, 4, P5, 0x30 }, { 8 - 1, 2, P5, 0x24 },
 };
+#undef P5
+#undef P6
 
 void PCycle_SS(void) {
     if (pause_state)
@@ -178,6 +180,8 @@ void PCycle_SS(void) {
 
     int8_t time = (int8_t)entry->time;
     palss_time = (time < 0) ? (0x200 - 1) : time;
+
+    SS_BGSetMode(entry->anim, entry->bg_plane); // which background canvas and cloud layer show
 
     uint8_t offset = entry->pal_offset;
     if (!(offset & 0x80)) {

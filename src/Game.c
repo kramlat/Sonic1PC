@@ -107,7 +107,7 @@ void EntryPoint(void) {
         memset(emerald_list, 0, sizeof(emerald_list));
         continues = 0;
 #ifndef SCP_REV00
-        score_life = 50000;
+        score_life = 5000;
 #endif
         if (cli_start_special) {
             gamemode = GameMode_Special;
@@ -482,6 +482,20 @@ void VBlank(void) {
 
         // Process PLCs
         ProcessDPLC();
+        break;
+    case 0x16: // Continue screen; also the special stage's white fade-out (the original shares it)
+        ReadJoypads();
+        VDP_SeekCRAM(0);
+        VDP_WriteCRAM(&dry_palette[0][0], 0x40);
+        VDP_SeekVRAM(VRAM_HSCROLL);
+        VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
+        if (sonframe_chg) {
+            VDP_SeekVRAM(0xF000);
+            VDP_WriteVRAM(sgfx_buffer, SONIC_DPLC_SIZE);
+            sonframe_chg = false;
+        }
+        if (demo_length)
+            demo_length--;
         break;
     case 0x12:
         WriteVRAMBuffers();

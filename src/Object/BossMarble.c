@@ -98,7 +98,7 @@ static void BMZ_ShipStart(Object *obj, Scratch_BossMarble *scratch) {
 }
 
 static void BMZ_Defeated(Object *obj, Scratch_BossMarble *scratch) {
-    AddPoints(1000); // real ASM passes literal 100, but its own AddPoints takes points/10 -- this project's AddPoints takes the full displayed value
+    AddPoints(100); // 1000 points (AddPoints counts in tens, like the score)
     // Real ASM's own comment here claims this sets "BMZ_Recover", but the
     // value actually written (4) selects BMZ_Explode -- BMZ_Explode is what
     // advances to Recover (6) once its own countdown finishes.

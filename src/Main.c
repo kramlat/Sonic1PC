@@ -42,6 +42,7 @@ static const uint8_t *LoadDemoFile(const char *path) {
 // Command-line injection for testing and debugging (this is the old SonicSmoke runner, now part of the game):
 //   --zone N [--act N]   skip the title screen and start straight in that level (0 GHZ, 1 LZ, 2 MZ, 3 SLZ, 4 SYZ, 5 SBZ)
 //   --x N / --y N        override Sonic's start position (needs --zone)
+//   --special N          start in special stage N (0-5) on the way to the level given by --zone (default GHZ act 1)
 //   --demo FILE          play the level back as a demo, driven by the recorded input in FILE (needs --zone)
 //   --countdown [--countdown-music HEX]   pie-wipe countdown before the injected level (SPLASH builds only)
 static void ParseCommandLine(int argc, char *argv[]) {
@@ -52,7 +53,12 @@ static void ParseCommandLine(int argc, char *argv[]) {
 			zone = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--act") && i + 1 < argc)
 			act = atoi(argv[++i]);
-		else if (!strcmp(argv[i], "--x") && i + 1 < argc)
+		else if (!strcmp(argv[i], "--special") && i + 1 < argc) {
+			cli_start_special = true;
+			cli_special_stage = atoi(argv[++i]);
+			if (zone < 0)
+				zone = 0;
+		} else if (!strcmp(argv[i], "--x") && i + 1 < argc)
 			cli_start_x = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--y") && i + 1 < argc)
 			cli_start_y = atoi(argv[++i]);

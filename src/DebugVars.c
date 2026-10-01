@@ -63,7 +63,7 @@ static const struct {
 	WATCH("Game", vbla_count)
 	WATCH("Level", air)
 	WATCH("Level", big_ring)
-	WATCH("Level", big_ring_collected)
+	WATCH("Level", big_ring)
 	WATCH("Level", boss_status)
 	WATCH("Level", collision_path)
 	WATCH("Level", continues)

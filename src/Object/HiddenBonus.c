@@ -10,14 +10,15 @@ typedef struct {
 } Scratch_HiddenBonus;
 
 // Bonus points, indexed by subtype (0 is invalid/unused)
+// (in tens, AddPoints' unit: 1000 = 10000 points)
 static const uint16_t bonus_points[] = {
     0,
-    10000,
     1000,
+    100,
 #ifdef SCP_FIX_BUGS
-    100, // subtype 03 -- the real game's own table has this wrong (see #else)
+    10, // subtype 03 -- 100 points; the real game's own table has this wrong (see #else)
 #else
-    10, // matches the real (buggy) shipped table -- should be 100
+    1, // matches the real (buggy) shipped table -- 10 points, should be 100
 #endif
 };
 
@@ -33,7 +34,7 @@ void Obj_HiddenBonus(Object *obj) {
         int16_t x_diff = (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u + radius);
         if ((uint16_t)x_diff < (uint16_t)diameter) {
             int16_t y_diff = (int16_t)(player->pos.l.y.f.u - obj->pos.l.y.f.u + radius);
-            if ((uint16_t)y_diff < (uint16_t)diameter && !debug_use && !big_ring_collected) {
+            if ((uint16_t)y_diff < (uint16_t)diameter && !debug_use && !big_ring) {
                 // Touched -- advance to Display
                 obj->routine += 2;
                 obj->mappings = Mappings_HiddenBonuses;

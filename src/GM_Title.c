@@ -58,6 +58,10 @@ uint8_t demo_num;
 // RAM variable (never reset on entry -- picks up where you left off).
 static int levsel_sound = 0;
 
+// Likewise the highlighted row: coming back to level select (after a level, a special stage, the title screen...)
+// leaves the cursor where it was. It only starts from the top again when the program is restarted.
+static int levsel_item = 0;
+
 static const char *const levsel_text[LEVSEL_LINE_COUNT] = {
     "GREEN HILL ZONE  STAGE 1",
     "                 STAGE 2",
@@ -148,7 +152,7 @@ static void LevSelTextLoad(int selected) {
     }
 }
 
-static void PlayLevel(void);
+static void PlayLevel(bool new_game);
 
 // Matches LevelSelect/LevSelControls: navigate with Up/Down (12-frame repeat
 // delay while held), confirm with A/B/C/Start.
@@ -171,7 +175,7 @@ static void LevelSelect(void) {
     // any nametable entry.
     VDP_WriteVRAM(Art_Text, 41 * 32);
 
-    int item = 0;
+    int item = levsel_item;
     int delay = 0;
     LevSelTextLoad(item);
 
@@ -226,20 +230,23 @@ static void LevelSelect(void) {
         }
     }
 
+    levsel_item = item; // remembered for the next visit
+
     if (item == LEVSEL_SS_ROW) {
         gamemode = GameMode_Special;
         level_id = 0;
-        last_special = 0;
+        // (last_special and the emeralds are left alone, like the original: the stage number moves on with each
+        // visit and skips emeralds you have. Only starting a level, or the attract-mode demo, clears them.)
         lives = 3;
         rings = 0;
         level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
         score = 0;
 #ifndef SCP_REV00
-        score_life = 50000;
+        score_life = 5000;
 #endif
     } else {
         level_id = levsel_levels[item];
-        PlayLevel();
+        PlayLevel(false);
     }
 }
 
@@ -299,7 +306,10 @@ static const uint16_t title_demos[] = {
 #include "Resource/Tilemap/TitleFG.h"
 
 // Level stuff
-static void PlayLevel(void) {
+// new_game: starting from the title screen. A level picked from the level select behaves like arriving through a
+// giant ring does: the special stage counter and the emeralds you have are left alone (the original resets them
+// here too, but only the attract-mode demo should force the first stage).
+static void PlayLevel(bool new_game) {
     // Matches the disassembly's PlayLevel exactly -- always a normal level,
     // no special-casing here. (An earlier version of this port used
     // "A held -> Special Stage" as a stand-in shortcut before level select
@@ -312,12 +322,14 @@ static void PlayLevel(void) {
     rings = 0;
     level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
     score = 0;
-    last_special = 0;
-    emeralds = 0;
-    memset(emerald_list, 0, sizeof(emerald_list));
+    if (new_game) {
+        last_special = 0;
+        emeralds = 0;
+        memset(emerald_list, 0, sizeof(emerald_list));
+    }
     continues = 0;
 #ifndef SCP_REV00
-    score_life = 50000;
+    score_life = 5000;
 #endif
    FadeOutMusic();
 }
@@ -339,7 +351,7 @@ static void Tit_ChkLevSel(bool level_select_cheat) {
     if (ready && (jpad1_hold1 & JPAD_A))
         LevelSelect();
     else
-        PlayLevel();
+        PlayLevel(true);
 }
 
 // Title gamemode
@@ -568,7 +580,7 @@ void GM_Title(void) {
             level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
             score = 0;
 #ifndef SCP_REV00
-            score_life = 50000;
+            score_life = 5000;
 #endif
             return;
         }

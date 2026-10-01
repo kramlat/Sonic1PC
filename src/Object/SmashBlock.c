@@ -14,7 +14,7 @@ static const int16_t smab_speeds[4][2] = {
     { 0x100, -0x100 },
 };
 
-// Points per smashed block (combo chain), /10 -- 16th and later blocks
+// Points per smashed block (combo chain), in tens (AddPoints' unit) -- 16th and later blocks
 // are hardcoded to 10000 regardless of this table.
 static const uint16_t smab_scores[4] = { 10, 20, 50, 100 };
 
@@ -75,13 +75,13 @@ void Obj_SmashBlock(Object *obj) {
             if (combo >= 3 * 2)
                 combo = 3 * 2;
 
-            uint16_t score_x10 = smab_scores[combo / 2];
+            uint16_t points_tens = smab_scores[combo / 2];
             uint8_t frame = (uint8_t)(combo / 2);
             if (item_bonus >= 16 * 2) {
-                score_x10 = 1000;
+                points_tens = 1000;
                 frame = 5;
             }
-            AddPoints(score_x10 * 10);
+            AddPoints(points_tens);
             points->frame = frame;
         }
         __attribute__((fallthrough)); // parent object is now the first fragment (routine 4)

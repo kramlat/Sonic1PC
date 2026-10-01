@@ -294,6 +294,9 @@ set(
   "src/Object/BossStarLight.c"
   "src/Object/ScrapEggman.c"
   "src/Object/BossFinal.c"
+  "src/SpecialStageBG.c"
+  "src/Object/SpecialResult.c"
+  "src/Object/SpecialResult.h"
   "src/Object/BossFinal.h"
   "src/Object/ScrapEggman.h"
   "src/Object/BossStarLight.h"
@@ -682,6 +685,8 @@ set(RESOURCES
     "Tilemap/SegaREV01"
     "Tilemap/JapaneseCredits"
     "Tilemap/TitleFG"
+    "Tilemap/SSBackground1"
+    "Tilemap/SSBackground2"
     "Palette/SegaBG"
     "Palette/Title"
     "Palette/LevelSel"
@@ -1393,7 +1398,7 @@ if(BUILD_TESTS)
     add_executable(SonicTests "tests/test_main.c" "tests/test_plc.c"
                                "tests/test_leveldraw.c" "tests/test_levelcollision.c"
                                "tests/test_prison.c" "tests/test_lz3wall.c"
-                               "tests/test_bosslz.c" "tests/test_bossslz.c" "tests/test_scrapeggman.c" "tests/test_bossfinal.c" "tests/test_lzconveyor.c"
+                               "tests/test_bosslz.c" "tests/test_bossslz.c" "tests/test_scrapeggman.c" "tests/test_bossfinal.c" "tests/test_specialstage.c" "tests/test_points.c" "tests/test_lzconveyor.c"
                                "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_staircase.c" "tests/test_oscillator.c" "tests/test_scenery.c" "tests/test_audiomute.c" "tests/test_demorecord.c" "tests/test_sounddriver.c" "tests/test_objcollision.c"
                                "tests/test_giantring.c" "tests/test_checkpoint.c")
     target_link_libraries(SonicTests PRIVATE SonicCore)

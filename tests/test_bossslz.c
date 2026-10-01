@@ -133,7 +133,7 @@ static void BossSLZ_DefeatAndEscape(void) {
     boss->status.o.f.flag7 = true;
     RunFrame();
     CHECK_EQ(boss->routine_sec, 6);
-    CHECK_EQ(score - before, 1000);
+    CHECK_EQ(score - before, 100); // 1000 points: the score counts in tens
 
     CHECK(RunUntil(0x8, 400) >= 0);
     CHECK(boss->status.o.f.x_flip);

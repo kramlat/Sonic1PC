@@ -98,7 +98,7 @@ static void BLZ_ShipUpdate(Object *obj, Scratch_BossLabyrinth *scratch) {
         return;
     }
     if (obj->status.o.f.flag7) { // defeated flag, set by the touch response on the last hit
-        AddPoints(1000); // real ASM passes 100 -- its AddPoints takes points/10, this project's takes the full value
+        AddPoints(100); // 1000 points (AddPoints counts in tens, like the score)
         scratch->early_defeat = 0xFF;
         return;
     }

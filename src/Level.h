@@ -144,7 +144,7 @@ extern uint32_t score_life;
 
 extern uint16_t air;
 extern uint8_t last_special;
-extern uint8_t big_ring_collected; // set by Obj_RingFlash (GiantRing.c) -- matches the real f_bigring flag; not yet consumed anywhere (level-exit-to-Special-Stage transition isn't wired up yet)
+extern uint8_t big_ring; // f_bigring: set by Obj_RingFlash (GiantRing.c) when Sonic jumps into a giant ring; the end-of-act card then goes to the special stage
 
 extern uint8_t life_num;
 extern uint8_t life_count;
@@ -222,7 +222,6 @@ extern uint8_t tunnel_allow;
 extern uint8_t jump_only;
 extern uint8_t obj6B;
 extern uint8_t lock_ctrl;
-extern uint8_t big_ring;
 // Set when Sonic destroys Eggman's ship as it flees the Final Zone (the escape phase): the ending is meant to show the
 // unused exploding Eggmobile in its background (art and mappings: Map_FZDamaged). Cleared when a Final Zone fight starts.
 extern uint8_t ending_eggmobile_exploding;

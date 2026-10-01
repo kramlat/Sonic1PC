@@ -44,7 +44,7 @@ static void Bump_Hit(Object *obj) {
                 objstate[obj->respawn_index]++;
         }
         if (award_points) {
-            AddPoints(10);
+            AddPoints(1); // 10 points (AddPoints counts in tens)
 
             Object *points = FindFreeObj();
             if (points != NULL) {

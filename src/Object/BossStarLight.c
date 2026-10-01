@@ -111,7 +111,7 @@ static void BSLZ_StatusUpdate(Object *obj, Scratch_BossStarLight *scratch) {
     if (obj->routine_sec >= 6)
         return; // exploding or beyond
     if (obj->status.o.f.flag7) { // defeated flag, set by the spike ball on the last hit
-        AddPoints(1000); // real ASM passes 100 -- its AddPoints takes points/10, this project's takes the full value
+        AddPoints(100); // 1000 points (AddPoints counts in tens, like the score)
         obj->routine_sec = 6;
         scratch->generic_timer = 120;
         obj->xsp = 0;

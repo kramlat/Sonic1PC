@@ -16,6 +16,8 @@
 // read the real values instead of keeping its own copy.
 extern const int8_t ring_pos[16][2];
 
+void Ring_Collect(void); // adds one ring: counter, sound, extra lives at 100 and 200
+
 typedef struct {
     uint8_t subtype; // 0x28
     uint8_t pad[0x9]; // 0x29-0x31

@@ -471,7 +471,6 @@ uint32_t score_life;
 
 uint16_t air;
 uint8_t last_special;
-uint8_t big_ring_collected;
 
 uint8_t life_num;
 uint8_t life_count;
@@ -565,14 +564,14 @@ void AddPoints(uint16_t points) {
     if ((score += points) >= 999999)
         score = 999999;
 
-    // Check if we should be rewarded an extra life every 50000 points.
+    // Check if we should be rewarded an extra life every 50000 points (the score counts in tens, so 5000).
     // Real REV01 hardware has this same mechanic (repurposed from an unused
     // REV00 high-score-copy value), but hard-gates the actual award to the
     // Japanese region only -- overseas carts silently update the
     // requirement and never get the life. Sonic 2 onward removed that
     // region gate, awarding it everywhere; matching that here instead.
     if (score >= score_life) {
-        score_life += 50000;
+        score_life += 5000;
         lives++;
         life_count++;
         PlayMusic(bgm_ExtraLife);
