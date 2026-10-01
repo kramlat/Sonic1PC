@@ -4,23 +4,28 @@
 ; (no real trigger-boundary shape to scale to) -- just a distinct, dense
 ; marker for a system that otherwise has zero visual footprint at all.
 ; ---------------------------------------------------------------------------
-Map_TeleporterMarker_internal:
-		dc.w @grid-Map_TeleporterMarker_internal
-@grid:		dc.b 16
-		dc.b $E0, 5, 0, $1C, $E0
-		dc.b $E0, 5, 0, $1C, $F0
-		dc.b $E0, 5, 0, $1C, 0
-		dc.b $E0, 5, 0, $1C, $10
-		dc.b $F0, 5, 0, $1C, $E0
-		dc.b $F0, 5, 0, $1C, $F0
-		dc.b $F0, 5, 0, $1C, 0
-		dc.b $F0, 5, 0, $1C, $10
-		dc.b 0,   5, 0, $1C, $E0
-		dc.b 0,   5, 0, $1C, $F0
-		dc.b 0,   5, 0, $1C, 0
-		dc.b 0,   5, 0, $1C, $10
-		dc.b $10, 5, 0, $1C, $E0
-		dc.b $10, 5, 0, $1C, $F0
-		dc.b $10, 5, 0, $1C, 0
-		dc.b $10, 5, 0, $1C, $10
-		even
+	include	"Mappings/_MapMacros.asm"
+
+Map_TeleporterMarker_internal:	mappingsTable
+	mappingsTableEntry.w	@grid
+
+@grid:	spriteHeader
+	spritePiece	-$20, -$20, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	-$10, -$20, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	0, -$20, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	$10, -$20, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	-$20, -$10, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	-$10, -$10, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	0, -$10, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	$10, -$10, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	-$20, 0, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	-$10, 0, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	0, 0, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	$10, 0, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	-$20, $10, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	-$10, $10, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	0, $10, 2, 2, $1C, 0, 0, 0, 0
+	spritePiece	$10, $10, 2, 2, $1C, 0, 0, 0, 0
+@grid_End
+
+	even

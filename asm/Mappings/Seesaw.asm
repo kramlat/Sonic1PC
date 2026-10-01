@@ -1,24 +1,29 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - seesaws (SLZ)
 ; ---------------------------------------------------------------------------
-Map_Seesaw_internal:
-		dc.w @sloping-Map_Seesaw_internal	; 0 - descending sloped
-		dc.w @flat-Map_Seesaw_internal		; 1 - descending flat
-		dc.w @sloping-Map_Seesaw_internal	; 2 - ascending  sloped
-		dc.w @flat-Map_Seesaw_internal		; 3 - ascending  flat
+	include	"Mappings/_MapMacros.asm"
 
-@sloping:	dc.b 7
-		dc.b $D4, 6, 0, 0,    $D3
-		dc.b $DC, 6, 0, 6,    $E3
-		dc.b $E4, 4, 0, $C,   $F3
-		dc.b $EC, $D, 0, $E,  $F3
-		dc.b $FC, 8, 0, $16,  $FB
-		dc.b $F4, 6, 0, 6,    $13
-		dc.b $FC, 5, 0, $19,  $23
+Map_Seesaw_internal:	mappingsTable
+	mappingsTableEntry.w	@sloping	; 0 - descending sloped
+	mappingsTableEntry.w	@flat	; 1 - descending flat
+	mappingsTableEntry.w	@sloping	; 2 - ascending  sloped
+	mappingsTableEntry.w	@flat	; 3 - ascending  flat
 
-@flat:		dc.b 4
-		dc.b $E6, $A, 0, $1D, $D0
-		dc.b $E6, $A, 0, $23, $E8
-		dc.b $E6, $A, 8, $23, 0
-		dc.b $E6, $A, 8, $1D, $18
-		even
+@sloping:	spriteHeader
+	spritePiece	-$2D, -$2C, 2, 3, 0, 0, 0, 0, 0
+	spritePiece	-$1D, -$24, 2, 3, 6, 0, 0, 0, 0
+	spritePiece	-$D, -$1C, 2, 1, $C, 0, 0, 0, 0
+	spritePiece	-$D, -$14, 4, 2, $E, 0, 0, 0, 0
+	spritePiece	-5, -4, 3, 1, $16, 0, 0, 0, 0
+	spritePiece	$13, -$C, 2, 3, 6, 0, 0, 0, 0
+	spritePiece	$23, -4, 2, 2, $19, 0, 0, 0, 0
+@sloping_End
+
+@flat:	spriteHeader
+	spritePiece	-$30, -$1A, 3, 3, $1D, 0, 0, 0, 0
+	spritePiece	-$18, -$1A, 3, 3, $23, 0, 0, 0, 0
+	spritePiece	0, -$1A, 3, 3, $23, 1, 0, 0, 0
+	spritePiece	$18, -$1A, 3, 3, $1D, 1, 0, 0, 0
+@flat_End
+
+	even

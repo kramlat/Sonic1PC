@@ -1,22 +1,35 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - Roller enemy (SYZ)
 ; ---------------------------------------------------------------------------
-Map_Roll_internal:
-		dc.w @stand-Map_Roll_internal
-		dc.w @fold-Map_Roll_internal
-		dc.w @roll1-Map_Roll_internal
-		dc.w @roll2-Map_Roll_internal
-		dc.w @roll3-Map_Roll_internal
-@stand:		dc.b 2
-		dc.b $DE, $E, 0, 0, $F0
-		dc.b $F6, $E, 0, $C, $F0
-@fold:		dc.b 2
-		dc.b $E6, $E, 0, 0, $F0
-		dc.b $FE, $D, 0, $18, $F0
-@roll1:		dc.b 1
-		dc.b $F0, $F, 0, $20, $F0
-@roll2:		dc.b 1
-		dc.b $F0, $F, 0, $30, $F0
-@roll3:		dc.b 1
-		dc.b $F0, $F, 0, $40, $F0
-		even
+	include	"Mappings/_MapMacros.asm"
+
+Map_Roll_internal:	mappingsTable
+	mappingsTableEntry.w	@stand
+	mappingsTableEntry.w	@fold
+	mappingsTableEntry.w	@roll1
+	mappingsTableEntry.w	@roll2
+	mappingsTableEntry.w	@roll3
+
+@stand:	spriteHeader
+	spritePiece	-$10, -$22, 4, 3, 0, 0, 0, 0, 0
+	spritePiece	-$10, -$A, 4, 3, $C, 0, 0, 0, 0
+@stand_End
+
+@fold:	spriteHeader
+	spritePiece	-$10, -$1A, 4, 3, 0, 0, 0, 0, 0
+	spritePiece	-$10, -2, 4, 2, $18, 0, 0, 0, 0
+@fold_End
+
+@roll1:	spriteHeader
+	spritePiece	-$10, -$10, 4, 4, $20, 0, 0, 0, 0
+@roll1_End
+
+@roll2:	spriteHeader
+	spritePiece	-$10, -$10, 4, 4, $30, 0, 0, 0, 0
+@roll2_End
+
+@roll3:	spriteHeader
+	spritePiece	-$10, -$10, 4, 4, $40, 0, 0, 0, 0
+@roll3_End
+
+	even

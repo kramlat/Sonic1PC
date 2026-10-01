@@ -5,17 +5,24 @@
 ; relative to ArtTile_Monitor) instead of Eggman, and only 2 sizes since
 ; Conv_Main only ever picks one of 2 widths (256 or 112, height fixed).
 ; ---------------------------------------------------------------------------
-Map_SBZConveyorMarker_internal:
-		dc.w @wide-Map_SBZConveyorMarker_internal
-		dc.w @narrow-Map_SBZConveyorMarker_internal
-@wide:		dc.b 4
-		dc.b $E8, 5, 0, $24, $80
-		dc.b $E8, 5, 0, $24, $70
-		dc.b 8,   5, 0, $24, $80
-		dc.b 8,   5, 0, $24, $70
-@narrow:	dc.b 4
-		dc.b $E8, 5, 0, $24, $C8
-		dc.b $E8, 5, 0, $24, $28
-		dc.b 8,   5, 0, $24, $C8
-		dc.b 8,   5, 0, $24, $28
-		even
+	include	"Mappings/_MapMacros.asm"
+
+Map_SBZConveyorMarker_internal:	mappingsTable
+	mappingsTableEntry.w	@wide
+	mappingsTableEntry.w	@narrow
+
+@wide:	spriteHeader
+	spritePiece	-$80, -$18, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	$70, -$18, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	-$80, 8, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	$70, 8, 2, 2, $24, 0, 0, 0, 0
+@wide_End
+
+@narrow:	spriteHeader
+	spritePiece	-$38, -$18, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	$28, -$18, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	-$38, 8, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	$28, 8, 2, 2, $24, 0, 0, 0, 0
+@narrow_End
+
+	even

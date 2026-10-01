@@ -6,17 +6,24 @@
 ; (triggersize) instead of a rectangle -- 2 sizes, matching Disc_Main's own
 ; large/small (leftover, practically unused) choice.
 ; ---------------------------------------------------------------------------
-Map_RunningDiscMarker_internal:
-		dc.w @large-Map_RunningDiscMarker_internal
-		dc.w @small-Map_RunningDiscMarker_internal
-@large:		dc.b 4
-		dc.b $B8, 5, 0, $24, $B8
-		dc.b $B8, 5, 0, $24, $38
-		dc.b $38, 5, 0, $24, $B8
-		dc.b $38, 5, 0, $24, $38
-@small:		dc.b 4
-		dc.b $C8, 5, 0, $24, $C8
-		dc.b $C8, 5, 0, $24, $28
-		dc.b $28, 5, 0, $24, $C8
-		dc.b $28, 5, 0, $24, $28
-		even
+	include	"Mappings/_MapMacros.asm"
+
+Map_RunningDiscMarker_internal:	mappingsTable
+	mappingsTableEntry.w	@large
+	mappingsTableEntry.w	@small
+
+@large:	spriteHeader
+	spritePiece	-$48, -$48, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	$38, -$48, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	-$48, $38, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	$38, $38, 2, 2, $24, 0, 0, 0, 0
+@large_End
+
+@small:	spriteHeader
+	spritePiece	-$38, -$38, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	$28, -$38, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	-$38, $28, 2, 2, $24, 0, 0, 0, 0
+	spritePiece	$28, $28, 2, 2, $24, 0, 0, 0, 0
+@small_End
+
+	even

@@ -4,11 +4,16 @@
 ; Eggman icon). Same tight layout as Map_Invis's own .solid frame, just a
 ; different relative tile ($20, the Goggles monitor content icon).
 ; ---------------------------------------------------------------------------
-Map_WaterfallMarker_internal:
-		dc.w @solid-Map_WaterfallMarker_internal
-@solid:		dc.b 4
-		dc.b $F0, 5, 0, $20, $F0
-		dc.b $F0, 5, 0, $20, 0
-		dc.b 0,   5, 0, $20, $F0
-		dc.b 0,   5, 0, $20, 0
-		even
+	include	"Mappings/_MapMacros.asm"
+
+Map_WaterfallMarker_internal:	mappingsTable
+	mappingsTableEntry.w	@solid
+
+@solid:	spriteHeader
+	spritePiece	-$10, -$10, 2, 2, $20, 0, 0, 0, 0
+	spritePiece	0, -$10, 2, 2, $20, 0, 0, 0, 0
+	spritePiece	-$10, 0, 2, 2, $20, 0, 0, 0, 0
+	spritePiece	0, 0, 2, 2, $20, 0, 0, 0, 0
+@solid_End
+
+	even

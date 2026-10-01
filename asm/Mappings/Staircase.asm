@@ -1,9 +1,13 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - blocks that form a staircase (SLZ)
 ; ---------------------------------------------------------------------------
-Map_Stair_internal:
-		dc.w @block-Map_Stair_internal
+	include	"Mappings/_MapMacros.asm"
 
-@block:		dc.b 1
-		dc.b $F0, $F, 0, $21, $F0
-		even
+Map_Stair_internal:	mappingsTable
+	mappingsTableEntry.w	@block
+
+@block:	spriteHeader
+	spritePiece	-$10, -$10, 4, 4, $21, 0, 0, 0, 0
+@block_End
+
+	even
