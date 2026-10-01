@@ -13,14 +13,14 @@ namespace S1ObjectDefinitions.SYZ
 		public override void Init(ObjectData data)
 		{
 			byte[] artfile = ObjectHelper.LevelArt;
-			img = ObjectHelper.MapASMToBmp(artfile, "../../_maps/Floating Blocks and Doors.asm", 0, 2);
+			img = ObjectHelper.MapASMToBmp(artfile, "../asm/Mappings/FloatingBlocksDoors.asm", 0, 2);
 			for (int i = 0; i < 8; i++)
-				imgs.Add(ObjectHelper.MapASMToBmp(artfile, "../../_maps/Floating Blocks and Doors.asm", i, 2));
+				imgs.Add(ObjectHelper.MapASMToBmp(artfile, "../asm/Mappings/FloatingBlocksDoors.asm", i, 2));
 		}
 
 		public override ReadOnlyCollection<byte> Subtypes
 		{
-			get { return new ReadOnlyCollection<byte>(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0B, 0x0C }); }
+			get { return new ReadOnlyCollection<byte>(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x10, 0x11, 0x12, 0x13, 0x14, 0x20, 0x37, 0xA0, 0x58, 0x59, 0x5A, 0x5B }); }
 		}
 
 		public override string Name
@@ -35,7 +35,11 @@ namespace S1ObjectDefinitions.SYZ
 
 		public override string SubtypeName(byte subtype)
 		{
-			return ((PlatformMovement)(subtype & 0xF)).ToString();
+			// Bit 7 makes it a switch-controlled door (low nibble = switch ID);
+			// otherwise the low nibble is the movement type.
+			if ((subtype & 0x80) != 0)
+				return "Switch Door (Switch " + (subtype & 0x0F) + ")";
+			return ((PlatformMovement)(subtype & 0x0F)).ToString();
 		}
 
 		public override Sprite Image
@@ -97,23 +101,25 @@ namespace S1ObjectDefinitions.SYZ
 		}
 	}
 
+	// Movement types, matching FBlock_TypeIndex in "56 SYZ, SLZ Floating Blocks and LZ Doors.asm".
+	// The high nibble of the subtype picks the block's size/frame (see FBlock_Var).
 	public enum PlatformMovement
 	{
-		Stationary,
-		RightLeft,
-		DownUp,
-		FallStand,
-		Fall,
-		LeftRight,
-		UpDown,
-		SwitchUp,
-		MoveUp,
-		Stationary2,
-		Invalid1,
-		DownUpSlow,
-		UpDownSlow,
-		Invalid2,
-		Invalid3,
-		Invalid4
+		Stationary = 0,
+		LeftRightSmall = 1,
+		LeftRightLarge = 2,
+		UpDownSmall = 3,
+		UpDownLarge = 4,
+		LZDoorOpen = 5,
+		LZDoorClose = 6,
+		HorizontalSYZ3 = 7, // SYZ3: starts moving right when switch $F is pressed
+		SLZStairSmallest = 8, // moves around a square, half-range $10
+		SLZStairSmall = 9, // half-range $30
+		SLZStairLarge = 10, // half-range $50
+		SLZStairLargest = 11, // half-range $70
+		LZHorizDoorOpen = 12,
+		LZHorizDoorClose = 13,
+		Invalid14 = 14,
+		Invalid15 = 15
 	}
 }
