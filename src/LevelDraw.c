@@ -63,12 +63,17 @@ const uint8_t MZ_ScrollArray[144] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-// SBZ left on its hand-tuned table for now -- only MZ is being swapped
-// back to the real table at this point.
+// Real BG_ScrollBlockMap_SBZ (REV01 "Level Drawing"): which BG layer's X position each 16px row of the SBZ act 1
+// background follows -- 0 = static, 2 = block 1 (lower black buildings), 4 = block 2 (upper black buildings),
+// 6 = block 3 (distant brown buildings). The values double as the redraw-flag bit numbers DrawBG_ColumnForBGIndex
+// tests. The original is 34 bytes (rows -1..32 once offset by the +1 the row draws use); a column strip can
+// read up to 15 entries past the end of that, where the ROM just has whatever bytes follow, so here the entries
+// past the end wrap back around to the start of the 32-row cycle instead.
 const uint8_t SBZ_ScrollArray[48] = {
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
-    0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
-    0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06
+    0, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, // $00-$0F
+    4, 4, 4, 4, 4, 4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // $10-$1F
+    2, 0,                                           // $20-$21
+    0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4        // wrap of $02-$0F
 };
 
 size_t CalcVRAMPos_2(int16_t sx, int16_t x, int16_t y) {

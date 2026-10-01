@@ -223,6 +223,9 @@ extern uint8_t jump_only;
 extern uint8_t obj6B;
 extern uint8_t lock_ctrl;
 extern uint8_t big_ring;
+// Set when Sonic destroys Eggman's ship as it flees the Final Zone (the escape phase): the ending is meant to show the
+// unused exploding Eggmobile in its background (art and mappings: Map_FZDamaged). Cleared when a Final Zone fight starts.
+extern uint8_t ending_eggmobile_exploding;
 extern uint16_t item_bonus;
 extern uint16_t time_bonus;
 extern uint16_t ring_bonus;

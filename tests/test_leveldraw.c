@@ -2,6 +2,7 @@
 
 #include "LevelDraw.h"
 #include "Level.h"
+#include "LevelScroll.h"
 
 #include <string.h>
 
@@ -41,6 +42,42 @@ static void GetBlockData2_ReadsColumnsPast64(void) {
     CHECK(block == level_map16 + (5 << 3));
 }
 
+#ifndef SCP_REV00
+// SBZ act 1 (REV01) background scrolling: Draw_SBZ only looks at the redraw flags the real routines set --
+// block 1 at bits 2/3, block 2 at 4/5, block 3 at 6/7 (right-scroll = the upper bit of each pair) and the
+// top/bottom row at bits 0/1. Passing the wrong bit (or BGScroll_Y's bits 4/5 for the vertical move) left new
+// right-edge columns and new bottom rows undrawn or drawn from the wrong layer.
+static void SBZ1_BackgroundRedrawFlags(void) {
+    level_id = LEVEL_ID(ZoneId_SBZ, 0);
+    bg_scrpos_x.v = bg2_scrpos_x.v = bg3_scrpos_x.v = bg_scrpos_y.v = 0;
+    bg1_xblock = bg2_xblock = bg3_xblock = 0;
+    bg1_yblock = 0x10; // makes the first move count as crossing a 16px boundary
+    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
+    scrshift_x = 0x10; // moving right...
+    scrshift_y = 0x10; // ...and down
+    scrpos_x.v = 0;
+    DeformLayers();
+    CHECK_EQ(bg2_scroll_flags & 0xFF, 0x08 | 0x20 | 0x80 | 0x02);
+    CHECK_EQ(bg1_scroll_flags & 0xFF, 0);
+}
+#endif
+
+// SBZ act 1's background row map must be the real BG_ScrollBlockMap_SBZ (which BG layer each 16px row follows).
+// A hand-tuned stand-in used to be here, which sent new columns to the wrong rows (missing smoke-puff blocks etc.).
+static void SBZ_ScrollArrayMatchesDisassembly(void) {
+    static const uint8_t real[34] = {
+        0, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4,
+        4, 4, 4, 4, 4, 4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+        2, 0,
+    };
+    for (int i = 0; i < 34; i++)
+        CHECK_EQ(SBZ_ScrollArray[i], real[i]);
+}
+
 void RegisterLevelDrawTests(void) {
     RUN_TEST(GetBlockData2_ReadsColumnsPast64);
+    RUN_TEST(SBZ_ScrollArrayMatchesDisassembly);
+#ifndef SCP_REV00
+    RUN_TEST(SBZ1_BackgroundRedrawFlags);
+#endif
 }

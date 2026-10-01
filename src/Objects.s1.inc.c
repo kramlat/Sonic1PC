@@ -106,6 +106,13 @@ void Obj_BossMarble(Object *obj);
 void Obj_BossFire(Object *obj);
 void Obj_BossSpringYard(Object *obj);
 void Obj_BossLabyrinth(Object *obj);
+void Obj_BossStarLight(Object *obj);
+void Obj_BossSpikeball(Object *obj);
+void Obj_ScrapEggman(Object *obj);
+void Obj_FalseFloor(Object *obj);
+void Obj_BossFinal(Object *obj);
+void Obj_EggmanCylinder(Object *obj);
+void Obj_BossPlasma(Object *obj);
 void Obj_BossBlock(Object *obj);
 void Obj_PrisonCapsule(Object *obj);
 void Obj_VanishSonic(Object *obj);
@@ -236,19 +243,19 @@ static void (*object_func[])(Object*) = {
 	/* 77 ObjId_BossLabyrinth      */ Obj_BossLabyrinth,
 	/* 78 ObjId_Caterkiller         */ Obj_Caterkiller,
 	/* 79 ObjId_Checkpoint          */ Obj_Checkpoint,
-	/* 7A ObjId_7A                  */ Obj_Null,
-	/* 7B ObjId_7B                  */ Obj_Null,
+	/* 7A ObjId_BossStarLight       */ Obj_BossStarLight,
+	/* 7B ObjId_BossSpikeball       */ Obj_BossSpikeball,
 	/* 7C ObjId_RingFlash           */ Obj_RingFlash,
 	/* 7D ObjId_HiddenBonus         */ Obj_HiddenBonus,
 	/* 7E ObjId_7E                  */ Obj_Null,
 	/* 7F ObjId_7F                  */ Obj_Null,
 	/* 80 ObjId_80                  */ Obj_Null,
 	/* 81 ObjId_81                  */ Obj_Null,
-	/* 82 ObjId_82                  */ Obj_Null,
-	/* 83 ObjId_83                  */ Obj_Null,
-	/* 84 ObjId_84                  */ Obj_Null,
-	/* 85 ObjId_85                  */ Obj_Null,
-	/* 86 ObjId_86                  */ Obj_Null,
+	/* 82 ObjId_ScrapEggman         */ Obj_ScrapEggman,
+	/* 83 ObjId_FalseFloor          */ Obj_FalseFloor,
+	/* 84 ObjId_EggmanCylinder      */ Obj_EggmanCylinder,
+	/* 85 ObjId_BossFinal           */ Obj_BossFinal,
+	/* 86 ObjId_BossPlasma          */ Obj_BossPlasma,
 	/* 87 ObjId_87                  */ Obj_Null,
 	/* 88 ObjId_88                  */ Obj_Null,
 	/* 89 ObjId_89                  */ Obj_Null,

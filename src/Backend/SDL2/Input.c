@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include "../../Game.h"
-#include "../../Console.h"
 
 #include "Backend/Joypad.h"
 #include "Backend/VDP.h"
@@ -75,28 +74,6 @@ int Input_HandleEvents(void) {
 					Render_ToggleFullscreen();
 					break;
 				}
-				// Debug console only (SonicSmoke) -- console_enabled stays
-				// false in the real Sonic executable, so this whole block
-				// is dead weight there, never touching normal gameplay
-				// input handling below (which reads polled key state, not
-				// events, so it's unaffected either way).
-				if (console_enabled) {
-					if (e.key.keysym.scancode == SDL_SCANCODE_GRAVE && !e.key.repeat) {
-						Console_Toggle();
-					} else if (Console_IsOpen()) {
-						switch (e.key.keysym.scancode) {
-							case SDL_SCANCODE_BACKSPACE: Console_HandleKey(ConsoleKey_Backspace); break;
-							case SDL_SCANCODE_RETURN:    Console_HandleKey(ConsoleKey_Enter);     break;
-							case SDL_SCANCODE_UP:        Console_HandleKey(ConsoleKey_Up);        break;
-							case SDL_SCANCODE_DOWN:      Console_HandleKey(ConsoleKey_Down);      break;
-							default: break;
-						}
-					}
-				}
-				break;
-			case SDL_TEXTINPUT:
-				if (console_enabled && Console_IsOpen())
-					Console_HandleText(e.text.text);
 				break;
 			default:
 				break;

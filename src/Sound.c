@@ -3175,10 +3175,16 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
 
     // Read coordination flags up to the next note / rest / duration byte.
     uint8_t b;
+    int flag_guard = 0;
     for (;;) {
         b = *ch->data_ptr++;
         if (b < 0xE0)
             break;
+        if (++flag_guard > 4096) { // flags that never reach a note (e.g. a self-jump in dead data) would freeze the game
+            fprintf(stderr, "SMPS: track %d stuck at +%d, return_sp=%d\n", channel_index, (int)(ch->data_ptr - ch->song_base), ch->return_sp);
+            ch->active = 0;
+            return;
+        }
         if (b == 0xE7) { // smpsNoAttack / cfPreventAttack (both drivers): don't re-attack the next note
             ch->no_attack = 1;
             continue;

@@ -909,11 +909,27 @@ static void compile_song_internal(Emitter *em, const PJValue *data) {
         const char *name = pj_object_key_at(playlist, i);
         const PJValue *events = pj_object_value_at(playlist, i);
         em_mark_block(em, name);
-        for (size_t e = 0; e < pj_array_size(events); e++)
-            emit_event(em, pj_array_get(events, e));
         size_t n = pj_array_size(events);
-        int last_is_terminal = n > 0 && event_is_terminal(pj_array_get(events, n - 1));
-        if (call_target_has(&call_targets, name) && !last_is_terminal)
+        // Trailing empty-bodied inline smpsJumps are the original's unreachable "dead data" self-jumps
+        // (e.g. Mus84_SLZ's Jump07/Jump08 right after Call09): the converter folds them into the block
+        // that precedes them, dropping that block's own smpsReturn. They aren't a terminator -- the
+        // return belongs in front of them, or the called track falls into the self-jump and spins forever.
+        size_t body_end = n;
+        while (body_end > 0) {
+            const PJValue *tail = pj_array_get(events, body_end - 1);
+            const PJValue *jump = pj_type(tail) == PJ_OBJECT ? pj_object_get(tail, "smpsJump") : NULL;
+            if (jump == NULL || pj_array_size(jump) != 0)
+                break;
+            body_end--;
+        }
+        for (size_t e = 0; e < body_end; e++)
+            emit_event(em, pj_array_get(events, e));
+        int last_is_terminal = body_end > 0 && event_is_terminal(pj_array_get(events, body_end - 1));
+        if (body_end < n && call_target_has(&call_targets, name) && !last_is_terminal)
+            em_byte(em, 0xE3); // smpsReturn, ahead of the dead-data jumps
+        for (size_t e = body_end; e < n; e++)
+            emit_event(em, pj_array_get(events, e));
+        if (body_end == n && call_target_has(&call_targets, name) && !last_is_terminal)
             em_byte(em, 0xE3); // smpsReturn
     }
 

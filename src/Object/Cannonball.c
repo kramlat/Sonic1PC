@@ -41,16 +41,47 @@ static void CBal_Animate(Object *obj) {
     obj->frame ^= 1; // alternate between black and red ball
 }
 
+// Not in the original (the real cannonball just flies through walls): bounces back off a real wall in its way
+// and keeps following gravity. A ball is thrown from the Ball Hog's own ledge, so it starts inside or flush against
+// solid tiles -- it must come out of those (and fall off the edge) rather than count its own ledge as a wall.
+// So walls only count once the ball has been in open air, and then only when one is ahead of it.
+static void CBal_BounceOffWalls(Object *obj, Scratch_Cannonball *scratch) {
+    if (!scratch->clear) {
+        bool inside = (obj->xsp < 0) ? ObjHitWallLeft(obj, 0) < 0 : ObjHitWallRight(obj, 0) < 0;
+        if (!inside)
+            scratch->clear = 1;
+        return;
+    }
+    if (obj->xsp < 0) {
+        int16_t dist = ObjHitWallLeft(obj, -8);
+        if (dist < 0) {
+            obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u - dist); // back out of the wall
+            obj->xsp = (int16_t)-obj->xsp;
+        }
+    } else if (obj->xsp > 0) {
+        int16_t dist = ObjHitWallRight(obj, 8);
+        if (dist < 0) {
+            obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + dist);
+            obj->xsp = (int16_t)-obj->xsp;
+        }
+    }
+}
+
 static void CBal_Bounce(Object *obj, Scratch_Cannonball *scratch) {
     ObjectFall(obj);
+    CBal_BounceOffWalls(obj, scratch);
 
     if (obj->ysp >= 0) { // not still going up
+        angle_buffer0 = 0; // real ObjFloorDist starts with a blank angle
         int16_t dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
         if (dist < 0) {
             obj->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + dist);
             obj->ysp = (int16_t)-0x300; // bounce upwards
 
-            int8_t hit_angle = (int8_t)angle_buffer0;
+            // Real ObjFloorDist returns the angle with the "snap to flat" bit (bit 0) already applied: an odd angle
+            // byte means a flat floor, not a slope. Reading the raw byte made ledge tiles with such an angle look
+            // like slopes, turning the ball back as if it had hit an invisible wall.
+            int8_t hit_angle = (angle_buffer0 & 1) ? 0 : (int8_t)angle_buffer0;
             if (hit_angle < 0) {
                 // landed on an ascending (to the right) surface -- move left
                 if (obj->xsp >= 0)

@@ -2,6 +2,7 @@
 #include "DebugViewers.h"
 #include "QtAudio.h"
 #include "DemoTools.h"
+#include "ConsoleDrawer.h"
 #include "Settings.h"
 #include "../../DebugPeek.h"
 #include "../../DebugLog.h"
@@ -28,12 +29,15 @@
 #include <SDL_scancode.h>
 
 #include <deque>
+#include <functional>
 #include <vector>
 #include <stdlib.h>
 #include <string.h>
 
 // Sound engine channel mutes (Sound.h is a C-only header; see SOUND_MUTE_* there for the numbering).
 extern "C" {
+bool Demo_PlaybackActive(void);
+extern int32_t cli_start_level;
 void Sound_SetChannelMuted(int channel, bool muted);
 bool Sound_IsChannelMuted(int channel);
 }
@@ -84,6 +88,10 @@ public:
 	}
 
 	void setFrame(const QImage &image) { frame = image; }
+	bool saveFrame(const QString &path) const { return frame.save(path); }
+
+	std::function<void()> on_console_key; // the backtick key: opens/closes the console drawer
+	std::function<void()> on_resized;
 
 	QSize sizeHint() const override { return frame.size(); }
 
@@ -101,6 +109,11 @@ protected:
 	}
 
 	void keyPressEvent(QKeyEvent *e) override {
+		if (e->key() == Qt::Key_QuoteLeft) {
+			if (!e->isAutoRepeat() && on_console_key)
+				on_console_key();
+			return;
+		}
 		int sc = ScancodeFor(e->key());
 		if (sc == SDL_SCANCODE_UNKNOWN)
 			return;
@@ -120,6 +133,12 @@ protected:
 			g_keys[sc] = 0;
 	}
 
+	void resizeEvent(QResizeEvent *e) override {
+		QOpenGLWidget::resizeEvent(e);
+		if (on_resized)
+			on_resized();
+	}
+
 	void focusOutEvent(QFocusEvent *e) override {
 		memset(g_keys, 0, sizeof(g_keys)); // don't leave keys stuck down when focus moves away
 		QOpenGLWidget::focusOutEvent(e);
@@ -136,13 +155,41 @@ public:
 		setCentralWidget(view);
 		menuBar()->setNativeMenuBar(false); // keep the menu bar inside the window (no KDE/macOS global menu export)
 		statusBar()->setSizeGripEnabled(false); // messages from the Tools menu (demo recording) appear here
+		console = new ConsoleDrawer(view);
+		view->on_console_key = [this] { console->Toggle(); };
+		view->on_resized = [this] { console->Reposition(); };
+		tool_label = new QLabel(this); // right-hand side: which tools are running
+		statusBar()->addPermanentWidget(tool_label);
+		launch_injected = cli_start_level >= 0; // started straight into a level (--zone), before the game clears it
 		BuildMenus();
 	}
 
 	GameView *view;
+	ConsoleDrawer *console = nullptr;
 
 	// Window geometry is only remembered once the saved state has been restored (see QtHost_Init).
 	void StartTrackingGeometry() { tracking = true; }
+
+	// Lists the tools in use on the right of the status bar, so nothing runs unnoticed.
+	void UpdateToolStatus() {
+		console->Sync();
+		QStringList in_use;
+		if (DemoTools::Recording())
+			in_use << "Demo recording";
+		if (Demo_PlaybackActive())
+			in_use << "Demo playback";
+		if (DebugViewers::IsLogging())
+			in_use << "Logging";
+		for (const QString &viewer : DebugViewers::OpenViewers())
+			in_use << viewer;
+		if (console->IsOpen())
+			in_use << "Console";
+		if (launch_injected)
+			in_use << "Level injection";
+		QString text = in_use.isEmpty() ? QString() : "Tools in use: " + in_use.join(" · ");
+		if (tool_label->text() != text)
+			tool_label->setText(text);
+	}
 
 	// Shows or hides the debug tools menu to match the game's debug mode.
 	void SyncDebugMenu() {
@@ -269,6 +316,8 @@ private:
 	}
 
 	std::vector<QAction *> channel_actions;
+	QLabel *tool_label = nullptr;
+	bool launch_injected = false;
 	QAction *debug_menu = nullptr;
 	QAction *tools_menu = nullptr;
 	QAction *record_action = nullptr, *stop_record_action = nullptr, *play_action = nullptr;
@@ -292,6 +341,7 @@ private:
 		debug_menu->setVisible(false);
 		connect(view_menu->addAction("VDP Viewer"), &QAction::triggered, this, [this] { DebugViewers::ShowVdpViewer(this); });
 		connect(view_menu->addAction("Sound Viewer"), &QAction::triggered, this, [this] { DebugViewers::ShowSoundViewer(this); });
+		connect(view_menu->addAction("Console"), &QAction::triggered, this, [this] { console->Toggle(); });
 		connect(view_menu->addAction("Variables"), &QAction::triggered, this, [this] { DebugViewers::ShowVariableViewer(this); });
 		QMenu *log_menu = view_menu->addMenu("Logging");
 		log_toggle = log_menu->addAction("Start Logging");
@@ -362,7 +412,7 @@ int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rg
 		g_window->ToggleFullscreen();
 
 	// Developer hooks (used by automated checks, harmless otherwise):
-	//   SONIC_QT_OPEN=vdp,sound,objects   open those debug viewers at startup
+	//   SONIC_QT_OPEN=vdp,sound,objects,console   open those debug viewers (or the console drawer) at startup
 	//   SONIC_QT_LOG=<file>               start logging to a file once debug mode is active
 	//   SONIC_QT_GRAB=<prefix>            after ~4 s, save every window as <prefix>-<n>.png
 	if (const char *open = getenv("SONIC_QT_OPEN")) {
@@ -375,6 +425,8 @@ int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rg
 			DebugViewers::ShowVariableViewer(g_window);
 		if (list.contains(",log,"))
 			DebugViewers::ShowLogViewer(g_window);
+		if (list.contains(",console,"))
+			g_window->console->Toggle(); // only opens while debugging is available
 		if (list.contains(",objects,"))
 			DebugViewers::ShowObjectViewer(g_window);
 	}
@@ -392,6 +444,7 @@ void QtHost_Quit(void) {
 void QtHost_PumpEvents(void) {
 	if (g_app != nullptr) {
 		g_window->SyncDebugMenu();
+		g_window->UpdateToolStatus();
 		DemoTools::Poll(g_window);
 		g_app->processEvents();
 
@@ -401,6 +454,21 @@ void QtHost_PumpEvents(void) {
 		static bool log_requested = getenv("SONIC_QT_LOG") != nullptr;
 		if (log_requested && Debug_LogStart(getenv("SONIC_QT_LOG")))
 			log_requested = false;
+		// SONIC_QT_FRAME=<prefix> saves the game picture itself (not the window) as <prefix>-<frame>.png -- the OpenGL
+		// view doesn't render offscreen, so this is how a headless run sees the game. By default every 120 frames from
+		// frame 120 to 1200; SONIC_QT_FRAME_RANGE=start,end,step picks other frames (e.g. 200,230,1 for a close look).
+		static const char *frame_prefix = getenv("SONIC_QT_FRAME");
+		if (frame_prefix != nullptr) {
+			static int start = 120, end = 1200, step = 120;
+			static bool parsed = false;
+			if (!parsed) {
+				parsed = true;
+				if (const char *range = getenv("SONIC_QT_FRAME_RANGE"))
+					sscanf(range, "%d,%d,%d", &start, &end, &step);
+			}
+			if (step > 0 && frames >= start && frames <= end && (frames - start) % step == 0)
+				g_window->view->saveFrame(QString("%1-%2.png").arg(frame_prefix).arg(frames));
+		}
 		if (frames == 240) {
 			if (const char *prefix = getenv("SONIC_QT_GRAB")) {
 				int n = 0;

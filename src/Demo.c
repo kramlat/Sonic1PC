@@ -107,6 +107,10 @@ void Demo_RequestRecording(const DemoRecordRequest *request) {
     demo_request_pending = true;
 }
 
+bool Demo_PlaybackActive(void) {
+    return cli_demo_override != NULL && demo != 0;
+}
+
 bool Demo_RecordingActive(void) {
     return demo_request_pending || cli_demo_record;
 }

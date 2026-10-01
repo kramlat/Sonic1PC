@@ -1208,15 +1208,9 @@ static void Sonic_LevelBound(Object *obj) {
     // legitimately-reachable deep areas a zone's own DLE has unlocked.
     uint16_t kill_plane = (limit_btm1 > limit_btm2) ? limit_btm1 : limit_btm2;
     if ((kill_plane + SCREEN_HEIGHT) < obj->pos.l.y.f.u) {
-        if (level_id == LEVEL_ID(ZoneId_SBZ, 1) && obj->pos.l.x.f.u >= 0x2000) {
-            // Go to SBZ3 if falling off at the end of SBZ2
-            last_lamp = 0;
-            restart = true;
-            level_id = LEVEL_ID(ZoneId_LZ, 3);
-        } else {
-            // Kill Sonic
-            KillSonic(obj, obj);
-        }
+        // (SBZ2's drop into SBZ3 is not a kill-plane exception any more: the cutscene triggers it itself, see
+        // DynamicLevelEvents' SBZ act 2 case.)
+        KillSonic(obj, obj);
     }
 }
 

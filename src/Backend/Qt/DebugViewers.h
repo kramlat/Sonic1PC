@@ -6,6 +6,8 @@
 
 #include "../PeekData.h"
 
+#include <QStringList>
+
 class QWidget;
 
 namespace DebugViewers {
@@ -21,6 +23,7 @@ void ShowObjectViewer(QWidget *parent);
 void ShowLogViewer(QWidget *parent);
 void ToggleLogging(QWidget *parent);   // start (to the chosen file, if any) or stop
 void ChooseLogFile(QWidget *parent);   // pick the file used the next time logging starts
+QStringList OpenViewers(); // names of the viewer windows currently open
 bool IsLogging(); // the game's object slots ("RAM")
 
 // Latest sound-chip snapshot, pushed by the game each frame while the sound

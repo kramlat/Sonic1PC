@@ -1,6 +1,8 @@
 #include "test.h"
 
 #include <string.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include "Sound.h"
 #include "Backend/YM2612.h"
@@ -374,6 +376,20 @@ static void Ring_CollectPlaysSound(void) {
     CHECK_EQ(sound_music.current_music_id, bgm_ExtraLife);
 }
 
+// Every song must keep ticking: a track that falls into dead data (e.g. a self-jump) used to spin
+// the flag reader forever and freeze the whole game.
+static void Sound_EverySongTicks(void) {
+    for (int id = bgm_GHZ; id <= bgm_SSRG; id++) {
+        ResetSound();
+        QueueSound1((uint8_t)id);
+        alarm(5); // SIGALRM kills the process if a frame never returns
+        for (int f = 0; f < 6000; f++)
+            Sound_Frame();
+        alarm(0);
+        CHECK(1);
+    }
+}
+
 void RegisterSoundDriverTests(void) {
     RUN_TEST(Ring_CollectPlaysSound);
     RUN_TEST(Sound_SongChangeSilencesPreviousNotes);
@@ -390,4 +406,5 @@ void RegisterSoundDriverTests(void) {
     RUN_TEST(Sound_JumpDoesNotBlockRings);
     RUN_TEST(Sound_PushSoundDoesNotRestart);
     RUN_TEST(Sound_FadeOutIsGradual);
+    RUN_TEST(Sound_EverySongTicks);
 }

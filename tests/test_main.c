@@ -11,6 +11,9 @@ void RegisterLevelCollisionTests(void);
 void RegisterPrisonTests(void);
 void RegisterLZ3WallTests(void);
 void RegisterBossLZTests(void);
+void RegisterBossSLZTests(void);
+void RegisterScrapEggmanTests(void);
+void RegisterBossFinalTests(void);
 void RegisterLZConveyorTests(void);
 void RegisterLZRaftTests(void);
 void RegisterSpikeBallTests(void);
@@ -43,6 +46,9 @@ int main(void) {
 
     printf("LZ boss tests:\n");
     RegisterBossLZTests();
+    RegisterBossSLZTests();
+    RegisterScrapEggmanTests();
+    RegisterBossFinalTests();
 
     printf("LZ conveyor tests:\n");
     RegisterLZConveyorTests();

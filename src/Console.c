@@ -33,6 +33,7 @@ static bool console_open = false;
 
 static char log_lines[CONSOLE_LOG_LINES][CONSOLE_LINE_LEN];
 static int log_count = 0;  // number of lines ever written, saturates at CONSOLE_LOG_LINES for indexing purposes
+static uint32_t log_total = 0; // lines ever written (never saturates) -- lets the Qt drawer append only what's new
 static int log_head = 0;   // index log_lines[] the NEXT line will be written to
 
 static void LogLine(const char *fmt, ...) {
@@ -43,7 +44,10 @@ static void LogLine(const char *fmt, ...) {
     log_head = (log_head + 1) % CONSOLE_LOG_LINES;
     if (log_count < CONSOLE_LOG_LINES)
         log_count++;
+    log_total++;
 }
+
+uint32_t Console_LineCount(void) { return log_total; }
 
 const char *Console_GetLogLine(int index_from_bottom) {
     if (index_from_bottom < 0 || index_from_bottom >= log_count)
@@ -66,6 +70,11 @@ static int history_next = 0;   // ring buffer write position
 static int history_browse = -1; // -1 = not browsing (editing a fresh line)
 
 const char *Console_GetInputLine(void) { return input_line; }
+
+void Console_SetInput(const char *text) {
+    snprintf(input_line, CONSOLE_LINE_LEN, "%s", text);
+    input_len = (int)strlen(input_line);
+}
 int Console_GetCursor(void) { return input_len; }
 
 static void HistoryPush(const char *line) {

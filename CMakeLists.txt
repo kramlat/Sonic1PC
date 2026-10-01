@@ -34,7 +34,7 @@ option(SPLASH "Enable the SSRG (Sonic Stuff Research Group) splash screen (for m
 
 option(SANITIZE "Enable sanitization" OFF)
 option(LTO "Enable link-time optimization" OFF)
-option(BUILD_TESTS "Build SonicTests (unit tests) and SonicSmoke (headless level-injection smoke test), and register them with ctest" ON)
+option(BUILD_TESTS "Build SonicTests (unit tests) and the per-zone smoke tests (the real Sonic executable with --zone), and register them with ctest" ON)
 option(MSVC_LINK_STATIC_RUNTIME
        "Link the static MSVC runtime library (Visual Studio only)" OFF)
 
@@ -291,6 +291,12 @@ set(
   "src/Object/BossSpringYard.h"
   "src/Object/BossLabyrinth.c"
   "src/Object/BossLabyrinth.h"
+  "src/Object/BossStarLight.c"
+  "src/Object/ScrapEggman.c"
+  "src/Object/BossFinal.c"
+  "src/Object/BossFinal.h"
+  "src/Object/ScrapEggman.h"
+  "src/Object/BossStarLight.h"
   "src/Object/BossBlock.c"
   "src/Object/BossBlock.h"
   "src/Object/PrisonCapsule.c"
@@ -334,6 +340,10 @@ target_link_libraries(Sonic PRIVATE SonicCore)
 
 set(ASM
     "Animation/Sonic"
+    "Animation/ScrapEggman"
+    "Animation/PlasmaBallLauncher"
+    "Animation/PlasmaBalls"
+    "Animation/FZEggInShip"
     "Animation/Signpost"
     "Animation/TitleSonic"
     "Animation/PSB"
@@ -455,6 +465,14 @@ set(ASM
     "Mappings/Fan"
     "Mappings/Seesaw"
     "Mappings/SeesawBall"
+    "Mappings/BossSpikeball"
+    "Mappings/ScrapEggman"
+    "Mappings/FZDamagedEggmobile"
+    "Mappings/FZEggmanCylinders"
+    "Mappings/FZEggmobileLegs"
+    "Mappings/PlasmaBallLauncher"
+    "Mappings/PlasmaBalls"
+    "Mappings/EggmanTrapFloor"
     "Mappings/Electrocuter"
     "Mappings/SmallDoor"
     "Mappings/Flamethrower"
@@ -1087,6 +1105,7 @@ if(TRUE)
   find_package(Qt6 REQUIRED COMPONENTS Widgets OpenGLWidgets Multimedia)
   find_package(yaml-cpp REQUIRED) # the settings file (src/Backend/Qt/Settings.cpp)
   target_sources(SonicCore PRIVATE "src/Backend/Qt/QtHost.cpp" "src/Backend/Qt/QtHost.h"
+                                "src/Backend/Qt/ConsoleDrawer.cpp" "src/Backend/Qt/ConsoleDrawer.h"
                                 "src/Backend/Qt/QtAudio.cpp" "src/Backend/Qt/QtAudio.h"
                                 "src/Backend/Qt/Settings.cpp" "src/Backend/Qt/Settings.h"
                                 "src/Backend/Qt/DemoTools.cpp" "src/Backend/Qt/DemoTools.h"
@@ -1356,7 +1375,7 @@ if(BUILD_TESTS)
   enable_testing()
 
   # Showcase only wants the tools relevant to producing/recording pre-scripted
-  # footage (SonicSmoke to play back scripted movement; demos are recorded in
+  # footage (Sonic's --demo to play back scripted movement; demos are recorded in
   # the main Sonic app's Tools menu) plus the main Sonic binary itself -- not the rest of the
   # developer-diagnostic toolkit (unit tests, joypad/sound-trace tools, the
   # FM voice editor, etc), which have no role in producing showcase footage.
@@ -1374,7 +1393,7 @@ if(BUILD_TESTS)
     add_executable(SonicTests "tests/test_main.c" "tests/test_plc.c"
                                "tests/test_leveldraw.c" "tests/test_levelcollision.c"
                                "tests/test_prison.c" "tests/test_lz3wall.c"
-                               "tests/test_bosslz.c" "tests/test_lzconveyor.c"
+                               "tests/test_bosslz.c" "tests/test_bossslz.c" "tests/test_scrapeggman.c" "tests/test_bossfinal.c" "tests/test_lzconveyor.c"
                                "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_staircase.c" "tests/test_oscillator.c" "tests/test_scenery.c" "tests/test_audiomute.c" "tests/test_demorecord.c" "tests/test_sounddriver.c" "tests/test_objcollision.c"
                                "tests/test_giantring.c" "tests/test_checkpoint.c")
     target_link_libraries(SonicTests PRIVATE SonicCore)
@@ -1384,17 +1403,6 @@ if(BUILD_TESTS)
     set_target_properties(SonicTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
     add_test(NAME unit_tests COMMAND SonicTests)
   endif()
-
-  # Headless smoke runner: same entry point as the real game, but with
-  # --zone/--act CLI injection to skip straight into a level (see
-  # tests/smoke_main.c). Also handy for manual debugging -- no more
-  # hand-editing fprintf() calls into GM_Level.c/PLC.c and remembering to
-  # revert them afterward.
-  add_executable(SonicSmoke "tests/smoke_main.c")
-  target_link_libraries(SonicSmoke PRIVATE SonicCore)
-  set_target_properties(SonicSmoke PROPERTIES C_STANDARD 99
-                                               C_STANDARD_REQUIRED ON
-                                               C_EXTENSIONS OFF)
 
   if(SONIC_FULL_DEV_TOOLS)
     # Joypad test tool: a small SDL2 window showing a row of icons (the four
@@ -1571,8 +1579,6 @@ if(BUILD_TESTS)
       PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
   endif()
 
-  set_target_properties(SonicSmoke PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
-
   # One headless smoke test per zone. "Still running when the timeout hits"
   # is success (the game loop never exits on its own) -- a crash, an early
   # exit, or an ASan abort (build with -DSANITIZE=ON for that coverage) is a
@@ -1585,7 +1591,7 @@ if(BUILD_TESTS)
     add_test(
       NAME smoke_${ZONE_NAME}
       COMMAND
-        ${CMAKE_COMMAND} -DTEST_EXE=$<TARGET_FILE:SonicSmoke>
+        ${CMAKE_COMMAND} -DTEST_EXE=$<TARGET_FILE:Sonic>
         "-DTEST_ARGS=--zone;${ZONE_NUM}" -DTEST_TIMEOUT=15 -P
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunSmoke.cmake")
     # The smoke runs boot the real game, so Qt needs a platform plugin that works without a display.

@@ -142,6 +142,12 @@ void BGScroll_Y(int32_t y_off) {
 	UpdateBGScroll(&bg_scrpos_y, y_off, &bg1_yblock, &bg1_scroll_flags, SCROLL_FLAG_UP2, SCROLL_FLAG_DOWN2);
 }
 
+// Real BGScroll_YRelative: the same relative Y move as BGScroll_Y, but flagging redraws in bits 0/1 (top/bottom row)
+// instead of 4/5 -- SBZ act 1's own drawing (Draw_SBZ) only looks at bits 0/1.
+void BGScroll_YRelative(int32_t y_off) {
+	UpdateBGScroll(&bg_scrpos_y, y_off, &bg1_yblock, &bg1_scroll_flags, SCROLL_FLAG_UP, SCROLL_FLAG_DOWN);
+}
+
 void BGScroll_YAbsolute(uint16_t y_pos) {
 	int16_t old_y = bg_scrpos_y.f.u;
 	bg_scrpos_y.f.u = (int16_t)y_pos;
@@ -497,11 +503,14 @@ void Deform_SBZ(void) {
 	int16_t *bufp = &hscroll_buffer[0][0];
 	for (int i = 0; i < SCREEN_HEIGHT; i++) { *bufp++ = fg_x; *bufp++ = bg_x; }
 #else
-	BGScroll_Block1(scrshift_x << 7, SCROLL_FLAG_RIGHT);
-	BGScroll_Block3(scrshift_x << 6, SCROLL_FLAG_DOWN2);
-	BGScroll_Block2((scrshift_x << 5) * 3, SCROLL_FLAG_UP2);
+	// The last argument is the left-redraw flag's bit mask (right is the next bit up): real moveq #2/#6/#4,d6.
+	// Block1 used to get SCROLL_FLAG_RIGHT and Block3 SCROLL_FLAG_DOWN2 -- one bit too high, so the redraw
+	// flags landed on the wrong blocks and new right-edge columns were drawn from the wrong layer.
+	BGScroll_Block1(scrshift_x << 7, SCROLL_FLAG_LEFT);        // bits 2/3
+	BGScroll_Block3(scrshift_x << 6, (uint8_t)(1 << 6));       // bits 6/7
+	BGScroll_Block2((scrshift_x << 5) * 3, SCROLL_FLAG_UP2);   // bits 4/5
 
-	BGScroll_Y(scrshift_y << 5);
+	BGScroll_YRelative(scrshift_y << 5);
 	vid_bg_scrpos_y_dup = bg2_scrpos_y.f.u = bg3_scrpos_y.f.u = bg_scrpos_y.f.u;
 
 	bg2_scroll_flags |= (bg1_scroll_flags | bg3_scroll_flags);

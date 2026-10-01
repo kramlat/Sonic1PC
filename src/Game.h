@@ -28,7 +28,7 @@ extern uint8_t gamemode;
 extern int16_t demo;
 extern uint16_t demo_length;
 
-// CLI test hooks: only ever set by tests/smoke_main.c's argv parsing (the
+// CLI test hooks: only ever set by src/Main.c's argv parsing (the
 // real game's Main.c never touches these), so normal boot-up is unaffected
 // unless something deliberately opts in.
 //

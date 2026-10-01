@@ -72,6 +72,38 @@ static const uint16_t level_order[ZoneId_Num][4] = {
     /* EndZ (unused) */ { 0, 0, 0, 0 },
 };
 
+// SBZ2 post-level cutscene: has the Ring Bonus element (the one that drives the tally) reached its slide-out
+// routine? (real: cmpi.b #$E,(v_endcardring+obRoutine))
+static bool GotCard_SlideOutStarted(void) {
+    for (int i = 0; i < LEVEL_OBJECTS; i++) {
+        Object *o = &level_objects[i];
+        if (o->type == ObjId_GotThroughCard && o->frame == 4)
+            return o->routine == 0xE;
+    }
+    return false;
+}
+
+// Got_SBZ2_MoveOut: every element slides back to where it started, twice as fast as it came in. The Ring Bonus
+// element then hands control back to the player and starts the Final Zone music; the rest delete themselves.
+static void GotCard_SBZ2_MoveOut(Object *obj, Scratch_TitleCard *scratch) {
+    int16_t speed = 0x20;
+    if (obj->pos.s.x == scratch->final_x) {
+        if (obj->frame != 4) {
+            ObjectDelete(obj);
+            return;
+        }
+        obj->routine += 2; // Got_SBZ2_Boundary
+        lock_ctrl = false; // unlock controls
+        QueueSound1(bgm_FZ);
+        return;
+    }
+    if (obj->pos.s.x > scratch->final_x)
+        speed = -speed;
+    obj->pos.s.x += speed;
+    if (obj->pos.s.x >= 0 && obj->pos.s.x < (0x200 + SCREEN_WIDEADD))
+        DisplaySprite(obj);
+}
+
 // "Got through" (end of act) card object
 void Obj_GotThroughCard(Object *obj) {
     Scratch_TitleCard *scratch = (Scratch_TitleCard*)&obj->scratch;
@@ -111,10 +143,13 @@ void Obj_GotThroughCard(Object *obj) {
     case 2: { // Moving to on-screen position
         int16_t speed = 0x10;
         if (obj->pos.s.x == scratch->main_x) {
-            // Reached target position.
-            //TODO: the original also checks here whether the Scrap Brain
-            //Zone Act 2 post-level cutscene should start (a one-off boss
-            //transition sequence, not ported yet); skipped for now.
+            // Reached target position. In SBZ2 the card doesn't lead to the next act: once the Ring Bonus element
+            // (which runs the tally) gets to its slide-out routine, every element slides back out.
+            if (GotCard_SlideOutStarted()) {
+                obj->routine = 0xE; // Got_SBZ2_MoveOut
+                GotCard_SBZ2_MoveOut(obj, scratch);
+                return; // (it displays itself)
+            }
 
             if (obj->frame != 4) // Only the Ring Bonus element controls this
                 break;
@@ -130,6 +165,7 @@ void Obj_GotThroughCard(Object *obj) {
     }
     case 4: // Wait routines: hold for a timer, then advance
     case 8:
+    case 0xC: // (SBZ2: the post-tally wait, before sliding out)
         if (--obj->frame_time.w == 0)
             obj->routine += 2;
         break;
@@ -151,6 +187,8 @@ void Obj_GotThroughCard(Object *obj) {
         } else {
             PlaySound(sfx_Cash);
             obj->routine += 2; // -> Got_Wait, before Got_NextLevel
+            if (level_id == LEVEL_ID(ZoneId_SBZ, 1))
+                obj->routine += 4; // SBZ2: -> Got_Wait ($C), before Got_SBZ2_MoveOut -- no next act, the cutscene follows
             obj->frame_time.w = 3 * 60; // 3 second post-tally delay
         }
         break;
@@ -175,6 +213,14 @@ void Obj_GotThroughCard(Object *obj) {
         }
         break;
     }
+    case 0xE: // Got_SBZ2_MoveOut
+        GotCard_SBZ2_MoveOut(obj, scratch);
+        return;
+    case 0x10: // Got_SBZ2_Boundary: the Ring Bonus element opens the screen's right boundary for the cutscene room
+        limit_right2 += 2;
+        if (limit_right2 == 0x2050 + 0xB0) // boss_sbz2_x+$B0
+            ObjectDelete(obj);
+        return;
     }
 
     // Draw (card stays fully on-screen throughout this whole sequence)

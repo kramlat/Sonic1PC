@@ -1186,6 +1186,21 @@ void ShowLogViewer(QWidget *parent) {
 	Raise(g_log_viewer);
 }
 
+QStringList OpenViewers() {
+	QStringList open;
+	if (g_vdp_viewer != nullptr && g_vdp_viewer->isVisible())
+		open << "VDP viewer";
+	if (g_sound_viewer != nullptr && g_sound_viewer->isVisible())
+		open << "sound viewer";
+	if (g_variable_viewer != nullptr && g_variable_viewer->isVisible())
+		open << "variables";
+	if (g_object_viewer != nullptr && g_object_viewer->isVisible())
+		open << "object viewer";
+	if (g_log_viewer != nullptr && g_log_viewer->isVisible())
+		open << "log viewer";
+	return open;
+}
+
 bool IsLogging() {
 	return debug_log_active;
 }

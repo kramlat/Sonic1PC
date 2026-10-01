@@ -94,6 +94,9 @@ void EntryPoint(void) {
     // CLI test hook: skip straight to a level, bypassing Sega/title screens.
     // Mirrors GM_Title.c's PlayLevel().
     if (cli_start_level >= 0) {
+#ifndef NDEBUG
+        debug_cheat = 1; // debug builds have it on from the title screen; level injection skips that
+#endif
         level_id = (uint16_t)cli_start_level;
         lives = 3;
         rings = 0;

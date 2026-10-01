@@ -535,6 +535,7 @@ uint8_t jump_only;
 uint8_t obj6B;
 uint8_t lock_ctrl;
 uint8_t big_ring;
+uint8_t ending_eggmobile_exploding;
 uint16_t item_bonus;
 uint16_t time_bonus;
 uint16_t ring_bonus;
@@ -853,7 +854,15 @@ void DynamicLevelEvents(void) {
                 }
             }
             break;
-        case 3: // Act 4 (SBZ3) -- TODO
+        case 3: // Act 4 (SBZ3): reaching the top of the level at the far right drops into Final Zone (DLE_SBZ3)
+            if ((uint16_t)scrpos_x.f.u < (0xD00 - SCREEN_WIDEADD2))
+                break;
+            if (player->pos.l.y.f.u >= 0x18) // not at the top yet
+                break;
+            last_lamp = 0;
+            restart = true;
+            level_id = LEVEL_ID(ZoneId_SBZ, 2); // id_FZ
+            lock_multi = 1;                     // f_playerctrl: lock controls, position and animation
             break;
         }
         break;
@@ -972,6 +981,34 @@ void DynamicLevelEvents(void) {
             break;
         }
         break;
+    case ZoneId_SLZ:
+        if (LEVEL_ACT(level_id) != 2)
+            break; // acts 1 and 2 have no events
+        switch (dle_routine) {
+        case 0: // DLE_SLZ3_Main
+            if ((uint16_t)scrpos_x.f.u < (0x1E70 - SCREEN_WIDEADD2))
+                break;
+            limit_btm1 = 0x210 - SCREEN_TALLADD; // boss_slz_y
+            dle_routine += 2;
+            break;
+        case 2: // DLE_SLZ3_Boss
+            if ((uint16_t)scrpos_x.f.u < (0x2000 - SCREEN_WIDEADD2)) // boss_slz_x
+                break;
+            {
+                Object *boss = FindFreeObj();
+                if (boss != NULL)
+                    boss->type = ObjId_BossStarLight;
+            }
+            QueueSound1(bgm_Boss);
+            lock_screen = true;
+            dle_routine += 2;
+            AddPLC(PlcId_Boss);
+            break;
+        case 4: // DLE_SLZ3_End
+            limit_left2 = scrpos_x.f.u;
+            break;
+        }
+        break;
     case ZoneId_SYZ:
         switch (LEVEL_ACT(level_id)) {
         case 0: // Act 1 -- no events
@@ -1013,6 +1050,102 @@ void DynamicLevelEvents(void) {
                 break;
             case 4: // DLE_SYZ3_End
                 limit_left2 = scrpos_x.f.u; // camera-freeze at the level's end, deliberately still camera-based
+                break;
+            }
+            break;
+        }
+        break;
+    case ZoneId_SBZ:
+        switch (LEVEL_ACT(level_id)) {
+        case 0: // Act 1
+            limit_btm1 = 0x720 - SCREEN_TALLADD;
+            if ((uint16_t)scrpos_x.f.u < (0x1880 - SCREEN_WIDEADD2))
+                break;
+            limit_btm1 = 0x620 - SCREEN_TALLADD;
+            if ((uint16_t)scrpos_x.f.u < (0x2000 - SCREEN_WIDEADD2))
+                break;
+            limit_btm1 = 0x2A0 - SCREEN_TALLADD;
+            break;
+        case 1: // Act 2 (ends with Eggman's false-floor cutscene)
+            switch (dle_routine) {
+            case 0: // DLE_SBZ2_Main
+                limit_btm1 = 0x800 - SCREEN_TALLADD;
+                if ((uint16_t)scrpos_x.f.u < (0x1800 - SCREEN_WIDEADD2))
+                    break;
+                limit_btm1 = 0x510 - SCREEN_TALLADD; // boss_sbz2_y
+                if ((uint16_t)scrpos_x.f.u < (0x1E00 - SCREEN_WIDEADD2))
+                    break;
+                dle_routine += 2;
+                break;
+            case 2: // DLE_SBZ2_Blocks
+                if ((uint16_t)scrpos_x.f.u < (0x2050 - 0x1A0 - SCREEN_WIDEADD2)) // boss_sbz2_x-$1A0
+                    break;
+                {
+                    Object *floor = FindFreeObj();
+                    if (floor == NULL)
+                        break;
+                    floor->type = ObjId_FalseFloor;
+                }
+                dle_routine += 2;
+                AddPLC(PlcId_EggmanSBZ2);
+                break;
+            case 4: // DLE_SBZ2_Eggman
+                if ((uint16_t)scrpos_x.f.u >= (0x2050 - 0xF0 - SCREEN_WIDEADD2)) { // boss_sbz2_x-$F0
+                    Object *eggman = FindFreeObj();
+                    if (eggman != NULL) {
+                        eggman->type = ObjId_ScrapEggman;
+                        dle_routine += 2;
+                    }
+                    lock_screen = true;
+                }
+                limit_left2 = scrpos_x.f.u; // DLE_SBZ2_SetBoundary
+                break;
+            case 6: // DLE_SBZ2_End
+                if ((uint16_t)scrpos_x.f.u < (0x2050 - SCREEN_WIDEADD2)) // boss_sbz2_x
+                    limit_left2 = scrpos_x.f.u;
+                break;
+            }
+            // The cutscene's trigger for SBZ3 (stage 0x0103, Labyrinth Zone act 4): once Eggman's false floor has
+            // dropped Sonic below the cutscene room, load it. Replaces the original's special case in Sonic's
+            // bottom-boundary check, which let SBZ2 fall out past x $2000 instead of dying.
+            // Sonic must be past the end-of-act sign (the signpost object is at x $1EE0 in SBZ2), as well as in
+            // the cutscene room.
+            if (dle_routine >= 6 && player->pos.l.x.f.u > 0x1EE0 && player->pos.l.x.f.u >= 0x2000 &&
+                (uint16_t)player->pos.l.y.f.u > 0x510 + 0xE0) { // boss_sbz2_y+$E0, just under the false floor
+                last_lamp = 0;
+                restart = true;
+                level_id = LEVEL_ID(ZoneId_LZ, 3); // 0x0103
+            }
+            break;
+        case 2: // Final Zone
+            switch (dle_routine) {
+            case 0: // DLE_FZ_Main
+                if ((uint16_t)scrpos_x.f.u >= (0x2450 - 0x308 - SCREEN_WIDEADD2)) { // boss_fz_x-$308
+                    dle_routine += 2;
+                    AddPLC(PlcId_FZBoss);
+                }
+                limit_left2 = scrpos_x.f.u;
+                break;
+            case 2: // DLE_FZ_Boss
+                if ((uint16_t)scrpos_x.f.u >= (0x2450 - 0x150 - SCREEN_WIDEADD2)) { // boss_fz_x-$150
+                    Object *boss = FindFreeObj();
+                    if (boss != NULL) {
+                        boss->type = ObjId_BossFinal;
+                        dle_routine += 2;
+                        lock_screen = true;
+                    }
+                }
+                limit_left2 = scrpos_x.f.u;
+                break;
+            case 4: // DLE_FZ_Arena
+                if ((uint16_t)scrpos_x.f.u >= (0x2450 - SCREEN_WIDEADD2)) // boss_fz_x: the boss arena
+                    dle_routine += 2;
+                limit_left2 = scrpos_x.f.u;
+                break;
+            case 6: // DLE_FZ_Wait: wait until the boss is beaten
+                break;
+            case 8: // DLE_FZ_End: allow scrolling right
+                limit_left2 = scrpos_x.f.u;
                 break;
             }
             break;

@@ -12,7 +12,7 @@ extern uint8_t btn_pushtime2;
 extern const uint8_t *intro_demo_ptr[];
 extern const uint8_t *ending_demo_ptr[];
 
-// CLI test hook: only ever set by tests/smoke_main.c's argv parsing. If
+// CLI test hook: only ever set by src/Main.c's argv parsing. If
 // non-NULL, MoveSonicInDemo() plays this back instead of the built-in demo
 // for the current zone -- same encoded format as intro_demo_ptr/
 // ending_demo_ptr (see MoveSonicInDemo()'s use of it: a repeating [button
@@ -57,6 +57,7 @@ typedef struct {
 } DemoPlayRequest;
 bool Demo_RequestPlayback(const DemoPlayRequest *request, const uint8_t *data, size_t length);
 void Demo_ServiceRequests(void);   // called once per frame from VBlank: applies a pending request
+bool Demo_PlaybackActive(void);    // a demo file (Tools > Play Demo, or --demo) is driving Sonic
 bool Demo_RecordingActive(void);   // a recording is running or about to start
 int Demo_RecordedFrames(void);
 void Demo_StopRecording(void);     // writes the file and stops; the game keeps running
