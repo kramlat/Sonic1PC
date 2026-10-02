@@ -9,6 +9,8 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "../Controls.h"
+
 #include <stdio.h>
 
 // Sound engine channel mutes (Sound.h is a C-only header; SOUND_MUTE_* there matches kChannelNames).
@@ -21,6 +23,8 @@ namespace Settings {
 
 const char *const kChannelNames[11] = {"FM 1", "FM 2", "FM 3", "FM 4", "FM 5", "FM 6",
                                        "PSG Tone 1", "PSG Tone 2", "PSG Tone 3", "PSG Noise", "DAC (samples)"};
+
+const char *const kControlNames[CTL_COUNT] = {"up", "down", "left", "right", "a", "b", "c", "start"};
 
 namespace {
 
@@ -85,6 +89,7 @@ void Load() {
 
 		YAML::Node video = root["video"];
 		g_data.fullscreen = Read(video, "fullscreen", false);
+		g_data.resolution = Clamp(Read(video, "resolution", 0), 0, 4);
 		YAML::Node window = video["window"];
 		if (window && window.IsMap()) {
 			g_data.window_width = Read(window, "width", 0);
@@ -99,6 +104,17 @@ void Load() {
 		g_data.demo_dir = ReadString(demo, "folder");
 		g_data.demo_zone = Clamp(Read(demo, "last_zone", 0), 0, 6);
 		g_data.demo_act = Clamp(Read(demo, "last_act", 0), 0, 3);
+
+		YAML::Node controls = root["controls"];
+		if (controls && controls.IsMap())
+			for (int i = 0; i < CTL_COUNT; i++) {
+				YAML::Node n = controls[kControlNames[i]];
+				if (!n || !n.IsMap())
+					continue;
+				Controls_Key[i][0] = Clamp(Read(n, "key1", Controls_Key[i][0]), 0, 511);
+				Controls_Key[i][1] = Clamp(Read(n, "key2", Controls_Key[i][1]), 0, 511);
+				Controls_Pad[i] = Clamp(Read(n, "pad", Controls_Pad[i]), -1, 31);
+			}
 	} catch (const YAML::BadFile &) {
 		// No settings file yet: the defaults stand (it is written on the first change or on exit).
 	} catch (const YAML::Exception &e) {
@@ -147,6 +163,7 @@ void Save() {
 
 	out << YAML::Key << "video" << YAML::Value << YAML::BeginMap;
 	out << YAML::Key << "fullscreen" << YAML::Value << g_data.fullscreen;
+	out << YAML::Key << "resolution" << YAML::Value << g_data.resolution;
 	if (g_data.has_window_geometry)
 		out << YAML::Key << "window" << YAML::Value << YAML::Flow << YAML::BeginMap
 		    << YAML::Key << "x" << YAML::Value << g_data.window_x
@@ -161,6 +178,13 @@ void Save() {
 	    << YAML::Key << "folder" << YAML::Value << g_data.demo_dir.toStdString()
 	    << YAML::Key << "last_zone" << YAML::Value << g_data.demo_zone
 	    << YAML::Key << "last_act" << YAML::Value << g_data.demo_act << YAML::EndMap;
+	out << YAML::Key << "controls" << YAML::Value << YAML::BeginMap;
+	for (int i = 0; i < CTL_COUNT; i++)
+		out << YAML::Key << kControlNames[i] << YAML::Value << YAML::Flow << YAML::BeginMap
+		    << YAML::Key << "key1" << YAML::Value << Controls_Key[i][0]
+		    << YAML::Key << "key2" << YAML::Value << Controls_Key[i][1]
+		    << YAML::Key << "pad" << YAML::Value << Controls_Pad[i] << YAML::EndMap;
+	out << YAML::EndMap;
 	out << YAML::EndMap;
 
 	QDir().mkpath(DataDir());

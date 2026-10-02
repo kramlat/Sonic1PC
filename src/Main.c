@@ -43,6 +43,8 @@ static const uint8_t *LoadDemoFile(const char *path) {
 //   --zone N [--act N]   skip the title screen and start straight in that level (0 GHZ, 1 LZ, 2 MZ, 3 SLZ, 4 SYZ, 5 SBZ)
 //   --x N / --y N        override Sonic's start position (needs --zone)
 //   --special N          start in special stage N (0-5) on the way to the level given by --zone (default GHZ act 1)
+//   --no-debug           debug builds: start without the debug cheat (so the HUD is the normal one)
+//   --resolution N       the picture size: 0 original, 1 16:9, 2 8:5, 3 5:4, 4 4:3 (not saved)
 //   --ending N           start in the ending sequence holding N emeralds (6 = the good ending)
 //   --ship               with --ending: Eggman's ship was wrecked in the Final Zone (it falls in the background)
 //   --emeralds N         with --credits: how many emeralds Sonic holds (6 shows "END", fewer "TRY AGAIN")
@@ -57,12 +59,18 @@ static void ParseCommandLine(int argc, char *argv[]) {
 			zone = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--act") && i + 1 < argc)
 			act = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "--no-debug"))
+			cli_no_debug = true;
+		else if (!strcmp(argv[i], "--resolution") && i + 1 < argc)
+			cli_resolution = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--ending") && i + 1 < argc)
 			cli_start_ending = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--ship"))
 			cli_ending_ship = 1;
 		else if (!strcmp(argv[i], "--emeralds") && i + 1 < argc)
 			cli_emeralds = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "--continue") && i + 1 < argc)
+			cli_start_continue = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--credits") && i + 1 < argc)
 			cli_start_credits = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--special") && i + 1 < argc) {

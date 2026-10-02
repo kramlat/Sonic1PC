@@ -2,6 +2,8 @@
 
 #include "Backend/VDP.h"
 
+#include <stdbool.h>
+
 //Video constants
 // Real Genesis hardware caps this at 0x50 (80, the true VDP sprite-table
 // size) -- deliberately raised here as a conscious accuracy trade-off, not
@@ -38,7 +40,24 @@ extern int16_t hbla_counter; //v_hblank_line: the scanline the HBlank H-int is c
 extern int16_t vid_scrpos_y_dup, vid_bg_scrpos_y_dup, vid_scrpos_x_dup, vid_bg_scrpos_x_dup, vid_bg3_scrpos_y_dup, vid_bg3_scrpos_x_dup;
 
 extern uint16_t sprite_buffer[BUFFER_SPRITES][4];
-extern int16_t hscroll_buffer[SCREEN_HEIGHT][2];
+extern int16_t hscroll_buffer[SCREEN_MAX_HEIGHT][2];
+
+//Picture size (Video > Resolution): the aspect ratio picks the width or the height of the picture
+typedef enum {
+	RESOLUTION_ORIGINAL, //320x224 (10:7)
+	RESOLUTION_16_9,
+	RESOLUTION_8_5,
+	RESOLUTION_5_4,
+	RESOLUTION_4_3,
+	RESOLUTION_COUNT,
+} ResolutionMode;
+
+const char *Video_ResolutionName(int mode);
+int Video_GetResolution(void);
+void Video_SelectResolution(int mode);   //Just picks it (start-up, before there is a window)
+void Video_RequestResolution(int mode);  //Menu: pick it; it takes hold at the next safe point
+bool Video_ResolutionPending(void);
+bool Video_ApplyPendingResolution(void); //Called as each game mode starts, and by the level's loop; true if the size changed
 
 //Video interface
 void VDPSetupGame(void);

@@ -3,6 +3,8 @@
 #include "Level.h"
 #include "PLC.h"
 
+#include <string.h>
+
 // Game Over card constants
 #define TO_ADD SCREEN_WIDEADD2
 #define FROM_ADD (TO_ADD + ((SCREEN_WIDEADD2 + 0xF) & ~0xF))
@@ -70,7 +72,8 @@ void Obj_GameOverCard(Object* obj) {
         } else {
 // Restart level
 #ifndef SCP_REV00
-            // lamp_time = 0; //TODO
+            // REV01 clears the stored lamppost time, so a checkpoint touched late in the timer cannot soft-lock the restart
+            memset(&lamp_state.time, 0, sizeof(lamp_state.time));
 #endif
             restart = true;
         }

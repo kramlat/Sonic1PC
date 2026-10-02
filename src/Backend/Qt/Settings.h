@@ -12,6 +12,8 @@ namespace Settings {
 
 // The sound chip channels the Audio menu can mute, in SOUND_MUTE_* order (see Sound.h).
 extern const char *const kChannelNames[11];
+// The names the controls (Backend/Controls.h) are saved under, in CTL_* order.
+extern const char *const kControlNames[8];
 
 struct Data {
 	// Audio. The live values are owned by QtAudio / Sound; Load() pushes these into them and Save()
@@ -24,6 +26,7 @@ struct Data {
 
 	// Video
 	bool fullscreen = false;
+	int resolution = 0; // the picture size (Video.h's ResolutionMode)
 	bool has_window_geometry = false;
 	int window_x = 0, window_y = 0, window_width = 0, window_height = 0; // the normal (windowed) geometry
 

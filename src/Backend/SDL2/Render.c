@@ -12,6 +12,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // Not guaranteed by strict C99 (M_PI is POSIX/BSD, not ISO C) -- define our
 // own rather than relying on a feature-test macro.
@@ -33,13 +34,14 @@
 #define CRT_MOTION_BLUR
 #define CRT_MOTION_BLUR_ALPHA 176 // Out of 255; new-frame weight per blend
 
+// The picture's size is chosen at run time (Video.h's Video_SetResolution): the texture and the buffers follow it.
+static int texture_width, texture_height;
 #ifdef DISPLAY_PADDING
-#define TEXTURE_WIDTH (SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2))
-#define TEXTURE_HEIGHT SCREEN_HEIGHT
+#define TEXTURE_WIDTH (texture_width + (VDP_INTERNAL_PAD * 2))
 #else
-#define TEXTURE_WIDTH SCREEN_WIDTH
-#define TEXTURE_HEIGHT SCREEN_HEIGHT
+#define TEXTURE_WIDTH texture_width
 #endif
+#define TEXTURE_HEIGHT texture_height
 
 // Icon
 #include "Resource/Icon.h"
@@ -56,17 +58,32 @@ static Uint64 perf_freq;
 static Uint64 next_frame_time;
 
 #ifdef CRT_MOTION_BLUR
-static uint32_t prev_frame[TEXTURE_HEIGHT][TEXTURE_WIDTH];
+static uint32_t *prev_frame = NULL; // TEXTURE_HEIGHT rows of TEXTURE_WIDTH
 static int prev_frame_valid;
 #endif
 
 // Backend render interface. SDL renders (software renderer) into an RGBA surface the size of the
 // windowed logical frame, and QtHost shows that surface on a drawing widget in a QMainWindow.
 // The overlays below only need an SDL_Renderer. Frame pacing is our own clock (no display vsync).
-int Render_Init(const MD_Header* header) {
+static void hex_font_invalidate(void);
+
+// (Re)creates everything sized by the picture: the surface the frame is drawn on, its renderer and texture, and the
+// buffer the motion blur compares with.
+static int CreateTargets(void) {
+    texture_width = SCREEN_WIDTH;
+    texture_height = SCREEN_HEIGHT;
     const int w = TEXTURE_WIDTH * SCREEN_SCALE, h = TEXTURE_HEIGHT * SCREEN_SCALE;
-    if (QtHost_Init(header->title, w, h, (const uint8_t*)res_Icon) != 0)
-        return -1;
+
+    if (texture != NULL)
+        SDL_DestroyTexture(texture);
+    if (renderer != NULL)
+        SDL_DestroyRenderer(renderer);
+    if (target != NULL)
+        SDL_FreeSurface(target);
+    texture = NULL;
+    renderer = NULL;
+    target = NULL;
+    hex_font_invalidate();
 
     // ABGR8888 packed = bytes R,G,B,A in memory, which is what the widget reads.
     if ((target = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ABGR8888)) == NULL ||
@@ -74,16 +91,37 @@ int Render_Init(const MD_Header* header) {
         printf("Render_Init: %s\n", SDL_GetError());
         return -1;
     }
-
-    vsync = 0;
-    perf_freq = SDL_GetPerformanceFrequency();
-    next_frame_time = SDL_GetPerformanceCounter();
-
     if ((texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, TEXTURE_WIDTH, TEXTURE_HEIGHT)) == NULL) {
         printf("Render_Init: %s\n", SDL_GetError());
         return -1;
     }
+#ifdef CRT_MOTION_BLUR
+    free(prev_frame);
+    prev_frame = (uint32_t*)calloc((size_t)TEXTURE_WIDTH * TEXTURE_HEIGHT, sizeof(uint32_t));
+    prev_frame_valid = 0;
+#endif
     return 0;
+}
+
+int Render_Init(const MD_Header* header) {
+    texture_width = SCREEN_WIDTH;
+    texture_height = SCREEN_HEIGHT;
+    const int w = TEXTURE_WIDTH * SCREEN_SCALE, h = TEXTURE_HEIGHT * SCREEN_SCALE;
+    if (QtHost_Init(header->title, w, h, (const uint8_t*)res_Icon) != 0)
+        return -1;
+    if (CreateTargets() != 0)
+        return -1;
+
+    vsync = 0;
+    perf_freq = SDL_GetPerformanceFrequency();
+    next_frame_time = SDL_GetPerformanceCounter();
+    return 0;
+}
+
+// The picture changed size (the window follows it): see Video_SetResolution.
+void Render_SetPictureSize(void) {
+    if (CreateTargets() == 0)
+        QtHost_SetPictureSize(TEXTURE_WIDTH * SCREEN_SCALE, TEXTURE_HEIGHT * SCREEN_SCALE);
 }
 
 // F11 / View menu: the Qt window handles fullscreen (and hides its menu bar while in it).
@@ -166,6 +204,7 @@ extern const uint8_t Art_Text[];
 // same nibble math). Palette index 0 -> transparent, anything else -> solid
 // white; DrawHexByteFont tints it per call via SDL_SetTextureColorMod.
 static SDL_Texture* hex_font_texture = NULL;
+static void hex_font_invalidate(void) { hex_font_texture = NULL; } // its renderer is gone: it is rebuilt on next use
 
 static void BuildHexFontTexture(void) {
     if (hex_font_texture)
@@ -227,7 +266,7 @@ bool Render_SaveScreenshot(const char *path) {
     fprintf(f, "P6\n%d %d\n255\n", TEXTURE_WIDTH, TEXTURE_HEIGHT);
     for (int y = 0; y < TEXTURE_HEIGHT; y++) {
         for (int x = 0; x < TEXTURE_WIDTH; x++) {
-            const uint8_t *px = (const uint8_t *)&prev_frame[y][x]; // R,G,B,A byte order (SDL_PIXELFORMAT_RGBA8888)
+            const uint8_t *px = (const uint8_t *)&prev_frame[y * TEXTURE_WIDTH + x]; // R,G,B,A byte order (SDL_PIXELFORMAT_RGBA8888)
             uint8_t rgb[3] = {px[0], px[1], px[2]};
             fwrite(rgb, 1, 3, f);
         }
@@ -345,7 +384,7 @@ void Render_Screen(const uint32_t* screen) {
         // First frame -- nothing to blend with yet, show it as-is.
         for (size_t i = 0; i < TEXTURE_HEIGHT; i++) {
             memcpy(to, screen, TEXTURE_WIDTH << 2);
-            memcpy(prev_frame[i], screen, TEXTURE_WIDTH << 2);
+            memcpy(prev_frame + (size_t)i * TEXTURE_WIDTH, screen, TEXTURE_WIDTH << 2);
             to += pitch;
             screen += SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2);
         }
@@ -354,7 +393,7 @@ void Render_Screen(const uint32_t* screen) {
         for (size_t i = 0; i < TEXTURE_HEIGHT; i++) {
             uint8_t* out_row = to;
             const uint8_t* new_row = (const uint8_t*)screen;
-            uint8_t* prev_row = (uint8_t*)prev_frame[i];
+            uint8_t* prev_row = (uint8_t*)(prev_frame + (size_t)i * TEXTURE_WIDTH);
             for (size_t x = 0; x < (TEXTURE_WIDTH << 2); x++) {
                 uint8_t blended = (uint8_t)((new_row[x] * CRT_MOTION_BLUR_ALPHA + prev_row[x] * (255 - CRT_MOTION_BLUR_ALPHA)) / 255);
                 out_row[x] = blended;

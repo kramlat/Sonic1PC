@@ -9,7 +9,7 @@ void Obj_TitleSonic(Object* obj)
         obj->routine += 2;
 
         obj->pos.s.x = 0xF0 + (PLANE_WIDEADD * 4);
-        obj->pos.s.y = 0xDE;
+        obj->pos.s.y = 0xDE + SCREEN_TALLADD2;
 
         // Set object drawing information
         obj->mappings = Mappings_TitleSonic;
@@ -31,7 +31,7 @@ void Obj_TitleSonic(Object* obj)
         break;
     case 4: // Moving upwards
         // Move upwards and increment routine when end point reached
-        if ((obj->pos.s.y -= 8) == 0x96)
+        if ((obj->pos.s.y -= 8) == 0x96 + SCREEN_TALLADD2)
             obj->routine += 2;
         DisplaySprite(obj);
         break;

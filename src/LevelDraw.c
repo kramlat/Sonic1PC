@@ -10,6 +10,9 @@
 // Scroll dimensions (hack so that dimensions that aren't a multiple of 16 work)
 #define SCROLL_WIDTH ((SCREEN_WIDTH + 15) & ~15)
 #define SCROLL_HEIGHT ((SCREEN_HEIGHT + 15) & ~15)
+// Rows of 16-pixel blocks drawn to fill the screen with a margin: no more than the plane holds, or the last overwrites the first
+#define SCROLL_ROWS_WANTED ((SCROLL_HEIGHT + 16 + 16) / 16)
+#define SCROLL_ROWS (SCROLL_ROWS_WANTED > (PLANE_HEIGHT / 2) ? (PLANE_HEIGHT / 2) : SCROLL_ROWS_WANTED)
 
 // Scroll blocks
 int16_t scroll_block1_size, scroll_block2_size, scroll_block3_size, scroll_block4_size;
@@ -225,7 +228,7 @@ void DrawBlocks_TB_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
 }
 
 void DrawBlocks_TB(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
-	DrawBlocks_TB_2(offset, pos, sx, sy, x, y, layout, (SCROLL_HEIGHT + 16 + 16) / 16);
+	DrawBlocks_TB_2(offset, pos, sx, sy, x, y, layout, SCROLL_ROWS);
 }
 
 // Real ASM has TWO separate X-position tables: DrawBG_XPos_Ptrs (live vars
@@ -320,7 +323,7 @@ void DrawBlocks_BG(size_t offset, int16_t sx, int16_t sy, int16_t y, const uint8
 // reached from incremental (per-frame) redraw paths, so it always uses the
 // "_dup" position table (real ASM: DrawBG_XPosCopy_Ptrs), never the live one.
 void DrawBG_ColumnForBGIndex(size_t offset, int16_t x, int16_t y, int16_t sy, const uint8_t *layout, const uint8_t *table, uint16_t *flag) {
-	for (size_t i = 0; i < (SCREEN_HEIGHT + 16 + 16) / 16; i++, y += 16) {
+	for (size_t i = 0; i < SCROLL_ROWS; i++, y += 16) {
 		uint8_t bit = table[i];
 		if (*flag & (1 << bit)) {
 			const uint8_t *meta, *block;
@@ -336,7 +339,7 @@ void DrawBG_ColumnForBGIndex(size_t offset, int16_t x, int16_t y, int16_t sy, co
 
 void Draw_GHZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
 	int16_t y = 0;
-	for (size_t i = 0; i < (SCROLL_HEIGHT + 16 + 16) / 16; i++) {
+	for (size_t i = 0; i < SCROLL_ROWS; i++) {
 		static const uint8_t bg_array[] = {0x00, 0x00, 0x00, 0x00, 0x06, 0x06, 0x06, 0x04, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 		DrawBlocks_BG(offset, bg_scrpos_y.f.u, sy, y, layout, bg_array, 16, bg_pos_table, bg_pos_table_y);
 		y += 16;
@@ -350,7 +353,7 @@ void Draw_MZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
     // and biases the row index by -512 (v_bgscreenposy - $200) before
     // masking, unlike every other zone's table.
     int16_t y = -16;
-    for (size_t i = 0; i < (SCREEN_HEIGHT + 16 + 16) / 16; i++) {
+    for (size_t i = 0; i < SCROLL_ROWS; i++) {
         DrawBlocks_BG_2(offset, bg_scrpos_x.f.u, sy, -0x200, y, layout, MZ_ScrollArray + 1, 128, bg_pos_table, bg_pos_table_y);
         y += 16;
     }
@@ -360,7 +363,7 @@ void Draw_SBZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
     // Matches Draw_SBZ_act1_BG in the disassembly: y = -16 (not 0), and
     // SBZ_ScrollArray+1 (see BG_ScrollBlockMap_SBZ+1).
     int16_t y = -16;
-    for (size_t i = 0; i < (SCREEN_HEIGHT + 16 + 16) / 16; i++) {
+    for (size_t i = 0; i < SCROLL_ROWS; i++) {
         DrawBlocks_BG(offset, bg_scrpos_x.f.u, sy, y, layout, SBZ_ScrollArray + 1, 32, bg_pos_table, bg_pos_table_y);
         y += 16;
     }
@@ -369,7 +372,7 @@ void Draw_SBZ_Bg(int16_t sy, const uint8_t *layout, size_t offset) {
 // Level drawing functions
 void DrawChunks(int16_t sx, int16_t sy, const uint8_t *layout, size_t offset) {
     int16_t y = -16;
-    for (size_t i = 0; i < (SCROLL_HEIGHT + 16 + 16) / 16; i++) {
+    for (size_t i = 0; i < SCROLL_ROWS; i++) {
         DrawBlocks_LR_2(offset, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH / 2);
         y += 16;
     }
@@ -521,11 +524,11 @@ void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout
 	#else
 		if (LEVEL_ZONE(level_id) != ZoneId_SBZ) {
 			if (*flag & SCROLL_FLAG_LEFT2) {
-				DrawBlocks_TB_2(offset, CalcVRAMPos(sx, sy, -16, SCROLL_HEIGHT / 2), sx, sy, -16, SCROLL_HEIGHT / 2, layout, 3);
+				DrawBlocks_TB_2(offset, CalcVRAMPos(sx, sy, -16, 0x70), sx, sy, -16, 0x70, layout, 3);
 				*flag &= ~SCROLL_FLAG_LEFT2;
 			}
 			if (*flag & SCROLL_FLAG_RIGHT2) {
-				DrawBlocks_TB_2(offset, CalcVRAMPos(sx, sy, SCROLL_WIDTH, SCROLL_HEIGHT / 2), sx, sy, SCROLL_WIDTH, SCROLL_HEIGHT / 2, layout, 3);
+				DrawBlocks_TB_2(offset, CalcVRAMPos(sx, sy, SCROLL_WIDTH, 0x70), sx, sy, SCROLL_WIDTH, 0x70, layout, 3);
 				*flag &= ~SCROLL_FLAG_RIGHT2;
 			}
 		} else {

@@ -3,8 +3,13 @@
 //Screen dimensions
 #define SCREEN_SCALE 2 //TODO: make screen scale a variable
 
-#define SCREEN_WIDTH  320
-#define SCREEN_HEIGHT 224
+// The size of the picture is chosen at run time (Video > Resolution): the aspect ratio picks the width or the height.
+// These are the largest it can be, for buffers.
+#define SCREEN_MAX_WIDTH  400
+#define SCREEN_MAX_HEIGHT 256
+extern int screen_width, screen_height;
+#define SCREEN_WIDTH  screen_width
+#define SCREEN_HEIGHT screen_height
 
 #define SCREEN_WIDEADD  (SCREEN_WIDTH - 320)
 #define SCREEN_WIDEADD2 (SCREEN_WIDEADD / 2)
@@ -16,14 +21,17 @@
 #define PLANE_TALLADD (((SCREEN_TALLADD + 8) / 16) * (PLANE_WIDTH << 1))
 
 //VRAM data
-#define VRAM_FG      0xC000 //Foreground nametable
-#define VRAM_BG      0xE000 //Fackground nametable
+// The planes' nametables sit above the 64 KB the tile numbers can address (the software VDP's VRAM is bigger): a tall picture
+// (5:4) needs 64 rows of tiles in each, 8 KB apiece.
+#define VRAM_FG      0x10000 //Foreground nametable
+#define VRAM_BG      0x12000 //Background nametable
 #define VRAM_SONIC   0xF000 //Sonic graphics
 #define VRAM_SPRITES 0xF800 //Sprite table
 #define VRAM_HSCROLL 0xFC00 //horizontal scroll table
 
 #define PLANE_WIDTH  64
-#define PLANE_HEIGHT 32 //NOTE: Changing this doesn't work properly yet
+extern int plane_height; //32 tiles, 64 for the taller pictures (Video_SelectResolution): the loaders keep a margin of one block row at each edge
+#define PLANE_HEIGHT plane_height
 #define PLANE_ROW_BYTES  (PLANE_WIDTH * 2)
 #define PLANE_BYTES (PLANE_HEIGHT * PLANE_ROW_BYTES)
 
@@ -222,26 +230,27 @@
 #define ArtTile_Try_Again_Emeralds 0x3C5
 #define ArtTile_Try_Again_Eggman 0x3E1
 
-// Special Stage
+// Special Stage. Its six 64x64 nametables ("planes") now sit above the tile space, 0x14000 on (they used to lie among the art, in the
+// parts of the canvases no 224-line picture shows: a taller one would show the art as tiles)
 #define ArtTile_SS_Background_Clouds 0x000
 #define ArtTile_SS_Background_Fish 0x051
 #define ArtTile_SS_Wall 0x142
-#define ArtTile_SS_Plane_1 0x200
+#define ArtTile_SS_Plane_1 0xA00
 #define ArtTile_SS_Bumper 0x23B
 #define ArtTile_SS_Goal 0x251
 #define ArtTile_SS_Up_Down 0x263
 #define ArtTile_SS_R_Block 0x2F0
-#define ArtTile_SS_Plane_2 0x300
+#define ArtTile_SS_Plane_2 0xB00
 #define ArtTile_SS_Extra_Life 0x370
 #define ArtTile_SS_Emerald_Sparkle 0x3F0
-#define ArtTile_SS_Plane_3 0x400
+#define ArtTile_SS_Plane_3 0xC00
 #define ArtTile_SS_Red_White_Block 0x470
 #define ArtTile_SS_Ghost_Block 0x4F0
-#define ArtTile_SS_Plane_4 0x500
+#define ArtTile_SS_Plane_4 0xD00
 #define ArtTile_SS_W_Block 0x570
 #define ArtTile_SS_Glass 0x5F0
-#define ArtTile_SS_Plane_5 0x600
-#define ArtTile_SS_Plane_6 0x700
+#define ArtTile_SS_Plane_5 0xE00
+#define ArtTile_SS_Plane_6 0xF00
 #define ArtTile_SS_Emerald 0x770
 #define ArtTile_SS_Zone_1 0x797
 #define ArtTile_SS_Zone_2 0x7A0

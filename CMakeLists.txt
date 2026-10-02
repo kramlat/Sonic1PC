@@ -43,7 +43,7 @@ option(MSVC_LINK_STATIC_RUNTIME
 #
 
 # Define project, source, and includes
-project(Sonic LANGUAGES C CXX)
+project(Sonic VERSION 1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -156,7 +156,9 @@ set(
   "src/Object/Credits.c"
   "src/Object/Ending.c"
   "src/Object/EndingEggmobile.c"
+  "src/Object/ContinueScreen.c"
   "src/GM_Ending.c"
+  "src/GM_Continue.c"
   "src/Object/Animal.c"
   "src/Object/Points.c"
   "src/Object/GiantRing.c"
@@ -527,8 +529,10 @@ set(ASM
     "Mappings/EndingSTH"
     "Mappings/TryAgainEggman"
     "Mappings/EndingEggmobile"
+    "Mappings/ContinueScreen"
     "Animation/EndingSonic"
     "Animation/TryAgainEggman"
+    "Animation/ContinueSonic"
     "Animation/GrassFire")
 
 set(RESOURCES
@@ -680,6 +684,7 @@ set(RESOURCES
     "Art/Exhaust"
     "Art/ResultEm"
     "Art/MiniSonic"
+    "Art/ContSonic"
     "Art/Warp"
     "Art/EndFlower"
     "Art/EndFlowerExtra"
@@ -1126,8 +1131,21 @@ if(TRUE)
                                 "src/Backend/Qt/Settings.cpp" "src/Backend/Qt/Settings.h"
                                 "src/Backend/Qt/DemoTools.cpp" "src/Backend/Qt/DemoTools.h"
                                 "src/Backend/Qt/DebugViewers.cpp" "src/Backend/Qt/DebugViewers.h"
-                                "src/Backend/Qt/SmpsInspector.cpp" "src/Backend/Qt/SmpsInspector.h")
+                                "src/Backend/Qt/SmpsInspector.cpp" "src/Backend/Qt/SmpsInspector.h"
+                                "src/Backend/Qt/HelpWindow.cpp" "src/Backend/Qt/HelpWindow.h"
+                                "src/Backend/Qt/ControlsDialog.cpp" "src/Backend/Qt/ControlsDialog.h")
   target_link_libraries(SonicCore PUBLIC Qt6::Widgets Qt6::OpenGLWidgets Qt6::Multimedia yaml-cpp::yaml-cpp)
+  target_compile_definitions(SonicCore PRIVATE SONIC_VERSION="${PROJECT_VERSION}")
+
+  # Help > About is KDE's standard About dialog (KAboutApplicationDialog) where the KDE Frameworks are installed, and a plain
+  # message box where they are not (Windows builds, for one).
+  find_package(KF6CoreAddons QUIET)
+  find_package(KF6XmlGui QUIET)
+  if(KF6CoreAddons_FOUND AND KF6XmlGui_FOUND)
+    message(STATUS "KDE Frameworks found: Help > About uses KAboutApplicationDialog")
+    target_link_libraries(SonicCore PUBLIC KF6::CoreAddons KF6::XmlGui)
+    target_compile_definitions(SonicCore PRIVATE SONIC_HAVE_KDE_ABOUT)
+  endif()
 endif()
 
 # libm -- Sound.c computes PSG note periods from note frequencies (pow/exp2)
@@ -1216,6 +1234,34 @@ foreach(FILENAME IN LISTS ASM)
             "${IN_DIR}/Mappings/_MapMacros.asm")
   target_sources(SonicCore PRIVATE "${OUT_DIR}/${FILENAME}")
 endforeach()
+
+# ##############################################################################
+# Handbook #
+# ##############################################################################
+# doc/index.docbook is the manual in KDE's DocBook form (what KDE's Help Center shows: install it, with its screenshots, in
+# share/doc/HTML/en/sonic1pc). The game's own Help window shows its HTML version, which xsltproc builds into doc/html.
+find_program(XSLTPROC xsltproc)
+if(XSLTPROC)
+  file(GLOB HANDBOOK_SCREENSHOTS "${CMAKE_CURRENT_SOURCE_DIR}/doc/screenshots/*.png")
+  add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/doc/html/index.html"
+    COMMAND ${CMAKE_COMMAND} -DDOC_DIR=${CMAKE_CURRENT_SOURCE_DIR}/doc -DXSLTPROC=${XSLTPROC} -P
+            ${CMAKE_CURRENT_SOURCE_DIR}/doc/BuildHandbook.cmake
+    DEPENDS doc/index.docbook doc/handbook-html.xsl doc/BuildHandbook.cmake ${HANDBOOK_SCREENSHOTS})
+  add_custom_target(handbook ALL DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/doc/html/index.html")
+else()
+  message(STATUS "xsltproc not found: the game's Help window will have no handbook to show")
+endif()
+
+include(GNUInstallDirs)
+# The desktop entry puts the game in the Games menu of Plasma and other desktops (its icon, sonic1pc, is installed from packaging/icons/)
+install(FILES packaging/sonic1pc.desktop DESTINATION share/applications)
+install(DIRECTORY packaging/icons/ DESTINATION share/icons OPTIONAL)
+install(FILES doc/index.docbook DESTINATION share/doc/HTML/en/sonic1pc)
+install(DIRECTORY doc/screenshots DESTINATION share/doc/HTML/en/sonic1pc)
+if(XSLTPROC)
+  install(DIRECTORY doc/html/ DESTINATION share/doc/sonic1pc/html OPTIONAL)
+endif()
 
 # ##############################################################################
 # ParadoxSMPS (JSON song/SFX format) #

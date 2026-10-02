@@ -9,17 +9,76 @@
 //Video state
 uint8_t vbla_routine;
 
+// The size of the picture. The aspect ratio picks it: the wide ones add columns to the original 320x224, the tall ones rows
+// (kept to what the 256-pixel plane holds). Multiples of 8, as the planes are tiles.
+int screen_width = 320, screen_height = 224;
+int plane_height = 32; // rows of tiles in the planes: 64 once the picture is taller than 224 pixels
+static int resolution_mode = RESOLUTION_ORIGINAL;
+static int resolution_pending = -1; // chosen, not applied yet (see Video_ApplyPendingResolution)
+
+static const struct { const char *name; int width, height; } resolutions[RESOLUTION_COUNT] = {
+	{ "Original (10:7)", 320, 224 },
+	{ "16:9", 400, 224 },
+	{ "8:5", 360, 224 },
+	{ "5:4", 320, 256 },
+	{ "4:3", 320, 240 },
+};
+
+const char *Video_ResolutionName(int mode) {
+	return (mode >= 0 && mode < RESOLUTION_COUNT) ? resolutions[mode].name : "?";
+}
+
+int Video_GetResolution(void) {
+	return resolution_mode;
+}
+
+// The picture size changed (menu): it takes hold at the next safe point -- a mode starting, or the level's loop, which redraws
+// what the new size shows.
+void Video_RequestResolution(int mode) {
+	if (mode < 0 || mode >= RESOLUTION_COUNT || mode == resolution_mode)
+		return;
+	resolution_pending = mode;
+}
+
+bool Video_ResolutionPending(void) {
+	return resolution_pending >= 0;
+}
+
+extern void Render_SetPictureSize(void);
+
+// Applies a requested picture size: the buffers and the window. Returns whether the size changed.
+bool Video_ApplyPendingResolution(void) {
+	if (resolution_pending < 0)
+		return false;
+	Video_SelectResolution(resolution_pending); // also clears the request
+	Render_SetPictureSize();
+	return true;
+}
+
+// Picks the picture size without telling anyone (the window does not exist yet, at start-up).
+void Video_SelectResolution(int mode) {
+	if (mode < 0 || mode >= RESOLUTION_COUNT)
+		mode = RESOLUTION_ORIGINAL;
+	resolution_mode = mode;
+	resolution_pending = -1;
+	screen_width = resolutions[mode].width;
+	screen_height = resolutions[mode].height;
+	plane_height = screen_height > 224 ? 64 : 32;
+	VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+	hbla_counter = (int16_t)(screen_height - 1);
+}
+
 uint8_t sprite_count;
 
 uint8_t hbla_pal;
 int16_t hbla_pos;
-int16_t hbla_counter = 223;
+int16_t hbla_counter = 223; // (the dormant line: the last one of the picture; see Video_SetResolution)
 
 int16_t vid_scrpos_y_dup, vid_bg_scrpos_y_dup, vid_scrpos_x_dup, vid_bg_scrpos_x_dup, vid_bg3_scrpos_y_dup, vid_bg3_scrpos_x_dup;
 
 uint16_t sprite_buffer[BUFFER_SPRITES][4]; //Apparently the last 16 entries of this intrude other memory in the original
                                            //... now how would I emulate that?
-int16_t hscroll_buffer[SCREEN_HEIGHT][2];
+int16_t hscroll_buffer[SCREEN_MAX_HEIGHT][2];
 
 //Video interface
 void VDPSetupGame(void) {

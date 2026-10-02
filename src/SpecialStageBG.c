@@ -64,6 +64,7 @@ void SS_BGLoad(void) {
     EniDec(Tilemap_SSBackground2, buffer, TILE_MAP(0, 2, 0, 0, ArtTile_SS_Background_Clouds));
     SS_WriteTilemap(buffer, ArtTile_SS_Plane_5 * TILE_SIZE, 64, 32);
     SS_WriteTilemap(buffer, ArtTile_SS_Plane_5 * TILE_SIZE + 0x1000, 64, 64);
+
 }
 
 // ---------------------------------------------------------------------------

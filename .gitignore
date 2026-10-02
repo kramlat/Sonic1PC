@@ -22,3 +22,6 @@ tools/paradoxsmps/converted/music/*.metadata.json
 
 # SonLVL compiles its object definitions from the .cs files and caches the result here
 SonLVL INI Files/dllcache/
+
+# The handbook's HTML is built from doc/index.docbook
+doc/html/

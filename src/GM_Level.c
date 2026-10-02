@@ -237,6 +237,26 @@ void Level_ClearState(void) {
     // (It used to be cleared here, which wiped every checkpoint on death.)
 }
 
+// The picture changed size while a level runs: the camera's limits move with it (the level tables add half of the extra width and
+// all of the extra height, see Level.c), the planes are drawn again for what the new size shows.
+static void Level_ApplyResolution(void) {
+    int old_width = screen_width, old_height = screen_height;
+    if (!Video_ApplyPendingResolution())
+        return;
+    int wide = (screen_width - old_width) / 2;
+    int tall = screen_height - old_height;
+    limit_right1 = (uint16_t)(limit_right1 + wide);
+    limit_right2 = (uint16_t)(limit_right2 + wide);
+    limit_btm1 = (uint16_t)(limit_btm1 + tall);
+    limit_btm2 = (uint16_t)(limit_btm2 + tall);
+    look_shift = (int16_t)(look_shift + tall / 2);
+    ClearScreen();
+    VDP_SetPlaneALocation(VRAM_FG);
+    VDP_SetPlaneBLocation(VRAM_BG);
+    DeformLayers();
+    LoadTilesFromStart();
+}
+
 // Level gamemode
 void GM_Level(void) {
 GM_Level_Branch:;
@@ -275,8 +295,8 @@ GM_Level_Branch:;
     VDP_SetBackgroundColour(0x20); // Line 2, entry 0
 
     // Load water
-    VDP_SetHIntCounter(223);
-    hbla_counter = 223;
+    VDP_SetHIntCounter(SCREEN_HEIGHT - 1);
+    hbla_counter = SCREEN_HEIGHT - 1;
     VDP_SetHIntEnable(false);
     if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
         VDP_SetHIntEnable(true);
@@ -450,6 +470,10 @@ GM_Level_Branch:;
         // Debug console (SonicSmoke only -- see Console.c's own comment).
         // No-ops immediately unless console_enabled AND currently open.
         ConsoleUpdate();
+
+        // A new picture size from the menu: what the camera and the planes show changes with it
+        if (Video_ResolutionPending())
+            Level_ApplyResolution();
 
         // Run frame
         vbla_routine = 0x08;

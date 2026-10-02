@@ -187,7 +187,8 @@ int16_t palss_time;
 uint8_t emeralds;
 uint8_t emerald_list[8];
 
-int16_t ss_drawtable[16 * 16 * 2];
+#define SS_GRID_MAX 20 // blocks across the rotating window of the biggest picture
+int16_t ss_drawtable[SS_GRID_MAX * SS_GRID_MAX * 2];
 
 
 uint8_t ss_layout[SS_DIM * SS_DIM]; // SS_DIM x SS_DIM (128x128)
@@ -396,16 +397,21 @@ void SS_ShowLayout(uint8_t sprite_i) {
     int16_t sin, cos;
     CalcSine(ss_angle.f.u & 0xFC, &sin, &cos); // Remove this AND for smooth rotation
 
-    int16_t d2 = -((uint16_t)scrpos_x.f.u % 24) - 180;
-    int16_t d3 = -((uint16_t)scrpos_y.f.u % 24) - 180;
+    // The rotating window of blocks: 16 x 16 for the original picture (it covers it however it is turned); a bigger picture needs a
+    // bigger window to reach its corners.
+    const int grid = (SCREEN_WIDTH > 320 || SCREEN_HEIGHT > 224) ? SS_GRID_MAX : 16;
+    const int margin = (grid - 16) / 2; // extra cells before Sonic's
+
+    int16_t d2 = -((uint16_t)scrpos_x.f.u % 24) - (grid * 12 - 12);
+    int16_t d3 = -((uint16_t)scrpos_y.f.u % 24) - (grid * 12 - 12);
     int16_t d4 = sin * 24;
     int16_t d5 = cos * 24;
 
     int16_t* to = ss_drawtable;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < grid; i++) {
         int32_t d2b = (d2 * cos) + (d3 * -sin);
         int32_t d1b = (d2 * sin) + (d3 * cos);
-        for (int j = 0; j < 16; j++) {
+        for (int j = 0; j < grid; j++) {
             *to++ = d2b >> 8;
             *to++ = d1b >> 8;
             d2b += d5;
@@ -415,18 +421,18 @@ void SS_ShowLayout(uint8_t sprite_i) {
     }
 
     // Get layout offset
-    uint16_t ly = ((uint16_t)scrpos_y.f.u / 24) * SS_DIM;
-    uint16_t lx = (uint16_t)scrpos_x.f.u / 24;
+    int ly = (int)((uint16_t)scrpos_y.f.u / 24) - margin;
+    int lx = (int)((uint16_t)scrpos_x.f.u / 24) - margin;
 
     // Draw sprites
-    uint8_t* layout = &ss_layout[lx + ly];
     const int16_t* pos = ss_drawtable;
     uint16_t* sprite = &sprite_buffer[sprite_i][0];
 
-    for (int i = 0; i < 16; i++, layout += SS_DIM - 16) {
-        for (int j = 0; j < 16; j++, pos += 2) {
+    for (int i = 0; i < grid; i++) {
+        for (int j = 0; j < grid; j++, pos += 2) {
             // Draw block
-            uint8_t block = *layout++;
+            int cx = lx + j, cy = ly + i;
+            uint8_t block = (cx >= 0 && cx < SS_DIM && cy >= 0 && cy < SS_DIM) ? ss_layout[cx + cy * SS_DIM] : 0;
             if (block != 0 && block <= SS_MAPPINGS) {
                 // Get block position
                 uint16_t x = pos[0] + (0x80 + (SCREEN_WIDTH >> 1));

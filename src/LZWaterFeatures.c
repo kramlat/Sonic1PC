@@ -395,9 +395,9 @@ void LZWaterFeatures(void) {
         // Water surface is above the top of the screen -- the whole visible
         // screen is underwater.
         wtr_state = 1;
-        line = 223;
-    } else if (line >= 223) {
-        line = 223;
+        line = SCREEN_HEIGHT - 1;
+    } else if (line >= SCREEN_HEIGHT - 1) {
+        line = SCREEN_HEIGHT - 1;
     }
     hbla_counter = line;
     VDP_SetHIntCounter((uint8_t)hbla_counter);

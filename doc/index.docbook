@@ -1,0 +1,676 @@
+<?xml version="1.0" ?>
+<!DOCTYPE book PUBLIC "-//KDE//DTD DocBook XML V4.5-Based Variant V1.1//EN" "dtd/kdedbx45.dtd" [
+  <!ENTITY % English "INCLUDE">
+]>
+
+<book id="sonic1pc" lang="&language;">
+
+<bookinfo>
+<title>The Sonic 1 PC Handbook</title>
+
+<authorgroup>
+<author>
+<firstname>Mark</firstname>
+<surname>Toman</surname>
+</author>
+</authorgroup>
+
+<copyright>
+<year>2026</year>
+<holder>Mark Toman</holder>
+</copyright>
+
+<legalnotice>
+<para>Sonic the Hedgehog and its characters are trademarks of SEGA. This handbook describes an unofficial PC
+recompilation of the 1991 game.</para>
+</legalnotice>
+
+<date>2026-10-02</date>
+<releaseinfo>1.0</releaseinfo>
+
+<abstract>
+<para>Sonic 1 PC is a recompilation of Sonic the Hedgehog (1991, Mega Drive/Genesis) as a native program: the same
+game, running in a window with a menu bar, a resizable picture, modern audio output and a set of tools for looking
+inside it. This handbook explains how to play it, how to set up the picture, and what the menus and hidden features
+do.</para>
+</abstract>
+
+<keywordset>
+<keyword>Sonic</keyword>
+<keyword>Sonic the Hedgehog</keyword>
+<keyword>platform game</keyword>
+<keyword>Mega Drive</keyword>
+<keyword>Genesis</keyword>
+</keywordset>
+</bookinfo>
+
+<!-- ============================================================ -->
+<chapter id="introduction">
+<title>Introduction</title>
+
+<para>Dr. Robotnik has turned the animals of South Island into robots and is hunting for the six Chaos Emeralds.
+Sonic runs, rolls and spins through six zones, collects rings, frees the animals and fights Robotnik at the end of
+each zone.</para>
+
+<screenshot>
+<screeninfo>The title screen</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/title.png" format="PNG"/></imageobject>
+<textobject><phrase>The title screen: Sonic in front of the winged ring, with PRESS START BUTTON underneath.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<para>The game logic is the original's, with the original's behaviour (including its physics and its quirks) kept
+unless there is a good reason to change it. What is different is the way you run it:</para>
+
+<itemizedlist>
+<listitem><para>The picture can be shown in the original shape or in four other aspect ratios, in a window or full
+screen (<xref linkend="resolution"/>).</para></listitem>
+<listitem><para>Music and sound effects are played through separate outputs, each with its own volume, and every
+sound chip channel can be muted (<xref linkend="audio"/>).</para></listitem>
+<listitem><para>Sonic can charge a spin dash.</para></listitem>
+<listitem><para>The ending and the credits are complete, with the two final screens
+(<xref linkend="ending"/>).</para></listitem>
+<listitem><para>A debug mode gives you windows that show the game's video memory, sound chips, objects and
+variables, a console, a demo recorder and the SMPS Inspector (<xref linkend="tools"/>).</para></listitem>
+</itemizedlist>
+</chapter>
+
+<!-- ============================================================ -->
+<chapter id="getting-started">
+<title>Getting Started</title>
+
+<sect1 id="starting">
+<title>Starting the game</title>
+<para>Run <command>Sonic</command>. The window opens on the SEGA screen and then the title screen. Press
+<keycap>Return</keycap> (or <guibutton>Start</guibutton> on a gamepad) to begin a new game in Green Hill Zone.
+Leave the title screen alone and it plays a few demonstrations of the game.</para>
+
+<screenshot>
+<screeninfo>The main window</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/mainwindow.png" format="PNG"/></imageobject>
+<textobject><phrase>The main window: the menu bar above the picture and the status bar below it.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<para>The menu bar sits inside the window. Its <guimenu>File</guimenu>, <guimenu>Audio</guimenu> and
+<guimenu>Help</guimenu> menus are always there; <guimenu>View</guimenu> and <guimenu>Tools</guimenu> appear while
+the debug tools are available (<xref linkend="debug-mode"/>). The right-hand side of the status bar lists the tools
+that are running, so that none of them goes unnoticed.</para>
+</sect1>
+
+<sect1 id="controls">
+<title>Controls</title>
+
+<para>The game is played with the three-button Mega Drive pad. The keyboard and a gamepad can both be used at the
+same time.</para>
+
+<informaltable>
+<tgroup cols="3">
+<thead>
+<row><entry>Mega Drive pad</entry><entry>Keyboard</entry><entry>Gamepad</entry></row>
+</thead>
+<tbody>
+<row><entry>D-pad</entry><entry><keycap>Arrow keys</keycap> or <keycap>W</keycap> <keycap>A</keycap> <keycap>S</keycap> <keycap>D</keycap></entry><entry>D-pad or left stick</entry></row>
+<row><entry>A</entry><entry><keycap>B</keycap></entry><entry>X</entry></row>
+<row><entry>B</entry><entry><keycap>N</keycap></entry><entry>A</entry></row>
+<row><entry>C</entry><entry><keycap>M</keycap></entry><entry>B</entry></row>
+<row><entry>Start</entry><entry><keycap>Return</keycap></entry><entry>Start</entry></row>
+<row><entry>Fullscreen</entry><entry><keycap>F11</keycap></entry><entry>-</entry></row>
+</tbody>
+</tgroup>
+</informaltable>
+
+<para>The buttons can be changed in <menuchoice><guimenu>Settings</guimenu><guimenuitem>Configure Sonic the
+Hedgehog...</guimenuitem></menuchoice>. Click a button in the table, then press the key (or, in the gamepad column, the
+gamepad button) you want; <keycap>Escape</keycap> cancels. Every Mega Drive button has two keyboard keys, and a key can
+drive only one button (assigning it elsewhere takes it away from the old one). The D-pad and left stick always move
+Sonic on a gamepad. <keycap>F11</keycap> and the backtick key are reserved. <guibutton>Restore Defaults</guibutton> puts back
+the table above. The choices are saved with the other settings.</para>
+
+<screenshot>
+<screeninfo>The controls settings</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/controls.png" format="PNG"/></imageobject>
+<textobject><phrase>The Configure Sonic the Hedgehog window listing each pad button with its keys.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<para>Any of the three buttons A, B and C makes Sonic jump (hold it for a higher jump). Press
+<keycap>Down</keycap> to roll up into a ball while you run, to duck while you stand still, and to look down. Press
+<guibutton>Start</guibutton> to pause; while the game is paused, <guibutton>B</guibutton> held or
+<guibutton>C</guibutton> pressed steps a single frame.</para>
+
+<sect2 id="spin-dash">
+<title>The spin dash</title>
+<para>Duck with <keycap>Down</keycap>, then press a jump button to start charging a spin dash. Each further press
+winds it up more and raises the pitch of the revving sound. Release <keycap>Down</keycap> to shoot off.</para>
+</sect2>
+</sect1>
+
+<sect1 id="level-select">
+<title>The level select</title>
+
+<para>The level select is hidden. At the title screen press <keycap>Up</keycap>, <keycap>Down</keycap>,
+<keycap>Left</keycap>, <keycap>Right</keycap> (a ring sound tells you it worked), then hold
+<guibutton>A</guibutton> and press <guibutton>Start</guibutton>.</para>
+
+<screenshot>
+<screeninfo>The level select</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/levelselect.png" format="PNG"/></imageobject>
+<textobject><phrase>The level select: the zones and acts in a list, the highlighted row in yellow, and SOUND SELECT at the bottom.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<para>Move the highlight with <keycap>Up</keycap> and <keycap>Down</keycap> and choose a row with any of A, B,
+C or <guibutton>Start</guibutton>. The two last rows are the Special Stage and the sound test: on SOUND SELECT,
+<keycap>Left</keycap> and <keycap>Right</keycap> change the number and a button plays that sound. The highlighted
+row and the sound number are remembered until you quit the game.</para>
+
+<para>A level chosen from the level select keeps your special stage number and your emeralds, just like entering a
+level through a giant ring, and the special stage numbers go on from where they were.</para>
+</sect1>
+</chapter>
+
+<!-- ============================================================ -->
+<chapter id="playing">
+<title>Playing the Game</title>
+
+<sect1 id="goal">
+<title>The goal</title>
+<para>Each zone has three acts; the third ends with a boss fight against Dr. Robotnik. Reach the signpost at the
+end of an act to see the bonus for your time and rings. Collect <emphasis>rings</emphasis> to protect yourself: when
+something hurts Sonic while he has rings he loses them (and can pick some of them up again) and when he has none he
+is defeated. Every 100 rings earn a life, as does every 50,000 points.</para>
+
+<screenshot>
+<screeninfo>Green Hill Zone</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/gameplay.png" format="PNG"/></imageobject>
+<textobject><phrase>Sonic playing Green Hill Zone, the score, time and rings in the top left corner and the lives in the bottom left.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<sect2 id="continues">
+<title>Continues</title>
+<para>Collecting 50 rings in a special stage earns a <emphasis>continue</emphasis>. When you lose your last life and
+have one, the <guilabel>CONTINUE</guilabel> screen appears: Sonic lies on the floor while a countdown runs from ten.
+The little Sonics above the number show how many continues you have (the one you are about to use is not shown).
+Press <guibutton>Start</guibutton> before the countdown reaches zero and Sonic gets up and runs off, and you start the
+act again with three lives; your rings, time and score begin from nothing. If the countdown runs out the game is over
+and returns to the SEGA screen.</para>
+
+<screenshot>
+<screeninfo>The continue screen</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/continue.png" format="PNG"/></imageobject>
+<textobject><phrase>The continue screen: the word CONTINUE, three little Sonics, the countdown and Sonic lying on the floor.</phrase></textobject>
+</mediaobject>
+</screenshot>
+</sect2>
+</sect1>
+
+<sect1 id="monitors">
+<title>Monitors and checkpoints</title>
+<para>Break a <emphasis>monitor</emphasis> by jumping on it: it gives rings, a shield, speed shoes,
+invincibility or an extra life. A lamppost remembers where you reached; if you lose a life you start again from the
+last lamppost you touched.</para>
+</sect1>
+
+<sect1 id="enemies">
+<title>Enemies and hazards</title>
+<para>Robotnik has filled the zones with <emphasis>badniks</emphasis>, robots built around captured animals. Jump on
+one, or hit it while rolling, to destroy it and free the animal inside. Touching one any other way hurts Sonic.</para>
+
+<informaltable>
+<tgroup cols="4">
+<thead>
+<row><entry>Badnik</entry><entry>Name</entry><entry>Found in</entry><entry>Behaviour</entry></row>
+</thead>
+<tbody>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-crabmeat.png" format="PNG"/></imageobject><textobject><phrase>Crabmeat</phrase></textobject></inlinemediaobject></entry><entry>Crabmeat (Ganigani in Japan)</entry><entry>Green Hill, Spring Yard</entry><entry>Walks sideways and shoots two fireballs, one to each side.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-buzz_bomber.png" format="PNG"/></imageobject><textobject><phrase>Buzz Bomber</phrase></textobject></inlinemediaobject></entry><entry>Buzz Bomber (Beeton in Japan)</entry><entry>Green Hill, Marble, Spring Yard</entry><entry>Flies back and forth and fires a shot downwards when you pass beneath it.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-moto_bug.png" format="PNG"/></imageobject><textobject><phrase>Moto Bug</phrase></textobject></inlinemediaobject></entry><entry>Moto Bug (Motora in Japan)</entry><entry>Green Hill, Spring Yard</entry><entry>Rolls along the ground, turning around now and then.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-newtron.png" format="PNG"/></imageobject><textobject><phrase>Newtron</phrase></textobject></inlinemediaobject></entry><entry>Newtron (Meleon in Japan)</entry><entry>Green Hill, Marble</entry><entry>Appears on the wall, then either fires a shot or drops to the ground and speeds off.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-chopper.png" format="PNG"/></imageobject><textobject><phrase>Chopper</phrase></textobject></inlinemediaobject></entry><entry>Chopper (Batabata in Japan)</entry><entry>Green Hill, Labyrinth</entry><entry>A piranha that leaps out of the water again and again.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-caterkiller.png" format="PNG"/></imageobject><textobject><phrase>Caterkiller</phrase></textobject></inlinemediaobject></entry><entry>Caterkiller (Nal in Japan)</entry><entry>Marble, Spring Yard, Scrap Brain</entry><entry>A spiked caterpillar. Only its head can be destroyed; its body hurts you.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-batbrain.png" format="PNG"/></imageobject><textobject><phrase>Batbrain</phrase></textobject></inlinemediaobject></entry><entry>Batbrain (Basaran in Japan)</entry><entry>Marble</entry><entry>Hangs from the ceiling until you come near, then swoops after you.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-burrobot.png" format="PNG"/></imageobject><textobject><phrase>Burrobot</phrase></textobject></inlinemediaobject></entry><entry>Burrobot (Mogurin in Japan)</entry><entry>Labyrinth</entry><entry>A drill-nosed mole that hops along the ground.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-jaws.png" format="PNG"/></imageobject><textobject><phrase>Jaws</phrase></textobject></inlinemediaobject></entry><entry>Jaws (Puku-puku in Japan)</entry><entry>Labyrinth</entry><entry>A piranha that swims back and forth underwater.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-orbinaut.png" format="PNG"/></imageobject><textobject><phrase>Orbinaut</phrase></textobject></inlinemediaobject></entry><entry>Orbinaut (Unidis for the blue one, Uni Uni for the green one, in Japan)</entry><entry>Labyrinth, Star Light, Scrap Brain</entry><entry>Is circled by four spiked orbs, which it may fire at you.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/enemy-bomb.png" format="PNG"/></imageobject><textobject><phrase>Bomb</phrase></textobject></inlinemediaobject></entry><entry>Bomb (Bomu in Japan)</entry><entry>Star Light, Scrap Brain</entry><entry>Walks toward you, then stops and blows up, throwing shrapnel in four directions.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-roller.png" format="PNG"/></imageobject><textobject><phrase>Roller</phrase></textobject></inlinemediaobject></entry><entry>Roller (Arma in Japan)</entry><entry>Spring Yard</entry><entry>An armadillo that curls up and rolls at you, then uncurls to run.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-spikes.png" format="PNG"/></imageobject><textobject><phrase>Spikes, the badnik</phrase></textobject></inlinemediaobject></entry><entry>Spikes (Yadrin in Japan)</entry><entry>Spring Yard</entry><entry>Paces back and forth, pausing for a second at each end. Its back is spiked, so jumping on it hurts: destroy it by rolling into it, or hit it from the side.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-ballhog.png" format="PNG"/></imageobject><textobject><phrase>Ball Hog</phrase></textobject></inlinemediaobject></entry><entry>Ball Hog (Ton-ton in Japan)</entry><entry>Scrap Brain</entry><entry>Throws bouncing bombs at you.</entry></row>
+</tbody>
+</tgroup>
+</informaltable>
+
+<para>Some hazards cannot be destroyed. <emphasis>Spikes</emphasis> hurt whenever you touch their points (jump on them
+at your peril), and a <emphasis>spring</emphasis> throws you in the direction it points.</para>
+
+<informaltable>
+<tgroup cols="2">
+<tbody>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spikes.png" format="PNG"/></imageobject><textobject><phrase>Spikes</phrase></textobject></inlinemediaobject></entry><entry>Spikes, standing up, hanging down or on the side of a wall.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spring.png" format="PNG"/></imageobject><textobject><phrase>A spring</phrase></textobject></inlinemediaobject></entry><entry>A spring: red ones are strong, yellow ones are stronger still.</entry></row>
+</tbody>
+</tgroup>
+</informaltable>
+</sect1>
+
+<sect1 id="special-stages">
+<title>Special stages</title>
+
+<para>Finish an act with 50 rings or more and a giant ring appears near the signpost. Jump into it to enter a
+special stage, where Sonic rolls through a rotating maze of blocks looking for a Chaos Emerald. Bumpers throw you
+away, <guilabel>UP</guilabel> and <guilabel>DOWN</guilabel> blocks change the speed of the rotation,
+<guilabel>R</guilabel> blocks reverse it, glass blocks break after being touched several times and the
+<guilabel>GOAL</guilabel> block ends the stage, which is how you fail it. Touch the emerald inside the maze to win it. If you fail, the next
+attempt is the next stage; stages you have already won are skipped.</para>
+
+<screenshot>
+<screeninfo>A special stage</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/special.png" format="PNG"/></imageobject>
+<textobject><phrase>A special stage: the maze of blocks rotating over the bird background.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<para>These are the blocks you meet in the maze:</para>
+
+<informaltable>
+<tgroup cols="3">
+<thead>
+<row><entry>Block</entry><entry>Name</entry><entry>What it does</entry></row>
+</thead>
+<tbody>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spec-wall.png" format="PNG"/></imageobject><textobject><phrase>Wall</phrase></textobject></inlinemediaobject></entry><entry>Wall</entry><entry>Solid. Sonic cannot pass through it.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spec-jump_block.png" format="PNG"/></imageobject><textobject><phrase>Jump block</phrase></textobject></inlinemediaobject></entry><entry>Jump block</entry><entry>A solid red and white block. Stand on it and jump off it like a wall.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spec-bumper.png" format="PNG"/></imageobject><textobject><phrase>Bumper</phrase></textobject></inlinemediaobject></entry><entry>Bumper</entry><entry>Throws Sonic away from it.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spec-up.png" format="PNG"/></imageobject><textobject><phrase>UP block</phrase></textobject></inlinemediaobject></entry><entry>UP</entry><entry>Speeds up the rotation of the maze. It then turns into a DOWN block.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spec-down.png" format="PNG"/></imageobject><textobject><phrase>DOWN block</phrase></textobject></inlinemediaobject></entry><entry>DOWN</entry><entry>Slows the rotation back down. It then turns into an UP block.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spec-reverse.png" format="PNG"/></imageobject><textobject><phrase>R block</phrase></textobject></inlinemediaobject></entry><entry>R</entry><entry>Reverses the direction of the rotation.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spec-diamond.png" format="PNG"/></imageobject><textobject><phrase>Glass block</phrase></textobject></inlinemediaobject></entry><entry>Glass block</entry><entry>Breaks after being touched several times, changing colour as it weakens.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spec-goal.png" format="PNG"/></imageobject><textobject><phrase>GOAL block</phrase></textobject></inlinemediaobject></entry><entry>GOAL</entry><entry>Touching it ends the stage, and you leave without the emerald. It is the way you fail, so keep away from it.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/spec-emerald.png" format="PNG"/></imageobject><textobject><phrase>Chaos Emerald</phrase></textobject></inlinemediaobject></entry><entry>Chaos Emerald</entry><entry>Touch it to win the stage. Collecting it plays the emerald fanfare.</entry></row>
+</tbody>
+</tgroup>
+</informaltable>
+
+<note><para>The special stage music never speeds up (the original did not either).</para></note>
+</sect1>
+</chapter>
+
+<!-- ============================================================ -->
+<chapter id="ending">
+<title>The Ending and the Credits</title>
+
+<para>Defeat Dr. Robotnik in the Final Zone and the ending begins: Sonic runs back to the animals in Green Hill.
+With all six Chaos Emeralds he holds them up, they spin, the screen flashes white and flowers bloom everywhere;
+without them he simply leaps at the screen. Either way the SONIC THE HEDGEHOG logo slides in and the credits
+follow.</para>
+
+<screenshot>
+<screeninfo>The ending</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/ending.png" format="PNG"/></imageobject>
+<textobject><phrase>The ending: Sonic stopped among the animals in Green Hill Zone.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<screenshot>
+<screeninfo>The logo</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/ending-logo.png" format="PNG"/></imageobject>
+<textobject><phrase>Sonic leaping at the screen as the SONIC THE HEDGEHOG logo slides in.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<para>If you wrecked Dr. Robotnik's ship as he fled the Final Zone, you can see it fall in the distant background
+of the ending while Sonic runs: a long-forgotten graphic that the original game loaded and never used. It
+appears with either ending.</para>
+
+<sect1 id="credits">
+<title>The credits</title>
+<para>The credits show a page of staff for two seconds and then play a short demonstration of one of the zones
+(Green Hill, Marble, Spring Yard, Labyrinth, Star Light, Scrap Brain, twice, and Green Hill again) before the next
+page.</para>
+
+<screenshot>
+<screeninfo>A credits page</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/credits.png" format="PNG"/></imageobject>
+<textobject><phrase>The first credits page, SONIC TEAM STAFF.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<para>The credits end on one of two screens: <guilabel>END</guilabel> if Sonic has all six Chaos Emeralds, with
+Robotnik raging, or <guilabel>TRY AGAIN</guilabel> if not, with Robotnik juggling the emeralds you did not find.
+<guibutton>Start</guibutton> (or thirty seconds) returns to the SEGA screen.</para>
+
+<screenshot>
+<screeninfo>The TRY AGAIN screen</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/tryagain.png" format="PNG"/></imageobject>
+<textobject><phrase>Robotnik juggling the missing emeralds above the words TRY AGAIN.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<screenshot>
+<screeninfo>The END screen</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/theend.png" format="PNG"/></imageobject>
+<textobject><phrase>The final END screen, with Robotnik jumping with rage.</phrase></textobject>
+</mediaobject>
+</screenshot>
+</sect1>
+</chapter>
+
+<!-- ============================================================ -->
+<chapter id="resolution">
+<title>The Picture: Resolution and Full Screen</title>
+
+<para>The original game draws a 320 &times; 224 picture (an aspect ratio of 10:7) that a television stretches to
+fit. Sonic 1 PC can draw the picture in other shapes, adding extra screen where the game has room for it rather
+than stretching what is there.</para>
+
+<sect1 id="resolution-menu">
+<title>The Resolution menu</title>
+
+<para>Open <menuchoice><guimenu>File</guimenu><guisubmenu>Resolution</guisubmenu></menuchoice> and choose the
+shape of the picture.</para>
+
+<screenshot>
+<screeninfo>The Resolution menu</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/menu-resolution.png" format="PNG"/></imageobject>
+<textobject><phrase>The File menu with its Resolution submenu open: Original, 16:9, 8:5, 5:4 and 4:3.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<informaltable>
+<tgroup cols="3">
+<thead>
+<row><entry>Choice</entry><entry>Picture</entry><entry>What changes</entry></row>
+</thead>
+<tbody>
+<row><entry><guimenuitem>Original (10:7)</guimenuitem></entry><entry>320 &times; 224</entry><entry>The picture of the Mega Drive.</entry></row>
+<row><entry><guimenuitem>16:9</guimenuitem></entry><entry>400 &times; 224</entry><entry>Wider: you see 80 pixels more of the level, and the lives counter moves to the upper right corner.</entry></row>
+<row><entry><guimenuitem>8:5</guimenuitem></entry><entry>360 &times; 224</entry><entry>Wider (the 16:10 of many monitors), with the lives counter in the upper right.</entry></row>
+<row><entry><guimenuitem>5:4</guimenuitem></entry><entry>320 &times; 256</entry><entry>Taller: you see 32 more rows.</entry></row>
+<row><entry><guimenuitem>4:3</guimenuitem></entry><entry>320 &times; 240</entry><entry>Taller: you see 16 more rows.</entry></row>
+</tbody>
+</tgroup>
+</informaltable>
+
+<screenshot>
+<screeninfo>16:9</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/gameplay-169.png" format="PNG"/></imageobject>
+<textobject><phrase>Green Hill Zone in 16:9: the picture is wider and the lives counter is in the upper right corner.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<screenshot>
+<screeninfo>4:3</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/gameplay-43.png" format="PNG"/></imageobject>
+<textobject><phrase>Green Hill Zone in 4:3: the picture is taller.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<para>In a window, choosing a resolution also resizes the window so that the picture keeps its (doubled) size.
+Full screen only uses the aspect ratio: the window stays the size of your screen and the picture is scaled to fit
+it, with black bars where the shapes differ. The choice is remembered for next time.</para>
+
+<para>A new resolution takes hold at once during a level, where the picture is redrawn around the camera. On other
+screens (the title screen, for instance) it takes hold when the next screen starts.</para>
+
+<tip><para>The command line option <option>--resolution</option> <replaceable>N</replaceable> starts the game in
+one of the shapes without changing the saved choice: 0 is the original, 1 is 16:9, 2 is 8:5, 3 is 5:4 and 4 is
+4:3.</para></tip>
+</sect1>
+
+<sect1 id="fullscreen">
+<title>Full screen</title>
+<para>Press <keycap>F11</keycap> or choose <menuchoice><guimenu>File</guimenu><guimenuitem>Fullscreen</guimenuitem></menuchoice>
+to switch between a window and full screen. The menu bar and status bar are hidden in full screen; press
+<keycap>F11</keycap> again to bring them back.</para>
+</sect1>
+</chapter>
+
+<!-- ============================================================ -->
+<chapter id="audio">
+<title>Audio</title>
+
+<para>The <guimenu>Audio</guimenu> menu holds a switch and a volume slider for the music and another pair for the
+sound effects, and a <guisubmenu>Channels</guisubmenu> submenu that lets you silence individual sound chip channels
+(the six FM channels, the three PSG tone channels, the noise channel and the DAC, which plays the sampled drums). A channel is audible
+while its entry is checked; <guimenuitem>Unmute All</guimenuitem> turns them all back on. The settings are remembered
+between runs.</para>
+</chapter>
+
+<!-- ============================================================ -->
+<chapter id="cheats">
+<title>Cheats and Easter Eggs</title>
+
+<sect1 id="debug-mode">
+<title>The debug cheat</title>
+
+<para>At the title screen enter <keycap>C</keycap>, <keycap>C</keycap>, <keycap>C</keycap>, <keycap>C</keycap>,
+<keycap>Up</keycap>, <keycap>Down</keycap>, <keycap>Left</keycap>, <keycap>Right</keycap> (you hear a ring). The
+<guimenu>View</guimenu> and <guimenu>Tools</guimenu> menus appear, the console can be opened, and in a level you can
+press <guibutton>B</guibutton> to leave Sonic's body and fly around placing objects: <keycap>C</keycap> places the
+selected object, <guibutton>A</guibutton> selects the next one, <keycap>/</keycap> the previous one and
+<keycap>,</keycap> <keycap>.</keycap> (or <keycap>[</keycap> <keycap>]</keycap>) change its subtype;
+<guibutton>B</guibutton> again turns back into Sonic. Special stages and the ending have object lists of their
+own.</para>
+
+<para>The same code also switches on the hidden Japanese credits and the Easter Eggs menu described below.</para>
+</sect1>
+
+<sect1 id="japanese-credits">
+<title>The Japanese credits</title>
+<para>With the debug cheat entered earlier in the session, hold <guibutton>A</guibutton>, <guibutton>B</guibutton>,
+<guibutton>C</guibutton> and <keycap>Down</keycap> together while the title sequence starts with the SONIC TEAM
+PRESENTS screen: the Japanese staff credits are shown instead.</para>
+</sect1>
+
+<sect1 id="easter-eggs">
+<title>The Easter Eggs menu</title>
+
+<para>With the debug cheat on, two extra numbers follow the last sound on the level select's sound test:
+<guilabel>9E</guilabel> and <guilabel>9F</guilabel>. (In the original game they started the credits and the ending
+directly.)</para>
+
+<screenshot>
+<screeninfo>The sound test at 9E</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/soundtest.png" format="PNG"/></imageobject>
+<textobject><phrase>The level select with SOUND SELECT on 9E.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<para>Press a button on either of them and the Easter Eggs menu opens.</para>
+
+<screenshot>
+<screeninfo>The Easter Eggs menu</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/eastereggs.png" format="PNG"/></imageobject>
+<textobject><phrase>The Easter Eggs menu: Credits, Good Ending, Bad Ending, Wrecked Ship and Back.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<variablelist>
+<varlistentry><term><guimenuitem>Credits</guimenuitem></term>
+<listitem><para>Plays the credits from the first page, with their music.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>Good Ending</guimenuitem></term>
+<listitem><para>Plays the ending as if you had all six Chaos Emeralds.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>Bad Ending</guimenuitem></term>
+<listitem><para>Plays the ending as if you had none.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>Wrecked Ship</guimenuitem></term>
+<listitem><para>Switches Robotnik's wrecked ship in the distant background of the ending on or off.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>Back</guimenuitem></term>
+<listitem><para>Returns to the sound test (so does <guibutton>B</guibutton>).</para></listitem></varlistentry>
+</variablelist>
+
+<note><para>Choosing an ending sets your emeralds to six or none; they stay that way until you start a level from
+the title screen.</para></note>
+</sect1>
+</chapter>
+
+<!-- ============================================================ -->
+<chapter id="tools">
+<title>The Debug Tools</title>
+
+<para>These tools are only available while the debug cheat is active (always, in a debug build). Opening one of
+them from the <guimenu>View</guimenu> or <guimenu>Tools</guimenu> menu opens a window of its own; the status bar
+names every tool that is in use.</para>
+
+<sect1 id="view-menu">
+<title>The View menu</title>
+
+<variablelist>
+<varlistentry><term><guimenuitem>VDP Viewer</guimenuitem></term>
+<listitem><para>The video memory as tiles, the four palettes and the sprites, updated as the game runs.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>Sound Viewer</guimenuitem></term>
+<listitem><para>The registers of the YM2612 FM chip and the SN76489 sound chip: key states, algorithms, frequencies,
+levels and routings.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>Console</guimenuitem></term>
+<listitem><para>A drop-down console (the <keycap>`</keycap> key also opens it) for reading and setting the game's
+variables and running commands. The game is frozen while it is open.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>Variables</guimenuitem></term>
+<listitem><para>The game's global variables, which you can edit.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>Logging</guimenuitem></term>
+<listitem><para>Starts and stops the event log, chooses its file and shows it in a window.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>Object RAM</guimenuitem></term>
+<listitem><para>The object slots: type, routine, position and speed of each.</para></listitem></varlistentry>
+</variablelist>
+</sect1>
+
+<sect1 id="tools-menu">
+<title>The Tools menu</title>
+
+<variablelist>
+<varlistentry><term><guimenuitem>Record Demo...</guimenuitem></term>
+<listitem><para>Asks for a level (or a special stage) and records your button presses to a file, with a record
+of where it started. <guimenuitem>Stop Recording</guimenuitem> saves it and carries on playing.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>Play Demo...</guimenuitem></term>
+<listitem><para>Plays a recorded demo back in its level.</para></listitem></varlistentry>
+<varlistentry><term><guimenuitem>SMPS Inspector</guimenuitem></term>
+<listitem><para>See <xref linkend="smps-inspector"/>.</para></listitem></varlistentry>
+</variablelist>
+</sect1>
+
+<sect1 id="smps-inspector">
+<title>The SMPS Inspector</title>
+
+<para>The SMPS Inspector shows what the sound engine is doing, as it does it, and lets you play any song or sound
+effect.</para>
+
+<screenshot>
+<screeninfo>The SMPS Inspector</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/smps-inspector.png" format="PNG"/></imageobject>
+<textobject><phrase>The SMPS Inspector: a row of piano keys for each channel, with the struck notes lit, and the drum kit below.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
+<para>The game is frozen while the Inspector is open, but the sound engine keeps running, so that nothing from the
+game can start a sound that competes with the one you chose.</para>
+
+<variablelist>
+<varlistentry><term>The sound list</term>
+<listitem><para>Every song and sound effect, by its sound test number and name. Choosing one plays it
+(<guibutton>&lt;</guibutton>, <guibutton>&gt;</guibutton>, <keycap>Left</keycap> and <keycap>Right</keycap> step through
+the list). <guibutton>Stop</guibutton> silences everything.</para></listitem></varlistentry>
+<varlistentry><term><guilabel>JSON engine</guilabel></term>
+<listitem><para>Plays the sound through the JSON tree-walking engine (the one the level select's sound test uses)
+instead of the byte-code driver the game itself uses. Comparing the two is how timing differences were found.</para></listitem></varlistentry>
+<varlistentry><term>The channel strips</term>
+<listitem><para>A piano keyboard for each FM and PSG tone channel that the song uses, with the note being played
+lit. A channel that drives the noise generator shows a row of squares instead, since its notes pick the character
+of the noise.</para></listitem></varlistentry>
+<varlistentry><term>The drum kit</term>
+<listitem><para>All ninety-five drums of the ParadoxSMPS drum kit. A drum lights when the song hits it, and
+clicking one plays it by itself.</para></listitem></varlistentry>
+</variablelist>
+</sect1>
+</chapter>
+
+<!-- ============================================================ -->
+<chapter id="reference">
+<title>Reference</title>
+
+<sect1 id="command-line">
+<title>Command line options</title>
+
+<para>These options are for testing and are not needed to play. They can be combined.</para>
+
+<informaltable>
+<tgroup cols="2">
+<thead>
+<row><entry>Option</entry><entry>Effect</entry></row>
+</thead>
+<tbody>
+<row><entry><option>--zone</option> <replaceable>N</replaceable> [<option>--act</option> <replaceable>N</replaceable>]</entry><entry>Skip the title screen and start in that level: 0 Green Hill, 1 Labyrinth, 2 Marble, 3 Star Light, 4 Spring Yard, 5 Scrap Brain.</entry></row>
+<row><entry><option>--x</option> <replaceable>N</replaceable> <option>--y</option> <replaceable>N</replaceable></entry><entry>Override Sonic's start position (with <option>--zone</option>).</entry></row>
+<row><entry><option>--special</option> <replaceable>N</replaceable></entry><entry>Start in special stage N (0 to 5).</entry></row>
+<row><entry><option>--ending</option> <replaceable>N</replaceable> [<option>--ship</option>]</entry><entry>Start in the ending holding N emeralds (6 is the good ending); <option>--ship</option> shows the wrecked ship.</entry></row>
+<row><entry><option>--credits</option> <replaceable>N</replaceable> [<option>--emeralds</option> <replaceable>N</replaceable>]</entry><entry>Start in the credits at page N (0 to 9), holding some emeralds (6 shows END, fewer TRY AGAIN).</entry></row>
+<row><entry><option>--resolution</option> <replaceable>N</replaceable></entry><entry>The picture shape: 0 original, 1 16:9, 2 8:5, 3 5:4, 4 4:3. Not saved.</entry></row>
+<row><entry><option>--demo</option> <replaceable>FILE</replaceable></entry><entry>Play the level as a demo driven by the recorded input in FILE (with <option>--zone</option>).</entry></row>
+<row><entry><option>--no-debug</option></entry><entry>In a debug build, start without the debug cheat (so the HUD is the normal one).</entry></row>
+</tbody>
+</tgroup>
+</informaltable>
+</sect1>
+
+<sect1 id="settings-file">
+<title>The settings file</title>
+<para>Your choices (audio switches, volumes and muted channels, full screen, the window's size and position, the
+picture's shape, the demo folder) are saved in
+<filename>~/.local/share/SonicPC/Sonic1Settings.cfg</filename>, a YAML file that is rewritten as things change.
+Delete it to start over with the defaults.</para>
+</sect1>
+
+<sect1 id="troubleshooting">
+<title>Troubleshooting</title>
+
+<qandaset>
+<qandaentry>
+<question><para>The picture has black bars.</para></question>
+<answer><para>The window is a different shape from the picture. Resize it, or choose the resolution that matches your
+screen. Full screen always keeps the picture's shape.</para></answer>
+</qandaentry>
+<qandaentry>
+<question><para>There is no sound.</para></question>
+<answer><para>Check that <guimenu>Audio</guimenu> &rarr; <guimenuitem>Music</guimenuitem> and
+<guimenuitem>Sound Effects</guimenuitem> are on and that their volumes are up, and that the channels you want are
+checked under <guisubmenu>Channels</guisubmenu>.</para></answer>
+</qandaentry>
+<qandaentry>
+<question><para>The View and Tools menus are missing.</para></question>
+<answer><para>They only appear while the debug cheat is active (<xref linkend="debug-mode"/>).</para></answer>
+</qandaentry>
+<qandaentry>
+<question><para>A new resolution does not seem to take hold.</para></question>
+<answer><para>Outside a level it takes hold when the next screen starts; start a level or return to the title
+screen.</para></answer>
+</qandaentry>
+</qandaset>
+</sect1>
+</chapter>
+
+<chapter id="credits-and-license">
+<title>Credits</title>
+
+<para>Sonic the Hedgehog &copy; SEGA 1991. The recompilation builds on the Sonic 1 disassembly and its community of
+researchers and artists; the sound engine, the ParadoxSMPS format and its tools, the Qt window and the tools menu,
+the special stage and ending ports and this handbook are part of the Sonic 1 PC project.</para>
+</chapter>
+
+</book>

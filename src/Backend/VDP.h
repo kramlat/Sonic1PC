@@ -10,7 +10,7 @@
 //VDP constants
 #define VDP_INTERNAL_PAD 32
 
-#define VRAM_SIZE    0x10000
+#define VRAM_SIZE    0x20000 // the 64 KB of tile space, then room for nametables (Constants.h's VRAM_FG/VRAM_BG, ArtTile_SS_Plane_*)
 #define PLANE_SIZE   0x2000
 #define SPRITES      80
 #define SPRITES_SIZE (SPRITES * 8)

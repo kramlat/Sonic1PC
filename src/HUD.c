@@ -182,7 +182,7 @@ void HUD_Update(void) {
         }
 
         // Update time
-        if (time_count) {
+        if (time_count && !pause_state) { // (the original skips the clock while f_pause is set)
             // Time Over if time is 9:59:59(frames)
             if (level_time.pad == 0 && level_time.min == 9 && level_time.sec == 59 && level_time.frame == 59) {
                 time_count = false;

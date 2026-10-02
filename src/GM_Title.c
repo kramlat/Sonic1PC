@@ -14,6 +14,7 @@
 
 #include "Backend/VDP.h"
 
+#include <stdio.h>
 #include <string.h>
 
 // Level select's own uncompressed font (also used for HUD digits, see
@@ -152,6 +153,111 @@ static void LevSelTextLoad(int selected) {
     }
 }
 
+// The hidden sound test values. With the hidden-credits cheat on, the original's sound test also had 9E (starts the
+// credits) and 9F (starts the ending); here both open the Easter Eggs menu instead, which holds those and more.
+#define LEVSEL_EGG_FIRST 0x9E
+#define LEVSEL_EGG_LAST  0x9F
+
+static bool LevSelIsEggValue(int value) {
+    return credits_cheat && (value == LEVSEL_EGG_FIRST || value == LEVSEL_EGG_LAST);
+}
+
+// The sound test number after a Left/Right press. With the cheat on, the two hidden values sit after the last sound.
+static int LevSelStepSound(int value, bool right) {
+    if (right) {
+        if (value < LEVSEL_SNDTEST_MAX)
+            return value + 1;
+        if (credits_cheat && value == LEVSEL_SNDTEST_MAX)
+            return LEVSEL_EGG_FIRST;
+        if (credits_cheat && value == LEVSEL_EGG_FIRST)
+            return LEVSEL_EGG_LAST;
+        return 0;
+    }
+    if (value == 0)
+        return credits_cheat ? LEVSEL_EGG_LAST : LEVSEL_SNDTEST_MAX;
+    if (value == LEVSEL_EGG_LAST)
+        return LEVSEL_EGG_FIRST;
+    if (value == LEVSEL_EGG_FIRST)
+        return LEVSEL_SNDTEST_MAX;
+    return value - 1;
+}
+
+// Draws one line of the level select's text area (blank-padded to its width).
+static void LevSelDrawLine(int row, const char *text, int palette) {
+    VDP_SeekVRAM(LEVSEL_VRAM_MAIN + (row * PLANE_ROW_BYTES));
+    size_t len = strlen(text);
+    for (int col = 0; col < LEVSEL_LINE_LENGTH; col++) {
+        uint8_t tile = LevSelCharToTile(col < (int)len ? text[col] : ' ');
+        uint16_t word = (tile == 0xFF) ? 0 : TILE_MAP(1, palette, 0, 0, (0x680 + tile));
+        VDP_WriteVRAM((const uint8_t *)&word, 2);
+    }
+}
+
+// The Easter Eggs menu (what the sound test's hidden 9E/9F values open): the credits and the ending, in either of their
+// forms, and whether Eggman's wrecked Eggmobile falls in the background of the ending. Returns true when a game mode was
+// picked (the level select is over), false to go back to the sound test.
+enum { EGG_CREDITS, EGG_GOOD_ENDING, EGG_BAD_ENDING, EGG_SHIP, EGG_BACK, EGG_COUNT };
+
+static void EasterEggsDraw(int selected, bool ship) {
+    for (int row = 0; row < LEVSEL_LINE_COUNT; row++)
+        LevSelDrawLine(row, "", 3);
+    LevSelDrawLine(0, "EASTER EGGS", 3);
+    static const char *const names[EGG_COUNT] = {"CREDITS", "GOOD ENDING", "BAD ENDING", "WRECKED SHIP", "BACK"};
+    for (int i = 0; i < EGG_COUNT; i++) {
+        char line[LEVSEL_LINE_LENGTH + 1];
+        snprintf(line, sizeof(line), "%-17s%s", names[i], i == EGG_SHIP ? (ship ? "ON" : "OFF") : "");
+        LevSelDrawLine(2 + i, line, i == selected ? 2 : 3);
+    }
+}
+
+static bool EasterEggs(void) {
+    int item = 0, delay = 0;
+    bool ship = ending_eggmobile_exploding != 0;
+    EasterEggsDraw(item, ship);
+
+    for (;;) {
+        vbla_routine = 0x04;
+        WaitForVBla();
+        RunPLC();
+
+        uint8_t dir = jpad1_hold1 & (JPAD_UP | JPAD_DOWN);
+        bool move = (jpad1_press1 & (JPAD_UP | JPAD_DOWN)) != 0;
+        if (dir && !move)
+            move = (--delay < 0);
+        if (dir && move) {
+            delay = 11;
+            item = (dir & JPAD_UP) ? (item ? item - 1 : EGG_COUNT - 1) : (item + 1) % EGG_COUNT;
+            EasterEggsDraw(item, ship);
+        }
+
+        if (jpad1_press1 & JPAD_B)
+            return false;
+        if (!(jpad1_press1 & (JPAD_A | JPAD_C | JPAD_START)))
+            continue;
+
+        switch (item) {
+        case EGG_SHIP:
+            ship = !ship;
+            EasterEggsDraw(item, ship);
+            break;
+        case EGG_BACK:
+            return false;
+        case EGG_CREDITS:
+            gamemode = GameMode_Credits;
+            credits_num = 0;
+            PlayMusic(bgm_Credits);
+            return true;
+        default: // the ending: with every emerald it is the good one, without them the bad one
+            emeralds = (item == EGG_GOOD_ENDING) ? 6 : 0;
+            for (int i = 0; i < 6; i++)
+                emerald_list[i] = (uint8_t)(i < emeralds ? i : 0);
+            ending_eggmobile_exploding = ship;
+            gamemode = GameMode_Ending;
+            return true;
+        }
+    }
+}
+
 static void PlayLevel(bool new_game);
 
 // Matches LevelSelect/LevSelControls: navigate with Up/Down (12-frame repeat
@@ -205,16 +311,19 @@ static void LevelSelect(void) {
         if (item == LEVSEL_SNDTEST_ROW) {
             uint8_t lr = jpad1_press1 & (JPAD_LEFT | JPAD_RIGHT);
             if (lr) {
-                if (lr & JPAD_LEFT)
-                    levsel_sound = levsel_sound ? levsel_sound - 1 : LEVSEL_SNDTEST_MAX;
-                else
-                    levsel_sound = (levsel_sound < LEVSEL_SNDTEST_MAX) ? levsel_sound + 1 : 0;
+                levsel_sound = LevSelStepSound(levsel_sound, (lr & JPAD_RIGHT) != 0);
                 LevSelTextLoad(item);
             }
         }
 
         if (jpad1_press1 & (JPAD_A | JPAD_B | JPAD_C | JPAD_START)) {
-            if (item == LEVSEL_SNDTEST_ROW)
+            if (item == LEVSEL_SNDTEST_ROW && LevSelIsEggValue(levsel_sound)) {
+                if (EasterEggs()) {
+                    levsel_item = item;
+                    return; // a game mode was picked
+                }
+                LevSelTextLoad(item);
+            } else if (item == LEVSEL_SNDTEST_ROW)
                 // Plays through the new JSON tree-walking engine (verified
                 // byte-identical to the byte-VM across the whole real
                 // content set) rather than QueueSound2's byte-VM route --
@@ -359,6 +468,13 @@ void GM_Title(void) {
     // Stop music
     StopAllSound();
 
+    // The hidden Japanese credits (hold A+B+C+Down on the "Sonic Team Presents" screen) and the sound test's Easter Eggs
+    // menu come with the debug cheat: always in debug builds, once its code has been entered in release builds (the
+    // original only had them through a build option).
+#ifndef NDEBUG
+    credits_cheat = true;
+#endif
+
     // Clear the pattern load queue and fade out
     ClearPLC();
     PaletteFadeOut();
@@ -470,7 +586,7 @@ void GM_Title(void) {
     // the "hold A" requirement below are skipped entirely, so debug mode is
     // always one level-start away while testing.
 #ifndef NDEBUG
-    debug_cheat = true;
+    debug_cheat = !cli_no_debug;
 #else
     uint8_t debug_progress = 0;
 #endif
@@ -510,6 +626,7 @@ void GM_Title(void) {
         // Check for debug mode cheat entry (C, C, C, C, Up, Down, Left, Right)
         if (TitleCheatStep(&debug_progress, debug_cheat_sequence, 8)) {
             debug_cheat = true;
+            credits_cheat = true;
             PlaySound(sfx_Ring);
         }
 #endif
@@ -544,6 +661,7 @@ void GM_Title(void) {
                 // Check for debug mode cheat entry (C, C, C, C, Up, Down, Left, Right)
                 if (TitleCheatStep(&debug_progress, debug_cheat_sequence, 8)) {
                     debug_cheat = true;
+                    credits_cheat = true;
                     PlaySound(sfx_Ring);
                 }
 #endif

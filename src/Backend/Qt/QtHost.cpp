@@ -3,13 +3,19 @@
 #include "QtAudio.h"
 #include "DemoTools.h"
 #include "SmpsInspector.h"
+#include "HelpWindow.h"
+#include "ControlsDialog.h"
 #include "ConsoleDrawer.h"
 #include "Settings.h"
 #include "../../DebugPeek.h"
 #include "../../DebugLog.h"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QApplication>
+#include <QCoreApplication>
+#include <QIcon>
+#include <QDir>
 #include <QImage>
 #include <QKeyEvent>
 #include <QMainWindow>
@@ -26,8 +32,14 @@
 #include <QPixmap>
 #include <QSurfaceFormat>
 #include <QTabWidget>
+#include <QTimer>
 
 #include <SDL_scancode.h>
+
+#ifdef SONIC_HAVE_KDE_ABOUT
+#include <KAboutApplicationDialog>
+#include <KAboutData>
+#endif
 
 #include <deque>
 #include <functional>
@@ -37,6 +49,11 @@
 
 // Sound engine channel mutes (Sound.h is a C-only header; see SOUND_MUTE_* there for the numbering).
 extern "C" {
+extern int screen_width, screen_height; // the picture's size (Video.c)
+const char *Video_ResolutionName(int mode);
+int Video_GetResolution(void);
+void Video_SelectResolution(int mode);
+void Video_RequestResolution(int mode);
 bool Demo_PlaybackActive(void);
 extern int32_t cli_start_level;
 void Sound_SetChannelMuted(int channel, bool muted);
@@ -69,11 +86,27 @@ int ScancodeFor(int key) {
 		case Qt::Key_BracketRight: return SDL_SCANCODE_RIGHTBRACKET;
 		case Qt::Key_QuoteLeft:    return SDL_SCANCODE_GRAVE;
 		case Qt::Key_F11:          return SDL_SCANCODE_F11;
+		case Qt::Key_0:            return SDL_SCANCODE_0;
+		case Qt::Key_Space:        return SDL_SCANCODE_SPACE;
+		case Qt::Key_Shift:        return SDL_SCANCODE_LSHIFT;
+		case Qt::Key_Control:      return SDL_SCANCODE_LCTRL;
+		case Qt::Key_Semicolon:    return SDL_SCANCODE_SEMICOLON;
+		case Qt::Key_Apostrophe:   return SDL_SCANCODE_APOSTROPHE;
+		case Qt::Key_Backslash:    return SDL_SCANCODE_BACKSLASH;
+		case Qt::Key_Minus:        return SDL_SCANCODE_MINUS;
+		case Qt::Key_Equal:        return SDL_SCANCODE_EQUALS;
+		case Qt::Key_Insert:       return SDL_SCANCODE_INSERT;
+		case Qt::Key_Delete:       return SDL_SCANCODE_DELETE;
+		case Qt::Key_Home:         return SDL_SCANCODE_HOME;
+		case Qt::Key_End:          return SDL_SCANCODE_END;
+		case Qt::Key_PageUp:       return SDL_SCANCODE_PAGEUP;
+		case Qt::Key_PageDown:     return SDL_SCANCODE_PAGEDOWN;
 		default:                   return SDL_SCANCODE_UNKNOWN;
 	}
 }
 
 uint8_t g_keys[SDL_NUM_SCANCODES];
+
 std::deque<QtHost_KeyEvent> g_key_events;
 bool g_should_quit = false;
 
@@ -213,6 +246,17 @@ public:
 		}
 	}
 
+	// The picture is now width x height pixels (Video > Resolution). A windowed window changes size to show it at that size
+	// (the menu and status bars stay as they are); a fullscreen one keeps its size and letterboxes the new aspect.
+	void SetPictureSize(int width, int height) {
+		view->setMinimumSize(width / 2, height / 2);
+		view->setFrame(QImage(width, height, QImage::Format_RGBX8888));
+		if (isFullScreen() || isMaximized())
+			return;
+		QSize chrome = size() - view->size();
+		resize(QSize(width, height) + chrome);
+	}
+
 	void ToggleFullscreen() {
 		bool to_fullscreen = !isFullScreen();
 		menuBar()->setVisible(!to_fullscreen);
@@ -318,6 +362,22 @@ private:
 		});
 	}
 
+public:
+	QMenu *file_menu = nullptr, *resolution_menu = nullptr;
+
+	// Developer hook (SONIC_QT_OPEN=menu): shows File and its Resolution submenu, for screenshots of the manual.
+	void PopupResolutionMenu() {
+		file_menu->popup(mapToGlobal(QPoint(0, 0)) + QPoint(2, menuBar()->height()));
+		QApplication::processEvents();
+		QList<QAction *> actions = file_menu->actions();
+		for (QAction *a : actions)
+			if (a->menu() == resolution_menu) {
+				QRect r = file_menu->actionGeometry(a);
+				resolution_menu->popup(file_menu->mapToGlobal(QPoint(r.right(), r.top())));
+			}
+	}
+
+private:
 	std::vector<QAction *> channel_actions;
 	QLabel *tool_label = nullptr;
 	bool launch_injected = false;
@@ -326,10 +386,57 @@ private:
 	QAction *record_action = nullptr, *stop_record_action = nullptr, *play_action = nullptr;
 	QAction *log_toggle = nullptr;
 
+public:
+	// Help > About. KDE's standard dialog (an icon, the version, authors and credits, the license) where the KDE Frameworks are
+	// available, a plain box otherwise.
+	void ShowAbout() {
+#ifdef SONIC_HAVE_KDE_ABOUT
+		KAboutData about("sonic1pc", "Sonic 1 PC", SONIC_VERSION,
+		                 "A native recompilation of Sonic the Hedgehog (1991, Mega Drive/Genesis).",
+		                 KAboutLicense::Unknown, "Sonic the Hedgehog is a trademark of SEGA.", QString(),
+		                 "https://github.com/kramlat/Sonic1PC");
+		about.setBugAddress("https://github.com/kramlat/Sonic1PC/issues");
+		about.setDesktopFileName("sonic1pc");
+		about.addAuthor("Mark Toman", "Maintainer: ending, credits, special stage, sound engine, tools", QString(), "https://github.com/kramlat");
+		about.addCredit("CuckyDev", "The Sonic 1 C port this one grew from");
+		about.addCredit("Clownacy", "Contributions to the port, and the assembler used for the mappings");
+		about.addCredit("The Sonic 1 disassembly project", "The source of the game's logic and data");
+		KAboutApplicationDialog dialog(about, this);
+		if (const char *grab = getenv("SONIC_QT_ABOUT_GRAB")) { // developer hook: save the dialog as a picture and close it
+			QString path = QString::fromLocal8Bit(grab);
+			QTimer::singleShot(1500, &dialog, [&dialog, path] {
+				dialog.grab().save(path);
+				dialog.close();
+			});
+		}
+		dialog.exec();
+#else
+		QMessageBox::about(this, "About Sonic 1 PC", "Sonic the Hedgehog (PC recompilation)\n\nSonic the Hedgehog is a trademark of SEGA.");
+#endif
+	}
+
+private:
 	// The menu bar. Add new menus/entries here. Don't use '&' mnemonics: Alt is
 	// a game key (debug Z80 peek), and an Alt press must not pull focus away.
 	void BuildMenus() {
 		QMenu *file = menuBar()->addMenu("File");
+		// Resolution: the aspect ratio of the picture. Windowed, the window changes size to fit it; fullscreen, only the aspect
+		// changes. It takes hold at the next screen (immediately in a level).
+		file_menu = file;
+		QMenu *resolution = file->addMenu("Resolution");
+		resolution_menu = resolution;
+		QActionGroup *res_group = new QActionGroup(this);
+		for (int i = 0; i < 5; i++) {
+			QAction *a = resolution->addAction(Video_ResolutionName(i));
+			a->setCheckable(true);
+			a->setChecked(i == Video_GetResolution());
+			res_group->addAction(a);
+			connect(a, &QAction::triggered, this, [i] {
+				Settings::Get().resolution = i;
+				Settings::SaveSoon();
+				Video_RequestResolution(i);
+			});
+		}
 		// F11 itself is handled by the game (Input.c), so no QAction shortcut here.
 		QAction *fullscreen = file->addAction("Fullscreen\tF11");
 		connect(fullscreen, &QAction::triggered, this, [this] { ToggleFullscreen(); });
@@ -370,10 +477,21 @@ private:
 
 		BuildAudioMenu();
 
+		// Settings: the usual KDE place for configuration.
+		QMenu *settings = menuBar()->addMenu("Settings");
+		QAction *configure = settings->addAction("Configure Sonic the Hedgehog...");
+		connect(configure, &QAction::triggered, this, [this] {
+			ControlsDialog::Show(this);
+			view->setFocus();
+		});
+
 		QMenu *help = menuBar()->addMenu("Help");
-		QAction *about = help->addAction("About");
+		QAction *handbook = help->addAction("Sonic 1 PC Handbook");
+		handbook->setShortcut(Qt::Key_F1);
+		connect(handbook, &QAction::triggered, this, [this] { HelpWindow::ShowHandbook(this); });
+		QAction *about = help->addAction("About Sonic 1 PC");
 		connect(about, &QAction::triggered, this, [this] {
-			QMessageBox::about(this, "About", "Sonic the Hedgehog (PC recompilation)");
+			ShowAbout();
 			view->setFocus();
 		});
 	}
@@ -384,6 +502,10 @@ MainWindow *g_window = nullptr;
 
 } // namespace
 
+extern "C" int QtHost_ScancodeFor(int qt_key) {
+	return ScancodeFor(qt_key);
+}
+
 extern "C" {
 
 int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rgb16) {
@@ -393,11 +515,29 @@ int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rg
 	g_app = new QApplication(argc, argv);
 
 	Settings::Load(); // before the window: the menus read the live audio state it applies
+	extern int32_t cli_resolution;
+	Video_SelectResolution(cli_resolution >= 0 ? cli_resolution : Settings::Get().resolution); // the saved picture size, so the window starts at it
+	width = screen_width * 2; // (SCREEN_SCALE)
+	height = screen_height * 2;
 	g_window = new MainWindow();
 	g_window->setWindowTitle(title);
-	if (icon_rgb16 != nullptr) {
-		QImage icon(icon_rgb16, 16, 16, 16 * 3, QImage::Format_RGB888);
-		g_window->setWindowIcon(QPixmap::fromImage(icon.copy()));
+	// The game's icon, "sonic1pc" in the icon theme (installed from packaging/icons; a run from a source tree finds it there too),
+	// with the little built-in one as the fallback.
+	{
+		const QString app = QCoreApplication::applicationDirPath();
+		QStringList paths = QIcon::themeSearchPaths();
+		for (const QString &relative : { "/../packaging/icons", "/../../packaging/icons", "/../share/icons" })
+			if (QDir(app + relative).exists())
+				paths << QDir(app + relative).canonicalPath();
+		QIcon::setThemeSearchPaths(paths);
+		QIcon fallback;
+		if (icon_rgb16 != nullptr) {
+			QImage icon(icon_rgb16, 16, 16, 16 * 3, QImage::Format_RGB888);
+			fallback = QIcon(QPixmap::fromImage(icon.copy()));
+		}
+		QIcon themed = QIcon::fromTheme("sonic1pc", fallback);
+		g_window->setWindowIcon(themed);
+		QApplication::setWindowIcon(themed);
 	}
 	g_window->view->setMinimumSize(width / 2, height / 2);
 	g_window->view->setFrame(QImage(width, height, QImage::Format_RGBX8888));
@@ -434,6 +574,21 @@ int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rg
 			g_window->console->Toggle(); // only opens while debugging is available
 		if (list.contains(",objects,"))
 			DebugViewers::ShowObjectViewer(g_window);
+		if (list.contains(",about,"))
+			QTimer::singleShot(500, g_window, [] { g_window->ShowAbout(); });
+		if (list.contains(",controls,"))
+			QTimer::singleShot(500, g_window, [] { ControlsDialog::Show(g_window); });
+		if (list.contains(",controls,"))
+			QTimer::singleShot(1500, g_window, [] {
+				if (QWidget *w = QApplication::activeModalWidget()) {
+					w->grab().save(QString(getenv("SONIC_QT_GRAB")) + "-controls.png");
+					w->close();
+				}
+			});
+		if (list.contains(",help,"))
+			HelpWindow::ShowHandbook(g_window);
+		if (list.contains(",menu,"))
+			g_window->PopupResolutionMenu();
 		if (list.contains(",smps,")) {
 			SmpsInspector::Show(g_window);
 			if (const char *play = getenv("SONIC_QT_SMPS_PLAY")) // hex sound id, "j" suffix = JSON engine
@@ -460,6 +615,18 @@ void QtHost_PumpEvents(void) {
 
 		static int frames = 0;
 		++frames;
+		// SONIC_QT_RESOLUTION=<frame>:<mode>[,<frame>:<mode>...] picks the picture size (Video > Resolution) at those frames
+		static const char *resolution_hook = getenv("SONIC_QT_RESOLUTION");
+		if (resolution_hook != nullptr) {
+			for (const char *p = resolution_hook; p != nullptr && *p;) {
+				int at = 0, mode = 0;
+				if (sscanf(p, "%d:%d", &at, &mode) == 2 && at == frames)
+					Video_RequestResolution(mode);
+				p = strchr(p, ',');
+				if (p != nullptr)
+					p++;
+			}
+		}
 		// SONIC_QT_LOG=<file> starts logging to a file as soon as debug mode is active (the title screen sets it)
 		static bool log_requested = getenv("SONIC_QT_LOG") != nullptr;
 		if (log_requested && Debug_LogStart(getenv("SONIC_QT_LOG")))
@@ -510,6 +677,12 @@ void QtHost_Present(const void *pixels, int pitch) {
 	             g_window->view->sizeHint().height(), pitch, QImage::Format_RGBX8888);
 	g_window->view->setFrame(frame.copy());
 	g_window->view->repaint();
+}
+
+void QtHost_SetPictureSize(int width, int height) {
+	if (g_window == nullptr)
+		return;
+	g_window->SetPictureSize(width, height);
 }
 
 void QtHost_ToggleFullscreen(void) {

@@ -24,6 +24,7 @@
 #include "GM_Sega.h"
 #include "GM_Special.h"
 #include "GM_Ending.h"
+#include "GM_Continue.h"
 #include "GM_Title.h"
 #ifdef SCP_SPLASH
 #include "GM_Countdown.h"
@@ -41,7 +42,10 @@ int32_t cli_start_ending = -1; // --ending N: start the ending sequence with N e
 int32_t cli_start_credits = -1; // --credits N: start the credits at page N
 int32_t cli_ending_ship = 0;     // --ship: with --ending, Eggman's ship was wrecked in the Final Zone
 int32_t cli_emeralds = -1;      // --emeralds N: the emeralds held when starting at the credits
+int32_t cli_start_continue = -1; // --continue N: start on the continue screen with N continues
 int32_t cli_start_level = -1;
+bool cli_no_debug = false;      // --no-debug: a debug build without its debug mode (for screenshots)
+int32_t cli_resolution = -1;    // --resolution N: the picture size (Video.h's ResolutionMode), not saved
 int32_t cli_start_x = -1, cli_start_y = -1;
 bool cli_force_demo = false;
 bool cli_start_special = false;
@@ -100,7 +104,7 @@ void EntryPoint(void) {
     // Mirrors GM_Title.c's PlayLevel().
     if (cli_start_level >= 0) {
 #ifndef NDEBUG
-        debug_cheat = 1; // debug builds have it on from the title screen; level injection skips that
+        debug_cheat = !cli_no_debug; // debug builds have it on from the title screen; level injection skips that
 #endif
         level_id = (uint16_t)cli_start_level;
         lives = 3;
@@ -126,10 +130,18 @@ void EntryPoint(void) {
         }
     }
 
+    // CLI test hook for the continue screen
+    if (cli_start_continue >= 0) {
+        lives = 0;
+        continues = (uint8_t)cli_start_continue;
+        level_id = LEVEL_ID(ZoneId_GHZ, 0);
+        gamemode = GameMode_Continue;
+    }
+
     // CLI test hooks for the ending and the credits
     if (cli_start_ending >= 0 || cli_start_credits >= 0) {
 #ifndef NDEBUG
-        debug_cheat = 1;
+        debug_cheat = !cli_no_debug;
 #endif
         lives = 3;
         rings = 0;
@@ -169,6 +181,8 @@ void EntryPoint(void) {
                 logged_mode = (uint8_t)(gamemode & 0x7F);
             }
         }
+        // A picture size chosen from the menu takes hold as each game mode starts (a level also checks as it runs)
+        Video_ApplyPendingResolution();
         switch (gamemode & 0x7F) {
             case GameMode_Sega:
                 GM_Sega();
@@ -182,6 +196,9 @@ void EntryPoint(void) {
                 break;
             case GameMode_Special:
                 GM_Special();
+                break;
+            case GameMode_Continue:
+                GM_Continue();
                 break;
             case GameMode_Ending:
                 GM_Ending();
@@ -212,8 +229,8 @@ void EntryPoint(void) {
 // split still armed made the title screen draw with the water palette.
 void VDPDisableWaterSplit(void) {
     VDP_SetHIntEnable(false);
-    hbla_counter = 223;
-    VDP_SetHIntCounter(223);
+    hbla_counter = SCREEN_HEIGHT - 1;
+    VDP_SetHIntCounter(SCREEN_HEIGHT - 1);
     hblank_pal = false;
     doupdatesinhblank = false;
     wtr_state = 0;
@@ -319,7 +336,9 @@ void VBlank(void) {
 
     if (vbla_routine != 0x00) {
         // Set VDP state
-        VDP_SetVScroll(vid_scrpos_y_dup, vid_bg_scrpos_y_dup);
+        // The title screen's foreground is a fixed picture: its scroll value is the (clamped) camera's, which only happens to be a
+        // multiple of the plane's height while the plane is 32 rows.
+        VDP_SetVScroll(routine == 0x04 && (gamemode & 0x7F) == GameMode_Title ? 0 : vid_scrpos_y_dup, vid_bg_scrpos_y_dup);
 
         // Set screen state
         vbla_routine = 0x00;
@@ -561,7 +580,7 @@ void HBlank(void) {
     VDP_WriteCRAM(&wet_palette[0][0], 0x40);
 
     // Reset the h-int counter back to its dormant, once-per-frame position
-    VDP_SetHIntCounter(223);
+    VDP_SetHIntCounter(SCREEN_HEIGHT - 1);
 
     if (doupdatesinhblank) {
         doupdatesinhblank = false;

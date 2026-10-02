@@ -236,7 +236,7 @@ void VDP_SetHIntEnable(bool enable) {
 }
 
 //VDP rendering
-#define SCREEN_PITCH SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2)
+#define SCREEN_PITCH (SCREEN_WIDTH + (VDP_INTERNAL_PAD * 2))
 
 // Real H40-mode Genesis hardware caps this at 40 (320px / 8px-per-unit) --
 // raised to match the new BUFFER_SPRITES (Video.h) for the same reason: a
@@ -245,8 +245,10 @@ void VDP_SetHIntEnable(bool enable) {
 // need more sprites than the whole-frame total.
 #define SCANLINE_SPRITES 0x78 // keep in sync with Video.h's BUFFER_SPRITES -- see that constant's own comment
 
-static uint32_t vdp_screen_internal[SCREEN_HEIGHT][SCREEN_PITCH];
-static uint8_t vdp_mask_internal[SCREEN_HEIGHT][SCREEN_PITCH];
+// Big enough for the largest picture (the real size is chosen at run time, see Video.h); rows are SCREEN_PITCH apart.
+#define SCREEN_MAX_PITCH (SCREEN_MAX_WIDTH + (VDP_INTERNAL_PAD * 2))
+static uint32_t vdp_screen_internal[SCREEN_MAX_HEIGHT * SCREEN_MAX_PITCH];
+static uint8_t vdp_mask_internal[SCREEN_MAX_HEIGHT * SCREEN_MAX_PITCH];
 
 static uint32_t *vdp_screen;
 static uint8_t *vdp_mask;
@@ -257,7 +259,7 @@ static struct VDP_SpriteCache {
 	const uint16_t *sprite[SCANLINE_SPRITES];
 	uint8_t pushind;
 	uint16_t pixels;
-} vdp_sprite_cache[SCREEN_HEIGHT];
+} vdp_sprite_cache[SCREEN_MAX_HEIGHT];
 
 static inline uint32_t VDP_GetColour(size_t index) {
 	#ifdef VDP_SANITY
@@ -566,8 +568,8 @@ static inline void VDP_RefreshPalette(void) {
 
 void VDP_Render(void) {
 	//Get VDP screen pointer
-	vdp_screen = &vdp_screen_internal[0][VDP_INTERNAL_PAD];
-	vdp_mask = &vdp_mask_internal[0][VDP_INTERNAL_PAD];
+	vdp_screen = &vdp_screen_internal[VDP_INTERNAL_PAD];
+	vdp_mask = &vdp_mask_internal[VDP_INTERNAL_PAD];
 
 	//Calculate sprite cache
 	memset(vdp_sprite_cache, 0, sizeof(vdp_sprite_cache));

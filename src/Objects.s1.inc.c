@@ -42,6 +42,8 @@ void Obj_EndSTH(Object *obj);
 void Obj_EndEggman(Object *obj);
 void Obj_TryChaos(Object *obj);
 void Obj_EndEggmobile(Object *obj);
+void Obj_ContScrItem(Object *obj);
+void Obj_ContSonic(Object *obj);
 void Obj_Waterfall(Object *obj);
 void Obj_GiantRing(Object *obj);
 void Obj_RingFlash(Object *obj);
@@ -257,8 +259,8 @@ static void (*object_func[])(Object*) = {
 	/* 7D ObjId_HiddenBonus         */ Obj_HiddenBonus,
 	/* 7E ObjId_SSResult            */ Obj_SpecialResult,
 	/* 7F ObjId_SSRChaos            */ Obj_SpecialResultEmerald,
-	/* 80 ObjId_80                  */ Obj_Null,
-	/* 81 ObjId_81                  */ Obj_Null,
+	/* 80 ObjId_80                  */ Obj_ContScrItem,
+	/* 81 ObjId_81                  */ Obj_ContSonic,
 	/* 82 ObjId_ScrapEggman         */ Obj_ScrapEggman,
 	/* 83 ObjId_FalseFloor          */ Obj_FalseFloor,
 	/* 84 ObjId_EggmanCylinder      */ Obj_EggmanCylinder,

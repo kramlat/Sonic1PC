@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Sonic the Hedgehog (PC)
+GenericName=Platform Game
+Comment=A native recompilation of Sonic the Hedgehog (1991)
+Exec=Sonic
+Icon=sonic1pc
+Terminal=false
+Categories=Game;ArcadeGame;
+Keywords=Sonic;Sega;Mega Drive;Genesis;platformer;
+StartupWMClass=Sonic

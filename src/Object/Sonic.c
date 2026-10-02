@@ -1700,7 +1700,7 @@ static void GameOver(Object* obj) {
         objects[3].frame = 1;
 
         time_over = false;
-        // music	bgm_GameOver,0,0,0	; play game over music //TODO
+        PlayMusic(bgm_GameOver);
         AddPLC(PlcId_GameOver);
     } else {
         // Set death timer

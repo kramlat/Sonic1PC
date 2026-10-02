@@ -25,6 +25,9 @@ typedef struct {
 
 // Creates the QApplication and the main window, shows it. The frame is
 // width x height pixels; icon_rgb16 is an optional 16x16 RGB24 window icon.
+// The SDL scancode a Qt key maps to (0 if the game has no use for it); the controls dialog binds keys with it.
+int QtHost_ScancodeFor(int qt_key);
+
 int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rgb16);
 void QtHost_Quit(void);
 
@@ -37,6 +40,10 @@ bool QtHost_ShouldQuit(void);
 void QtHost_Present(const void *pixels, int pitch);
 
 void QtHost_ToggleFullscreen(void);
+
+// The picture changed size (Video > Resolution): the frames are now width x height pixels. A windowed window is resized to
+// show it at that size; a fullscreen one keeps its size and just letterboxes the new aspect.
+void QtHost_SetPictureSize(int width, int height);
 
 // Held-key table indexed by SDL scancode (SDL_NUM_SCANCODES entries), and a
 // queue of key-down events (for F11 and the debug console).

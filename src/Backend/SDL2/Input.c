@@ -3,6 +3,7 @@
 #include <string.h>
 #include "../../Game.h"
 
+#include "Backend/Controls.h"
 #include "Backend/Joypad.h"
 #include "Backend/VDP.h"
 
@@ -19,6 +20,70 @@
 // after startup, so it's tracked via hotplug events rather than opened once.
 static SDL_GameController *pad = NULL;
 #define STICK_DEADZONE 8000 // out of a signed 16-bit axis range
+
+// Rebindable controls. Defaults: arrows or WASD for the D-pad, B/N/M for A/B/C, Return for Start; on a pad
+// X/A/B -> Genesis A/B/C and Start. F11 and the backtick (console) stay reserved.
+int Controls_Key[CTL_COUNT][2] = {
+	[CTL_UP]    = {SDL_SCANCODE_UP,    SDL_SCANCODE_W},
+	[CTL_DOWN]  = {SDL_SCANCODE_DOWN,  SDL_SCANCODE_S},
+	[CTL_LEFT]  = {SDL_SCANCODE_LEFT,  SDL_SCANCODE_A},
+	[CTL_RIGHT] = {SDL_SCANCODE_RIGHT, SDL_SCANCODE_D},
+	[CTL_A]     = {SDL_SCANCODE_B,     SDL_SCANCODE_UNKNOWN},
+	[CTL_B]     = {SDL_SCANCODE_N,     SDL_SCANCODE_UNKNOWN},
+	[CTL_C]     = {SDL_SCANCODE_M,     SDL_SCANCODE_UNKNOWN},
+	[CTL_START] = {SDL_SCANCODE_RETURN, SDL_SCANCODE_UNKNOWN},
+};
+int Controls_Pad[CTL_COUNT] = {
+	[CTL_UP] = -1, [CTL_DOWN] = -1, [CTL_LEFT] = -1, [CTL_RIGHT] = -1,
+	[CTL_A] = SDL_CONTROLLER_BUTTON_X, [CTL_B] = SDL_CONTROLLER_BUTTON_A,
+	[CTL_C] = SDL_CONTROLLER_BUTTON_B, [CTL_START] = SDL_CONTROLLER_BUTTON_START,
+};
+
+void Controls_Reset(void) {
+	static const int keys[CTL_COUNT][2] = {
+		{SDL_SCANCODE_UP, SDL_SCANCODE_W}, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S},
+		{SDL_SCANCODE_LEFT, SDL_SCANCODE_A}, {SDL_SCANCODE_RIGHT, SDL_SCANCODE_D},
+		{SDL_SCANCODE_B, 0}, {SDL_SCANCODE_N, 0}, {SDL_SCANCODE_M, 0}, {SDL_SCANCODE_RETURN, 0},
+	};
+	static const int pads[CTL_COUNT] = {-1, -1, -1, -1, SDL_CONTROLLER_BUTTON_X, SDL_CONTROLLER_BUTTON_A,
+	                                    SDL_CONTROLLER_BUTTON_B, SDL_CONTROLLER_BUTTON_START};
+	memcpy(Controls_Key, keys, sizeof(keys));
+	memcpy(Controls_Pad, pads, sizeof(pads));
+}
+
+static bool KeyBound(const uint8_t *key_state, int ctl) {
+	for (int i = 0; i < 2; i++) {
+		int sc = Controls_Key[ctl][i];
+		if (sc > 0 && sc < SDL_NUM_SCANCODES && key_state[sc])
+			return true;
+	}
+	return false;
+}
+
+static bool PadBound(int ctl) {
+	return Controls_Pad[ctl] >= 0 && SDL_GameControllerGetButton(pad, (SDL_GameControllerButton)Controls_Pad[ctl]);
+}
+
+int Controls_PollPadButton(void) {
+	if (!pad || !SDL_GameControllerGetAttached(pad))
+		return -1;
+	for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; i++) {
+		if (i >= SDL_CONTROLLER_BUTTON_DPAD_UP && i <= SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
+			continue;
+		if (SDL_GameControllerGetButton(pad, (SDL_GameControllerButton)i))
+			return i;
+	}
+	return -1;
+}
+
+const char *Controls_PadButtonName(int button) {
+	const char *n = button >= 0 ? SDL_GameControllerGetStringForButton((SDL_GameControllerButton)button) : NULL;
+	return n ? n : "";
+}
+
+const char *Controls_KeyName(int scancode) {
+	return scancode > 0 ? SDL_GetScancodeName((SDL_Scancode)scancode) : "";
+}
 
 static void OpenFirstPad(void) {
 	if (pad)
@@ -99,18 +164,14 @@ uint8_t Input_GetState1(void) {
 
 	//Get keyboard state
 	const uint8_t *key_state = KEYBOARD_STATE();
-	uint8_t start = key_state[SDL_SCANCODE_RETURN] ? JPAD_START : 0;
-	// J/K/L -> A/B/C, and WASD -> D-pad (alongside the arrow keys below) --
-	// keeps movement and jump on separate, non-overlapping key clusters,
-	// closer to a standard PC control scheme than the old A/S/D-for-jump
-	// (which collided with using A/D for movement).
-	uint8_t a     = key_state[SDL_SCANCODE_B]      ? JPAD_A     : 0;
-	uint8_t b     = key_state[SDL_SCANCODE_N]      ? JPAD_B     : 0;
-	uint8_t c     = key_state[SDL_SCANCODE_M]      ? JPAD_C     : 0;
-	uint8_t right = (key_state[SDL_SCANCODE_RIGHT] || key_state[SDL_SCANCODE_D]) ? JPAD_RIGHT : 0;
-	uint8_t left  = (key_state[SDL_SCANCODE_LEFT]  || key_state[SDL_SCANCODE_A]) ? JPAD_LEFT  : 0;
-	uint8_t down  = (key_state[SDL_SCANCODE_DOWN]  || key_state[SDL_SCANCODE_S]) ? JPAD_DOWN  : 0;
-	uint8_t up    = (key_state[SDL_SCANCODE_UP]    || key_state[SDL_SCANCODE_W]) ? JPAD_UP    : 0;
+	uint8_t start = KeyBound(key_state, CTL_START) ? JPAD_START : 0;
+	uint8_t a     = KeyBound(key_state, CTL_A)     ? JPAD_A     : 0;
+	uint8_t b     = KeyBound(key_state, CTL_B)     ? JPAD_B     : 0;
+	uint8_t c     = KeyBound(key_state, CTL_C)     ? JPAD_C     : 0;
+	uint8_t right = KeyBound(key_state, CTL_RIGHT) ? JPAD_RIGHT : 0;
+	uint8_t left  = KeyBound(key_state, CTL_LEFT)  ? JPAD_LEFT  : 0;
+	uint8_t down  = KeyBound(key_state, CTL_DOWN)  ? JPAD_DOWN  : 0;
+	uint8_t up    = KeyBound(key_state, CTL_UP)    ? JPAD_UP    : 0;
 
 	//Merge in gamepad state, if one's connected: D-pad and left stick both
 	//drive the Genesis D-pad, X/A/B -> Genesis A/B/C, Start/Options -> Start.
@@ -127,13 +188,13 @@ uint8_t Input_GetState1(void) {
 		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP) || ly < -STICK_DEADZONE)
 			up = JPAD_UP;
 
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X))
+		if (PadBound(CTL_A))
 			a = JPAD_A;
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A))
+		if (PadBound(CTL_B))
 			b = JPAD_B;
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B))
+		if (PadBound(CTL_C))
 			c = JPAD_C;
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_START))
+		if (PadBound(CTL_START))
 			start = JPAD_START;
 	}
 

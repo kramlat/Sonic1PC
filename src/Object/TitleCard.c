@@ -11,31 +11,15 @@
 #include "Resource/Mappings/GotThrough.h"
 #include "Resource/Mappings/SpecialResult.h"
 
-#define TO_ADD SCREEN_WIDEADD2
-#define FROM_ADD (TO_ADD + ((SCREEN_WIDEADD2 + 0xF) & ~0xF))
-#define FROM_SUB ((0x10 - TO_ADD) & 0xF)
-
-// Title card configuration
-static const struct TitleCard_Item {
+// Title card configuration. The positions depend on the width and height of the picture, which are chosen at run time, so
+// the tables are built where they are used (see the title card's creation routine).
+struct TitleCard_Item {
     int16_t y;
     uint8_t routine, frame;
-} titlecard_item[4] = {
-    { 0x00D0 + SCREEN_TALLADD2, 0x02, 0x00 },
-    { 0x00E4 + SCREEN_TALLADD2, 0x02, 0x06 },
-    { 0x00EA + SCREEN_TALLADD2, 0x02, 0x07 },
-    { 0x00E0 + SCREEN_TALLADD2, 0x02, 0x0A },
 };
 
-static const struct TitleCard_Config {
+struct TitleCard_Config {
     int16_t x0, x1;
-} titlecard_config[7][4] = {
-    { { 0x0000 - FROM_SUB, 0x0120 + TO_ADD }, { -0x0104 - FROM_SUB, 0x013C + TO_ADD }, { 0x0414 + FROM_ADD, 0x0154 + TO_ADD }, { 0x0214 + FROM_ADD, 0x0154 + TO_ADD } }, // GHZ
-    { { 0x0000 - FROM_SUB, 0x0120 + TO_ADD }, { -0x010C - FROM_SUB, 0x0134 + TO_ADD }, { 0x040C + FROM_ADD, 0x014C + TO_ADD }, { 0x020C + FROM_ADD, 0x014C + TO_ADD } }, // LZ
-    { { 0x0000 - FROM_SUB, 0x0120 + TO_ADD }, { -0x0120 - FROM_SUB, 0x0120 + TO_ADD }, { 0x03F8 + FROM_ADD, 0x0138 + TO_ADD }, { 0x01F8 + FROM_ADD, 0x0138 + TO_ADD } }, // MZ
-    { { 0x0000 - FROM_SUB, 0x0120 + TO_ADD }, { -0x0104 - FROM_SUB, 0x013C + TO_ADD }, { 0x0414 + FROM_ADD, 0x0154 + TO_ADD }, { 0x0214 + FROM_ADD, 0x0154 + TO_ADD } }, // SLZ
-    { { 0x0000 - FROM_SUB, 0x0120 + TO_ADD }, { -0x00FC - FROM_SUB, 0x0144 + TO_ADD }, { 0x041C + FROM_ADD, 0x015C + TO_ADD }, { 0x021C + FROM_ADD, 0x015C + TO_ADD } }, // SYZ
-    { { 0x0000 - FROM_SUB, 0x0120 + TO_ADD }, { -0x00FC - FROM_SUB, 0x0144 + TO_ADD }, { 0x041C + FROM_ADD, 0x015C + TO_ADD }, { 0x021C + FROM_ADD, 0x015C + TO_ADD } }, // SBZ
-    { { 0x0000 - FROM_SUB, 0x0120 + TO_ADD }, { -0x011C - FROM_SUB, 0x0124 + TO_ADD }, { 0x03EC + FROM_ADD, 0x03EC + TO_ADD }, { 0x01EC + FROM_ADD, 0x012C + TO_ADD } }, // FZ
 };
 
 // "Got through" (end of act) card item data, transcribed from Got_ItemData
@@ -246,7 +230,26 @@ void Obj_TitleCard(Object *obj) {
             d2 = 11;
         }
 
-        // Get configuration
+        // Get configuration (built now: it depends on the size of the picture)
+        const int16_t to_add = SCREEN_WIDEADD2;
+        const int16_t from_add = to_add + ((SCREEN_WIDEADD2 + 0xF) & ~0xF);
+        const int16_t from_sub = (0x10 - to_add) & 0xF;
+        (void)from_add; (void)from_sub;
+        const struct TitleCard_Item titlecard_item[4] = {
+    { 0x00D0 + SCREEN_TALLADD2, 0x02, 0x00 },
+    { 0x00E4 + SCREEN_TALLADD2, 0x02, 0x06 },
+    { 0x00EA + SCREEN_TALLADD2, 0x02, 0x07 },
+    { 0x00E0 + SCREEN_TALLADD2, 0x02, 0x0A },
+};
+        const struct TitleCard_Config titlecard_config[7][4] = {
+    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x0104 - from_sub, 0x013C + to_add }, { 0x0414 + from_add, 0x0154 + to_add }, { 0x0214 + from_add, 0x0154 + to_add } }, // GHZ
+    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x010C - from_sub, 0x0134 + to_add }, { 0x040C + from_add, 0x014C + to_add }, { 0x020C + from_add, 0x014C + to_add } }, // LZ
+    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x0120 - from_sub, 0x0120 + to_add }, { 0x03F8 + from_add, 0x0138 + to_add }, { 0x01F8 + from_add, 0x0138 + to_add } }, // MZ
+    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x0104 - from_sub, 0x013C + to_add }, { 0x0414 + from_add, 0x0154 + to_add }, { 0x0214 + from_add, 0x0154 + to_add } }, // SLZ
+    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x00FC - from_sub, 0x0144 + to_add }, { 0x041C + from_add, 0x015C + to_add }, { 0x021C + from_add, 0x015C + to_add } }, // SYZ
+    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x00FC - from_sub, 0x0144 + to_add }, { 0x041C + from_add, 0x015C + to_add }, { 0x021C + from_add, 0x015C + to_add } }, // SBZ
+    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x011C - from_sub, 0x0124 + to_add }, { 0x03EC + from_add, 0x03EC + to_add }, { 0x01EC + from_add, 0x012C + to_add } }, // FZ
+};
         const struct TitleCard_Config* config = &titlecard_config[d0][0];
         const struct TitleCard_Item* item = titlecard_item;
 
