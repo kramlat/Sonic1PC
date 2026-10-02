@@ -105,17 +105,11 @@ int Input_HandleEvents(void) {
 		return 1;
 	QtHost_KeyEvent qe;
 	while (QtHost_PollKeyEvent(&qe)) {
-		memset(&e, 0, sizeof(e));
-		e.type = SDL_KEYDOWN;
-		e.key.keysym.scancode = (SDL_Scancode)qe.scancode;
-		e.key.repeat = qe.repeat;
-		SDL_PushEvent(&e); // handled by the SDL_KEYDOWN case below, same as a real key press
-		if (qe.text[0]) {
-			memset(&e, 0, sizeof(e));
-			e.type = SDL_TEXTINPUT;
-			strncpy(e.text.text, qe.text, sizeof(e.text.text) - 1);
-			SDL_PushEvent(&e);
-		}
+		// F11 toggles fullscreen (works in every build, not just the debug console one). Key repeat is ignored so holding it
+		// doesn't flicker. (The keys' text goes to the console drawer straight from Qt; nothing here needs it as an SDL
+		// event, and pushing a synthetic text event crashed inside SDL for any key that types a character, Return included.)
+		if (qe.scancode == SDL_SCANCODE_F11 && !qe.repeat)
+			Render_ToggleFullscreen();
 	}
 	while (SDL_PollEvent(&e)) {
 		switch (e.type) {
@@ -130,14 +124,6 @@ int Input_HandleEvents(void) {
 					SDL_GameControllerClose(pad);
 					pad = NULL;
 					OpenFirstPad(); // fall back to another pad, if any
-				}
-				break;
-			case SDL_KEYDOWN:
-				// F11 toggles fullscreen (works in every build, not just the debug
-				// console one). Ignore key repeat so holding it doesn't flicker.
-				if (e.key.keysym.scancode == SDL_SCANCODE_F11 && !e.key.repeat) {
-					Render_ToggleFullscreen();
-					break;
 				}
 				break;
 			default:

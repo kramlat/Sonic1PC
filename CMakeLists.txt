@@ -1254,6 +1254,9 @@ else()
 endif()
 
 include(GNUInstallDirs)
+# The game itself: <prefix>/bin/Sonic (configure with -DCMAKE_INSTALL_PREFIX=/usr for /usr/bin; the data it needs is built in, and its
+# settings live in the user's own data directory).
+install(TARGETS Sonic RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 # The desktop entry puts the game in the Games menu of Plasma and other desktops (its icon, sonic1pc, is installed from packaging/icons/)
 install(FILES packaging/sonic1pc.desktop DESTINATION share/applications)
 install(DIRECTORY packaging/icons/ DESTINATION share/icons OPTIONAL)
