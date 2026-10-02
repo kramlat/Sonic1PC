@@ -4,6 +4,52 @@ Session notes capturing context, rationale, and outstanding work that isn't
 already recorded in code comments or commit history — written so this
 survives conversation summarization/compaction. Newest work first.
 
+## The game is complete: special stages, ending, credits, continue, resolutions, controls, handbook, install (2026-10-01/02)
+
+**Status: Sonic 1 is playable from the SEGA screen to the credits. Builds clean; `SonicTests` pass. Looked at on a real display: fullscreen,
+window resizing, the Help window and the Credits music sync (all confirmed by the user). The rest (the controls dialog, the continue screen, the special stage debug mode, the install) was checked by headless
+screenshots, a live key test on a real display, event traces and tests, but not yet played through by hand.**
+
+- **Special stages** (`SpecialStage.c`, `Object/SpecialSonic.c`, `SpecialStageBG.c`, `GM_Special.c`): Sonic, every block type, the
+  results screen, the background, the attract demos and a special stage debug mode with the REV00 ending debug list (`DebugList_EndingSS`).
+  The original's out-of-bounds garbage reads (the zone number, "W" and 1UP blocks that turned out to be real) crash in C instead;
+  that is the safer behaviour and was accepted on purpose.
+- **Ending and credits** (`GM_Ending.c`, `Object/Ending.c`, `Object/EndingEggmobile.c`): the ending (good with six emeralds, bad
+  without), the credits with the attract demos between pages, and the TRY AGAIN / END screens. The wrecked Eggmobile in the
+  background (the cut "Unused - Eggman Ending" art the ending PLC still loads) is coded from scratch, as an optional bonus for either
+  ending. CLI test hooks: `--ending N [--ship]`, `--credits N [--emeralds N]`.
+- **Continue screen** (`GM_Continue.c`, `Object/ContinueScreen.c`, objects 80/81): the countdown, the mini Sonics, Sonic falling in and
+  running off; Start restarts the act with 3 lives, the countdown running out goes back to the SEGA screen. Hook: `--continue N`.
+- **Easter Eggs menu** (`GM_Title.c`): the sound test's 9E/9F cheat now opens a menu (credits, good/bad ending, wrecked ship on/off)
+  instead of launching things; the Japanese credits unlock on the "Sonic Team presents" screen.
+- **Resolutions** (`Video.{c,h}`, `Backend/VDP.*`, `Render.c`, `QtHost.cpp`): File > Resolution: original 320x224, scaled 16:9 (400x224),
+  8:5 (360x224), 5:4 (320x256), 4:3 (320x240); fullscreen only changes the aspect, windowed resizes the window. The screen size is a runtime
+  value now (`screen_width`/`screen_height`, `plane_height`: 64 rows when taller than 224); VRAM grew to 128 KB and the special stage
+  planes moved above 64 KB. A widescreen lives counter sits in the upper right (HUD frames 4-8 in `asm/Mappings/HUD.asm`). Remembered
+  in the settings file; `--resolution N` overrides it for a run.
+- **Controls** (`Backend/Controls.h`, `Input.c`, `Qt/ControlsDialog.*`): Settings > Configure Sonic the Hedgehog; two keys per Mega Drive
+  button plus a gamepad button for A/B/C/Start, saved under `controls:` in the settings file. The D-pad and left stick always move.
+- **Handbook** (`doc/`): KDE DocBook (`index.docbook`, validated with `checkXML6`, builds with `meinproc6`), 60 screenshots, the badnik
+  table with the Japanese names, the special stage blocks, the continues; `doc/handbook-html.xsl` + `xsltproc` build the HTML shown by the
+  game's own Help window (`Qt/HelpWindow.*`) when KDE Help Center is not installed. F1 opens it.
+- **KDE integration**: the standard KDE About dialog (optional KF6CoreAddons/XmlGui), `packaging/sonic1pc.desktop` and the icons in
+  `packaging/icons/hicolor` (16/22 px: the 1UP icon; the rest: the title emblem with its TM mark).
+- **Install**: `install(TARGETS Sonic ...)`; configure with `-DCMAKE_INSTALL_PREFIX=/usr` and `sudo cmake --install` puts the game in
+  `/usr/bin` with the desktop entry, icons and both handbooks. Build as the normal user first so `sudo` only copies.
+- **Sound**: nearly every sound effect fixed (the user confirmed all), the Credits song's sync (tick order DAC, FM1-6, PSG, tempo
+  handling) confirmed by ear, the spin dash rev (`PrepareSpindashRev` etc., driver rules from the Sonic 2 driver), and the SMPS Inspector
+  merged into the Tools menu with the full ParadoxSMPS drum kit; the game is paused while it is open (`Console_SetToolPause`), so the driver
+  does not compete with itself. See the sound sections below for the engine.
+- **Fixes**: the level timer no longer runs while paused (the original skips it); TIME flashes at 9:00 whether or not you have rings
+  (the original's quirk, deliberately fixed in every build); GAME OVER plays its music; TIME OVER clears the stored lamppost time (REV01);
+  **pressing Return (or any key that types a character) crashed the game inside SDL** because the Qt backend pushed synthetic SDL text
+  events: those are gone, F11 is handled directly. The Qt key events are therefore no longer pushed into SDL's queue (see the Qt window
+  section's note below).
+
+Design notes kept elsewhere: the plan to pitch SEGA a Plasma-native Lite pack (Sonic 1 + 2, open) and Full pack (commercial) is in the
+author's notes; if SEGA refuses, a code-only recomp that extracts assets from a ROM is the fallback (the icons and the screenshots are then
+assets too).
+
 ## The Qt window is now THE game executable (plain-SDL2 window build dropped)
 
 **Status: builds, all 7 ctest suites pass (the smoke runs boot the Qt game with `QT_QPA_PLATFORM=offscreen`); frames and viewers verified headless, not yet looked at on a real display.**
@@ -13,8 +59,8 @@ until the next Release build.) The game is now a `QMainWindow` with a real `QMen
 frame is drawn as a texture on a `QOpenGLWidget` in the middle. Design: SDL stays for audio, gamepads and the
 rendering itself -- SDL's *software* renderer draws the frame plus all the debug overlays into a surface
 (`Render.c`, `Render_InitQt`), and `QtHost_Present` hands that surface to the widget, so none of the overlay code
-changed. Keyboard comes from Qt (`QtHost_KeyState`, same SDL scancode indexing) and Qt key events are pushed into
-SDL's queue so F11/console handling is unchanged. SDL gets the dummy video driver so it never touches the display.
+changed. Keyboard comes from Qt (`QtHost_KeyState`, same SDL scancode indexing) and Qt key events no longer go
+into SDL's queue (2026-10-02: F11 is handled directly -- see the top section). SDL gets the dummy video driver so it never touches the display.
 Frame pacing is the existing own-clock path (no display vsync). Files: `src/Backend/Qt/QtHost.{h,cpp}`; `#ifdef
 SCP_BACKEND_QT` in `Render.c`, `Input.c`, `System.c`.
 
@@ -530,8 +576,8 @@ in `AnimateLevelGfx` to gate animation updates) but nothing had ever set it
   hardware or the user's own Steam Input remapping — works automatically.
   Hotplug-aware (device add/remove events), since Steam Input's virtual
   device can appear or disappear after startup (e.g. overlay taking it
-  over). Mapping: D-pad + left stick → Genesis D-pad, X→A, A→B, B→C,
-  Start/Options→Start.
+  over). Default mapping: D-pad + left stick → Genesis D-pad, X→A, A→B, B→C,
+  Start/Options→Start (rebindable since 2026-10-02: see the top section).
 - **Keyboard scheme reworked**: WASD (alongside arrows, no conflict) for
   movement, J/K/L for A/B/C — replacing the old A/S/D-for-jump scheme,
   which collided with using A/D for movement (likely why "jump always
@@ -598,24 +644,20 @@ per-act scripted water height changes, wind tunnels, and water slides.
 `wtr_pos2` (actual, un-swayed water height) just stays wherever level init
 left it (0) until those are ported.
 
-## Known follow-ups, roughly in dependency order
+## Known follow-ups
 
-1. **Sound playback driver** — reads `sound_channels[]`/song byte streams
-   frame-by-frame, drives `SN76489_Write`-equivalent register updates.
-   Nothing is audible yet without this, regardless of how correct the
-   encoded song data or chip emulation are.
-2. **ymfm C++ wrapper** — needed for FM instruments/music to sound right
-   (PSG-only songs, like most SFX, don't need it).
-3. **`SonicSoundTest`** tool — depends on (1). User's spec: piano-key-style
-   display, keys light on note-on events; hex/drum pad flashes red on DAC
-   sample-trigger events. Reference screenshot showed FM1-6/PSG1-3/DAC
-   channel activity bars plus a song selector.
-4. Full song/SFX catalog import (2 of ~20+ done).
-5. Full `DebugMode()` — object cycling/spawning, per-zone `DebugList`
-   tables, RStick subtype/Y-reverse/conditional-HUD ideas.
-6. Demo-recorder debug HUD tweak (show debug hex overlay without the
-   "RINGS"/"TIME"/"SCOR" static labels) — was in progress, not finished;
-   the label graphics come from a separate PLC-loaded `Art_HUD` asset
-   (VRAM `0xD940`), not `hud_cmd_base` as first assumed.
-7. `smps2asmc`/song-builder cross-compilation isolation (see pipeline
-   section above).
+Done and no longer follow-ups: the sound playback driver, the YM2612/SN76489 emulation, the song/SFX catalog, debug mode, the sound tools
+(the SMPS Inspector), and every object and game mode of Sonic 1.
+
+1. **JSON-tree sound engine**: the byte driver matches the ROM and is the default; the JSON tree-walking engine (`TickChannelJSON`) is
+   kept in step with it but is deliberately the later step. `mod_active` (smpsModOn/Off) parameters are not yet applied per frame.
+2. **Sonic 2 and the rest of the pack**: Sonic 2 is next, then Sonic CD, Knuckles' Chaotix, Sonic 3, Knuckles in Sonic 1/2 and Sonic &
+   Knuckles; the shared drum kit already holds Sonic 3 samples, so assets need per-source-game tags and per-pack manifests (a "Lite" pack
+   would replace the Sonic 3 drums with silence in the same slots).
+3. **If SEGA declines the pack**: a code-only recomp with a ROM asset extractor (via the s1disasm TwoEight project); not built.
+4. **ParadoxComposer** is a development tool only; a `BUILD_COMPOSER` option (default OFF for pack builds) is the plan if it must not ship.
+5. **Mod loader** (.so/.dll mods that add Settings menu entries, characters, levels): planned for the Qt menu bar, not started.
+6. **Optional packaging**: building the KDE handbook with `kdoctools_create_handbook` (index cache) and a Doxygen target; renaming the
+   `Sonic` binary (desktop `Exec`/`StartupWMClass` would change with it).
+7. Minor items are batched into a weekly sweep rather than fixed mid-feature (stale TODO comments in `GM_Level.c`, `Sonic.c` (wind
+   tunnels, now implemented) and `Monitor.c` are among the things to tidy).

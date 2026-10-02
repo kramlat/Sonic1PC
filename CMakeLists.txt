@@ -529,6 +529,7 @@ set(ASM
     "Mappings/EndingSTH"
     "Mappings/TryAgainEggman"
     "Mappings/EndingEggmobile"
+    "Mappings/ExplodeBomb"
     "Mappings/ContinueScreen"
     "Animation/EndingSonic"
     "Animation/TryAgainEggman"
@@ -747,7 +748,6 @@ set(RESOURCES
     "Palette/SSCyc1"
     "Palette/SSCyc2"
     ${ASM}
-    "Mappings/ExplodeBomb"
     "Layout/GHZ1"
     "Layout/GHZ2"
     "Layout/GHZ3"
