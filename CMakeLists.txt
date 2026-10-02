@@ -530,10 +530,13 @@ set(ASM
     "Mappings/TryAgainEggman"
     "Mappings/EndingEggmobile"
     "Mappings/ExplodeBomb"
+    "Mappings/SplashDust"
+    "Mappings/SplashDustDPLC"
     "Mappings/ContinueScreen"
     "Animation/EndingSonic"
     "Animation/TryAgainEggman"
     "Animation/ContinueSonic"
+    "Animation/SplashDust"
     "Animation/GrassFire")
 
 set(RESOURCES
@@ -577,6 +580,7 @@ set(RESOURCES
     "Art/LZBlock2"
     "Art/LZBlock3"
     "Art/Splash"
+    "Art/SplashDust"
     "Art/Water"
     "Art/LZSpikeBall"
     "Art/FlapDoor"
