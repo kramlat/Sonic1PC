@@ -45,7 +45,7 @@ void Obj_Credits(Object *obj) {
         }
 
         // Fallthrough
-    case 1: // Drawing
+    case 2: // Drawing (the init above moved the routine on)
         DisplaySprite(obj);
         break;
     }

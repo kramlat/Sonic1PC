@@ -2,6 +2,7 @@
 #include "DebugViewers.h"
 #include "QtAudio.h"
 #include "DemoTools.h"
+#include "SmpsInspector.h"
 #include "ConsoleDrawer.h"
 #include "Settings.h"
 #include "../../DebugPeek.h"
@@ -184,6 +185,8 @@ public:
 			in_use << viewer;
 		if (console->IsOpen())
 			in_use << "Console";
+		if (SmpsInspector::IsOpen())
+			in_use << "SMPS Inspector";
 		if (launch_injected)
 			in_use << "Level injection";
 		QString text = in_use.isEmpty() ? QString() : "Tools in use: " + in_use.join(" · ");
@@ -362,6 +365,8 @@ private:
 		tools->addSeparator();
 		play_action = tools->addAction("Play Demo...");
 		connect(play_action, &QAction::triggered, this, [this] { DemoTools::PlayDialog(this); });
+		tools->addSeparator();
+		connect(tools->addAction("SMPS Inspector"), &QAction::triggered, this, [this] { SmpsInspector::Show(this); });
 
 		BuildAudioMenu();
 
@@ -412,7 +417,7 @@ int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rg
 		g_window->ToggleFullscreen();
 
 	// Developer hooks (used by automated checks, harmless otherwise):
-	//   SONIC_QT_OPEN=vdp,sound,objects,console   open those debug viewers (or the console drawer) at startup
+	//   SONIC_QT_OPEN=vdp,sound,objects,console,smps   open those debug viewers (or the console drawer) at startup
 	//   SONIC_QT_LOG=<file>               start logging to a file once debug mode is active
 	//   SONIC_QT_GRAB=<prefix>            after ~4 s, save every window as <prefix>-<n>.png
 	if (const char *open = getenv("SONIC_QT_OPEN")) {
@@ -429,6 +434,11 @@ int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rg
 			g_window->console->Toggle(); // only opens while debugging is available
 		if (list.contains(",objects,"))
 			DebugViewers::ShowObjectViewer(g_window);
+		if (list.contains(",smps,")) {
+			SmpsInspector::Show(g_window);
+			if (const char *play = getenv("SONIC_QT_SMPS_PLAY")) // hex sound id, "j" suffix = JSON engine
+				SmpsInspector::Play(int(strtol(play, nullptr, 16)), strchr(play, 'j') != nullptr);
+		}
 	}
 	return 0;
 }

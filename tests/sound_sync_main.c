@@ -54,7 +54,17 @@ static int Run(int id, int frames) {
     memset(sound_music.queue, 0, sizeof(sound_music.queue));
     memset(sound_sfx.queue, 0, sizeof(sound_sfx.queue));
     StopAllSound();
-    PlayMusic((uint8_t)id);
+    if (getenv("SOUNDSYNC_RAW")) {
+        static uint8_t raw[0x10000];
+        FILE *rf = fopen(getenv("SOUNDSYNC_RAW"), "rb");
+        if (rf) { fread(raw, 1, sizeof raw, rf); fclose(rf); }
+        Sound_DebugPlayRawSong(raw, 0, 1);
+        sound_music.tempo_timeout++; // the raw loader runs before the tick, the queued one after it
+    } else
+    if (getenv("SOUNDSYNC_JSON"))
+        Sound_PlayFromJSON((uint8_t)id);
+    else
+        PlayMusic((uint8_t)id);
     for (int f = 0; f < frames; f++) {
         if (getenv("SOUNDSYNC_TICKS"))
             sound_music.main_tempo = 0; // no TempoWait: frames == ticks, for comparing with the original's data

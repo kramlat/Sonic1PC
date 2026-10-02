@@ -154,6 +154,9 @@ set(
   "src/Object/Newtron.c"
   "src/Object/GHZEdge.c"
   "src/Object/Credits.c"
+  "src/Object/Ending.c"
+  "src/Object/EndingEggmobile.c"
+  "src/GM_Ending.c"
   "src/Object/Animal.c"
   "src/Object/Points.c"
   "src/Object/GiantRing.c"
@@ -519,6 +522,13 @@ set(ASM
     "Animation/Basaran"
     "Animation/Bubbles"
     "Animation/DrowningCountdown"
+    "Mappings/EndingSonic"
+    "Mappings/EndingEmeralds"
+    "Mappings/EndingSTH"
+    "Mappings/TryAgainEggman"
+    "Mappings/EndingEggmobile"
+    "Animation/EndingSonic"
+    "Animation/TryAgainEggman"
     "Animation/GrassFire")
 
 set(RESOURCES
@@ -672,6 +682,7 @@ set(RESOURCES
     "Art/MiniSonic"
     "Art/Warp"
     "Art/EndFlower"
+    "Art/EndFlowerExtra"
     "Art/EndEm"
     "Art/EndEggman"
     "Art/EndStH"
@@ -1114,7 +1125,8 @@ if(TRUE)
                                 "src/Backend/Qt/QtAudio.cpp" "src/Backend/Qt/QtAudio.h"
                                 "src/Backend/Qt/Settings.cpp" "src/Backend/Qt/Settings.h"
                                 "src/Backend/Qt/DemoTools.cpp" "src/Backend/Qt/DemoTools.h"
-                                "src/Backend/Qt/DebugViewers.cpp" "src/Backend/Qt/DebugViewers.h")
+                                "src/Backend/Qt/DebugViewers.cpp" "src/Backend/Qt/DebugViewers.h"
+                                "src/Backend/Qt/SmpsInspector.cpp" "src/Backend/Qt/SmpsInspector.h")
   target_link_libraries(SonicCore PUBLIC Qt6::Widgets Qt6::OpenGLWidgets Qt6::Multimedia yaml-cpp::yaml-cpp)
 endif()
 
@@ -1294,10 +1306,8 @@ function(add_paradoxsmps_song JSONC_FILE ARRAY_NAME)
   target_sources(SonicCore PRIVATE "${OUT_JSON_H}")
 endfunction()
 
-# Full music/SFX catalog. res/Music/ also contains "E0 - Spin Dash Rev.asm"
-# (and its converted/ counterpart, if any), deliberately NOT wired up here:
-# it's a SonicDriverVer=2 test file, and this compiler only implements
-# driver 1 (matching the original smps2asmc/smps.c pipeline's own scope).
+# Full music/SFX catalog. The spin dash rev is Sonic 2's (res/Music/E0 - Spin Dash Rev.asm); it only uses driver 1
+# commands, and its climbing pitch is the driver's own doing (see Sound.c's PrepareSpindashRev).
 add_paradoxsmps_song("music/Mus81 - GHZ.jsonc" Mus81_GHZ)
 add_paradoxsmps_song("music/Mus82 - LZ.jsonc" Mus82_LZ)
 add_paradoxsmps_song("music/Mus83 - MZ.jsonc" Mus83_MZ)
@@ -1366,6 +1376,7 @@ add_paradoxsmps_song("sfx/SndCC - Spring.jsonc" SndCC_Spring)
 add_paradoxsmps_song("sfx/SndCD - Switch.jsonc" SndCD_Switch)
 add_paradoxsmps_song("sfx/SndCE - Ring Left Speaker.jsonc" SndCE_Ring_Left_Speaker)
 add_paradoxsmps_song("sfx/SndCF - Signpost.jsonc" SndCF_Signpost)
+add_paradoxsmps_song("sfx/SndE0 - Spin Dash Rev.jsonc" SndE0_Spindash_Rev)
 add_paradoxsmps_song("sfx/SndD0 - Waterfall.jsonc" SndD0_Waterfall)
 
 if(SPLASH)
@@ -1398,7 +1409,7 @@ if(BUILD_TESTS)
     add_executable(SonicTests "tests/test_main.c" "tests/test_plc.c"
                                "tests/test_leveldraw.c" "tests/test_levelcollision.c"
                                "tests/test_prison.c" "tests/test_lz3wall.c"
-                               "tests/test_bosslz.c" "tests/test_bossslz.c" "tests/test_scrapeggman.c" "tests/test_bossfinal.c" "tests/test_specialstage.c" "tests/test_points.c" "tests/test_lzconveyor.c"
+                               "tests/test_bosslz.c" "tests/test_bossslz.c" "tests/test_scrapeggman.c" "tests/test_bossfinal.c" "tests/test_specialstage.c" "tests/test_ending.c" "tests/test_points.c" "tests/test_lzconveyor.c"
                                "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_staircase.c" "tests/test_oscillator.c" "tests/test_scenery.c" "tests/test_audiomute.c" "tests/test_demorecord.c" "tests/test_sounddriver.c" "tests/test_objcollision.c"
                                "tests/test_giantring.c" "tests/test_checkpoint.c")
     target_link_libraries(SonicTests PRIVATE SonicCore)
@@ -1462,17 +1473,6 @@ if(BUILD_TESTS)
     # Not C_EXTENSIONS OFF here -- needs POSIX select()/fd_set for non-blocking
     # stdin polling, which strict ISO C99 mode doesn't expose without extra
     # feature-test-macro plumbing.
-
-    # SMPSInspector: real-time per-channel activity visualizer (piano-key
-    # strips for FM1-6/PSG1-3, squares for the noise slot, hexagons for DAC)
-    # inspired by Knuckles Chaotix's extended sound test screen -- see
-    # tests/smps_inspector_main.c for the full design note. Left/Right
-    # cycles through registered songs while it plays them for real.
-    add_executable(SMPSInspector "tests/smps_inspector_main.c")
-    target_link_libraries(SMPSInspector PRIVATE SonicCore SDL2::SDL2)
-    set_target_properties(SMPSInspector PROPERTIES C_STANDARD 99
-                                                     C_STANDARD_REQUIRED ON
-                                                     C_EXTENSIONS OFF)
 
     set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/imgui")
     set(NUKED_OPN2_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/nuked-opn2")
@@ -1580,7 +1580,7 @@ if(BUILD_TESTS)
     target_link_libraries(FMCompare PRIVATE SonicCore)
 
     set_target_properties(
-      SonicJoypadTest SonicSoundTrace SonicSoundWav V3FlagTest ParadoxComposer SonicVoiceIsolate SMPSInspector FMCoreSynth FMCompare SoundSync
+      SonicJoypadTest SonicSoundTrace SonicSoundWav V3FlagTest ParadoxComposer SonicVoiceIsolate FMCoreSynth FMCompare SoundSync
       PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
   endif()
 

@@ -36,6 +36,12 @@ void Obj_Spring(Object *obj);
 void Obj_Newtron(Object *obj);
 void Obj_GHZEdge(Object *obj);
 void Obj_Credits(Object *obj);
+void Obj_EndSonic(Object *obj);
+void Obj_EndChaos(Object *obj);
+void Obj_EndSTH(Object *obj);
+void Obj_EndEggman(Object *obj);
+void Obj_TryChaos(Object *obj);
+void Obj_EndEggmobile(Object *obj);
 void Obj_Waterfall(Object *obj);
 void Obj_GiantRing(Object *obj);
 void Obj_RingFlash(Object *obj);
@@ -258,12 +264,13 @@ static void (*object_func[])(Object*) = {
 	/* 84 ObjId_EggmanCylinder      */ Obj_EggmanCylinder,
 	/* 85 ObjId_BossFinal           */ Obj_BossFinal,
 	/* 86 ObjId_BossPlasma          */ Obj_BossPlasma,
-	/* 87 ObjId_87                  */ Obj_Null,
-	/* 88 ObjId_88                  */ Obj_Null,
-	/* 89 ObjId_89                  */ Obj_Null,
+	/* 87 ObjId_87                  */ Obj_EndSonic,
+	/* 88 ObjId_88                  */ Obj_EndChaos,
+	/* 89 ObjId_89                  */ Obj_EndSTH,
 	/* 8A ObjId_Credits             */ Obj_Credits,
-	/* 8B ObjId_8B                  */ Obj_Null,
-	/* 8C ObjId_8C                  */ Obj_Null,
+	/* 8B ObjId_8B                  */ Obj_EndEggman,
+	/* 8C ObjId_8C                  */ Obj_TryChaos,
+	/* 8D ObjId_8D                  */ Obj_EndEggmobile,
 };
 
 #endif // _Included_SOnic1_Object_List

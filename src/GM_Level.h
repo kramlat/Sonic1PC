@@ -12,3 +12,7 @@ void PauseGame(void);
 // extra life, ...) can hand playback back to the right track once that's
 // done, instead of just leaving it stopped.
 void ResumeLevelMusic(void);
+
+// Wipes the per-level state (objects, scrolling, camera, timers...): the start of a level, of the ending sequence.
+// Leaves the lamppost counter alone.
+void Level_ClearState(void);

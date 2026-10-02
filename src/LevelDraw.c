@@ -3,6 +3,7 @@
 #include "Constants.h"
 #include "Level.h"
 #include "LevelScroll.h"
+#include "Kosinski.h"
 
 #include "Backend/VDP.h"
 
@@ -664,6 +665,7 @@ void LoadTiles(const uint8_t *source, uint16_t count) {
 // Level art animation
 #include "Resource/Art/GHZFlowerLarge.h"
 #include "Resource/Art/GHZFlowerSmall.h"
+#include "Resource/Art/EndFlowerExtra.h"
 #include "Resource/Art/GHZWaterfall.h"
 #include "Resource/Art/BigRing.h"
 
@@ -952,14 +954,17 @@ void AniArt_SBZSmoke(void) {
 #define ENDING_BIG_FLOWER_TIMER   1 // uses time and frame (v_lani1) -- same slot GHZ's own big flower uses
 #define ENDING_SMALL_FLOWER_TIMER 2 // uses time and frame (v_lani2) -- same slot GHZ's own small flower uses, safe to share since the two zones never run at once
 
-// Ending sequence -- big flower. Its first half reuses GHZ's own big-flower
-// VRAM slot and art (Art_GHZFlowerLarge) directly, just on the ending's own
-// independent timer. Real hardware also writes a *second* flower here
-// (ArtTile_GHZ_Big_Flower_2, a "sunflower wall" sourced from RAM --
-// v_128x128 chunk buffer, repurposed as scratch space and filled in by the
-// ending sequence's own setup code) -- deferred along with Flower_3/
-// Flower_4 below until the ending game mode itself (no GM_Ending.c yet) is
-// ported far enough to know what that setup step needs to look like.
+// The ending's extra flower art ("Flowers at Ending", Kosinski): the sunflower wall, then two more flower animations.
+// Real hardware decompresses it into unused chunk RAM; here it has its own buffer. Layout: the second big flower's two
+// frames (16 tiles each) at +0, flower 3's three frames at +0x400, flower 4's three frames at +0xA00.
+static uint8_t ending_flower_art[0x2000];
+
+void Ending_LoadFlowerArt(void) {
+	KosDec(Art_EndFlowerExtra, ending_flower_art);
+}
+
+// Ending sequence -- big flower. Its first half reuses GHZ's own big-flower VRAM slot and art (Art_GHZFlowerLarge)
+// directly, just on the ending's own independent timer; the second is the sunflower wall from the extra art.
 static void AniArt_Ending_BigFlower(void) {
 	if (--level_anim[ENDING_BIG_FLOWER_TIMER].time < 0) {
 		level_anim[ENDING_BIG_FLOWER_TIMER].time = 8 - 1;
@@ -968,8 +973,8 @@ static void AniArt_Ending_BigFlower(void) {
 		VDP_SeekVRAM(ART_VRAM(ArtTile_GHZ_Big_Flower_1));
 		VDP_WriteVRAM(Art_GHZFlowerLarge + (frame * 16 * 0x20), 16 * 0x20);
 
-		// TODO: 2nd flower (ArtTile_GHZ_Big_Flower_2, RAM-sourced) once
-		// GM_Ending.c's own setup step exists to populate it.
+		VDP_SeekVRAM(ART_VRAM(ArtTile_GHZ_Big_Flower_2));
+		VDP_WriteVRAM(ending_flower_art + (frame * 16 * 0x20), 16 * 0x20);
 	}
 }
 
@@ -988,9 +993,26 @@ static void AniArt_Ending_SmallFlower(void) {
 	}
 }
 
+// Ending sequence -- flowers 3 and 4: three frames each (played 0,1,2,1), 16 tiles per frame.
+#define ENDING_FLOWER3_TIMER 4
+#define ENDING_FLOWER4_TIMER 5
+
+static void AniArt_Ending_Flower(int timer, int delay, uint16_t tile, size_t base) {
+	if (--level_anim[timer].time < 0) {
+		level_anim[timer].time = (int8_t)(delay - 1);
+		static const uint8_t seq[4] = { 0, 1, 2, 1 };
+		uint8_t frame = seq[level_anim[timer].frame++ & 3];
+
+		VDP_SeekVRAM(ART_VRAM(tile));
+		VDP_WriteVRAM(ending_flower_art + base + frame * 16 * 0x20, 16 * 0x20);
+	}
+}
+
 void AniArt_Ending(void) {
 	AniArt_Ending_BigFlower();
 	AniArt_Ending_SmallFlower();
+	AniArt_Ending_Flower(ENDING_FLOWER3_TIMER, 15, ArtTile_GHZ_Flower_3, 0x400);
+	AniArt_Ending_Flower(ENDING_FLOWER4_TIMER, 12, ArtTile_GHZ_Flower_4, 0xA00);
 }
 
 void AnimateLevelGfx(void) {

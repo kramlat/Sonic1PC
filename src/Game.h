@@ -39,6 +39,10 @@ extern uint16_t demo_length;
 // level instead -- see cli_demo_override in Demo.h for supplying the
 // recorded input data to play back).
 extern int32_t cli_start_level;
+extern int32_t cli_start_ending;  // >= 0: start in the ending sequence holding that many emeralds
+extern int32_t cli_start_credits; // >= 0: start in the credits at that page
+extern int32_t cli_ending_ship;   // 1: --ship, start the ending as if the wrecked Eggmobile flag were set
+extern int32_t cli_emeralds;      // >= 0: emeralds held when starting at the credits
 // If >= 0, overrides Sonic's start X/Y position (LevelSizeLoad()) once
 // cli_start_level has picked a level -- e.g. to drop straight into a boss
 // fight instead of walking there.

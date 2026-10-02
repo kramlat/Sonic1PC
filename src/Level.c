@@ -335,7 +335,7 @@ const LevelHeader level_header[ZoneId_Num] = {
 #else
     { PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, PalId_SBZ1, Map128_SBZREV01 },
 #endif
-    { 0, Art_GHZ2, 0, Map16_GHZ, PalId_GHZ, Map128_GHZ },
+    { 0, Art_GHZ2, 0, Map16_GHZ, PalId_Ending, Map128_GHZ },
 };
 
 // Level collision indices, one file per path (real data, not a
@@ -626,9 +626,14 @@ void LevelSizeLoad(void) {
         y = player->pos.l.y.f.u;
     } else {
         if (demo < 0) {
-            // TODO - in an ending demo
-            x = 0x80;
-            y = 0xA8;
+            // In an ending (credits) demo: where each of them starts, indexed by the credits page after it
+            static const uint16_t EndingStartLocArray[8][2] = {
+                { 0x0050, 0x03B0 }, { 0x0EA0, 0x046C }, { 0x1750, 0x00BD }, { 0x0A00, 0x062C },
+                { 0x0BB0, 0x004C }, { 0x1570, 0x016C }, { 0x01B0, 0x072C }, { 0x1400, 0x02AC },
+            };
+            int demo_index = (credits_num - 1) & 7;
+            x = (int16_t)EndingStartLocArray[demo_index][0];
+            y = (int16_t)EndingStartLocArray[demo_index][1];
         } else {
             // Level
             x = StartLocArray[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)][0];
@@ -718,8 +723,10 @@ void ColIndexLoad(void) {
     // indices, one per path. Both currently hold identical data (no real
     // content path-swaps exist yet -- Obj03 isn't ported to C), but they're
     // separate resources, not a single blob decoded twice.
-    KosDec(level_coli[LEVEL_ZONE(level_id)][0], coll_index[0]);
-    KosDec(level_coli[LEVEL_ZONE(level_id)][1], coll_index[1]);
+    // The ending sequence (zone EndZ) uses Green Hill's collision
+    int zone = LEVEL_ZONE(level_id) < ZoneId_EndZ ? LEVEL_ZONE(level_id) : ZoneId_GHZ;
+    KosDec(level_coli[zone][0], coll_index[0]);
+    KosDec(level_coli[zone][1], coll_index[1]);
     collision_path = 0;
 }
 

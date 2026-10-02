@@ -23,6 +23,7 @@
 #include "GM_Level.h"
 #include "GM_Sega.h"
 #include "GM_Special.h"
+#include "GM_Ending.h"
 #include "GM_Title.h"
 #ifdef SCP_SPLASH
 #include "GM_Countdown.h"
@@ -36,6 +37,10 @@ uint8_t gamemode; // MSB acts as a title card flag
 
 int16_t demo;
 uint16_t demo_length;
+int32_t cli_start_ending = -1; // --ending N: start the ending sequence with N emeralds
+int32_t cli_start_credits = -1; // --credits N: start the credits at page N
+int32_t cli_ending_ship = 0;     // --ship: with --ending, Eggman's ship was wrecked in the Final Zone
+int32_t cli_emeralds = -1;      // --emeralds N: the emeralds held when starting at the credits
 int32_t cli_start_level = -1;
 int32_t cli_start_x = -1, cli_start_y = -1;
 bool cli_force_demo = false;
@@ -121,6 +126,26 @@ void EntryPoint(void) {
         }
     }
 
+    // CLI test hooks for the ending and the credits
+    if (cli_start_ending >= 0 || cli_start_credits >= 0) {
+#ifndef NDEBUG
+        debug_cheat = 1;
+#endif
+        lives = 3;
+        rings = 0;
+        score = 0;
+        emeralds = (uint8_t)(cli_start_ending >= 0 ? cli_start_ending : (cli_emeralds >= 0 ? cli_emeralds : 0));
+        for (int i = 0; i < 6; i++)
+            emerald_list[i] = (uint8_t)(i < emeralds ? i : 0);
+        if (cli_start_ending >= 0) {
+            ending_eggmobile_exploding = (uint8_t)cli_ending_ship;
+            gamemode = GameMode_Ending;
+        } else {
+            credits_num = (uint16_t)cli_start_credits;
+            gamemode = GameMode_Credits;
+        }
+    }
+
 #ifdef SCP_SPLASH
     // Countdown intro: capture whatever gamemode was just decided above --
     // GameMode_Sega (normal boot, if --zone wasn't given) or Level/Demo/
@@ -157,6 +182,12 @@ void EntryPoint(void) {
                 break;
             case GameMode_Special:
                 GM_Special();
+                break;
+            case GameMode_Ending:
+                GM_Ending();
+                break;
+            case GameMode_Credits:
+                GM_Credits();
                 break;
 #ifdef SCP_SPLASH
             case GameMode_SSRG:

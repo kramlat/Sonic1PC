@@ -14,6 +14,10 @@
 extern bool console_enabled;
 
 bool Console_IsOpen(void);
+
+// A tool window (the SMPS Inspector) freezes gameplay the same way the open console does, but leaves the sound engine
+// running: the tool plays sounds itself, and nothing from the game may start another one meanwhile.
+void Console_SetToolPause(bool on);
 void Console_Toggle(void);
 
 // Called once per frame from GM_Level.c's main loop, right alongside

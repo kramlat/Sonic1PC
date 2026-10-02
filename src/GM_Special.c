@@ -1,6 +1,7 @@
 #include "GM_Special.h"
 
 #include "Game.h"
+#include "Console.h"
 #include "GM_Level.h"
 #include "SpecialStage.h"
 #include "Level.h"
@@ -196,6 +197,7 @@ static void SS_RunStage(void) {
 	while (1) {
 		//Handle pausing the game when pressing Start
 		PauseGame();
+		ConsoleUpdate(); // the console or a tool window (SMPS Inspector) may have frozen the game
 
 		//Run frame
 		vbla_routine = 0x0A;

@@ -154,6 +154,7 @@ typedef enum {
 	/*8A*/ ObjId_Credits,
 	/*8B*/ ObjId_8B,
 	/*8C*/ ObjId_8C,
+	/*8D*/ ObjId_8D, //Eggman's wrecked Eggmobile in the ending's background (restored; see Object/EndingEggmobile.c)
 } ObjectId;
 
 //Object types

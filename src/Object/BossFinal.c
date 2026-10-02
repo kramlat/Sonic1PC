@@ -374,7 +374,7 @@ static bool BF_Escape(Object *obj, Scratch_BossFinal *s) {
         player->pos.l.x.f.u = FZ_END + 0xE0; // the ledge
 
     if ((uint16_t)obj->pos.l.x.f.u >= FZ_END + 0x200 && !obj->render.f.on_screen) {
-        gamemode = GameMode_Ending; // (the ending isn't ported yet, so this lands back at the Sega screen)
+        gamemode = GameMode_Ending;
         ObjectDelete(obj);
         return true;
     }

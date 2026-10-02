@@ -38,9 +38,6 @@ static uint16_t spindash_count;
 // Skid dust spawn throttle (matches Sonic 2's Obj08's own obj08_dust_timer)
 static uint8_t skid_dust_timer;
 
-// Temporary alias until the driver hybridization work lands the real SFX.
-#define sfx_SpinDash sfx_Roll
-
 uint8_t dbg_ang0, dbg_ang1, dbg_ang2, dbg_ang3; // 0xFFEC-0xFFEF
 
 // General Sonic state stuff
@@ -1524,7 +1521,7 @@ static void Sonic_ChargingSpindash(Object *obj) {
     obj->anim = SonAnimId_SpinDash;
     obj->anim_frame = 0;
     obj->frame_time.b = 0;
-    PlaySound(sfx_SpinDash);
+    PlaySound(sfx_SpindashRev);
 
     spindash_count += 0x200;
     if (spindash_count > 0x800)
@@ -1605,7 +1602,7 @@ static bool Sonic_SpinDash(Object *obj) {
         return false;
 
     obj->anim = SonAnimId_SpinDash;
-    PlaySound(sfx_SpinDash);
+    PlaySound(sfx_SpindashRev);
     spindash_flag |= 1;
     spindash_count = 0;
     if (air >= 12)

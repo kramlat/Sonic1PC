@@ -28,3 +28,6 @@ void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout
 void LoadTilesAsYouMove(void);
 void LoadTilesAsYouMove_BGOnly(void);
 void AnimateLevelGfx(void);
+
+// Decompresses the ending sequence's extra flower art (the second sunflower wall and flowers 3 and 4); GM_Ending calls it.
+void Ending_LoadFlowerArt(void);

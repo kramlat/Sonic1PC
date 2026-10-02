@@ -1,4 +1,5 @@
 #include "Sound.h"
+#include "Backend/SoundInspect.h"
 #include "DebugLog.h"
 
 #include <math.h>
@@ -184,6 +185,7 @@ void Sound_Init(void) {
 #include "Resource/Music/SndCD_Switch.h"
 #include "Resource/Music/SndCE_Ring_Left_Speaker.h"
 #include "Resource/Music/SndCF_Signpost.h"
+#include "Resource/Music/SndE0_Spindash_Rev.h"
 #include "Resource/Music/SndD0_Waterfall.h"
 
 // Raw-JSON-text companion headers (see sound_table_json below) -- same
@@ -259,6 +261,7 @@ void Sound_Init(void) {
 #include "Resource/Music/SndCD_Switch_json.h"
 #include "Resource/Music/SndCE_Ring_Left_Speaker_json.h"
 #include "Resource/Music/SndCF_Signpost_json.h"
+#include "Resource/Music/SndE0_Spindash_Rev_json.h"
 #include "Resource/Music/SndD0_Waterfall_json.h"
 
 // Music IDs (bgm_GHZ..bgm_SSRG) use the smpsHeaderVoice/Chan/Tempo/DAC/FM/PSG
@@ -340,6 +343,7 @@ static const uint8_t *const sound_table[0x100] = {
     [sfx_Switch] = SndCD_Switch,
     [sfx_RingLeft] = SndCE_Ring_Left_Speaker,
     [sfx_Signpost] = SndCF_Signpost,
+    [sfx_SpindashRev] = SndE0_Spindash_Rev,
     [sfx_Waterfall] = SndD0_Waterfall,
 
     // Continuous SFX ($SOUND_ID_CONTINUOUS_SFX_FIRST-LAST, empty range) --
@@ -427,6 +431,7 @@ static const char *const sound_table_json[0x100] = {
     [sfx_Switch] = SndCD_Switch_json,
     [sfx_RingLeft] = SndCE_Ring_Left_Speaker_json,
     [sfx_Signpost] = SndCF_Signpost_json,
+    [sfx_SpindashRev] = SndE0_Spindash_Rev_json,
     [sfx_Waterfall] = SndD0_Waterfall_json,
 };
 
@@ -867,7 +872,16 @@ static void DAC_TriggerNote(SoundChipSet *cs, const DACSample *note, int family)
 // ($EA -- fires a DAC sample from a NON-DAC track as a side effect, per
 // Flamedriver) can trigger the exact same way without duplicating this
 // logic. No-ops silently for a note byte with no dac_notes[] entry.
+// What the SMPS Inspector shows: notes struck and drums hit since it last looked (Sound_InspectTake).
+static struct {
+    uint8_t keyed[SOUND_CHANNELS];
+    int16_t note[SOUND_CHANNELS];
+    uint32_t drums[(SOUND_INSPECT_DRUMS + 31) / 32];
+} inspect_events;
+
 static void DAC_TriggerByNoteByte(SoundChipSet *cs, uint8_t b) {
+    if (cs == &sound_music && b >= SND_dKick && b - SND_dKick < SOUND_INSPECT_DRUMS)
+        inspect_events.drums[(b - SND_dKick) >> 5] |= 1u << ((b - SND_dKick) & 31);
     if (b == 0xDF) {
         PlaySegaSound_Trigger(cs);
         return;
@@ -1237,7 +1251,7 @@ static void StartChannel(SoundChipSet *cs, SoundChannel *ch, const uint8_t *song
     ResetChannel(ch);
     ch->song_base = song_base;
     ch->data_ptr = data;
-    ch->transpose = transpose;
+    ch->transpose = (int8_t)(transpose + cs->start_transpose_bonus);
     ch->volume = volume;
     ch->tempo_divider = cs->duration_mult; // Per-track duration multiplier, overridable by $E5
     ch->active = 1;
@@ -1261,7 +1275,7 @@ static void StartChannelJSON(SoundChipSet *cs, SoundChannel *ch, const PJValue *
     ch->json_events = events;
     ch->json_event_index = 0;
     ch->json_loop_idx = -1; // not memset-safe -- 0 is a real loop slot, unlike every other JSON field here
-    ch->transpose = transpose;
+    ch->transpose = (int8_t)(transpose + cs->start_transpose_bonus);
     ch->volume = volume;
     ch->tempo_divider = cs->duration_mult;
     ch->active = 1;
@@ -1377,7 +1391,10 @@ static void LoadMusicJSON(SoundChipSet *cs, PJValue *song, uint8_t music_id, uin
     cs->psg_count = (uint8_t)psg_seen;
     cs->current_music_id = music_id;
     cs->base_main_tempo = cs->main_tempo;
-    cs->tempo_timeout = cs->main_tempo;
+    // The byte loader runs inside Sound_Frame after that frame's tempo tick; this one runs before the next frame's,
+    // so start one tick later to land on the same tempo phase (otherwise every note boundary near a correction
+    // lands a frame off the real driver).
+    cs->tempo_timeout = (cs->main_tempo != 0 && cs->main_tempo != 0xFF) ? (uint8_t)(cs->main_tempo + 1) : cs->main_tempo;
 
     const PJValue *playlist = cs->json_playlist;
     const PJValue *voices = cs->json_voices;
@@ -1687,6 +1704,21 @@ static void DispatchQueue(SoundChipSet *cs, int slot) {
         LoadSFX(cs, song, driver_version);
 }
 
+// The Sonic 2 driver's spin dash rev: a rev within 60 frames of the last climbs one semitone (up to 11), a later one
+// starts back at the bottom. The pitch is added to the key offset of the tracks the sound starts. Any other sound
+// leaves the bonus at 0.
+static void PrepareSpindashRev(SoundChipSet *cs, uint8_t id) {
+    cs->start_transpose_bonus = 0;
+    if (id != sfx_SpindashRev)
+        return;
+    uint8_t index = cs->spindash_counter ? cs->spindash_index : 0xFF; // 0xFF: becomes 0 below
+    index++;
+    if (index < 0x0C)
+        cs->spindash_index = index;
+    cs->spindash_counter = 0x3C;
+    cs->start_transpose_bonus = (int8_t)cs->spindash_index;
+}
+
 // Sound_PlaySFX's checks for the sound-effect chip set: priority against what's playing (CycleSoundQueue),
 // the ring sound alternating speakers, and the push sound not restarting while it plays.
 static void DispatchSfx(SoundChipSet *cs) {
@@ -1715,8 +1747,11 @@ static void DispatchSfx(SoundChipSet *cs) {
     }
 
     const uint8_t *song = sound_table[id];
-    if (song)
-        LoadSFX(cs, song, sound_table_driver_ver[id]);
+    if (!song)
+        return;
+    PrepareSpindashRev(cs, id);
+    LoadSFX(cs, song, sound_table_driver_ver[id]);
+    cs->start_transpose_bonus = 0;
 }
 
 // ---------------------------------------------------------------------
@@ -1724,7 +1759,7 @@ static void DispatchSfx(SoundChipSet *cs) {
 // ---------------------------------------------------------------------
 
 #define SOUND_ID_SFX_FIRST     sfx_Jump
-#define SOUND_ID_SFX_LAST      sfx_Signpost
+#define SOUND_ID_SFX_LAST      sfx_SpindashRev
 // Continuous SFX (Sound.h's SOUND_ID_CONTINUOUS_SFX_FIRST/LAST enum members)
 // sits between SFX_LAST and SPECIAL_FIRST -- reserved, empty range, see
 // that enum's own comment. Nothing here needs to reference it directly;
@@ -1746,6 +1781,7 @@ static const uint8_t sound_priorities[SOUND_ID_SPECIAL_LAST - SOUND_ID_SFX_FIRST
     0x80, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x68, 0x70, 0x70, 0x70, 0x60, 0x70, // sfx_Jump+
     0x70, 0x60, 0x70, 0x60, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x7F, // (cont.)
     0x60, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, // (cont.)
+    0x70,                                                                                           // sfx_SpindashRev
     0x80,                                                                                           // sfx_Waterfall
 };
 
@@ -2460,6 +2496,9 @@ static const PJValue *JsonNextBlockAfter(const PJValue *playlist, const PJValue 
     return NULL;
 }
 
+static void TrackStartNote(SoundChipSet *cs, SoundChannel *ch, int channel_index, int is_fm, int is_dac, int psg_chan,
+                           int psg_reg_chan, uint8_t b, int dur);
+
 static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_index) {
     int psg_chan = PSGRegisterChannel(channel_index);
     int psg_reg_chan = (psg_chan >= 0 && ch->psg_noise) ? 3 : psg_chan;
@@ -2519,34 +2558,9 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
         if (pj_type(event) == PJ_STRING) {
             const char *s = pj_get_string(event, "");
             if (strcmp(s, "smpsNoAttack") == 0) {
-                // The compiler emits smpsNoAttack as a single opcode byte
-                // with no argument of its own, but the byte-VM's runtime
-                // handler PEEKS at whatever byte immediately follows in the
-                // stream and, if <0x80, greedily consumes it as an inline
-                // duration override -- all in the same dispatch/frame (same
-                // trick a real note byte uses, see its own peek below). A
-                // JSON "tie"/"inheritedNote" node always compiles to
-                // exactly that kind of bare duration byte, so when one
-                // immediately follows smpsNoAttack in the SAME array, it
-                // has to be consumed here too, or the JSON engine spends an
-                // extra frame reading it as its own separate event next
-                // frame -- found via A/B testing (SndD0_Waterfall's
-                // NoAttack+tie loop played at half real speed).
-                const PJValue *next =
-                    ch->json_event_index < pj_array_size(ch->json_events)
-                        ? pj_array_get(ch->json_events, ch->json_event_index)
-                        : NULL;
-                if (next && pj_type(next) != PJ_STRING &&
-                    (pj_object_has(next, "tie") || pj_object_has(next, "inheritedNote"))) {
-                    int scaled = JsonUnhexInt(pj_object_get(next, "duration"), 0) * (int)ch->tempo_divider;
-                    ch->saved_duration = (uint8_t)(scaled > 0xFF ? 0xFF : scaled);
-                    ch->json_event_index++;
-                }
-                uint8_t dur = ch->saved_duration ? ch->saved_duration : 1;
-                ch->duration_timeout = dur;
-                ch->note_timeout = ch->note_timeout_master;
-                ch->key_on = 1;
-                return;
+                // Like $E7: the next note (or bare duration) isn't re-attacked; reading carries straight on.
+                ch->no_attack = 1;
+                continue;
             }
             if (strcmp(s, "smpsStop") == 0 || strcmp(s, "smpsStopSpecial") == 0 || strcmp(s, "smpsFade") == 0) {
                 ch->active = 0;
@@ -2567,66 +2581,33 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
         }
 
         // Note / tie / inheritedNote / rest.
+        // Same note start as the byte VM (TrackStartNote): a note carries its own duration, a tie or inheritedNote is a
+        // bare duration byte (re-attacking the sounding note unless smpsNoAttack came first).
         const PJValue *v;
         if ((v = pj_object_get(event, "note")) != NULL) {
-            const char *name = pj_get_string(v, "");
-            int raw = ps_note_value(name);
-            const PJValue *durv = pj_object_get(event, "duration");
-            if (durv) {
-                int scaled = JsonUnhexInt(durv, 0) * (int)ch->tempo_divider;
-                ch->saved_duration = (uint8_t)(scaled > 0xFF ? 0xFF : scaled);
-            }
-            uint8_t dur = ch->saved_duration ? ch->saved_duration : 1;
-            ch->duration_timeout = dur;
-
-            if (raw < 0) {
+            int raw = ps_note_value(pj_get_string(v, ""));
+            if (raw < 0)
                 continue; // unrecognized note name -- skip rather than crash
-            } else if (raw == 0x80) { // rest
-                SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
-                if (is_fm)
-                    FM_KeyOnOff(cs->fm, channel_index, 0);
-                ch->key_on = 0;
-                if (psg_chan >= 0)
-                    ch->vol_env_index = 0;
-                ResetModulationIfActive(ch);
-                return;
-            } else if (is_dac) {
-                DAC_TriggerByNoteByte(cs, (uint8_t)raw);
-                ch->key_on = 1;
-                ch->note_timeout = dur;
-                return;
-            } else {
-                int note_index = (raw - 0x81) + ch->transpose;
-                ch->note_index = note_index;
-                ResetModulationIfActive(ch);
-                if (psg_chan >= 0 && !ch->psg_noise) {
-                    PSG_SetTonePeriod(&cs->psg, psg_reg_chan, (uint16_t)((int)PSGPeriodForNote(note_index) - ch->detune));
-                    PSG_SetAttenuation(&cs->psg, psg_reg_chan, ch->debug_muted ? 0x0F : ch->volume);
-                    ch->vol_env_index = 0;
-                } else if (psg_chan >= 0) { // noise-redirected -- PSG2's period register, see TickChannel's own comment
-                    PSG_SetTonePeriod(&cs->psg, 2, PSGPeriodForNote(note_index));
-                    PSG_SetAttenuation(&cs->psg, psg_reg_chan, ch->debug_muted ? 0x0F : ch->volume);
-                    ch->vol_env_index = 0;
-                } else if (is_fm) {
-                    FM_SetFrequency(cs->fm, channel_index, note_index, ch->modulation_val + ch->detune);
-                    if (debug_isolate_voice < 0 || ch->voice_index == debug_isolate_voice)
-                        FM_KeyOnOff(cs->fm, channel_index, 1);
+            const PJValue *durv = pj_object_get(event, "duration");
+            int dur = durv ? JsonUnhexInt(durv, 0) : -1;
+            if (!durv && ch->json_event_index < pj_array_size(ch->json_events)) {
+                // A note with no duration of its own, right before a loop whose body opens with a bare duration:
+                // in the byte stream that duration byte follows the note directly (the loop label sits on it), so
+                // the note takes it, and the loop's first pass starts after it.
+                const PJValue *nx = pj_array_get(ch->json_events, ch->json_event_index);
+                const PJValue *lp = (pj_type(nx) != PJ_STRING) ? pj_object_get(nx, "smpsLoop") : NULL;
+                const PJValue *first = lp ? pj_array_get(lp, 2) : NULL;
+                if (first && pj_type(first) != PJ_STRING && (pj_object_has(first, "inheritedNote") || pj_object_has(first, "tie"))) {
+                    dur = JsonUnhexInt(pj_object_get(first, "duration"), 0);
+                    ch->json_skip_first = 1;
                 }
-                ch->key_on = 1;
-                ch->note_timeout = ch->note_timeout_master;
-                return;
             }
+            TrackStartNote(cs, ch, channel_index, is_fm, is_dac, psg_chan, psg_reg_chan, (uint8_t)raw, dur);
+            return;
         }
         if (pj_object_has(event, "tie") || pj_object_has(event, "inheritedNote")) {
-            const PJValue *durv = pj_object_get(event, "duration");
-            int scaled = JsonUnhexInt(durv, 0) * (int)ch->tempo_divider;
-            ch->saved_duration = (uint8_t)(scaled > 0xFF ? 0xFF : scaled);
-            uint8_t dur = ch->saved_duration ? ch->saved_duration : 1;
-            ch->duration_timeout = dur;
-            ch->note_timeout = ch->note_timeout_master;
-            if (psg_chan >= 0)
-                ch->vol_env_index = 0;
-            ResetModulationIfActive(ch);
+            TrackStartNote(cs, ch, channel_index, is_fm, is_dac, psg_chan, psg_reg_chan, 0,
+                           JsonUnhexInt(pj_object_get(event, "duration"), 0));
             return;
         }
 
@@ -2697,7 +2678,7 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
             // but writing it explicitly is one less thing to reason about.
             ch->transpose = (int8_t)(ch->transpose + (int8_t)JsonUnhexInt(v, 0));
         } else if (strcmp(key, "smpsAlterNote") == 0 || strcmp(key, "smpsDetune") == 0) {
-            ch->transpose = (int8_t)JsonUnhexInt(v, 0);
+            ch->detune = (int8_t)JsonUnhexInt(v, 0); // a fine frequency offset like $E1, not a transposition
         } else if (strcmp(key, "smpsNop") == 0) {
             // no-op, argument already consumed via the generic pj_object_get above
         } else if (strcmp(key, "smpsPSGform") == 0) {
@@ -2726,7 +2707,11 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
             for (int i = 0; i < SOUND_CHANNELS; i++)
                 cs->channels[i].tempo_divider = val;
         } else if (strcmp(key, "smpsSetTempoMod") == 0) {
-            cs->main_tempo = (uint8_t)JsonUnhexInt(v, 0);
+            // Song-wide, whichever track issues it: tempo, its restore value and the timeout (like $EA above)
+            uint8_t tempo = (uint8_t)JsonUnhexInt(v, 0);
+            cs->main_tempo = tempo;
+            cs->base_main_tempo = tempo;
+            cs->tempo_timeout = tempo;
         } else if (strcmp(key, "smpsCall") == 0) {
             const PJValue *target = JsonResolveBlock(ch->json_playlist, pj_get_string(v, ""));
             if (target) {
@@ -2794,7 +2779,8 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
             if (is_loop) // an inline smpsJump body never falls through (see json_in_jump_body below), so never needs a return point
                 JsonPushReturn(ch, ch->json_events, ch->json_event_index);
             ch->json_events = v;
-            ch->json_event_index = body_start;
+            ch->json_event_index = body_start + ((is_loop && ch->json_skip_first) ? 1 : 0);
+            ch->json_skip_first = 0;
             // An inline smpsJump body ("no count" = forever) wraps back to
             // its own start when it runs out, not fall through/return --
             // json_in_jump_body is what the "ran off the end" handler
@@ -3139,6 +3125,83 @@ static void DoFadeIn(SoundChipSet *cs) {
     }
 }
 
+// FMDoNext..FinishTrackUpdate: start whatever the track just read -- a note (b >= 0x80, 0x80 = rest) or a bare
+// duration (b = 0) -- with its duration (dur, or -1 to reuse the saved one). Shared by the byte VM and the JSON
+// engine so both attack, tie and rest identically.
+static void TrackStartNote(SoundChipSet *cs, SoundChannel *ch, int channel_index, int is_fm, int is_dac, int psg_chan,
+                           int psg_reg_chan, uint8_t b, int dur) {
+    // A smpsPSGform just read in this same update turns the track into a noise track, so work the register out now.
+    psg_reg_chan = (psg_chan >= 0 && ch->psg_noise) ? 3 : psg_chan;
+
+    // FMDoNext: every note, rest or bare duration keys the FM channel off first (unless $E7), so the
+    // key-on below re-attacks it. A bare duration therefore re-attacks the same pitch.
+    if (is_fm && !ch->no_attack)
+        FM_KeyOnOff(cs->fm, channel_index, 0);
+
+    int new_note = 0, rest = 0;
+    if (b >= 0x80) {
+        if (b == 0x80) {
+            rest = 1;
+        } else if (is_dac) {
+            ch->dac_sample = b; // SavedDAC
+        } else {
+            new_note = 1;
+            ch->has_note = 1;
+            ch->note_index = (int)(b - 0x81) + ch->transpose;
+        }
+    }
+    if (dur >= 0)
+        SetTrackDuration(ch, (uint8_t)dur); // a bare duration replays the note, a note byte may carry one; otherwise the previous duration is reused
+    if (rest && is_dac)
+        ch->dac_sample = 0x80;
+
+    // FinishTrackUpdate
+    ch->duration_timeout = ch->saved_duration; // 0 means 256 frames, as on the original (subq from 0 wraps)
+    if (!ch->no_attack) {
+        ch->note_timeout = ch->note_timeout_master;
+        ch->vol_env_index = 0;
+        ResetModulationIfActive(ch);
+    }
+
+    if (is_dac) {
+        // DACUpdateTrack plays SavedDAC for a sample byte AND for a bare duration (a kick followed by
+        // "$0C, $0C" plays three kicks); a rest leaves the DAC alone.
+        if (ch->dac_sample != 0x80 && ch->dac_sample != 0 && !cs->dac_fadein_muted) {
+            DAC_TriggerByNoteByte(cs, ch->dac_sample);
+            ch->key_on = 1;
+        }
+        return;
+    }
+
+    if (rest) {
+        // TrackSetRest / PSGSetFreq's rest: track at rest (frequency cleared), channel silenced.
+        ch->has_note = 0;
+        ch->key_on = 0;
+        SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
+        SOUND_TRACE("ch%d: rest dur=%u\n", channel_index, ch->saved_duration);
+        return;
+    }
+    // A bare duration replays the last note -- also after note fill silenced it (that keeps the
+    // frequency) -- but not after a rest byte, which clears it.
+    if (!new_note && !ch->has_note)
+        return;
+    ch->key_on = 1;
+
+    if (psg_chan >= 0) {
+        // PSGDoNoteOn: frequency (note + detune; modulation starts from 0), then PSGDoVolFX.
+        WritePSGFrequency(cs, ch, psg_reg_chan, 0);
+        PSGVolumeFX(cs, ch, psg_reg_chan, 1);
+    } else if (is_fm) {
+        // FMPrepareNote + FMNoteOn. With $E7 the key-on lands on a still-keyed channel, which a real
+        // YM2612 ignores: the note changes pitch without a new attack.
+        FM_SetFrequency(cs->fm, channel_index, ch->note_index, ch->detune);
+        if (debug_isolate_voice < 0 || ch->voice_index == debug_isolate_voice)
+            FM_KeyOnOff(cs->fm, channel_index, 1);
+    }
+    SOUND_TRACE("ch%d: note=%d dur=%u vol=%u transpose=%d no_attack=%u\n", channel_index, ch->note_index,
+                ch->saved_duration, ch->volume, (int)ch->transpose, ch->no_attack);
+}
+
 // One track, one frame. Mirrors the real driver's FMUpdateTrack / PSGUpdateTrack / DACUpdateTrack (and
 // Flamedriver's zUpdateFMorPSGTrack, which has the same shape): the duration counter is decremented
 // FIRST, and the next command is read on the same frame it reaches 0 -- so a note of duration d lasts
@@ -3201,79 +3264,16 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
             return;
     }
 
-    // FMDoNext: every note, rest or bare duration keys the FM channel off first (unless $E7), so the
-    // key-on below re-attacks it. A bare duration therefore re-attacks the same pitch.
-    if (is_fm && !ch->no_attack)
-        FM_KeyOnOff(cs->fm, channel_index, 0);
-
-    int new_note = 0, rest = 0;
+    // A bare duration byte replays the note; a note byte may be followed by its duration.
+    int dur = -1;
     if (b >= 0x80) {
-        if (b == 0x80) {
-            rest = 1;
-        } else if (is_dac) {
-            ch->dac_sample = b; // SavedDAC
-        } else {
-            new_note = 1;
-            ch->has_note = 1;
-            ch->note_index = (int)(b - 0x81) + ch->transpose;
-        }
-        // A duration byte may follow; otherwise the previous duration is reused.
-        uint8_t raw = *ch->data_ptr;
-        if (raw < 0x80) {
-            ch->data_ptr++;
-            SetTrackDuration(ch, raw);
-        }
+        if (*ch->data_ptr < 0x80)
+            dur = *ch->data_ptr++;
     } else {
-        SetTrackDuration(ch, b); // bare duration: same note/sample again, new length
+        dur = b;
+        b = 0;
     }
-    if (rest && is_dac)
-        ch->dac_sample = 0x80;
-
-    // FinishTrackUpdate
-    ch->duration_timeout = ch->saved_duration; // 0 means 256 frames, as on the original (subq from 0 wraps)
-    if (!ch->no_attack) {
-        ch->note_timeout = ch->note_timeout_master;
-        ch->vol_env_index = 0;
-        ResetModulationIfActive(ch);
-    }
-
-    if (is_dac) {
-        // DACUpdateTrack plays SavedDAC for a sample byte AND for a bare duration (a kick followed by
-        // "$0C, $0C" plays three kicks); a rest leaves the DAC alone.
-        if (ch->dac_sample != 0x80 && ch->dac_sample != 0 && !cs->dac_fadein_muted) {
-            DAC_TriggerByNoteByte(cs, ch->dac_sample);
-            ch->key_on = 1;
-        }
-        return;
-    }
-
-    if (rest) {
-        // TrackSetRest / PSGSetFreq's rest: track at rest (frequency cleared), channel silenced.
-        ch->has_note = 0;
-        ch->key_on = 0;
-        SilenceIfPSG(&cs->psg, psg_reg_chan, ch->psg_noise);
-        SOUND_TRACE("ch%d: rest dur=%u\n", channel_index, ch->saved_duration);
-        return;
-    }
-    // A bare duration replays the last note -- also after note fill silenced it (that keeps the
-    // frequency) -- but not after a rest byte, which clears it.
-    if (!new_note && !ch->has_note)
-        return;
-    ch->key_on = 1;
-
-    if (psg_chan >= 0) {
-        // PSGDoNoteOn: frequency (note + detune; modulation starts from 0), then PSGDoVolFX.
-        WritePSGFrequency(cs, ch, psg_reg_chan, 0);
-        PSGVolumeFX(cs, ch, psg_reg_chan, 1);
-    } else if (is_fm) {
-        // FMPrepareNote + FMNoteOn. With $E7 the key-on lands on a still-keyed channel, which a real
-        // YM2612 ignores: the note changes pitch without a new attack.
-        FM_SetFrequency(cs->fm, channel_index, ch->note_index, ch->detune);
-        if (debug_isolate_voice < 0 || ch->voice_index == debug_isolate_voice)
-            FM_KeyOnOff(cs->fm, channel_index, 1);
-    }
-    SOUND_TRACE("ch%d: note=%d dur=%u vol=%u transpose=%d no_attack=%u\n", channel_index, ch->note_index,
-                ch->saved_duration, ch->volume, (int)ch->transpose, ch->no_attack);
+    TrackStartNote(cs, ch, channel_index, is_fm, is_dac, psg_chan, psg_reg_chan, b, dur);
 }
 
 // ---------------------------------------------------------------------
@@ -3283,6 +3283,8 @@ static void TickChannel(SoundChipSet *cs, int channel_index) {
 static void TickChipSet(SoundChipSet *cs) {
     if (cs->paused) // Sound_Pause() -- only sound_music ever sets this
         return;
+    if (cs->spindash_counter)
+        cs->spindash_counter--;
 
     // Shared tempo governor -- matches the real driver's TempoWait exactly
     // (s1.sounddriver.asm): every track's DurationTimeout gets an
@@ -3327,7 +3329,13 @@ static void TickChipSet(SoundChipSet *cs) {
     for (int i = 0; i < SOUND_CHANNELS; i++)
         was_active[i] = cs->channels[i].active;
 
-    for (int i = 0; i < SOUND_CHANNELS; i++)
+    // The real driver's track order: DAC, FM1-6, then PSG1-4. It matters: a command that changes shared state (the
+    // all-track tempo divider from $EB, issued by Credits' DAC track) is seen by the tracks that run after it within
+    // the same frame.
+    TickChannel(cs, SOUND_CHANNEL_DAC);
+    for (int i = SOUND_CHANNEL_FM_BASE; i < SOUND_CHANNEL_DAC; i++)
+        TickChannel(cs, i);
+    for (int i = SOUND_CHANNEL_PSG_BASE; i < SOUND_CHANNEL_FM_BASE; i++)
         TickChannel(cs, i);
 
     // cfStopTrack on an SFX track clears v_sndprio: as soon as any effect track ends, any sound may
@@ -3341,6 +3349,11 @@ static void TickChipSet(SoundChipSet *cs) {
 
 void Sound_Frame(void) {
     TickChipSet(&sound_music);
+    for (int i = 0; i < SOUND_CHANNELS; i++)
+        if (sound_music.channels[i].active && sound_music.channels[i].key_on) {
+            inspect_events.keyed[i] = 1;
+            inspect_events.note[i] = (int16_t)sound_music.channels[i].note_index;
+        }
     TickChipSet(&sound_sfx);
     sound_trace_frame++;
 }
@@ -3430,6 +3443,8 @@ void Sound_GenerateMusic(int32_t *out, uint32_t count, uint32_t sample_rate) {
 
 void Sound_GenerateSfx(int32_t *out, uint32_t count, uint32_t sample_rate) {
     GenerateSet(&sound_sfx, false, out, count, sample_rate);
+    if (Sound_DebugIsDacPreviewPlaying()) // a drum auditioned from the SMPS Inspector
+        Sound_DebugGenerateDacPreview(out, count, sample_rate);
 }
 
 void Sound_Generate(int32_t *out, uint32_t count, uint32_t sample_rate) {
@@ -3542,7 +3557,9 @@ void Sound_PlayFromJSON(uint8_t id) {
         sound_json_sfx_cache[id] = song;
     }
     const PJValue *playlist = pj_object_get(song, "SMPSplaylist");
+    PrepareSpindashRev(&sound_sfx, id);
     LoadSFXJSON(&sound_sfx, song, playlist, driver_version);
+    sound_sfx.start_transpose_bonus = 0;
 }
 
 void Sound_DebugSetChannelMuted(int channel_index, uint8_t muted) {
@@ -3658,4 +3675,124 @@ void Sound_DebugIsolateVoice(int voice_index) {
             }
         }
     }
+}
+
+// ---------------------------------------------------------------------
+// SMPS Inspector support (Backend/SoundInspect.h)
+// ---------------------------------------------------------------------
+
+void Sound_InspectTake(SoundInspectData *out) {
+    memset(out, 0, sizeof(*out));
+    out->music_id = sound_music.current_music_id;
+    const uint8_t *song = Sound_DebugGetSongData(out->music_id);
+    if (song) {
+        out->fm_count = song[2];
+        out->psg_count = song[3];
+    }
+    for (int i = 0; i < SOUND_CHANNELS; i++) {
+        out->active[i] = sound_music.channels[i].active;
+        out->noise[i] = sound_music.channels[i].psg_noise;
+        out->keyed[i] = inspect_events.keyed[i];
+        out->note[i] = inspect_events.note[i];
+    }
+    memcpy(out->drums, inspect_events.drums, sizeof(out->drums));
+    memset(&inspect_events, 0, sizeof(inspect_events));
+}
+
+#define INSPECT_ENTRY(id, is_music, name) {(uint8_t)(id), (is_music), (name)}
+static const SoundInspectEntry inspect_entries[] = {
+    INSPECT_ENTRY(bgm_GHZ, 1, "Green Hill Zone"),
+    INSPECT_ENTRY(bgm_LZ, 1, "Labyrinth Zone"),
+    INSPECT_ENTRY(bgm_MZ, 1, "Marble Zone"),
+    INSPECT_ENTRY(bgm_SLZ, 1, "Star Light Zone"),
+    INSPECT_ENTRY(bgm_SYZ, 1, "Spring Yard Zone"),
+    INSPECT_ENTRY(bgm_SBZ, 1, "Scrap Brain Zone"),
+    INSPECT_ENTRY(bgm_Invincible, 1, "Invincibility"),
+    INSPECT_ENTRY(bgm_ExtraLife, 1, "Extra Life"),
+    INSPECT_ENTRY(bgm_SS, 1, "Special Stage"),
+    INSPECT_ENTRY(bgm_Title, 1, "Title Screen"),
+    INSPECT_ENTRY(bgm_Ending, 1, "Ending"),
+    INSPECT_ENTRY(bgm_Boss, 1, "Boss"),
+    INSPECT_ENTRY(bgm_FZ, 1, "Final Zone"),
+    INSPECT_ENTRY(bgm_GotThrough, 1, "Sonic Got Through"),
+    INSPECT_ENTRY(bgm_GameOver, 1, "Game Over"),
+    INSPECT_ENTRY(bgm_Continue, 1, "Continue Screen"),
+    INSPECT_ENTRY(bgm_Credits, 1, "Credits"),
+    INSPECT_ENTRY(bgm_Drowning, 1, "Drowning"),
+    INSPECT_ENTRY(bgm_Emerald, 1, "Get Emerald"),
+    INSPECT_ENTRY(sfx_Jump, 0, "Jump"),
+    INSPECT_ENTRY(sfx_Lamppost, 0, "Lamppost"),
+    INSPECT_ENTRY(sfx_Unk_A2, 0, "Unused A2"),
+    INSPECT_ENTRY(sfx_Death, 0, "Death"),
+    INSPECT_ENTRY(sfx_Skid, 0, "Skid"),
+    INSPECT_ENTRY(sfx_Unk_A5, 0, "Unused A5"),
+    INSPECT_ENTRY(sfx_HitSpikes, 0, "Hit Spikes"),
+    INSPECT_ENTRY(sfx_Push, 0, "Push Block"),
+    INSPECT_ENTRY(sfx_SSGoal, 0, "SS Goal"),
+    INSPECT_ENTRY(sfx_SSItem, 0, "SS Item"),
+    INSPECT_ENTRY(sfx_Splash, 0, "Splash"),
+    INSPECT_ENTRY(sfx_Unk_AB, 0, "Unused AB"),
+    INSPECT_ENTRY(sfx_HitBoss, 0, "Hit Boss"),
+    INSPECT_ENTRY(sfx_Bubble, 0, "Get Bubble"),
+    INSPECT_ENTRY(sfx_Fireball, 0, "Fireball"),
+    INSPECT_ENTRY(sfx_Shield, 0, "Shield"),
+    INSPECT_ENTRY(sfx_Saw, 0, "Saw"),
+    INSPECT_ENTRY(sfx_Electric, 0, "Electric"),
+    INSPECT_ENTRY(sfx_Drown, 0, "Drown Death"),
+    INSPECT_ENTRY(sfx_Flamethrower, 0, "Flamethrower"),
+    INSPECT_ENTRY(sfx_Bumper, 0, "Bumper"),
+    INSPECT_ENTRY(sfx_Ring, 0, "Ring"),
+    INSPECT_ENTRY(sfx_SpikesMove, 0, "Spikes Move"),
+    INSPECT_ENTRY(sfx_Rumbling, 0, "Rumbling"),
+    INSPECT_ENTRY(sfx_Unk_B8, 0, "Unused B8"),
+    INSPECT_ENTRY(sfx_Collapse, 0, "Collapse"),
+    INSPECT_ENTRY(sfx_SSGlass, 0, "SS Glass"),
+    INSPECT_ENTRY(sfx_Door, 0, "Door"),
+    INSPECT_ENTRY(sfx_Teleport, 0, "Teleport / Spin Dash Release"),
+    INSPECT_ENTRY(sfx_ChainStomp, 0, "Chain Stomp"),
+    INSPECT_ENTRY(sfx_Roll, 0, "Roll"),
+    INSPECT_ENTRY(sfx_Continue, 0, "Get Continue"),
+    INSPECT_ENTRY(sfx_Basaran, 0, "Basaran Flap"),
+    INSPECT_ENTRY(sfx_BreakItem, 0, "Break Item"),
+    INSPECT_ENTRY(sfx_Warning, 0, "Drown Warning"),
+    INSPECT_ENTRY(sfx_GiantRing, 0, "Giant Ring"),
+    INSPECT_ENTRY(sfx_Bomb, 0, "Bomb"),
+    INSPECT_ENTRY(sfx_Cash, 0, "Cash Register"),
+    INSPECT_ENTRY(sfx_RingLoss, 0, "Ring Loss"),
+    INSPECT_ENTRY(sfx_ChainRise, 0, "Chain Rising"),
+    INSPECT_ENTRY(sfx_Burning, 0, "Burning"),
+    INSPECT_ENTRY(sfx_Bonus, 0, "Hidden Bonus"),
+    INSPECT_ENTRY(sfx_EnterSS, 0, "Enter Special Stage"),
+    INSPECT_ENTRY(sfx_WallSmash, 0, "Wall Smash"),
+    INSPECT_ENTRY(sfx_Spring, 0, "Spring"),
+    INSPECT_ENTRY(sfx_Switch, 0, "Switch"),
+    INSPECT_ENTRY(sfx_RingLeft, 0, "Ring (left speaker)"),
+    INSPECT_ENTRY(sfx_Signpost, 0, "Signpost"),
+    INSPECT_ENTRY(sfx_SpindashRev, 0, "Spin Dash Rev"),
+    INSPECT_ENTRY(sfx_Waterfall, 0, "Waterfall"),
+};
+
+int Sound_InspectEntryCount(void) { return (int)(sizeof(inspect_entries) / sizeof(inspect_entries[0])); }
+
+const SoundInspectEntry *Sound_InspectEntryAt(int index) {
+    return (index >= 0 && index < Sound_InspectEntryCount()) ? &inspect_entries[index] : NULL;
+}
+
+void Sound_InspectPlay(int id, int use_json) {
+    if (id <= 0 || id > 0xFF)
+        return;
+    StopAllSound();
+    if (use_json)
+        Sound_PlayFromJSON((uint8_t)id);
+    else if (id >= SOUND_ID_MUSIC_FIRST && id <= SOUND_ID_MUSIC_LAST)
+        PlayMusic((uint8_t)id);
+    else
+        PlaySound((uint8_t)id);
+}
+
+void Sound_InspectStop(void) { StopAllSound(); }
+
+void Sound_InspectPreviewDrum(int index) {
+    if (index >= 0 && index < SOUND_INSPECT_DRUMS)
+        Sound_DebugPreviewDacNote(SND_dKick + index);
 }

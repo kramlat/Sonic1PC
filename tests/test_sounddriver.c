@@ -82,6 +82,26 @@ static void Sound_NoAttackAddsNoTime(void) {
     }
 }
 
+// The driver runs the DAC track first, then FM, then PSG: a DAC track's $EB (all-track tempo divider) reaches a PSG track
+// that reads its next note on the same frame -- Credits' LZ section depends on it.
+static const uint8_t song_tempo_div_order[] = {
+    0x00, 0x00, 0x01, 0x01, 0x01, 0x00,       // voices, 1 FM-or-DAC track, 1 PSG, divider 1, tempo 0
+    0x00, 0x10, 0x00, 0x00,                   // DAC track
+    0x00, 0x15, 0x00, 0x00, 0x00, 0x00,       // PSG1
+    0xEB, 0x02, 0x81, 0x04, 0xF2,             // DAC: all dividers to 2, then a note
+    0xA0, 0x04, 0xA2, 0x04, 0xF2,             // PSG1: two 4-tick notes
+};
+
+static void Sound_DacTempoDivideReachesPsgOnTheSameFrame(void) {
+    ResetSound();
+    Sound_DebugPlayRawSong(song_tempo_div_order, 0, 1);
+    int at[8];
+    int n = PeriodChanges(30, at, 8);
+    CHECK(n >= 2);
+    if (n >= 2)
+        CHECK_EQ(at[1] - at[0], 8);
+}
+
 // $E1 (smpsAlterNote) is a fine detune added to the period, not a transposition.
 static const uint8_t song_e1[] = {
     0x00, 0x00, 0x00, 0x01, 0x01, 0x00,
@@ -378,6 +398,34 @@ static void Ring_CollectPlaysSound(void) {
 
 // Every song must keep ticking: a track that falls into dead data (e.g. a self-jump) used to spin
 // the flag reader forever and freeze the whole game.
+// Burning ($C8): smpsPSGform and the first note arrive in the same update. The note's volume must go to the noise
+// channel (not left on tone 3 as a long beep).
+static void Sound_NoiseFormThenNoteDrivesTheNoiseChannel(void) {
+    ResetSound();
+    PlaySound(sfx_Burning);
+    for (int f = 0; f < 3; f++)
+        Sound_Frame();
+    CHECK(sound_sfx.psg.noise_atten < 15);
+    CHECK_EQ(sound_sfx.psg.tone_atten[2], 15);
+}
+
+// Sonic 2's spin dash rev: each rev within 60 frames climbs a semitone (up to 11); after a pause it starts over.
+static int RevTranspose(void) {
+    PlaySound(sfx_SpindashRev);
+    Sound_Frame();
+    return sound_sfx.channels[SOUND_CHANNEL_FM_BASE + 4].transpose; // FM5
+}
+
+static void Sound_SpindashRevPitchClimbs(void) {
+    ResetSound();
+    int base = RevTranspose();
+    CHECK_EQ(RevTranspose(), base + 1);
+    CHECK_EQ(RevTranspose(), base + 2);
+    for (int i = 0; i < 70; i++)
+        Sound_Frame();
+    CHECK_EQ(RevTranspose(), base);
+}
+
 static void Sound_EverySongTicks(void) {
     for (int id = bgm_GHZ; id <= bgm_SSRG; id++) {
         ResetSound();
@@ -401,10 +449,13 @@ void RegisterSoundDriverTests(void) {
     RUN_TEST(FM_RegisterRowsAreOperators1324);
     RUN_TEST(Sound_NoteDurationIsExact);
     RUN_TEST(Sound_NoAttackAddsNoTime);
+    RUN_TEST(Sound_DacTempoDivideReachesPsgOnTheSameFrame);
     RUN_TEST(Sound_AlterNoteIsFineDetune);
     RUN_TEST(Sound_RingAlternatesSpeakers);
     RUN_TEST(Sound_JumpDoesNotBlockRings);
     RUN_TEST(Sound_PushSoundDoesNotRestart);
     RUN_TEST(Sound_FadeOutIsGradual);
     RUN_TEST(Sound_EverySongTicks);
+    RUN_TEST(Sound_SpindashRevPitchClimbs);
+    RUN_TEST(Sound_NoiseFormThenNoteDrivesTheNoiseChannel);
 }

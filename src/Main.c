@@ -43,6 +43,10 @@ static const uint8_t *LoadDemoFile(const char *path) {
 //   --zone N [--act N]   skip the title screen and start straight in that level (0 GHZ, 1 LZ, 2 MZ, 3 SLZ, 4 SYZ, 5 SBZ)
 //   --x N / --y N        override Sonic's start position (needs --zone)
 //   --special N          start in special stage N (0-5) on the way to the level given by --zone (default GHZ act 1)
+//   --ending N           start in the ending sequence holding N emeralds (6 = the good ending)
+//   --ship               with --ending: Eggman's ship was wrecked in the Final Zone (it falls in the background)
+//   --emeralds N         with --credits: how many emeralds Sonic holds (6 shows "END", fewer "TRY AGAIN")
+//   --credits N          start in the credits at page N (0-9)
 //   --demo FILE          play the level back as a demo, driven by the recorded input in FILE (needs --zone)
 //   --countdown [--countdown-music HEX]   pie-wipe countdown before the injected level (SPLASH builds only)
 static void ParseCommandLine(int argc, char *argv[]) {
@@ -53,6 +57,14 @@ static void ParseCommandLine(int argc, char *argv[]) {
 			zone = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--act") && i + 1 < argc)
 			act = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "--ending") && i + 1 < argc)
+			cli_start_ending = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "--ship"))
+			cli_ending_ship = 1;
+		else if (!strcmp(argv[i], "--emeralds") && i + 1 < argc)
+			cli_emeralds = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "--credits") && i + 1 < argc)
+			cli_start_credits = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--special") && i + 1 < argc) {
 			cli_start_special = true;
 			cli_special_stage = atoi(argv[++i]);

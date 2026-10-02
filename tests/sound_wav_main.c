@@ -15,7 +15,10 @@ int main(int argc, char **argv) {
     const char *out_path = (argc > 3) ? argv[3] : "/tmp/out.pcm";
 
     Sound_Init();
-    PlayMusic(id);
+    if (getenv("SOUNDWAV_JSON"))
+        Sound_PlayFromJSON(id); // the level-select sound test's engine
+    else
+        PlayMusic(id);
 
     FILE *f = fopen(out_path, "wb");
     if (!f) {

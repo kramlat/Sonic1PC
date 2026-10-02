@@ -91,33 +91,9 @@ void ResumeLevelMusic(void) {
         PlayMusic(zone_music[zone]);
 }
 
-// Level gamemode
-void GM_Level(void) {
-GM_Level_Branch:;
-    DEBUG_LOG("level", "starting zone %u act %u (checkpoint %u, lives %u)", (unsigned)LEVEL_ZONE(level_id), (unsigned)(level_id & 0xFF) + 1, last_lamp & 0x7F, lives);
-    // Set 'title card' flag
-    gamemode |= 0x80;
-
-    if (demo >= 0) {
-        ;
-    }
-    FadeOutMusic();
-
-    // Clear the pattern load queue and fade out
-    ClearPLC();
-    PaletteFadeOut();
-
-    // Load art if not in credits
-    if (demo >= 0) {
-        // Load title card art
-        NewPLC(PlcId_TitleCard);
-
-        // Load level art and general art
-        if (level_header[LEVEL_ZONE(level_id)].plc1 != 0)
-            AddPLC(level_header[LEVEL_ZONE(level_id)].plc1);
-        AddPLC(PlcId_Main2);
-    }
-
+// Wipes the per-level state (objects, scroll, camera, timers...): what the original clears at the start of a level, the
+// ending sequence and the special stage's entry. Deliberately leaves the lamppost counter alone, see below.
+void Level_ClearState(void) {
     // Clear object memory
     memset(objects, 0, sizeof(objects));
 
@@ -259,6 +235,34 @@ GM_Level_Branch:;
     // the level actually changes -- title screen (GM_Title.c), end-of-act card
     // (TitleCard.c), SBZ2 -> SBZ3 (Sonic.c) -- and the port already does that.
     // (It used to be cleared here, which wiped every checkpoint on death.)
+}
+
+// Level gamemode
+void GM_Level(void) {
+GM_Level_Branch:;
+    DEBUG_LOG("level", "starting zone %u act %u (checkpoint %u, lives %u)", (unsigned)LEVEL_ZONE(level_id), (unsigned)(level_id & 0xFF) + 1, last_lamp & 0x7F, lives);
+    // Set 'title card' flag
+    gamemode |= 0x80;
+
+    if (demo >= 0) // the credits demos keep the credits music going
+        FadeOutMusic();
+
+    // Clear the pattern load queue and fade out
+    ClearPLC();
+    PaletteFadeOut();
+
+    // Load art if not in credits
+    if (demo >= 0) {
+        // Load title card art
+        NewPLC(PlcId_TitleCard);
+
+        // Load level art and general art
+        if (level_header[LEVEL_ZONE(level_id)].plc1 != 0)
+            AddPLC(level_header[LEVEL_ZONE(level_id)].plc1);
+        AddPLC(PlcId_Main2);
+    }
+
+    Level_ClearState();
 
     // Clear screen
     ClearScreen();

@@ -15,6 +15,7 @@ void RegisterBossSLZTests(void);
 void RegisterScrapEggmanTests(void);
 void RegisterBossFinalTests(void);
 void RegisterSpecialStageTests(void);
+void RegisterEndingTests(void);
 void RegisterPointsTests(void);
 void RegisterLZConveyorTests(void);
 void RegisterLZRaftTests(void);
@@ -52,6 +53,7 @@ int main(void) {
     RegisterScrapEggmanTests();
     RegisterBossFinalTests();
     RegisterSpecialStageTests();
+    RegisterEndingTests();
     RegisterPointsTests();
 
     printf("LZ conveyor tests:\n");

@@ -26,6 +26,7 @@ bool Render_SaveScreenshot(const char *path);
 
 bool console_enabled = false;
 static bool console_open = false;
+static bool tool_pause = false;
 
 // ---------------------------------------------------------------------
 // Log ring buffer
@@ -418,6 +419,8 @@ static void ExecuteLine(char *line) {
 
 bool Console_IsOpen(void) { return console_open; }
 
+void Console_SetToolPause(bool on) { tool_pause = on; }
+
 void Console_Toggle(void) {
     if (!console_enabled)
         return;
@@ -481,12 +484,21 @@ void Console_HandleKey(ConsoleKey key) {
 // "opening acts like Ctrl+C, closing acts like continue" for audio as
 // well as gameplay, matching your own framing of this feature.
 void ConsoleUpdate(void) {
-    if (!console_enabled || !console_open)
+    bool console_frozen = console_enabled && console_open;
+    if (!console_frozen && !tool_pause)
         return;
-    Sound_Pause();
+    // Only the console freezes the music: a tool that is up keeps the driver ticking (see Console_SetToolPause).
+    bool sound_paused = false;
     do {
+        bool want_sound_paused = console_enabled && console_open;
+        if (want_sound_paused && !sound_paused)
+            Sound_Pause();
+        else if (!want_sound_paused && sound_paused)
+            Sound_Resume();
+        sound_paused = want_sound_paused;
         vbla_routine = 0x08;
         WaitForVBla();
-    } while (console_open);
-    Sound_Resume();
+    } while ((console_enabled && console_open) || tool_pause);
+    if (sound_paused)
+        Sound_Resume();
 }

@@ -189,6 +189,7 @@ typedef struct {
     // smpsLoop node itself, which nothing does once inside the body).
     int8_t json_loop_idx;
     size_t json_loop_body_start;
+    uint8_t json_skip_first; // the note just read took the first (bare duration) event of the smpsLoop that follows as its own duration, as in the byte stream where a loop label sits on that byte
     // Which engine THIS channel uses -- set 1 by StartChannelJSON, 0 by
     // StartChannel. Dispatch must be per-channel, not per-chip-set: SFX
     // are loaded via LoadSFXJSON, which deliberately never touches
@@ -351,6 +352,12 @@ typedef struct {
     uint8_t fadeout_delay;   // v_fadeout_delay: frames until the next fade step
     uint8_t push_playing;  // f_push_playing: the push sound is playing and must not restart (cleared by its own $ED)
     uint8_t ring_speaker;  // v_ring_speaker: alternates sfx_Ring between the right (sfx_Ring) and left (sfx_RingLeft) speakers
+    // Sonic 2 driver's spin dash rev state (zSpindashPlayingCounter / zSpindashExtraFrequencyIndex): revs less than 60
+    // frames apart climb a semitone each, up to 11; start_transpose_bonus is added to the key offset of the tracks
+    // the SFX being loaded starts (zSpindashActiveFlag).
+    uint8_t spindash_counter;
+    uint8_t spindash_index;
+    int8_t start_transpose_bonus;
 } SoundChipSet;
 
 extern SoundChipSet sound_music; // Dedicated chip set for music
@@ -465,13 +472,14 @@ enum SoundID {
     sfx_Switch,
     sfx_RingLeft,
     sfx_Signpost,
+    sfx_SpindashRev, // Sonic 2's spin dash rev ($E0): its pitch climbs with each rev, see DispatchSfx
 
     // Continuous SFX -- new category, no members yet (see this enum's own
     // comment above). sound_table has nothing registered anywhere in this
     // range, so any ID here resolves to a NULL pointer and the driver
     // silently skips it (DispatchQueue's `if (!song) return;`) until real
     // entries exist.
-    SOUND_ID_CONTINUOUS_SFX_FIRST = sfx_Signpost + 1,
+    SOUND_ID_CONTINUOUS_SFX_FIRST = sfx_SpindashRev + 1,
     SOUND_ID_CONTINUOUS_SFX_LAST = SOUND_ID_CONTINUOUS_SFX_FIRST - 1, // empty range (LAST < FIRST)
 
     sfx_Waterfall = SOUND_ID_CONTINUOUS_SFX_LAST + 1, // collapses onto CONTINUOUS_SFX_FIRST while that range stays empty
