@@ -43,7 +43,7 @@ void QtHost_ToggleFullscreen(void);
 
 // The picture changed size (Video > Resolution): the frames are now width x height pixels. A windowed window is resized to
 // show it at that size; a fullscreen one keeps its size and just letterboxes the new aspect.
-void QtHost_SetPictureSize(int width, int height);
+void QtHost_SetPictureSize(int width, int height, bool resize_window);
 
 // Held-key table indexed by SDL scancode (SDL_NUM_SCANCODES entries), and a
 // queue of key-down events (for F11 and the debug console).

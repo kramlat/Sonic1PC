@@ -13,8 +13,9 @@ uint8_t vbla_routine;
 // (kept to what the 256-pixel plane holds). Multiples of 8, as the planes are tiles.
 int screen_width = 320, screen_height = 224;
 int plane_height = 32; // rows of tiles in the planes: 64 once the picture is taller than 224 pixels
-static int resolution_mode = RESOLUTION_ORIGINAL;
-static int resolution_pending = -1; // chosen, not applied yet (see Video_ApplyPendingResolution)
+static int resolution_mode = RESOLUTION_ORIGINAL;   // the size the picture has now
+static int resolution_chosen = RESOLUTION_ORIGINAL; // the size the player chose (menu, settings, command line)
+static bool chosen_changed = false;                 // the choice changed since the picture was last resized: the window follows it
 
 static const struct { const char *name; int width, height; } resolutions[RESOLUTION_COUNT] = {
 	{ "Original (10:7)", 320, 224 },
@@ -28,30 +29,50 @@ const char *Video_ResolutionName(int mode) {
 	return (mode >= 0 && mode < RESOLUTION_COUNT) ? resolutions[mode].name : "?";
 }
 
+// The size the player chose (what the menu shows, and the size of the picture).
 int Video_GetResolution(void) {
-	return resolution_mode;
+	return resolution_chosen;
+}
+
+// The size the picture should have right now: the player's choice.
+static int WantedResolution(void) {
+	return resolution_chosen;
 }
 
 // The picture size changed (menu): it takes hold at the next safe point -- a mode starting, or the level's loop, which redraws
 // what the new size shows.
 void Video_RequestResolution(int mode) {
-	if (mode < 0 || mode >= RESOLUTION_COUNT || mode == resolution_mode)
+	if (mode < 0 || mode >= RESOLUTION_COUNT || mode == resolution_chosen)
 		return;
-	resolution_pending = mode;
+	resolution_chosen = mode;
+	chosen_changed = true;
 }
 
 bool Video_ResolutionPending(void) {
-	return resolution_pending >= 0;
+	return WantedResolution() != resolution_mode;
 }
 
-extern void Render_SetPictureSize(void);
+extern void Render_SetPictureSize(bool resize_window);
 
-// Applies a requested picture size: the buffers and the window. Returns whether the size changed.
+static void SetPictureSize(int mode) {
+	resolution_mode = mode;
+	screen_width = resolutions[mode].width;
+	screen_height = resolutions[mode].height;
+	plane_height = screen_height > 224 ? 64 : 32;
+	VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+	hbla_counter = (int16_t)(screen_height - 1);
+}
+
+// Applies the wanted picture size: the buffers and the window. Returns whether the size changed.
 bool Video_ApplyPendingResolution(void) {
-	if (resolution_pending < 0)
+	int wanted = WantedResolution();
+	if (wanted == resolution_mode)
 		return false;
-	Video_SelectResolution(resolution_pending); // also clears the request
-	Render_SetPictureSize();
+	// The window follows the player's own choice; a demo that needs the original size only letterboxes it
+	bool resize_window = chosen_changed;
+	chosen_changed = false;
+	SetPictureSize(wanted);
+	Render_SetPictureSize(resize_window);
 	return true;
 }
 
@@ -59,13 +80,9 @@ bool Video_ApplyPendingResolution(void) {
 void Video_SelectResolution(int mode) {
 	if (mode < 0 || mode >= RESOLUTION_COUNT)
 		mode = RESOLUTION_ORIGINAL;
-	resolution_mode = mode;
-	resolution_pending = -1;
-	screen_width = resolutions[mode].width;
-	screen_height = resolutions[mode].height;
-	plane_height = screen_height > 224 ? 64 : 32;
-	VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
-	hbla_counter = (int16_t)(screen_height - 1);
+	resolution_chosen = mode;
+	chosen_changed = false;
+	SetPictureSize(mode);
 }
 
 uint8_t sprite_count;

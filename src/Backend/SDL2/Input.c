@@ -1,5 +1,6 @@
 #include "SDL.h"
 #include <stdbool.h>
+#include <math.h>
 #include <string.h>
 #include "../../Game.h"
 
@@ -33,6 +34,37 @@ int Controls_Key[CTL_COUNT][2] = {
 	[CTL_C]     = {SDL_SCANCODE_M,     SDL_SCANCODE_UNKNOWN},
 	[CTL_START] = {SDL_SCANCODE_RETURN, SDL_SCANCODE_UNKNOWN},
 };
+int Controls_DeadzoneLeft = CONTROLS_DEADZONE_DEFAULT, Controls_DeadzoneRight = CONTROLS_DEADZONE_DEFAULT;
+int Controls_DeadzoneRing = 0; // 0: a box (each axis on its own), 1: a ring (the stick's overall push)
+
+// A stick's dead zone as a raw axis value.
+static int DeadzoneRaw(int percent) {
+	return percent * 32767 / 100;
+}
+
+// Which directions a stick is pushed in. A box dead zone looks at each axis on its own; a ring one first asks whether the stick is
+// pushed far enough at all, in any direction (so drift that sits a little off to one side stays ignored), and then reads the
+// direction as one of eight, a component counting when it is more than about 38% of the push (sin 22.5 degrees).
+static void StickDirections(int x, int y, int percent, bool *left, bool *right, bool *up, bool *down) {
+	int dead = DeadzoneRaw(percent);
+	*left = *right = *up = *down = false;
+	if (Controls_DeadzoneRing) {
+		double push2 = (double)x * x + (double)y * y;
+		if (push2 <= (double)dead * dead)
+			return;
+		double part = sqrt(push2) * 0.3827;
+		*right = x > part;
+		*left = x < -part;
+		*down = y > part;
+		*up = y < -part;
+		return;
+	}
+	*right = x > dead;
+	*left = x < -dead;
+	*down = y > dead;
+	*up = y < -dead;
+}
+
 int Controls_Pad[CTL_COUNT] = {
 	[CTL_UP] = -1, [CTL_DOWN] = -1, [CTL_LEFT] = -1, [CTL_RIGHT] = -1,
 	[CTL_A] = SDL_CONTROLLER_BUTTON_X, [CTL_B] = SDL_CONTROLLER_BUTTON_A,
@@ -40,6 +72,8 @@ int Controls_Pad[CTL_COUNT] = {
 };
 
 void Controls_Reset(void) {
+	Controls_DeadzoneLeft = Controls_DeadzoneRight = CONTROLS_DEADZONE_DEFAULT;
+	Controls_DeadzoneRing = 0;
 	static const int keys[CTL_COUNT][2] = {
 		{SDL_SCANCODE_UP, SDL_SCANCODE_W}, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S},
 		{SDL_SCANCODE_LEFT, SDL_SCANCODE_A}, {SDL_SCANCODE_RIGHT, SDL_SCANCODE_D},
@@ -67,6 +101,7 @@ static bool PadBound(int ctl) {
 int Controls_PollPadButton(void) {
 	if (!pad || !SDL_GameControllerGetAttached(pad))
 		return -1;
+	SDL_GameControllerUpdate(); // (the game loop is not running while the controls dialog is up)
 	for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; i++) {
 		if (i >= SDL_CONTROLLER_BUTTON_DPAD_UP && i <= SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
 			continue;
@@ -74,6 +109,17 @@ int Controls_PollPadButton(void) {
 			return i;
 	}
 	return -1;
+}
+
+bool Controls_PollAxes(int *lx, int *ly, int *rx, int *ry) {
+	if (!pad || !SDL_GameControllerGetAttached(pad))
+		return false;
+	SDL_GameControllerUpdate();
+	*lx = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
+	*ly = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
+	*rx = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
+	*ry = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
+	return true;
 }
 
 const char *Controls_PadButtonName(int button) {
@@ -165,13 +211,16 @@ uint8_t Input_GetState1(void) {
 		int16_t lx = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
 		int16_t ly = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
 
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) || lx > STICK_DEADZONE)
+		bool stick_left, stick_right, stick_up, stick_down;
+		StickDirections(lx, ly, Controls_DeadzoneLeft, &stick_left, &stick_right, &stick_up, &stick_down);
+
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) || stick_right)
 			right = JPAD_RIGHT;
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_LEFT) || lx < -STICK_DEADZONE)
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_LEFT) || stick_left)
 			left = JPAD_LEFT;
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN) || ly > STICK_DEADZONE)
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN) || stick_down)
 			down = JPAD_DOWN;
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP) || ly < -STICK_DEADZONE)
+		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP) || stick_up)
 			up = JPAD_UP;
 
 		if (PadBound(CTL_A))
@@ -213,8 +262,11 @@ uint8_t Input_GetState1(void) {
 		if (key_state[SDL_SCANCODE_4] || rt)
 			CRAMPAL = 3;
 
+		int16_t rx = pad ? SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX) : 0;
 		int16_t ry = pad ? SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY) : 0;
-		if ((key_state[SDL_SCANCODE_O] || ry < -STICK_DEADZONE) && VRAMADDR > 0)
+		bool rs_left, rs_right, rs_up, rs_down;
+		StickDirections(rx, ry, Controls_DeadzoneRight, &rs_left, &rs_right, &rs_up, &rs_down);
+		if ((key_state[SDL_SCANCODE_O] || rs_up) && VRAMADDR > 0)
 			VRAMADDR = VRAMADDR - 0x200;
 		// VDP_DrawScanline's own palette-display overlay reads up to
 		// VRAMADDR+0x963 bytes ahead of this cursor (the highest of its four
@@ -223,7 +275,7 @@ uint8_t Input_GetState1(void) {
 		// off the end of the 64KB vdp_vram array. 0xF600 is the highest
 		// multiple of the 0x200 step that keeps every block's read in
 		// bounds.
-		if ((key_state[SDL_SCANCODE_L] || ry > STICK_DEADZONE) && VRAMADDR < 0xF600)
+		if ((key_state[SDL_SCANCODE_L] || rs_down) && VRAMADDR < 0xF600)
 			VRAMADDR = VRAMADDR + 0x200;
 	}
 
@@ -261,9 +313,12 @@ uint8_t Input_GetExtState1(void) {
 		// D-pad movement (see Input_GetState1 above), so this is the one
 		// analog input on a modern pad with no Genesis-era meaning yet.
 		int16_t rx = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
-		if (rx < -STICK_DEADZONE)
+		int16_t ry = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
+		bool rs_left, rs_right, rs_up, rs_down;
+		StickDirections(rx, ry, Controls_DeadzoneRight, &rs_left, &rs_right, &rs_up, &rs_down);
+		if (rs_left)
 			state |= JPAD_EXT_SUBTYPE_DEC;
-		if (rx > STICK_DEADZONE)
+		if (rs_right)
 			state |= JPAD_EXT_SUBTYPE_INC;
 	}
 	return state;

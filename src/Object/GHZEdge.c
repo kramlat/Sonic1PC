@@ -88,7 +88,7 @@ static void Obj44_SolidWall(Object *obj, uint16_t x_rad, uint16_t y_rad)
 
     // Clear pushing state
     if (obj->status.o.f.player_push) {
-        player->anim = SonAnimId_Run; // Not Walk
+        // (no forced running animation here: the original's "walk-jump bug", see SolidObject)
         obj->status.o.f.player_push = false;
         player->status.p.f.pushing = false;
     }

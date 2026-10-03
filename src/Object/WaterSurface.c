@@ -21,7 +21,7 @@ void Obj_WaterSurface(Object *obj) {
     if (obj->routine == 0) {
         obj->routine = 2;
         obj->mappings = Mappings_WaterSurface;
-        obj->tile = TILE_MAP(1, 3, 0, 0, ArtTile_LZ_Water_Surface);
+        obj->tile = TILE_MAP(1, 2, 0, 0, ArtTile_LZ_Water_Surface); // priority + Tile_Pal3 (palette line 2: the water's own colours)
         obj->render.f.align_fg = true;
         obj->width_pixels = 256 / 2;
         scratch->orig_x = obj->pos.l.x.f.u;

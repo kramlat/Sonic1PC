@@ -374,6 +374,8 @@ GM_Level_Branch:;
         objects[WATERSURFACE_SLOT_LEFT].pos.l.x.f.u = 0x60;
         objects[WATERSURFACE_SLOT_RIGHT].type = ObjId_WaterSurface;
         objects[WATERSURFACE_SLOT_RIGHT].pos.l.x.f.u = 0x120;
+        objects[WATERSURFACE_SLOT_EXTRA].type = ObjId_WaterSurface;
+        objects[WATERSURFACE_SLOT_EXTRA].pos.l.x.f.u = 0x1E0;
     }
 
     // Handle debug mode cheat. Debug builds skip the "hold A" requirement

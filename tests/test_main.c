@@ -19,6 +19,10 @@ void RegisterEndingTests(void);
 void RegisterPointsTests(void);
 void RegisterLZConveyorTests(void);
 void RegisterLZRaftTests(void);
+void RegisterPushBlockTests(void);
+void RegisterLZBlocksTests(void);
+void RegisterDrownCountTests(void);
+void RegisterRollerTests(void);
 void RegisterSpikeBallTests(void);
 void RegisterStaircaseTests(void);
 void RegisterOscillatorTests(void);
@@ -61,6 +65,10 @@ int main(void) {
 
     printf("LZ raft tests:\n");
     RegisterLZRaftTests();
+    RegisterPushBlockTests();
+    RegisterLZBlocksTests();
+    RegisterDrownCountTests();
+    RegisterRollerTests();
     RegisterSpikeBallTests();
     RegisterStaircaseTests();
     RegisterOscillatorTests();

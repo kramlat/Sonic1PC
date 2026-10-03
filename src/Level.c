@@ -1230,7 +1230,8 @@ void SignpostArtLoad(void) {
 }
 
 // Level object loading
-#define LOAD_WIDTH (((SCREEN_WIDTH + 0x80) & ~0x7F) + 0x100) // I dunno
+// The load range of the original 320-pixel picture, whatever the picture size: see IS_OFFSCREEN (Macros.h)
+#define LOAD_WIDTH (((320 + 0x80) & ~0x7F) + 0x100) // I dunno
 
 static bool ChkLoadObj(uint8_t index, const uint8_t** entry) {
     // Handle object state

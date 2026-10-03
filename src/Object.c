@@ -963,7 +963,8 @@ static int32_t Solid_ChkEnterY(Object *obj, uint16_t x_rad, uint16_t y_rad, int1
 	
 	//Clear pushing state
 	if (obj->status.o.f.player_push) {
-		player->anim = SonAnimId_Run; //Not Walk
+		// (The original forces the running animation here, which is the infamous "walk-jump bug": jumping off a monitor, a wall or a
+		// solid object left Sonic with the walking animation in the air. Not done here.)
 		obj->status.o.f.player_push = false;
 		player->status.p.f.pushing = false;
 	}

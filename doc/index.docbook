@@ -137,6 +137,26 @@ the table above. The choices are saved with the other settings.</para>
 </mediaobject>
 </screenshot>
 
+<para>The <guilabel>Gamepad</guilabel> tab of the same window sets how far a stick has to move before it counts: a
+<emphasis>dead zone</emphasis> for the left stick, which moves Sonic, and one for the right stick, which only the debug
+tools use. A stick that is worn and drifts can make Sonic creep along on its own; raise its dead zone until the dot in the
+picture stays inside the shaded square while the stick is at rest. This does what Steam Input's dead zone would, without
+needing it. Each stick has a picture and a readout showing where it is as you move it, as a percentage of its
+travel, and whether that counts as a push or is inside the dead zone.</para>
+
+<para>The dead zone has two shapes. A <guilabel>Box</guilabel> judges each direction on its own: the stick has to pass the
+line on that axis. A <guilabel>Ring</guilabel> judges the stick's overall push, in any direction: drift that sits a little
+off to one side stays ignored, and once the stick is pushed past the ring, the push is read as one of eight directions. The
+shaded area in the picture changes with the choice.</para>
+
+<screenshot>
+<screeninfo>The gamepad settings</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/controls-gamepad.png" format="PNG"/></imageobject>
+<textobject><phrase>The Gamepad tab: a view of each stick with its dead zone shaded, and a slider for each.</phrase></textobject>
+</mediaobject>
+</screenshot>
+
 <para>Any of the three buttons A, B and C makes Sonic jump (hold it for a higher jump). Press
 <keycap>Down</keycap> to roll up into a ball while you run, to duck while you stand still, and to look down. Press
 <guibutton>Start</guibutton> to pause; while the game is paused, <guibutton>B</guibutton> held or

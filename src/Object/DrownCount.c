@@ -118,7 +118,9 @@ void Obj_DrownCount(Object *obj) {
         // displayed -- and since it was never displayed, on_screen would
         // never become true, making the deletion permanent. Same fix as
         // AirBubbles.c; same reasoning.
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
+        // (Only while it still has a world position: a number that has just become screen-fixed holds its screen position in those
+        // bytes, see Drown_AirLeft.)
+        if (obj->render.f.align_fg && IS_OFFSCREEN(obj->pos.l.x.f.u)) {
             ObjectDelete(obj);
             return;
         }
@@ -151,8 +153,10 @@ void Obj_DrownCount(Object *obj) {
 
         if (--scratch->num_time != 0) {
             AnimateSprite(obj, Animation_DrowningCountdown);
-            // Same on_screen -> IS_OFFSCREEN fix as case 4 above.
-            if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
+            // A number stuck to the screen keeps its screen position in the same bytes that hold a world X, so IS_OFFSCREEN would
+            // read the screen Y as an X and delete it at once wherever the camera is not near the left edge. It has been drawn
+            // already (this is not a fresh bubble), so the drawn flag is valid here, as in the original.
+            if (!obj->render.f.on_screen) {
                 ObjectDelete(obj);
                 return;
             }

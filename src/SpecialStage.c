@@ -388,7 +388,14 @@ void SS_AniItems(void) {
     }
 }
 
+// Division rounding down, for the cells before the stage's top and left edges (negative positions).
+static int FloorDiv(int a, int b) {
+    int q = a / b;
+    return (a % b != 0 && (a < 0) != (b < 0)) ? q - 1 : q;
+}
+
 void SS_ShowLayout(uint8_t sprite_i) {
+    int sonic_screen_x, sonic_screen_y; // where Sonic is on the screen
     // Animate stage
     SS_AniWallsRings();
     SS_AniItems();
@@ -402,8 +409,17 @@ void SS_ShowLayout(uint8_t sprite_i) {
     const int grid = (SCREEN_WIDTH > 320 || SCREEN_HEIGHT > 224) ? SS_GRID_MAX : 16;
     const int margin = (grid - 16) / 2; // extra cells before Sonic's
 
-    int16_t d2 = -((uint16_t)scrpos_x.f.u % 24) - (grid * 12 - 12);
-    int16_t d3 = -((uint16_t)scrpos_y.f.u % 24) - (grid * 12 - 12);
+    // The window of blocks is worked out from where Sonic really is: his place in the stage and his place on the screen (the centre of
+    // the picture, unless the camera is held back at an edge of the stage). The first cell is the one a centred camera would start at,
+    // less the extra cells; its offset from Sonic, plus the original's own offsets (20 across, 68 down), is where the window starts
+    // relative to him. With the original 320x224 picture and its 16 cells that comes to the original's 180 either way.
+    const int sonic_x = (uint16_t)player->pos.l.x.f.u, sonic_y = (uint16_t)player->pos.l.y.f.u;
+    sonic_screen_x = sonic_x - (uint16_t)scrpos_x.f.u;
+    sonic_screen_y = sonic_y - (uint16_t)scrpos_y.f.u;
+    const int first_x = FloorDiv(sonic_x - SCREEN_WIDTH / 2, 24) - margin;
+    const int first_y = FloorDiv(sonic_y - SCREEN_HEIGHT / 2, 24) - margin;
+    int16_t d2 = (int16_t)(first_x * 24 - sonic_x - 20);
+    int16_t d3 = (int16_t)(first_y * 24 - sonic_y - 68);
     int16_t d4 = sin * 24;
     int16_t d5 = cos * 24;
 
@@ -421,8 +437,8 @@ void SS_ShowLayout(uint8_t sprite_i) {
     }
 
     // Get layout offset
-    int ly = (int)((uint16_t)scrpos_y.f.u / 24) - margin;
-    int lx = (int)((uint16_t)scrpos_x.f.u / 24) - margin;
+    int ly = first_y;
+    int lx = first_x;
 
     // Draw sprites
     const int16_t* pos = ss_drawtable;
@@ -435,8 +451,8 @@ void SS_ShowLayout(uint8_t sprite_i) {
             uint8_t block = (cx >= 0 && cx < SS_DIM && cy >= 0 && cy < SS_DIM) ? ss_layout[cx + cy * SS_DIM] : 0;
             if (block != 0 && block <= SS_MAPPINGS) {
                 // Get block position
-                uint16_t x = pos[0] + (0x80 + (SCREEN_WIDTH >> 1));
-                uint16_t y = pos[1] + (0x80 + (SCREEN_HEIGHT >> 1));
+                uint16_t x = pos[0] + (0x80 + sonic_screen_x);
+                uint16_t y = pos[1] + (0x80 + sonic_screen_y);
                 if (x >= 0x70 && x < (0x1D0 + SCREEN_WIDEADD) && y >= 0x70 && y < (0x170 + SCREEN_TALLADD)) {
                     // Get block mapping
                     struct SS_Mapping* mapping = &ss_mappings[block];

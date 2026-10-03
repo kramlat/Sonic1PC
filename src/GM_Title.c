@@ -153,33 +153,22 @@ static void LevSelTextLoad(int selected) {
     }
 }
 
-// The hidden sound test values. With the hidden-credits cheat on, the original's sound test also had 9E (starts the
-// credits) and 9F (starts the ending); here both open the Easter Eggs menu instead, which holds those and more.
+// The sound test's last two values, 9E and 9F, open the Easter Eggs menu (the original's sound test started the credits at 9E and the
+// ending at 9F once a cheat was on; the menu holds those and more). Every value in between the last real sound and 9E is an empty
+// slot that plays nothing but can be stepped onto, so the two are reached the same way as any other value, by pressing Right (or
+// Left from 00, which wraps round to 9F).
 #define LEVSEL_EGG_FIRST 0x9E
 #define LEVSEL_EGG_LAST  0x9F
 
 static bool LevSelIsEggValue(int value) {
-    return credits_cheat && (value == LEVSEL_EGG_FIRST || value == LEVSEL_EGG_LAST);
+    return value == LEVSEL_EGG_FIRST || value == LEVSEL_EGG_LAST;
 }
 
-// The sound test number after a Left/Right press. With the cheat on, the two hidden values sit after the last sound.
+// The sound test number after a Left/Right press: all values in turn from 00 to 9F, wrapping round.
 static int LevSelStepSound(int value, bool right) {
-    if (right) {
-        if (value < LEVSEL_SNDTEST_MAX)
-            return value + 1;
-        if (credits_cheat && value == LEVSEL_SNDTEST_MAX)
-            return LEVSEL_EGG_FIRST;
-        if (credits_cheat && value == LEVSEL_EGG_FIRST)
-            return LEVSEL_EGG_LAST;
-        return 0;
-    }
-    if (value == 0)
-        return credits_cheat ? LEVSEL_EGG_LAST : LEVSEL_SNDTEST_MAX;
-    if (value == LEVSEL_EGG_LAST)
-        return LEVSEL_EGG_FIRST;
-    if (value == LEVSEL_EGG_FIRST)
-        return LEVSEL_SNDTEST_MAX;
-    return value - 1;
+    if (right)
+        return value < LEVSEL_EGG_LAST ? value + 1 : 0;
+    return value > 0 ? value - 1 : LEVSEL_EGG_LAST;
 }
 
 // Draws one line of the level select's text area (blank-padded to its width).
@@ -323,7 +312,7 @@ static void LevelSelect(void) {
                     return; // a game mode was picked
                 }
                 LevSelTextLoad(item);
-            } else if (item == LEVSEL_SNDTEST_ROW)
+            } else if (item == LEVSEL_SNDTEST_ROW) {
                 // Plays through the new JSON tree-walking engine (verified
                 // byte-identical to the byte-VM across the whole real
                 // content set) rather than QueueSound2's byte-VM route --
@@ -333,8 +322,9 @@ static void LevelSelect(void) {
                 // numbering directly (this project's own core underneath,
                 // same on-screen behavior). Stays in the loop -- doesn't
                 // exit level select.
-                Sound_PlayFromJSON((uint8_t)(levsel_sound));
-            else
+                if (levsel_sound <= LEVSEL_SNDTEST_MAX) // (the empty slots up to 9D play nothing)
+                    Sound_PlayFromJSON((uint8_t)(levsel_sound));
+            } else
                 break;
         }
     }

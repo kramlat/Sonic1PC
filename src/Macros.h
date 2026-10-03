@@ -49,7 +49,10 @@
 #define POSITIVE_MOD(x, y) (((x) % (y) + (y)) % (y))
 
 //LevelScroll.h must be included
-#define IS_OFFSCREEN(x) (uint16_t)(((x) & ~0x7F) - ((scrpos_x.f.u - 0x80) & ~0x7F)) > (((SCREEN_WIDTH + 0x80) & ~0x7F) + 0x100)
+// (The range is the original 320-pixel picture's, whatever the picture size: it is rounded to steps of 128 pixels, so a wider picture
+// would move the step where objects wake and go, and attract-mode demos, which replay recorded button presses, would go wrong. It is
+// already wide enough to cover the widest picture.)
+#define IS_OFFSCREEN(x) (uint16_t)(((x) & ~0x7F) - ((scrpos_x.f.u - 0x80) & ~0x7F)) > (((320 + 0x80) & ~0x7F) + 0x100)
 
 //Resource include
 #ifdef SCP_REV00

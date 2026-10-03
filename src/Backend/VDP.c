@@ -571,6 +571,12 @@ void VDP_Render(void) {
 	vdp_screen = &vdp_screen_internal[VDP_INTERNAL_PAD];
 	vdp_mask = &vdp_mask_internal[VDP_INTERNAL_PAD];
 
+	//Send vertical interrupt. On a real VDP the vertical blank comes first: its handler copies the camera, the scroll tables, the
+	//palette and the sprite table for the frame that is drawn after it, all together. Running it after the frame was drawn (as this
+	//once did) showed the planes scrolled to the previous camera while the sprites, which are read live, had the new one: objects
+	//drifted against the background whenever the screen scrolled.
+	vdp_vint();
+
 	//Calculate sprite cache
 	memset(vdp_sprite_cache, 0, sizeof(vdp_sprite_cache));
 
@@ -648,8 +654,6 @@ void VDP_Render(void) {
 			VDP_DrawScanline(y, to, tom, scache, hscroll);
 	}
 	
-	//Send vertical interrupt
-	vdp_vint();
 	//Render screen
 	Render_Screen(vdp_screen);
 

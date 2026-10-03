@@ -1463,7 +1463,7 @@ if(BUILD_TESTS)
                                "tests/test_leveldraw.c" "tests/test_levelcollision.c"
                                "tests/test_prison.c" "tests/test_lz3wall.c"
                                "tests/test_bosslz.c" "tests/test_bossslz.c" "tests/test_scrapeggman.c" "tests/test_bossfinal.c" "tests/test_specialstage.c" "tests/test_ending.c" "tests/test_points.c" "tests/test_lzconveyor.c"
-                               "tests/test_lzraft.c" "tests/test_spikeball.c" "tests/test_staircase.c" "tests/test_oscillator.c" "tests/test_scenery.c" "tests/test_audiomute.c" "tests/test_demorecord.c" "tests/test_sounddriver.c" "tests/test_objcollision.c"
+                               "tests/test_lzraft.c" "tests/test_pushblock.c" "tests/test_lzblocks.c" "tests/test_drowncount.c" "tests/test_roller.c" "tests/test_spikeball.c" "tests/test_staircase.c" "tests/test_oscillator.c" "tests/test_scenery.c" "tests/test_audiomute.c" "tests/test_demorecord.c" "tests/test_sounddriver.c" "tests/test_objcollision.c"
                                "tests/test_giantring.c" "tests/test_checkpoint.c")
     target_link_libraries(SonicTests PRIVATE SonicCore)
     set_target_properties(SonicTests PROPERTIES C_STANDARD 99

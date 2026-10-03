@@ -438,7 +438,28 @@ static void Sound_EverySongTicks(void) {
     }
 }
 
+// An effect that is sounding through the PSG noise generator keeps its noise mode when another effect starts (the chip-wide noise
+// control used to be reset by every effect that loaded: the burning platforms of Marble Zone turned into a harsh buzz).
+static void Sound_OverlappingEffectKeepsNoiseMode(void) {
+    ResetSound();
+    PlaySound(sfx_Burning);
+    for (int f = 0; f < 6; f++)
+        Sound_Frame();
+    int fb = sound_sfx.psg.noise_fb_white, rate = sound_sfx.psg.noise_shift_rate;
+    int noise_track = 0;
+    for (int i = 0; i < SOUND_CHANNELS; i++)
+        if (sound_sfx.channels[i].active && sound_sfx.channels[i].psg_noise)
+            noise_track = 1;
+    printf("\n    [diag] burning: noise mode fb=%d rate=%d, a noise track is active: %d", fb, rate, noise_track);
+    PlaySound(sfx_Ring); // starts while the burning noise is still going
+    for (int f = 0; f < 3; f++)
+        Sound_Frame();
+    printf("\n    [diag] after the ring: fb=%d rate=%d", sound_sfx.psg.noise_fb_white, sound_sfx.psg.noise_shift_rate);
+    CHECK_EQ(sound_sfx.psg.noise_fb_white, fb);
+    CHECK_EQ(sound_sfx.psg.noise_shift_rate, rate);
+}
 void RegisterSoundDriverTests(void) {
+    RUN_TEST(Sound_OverlappingEffectKeepsNoiseMode);
     RUN_TEST(Ring_CollectPlaysSound);
     RUN_TEST(Sound_SongChangeSilencesPreviousNotes);
     RUN_TEST(Sound_ExtraLifeCrossfadesBack);

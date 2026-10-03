@@ -209,6 +209,8 @@ static bool LCon_Main_Spawner(Object *obj, uint8_t subtype) {
 
     for (uint16_t i = 0; i <= count; i++) {
         Object *plat = (i == 0) ? obj : FindNextFreeObj(obj);
+        if (plat == NULL) // none left after the spawner: any free slot will do (the original takes the first free one anywhere), or the
+            plat = FindFreeObj(); // rest of the group is never made and a rope loop is left with one or two platforms
         if (plat == NULL)
             break;
 

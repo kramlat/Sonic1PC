@@ -106,6 +106,11 @@ void Load() {
 		g_data.demo_act = Clamp(Read(demo, "last_act", 0), 0, 3);
 
 		YAML::Node controls = root["controls"];
+		if (controls && controls.IsMap()) {
+			Controls_DeadzoneLeft = Clamp(Read(controls, "deadzone_left", Controls_DeadzoneLeft), 0, CONTROLS_DEADZONE_MAX);
+			Controls_DeadzoneRight = Clamp(Read(controls, "deadzone_right", Controls_DeadzoneRight), 0, CONTROLS_DEADZONE_MAX);
+			Controls_DeadzoneRing = Clamp(Read(controls, "deadzone_ring", Controls_DeadzoneRing), 0, 1);
+		}
 		if (controls && controls.IsMap())
 			for (int i = 0; i < CTL_COUNT; i++) {
 				YAML::Node n = controls[kControlNames[i]];
@@ -179,6 +184,9 @@ void Save() {
 	    << YAML::Key << "last_zone" << YAML::Value << g_data.demo_zone
 	    << YAML::Key << "last_act" << YAML::Value << g_data.demo_act << YAML::EndMap;
 	out << YAML::Key << "controls" << YAML::Value << YAML::BeginMap;
+	out << YAML::Key << "deadzone_left" << YAML::Value << Controls_DeadzoneLeft;
+	out << YAML::Key << "deadzone_right" << YAML::Value << Controls_DeadzoneRight;
+	out << YAML::Key << "deadzone_ring" << YAML::Value << Controls_DeadzoneRing;
 	for (int i = 0; i < CTL_COUNT; i++)
 		out << YAML::Key << kControlNames[i] << YAML::Value << YAML::Flow << YAML::BeginMap
 		    << YAML::Key << "key1" << YAML::Value << Controls_Key[i][0]

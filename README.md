@@ -11,7 +11,7 @@ Handbook**, or F1).
 
 * A real window with a menu bar: pick the picture size (original 320x224, or scaled 16:9, 8:5, 5:4 and 4:3, with a widescreen lives
   counter), fullscreen (F11), separate music and sound-effect volumes, and per-channel sound chip mutes.
-* Rebindable keyboard and gamepad controls (**Settings > Configure Sonic the Hedgehog...**).
+* Rebindable keyboard and gamepad controls, and adjustable stick dead zones (box or ring) for a drifting gamepad (**Settings > Configure Sonic the Hedgehog...**).
 * A handbook with screenshots, in KDE's DocBook form (shown by KDE Help Center when installed) and as an HTML window in the game.
 * The KDE About dialog, a Games-menu entry and icons.
 * Easter eggs and cheats: the level select, the sound test, the Japanese credits and an Easter Eggs menu (see the handbook).

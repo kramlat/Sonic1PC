@@ -128,7 +128,7 @@ void Obj_Monitor(Object *obj) {
             } else {
                 // Stop pushing
                 if (obj->status.o.f.player_push) {
-                    player->anim = SonAnimId_Run; // Not Walk
+                    // (no forced running animation here: the original's "walk-jump bug", see SolidObject)
                     player->status.p.f.pushing = false;
                     obj->status.o.f.player_push = false;
                 }

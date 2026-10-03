@@ -119,9 +119,9 @@ int Render_Init(const MD_Header* header) {
 }
 
 // The picture changed size (the window follows it): see Video_SetResolution.
-void Render_SetPictureSize(void) {
+void Render_SetPictureSize(bool resize_window) {
     if (CreateTargets() == 0)
-        QtHost_SetPictureSize(TEXTURE_WIDTH * SCREEN_SCALE, TEXTURE_HEIGHT * SCREEN_SCALE);
+        QtHost_SetPictureSize(TEXTURE_WIDTH * SCREEN_SCALE, TEXTURE_HEIGHT * SCREEN_SCALE, resize_window);
 }
 
 // F11 / View menu: the Qt window handles fullscreen (and hides its menu bar while in it).

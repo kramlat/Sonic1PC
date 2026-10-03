@@ -83,8 +83,10 @@ static void Roll_Action_Jumping(Object *obj, Scratch_Roller *scratch) {
     if (obj->ysp < 0)
         return;
 
+    // Landed once it is below the floor surface (a negative distance: bpl .return in the original). This was the other way round, so
+    // as soon as it started falling the Roller was put on the floor straight away, wherever that was.
     int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
-    if (floor_dist < 0)
+    if (floor_dist >= 0)
         return;
 
     obj->pos.l.y.f.u += floor_dist;

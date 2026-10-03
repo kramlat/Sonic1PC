@@ -95,7 +95,35 @@ static void LZConveyor_PlatformsInitInDirtySlots(void) {
     CHECK_EQ(CountConveyors(), n);
 }
 
+// A group spawner that sits late in the object pool (the slot is the first free one when the level object loader finds it, so this
+// depends on what else was loaded) must still get all of its platforms: they went into slots after the spawner only, and the ones
+// that did not fit were silently dropped, leaving a rope loop with one or two platforms instead of the full set.
+static void LZConveyor_SpawnerLateInThePoolStillMakesTheWholeGroup(void) {
+    for (int i = 0; i < LEVEL_OBJECTS; i++) {
+        memset(&level_objects[i], 0, sizeof(Object));
+        level_objects[i].type = ObjId_Null;
+    }
+    memset(player, 0, sizeof(Object));
+    player->routine = 2;
+    player->pos.l.x.f.u = 0x100;
+    player->pos.l.y.f.u = 0x100;
+    level_id = LEVEL_ID(ZoneId_LZ, 1);
+    memset(obj63_loaded, 0, sizeof(obj63_loaded));
+    memset(f_switch, 0, sizeof(f_switch));
+    f_conveyrev = false;
+    scrpos_x.f.u = 0xC80;
+
+    Object *spawner = &level_objects[LEVEL_OBJECTS - 3];
+    spawner->type = ObjId_LabyrinthConvey;
+    spawner->pos.l.x.f.u = 0xD22;
+    spawner->pos.l.y.f.u = 0x483;
+    spawner->scratch.u8[0] = 0x82; // group 2: 8 platforms
+    Obj_LabyrinthConvey(spawner);
+    CHECK_EQ(CountConveyors(), 8);
+}
+
 void RegisterLZConveyorTests(void) {
+    RUN_TEST(LZConveyor_SpawnerLateInThePoolStillMakesTheWholeGroup);
     RUN_TEST(LZConveyor_GroupRespawnsAfterScrollingAway);
     RUN_TEST(LZConveyor_PlatformsInitInDirtySlots);
 }

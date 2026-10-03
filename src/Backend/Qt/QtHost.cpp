@@ -248,9 +248,11 @@ public:
 
 	// The picture is now width x height pixels (Video > Resolution). A windowed window changes size to show it at that size
 	// (the menu and status bars stay as they are); a fullscreen one keeps its size and letterboxes the new aspect.
-	void SetPictureSize(int width, int height) {
-		view->setMinimumSize(width / 2, height / 2);
+	void SetPictureSize(int width, int height, bool resize_window) {
 		view->setFrame(QImage(width, height, QImage::Format_RGBX8888));
+		if (!resize_window)
+			return; // a demo at the original size: the window stays as it is and the picture is letterboxed
+		view->setMinimumSize(width / 2, height / 2);
 		if (isFullScreen() || isMaximized())
 			return;
 		QSize chrome = size() - view->size();
@@ -582,6 +584,12 @@ int QtHost_Init(const char *title, int width, int height, const uint8_t *icon_rg
 			QTimer::singleShot(1500, g_window, [] {
 				if (QWidget *w = QApplication::activeModalWidget()) {
 					w->grab().save(QString(getenv("SONIC_QT_GRAB")) + "-controls.png");
+					for (QTabWidget *tabs : w->findChildren<QTabWidget *>())
+						for (int t = 0; t < tabs->count(); t++) {
+							tabs->setCurrentIndex(t);
+							QApplication::processEvents();
+							w->grab().save(QString("%1-controls-tab%2.png").arg(getenv("SONIC_QT_GRAB")).arg(t));
+						}
 					w->close();
 				}
 			});
@@ -679,10 +687,10 @@ void QtHost_Present(const void *pixels, int pitch) {
 	g_window->view->repaint();
 }
 
-void QtHost_SetPictureSize(int width, int height) {
+void QtHost_SetPictureSize(int width, int height, bool resize_window) {
 	if (g_window == nullptr)
 		return;
-	g_window->SetPictureSize(width, height);
+	g_window->SetPictureSize(width, height, resize_window);
 }
 
 void QtHost_ToggleFullscreen(void) {

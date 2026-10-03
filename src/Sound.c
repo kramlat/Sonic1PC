@@ -1306,6 +1306,16 @@ static const PJValue *JsonResolveBlock(const PJValue *playlist, const char *name
     return pj_object_get(playlist, name);
 }
 
+// Whether a track on this chip set is playing through the noise generator right now. The noise control register is chip-wide, so a new
+// effect must not reset it while such a track is sounding: the reset (periodic noise, lowest rate) turns a long noise effect that is
+// still going -- the burning platforms of Marble Zone above all -- into a harsh buzz the moment any other effect starts.
+static bool NoiseInUse(const SoundChipSet *cs) {
+    for (int i = 0; i < SOUND_CHANNELS; i++)
+        if (cs->channels[i].active && cs->channels[i].psg_noise)
+            return true;
+    return false;
+}
+
 // JSON-engine equivalent of LoadMusic below -- reads the same schema's
 // "header" array (smpsHeaderChan/Tempo/DAC/FM/PSG) but self-describing
 // rather than count-encoded: each smpsHeaderFM/PSG entry's own PRESENCE is
@@ -1442,7 +1452,8 @@ static void LoadSFXJSON(SoundChipSet *cs, const PJValue *song, const PJValue *pl
     // back to back far more often than songs load). Chip-wide, not a
     // per-channel reset, so it doesn't conflict with this function's own
     // "don't reset channels this SFX doesn't target" rule below.
-    SN76489_Write(&cs->psg, 0xE0);
+    if (!NoiseInUse(cs)) // (an effect already sounding through the noise generator keeps its mode: see NoiseInUse)
+        SN76489_Write(&cs->psg, 0xE0);
     cs->driver_version = driver_version;
     const PJValue *voices = pj_object_get(song, "voices");
     const PJValue *header = pj_object_get(song, "header");
@@ -1626,7 +1637,8 @@ static int SFXChannelIndex(uint8_t chanid) {
 // those may belong to whatever's already playing (e.g. music sharing the
 // chip set, or another SFX's other channels).
 static void LoadSFX(SoundChipSet *cs, const uint8_t *song, uint8_t driver_version) {
-    SN76489_Write(&cs->psg, 0xE0); // see LoadMusicJSON's comment on this (byte-VM equivalent)
+    if (!NoiseInUse(cs)) // (an effect already sounding through the noise generator keeps its mode: see NoiseInUse)
+        SN76489_Write(&cs->psg, 0xE0); // see LoadMusicJSON's comment on this (byte-VM equivalent)
     const uint8_t *p = song;
     uint16_t voice_off = ReadWord(p);
     p += 2;
