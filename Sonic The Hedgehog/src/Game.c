@@ -288,7 +288,7 @@ void VBlank(void) {
         // Lag frame. Only LZ does anything here in the original: rewrite
         // the palette and the water palette-swap line so a lag frame keeps
         // the split intact.
-        if (((gamemode & 0x7F) == GameMode_Level) && LEVEL_ZONE(level_id) == ZoneId_LZ) {
+        if (((gamemode & 0x7F) == GameMode_Level) && Level_HasWater()) {
             VDP_SeekCRAM(0);
             if (wtr_state)
                 VDP_WriteCRAM(&wet_palette[0][0], 0x40);

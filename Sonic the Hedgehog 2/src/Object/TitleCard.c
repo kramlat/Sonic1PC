@@ -160,7 +160,8 @@ void Obj_GotThroughCard(Object *obj) {
 
         if (ticked) {
             AddPoints(ticked);
-            PlaySound(sfx_Switch);
+            if ((frame_count & 3) == 0) // (the blip is every 4th frame, as in Nick Arcade)
+                PlaySound(sfx_Switch);
         } else {
             PlaySound(sfx_Cash);
             obj->routine += 2; // -> Got_Wait, before Got_NextLevel

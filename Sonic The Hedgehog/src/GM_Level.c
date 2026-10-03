@@ -289,7 +289,7 @@ GM_Level_Branch:;
     VDP_SetHIntCounter(SCREEN_HEIGHT - 1);
     hbla_counter = SCREEN_HEIGHT - 1;
     VDP_SetHIntEnable(false);
-    if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
+    if (Level_HasWater()) {
         VDP_SetHIntEnable(true);
         // Matches the original: all three water heights start at the act's
         // WaterHeight entry, and the dynamic water routine and "screen is
@@ -298,8 +298,7 @@ GM_Level_Branch:;
         // afterwards. Without the routine reset, LZ3 inherited LZ1's
         // finished routine (LZ2 never touches it) and started with water.
         // LZ act 4 is SBZ3, see [[project_lz_act4_sbz3]].
-        static const int16_t WaterHeight[4] = { 0xB8, 0x328, 0x900, 0x228 };
-        wtr_pos1 = wtr_pos2 = wtr_pos3 = WaterHeight[LEVEL_ACT(level_id)];
+        wtr_pos1 = wtr_pos2 = wtr_pos3 = Level_WaterStartHeight();
         wtr_routine = 0;
         wtr_state = 0;
     }
@@ -307,8 +306,8 @@ GM_Level_Branch:;
 
     // Load Sonic's palette
     PalLoad2(PalId_Sonic);
-    if (LEVEL_ZONE(level_id) == ZoneId_LZ)
-        PalLoad3_Water((LEVEL_ACT(level_id) == 3) ? PalId_SonicSBZ : PalId_SonicLZ);
+    if (Level_HasWater())
+        Level_LoadWaterPalettes(true);
     // (The original also restores the checkpoint's water state here; this port does that with the rest of the checkpoint, see Level.c.)
 
     if (demo >= 0) {
@@ -359,14 +358,8 @@ GM_Level_Branch:;
         objects[1].type = ObjId_HUD;
     Game_LevelObjects();
 
-    if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
-        objects[WATERSURFACE_SLOT_LEFT].type = ObjId_WaterSurface;
-        objects[WATERSURFACE_SLOT_LEFT].pos.l.x.f.u = 0x60;
-        objects[WATERSURFACE_SLOT_RIGHT].type = ObjId_WaterSurface;
-        objects[WATERSURFACE_SLOT_RIGHT].pos.l.x.f.u = 0x120;
-        objects[WATERSURFACE_SLOT_EXTRA].type = ObjId_WaterSurface;
-        objects[WATERSURFACE_SLOT_EXTRA].pos.l.x.f.u = 0x1E0;
-    }
+    if (Level_HasWater())
+        Level_MakeWaterSurfaces();
 
     // Handle debug mode cheat. Debug builds skip the "hold A" requirement
     // too -- debug_cheat alone (itself unconditionally on in debug builds,
@@ -429,8 +422,8 @@ GM_Level_Branch:;
 
     // Load level's water palette (act 3 is the SBZ3-under-LZ slot -- purple
     // water, not LZ's usual green)
-    if (LEVEL_ZONE(level_id) == ZoneId_LZ)
-        PalLoad4_Water((LEVEL_ACT(level_id) == 3) ? PalId_SBZ3Water : PalId_LZWater);
+    if (Level_HasWater())
+        Level_LoadWaterPalettes(false);
 
     // Wait for 4 frames
     for (int i = 0; i < 4; i++) {

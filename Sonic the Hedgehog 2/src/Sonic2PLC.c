@@ -121,6 +121,19 @@
 #include "Resource/Art/Spikes.h"
 #include "Resource/Art/EHZBridge.h"
 #include "Resource/Art/EHZWaterfall.h"
+#include "Resource/Art/CPZDust.h"
+#include "Resource/Art/HPZBridge.h"
+#include "Resource/Art/Redz.h"
+#include "Resource/Art/BBat.h"
+#include "Resource/Art/HPZWaterfall.h"
+#include "Resource/Art/HPZPlatform.h"
+#include "Resource/Art/HPZOrb.h"
+#include "Resource/Art/HTZLift.h"
+#include "Resource/Art/HTZSeesaw.h"
+#include "Resource/Art/HPZCork.h"
+#include "Resource/Art/HPZEmerald.h"
+#include "Resource/Art/WaterSurface.h"
+#include "Resource/Art/CPZPlatform.h"
 #include "Resource/Art/BossShip.h"
 #include "Resource/Art/BossEHZ.h"
 #include "Resource/Art/BossEHZBlades.h"
@@ -273,8 +286,10 @@ static const PLCList PLC_LZ2 = {
 // Pattern load cues - Marble
 // ---------------------------------------------------------------------------
 static const PLCList PLC_MZ = { // Chemical Plant
-    4,
+    6,
     (const PLC[]) {
+        { Art_CPZDust,       ART_VRAM(0x3D0) },
+        { Art_CPZPlatform,   ART_VRAM(0x400) },
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
@@ -321,8 +336,17 @@ static const PLCList PLC_SLZ2 = { // (Emerald Hill's objects' art comes with the
 // Pattern load cues - Spring Yard
 // ---------------------------------------------------------------------------
 static const PLCList PLC_SYZ = { // Hidden Palace
-    4,
+    13,
     (const PLC[]) {
+        { Art_Redz,          ART_VRAM(0x500) },
+        { Art_BBat,          ART_VRAM(0x530) },
+        { Art_HPZBridge,     ART_VRAM(0x300) },
+        { Art_HPZWaterfall,  ART_VRAM(0x315) },
+        { Art_HPZPlatform,   ART_VRAM(0x34A) },
+        { Art_HPZOrb,        ART_VRAM(0x35A) },
+        { Art_HPZCork,       ART_VRAM(0x37C) },
+        { Art_HPZEmerald,    ART_VRAM(0x392) },
+        { Art_WaterSurface,  ART_VRAM(0x400) },
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
@@ -348,8 +372,10 @@ static const PLCList PLC_SYZ2 = {
 // Pattern load cues - Scrap Brain
 // ---------------------------------------------------------------------------
 static const PLCList PLC_SBZ = { // Hill Top: Emerald Hill's art, and its own from tile $1FC
-    4,
+    6,
     (const PLC[]) {
+        { Art_HTZSeesaw,     ART_VRAM(0x3CE) },
+        { Art_HTZLift,       ART_VRAM(0x3E6) },
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },

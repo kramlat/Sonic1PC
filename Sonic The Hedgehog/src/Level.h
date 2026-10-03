@@ -156,6 +156,12 @@ extern int16_t wtr_pos1, wtr_pos2, wtr_pos3;
 extern uint8_t water;
 extern uint8_t wtr_routine;
 
+// The level's water (Sonic 1: Labyrinth's; Sonic 2: Hidden Palace's): each game's own Level.c says whether the level has it, where it starts, what palettes it uses, and what is put on its surface
+bool Level_HasWater(void);
+int16_t Level_WaterStartHeight(void);
+void Level_LoadWaterPalettes(bool sonic); // Sonic's underwater palette (sonic) or the level's
+void Level_MakeWaterSurfaces(void);
+
 
 
 extern uint16_t opl_routine;

@@ -478,6 +478,7 @@ void Deform_CPZ(void) {
 }
 
 // Hidden Palace (Deform_HPZ): bands of the background scroll at their own speeds, picked by the background's height (Deform_All)
+void Water_Ripple(void);
 void Deform_HPZ(void) {
 	BGScroll_Block1((int32_t)scrshift_x << 6, SCROLL_FLAG_LEFT);
 	UpdateBGScroll(&bg_scrpos_y, (int32_t)scrshift_y << 7, &bg1_yblock, &bg1_scroll_flags, 1 << 6, 1 << 7); // (BGScroll_SetupY with d6 = 6)
@@ -511,6 +512,8 @@ void Deform_HPZ(void) {
 	HS_Lines(&h, first, *band++);
 	while (h.left > 0)
 		HS_Lines(&h, 16, *band++);
+    if (Level_HasWater())
+        Water_Ripple(); // the underwater ripple (LZWaterFeatures.c)
 }
 
 // Hill Top (Deform_HTZ): the top of the background a eighth of the way across, then bands that run on to a half

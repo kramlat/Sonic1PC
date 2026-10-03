@@ -1,0 +1,336 @@
+// Hill Top's own objects for Sonic 2 (Nick Arcade's 14 and 16): the seesaw with its ball (14), and the lift that carries whoever stands on it down the slope (16). Both carry Sonic and Tails.
+#include "Object/HTZObjects.h"
+#include "Constants.h"
+
+#include "Level.h"
+#include "LevelScroll.h"
+#include "Object/Sonic.h"
+#include "Object/Tails.h"
+#include "Solid.h"
+#include "Sound.h"
+
+#include "Macros.h"
+
+extern const uint8_t Mappings_HTZLift[]; // (defined with Scenery.c, which draws its poles)
+#include "Resource/Mappings/HTZSeesaw.h"
+#include "Resource/Mappings/HTZSeesawBall.h"
+
+static Object *Character(int who) {
+    return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object 14: the seesaw, and (the same object in other routines) its ball
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype;   // 0x28: 0 for a seesaw with a ball
+    uint8_t pad0[7];   // 0x29-0x2F
+    int16_t orig_x;    // 0x30
+    int16_t pad1;      // 0x32
+    int16_t orig_y;    // 0x34 (the ball's)
+    int16_t pad2;      // 0x36
+    int16_t speed;     // 0x38: how fast Sonic was falling when he landed on it
+    int8_t state;      // 0x3A: seesaw: which end is down (0 left, 1 flat, 2 right); ball: which side it is on (0 or 2)
+    uint8_t pad3;      // 0x3B
+    uint8_t parent;    // 0x3C: (the ball's) the slot of its seesaw: an index, not a pointer, so it cannot dangle
+} Scratch_Seesaw;
+
+enum { SeesawRoutine_Init = 0, SeesawRoutine_Main = 2, SeesawRoutine_Ball = 6, SeesawRoutine_MoveBall = 8, SeesawRoutine_BallFall = 0xA };
+
+// How high the ball sits on each end, by the seesaw's frame and which end it is on (Seesaw_YOffsets): low, balanced, high, balanced, low
+static const int16_t seesaw_y_offsets[5] = { -8, -0x1C, -0x2F, -0x1C, -8 };
+
+// The top of the seesaw, a height for each 2 pixels of its width (Seesaw_SlopeData and Seesaw_FlatData)
+static const uint8_t seesaw_slope[0x30] = {
+    0x14, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1A, 0x18, 0x16, 0x14, 0x13, 0x12, 0x11, 0x10, 0x0F, 0x0E,
+    0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00, 0xFF, 0xFE,
+    0xFD, 0xFC, 0xFB, 0xFA, 0xF9, 0xF8, 0xF7, 0xF6, 0xF5, 0xF4, 0xF3, 0xF2, 0xF2, 0xF2, 0xF2, 0xF2,
+};
+static const uint8_t seesaw_flat[0x30] = {
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+};
+
+// Which end of the seesaw a character standing on it weighs down: 2 if he is on its left, 0 if on its right, 1 if he is in the middle (within 8 pixels of it)
+static int Seesaw_Side(const Object *obj, const Object *chr) {
+    uint16_t d0 = (uint16_t)(obj->pos.l.x.f.u - chr->pos.l.x.f.u);
+    int side = 2;
+    if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)chr->pos.l.x.f.u) { // (he is on its right)
+        d0 = (uint16_t)-(int16_t)d0;
+        side = 0;
+    }
+    return d0 < 8 ? 1 : side;
+}
+
+// The frame moves a step toward the one the weight asks for (Seesaw_ChangeFrame), and the seesaw is mirrored for the frames on its other side
+static void Seesaw_ChangeFrame(Object *obj, Scratch_Seesaw *scratch, int wanted) {
+    int frame = obj->frame;
+    if (frame == wanted)
+        return;
+    frame += frame < wanted ? 1 : -1;
+    obj->frame = (uint8_t)frame;
+    scratch->state = (int8_t)wanted;
+    obj->render.f.x_flip = (frame & 2) != 0;
+}
+
+// The seesaw's own object: from `Seesaw_Init` on
+static void Seesaw_Init(Object *obj, Scratch_Seesaw *scratch) {
+    obj->routine += 2;
+    obj->mappings = Mappings_HTZSeesaw;
+    obj->tile = TILE_MAP(0, 0, 0, 0, 0x3CE);
+    obj->render.f.level_fg = true;
+    obj->priority = 4;
+    obj->width_pixels = 0x30;
+    scratch->orig_x = obj->pos.l.x.f.u;
+
+    if (scratch->subtype == 0) { // with a ball
+        Object *ball = FindNextFreeObj(obj + 1);
+        if (ball != NULL) {
+            Scratch_Seesaw *ball_scratch = (Scratch_Seesaw *)&ball->scratch;
+            ball->type = obj->type;
+            ball->routine = SeesawRoutine_Ball;
+            ball->pos.l.x.f.u = obj->pos.l.x.f.u;
+            ball->pos.l.y.f.u = obj->pos.l.y.f.u;
+            ball->status.b = obj->status.b;
+            ball_scratch->parent = (uint8_t)(obj - objects);
+        }
+    }
+
+    if (obj->status.o.f.x_flip)
+        obj->frame = 2; // (a duplicate of frame 0, mirrored)
+    scratch->state = (int8_t)obj->frame;
+}
+
+static void Seesaw_Main(Object *obj, Scratch_Seesaw *scratch) {
+    int wanted = scratch->state;
+    bool sonic_on = (obj->status.b & 8) != 0, tails_on = (obj->status.b & 0x10) != 0;
+    if (sonic_on) {
+        wanted = Seesaw_Side(obj, player);
+        if (tails_on) {
+            wanted += Seesaw_Side(obj, TAILS_OBJ);
+            if (wanted == 3)
+                wanted++;
+            wanted >>= 1;
+        }
+    } else if (tails_on) {
+        wanted = Seesaw_Side(obj, TAILS_OBJ);
+    }
+    Seesaw_ChangeFrame(obj, scratch, wanted);
+
+    const uint8_t *slope = (obj->frame & 1) ? seesaw_flat : seesaw_slope;
+    scratch->speed = player->ysp; // (how fast Sonic comes down on it, before he lands and his speed is lost)
+    int16_t x = obj->pos.l.x.f.u;
+    for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+        Object *chr = Character(who);
+        if (chr != NULL)
+            Solid_SlopedPlatform(obj, chr, who, obj->width_pixels, slope, x);
+    }
+}
+
+// The seesaw of a ball: still the same object, of the same routine (Main), and not one that has been replaced by another id's object or a ball
+static Object *Seesaw_Parent(const Object *ball, const Scratch_Seesaw *scratch) {
+    Object *parent = &objects[scratch->parent];
+    if (scratch->parent == 0 || parent == ball || parent->type != ball->type || parent->routine != SeesawRoutine_Main)
+        return NULL;
+    return parent;
+}
+
+static void Seesaw_Ball_Init(Object *obj, Scratch_Seesaw *scratch) {
+    obj->routine += 2;
+    obj->mappings = Mappings_HTZSeesawBall;
+    obj->tile = TILE_MAP(0, 0, 0, 0, 0x3CE);
+    obj->render.f.level_fg = true;
+    obj->priority = 4;
+    obj->col_type = 0x8B;
+    obj->width_pixels = 0xC;
+    scratch->orig_x = obj->pos.l.x.f.u;
+    obj->pos.l.x.f.u += 0x28;
+    obj->pos.l.y.f.u += 0x10;
+    scratch->orig_y = obj->pos.l.y.f.u;
+    obj->frame = 1;
+    if (obj->status.o.f.x_flip) { // the seesaw is flipped: the ball starts on the other side
+        obj->pos.l.x.f.u -= 0x50;
+        scratch->state = 2;
+    }
+}
+
+// The height of the ball when it is resting on the seesaw's end it is at
+static int16_t Ball_RestY(const Object *ball, const Scratch_Seesaw *scratch, const Object *parent) {
+    int index = parent->frame;
+    if ((uint16_t)ball->pos.l.x.f.u < (uint16_t)scratch->orig_x)
+        index += 2;
+    return (int16_t)(scratch->orig_y + seesaw_y_offsets[index]);
+}
+
+static void Seesaw_BallFall(Object *obj, Scratch_Seesaw *scratch);
+
+static void Seesaw_MoveBall(Object *obj, Scratch_Seesaw *scratch) {
+    Object *parent = Seesaw_Parent(obj, scratch);
+    if (parent == NULL) {
+        ObjectDelete(obj);
+        return;
+    }
+    Scratch_Seesaw *pscratch = (Scratch_Seesaw *)&parent->scratch;
+
+    int diff = scratch->state - pscratch->state;
+    if (diff == 0) { // it is where the seesaw says: it rides on its end
+        int16_t x_off = 0x28;
+        int index = parent->frame;
+        if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)scratch->orig_x) {
+            x_off = -x_off;
+            index += 2;
+        }
+        obj->pos.l.y.f.u = (int16_t)(scratch->orig_y + seesaw_y_offsets[index]);
+        obj->pos.l.x.f.u = (int16_t)(scratch->orig_x + x_off);
+        obj->pos.l.y.f.l = 0;
+        obj->pos.l.x.f.l = 0;
+        return;
+    }
+
+    // the seesaw has been tipped under it: the ball is thrown, the harder the further it tipped and the faster Sonic came down
+    if (diff < 0)
+        diff = -diff;
+    int16_t ysp = (int16_t)0xF7E8, xsp = (int16_t)0xFEEC;
+    if (diff != 1) {
+        ysp = (int16_t)0xF510;
+        xsp = (int16_t)0xFF34;
+        if (pscratch->speed >= 0xA00) {
+            ysp = (int16_t)0xF200;
+            xsp = (int16_t)0xFF60;
+        }
+    }
+    obj->ysp = ysp;
+    obj->xsp = xsp;
+    if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)scratch->orig_x)
+        obj->xsp = (int16_t)-obj->xsp;
+    obj->routine += 2;
+    Seesaw_BallFall(obj, scratch);
+}
+
+// The ball thrown by the seesaw launches whoever is standing on the end that it comes down on
+static void Seesaw_Launch(const Object *ball, Object *chr) {
+    chr->ysp = (int16_t)-ball->ysp;
+    chr->status.p.f.in_air = true;
+    chr->status.p.f.object_stand = false;
+    ((Scratch_Sonic *)&chr->scratch)->jumping = 0;
+    chr->anim = SonAnimId_Spring;
+    chr->routine = 2;
+    PlaySound(sfx_Spring);
+}
+
+static void Seesaw_BallFall(Object *obj, Scratch_Seesaw *scratch) {
+    if (obj->ysp < 0) { // going up
+        ObjectFall(obj);
+        if ((int16_t)(scratch->orig_y - 0x2F) <= obj->pos.l.y.f.u)
+            ObjectFall(obj); // (Nick Arcade moves it a second time once it is higher than that)
+        return;
+    }
+
+    ObjectFall(obj);
+    Object *parent = Seesaw_Parent(obj, scratch);
+    if (parent == NULL) {
+        ObjectDelete(obj);
+        return;
+    }
+    Scratch_Seesaw *pscratch = (Scratch_Seesaw *)&parent->scratch;
+    if (Ball_RestY(obj, scratch, parent) > obj->pos.l.y.f.u)
+        return; // not down yet
+
+    int8_t side = obj->xsp < 0 ? 2 : 0;
+    pscratch->state = side;
+    scratch->state = side;
+    if (side != parent->frame) { // the ball came down on an end that was up: the seesaw throws up whoever is on it
+        if (parent->status.b & 8) {
+            parent->status.b &= (uint8_t)~8;
+            Seesaw_Launch(obj, player);
+        }
+        if (parent->status.b & 0x10) {
+            parent->status.b &= (uint8_t)~0x10;
+            Seesaw_Launch(obj, TAILS_OBJ);
+        }
+    }
+    obj->xsp = 0;
+    obj->ysp = 0;
+    obj->routine -= 2;
+}
+
+void Obj_HTZSeesaw(Object *obj) {
+    Scratch_Seesaw *scratch = (Scratch_Seesaw *)&obj->scratch;
+
+    switch (obj->routine) {
+    case SeesawRoutine_Init:
+        Seesaw_Init(obj, scratch);
+        // fallthrough
+    case SeesawRoutine_Main:
+        Seesaw_Main(obj, scratch);
+        break;
+    case SeesawRoutine_Ball:
+        Seesaw_Ball_Init(obj, scratch);
+        // fallthrough
+    case SeesawRoutine_MoveBall:
+        Seesaw_MoveBall(obj, scratch);
+        break;
+    case SeesawRoutine_BallFall:
+        Seesaw_BallFall(obj, scratch);
+        break;
+    }
+
+    if (obj->type == 0) // (a ball that has lost its seesaw has deleted itself)
+        return;
+    if (IS_OFFSCREEN(scratch->orig_x))
+        ObjectDelete(obj);
+    else
+        DisplaySprite(obj);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object 16: the lift
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t state;     // 0x28: 0 waits for someone to stand on it, 1 slides down the slope, 2 has stopped
+    uint8_t pad0[7];   // 0x29-0x2F
+    int16_t pad1[2];   // 0x30, 0x32: (where it began, kept by the original but not used)
+    int16_t timer;     // 0x34: how long it slides
+} Scratch_HTZLift;
+
+void Obj_HTZLift(Object *obj) {
+    Scratch_HTZLift *scratch = (Scratch_HTZLift *)&obj->scratch;
+
+    if (obj->routine == 0) {
+        obj->routine += 2;
+        obj->mappings = Mappings_HTZLift;
+        obj->tile = TILE_MAP(0, 2, 0, 0, 0x3E6);
+        obj->render.f.level_fg = true;
+        obj->width_pixels = 0x20;
+        obj->frame = 0;
+        obj->priority = 1;
+    }
+
+    int16_t old_x = obj->pos.l.x.f.u;
+    switch (scratch->state & 0xF) {
+    case 0: // when it is stood on it starts to slide
+        if (obj->status.b & 0x18) {
+            scratch->state++;
+            obj->xsp = 0x200;
+            obj->ysp = 0x100;
+            scratch->timer = 0xA0;
+        }
+        break;
+    case 1:
+        SpeedToPos(obj);
+        if (--scratch->timer == 0)
+            scratch->state++;
+        break;
+    }
+
+    for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+        Object *chr = Character(who);
+        if (chr != NULL)
+            Solid_Platform(obj, chr, who, obj->width_pixels, -0x28, old_x);
+    }
+
+    if (IS_OFFSCREEN(obj->pos.l.x.f.u))
+        ObjectDelete(obj);
+    else
+        DisplaySprite(obj);
+}

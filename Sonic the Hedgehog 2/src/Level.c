@@ -590,3 +590,33 @@ void ObjPosLoad(void) {
         Rings_Update(scrpos_x.f.u);
     }
 }
+
+// The level's water: Hidden Palace's (Nick Arcade: Water_flag is set for zone 4). Sonic 1's Labyrinth code does the rest in LZWaterFeatures.c's place, as Sonic 2's own copy of it.
+#include "Object/WaterSurface.h"
+
+bool Level_HasWater(void) {
+    return LEVEL_ZONE(level_id) == ZoneId_SYZ;
+}
+
+// WaterHeight: the first act's is $600 (the lower the number the higher the water; Tails' pad moves it)
+int16_t Level_WaterStartHeight(void) {
+    static const int16_t WaterHeight[4] = { 0x600, 0x328, 0x900, 0x228 };
+    return WaterHeight[LEVEL_ACT(level_id)];
+}
+
+void Level_LoadWaterPalettes(bool sonic) {
+    if (sonic)
+        PalLoad3_Water((LEVEL_ACT(level_id) == 3) ? PalId_SonicSBZ : PalId_SonicLZ);
+    else
+        PalLoad4_Water(PalId_LZWater);
+}
+
+// Two surfaces (Nick Arcade's), each as wide as the screen was ($80 each side of its place), and a third for pictures wider than the original; their places follow the camera
+void Level_MakeWaterSurfaces(void) {
+    objects[WATERSURFACE_SLOT_LEFT].type = 0x04;
+    objects[WATERSURFACE_SLOT_LEFT].scratch.u8[0] = 0;
+    objects[WATERSURFACE_SLOT_RIGHT].type = 0x04;
+    objects[WATERSURFACE_SLOT_RIGHT].scratch.u8[0] = 1;
+    objects[WATERSURFACE_SLOT_EXTRA].type = 0x04;
+    objects[WATERSURFACE_SLOT_EXTRA].scratch.u8[0] = 2;
+}

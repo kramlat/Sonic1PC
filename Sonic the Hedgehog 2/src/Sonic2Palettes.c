@@ -7,6 +7,9 @@
 #include "Resource/S2Palette/HPZ.h"
 #include "Resource/S2Palette/HTZ.h"
 #include "Resource/S2Palette/LevelSel.h" // the prototypes' level select palette
+#include "Resource/S2Palette/HPZWater.h"
+#include "Resource/S2Palette/SonicWater.h"
+#include "Resource/S2Palette/SonicWater4.h"
 // Palettes
 #include "Resource/Palette/Continue.h"
 #include "Resource/Palette/Ending.h"
@@ -41,12 +44,12 @@ PalettePointer palette_pointers[] = {
     /* PalId_SLZ       */ { (const uint16_t*)S2Palette_EHZ, &dry_palette[1][0], 0x30 },
     /* PalId_SBZ1      */ { (const uint16_t*)S2Palette_HTZ, &dry_palette[1][0], 0x30 },
     /* PalId_Special   */ { (const uint16_t*)Palette_Special, &dry_palette[0][0], 0x40 },
-    /* PalId_LZWater   */ { (const uint16_t*)Palette_LZWater, &dry_palette[0][0], 0x40 },
+    /* PalId_LZWater   */ { (const uint16_t*)S2Palette_HPZWater, &dry_palette[0][0], 0x40 }, // (the zone slot that Sonic 1 has Labyrinth in has Hidden Palace's water here),
     /* PalId_SBZ3      */ { (const uint16_t*)S2Palette_HTZ, &dry_palette[1][0], 0x30 },
     /* PalId_SBZ3Water */ { (const uint16_t*)Palette_SBZ3Water, &dry_palette[0][0], 0x40 },
     /* PalId_SBZ2      */ { (const uint16_t*)S2Palette_HTZ, &dry_palette[1][0], 0x30 },
-    /* PalId_SonicLZ   */ { (const uint16_t*)Palette_SonicLZ, &dry_palette[0][0], 0x10 },
-    /* PalId_SonicSBZ  */ { (const uint16_t*)Palette_SonicSBZ, &dry_palette[0][0], 0x10 },
+    /* PalId_SonicLZ   */ { (const uint16_t*)S2Palette_SonicWater, &dry_palette[0][0], 0x10 },
+    /* PalId_SonicSBZ  */ { (const uint16_t*)S2Palette_SonicWater4, &dry_palette[0][0], 0x10 },
     /* PalId_SSResults */ { (const uint16_t*)Palette_SSResults, &dry_palette[0][0], 0x40 },
     /* PalId_Continue  */ { (const uint16_t*)Palette_Continue, &dry_palette[0][0], 0x20 },
     /* PalId_Ending    */ { (const uint16_t*)Palette_Ending, &dry_palette[0][0], 0x40 },

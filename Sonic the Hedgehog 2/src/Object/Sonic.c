@@ -1,5 +1,6 @@
 // Sonic for Sonic 2: a copy of Sonic 1's Sonic.c (Sonic 1 keeps its own), with Nick Arcade's animation code below; his art, mappings, DPLC, animations and palette are Nick Arcade's (res/).
 #include "Object/Sonic.h"
+#include "Object/WaterObjects.h"
 #include "Constants.h"
 #include "DebugLog.h"
 
@@ -38,7 +39,6 @@ static uint8_t spindash_flag;
 static uint16_t spindash_count;
 
 // Skid dust spawn throttle (matches Sonic 2's Obj08's own obj08_dust_timer)
-static uint8_t skid_dust_timer;
 
 uint8_t dbg_ang0, dbg_ang1, dbg_ang2, dbg_ang3; // 0xFFEC-0xFFEF
 
@@ -284,8 +284,8 @@ void Sonic_LoadGfx(Object *obj) {
 
     // Get DPLC script
     const uint8_t* dplc_script = Mappings_SonicDPLC;
-    frame <<= 1;
-    dplc_script += (dplc_script[frame] << 8) | (dplc_script[frame + 1] << 0);
+    size_t index = (size_t)frame << 1; // (a byte would lose the top bit: Nick Arcade has frames above $80)
+    dplc_script += (dplc_script[index] << 8) | (dplc_script[index + 1] << 0);
 
     // Read number of entries
     int16_t entries = (int16_t)((dplc_script[0] << 8) | dplc_script[1]) - 1; // the count is a word (Sonic 2 format)
@@ -301,9 +301,10 @@ void Sonic_LoadGfx(Object *obj) {
         // Read entry
         uint16_t tile = *dplc_script++;
         uint8_t tiles = tile >> 4;
-        tile = ((tile << 8) | (*dplc_script++)) << 5;
+        // (the tile number is 12 bits: Nick Arcade's Sonic has more than 2048 tiles, so the byte offset needs more than 16)
+        size_t offset = (size_t)((tile & 0xF) << 8 | *dplc_script++) * 0x20;
 
-        const uint8_t* fromp = Art_Sonic + tile;
+        const uint8_t* fromp = Art_Sonic + offset;
         do {
             memcpy(top, fromp, 0x20);
             fromp += 0x20;
@@ -687,7 +688,7 @@ static signed int React_ChkHurt(Object *obj, Object *hit) {
 static signed int React_Enemy(Object *obj, Object *hit)
 {
     // Check if we can hurt the enemy
-    if (!(invincibility || obj->anim == SonAnimId_Roll))
+    if (!(invincibility || obj->anim == SonAnimId_Roll || obj->anim == SonAnimId_SpinDash)) // (Nick Arcade: a charging spin dash hurts enemies too: its animation 9)
         return React_ChkHurt(obj, hit);
 
     // Check if enemy is a boss
@@ -976,20 +977,7 @@ static void Sonic_MoveLeft(Object *obj) {
             inertia = -0x80;
         obj->inertia = inertia;
 
-        // Skid
-        if (((obj->angle + 0x20) & 0xC0) == 0x00 && inertia >= 0x400) {
-            obj->anim = SonAnimId_Stop;
-            obj->status.p.f.x_flip = false;
-            PlaySound(sfx_Skid);
-            if (air >= 12) {
-                if (skid_dust_timer == 0) {
-                    skid_dust_timer = 4;
-                    Splash_SpawnSkidDust(obj);
-                } else {
-                    skid_dust_timer--;
-                }
-            }
-        }
+        // (Nick Arcade tests the masked angle against the speed where it means the speed, so its skid never happens: neither does this)
     }
 }
 
@@ -1016,20 +1004,7 @@ static void Sonic_MoveRight(Object *obj) {
             inertia = 0x80;
         obj->inertia = inertia;
 
-        // Skid
-        if (((obj->angle + 0x20) & 0xC0) == 0x00 && inertia <= -0x400) {
-            obj->anim = SonAnimId_Stop;
-            obj->status.p.f.x_flip = true;
-            PlaySound(sfx_Skid);
-            if (air >= 12) {
-                if (skid_dust_timer == 0) {
-                    skid_dust_timer = 4;
-                    Splash_SpawnSkidDust(obj);
-                } else {
-                    skid_dust_timer--;
-                }
-            }
-        }
+        // (Nick Arcade tests the masked angle against the speed where it means the speed, so its skid never happens: neither does this)
     }
 }
 
@@ -1615,7 +1590,7 @@ static bool Sonic_SpinDash(Object *obj) {
 // (Object/DrownCount.h) at its fixed slot. LZWindTunnels/LZWaterSlides
 // (movement inside wind tunnel/water-slide chunks) are in LZWaterFeatures.c.
 static void Sonic_Water(Object *obj) {
-    if (LEVEL_ZONE(level_id) != ZoneId_LZ)
+    if (!Level_HasWater())
         return;
 
     if (obj->pos.l.y.f.u < wtr_pos1) {
@@ -1639,7 +1614,7 @@ static void Sonic_Water(Object *obj) {
         if (obj->ysp < -0x1000)
             obj->ysp = -0x1000; // cap max speed on leaving water
 
-        objects[0x1B].anim = SplashAnim_Splash;
+        NAWaterSplash_Request();
         PlaySound(sfx_Splash);
     } else {
         // Underwater
@@ -1666,7 +1641,7 @@ static void Sonic_Water(Object *obj) {
         if (obj->ysp == 0)
             return;
 
-        objects[0x1B].anim = SplashAnim_Splash;
+        NAWaterSplash_Request();
         PlaySound(sfx_Splash);
     }
 }

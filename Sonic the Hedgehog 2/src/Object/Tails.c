@@ -919,12 +919,7 @@ static void Tails_MoveLeft(Object *obj) {
             inertia = -0x80;
         obj->inertia = inertia;
 
-        // Skid
-        if (((obj->angle + 0x20) & 0xC0) == 0x00 && inertia >= 0x400) {
-            obj->anim = SonAnimId_Stop;
-            obj->status.p.f.x_flip = false;
-            PlaySound(sfx_Skid);
-        }
+        // (Nick Arcade tests the masked angle against the speed where it means the speed, so its skid never happens: neither does this)
     }
 }
 
@@ -951,12 +946,7 @@ static void Tails_MoveRight(Object *obj) {
             inertia = 0x80;
         obj->inertia = inertia;
 
-        // Skid
-        if (((obj->angle + 0x20) & 0xC0) == 0x00 && inertia <= -0x400) {
-            obj->anim = SonAnimId_Stop;
-            obj->status.p.f.x_flip = true;
-            PlaySound(sfx_Skid);
-        }
+        // (Nick Arcade tests the masked angle against the speed where it means the speed, so its skid never happens: neither does this)
     }
 }
 

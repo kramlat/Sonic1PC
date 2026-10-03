@@ -18,6 +18,9 @@ bool Solid_PlatformLand(Object *obj, Object *chr, int who, int16_t x_rad, int16_
 // A platform for the character `who`: carried while standing on it, landing on it otherwise (see Solid.c)
 void Solid_Platform(Object *obj, Object *chr, int who, int16_t x_rad, int16_t y_walk, int16_t x);
 
+// A platform with a sloped top for the character `who` (see Solid.c)
+void Solid_SlopedPlatform(Object *obj, Object *chr, int who, int16_t x_rad, const uint8_t *slope, int16_t x);
+
 // Puts the character on the object as if he had landed on it (see Solid.c)
 void Solid_Ride(Object *obj, Object *chr, int who);
 

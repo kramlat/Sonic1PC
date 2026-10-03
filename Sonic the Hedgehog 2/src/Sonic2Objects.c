@@ -67,6 +67,15 @@ void Obj_Snail(Object *obj);
 void Obj_Spiral(Object *obj);
 void Obj_EHZBoss(Object *obj);
 void Obj_EHZBossPart(Object *obj);
+void Obj_CPZPlatform(Object *obj);
+void Obj_CPZPlatform2(Object *obj);
+void Obj_HPZEmerald(Object *obj);
+void Obj_HPZWaterfall(Object *obj);
+void Obj_CollapsingLedge(Object *obj);
+void Obj_BBat(Object *obj);
+void Obj_NAWaterSurface(Object *obj);
+void Obj_NAWaterSplash(Object *obj);
+void Obj_Redz(Object *obj);
 void Obj_CollapseLedge(Object *obj);
 void Obj_CollapseFloor(Object *obj);
 void Obj_VanishPlatform(Object *obj);
@@ -112,6 +121,8 @@ void Obj_Staircase(Object *obj);
 void Obj_Pylon(Object *obj);
 void Obj_Fan(Object *obj);
 void Obj_Seesaw(Object *obj);
+void Obj_HTZSeesaw(Object *obj);
+void Obj_HTZLift(Object *obj);
 void Obj_Electrocuter(Object *obj);
 void Obj_SmallDoor(Object *obj);
 void Obj_SBZConveyor(Object *obj);
@@ -153,29 +164,29 @@ const ObjectFunc game_objects[] = {
 	/* 01 ObjId_Sonic               */ Obj_Sonic,
 	/* 02 ObjId_02                 */ Obj_Tails,
 	/* 03 ObjId_PathSwapper         */ Obj_PathSwapper,
-	/* 04 ObjId_04                 */ Obj_Null, // Nick Arcade's WaterSurface: not ported yet
+	/* 04 ObjId_04                 */ Obj_NAWaterSurface,
 	/* 05 ObjId_05                 */ Obj_TailsTails,
 	/* 06 ObjId_06                 */ Obj_Spiral,
 	/* 07 ObjId_07                 */ Obj_Null, // removed in Nick Arcade
-	/* 08 ObjId_Splash              */ Obj_Null, // Sonic 1's splash/spin dash dust is not in Nick Arcade (its id 08 is the HPZ water splash: not ported yet); its art window ($7A0) is Tails'
+	/* 08 ObjId_Splash              */ Obj_NAWaterSplash, // (Nick Arcade's water splash: waits in the slot Sonic 1 puts the spin dash dust in until it is asked for)
 	/* 09 ObjId_SpecialSonic        */ Obj_SpecialSonic,
 	/* 0A ObjId_DrownCount          */ Obj_DrownCount,
 	/* 0B ObjId_Pole               */ Obj_Null, // Nick Arcade's TippingFloor: not ported yet
-	/* 0C ObjId_FlapDoor           */ Obj_Null, // Nick Arcade's CPZPlatform: not ported yet
+	/* 0C ObjId_FlapDoor           */ Obj_CPZPlatform,
 	/* 0D ObjId_Signpost            */ Obj_Signpost,
 	/* 0E ObjId_TitleSonic          */ Obj_TitleCharacters,
 	/* 0F ObjId_PSB                */ Obj_Null, // Nick Arcade's Unknown0F: not ported yet
 	/* 10 ObjId_GHZTunnel          */ Obj_Null, // Nick Arcade's SonAniTest: not ported yet
 	/* 11 ObjId_GHZBridge           */ Obj_Bridge,
-	/* 12 ObjId_SpinningLight      */ Obj_Null, // Nick Arcade's HPZEmerald: not ported yet
-	/* 13 ObjId_LavaMaker          */ Obj_Null, // Nick Arcade's HPZWaterfall: not ported yet
-	/* 14 ObjId_LavaBall           */ Obj_Null, // Nick Arcade's Seesaw: not ported yet
+	/* 12 ObjId_SpinningLight      */ Obj_HPZEmerald,
+	/* 13 ObjId_LavaMaker          */ Obj_HPZWaterfall,
+	/* 14 ObjId_LavaBall           */ Obj_HTZSeesaw,
 	/* 15 ObjId_SwingingPlatform    */ Obj_SwingingPlatform,
-	/* 16 ObjId_Harpoon            */ Obj_Null, // Nick Arcade's HTZLift: not ported yet
+	/* 16 ObjId_Harpoon            */ Obj_HTZLift,
 	/* 17 ObjId_Helix               */ Obj_Helix,
 	/* 18 ObjId_BasicPlatform       */ Obj_BasicPlatform,
-	/* 19 ObjId_19                 */ Obj_Null, // Nick Arcade's Platform2: not ported yet
-	/* 1A ObjId_CollapseLedge       */ Obj_CollapseLedge,
+	/* 19 ObjId_19                 */ Obj_CPZPlatform2,
+	/* 1A ObjId_CollapseLedge       */ Obj_CollapsingLedge,
 	/* 1B ObjId_WaterSurface       */ Obj_Null, // removed in Nick Arcade
 	/* 1C ObjId_Scenery             */ Obj_Scenery,
 	/* 1D ObjId_MagicSwitch        */ Obj_Null, // removed in Nick Arcade
@@ -225,10 +236,10 @@ const ObjectFunc game_objects[] = {
 	/* 49 ObjId_Waterfall          */ Obj_EHZWaterfall,
 	/* 4A ObjId_VanishSonic        */ Obj_Null, // Nick Arcade's Octus: not ported yet
 	/* 4B ObjId_GiantRing          */ Obj_Buzzer,
-	/* 4C ObjId_GeyserMaker        */ Obj_Null, // Nick Arcade's BBat: not ported yet
+	/* 4C ObjId_GeyserMaker        */ Obj_BBat,
 	/* 4D ObjId_LavaGeyser         */ Obj_Null, // Nick Arcade's Stego: not ported yet
 	/* 4E ObjId_LavaWall           */ Obj_Null, // Nick Arcade's Gator: not ported yet
-	/* 4F ObjId_4F                 */ Obj_Null, // Nick Arcade's Redz: not ported yet
+	/* 4F ObjId_4F                 */ Obj_Redz,
 	/* 50 ObjId_Yadrin             */ Obj_Null, // Nick Arcade's Seahorse: not ported yet
 	/* 51 ObjId_SmashBlock         */ Obj_Null, // Nick Arcade's Skyhorse: not ported yet
 	/* 52 ObjId_MovingBlock        */ Obj_Null, // Nick Arcade's BFish: not ported yet

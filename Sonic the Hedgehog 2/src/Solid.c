@@ -165,14 +165,9 @@ int32_t Solid_Character(Object *obj, Object *chr, int who, int16_t x_rad, int16_
 
 // Landing on top of a platform (PlatformObject_cont / PlatformObject11_cont): `x_rad` is half the platform's width, `width` the whole span measured from its left edge (a bridge's logs are not as wide as its
 // ends), `y_walk` how high above the object's centre the surface is. The character must not be rising and be within 16 pixels of the surface. True if he has just landed on it.
-bool Solid_PlatformLand(Object *obj, Object *chr, int who, int16_t x_rad, int16_t width, int16_t y_walk) {
-    if (chr->ysp < 0)
-        return false;
-    int16_t d0 = chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
-    if (d0 < 0 || (uint16_t)d0 >= (uint16_t)width)
-        return false;
-
-    int16_t dist = obj->pos.l.y.f.u - y_walk - (int16_t)(chr->pos.l.y.f.u + chr->y_rad + 4);
+// Whether a character falling toward a surface at height `surface_y` is within 16 pixels above it, lands on it (PlatformObject_ChkYRange)
+static bool LandAt(Object *obj, Object *chr, int who, int16_t surface_y) {
+    int16_t dist = surface_y - (int16_t)(chr->pos.l.y.f.u + chr->y_rad + 4);
     if (dist > 0 || (uint16_t)dist < 0xFFF0u) // (the surface has to be within 16 pixels above the feet)
         return false;
     if ((lock_multi & 0x80) || chr->routine >= 6)
@@ -181,6 +176,45 @@ bool Solid_PlatformLand(Object *obj, Object *chr, int who, int16_t x_rad, int16_
     chr->pos.l.y.f.u += dist + 3;
     RideObject(obj, chr, who);
     return true;
+}
+
+bool Solid_PlatformLand(Object *obj, Object *chr, int who, int16_t x_rad, int16_t width, int16_t y_walk) {
+    if (chr->ysp < 0)
+        return false;
+    int16_t d0 = chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+    if (d0 < 0 || (uint16_t)d0 >= (uint16_t)width)
+        return false;
+    return LandAt(obj, chr, who, obj->pos.l.y.f.u - y_walk);
+}
+
+// A platform whose top is a slope (SlopedPlatform): carried while standing, otherwise it may be landed on at the height of the slope where the character is. `slope` gives the height of each 2 pixel column
+// above the object's centre, mirrored with the object.
+void Solid_SlopedPlatform(Object *obj, Object *chr, int who, int16_t x_rad, const uint8_t *slope, int16_t x) {
+    const uint8_t stand_bit = (uint8_t)(1 << (3 + who));
+    int16_t d0 = chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+    int16_t width = x_rad << 1;
+
+    if (obj->status.b & stand_bit) {
+        if (chr->status.p.f.in_air || d0 < 0 || (uint16_t)d0 >= (uint16_t)width) {
+            chr->status.p.f.object_stand = false;
+            obj->status.b &= (uint8_t)~stand_bit;
+            return;
+        }
+        if (chr->status.p.f.object_stand) {
+            uint16_t column = (uint16_t)d0;
+            if (obj->render.f.x_flip)
+                column = (uint16_t)(~column + (x_rad << 1));
+            MoveOnObject(obj, chr, x, obj->pos.l.y.f.u - (int8_t)slope[column >> 1]);
+        }
+        return;
+    }
+
+    if (chr->ysp < 0 || d0 < 0 || (uint16_t)d0 >= (uint16_t)width)
+        return;
+    uint16_t column = (uint16_t)d0;
+    if (obj->render.f.x_flip)
+        column = (uint16_t)(~column + width);
+    LandAt(obj, chr, who, obj->pos.l.y.f.u - (int8_t)slope[column >> 1]);
 }
 
 // A platform for either character (PlatformObject_SingleCharacter): while he stands on it he is carried along (`x` is where the platform was before it moved this frame) until he jumps or walks off;

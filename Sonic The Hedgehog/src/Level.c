@@ -840,3 +840,33 @@ void ObjPosLoad(void) {
         Rings_Update(scrpos_x.f.u);
     }
 }
+
+// The level's water: Sonic 1 has it in Labyrinth Zone only (see Level.h)
+#include "Object/WaterSurface.h"
+
+bool Level_HasWater(void) {
+    return LEVEL_ZONE(level_id) == ZoneId_LZ;
+}
+
+// All three water heights start at the act's WaterHeight entry (LZ act 4 is SBZ3, see [[project_lz_act4_sbz3]])
+int16_t Level_WaterStartHeight(void) {
+    static const int16_t WaterHeight[4] = { 0xB8, 0x328, 0x900, 0x228 };
+    return WaterHeight[LEVEL_ACT(level_id)];
+}
+
+// (Act 3 is the SBZ3-under-LZ slot: purple water, not LZ's usual green)
+void Level_LoadWaterPalettes(bool sonic) {
+    if (sonic)
+        PalLoad3_Water((LEVEL_ACT(level_id) == 3) ? PalId_SonicSBZ : PalId_SonicLZ);
+    else
+        PalLoad4_Water((LEVEL_ACT(level_id) == 3) ? PalId_SBZ3Water : PalId_LZWater);
+}
+
+void Level_MakeWaterSurfaces(void) {
+    objects[WATERSURFACE_SLOT_LEFT].type = ObjId_WaterSurface;
+    objects[WATERSURFACE_SLOT_LEFT].pos.l.x.f.u = 0x60;
+    objects[WATERSURFACE_SLOT_RIGHT].type = ObjId_WaterSurface;
+    objects[WATERSURFACE_SLOT_RIGHT].pos.l.x.f.u = 0x120;
+    objects[WATERSURFACE_SLOT_EXTRA].type = ObjId_WaterSurface;
+    objects[WATERSURFACE_SLOT_EXTRA].pos.l.x.f.u = 0x1E0;
+}
