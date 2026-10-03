@@ -61,6 +61,8 @@ dt { font-weight: bold; margin-top: 0.6em; }
 <xsl:template match="para"><p><xsl:apply-templates/></p></xsl:template>
 <xsl:template match="itemizedlist"><ul><xsl:apply-templates/></ul></xsl:template>
 <xsl:template match="itemizedlist/listitem"><li><xsl:apply-templates/></li></xsl:template>
+<xsl:template match="orderedlist"><ol><xsl:apply-templates/></ol></xsl:template>
+<xsl:template match="orderedlist/listitem"><li><xsl:apply-templates/></li></xsl:template>
 <xsl:template match="variablelist"><dl><xsl:apply-templates/></dl></xsl:template>
 <xsl:template match="varlistentry"><dt><xsl:apply-templates select="term"/></dt><dd><xsl:apply-templates select="listitem/*"/></dd></xsl:template>
 <xsl:template match="term"><xsl:apply-templates/></xsl:template>

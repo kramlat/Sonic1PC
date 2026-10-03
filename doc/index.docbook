@@ -29,10 +29,10 @@ recompilation of the 1991 game.</para>
 <releaseinfo>1.0</releaseinfo>
 
 <abstract>
-<para>Sonic 1 PC is a recompilation of Sonic the Hedgehog (1991, Mega Drive/Genesis) as a native program: the same
-game, running in a window with a menu bar, a resizable picture, modern audio output and a set of tools for looking
-inside it. This handbook explains how to play it, how to set up the picture, and what the menus and hidden features
-do.</para>
+<para>Sonic 1 PC is Sonic the Hedgehog (1991, Mega Drive/Genesis) as a native program: the same game, in a window with a menu bar, a
+picture that can change shape, modern audio and a set of tools for looking inside it. This handbook tells you how to play it,
+what is waiting for you in every zone and special stage, how to set up the picture, the sound and the controls, and what the
+secrets are.</para>
 </abstract>
 
 <keywordset>
@@ -44,13 +44,18 @@ do.</para>
 </keywordset>
 </bookinfo>
 
+
 <!-- ============================================================ -->
 <chapter id="introduction">
-<title>Introduction</title>
+<title>Crush Dr. Robotnik!</title>
 
-<para>Dr. Robotnik has turned the animals of South Island into robots and is hunting for the six Chaos Emeralds.
-Sonic runs, rolls and spins through six zones, collects rings, frees the animals and fights Robotnik at the end of
-each zone.</para>
+<para>South Island has a villain, and he has a plan. Dr. Ivo Robotnik is rounding up the island's animals, sealing them
+inside robot bodies and combing every zone for the six Chaos Emeralds. The only one fast enough to stop him is Sonic: a
+hedgehog with a taste for speed, a spiky attitude and a very good pair of sneakers.</para>
+
+<para>Your job is to run, roll and spin through six zones, smash Robotnik's robots (the badniks) to set the animals free,
+grab rings to stay in one piece, and face the doctor himself at the end of each zone. Find the secret special stages and
+you may get your hands on the Chaos Emeralds as well. Ready? Be quick, be bold, be Sonic.</para>
 
 <screenshot>
 <screeninfo>The title screen</screeninfo>
@@ -60,31 +65,40 @@ each zone.</para>
 </mediaobject>
 </screenshot>
 
-<para>The game logic is the original's, with the original's behaviour (including its physics and its quirks) kept
-unless there is a good reason to change it. What is different is the way you run it:</para>
+<para>This is the real 1991 game, running as a native program on your computer. Its rules, its physics and its quirks are
+the cartridge's, kept as they were unless there was a good reason to change them. What is new is everything around the
+game:</para>
 
 <itemizedlist>
-<listitem><para>The picture can be shown in the original shape or in four other aspect ratios, in a window or full
-screen (<xref linkend="resolution"/>).</para></listitem>
-<listitem><para>Music and sound effects are played through separate outputs, each with its own volume, and every
-sound chip channel can be muted (<xref linkend="audio"/>).</para></listitem>
-<listitem><para>Sonic can charge a spin dash.</para></listitem>
-<listitem><para>The ending and the credits are complete, with the two final screens
-(<xref linkend="ending"/>).</para></listitem>
-<listitem><para>A debug mode gives you windows that show the game's video memory, sound chips, objects and
-variables, a console, a demo recorder and the SMPS Inspector (<xref linkend="tools"/>).</para></listitem>
+<listitem><para>The picture can be the original shape or one of four others, in a window or full screen
+(<xref linkend="resolution"/>).</para></listitem>
+<listitem><para>Music and sound effects have separate volumes, and every sound chip channel can be muted
+(<xref linkend="audio"/>).</para></listitem>
+<listitem><para>The keyboard and any gamepad can be set up the way you like, including how far a worn stick has to move
+before it counts (<xref linkend="controls"/>).</para></listitem>
+<listitem><para>Sonic can charge a spin dash, the ending and the credits are complete, and so is the continue screen.</para></listitem>
+<listitem><para>A few of the original's bugs are fixed: you cannot walk-jump off a monitor or a wall with the wrong pose any
+more, TIME flashes at nine minutes whether or not you have rings (the later games did that too), and the game-over music
+plays.</para></listitem>
+<listitem><para>A debug mode opens windows onto the game's video memory, sound chips, objects and variables, with a console,
+a demo recorder and the SMPS Inspector (<xref linkend="tools"/>).</para></listitem>
 </itemizedlist>
+
+<para>New to the game? Read on from <xref linkend="getting-started"/>. Know it by heart? Jump to
+<xref linkend="resolution"/> for the picture settings or <xref linkend="cheats"/> for the secrets.</para>
 </chapter>
 
 <!-- ============================================================ -->
 <chapter id="getting-started">
-<title>Getting Started</title>
+<title>Starting Up</title>
 
 <sect1 id="starting">
-<title>Starting the game</title>
-<para>Run <command>Sonic</command>. The window opens on the SEGA screen and then the title screen. Press
-<keycap>Return</keycap> (or <guibutton>Start</guibutton> on a gamepad) to begin a new game in Green Hill Zone.
-Leave the title screen alone and it plays a few demonstrations of the game.</para>
+<title>Start the game</title>
+
+<para>Run <command>Sonic</command>. The window opens on the SEGA screen, then the title screen. Press
+<keycap>Return</keycap> (or <guibutton>Start</guibutton> on a gamepad) to begin a new game in Green Hill Zone. Leave the
+title screen alone for a few moments and a demonstration game plays; press Start to return to the title, and Start again
+to begin.</para>
 
 <screenshot>
 <screeninfo>The main window</screeninfo>
@@ -94,17 +108,17 @@ Leave the title screen alone and it plays a few demonstrations of the game.</par
 </mediaobject>
 </screenshot>
 
-<para>The menu bar sits inside the window. Its <guimenu>File</guimenu>, <guimenu>Audio</guimenu> and
-<guimenu>Help</guimenu> menus are always there; <guimenu>View</guimenu> and <guimenu>Tools</guimenu> appear while
-the debug tools are available (<xref linkend="debug-mode"/>). The right-hand side of the status bar lists the tools
-that are running, so that none of them goes unnoticed.</para>
+<para>The menu bar sits inside the window. <guimenu>File</guimenu>, <guimenu>Audio</guimenu>, <guimenu>Settings</guimenu>
+and <guimenu>Help</guimenu> are always there; <guimenu>View</guimenu> and <guimenu>Tools</guimenu> appear while the debug
+tools are available (<xref linkend="debug-mode"/>). The right-hand side of the status bar lists the tools that are
+running, so that none of them goes unnoticed. <keycap>F1</keycap> opens this handbook.</para>
 </sect1>
 
 <sect1 id="controls">
-<title>Controls</title>
+<title>Take Control!</title>
 
-<para>The game is played with the three-button Mega Drive pad. The keyboard and a gamepad can both be used at the
-same time.</para>
+<para>Learn the buttons before you start: everything Sonic does comes from a direction pad and three buttons. The
+keyboard and a gamepad can be used at the same time.</para>
 
 <informaltable>
 <tgroup cols="3">
@@ -157,20 +171,42 @@ shaded area in the picture changes with the choice.</para>
 </mediaobject>
 </screenshot>
 
-<para>Any of the three buttons A, B and C makes Sonic jump (hold it for a higher jump). Press
-<keycap>Down</keycap> to roll up into a ball while you run, to duck while you stand still, and to look down. Press
-<guibutton>Start</guibutton> to pause; while the game is paused, <guibutton>B</guibutton> held or
-<guibutton>C</guibutton> pressed steps a single frame.</para>
+
+<para>What the buttons do:</para>
+
+<variablelist>
+<varlistentry><term>D-pad</term>
+<listitem><para>Left and right move Sonic, and holding a direction makes him speed up. Standing still, press up or down to
+look at the top or bottom of the screen (it will not scroll further than the level goes). Pressing down while you run rolls
+him into a ball.</para></listitem></varlistentry>
+<varlistentry><term>Button A, B or C</term>
+<listitem><para>Any of the three makes Sonic jump; hold it for a higher jump. A jump is a spin attack too, so it is also
+how you land on a badnik.</para></listitem></varlistentry>
+<varlistentry><term>Start</term>
+<listitem><para>Starts the game, and pauses it. Press it again to carry on. While the game is paused, holding
+<guibutton>B</guibutton> or pressing <guibutton>C</guibutton> steps a single frame.</para></listitem></varlistentry>
+</variablelist>
+
+<sect2 id="stunts">
+<title>Sonic's super stunts</title>
+<itemizedlist>
+<listitem><para>Press down while Sonic is running to roll up into the <emphasis>spin attack</emphasis>: a rolling Sonic
+bumps badniks out of the way instead of getting hurt by them.</para></listitem>
+<listitem><para>Press a jump button while rolling to jump with the spin attack still on.</para></listitem>
+<listitem><para>Standing still, press down to duck.</para></listitem>
+</itemizedlist>
+</sect2>
 
 <sect2 id="spin-dash">
 <title>The spin dash</title>
-<para>Duck with <keycap>Down</keycap>, then press a jump button to start charging a spin dash. Each further press
-winds it up more and raises the pitch of the revving sound. Release <keycap>Down</keycap> to shoot off.</para>
+<para>Duck with <keycap>Down</keycap>, then press a jump button to start charging a spin dash. Each further press winds it
+up more and raises the pitch of the revving sound. Release <keycap>Down</keycap> to shoot off. (This is Sonic 2's move, added
+here: the cartridge's Sonic cannot do it.)</para>
 </sect2>
 </sect1>
 
 <sect1 id="level-select">
-<title>The level select</title>
+<title>The secret level select</title>
 
 <para>The level select is hidden. At the title screen press <keycap>Up</keycap>, <keycap>Down</keycap>,
 <keycap>Left</keycap>, <keycap>Right</keycap> (a ring sound tells you it worked), then hold
@@ -199,11 +235,16 @@ level through a giant ring, and the special stage numbers go on from where they 
 <title>Playing the Game</title>
 
 <sect1 id="goal">
-<title>The goal</title>
-<para>Each zone has three acts; the third ends with a boss fight against Dr. Robotnik. Reach the signpost at the
-end of an act to see the bonus for your time and rings. Collect <emphasis>rings</emphasis> to protect yourself: when
-something hurts Sonic while he has rings he loses them (and can pick some of them up again) and when he has none he
-is defeated. Every 100 rings earn a life, as does every 50,000 points.</para>
+<title>Reach for the Rings!</title>
+
+<para>The island has six zones, and every zone has three acts. Dash to the signpost at the end of an act to finish it; the
+third act of each zone ends in a fight with Dr. Robotnik instead. Along the way you will dodge traps and robots, so keep
+your eyes open for <emphasis>rings</emphasis>.</para>
+
+<para>Rings are your armour. While you hold any, something that hurts Sonic only knocks them all out of his hands (you
+can chase some of them down and pick them up again). With none left, the next hit costs a life. A spin attack protects
+you from badniks but not from things that crush you, and nothing protects you from falling down a pit or drowning. Every
+100 rings earn a life, and so does every 50,000 points.</para>
 
 <screenshot>
 <screeninfo>Green Hill Zone</screeninfo>
@@ -213,36 +254,227 @@ is defeated. Every 100 rings earn a life, as does every 50,000 points.</para>
 </mediaobject>
 </screenshot>
 
-<sect2 id="continues">
-<title>Continues</title>
-<para>Collecting 50 rings in a special stage earns a <emphasis>continue</emphasis>. When you lose your last life and
-have one, the <guilabel>CONTINUE</guilabel> screen appears: Sonic lies on the floor while a countdown runs from ten.
-The little Sonics above the number show how many continues you have (the one you are about to use is not shown).
-Press <guibutton>Start</guibutton> before the countdown reaches zero and Sonic gets up and runs off, and you start the
-act again with three lives; your rings, time and score begin from nothing. If the countdown runs out the game is over
-and returns to the SEGA screen.</para>
+<sect2 id="hud">
+<title>Keeping count</title>
+<para>The counters on the screen tell you how you are doing:</para>
+<orderedlist>
+<listitem><para><emphasis>SCORE:</emphasis> your score so far.</para></listitem>
+<listitem><para><emphasis>TIME:</emphasis> how long the act has taken. You have ten minutes for each act: go over, and TIME
+OVER costs you a life. It is game time, not clock time, so it stops while the game is paused, and TIME starts flashing
+once nine minutes have passed.</para></listitem>
+<listitem><para><emphasis>RINGS:</emphasis> the rings you hold. The word flashes when you have none.</para></listitem>
+<listitem><para><emphasis>SONIC &times;:</emphasis> the lives you have left, in the bottom left corner (the top right
+corner when the picture is one of the wider shapes).</para></listitem>
+</orderedlist>
+</sect2>
+
+<sect2 id="lampposts">
+<title>Lampposts</title>
 
 <screenshot>
-<screeninfo>The continue screen</screeninfo>
+<screeninfo>A lamppost</screeninfo>
 <mediaobject>
-<imageobject><imagedata fileref="screenshots/continue.png" format="PNG"/></imageobject>
-<textobject><phrase>The continue screen: the word CONTINUE, three little Sonics, the countdown and Sonic lying on the floor.</phrase></textobject>
+<imageobject><imagedata fileref="screenshots/checkpoint.png" format="PNG"/></imageobject>
+<textobject><phrase>A lamppost.</phrase></textobject>
 </mediaobject>
 </screenshot>
+
+<para>Lampposts stand in every zone. Run past one and it remembers where you got to, along with your score and time. If
+you lose a life you restart from the last lamppost you touched, without your rings but with that score and time (a TIME
+OVER clears the remembered time, so you cannot get stuck restarting with the clock almost out).</para>
 </sect2>
 </sect1>
 
 <sect1 id="monitors">
-<title>Monitors and checkpoints</title>
-<para>Break a <emphasis>monitor</emphasis> by jumping on it: it gives rings, a shield, speed shoes,
-invincibility or an extra life. A lamppost remembers where you reached; if you lose a life you start again from the
-last lamppost you touched.</para>
+<title>Items for Survival</title>
+
+<para>Jump on a video monitor to smash it open; what is inside helps you (mostly).</para>
+
+<informaltable>
+<tgroup cols="3">
+<thead>
+<row><entry>Monitor</entry><entry>Item</entry><entry>What it does</entry></row>
+</thead>
+<tbody>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/monitor-super_ring.png" format="PNG"/></imageobject><textobject><phrase>Super Ring monitor</phrase></textobject></inlinemediaobject></entry><entry>Super Ring</entry><entry>Gives you ten rings at once.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/monitor-shield.png" format="PNG"/></imageobject><textobject><phrase>Shield monitor</phrase></textobject></inlinemediaobject></entry><entry>Shield</entry><entry>Takes a hit for you, so you keep your rings, and still protects you when you have none. It does nothing against being crushed, falling or drowning.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/monitor-power_sneakers.png" format="PNG"/></imageobject><textobject><phrase>Power Sneakers monitor</phrase></textobject></inlinemediaobject></entry><entry>Power Sneakers</entry><entry>Makes you run faster for a while (the music speeds up too).</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/monitor-invincible.png" format="PNG"/></imageobject><textobject><phrase>Invincibility monitor</phrase></textobject></inlinemediaobject></entry><entry>Invincible</entry><entry>Stars circle Sonic and enemies cannot hurt him, for a short while. Crushing, falling and drowning still can.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/monitor-1up.png" format="PNG"/></imageobject><textobject><phrase>Extra life monitor</phrase></textobject></inlinemediaobject></entry><entry>One-Up</entry><entry>One more life. (Collecting 100 rings gives you one too.)</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/monitor-robotnik.png" format="PNG"/></imageobject><textobject><phrase>Robotnik monitor</phrase></textobject></inlinemediaobject></entry><entry>Robotnik</entry><entry>A trap. It hurts Sonic instead of helping him.</entry></row>
+</tbody>
+</tgroup>
+</informaltable>
+
+<para>Other things you will run into:</para>
+
+<informaltable>
+<tgroup cols="2">
+<tbody>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/item-ring.png" format="PNG"/></imageobject><textobject><phrase>A ring</phrase></textobject></inlinemediaobject></entry><entry>A <emphasis>ring</emphasis>: collect as many as you can.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/item-special_stage_ring.png" format="PNG"/></imageobject><textobject><phrase>A giant ring</phrase></textobject></inlinemediaobject></entry><entry>A <emphasis>giant ring</emphasis>: hidden in some acts, it shows itself only while you carry 50 or more rings, and opens the way to a special stage (see <xref linkend="special-stages"/>).</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/signpost.png" format="PNG"/></imageobject><textobject><phrase>The signpost</phrase></textobject></inlinemediaobject></entry><entry>The <emphasis>signpost</emphasis> at the end of an act: run past it to finish the act and collect your bonuses.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/capsule.png" format="PNG"/></imageobject><textobject><phrase>The animal capsule</phrase></textobject></inlinemediaobject></entry><entry>The <emphasis>capsule</emphasis> that appears when a boss is beaten: jump on its button to set the animals free.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/switch.png" format="PNG"/></imageobject><textobject><phrase>A switch</phrase></textobject></inlinemediaobject></entry><entry>A <emphasis>switch</emphasis>: stand on it to press it. It opens doors, lowers pillars and so on.</entry></row>
+</tbody>
+</tgroup>
+</informaltable>
+</sect1>
+
+<sect1 id="zones">
+<title>Zip Through the Zones!</title>
+
+<para>Six zones, three acts each. Every zone has its own look, its own traps and its own cast of badniks, and the third act
+ends with a boss: Dr. Robotnik at the controls of a different machine each time. The zones come in this order.</para>
+
+<sect2 id="zone-ghz">
+<title>1. Green Hill Zone</title>
+<screenshot>
+<screeninfo>Green Hill Zone</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/green_hill_zone.png" format="PNG"/></imageobject>
+<textobject><phrase>Green Hill Zone: palm trees, a lake and a checkered cliff.</phrase></textobject>
+</mediaobject>
+</screenshot>
+<para>Sun, palm trees and waterfalls: the friendliest place on the island, and the best one to learn the ropes in. Run
+around the loops, tumble through tunnels, and look for the faster, higher routes above the main path.</para>
+<itemizedlist>
+<listitem><para><emphasis>Terrain:</emphasis> loops and tunnels you can take at full speed, wooden bridges that sag under
+Sonic, swinging platforms, ledges that crumble a moment after you land on them, and rock walls you can smash with a spin
+attack.</para></listitem>
+<listitem><para><emphasis>Hazards:</emphasis> plenty of spikes (jump them, never land on them) and springs that throw you
+a long way.</para></listitem>
+<listitem><para><emphasis>Badniks:</emphasis> Moto Bug, Crabmeat, Buzz Bomber, Chopper and Newtron.</para></listitem>
+<listitem><para><emphasis>Boss (Act 3):</emphasis> Robotnik flies back and forth with a heavy checkered ball swinging
+beneath his machine. Dodge the ball and jump on the machine; it takes eight hits.</para></listitem>
+</itemizedlist>
+</sect2>
+
+<sect2 id="zone-mz">
+<title>2. Marble Zone</title>
+<screenshot>
+<screeninfo>Marble Zone</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/marble_zone.png" format="PNG"/></imageobject>
+<textobject><phrase>Marble Zone: ancient brick ruins above a pool of lava.</phrase></textobject>
+</mediaobject>
+</screenshot>
+<para>Ancient ruins, built over pools of lava. The route goes over, under and through the stonework, so slow down and think:
+this zone is more puzzle than sprint.</para>
+<itemizedlist>
+<listitem><para><emphasis>Terrain:</emphasis> green stone blocks you can push (shove one onto the lava and it floats along for a
+while before it sinks), bricks that wobble above the lava and drop when you come near, pillars that rise when you stand on
+a switch, grassy slabs, and blocks that break when you hit them.</para></listitem>
+<listitem><para><emphasis>Hazards:</emphasis> lava itself (touching it hurts), balls of fire that jump out of it, geysers,
+heavy weights hung on chains that pound the floor, spikes, and in places a wall of lava that creeps after you.</para></listitem>
+<listitem><para><emphasis>Badniks:</emphasis> Buzz Bomber, Batbrain and Caterkiller.</para></listitem>
+<listitem><para><emphasis>Boss (Act 3):</emphasis> Robotnik cruises above the lava in a heated machine and drops fire onto the
+platforms below. Keep out from under it and hit it whenever it comes within reach.</para></listitem>
+</itemizedlist>
+</sect2>
+
+<sect2 id="zone-syz">
+<title>3. Spring Yard Zone</title>
+<screenshot>
+<screeninfo>Spring Yard Zone</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/spring_yard_zone.png" format="PNG"/></imageobject>
+<textobject><phrase>Spring Yard Zone: a city of round bumpers and springs at dusk.</phrase></textobject>
+</mediaobject>
+</screenshot>
+<para>A neon city that plays like a pinball table. Round bumpers fling Sonic every which way, springs fire him across
+the screen, and there is more of the zone off the main path than on it. Look out for the giant rings: this zone hides the
+most.</para>
+<itemizedlist>
+<listitem><para><emphasis>Terrain:</emphasis> bumpers, springs by the dozen, blocks that move in set patterns, platforms and
+spinning searchlights in the background.</para></listitem>
+<listitem><para><emphasis>Hazards:</emphasis> big spiked balls, balls swinging on chains, and spikes.</para></listitem>
+<listitem><para><emphasis>Badniks:</emphasis> Crabmeat, Buzz Bomber, Roller and Spikes (Yadrin).</para></listitem>
+<listitem><para><emphasis>Boss (Act 3):</emphasis> Robotnik's machine carries a spiked claw that comes down onto the blocks
+in the arena floor, lifts one, shakes it and lets it go. Keep out from under a falling block and strike the machine while the
+claw is busy.</para></listitem>
+</itemizedlist>
+</sect2>
+
+<sect2 id="zone-lz">
+<title>4. Labyrinth Zone</title>
+<screenshot>
+<screeninfo>Labyrinth Zone</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/labyrinth_zone.png" format="PNG"/></imageobject>
+<textobject><phrase>Labyrinth Zone: a sandstone maze, the lower half under water.</phrase></textobject>
+</mediaobject>
+</screenshot>
+<para>A flooded maze of carved stone. Much of it is under water, where Sonic moves slowly and, more to the point, cannot
+breathe. Learn the water first, the rest comes after.</para>
+<itemizedlist>
+<listitem><para><emphasis>Air:</emphasis> Sonic can hold his breath for about half a minute. Warning chimes sound as it runs
+down, and in the last twelve seconds the music changes and numbers count 5, 4, 3, 2, 1, 0 up from Sonic's head. If you
+reach zero he drowns. Air bubbles drifting up from vents give you a gulp of air at once: stand in one and breathe.</para></listitem>
+<listitem><para><emphasis>Terrain:</emphasis> blocks that sink or rise when you stand on them, cork blocks that bob on the
+water, platforms riding on rope-and-wheel conveyors (they loop round, carrying you with them), doors that switches open, flap doors that swing on a timer, waterfalls and rapids.</para></listitem>
+<listitem><para><emphasis>Hazards:</emphasis> harpoons that stab out of the walls on a timer, spikes, spiked balls, and stone
+gargoyle heads that spit fire.</para></listitem>
+<listitem><para><emphasis>Badniks:</emphasis> Jaws, Burrobot and Orbinaut.</para></listitem>
+<listitem><para><emphasis>Boss (Act 3):</emphasis> there is no arena. Robotnik flies up a long shaft and you chase him, hitting
+him as you climb. He pauses at the top until you catch up, then escapes to the right.</para></listitem>
+</itemizedlist>
+</sect2>
+
+<sect2 id="zone-slz">
+<title>5. Star Light Zone</title>
+<screenshot>
+<screeninfo>Star Light Zone</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/star_light_zone.png" format="PNG"/></imageobject>
+<textobject><phrase>Star Light Zone: a girder highway above a night sky of stars.</phrase></textobject>
+</mediaobject>
+</screenshot>
+<para>A highway in the sky, thick with moving parts and Robotnik's bombs. It is full of things that move you about, and
+the trick is to let them.</para>
+<itemizedlist>
+<listitem><para><emphasis>Terrain:</emphasis> seesaws that launch you when something heavy lands on the other end, lifts,
+platforms that circle on arms, staircases whose blocks step out of the wall, big fans that blow you upward, springs,
+floors that fall away behind you, and girders that pass in front of the picture.</para></listitem>
+<listitem><para><emphasis>Badniks:</emphasis> Bomb and Orbinaut.</para></listitem>
+<listitem><para><emphasis>Boss (Act 3):</emphasis> Robotnik drops exploding spiked balls onto the seesaws. Use a seesaw to
+launch yourself at his machine, and keep clear of the balls when they go off.</para></listitem>
+</itemizedlist>
+</sect2>
+
+<sect2 id="zone-sbz">
+<title>6. Scrap Brain Zone</title>
+<screenshot>
+<screeninfo>Scrap Brain Zone</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/scrap_brain_zone.png" format="PNG"/></imageobject>
+<textobject><phrase>Scrap Brain Zone: purple brick walls, pipes and a window onto a flowing channel.</phrase></textobject>
+</mediaobject>
+</screenshot>
+<para>Robotnik's own factory, one step from his hideout, and it holds every trap he could build. The factory is the
+toughest of the six zones.</para>
+<note><para>Scrap Brain Zone was not always called that. During development it was Clock Work Zone, and the font of the title
+card had no W, so the card read CLOCK ORK ZONE.</para></note>
+<itemizedlist>
+<listitem><para><emphasis>Terrain:</emphasis> conveyor belts and spinning discs that carry you, floors that spin or
+vanish, doors, teleporters that send you to another part of the factory, and moving blocks.</para></listitem>
+<listitem><para><emphasis>Hazards:</emphasis> circular saws, flamethrowers, electric zappers, stompers, spiked balls, and spikes.</para></listitem>
+<listitem><para><emphasis>Badniks:</emphasis> Ball Hog, Caterkiller, Bomb and Orbinaut. Act 3 is flooded and brings the
+water back, with Jaws and Burrobot.</para></listitem>
+</itemizedlist>
+<para>Beat the three acts and you reach <emphasis>Final Zone</emphasis>, where Robotnik waits in a private arena. He hides inside
+cylinders and fires plasma balls at you, so keep moving. Defeat him there and the ending begins
+(<xref linkend="ending"/>).</para>
+</sect2>
 </sect1>
 
 <sect1 id="enemies">
-<title>Enemies and hazards</title>
-<para>Robotnik has filled the zones with <emphasis>badniks</emphasis>, robots built around captured animals. Jump on
-one, or hit it while rolling, to destroy it and free the animal inside. Touching one any other way hurts Sonic.</para>
+<title>Robotnik's Badniks</title>
+
+<para>Robotnik's robots are called <emphasis>badniks</emphasis>, and each one has an animal trapped inside. Jump on one, or
+hit it with the spin attack, to smash it and free the animal; touching one any other way hurts Sonic. Each badnik is worth
+at least 100 points, and the boss at the end of a zone is worth 1,000. Here is who is waiting for you, and where (the
+Japanese names are in brackets).</para>
 
 <informaltable>
 <tgroup cols="4">
@@ -252,13 +484,13 @@ one, or hit it while rolling, to destroy it and free the animal inside. Touching
 <tbody>
 <row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-crabmeat.png" format="PNG"/></imageobject><textobject><phrase>Crabmeat</phrase></textobject></inlinemediaobject></entry><entry>Crabmeat (Ganigani in Japan)</entry><entry>Green Hill, Spring Yard</entry><entry>Walks sideways and shoots two fireballs, one to each side.</entry></row>
 <row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-buzz_bomber.png" format="PNG"/></imageobject><textobject><phrase>Buzz Bomber</phrase></textobject></inlinemediaobject></entry><entry>Buzz Bomber (Beeton in Japan)</entry><entry>Green Hill, Marble, Spring Yard</entry><entry>Flies back and forth and fires a shot downwards when you pass beneath it.</entry></row>
-<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-moto_bug.png" format="PNG"/></imageobject><textobject><phrase>Moto Bug</phrase></textobject></inlinemediaobject></entry><entry>Moto Bug (Motora in Japan)</entry><entry>Green Hill, Spring Yard</entry><entry>Rolls along the ground, turning around now and then.</entry></row>
-<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-newtron.png" format="PNG"/></imageobject><textobject><phrase>Newtron</phrase></textobject></inlinemediaobject></entry><entry>Newtron (Meleon in Japan)</entry><entry>Green Hill, Marble</entry><entry>Appears on the wall, then either fires a shot or drops to the ground and speeds off.</entry></row>
-<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-chopper.png" format="PNG"/></imageobject><textobject><phrase>Chopper</phrase></textobject></inlinemediaobject></entry><entry>Chopper (Batabata in Japan)</entry><entry>Green Hill, Labyrinth</entry><entry>A piranha that leaps out of the water again and again.</entry></row>
-<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-caterkiller.png" format="PNG"/></imageobject><textobject><phrase>Caterkiller</phrase></textobject></inlinemediaobject></entry><entry>Caterkiller (Nal in Japan)</entry><entry>Marble, Spring Yard, Scrap Brain</entry><entry>A spiked caterpillar. Only its head can be destroyed; its body hurts you.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-moto_bug.png" format="PNG"/></imageobject><textobject><phrase>Moto Bug</phrase></textobject></inlinemediaobject></entry><entry>Moto Bug (Motora in Japan)</entry><entry>Green Hill</entry><entry>Rolls along the ground, turning around now and then.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-newtron.png" format="PNG"/></imageobject><textobject><phrase>Newtron</phrase></textobject></inlinemediaobject></entry><entry>Newtron (Meleon in Japan)</entry><entry>Green Hill</entry><entry>Appears on the wall, then either fires a shot or drops to the ground and speeds off.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-chopper.png" format="PNG"/></imageobject><textobject><phrase>Chopper</phrase></textobject></inlinemediaobject></entry><entry>Chopper (Batabata in Japan)</entry><entry>Green Hill</entry><entry>A piranha that leaps out of the water again and again.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-caterkiller.png" format="PNG"/></imageobject><textobject><phrase>Caterkiller</phrase></textobject></inlinemediaobject></entry><entry>Caterkiller (Nal in Japan)</entry><entry>Marble, Scrap Brain</entry><entry>A spiked caterpillar. Only its head can be destroyed; its body hurts you.</entry></row>
 <row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-batbrain.png" format="PNG"/></imageobject><textobject><phrase>Batbrain</phrase></textobject></inlinemediaobject></entry><entry>Batbrain (Basaran in Japan)</entry><entry>Marble</entry><entry>Hangs from the ceiling until you come near, then swoops after you.</entry></row>
-<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-burrobot.png" format="PNG"/></imageobject><textobject><phrase>Burrobot</phrase></textobject></inlinemediaobject></entry><entry>Burrobot (Mogurin in Japan)</entry><entry>Labyrinth</entry><entry>A drill-nosed mole that hops along the ground.</entry></row>
-<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-jaws.png" format="PNG"/></imageobject><textobject><phrase>Jaws</phrase></textobject></inlinemediaobject></entry><entry>Jaws (Puku-puku in Japan)</entry><entry>Labyrinth</entry><entry>A piranha that swims back and forth underwater.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-burrobot.png" format="PNG"/></imageobject><textobject><phrase>Burrobot</phrase></textobject></inlinemediaobject></entry><entry>Burrobot (Mogurin in Japan)</entry><entry>Labyrinth, Scrap Brain Act 3</entry><entry>A drill-nosed mole that hops along the ground.</entry></row>
+<row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-jaws.png" format="PNG"/></imageobject><textobject><phrase>Jaws</phrase></textobject></inlinemediaobject></entry><entry>Jaws (Puku-puku in Japan)</entry><entry>Labyrinth, Scrap Brain Act 3</entry><entry>A piranha that swims back and forth underwater.</entry></row>
 <row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-orbinaut.png" format="PNG"/></imageobject><textobject><phrase>Orbinaut</phrase></textobject></inlinemediaobject></entry><entry>Orbinaut (Unidis for the blue one, Uni Uni for the green one, in Japan)</entry><entry>Labyrinth, Star Light, Scrap Brain</entry><entry>Is circled by four spiked orbs, which it may fire at you.</entry></row>
 <row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/enemy-bomb.png" format="PNG"/></imageobject><textobject><phrase>Bomb</phrase></textobject></inlinemediaobject></entry><entry>Bomb (Bomu in Japan)</entry><entry>Star Light, Scrap Brain</entry><entry>Walks toward you, then stops and blows up, throwing shrapnel in four directions.</entry></row>
 <row><entry><inlinemediaobject><imageobject><imagedata fileref="screenshots/badnik-roller.png" format="PNG"/></imageobject><textobject><phrase>Roller</phrase></textobject></inlinemediaobject></entry><entry>Roller (Arma in Japan)</entry><entry>Spring Yard</entry><entry>An armadillo that curls up and rolls at you, then uncurls to run.</entry></row>
@@ -267,6 +499,13 @@ one, or hit it while rolling, to destroy it and free the animal inside. Touching
 </tbody>
 </tgroup>
 </informaltable>
+
+<note><para>If you have the manual that came in the box, you may find a different zone listed for some of these. Those placements are
+holdovers from a build made after the prototype that survives and before the first release, one that has never turned up (it is
+not the only lost build: leftovers in the game's code point to several earlier ones). By then the zones already had their final
+names (Spring Yard Zone had been Sparkling Zone before that), but the badniks had not yet been placed as they were in the end. The
+code remembers too: the Spikes badnik (Yadrin) is marked there as meant for Marble Zone as well, and the Caterkiller's art still
+carries the name of Spring Yard. The table above is where each one is placed in the finished game.</para></note>
 
 <para>Some hazards cannot be destroyed. <emphasis>Spikes</emphasis> hurt whenever you touch their points (jump on them
 at your peril), and a <emphasis>spring</emphasis> throws you in the direction it points.</para>
@@ -282,14 +521,13 @@ at your peril), and a <emphasis>spring</emphasis> throws you in the direction it
 </sect1>
 
 <sect1 id="special-stages">
-<title>Special stages</title>
+<title>The Secret Zone: Special Stages</title>
 
-<para>Finish an act with 50 rings or more and a giant ring appears near the signpost. Jump into it to enter a
-special stage, where Sonic rolls through a rotating maze of blocks looking for a Chaos Emerald. Bumpers throw you
-away, <guilabel>UP</guilabel> and <guilabel>DOWN</guilabel> blocks change the speed of the rotation,
-<guilabel>R</guilabel> blocks reverse it, glass blocks break after being touched several times and the
-<guilabel>GOAL</guilabel> block ends the stage, which is how you fail it. Touch the emerald inside the maze to win it. If you fail, the next
-attempt is the next stage; stages you have already won are skipped.</para>
+<para>Rings are good for more than armour. Carry <emphasis>50 or more</emphasis> to a giant ring and it glitters and lets
+you jump in: you are whisked away to a <emphasis>special stage</emphasis>, a secret place where Sonic is a rolling ball
+inside a big, slowly rotating maze, with a Chaos Emerald hidden somewhere in it. There are six special stages, one for each
+emerald. Giant rings are hidden in some acts of every zone except Scrap Brain; once you hold all six emeralds, they stop
+appearing.</para>
 
 <screenshot>
 <screeninfo>A special stage</screeninfo>
@@ -299,7 +537,29 @@ attempt is the next stage; stages you have already won are skipped.</para>
 </mediaobject>
 </screenshot>
 
-<para>These are the blocks you meet in the maze:</para>
+<sect2 id="ss-rules">
+<title>How it works</title>
+<itemizedlist>
+<listitem><para>The maze turns steadily around Sonic. Steer with left and right, jump with A, B or C, and use the blocks
+to bounce your way through. There is no clock in here: take your time.</para></listitem>
+<listitem><para>The stage is a trap, and there are exactly two ways out. <emphasis>Touch the Chaos Emerald</emphasis> to win
+it, or <emphasis>touch a GOAL block</emphasis> to leave without it (that is how you fail a stage). Either way you go back
+to the zone you came from.</para></listitem>
+<listitem><para>Stages come in turn: if you fail, the next attempt is the next stage, and stages whose emerald you already
+hold are skipped.</para></listitem>
+<listitem><para>Rings in the maze count too. Leave with 50 or more rings and the first time you do it you earn a
+<emphasis>continue</emphasis> (<xref linkend="continues"/>). The results screen adds 100 points for every ring you have.</para></listitem>
+<listitem><para>Look out for <emphasis>ghost blocks</emphasis>: parts of the wall that you can pass through once, but which
+turn into solid red-and-white blocks behind you. They can trap you.</para></listitem>
+<listitem><para>Six emeralds, six colours: blue, yellow, pink, green, red and white. Collect all six and the ending changes
+(<xref linkend="ending"/>).</para></listitem>
+</itemizedlist>
+</sect2>
+
+<sect2 id="ss-blocks">
+<title>Blocks in the Secret Zone</title>
+
+<para>These are the blocks you will meet in the maze:</para>
 
 <informaltable>
 <tgroup cols="3">
@@ -321,6 +581,53 @@ attempt is the next stage; stages you have already won are skipped.</para>
 </informaltable>
 
 <note><para>The special stage music never speeds up (the original did not either).</para></note>
+</sect2>
+
+<sect2 id="ss-tips">
+<title>Hints</title>
+<itemizedlist>
+<listitem><para>The maze starts slow. Do not touch an UP block until you are ready for it: the faster maze gives you less time
+to line up a jump.</para></listitem>
+<listitem><para>Know where the GOAL blocks are before you start bouncing around: they are easy to hit by accident, and they end the stage.</para></listitem>
+<listitem><para>An UP block you have used turns into a DOWN block (and the other way round), so you can always bring the
+speed back.</para></listitem>
+<listitem><para>An R block reverses the turning, which turns a bad approach into a good one: use it to change your angle.</para></listitem>
+<listitem><para>Glass blocks give way after a few touches, changing colour as they weaken: hit one over and over to open a
+shortcut.</para></listitem>
+</itemizedlist>
+</sect2>
+</sect1>
+
+<sect1 id="game-over">
+<title>Game Over, Continues and Score</title>
+
+<para>You start with three lives. Lose them all and the game is over: GAME OVER sounds its jingle and you are sent back to
+the SEGA screen, unless you have a continue.</para>
+
+<sect2 id="continues">
+<title>Continues</title>
+<para>Collecting 50 rings in a special stage earns a <emphasis>continue</emphasis>. When you lose your last life and
+have one, the <guilabel>CONTINUE</guilabel> screen appears: Sonic lies on the floor while a countdown runs from ten.
+The little Sonics above the number show how many continues you have (the one you are about to use is not shown).
+Press <guibutton>Start</guibutton> before the countdown reaches zero and Sonic gets up and runs off, and you start the
+act again with three lives; your rings, time and score begin from nothing. If the countdown runs out the game is over
+and returns to the SEGA screen.</para>
+
+<screenshot>
+<screeninfo>The continue screen</screeninfo>
+<mediaobject>
+<imageobject><imagedata fileref="screenshots/continue.png" format="PNG"/></imageobject>
+<textobject><phrase>The continue screen: the word CONTINUE, three little Sonics, the countdown and Sonic lying on the floor.</phrase></textobject>
+</mediaobject>
+</screenshot>
+</sect2>
+
+<sect2 id="scoring">
+<title>Scoring</title>
+<para>Each badnik you smash is worth at least 100 points, and beating Dr. Robotnik at the end of a zone is worth 1,000. When
+you finish an act, two bonuses are added to your score: a <emphasis>Time Bonus</emphasis>, bigger the faster you were, and a
+<emphasis>Ring Bonus</emphasis>, 100 points for every ring you still have. Every 50,000 points gives you an extra life.</para>
+</sect2>
 </sect1>
 </chapter>
 
@@ -391,7 +698,7 @@ Robotnik raging, or <guilabel>TRY AGAIN</guilabel> if not, with Robotnik jugglin
 
 <!-- ============================================================ -->
 <chapter id="resolution">
-<title>The Picture: Resolution and Full Screen</title>
+<title>Pick Your Picture: Resolution and Full Screen</title>
 
 <para>The original game draws a 320 &times; 224 picture (an aspect ratio of 10:7) that a television stretches to
 fit. Sonic 1 PC can draw the picture in other shapes, adding extra screen where the game has room for it rather
@@ -446,6 +753,8 @@ shape of the picture.</para>
 Full screen only uses the aspect ratio: the window stays the size of your screen and the picture is scaled to fit
 it, with black bars where the shapes differ. The choice is remembered for next time.</para>
 
+<para>The demonstration games (on the title screen and between the credits pages) play in whichever shape you chose, and play out just as they were recorded.</para>
+
 <para>A new resolution takes hold at once during a level, where the picture is redrawn around the camera. On other
 screens (the title screen, for instance) it takes hold when the next screen starts.</para>
 
@@ -464,7 +773,7 @@ to switch between a window and full screen. The menu bar and status bar are hidd
 
 <!-- ============================================================ -->
 <chapter id="audio">
-<title>Audio</title>
+<title>Turn It Up! Audio</title>
 
 <para>The <guimenu>Audio</guimenu> menu holds a switch and a volume slider for the music and another pair for the
 sound effects, and a <guisubmenu>Channels</guisubmenu> submenu that lets you silence individual sound chip channels
@@ -475,7 +784,7 @@ between runs.</para>
 
 <!-- ============================================================ -->
 <chapter id="cheats">
-<title>Cheats and Easter Eggs</title>
+<title>Secrets, Cheats and Easter Eggs</title>
 
 <sect1 id="debug-mode">
 <title>The debug cheat</title>
@@ -489,7 +798,7 @@ selected object, <guibutton>A</guibutton> selects the next one, <keycap>/</keyca
 <guibutton>B</guibutton> again turns back into Sonic. Special stages and the ending have object lists of their
 own.</para>
 
-<para>The same code also switches on the hidden Japanese credits and the Easter Eggs menu described below.</para>
+<para>The same code also switches on the hidden Japanese credits described below.</para>
 </sect1>
 
 <sect1 id="japanese-credits">
@@ -502,9 +811,10 @@ PRESENTS screen: the Japanese staff credits are shown instead.</para>
 <sect1 id="easter-eggs">
 <title>The Easter Eggs menu</title>
 
-<para>With the debug cheat on, two extra numbers follow the last sound on the level select's sound test:
-<guilabel>9E</guilabel> and <guilabel>9F</guilabel>. (In the original game they started the credits and the ending
-directly.)</para>
+<para>The sound test on the level select has two more numbers after its last sound: <guilabel>9E</guilabel> and
+<guilabel>9F</guilabel>. (In the original game, once a cheat was on, they started the credits and the ending directly.) Step to
+them with <keycap>Right</keycap>: the numbers between the last real sound and 9E are empty slots that play nothing, so keep
+going. From 00, <keycap>Left</keycap> wraps round to 9F in one press. No cheat code is needed.</para>
 
 <screenshot>
 <screeninfo>The sound test at 9E</screeninfo>
@@ -544,7 +854,7 @@ the title screen.</para></note>
 
 <!-- ============================================================ -->
 <chapter id="tools">
-<title>The Debug Tools</title>
+<title>Under the Hood: The Debug Tools</title>
 
 <para>These tools are only available while the debug cheat is active (always, in a debug build). Opening one of
 them from the <guimenu>View</guimenu> or <guimenu>Tools</guimenu> menu opens a window of its own; the status bar
@@ -623,7 +933,7 @@ clicking one plays it by itself.</para></listitem></varlistentry>
 
 <!-- ============================================================ -->
 <chapter id="reference">
-<title>Reference</title>
+<title>Handy Reference</title>
 
 <sect1 id="command-line">
 <title>Command line options</title>
