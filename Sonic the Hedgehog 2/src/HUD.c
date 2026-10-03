@@ -1,0 +1,240 @@
+// Sonic 2's HUD updates: Sonic 1's HUD.c (a copy) without the time over kill (nopped out in Nick Arcade); the HUD's art, lives counter and digits are Nick Arcade's (res/Art).
+#include "HUD.h"
+#include "Constants.h"
+
+#include "Game.h"
+#include "Level.h"
+#include "LevelScroll.h"
+#include "Object/Sonic.h"
+#include "Video.h"
+
+#include <stdint.h>
+
+// HUD assets
+#include "Resource/Art/HUDNum.h"
+#include "Resource/Art/LifeNum.h"
+
+// HUD art writing
+static const uint32_t hud_dec[] = {
+    100000,
+    10000,
+    1000,
+    100,
+    10,
+    1
+};
+
+static const uint8_t hud_cmd_base[] = {
+    /*Hud_TilesBase:*/ 0x16, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x14, 0x00, 0x00,
+    /*Hud_TilesZero:*/ 0xFF, 0xFF, 0x00
+};
+static const uint8_t* hud_cmd_ringbase = &hud_cmd_base[12];
+
+void HUD_WriteCmd(size_t offset, const uint8_t* cmd, size_t cmds) {
+    VDP_SeekVRAM(offset);
+
+    do {
+        // Get tile
+        int16_t tile = (int8_t)*cmd++;
+        if (tile >= 0) {
+            const uint8_t* art = Art_HUDNum + (tile <<= 5);
+            VDP_WriteVRAM(art, 64);
+        } else {
+            VDP_FillVRAM(0, 64);
+        }
+    } while (cmds-- > 0);
+}
+
+void HUD_WriteNumber(size_t offset, uint32_t value, const uint32_t* dec, size_t decs) {
+    bool digit_write = false;
+    do {
+        // Get digit
+        uint16_t digit;
+        for (digit = 0; value >= *dec; digit++, value -= *dec)
+            ;
+
+        // Write digit
+        if (digit)
+            digit_write = true;
+        if (digit_write) {
+            const uint8_t* art = Art_HUDNum + (digit <<= 6);
+            VDP_SeekVRAM(offset);
+            VDP_WriteVRAM(art, 64);
+        }
+
+        // Increment offset and decimal
+        offset += 64;
+        dec++;
+    } while (decs-- > 0);
+}
+
+void HUD_WriteNumber2(size_t offset, uint32_t value, const uint32_t* dec, size_t decs) {
+    do {
+        // Get digit
+        uint16_t digit;
+        for (digit = 0; value >= *dec; digit++, value -= *dec)
+            ;
+
+        // Write digit
+        const uint8_t* art = Art_HUDNum + (digit <<= 6);
+        VDP_SeekVRAM(offset);
+        VDP_WriteVRAM(art, 64);
+
+        // Increment offset and decimal
+        offset += 64;
+        dec++;
+    } while (decs-- > 0);
+}
+
+void HUD_WriteHex(size_t offset, uint32_t value) {
+    VDP_SeekVRAM(offset);
+
+    size_t decs = 7;
+    do {
+        // Get digit
+        value = (value & 0xFFFF0000) | (((value & 0x0FFF) << 4) | ((value & 0xF000) >> 12));
+
+        uint16_t digit = value & 0xF;
+        if (digit >= 0xA)
+            digit += 7;
+
+        // Write digit
+        const uint8_t* art = Art_Text + (digit <<= 5);
+        VDP_WriteVRAM(art, 32);
+        value = (value >> 16) | (value << 16);
+    } while (decs-- > 0);
+}
+
+// HUD functions
+void HUD_Lives(void) {
+    size_t offset = 0xFBA0;
+
+    uint32_t value = lives;
+
+    const uint32_t* dec = &hud_dec[4];
+    size_t decs = 1;
+
+    bool digit_write = false;
+    do {
+        // Get digit
+        uint16_t digit;
+        for (digit = 0; value >= *dec; digit++, value -= *dec)
+            ;
+
+        // Write digit
+        if (digit)
+            digit_write = true;
+        if (digit_write || decs == 0) {
+            const uint8_t* art = Art_LifeNum + (digit <<= 5);
+            VDP_SeekVRAM(offset);
+            VDP_WriteVRAM(art, 32);
+        } else {
+            VDP_SeekVRAM(offset);
+            VDP_FillVRAM(0, 32);
+        }
+
+        // Increment offset and decimal
+        offset += 64;
+        dec++;
+    } while (decs-- > 0);
+}
+
+// Hud_TimeRingBonus: writes a 4-digit bonus as 8x16 digits at the current VRAM position, blanking leading zeroes.
+static void HUD_WriteBonus(uint16_t value) {
+    static const uint16_t places[4] = { 1000, 100, 10, 1 };
+    static const uint8_t blank[64] = { 0 };
+    bool started = false;
+    for (int i = 0; i < 4; i++) {
+        uint16_t digit = 0;
+        while (value >= places[i]) {
+            value = (uint16_t)(value - places[i]);
+            digit++;
+        }
+        if (digit != 0)
+            started = true;
+        VDP_WriteVRAM(started ? Art_HUDNum + (digit << 6) : blank, 64);
+    }
+}
+
+void HUD_Base(void) {
+    // Write lives and initial HUD cmd
+    HUD_Lives();
+    HUD_WriteCmd(0xDC40, hud_cmd_base, 14);
+}
+
+void HUD_Update(void) {
+    if (!debug_mode) {
+        // Update score
+        if (score_count) {
+            score_count = false;
+            HUD_WriteNumber(0xDC80, score, &hud_dec[0], 5);
+        }
+
+        // Update rings
+        if (ring_count) {
+            if (ring_count & 0x80) {
+                // Set rings to 0
+                HUD_WriteCmd(0xDF40, hud_cmd_ringbase, 2);
+                // Fallthrough to the below code?
+            }
+
+            // Update rings count
+            ring_count = false;
+            HUD_WriteNumber(0xDF40, rings, &hud_dec[3], 2);
+        }
+
+        // Update time
+        if (time_count && !pause_state) { // (the original skips the clock while f_pause is set)
+            // (Nick Arcade has no time over: its check of 9:59:59 is a nop, the clock just stops at 9 minutes)
+            // Increment time
+            if (++level_time.frame >= 60) {
+                level_time.frame = 0;
+                if (++level_time.sec >= 60) {
+                    level_time.sec = 0;
+                    if (++level_time.min > 9)
+                        level_time.min = 9;
+                }
+            }
+
+            // Write time
+            HUD_WriteNumber2(0xDE40, level_time.min, &hud_dec[5], 0);
+            HUD_WriteNumber2(0xDEC0, level_time.sec, &hud_dec[4], 1);
+        }
+
+        // Update lives
+    } else {
+        // Update position
+        HUD_WriteHex(0xDC40, (scrpos_x.f.u << 16) | player->pos.l.x.f.u);
+        HUD_WriteHex(0xDD40, (scrpos_y.f.u << 16) | player->pos.l.y.f.u);
+
+        // Update rings
+        if (ring_count) {
+            if (ring_count & 0x80) {
+                // Set rings to 0
+                HUD_WriteCmd(0xDF40, hud_cmd_ringbase, 2);
+                // Fallthrough to the below code?
+            }
+
+            // Update rings count
+            ring_count = false;
+            HUD_WriteNumber(0xDF40, rings, &hud_dec[3], 2);
+        }
+
+        // Update sprite count
+        HUD_WriteNumber2(0xDEC0, sprite_count, &hud_dec[4], 1);
+     }
+
+    // Update lives
+    if (life_count) {
+        life_count = false;
+        HUD_Lives();
+    }
+
+    // Update the time and ring bonus numbers of the end-of-act and special stage results cards
+    if (endact_bonus) {
+        endact_bonus = false;
+        VDP_SeekVRAM(ArtTile_Bonuses * TILE_SIZE);
+        HUD_WriteBonus(time_bonus);
+        HUD_WriteBonus(ring_bonus);
+    }
+}

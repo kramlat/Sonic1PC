@@ -1,0 +1,174 @@
+#pragma once
+
+#include "EngineObject.h" // the object slots, the Object type and the core: Sonic 1 keeps its ids and its subroutines here
+#include "Macros.h"
+
+//Object IDs
+typedef enum {
+	/*00*/ ObjId_Null,
+	/*01*/ ObjId_Sonic,
+	/*02*/ ObjId_02,
+	/*03*/ ObjId_PathSwapper,
+	/*04*/ ObjId_04,
+	/*05*/ ObjId_05,
+	/*06*/ ObjId_06,
+	/*07*/ ObjId_07,
+	/*08*/ ObjId_Splash,
+	/*09*/ ObjId_SpecialSonic,
+	/*0A*/ ObjId_DrownCount,
+	/*0B*/ ObjId_Pole,
+	/*0C*/ ObjId_FlapDoor,
+	/*0D*/ ObjId_Signpost,
+	/*0E*/ ObjId_TitleSonic,
+	/*0F*/ ObjId_PSB,
+	/*10*/ ObjId_GHZTunnel, // real slot 10 was an unused/deleted beta object (a Sonic artwork test) -- repurposed here
+	/*11*/ ObjId_GHZBridge,
+	/*12*/ ObjId_SpinningLight,
+	/*13*/ ObjId_LavaMaker,
+	/*14*/ ObjId_LavaBall,
+	/*15*/ ObjId_SwingingPlatform,
+	/*16*/ ObjId_Harpoon,
+	/*17*/ ObjId_Helix,
+	/*18*/ ObjId_BasicPlatform,
+	/*19*/ ObjId_19,
+	/*1A*/ ObjId_CollapseLedge,
+	/*1B*/ ObjId_WaterSurface,
+	/*1C*/ ObjId_Scenery,
+	/*1D*/ ObjId_MagicSwitch,
+	/*1E*/ ObjId_BallHog,
+	/*1F*/ ObjId_Crabmeat,
+	/*20*/ ObjId_Cannonball,
+	/*21*/ ObjId_HUD,
+	/*22*/ ObjId_BuzzBomber,
+	/*23*/ ObjId_BuzzMissile,
+	/*24*/ ObjId_BuzzExplode,
+	/*25*/ ObjId_Ring,
+	/*26*/ ObjId_Monitor,
+	/*27*/ ObjId_Explosion,
+	/*28*/ ObjId_Animal,
+	/*29*/ ObjId_Points,
+	/*2A*/ ObjId_SmallDoor,
+	/*2B*/ ObjId_Chopper,
+	/*2C*/ ObjId_Jaws,
+	/*2D*/ ObjId_Burrobot,
+	/*2E*/ ObjId_MonitorItem,
+	/*2F*/ ObjId_LargeGrass,
+	/*30*/ ObjId_GlassBlock,
+	/*31*/ ObjId_ChainStomp,
+	/*32*/ ObjId_Button,
+	/*33*/ ObjId_PushBlock,
+	/*34*/ ObjId_TitleCard,
+	/*35*/ ObjId_GrassFire,
+	/*36*/ ObjId_Spikes,
+	/*37*/ ObjId_RingLoss,
+	/*38*/ ObjId_ShieldInvincibility,
+	/*39*/ ObjId_GameOverCard,
+	/*3A*/ ObjId_GotThroughCard,
+	/*3B*/ ObjId_GHZRock,
+	/*3C*/ ObjId_SmashWall,
+	/*3D*/ ObjId_BossGreenHill,
+	/*3E*/ ObjId_PrisonCapsule,
+	/*3F*/ ObjId_ExplosionBomb,
+	/*40*/ ObjId_Motobug,
+	/*41*/ ObjId_Spring,
+	/*42*/ ObjId_Newtron,
+	/*43*/ ObjId_Roller,
+	/*44*/ ObjId_GHZEdge,
+	/*45*/ ObjId_SidewaysStomper,
+	/*46*/ ObjId_MarbleBrick,
+	/*47*/ ObjId_Bumper,
+	/*48*/ ObjId_BossBall,
+	/*49*/ ObjId_Waterfall,
+	/*4A*/ ObjId_VanishSonic,
+	/*4B*/ ObjId_GiantRing,
+	/*4C*/ ObjId_GeyserMaker,
+	/*4D*/ ObjId_LavaGeyser,
+	/*4E*/ ObjId_LavaWall,
+	/*4F*/ ObjId_4F,
+	/*50*/ ObjId_Yadrin,
+	/*51*/ ObjId_SmashBlock,
+	/*52*/ ObjId_MovingBlock,
+	/*53*/ ObjId_CollapseFloor,
+	/*54*/ ObjId_LavaTag,
+	/*55*/ ObjId_Basaran,
+	/*56*/ ObjId_FloatingBlock,
+	/*57*/ ObjId_SpikeBall,
+	/*58*/ ObjId_BigSpikeBall,
+	/*59*/ ObjId_Elevator,
+	/*5A*/ ObjId_CirclingPlatform,
+	/*5B*/ ObjId_Staircase,
+	/*5C*/ ObjId_Pylon,
+	/*5D*/ ObjId_Fan,
+	/*5E*/ ObjId_Seesaw,
+	/*5F*/ ObjId_Bomb,
+	/*60*/ ObjId_Orbinaut,
+	/*61*/ ObjId_LabyrinthBlock,
+	/*62*/ ObjId_Gargoyle,
+	/*63*/ ObjId_LabyrinthConvey,
+	/*64*/ ObjId_Bubble,
+	/*65*/ ObjId_LZWaterfall,
+	/*66*/ ObjId_Junction,
+	/*67*/ ObjId_RunningDisc,
+	/*68*/ ObjId_SBZConveyor,
+	/*69*/ ObjId_SpinPlatform,
+	/*6A*/ ObjId_Saw,
+	/*6B*/ ObjId_ScrapStomp,
+	/*6C*/ ObjId_VanishPlatform,
+	/*6D*/ ObjId_Flamethrower,
+	/*6E*/ ObjId_Electrocuter,
+	/*6F*/ ObjId_SpinConvey,
+	/*70*/ ObjId_GirderBlock,
+	/*71*/ ObjId_InvisibleBarrier,
+	/*72*/ ObjId_Teleporter,
+	/*73*/ ObjId_BossMarble,
+	/*74*/ ObjId_BossFire,
+	/*75*/ ObjId_BossSpringYard,
+	/*76*/ ObjId_BossBlock,
+	/*77*/ ObjId_BossLabyrinth,
+	/*78*/ ObjId_Caterkiller,
+	/*79*/ ObjId_Checkpoint,
+	/*7A*/ ObjId_BossStarLight,
+	/*7B*/ ObjId_BossSpikeball,
+	/*7C*/ ObjId_RingFlash,
+	/*7D*/ ObjId_HiddenBonus,
+	/*7E*/ ObjId_SSResult,
+	/*7F*/ ObjId_SSRChaos,
+	/*80*/ ObjId_80,
+	/*81*/ ObjId_81,
+	/*82*/ ObjId_ScrapEggman,
+	/*83*/ ObjId_FalseFloor,
+	/*84*/ ObjId_EggmanCylinder,
+	/*85*/ ObjId_BossFinal,
+	/*86*/ ObjId_BossPlasma,
+	/*87*/ ObjId_87,
+	/*88*/ ObjId_88,
+	/*89*/ ObjId_89,
+	/*8A*/ ObjId_Credits,
+	/*8B*/ ObjId_8B,
+	/*8C*/ ObjId_8C,
+	/*8D*/ ObjId_8D, //Eggman's wrecked Eggmobile in the ending's background (restored; see Object/EndingEggmobile.c)
+} ObjectId;
+
+//Boss subroutines (shared by all bosses)
+void BossMove(Object *obj, dword_s *boss_x, dword_s *boss_y);
+void BossDefeated(Object *obj);
+
+void MvSonicOnPtfm(Object *obj, int16_t y, int16_t prev_x);
+void PlatformObject(Object *obj, uint16_t x_rad);
+void PlatformObject_CustomHeight(Object *obj, uint16_t x_rad, int16_t height);
+void Platform3(Object *obj, int16_t top);
+void Platform_SetStand(Object *obj);
+bool ExitPlatform(Object *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p);
+void GotThroughAct(void);
+void SmashObject(Object *obj, int count, const int16_t *frag_speeds);
+void FragmentatePlatform(Object *obj, int count, const uint8_t *delays);
+void SlopeObject(Object *obj, uint16_t x_rad, const uint8_t *heightmap);
+void SlopeObject_AssumeStoodOn(Object *obj, uint16_t x_rad, const uint8_t *heightmap, int16_t prev_x);
+int16_t ObjHitWallRight(Object *obj, int16_t x_off);
+int16_t ObjHitWallLeft(Object *obj, int16_t x_off);
+int16_t ObjHitCeiling(Object *obj);
+bool ChkObjectVisible(Object *obj);
+bool ChkPartiallyVisible(Object *obj);
+int32_t Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off);
+int32_t SolidObject(Object *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off);
+int32_t SolidObject_Heightmap(Object *obj, uint16_t x_rad, uint16_t y_rad, const uint8_t *heightmap);

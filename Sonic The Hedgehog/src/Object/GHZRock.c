@@ -1,0 +1,32 @@
+#include "GHZRock.h"
+
+#include "LevelScroll.h"
+
+#include "Macros.h"
+
+// GHZ rock object
+void Obj_GHZRock(Object* obj) {
+    switch (obj->routine) {
+    case 0: // Initialization
+        // Increment routine
+        obj->routine += 2;
+
+        // Set object drawing information
+        obj->mappings = Mappings_GHZRock;
+        obj->tile = TILE_MAP(0, 3, 0, 0, ArtTile_GHZ_Purple_Rock);
+        obj->render.b = 0;
+        obj->render.f.level_fg = true;
+        obj->width_pixels = 19;
+        obj->priority = 4;
+        // Fallthrough
+    case 2: // Solid
+        // Act as solid object and draw
+        SolidObject(obj, 27, 16, 16, obj->pos.l.x.f.u, NULL, NULL);
+        DisplaySprite(obj);
+
+        // Delete once off-screen
+        if (IS_OFFSCREEN(obj->pos.l.x.f.u))
+            ObjectDelete(obj);
+        break;
+    }
+}

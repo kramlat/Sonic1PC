@@ -1,0 +1,544 @@
+#include "GM_Level.h"
+#include "GameInterface.h"
+#include "DebugLog.h"
+
+#include "Console.h"
+#include "Demo.h"
+#include "Game.h"
+#include "Sound.h"
+#include "HUD.h"
+#include "Level.h"
+#include "Oscillatory Routines.h"
+#include "LevelCollision.h"
+#include "LevelDraw.h"
+#include "LevelScroll.h"
+#include "LZWaterFeatures.h"
+#include "MathUtil.h"
+#include "Nemesis.h"
+#include "Object/Sonic.h"
+#include "Object/WaterSurface.h"
+#include "PLC.h"
+#include "Palette.h"
+#include "PaletteCycle.h"
+#include "SpecialStage.h"
+#include "Video.h"
+
+#include <string.h>
+
+// Matches PauseGame in the disassembly: pressing Start (with at least one
+// life left, so a game-over screen can't be paused) blocks in a loop
+// running VBlank routine 0x10 (Paused -- see VBlank()'s remap to 0x08/0x0A)
+// until Start is pressed again.
+//
+// Also matches Pause_SlowMo: while paused, holding B advances one frame at
+// a time continuously (returning here with pause_state left true, so the
+// very next call re-enters the paused loop without needing Start again),
+// and pressing C advances exactly one frame the same way. The original
+// only allows this with the slow-motion cheat active; that cheat's entry
+// (counting C presses during the level select code) isn't implemented in
+// this port (see GM_Title.c), so frame advance is available unconditionally
+// here instead of being locked behind it.
+void PauseGame(void) {
+    if (!lives)
+        return;
+    if (!pause_state) {
+        if (!(jpad1_press1 & JPAD_START))
+            return;
+        pause_state = true;
+        Sound_Pause();
+    }
+    do {
+        vbla_routine = 0x10;
+        WaitForVBla();
+
+        // With the slow-motion cheat on, A returns to the title screen (the original's own PauseGame). This port has no cheat code for
+        // slow motion: the frame advance below is always on, and so is this.
+        if (jpad1_press1 & JPAD_A) {
+            Sound_Resume();
+            pause_state = false;
+            gamemode = GameMode_Title;
+            return;
+        }
+
+        if ((jpad1_hold1 & JPAD_B) || (jpad1_press1 & JPAD_C))
+            return; // Frame advance -- pause_state stays true
+    } while (!(jpad1_press1 & JPAD_START));
+    Sound_Resume();
+    pause_state = false;
+}
+
+// Indexed by LEVEL_ZONE(level_id) -- matches the ZoneId_* enum order
+// (GHZ, LZ, MZ, SLZ, SYZ, SBZ) exactly, so no separate lookup is needed.
+static const uint8_t zone_music[] = {bgm_GHZ, bgm_LZ, bgm_MZ, bgm_SLZ, bgm_SYZ, bgm_SBZ};
+
+void ResumeLevelMusic(void) {
+    // SBZ act 3 and Final Zone don't have their own zone IDs -- SBZ3 is
+    // stored under LZ's level slot (0103), and FZ under SBZ's (0502), so
+    // both need their music special-cased ahead of the normal zone lookup.
+    if (level_id == 0x0103) {
+        PlayMusic(bgm_SBZ);
+        return;
+    }
+    if (level_id == 0x0502) {
+        PlayMusic(bgm_FZ);
+        return;
+    }
+
+    uint8_t zone = LEVEL_ZONE(level_id);
+    if (zone < sizeof(zone_music))
+        PlayMusic(zone_music[zone]);
+}
+
+// Wipes the per-level state (objects, scroll, camera, timers...): what the original clears at the start of a level, the
+// ending sequence and the special stage's entry. Deliberately leaves the lamppost counter alone, see below.
+void Level_ClearState(void) {
+    // Clear object memory
+    memset(objects, 0, sizeof(objects));
+
+    // Clear F628 to F680
+    vbla_routine = 0;
+    pcyc_num = 0;
+    pcyc_time = 0;
+    random_seed.v = 0;
+    pause_state = false;
+    hbla_pal = 0;
+    wtr_pos1 = 0;
+    wtr_pos2 = 0;
+    wtr_pos3 = 0;
+    wtr_routine = 0;
+    wtr_state = 0;
+    memset(pcyc_buffer, 0, sizeof(pcyc_buffer));
+
+    // Clear F700 to F800
+    scrpos_x.v = 0;
+    scrpos_y.v = 0;
+    bg_scrpos_x.v = 0;
+    bg_scrpos_y.v = 0;
+    bg2_scrpos_x.v = 0;
+    bg2_scrpos_y.v = 0;
+    bg3_scrpos_x.v = 0;
+    bg3_scrpos_y.v = 0;
+
+    limit_left1 = 0;
+    limit_right1 = 0;
+    limit_top1 = 0;
+    limit_btm1 = 0;
+    limit_left2 = 0;
+    limit_right2 = 0;
+    limit_top2 = 0;
+    limit_btm2 = 0;
+    limit_left3 = 0;
+
+    scrshift_x = 0;
+    scrshift_y = 0;
+
+    look_shift = 0;
+    dle_routine = 0;
+    nobgscroll = false;
+
+    bg1_xblock = 0;
+    bg1_yblock = 0;
+    bg2_xblock = 0;
+    bg2_yblock = 0;
+    bg3_xblock = 0;
+    bg3_yblock = 0;
+
+    LevelPlane_Init(&fg_plane, VRAM_FG, &scrpos_x, &scrpos_y, 0);
+    bg1_scroll_flags = 0;
+    bg2_scroll_flags = 0;
+    bg3_scroll_flags = 0;
+    bgscrollvert = false;
+    sonspeed_max = 0;
+    sonspeed_acc = 0;
+    sonspeed_dec = 0;
+    sonframe_num = 0;
+    sonframe_chg = 0;
+    angle_buffer0 = 0;
+    angle_buffer1 = 0;
+
+    opl_routine = 0;
+
+    ss_angle.v = 0;
+    ss_rotate = 0;
+    btn_pushtime1 = 0;
+    btn_pushtime2 = 0;
+    pal_chgspeed = 0;
+    memset(coll_index, 0, sizeof(coll_index));
+    palss_num = 0;
+    palss_time = 0;
+
+    btn_pushtime1 = 0;
+    btn_pushtime2 = 0;
+    obj31_ypos = 0;
+    boss_status = 0;
+    track_pos.v = 0;
+    lock_screen = 0;
+    memset(level_anim, 0, sizeof(level_anim));
+    gfx_big_ring = 0;
+    convey_rev = 0;
+    memset(obj63, 0, sizeof(obj63));
+    tunnel_mode = 0;
+    lock_multi = 0;
+    tunnel_allow = 0;
+    jump_only = 0;
+    obj6B = 0;
+    lock_ctrl = false;
+    big_ring = 0;
+    item_bonus = 0;
+    time_bonus = 0;
+    ring_bonus = 0;
+    endact_bonus = 0;
+    sonicend = 0;
+    lz_deform = 0;
+    memset(f_switch, 0, sizeof(f_switch));
+
+    scroll_block1_size = 0;
+    scroll_block2_size = 0;
+    scroll_block3_size = 0;
+    scroll_block4_size = 0;
+
+    // FE60 to FF80
+    memset(oscillatory.state, 0, sizeof(oscillatory.state));
+    memset(sprite_anim, 0, sizeof(sprite_anim));
+    sprite_anim_3buf = 0;
+
+    limit_top_db = 0;
+    limit_btm_db = 0;
+
+    scrpos_x_dup.v = 0;
+    scrpos_y_dup.v = 0;
+    bg_scrpos_x_dup.v = 0;
+    bg_scrpos_y_dup.v = 0;
+    bg2_scrpos_x_dup.v = 0;
+    bg2_scrpos_y_dup.v = 0;
+    bg3_scrpos_x_dup.v = 0;
+    bg3_scrpos_y_dup.v = 0;
+
+    fg_plane.flags_snap = 0;
+    bg1_scroll_flags_dup = 0;
+    bg2_scroll_flags_dup = 0;
+    bg3_scroll_flags_dup = 0;
+
+    // The lamppost counter is deliberately NOT cleared here: this runs again for
+    // every restart (dying, time over), and a restart must keep it so that
+    // LevelSizeLoad can restore the checkpoint. The original clears it only when
+    // the level actually changes -- title screen (GM_Title.c), end-of-act card
+    // (TitleCard.c), SBZ2 -> SBZ3 (Sonic.c) -- and the port already does that.
+    // (It used to be cleared here, which wiped every checkpoint on death.)
+}
+
+// The picture changed size while a level runs: the camera's limits move with it (the level tables add half of the extra width and
+// all of the extra height, see Level.c), the planes are drawn again for what the new size shows.
+static void Level_ApplyResolution(void) {
+    int old_width = screen_width, old_height = screen_height;
+    if (!Video_ApplyPendingResolution())
+        return;
+    int wide = (screen_width - old_width) / 2;
+    int tall = screen_height - old_height;
+    limit_right1 = (uint16_t)(limit_right1 + wide);
+    limit_right2 = (uint16_t)(limit_right2 + wide);
+    limit_btm1 = (uint16_t)(limit_btm1 + tall);
+    limit_btm2 = (uint16_t)(limit_btm2 + tall);
+    look_shift = (int16_t)(look_shift + tall / 2);
+    ClearScreen();
+    VDP_SetPlaneALocation(VRAM_FG);
+    VDP_SetPlaneBLocation(VRAM_BG);
+    DeformLayers();
+    LoadTilesFromStart();
+}
+
+// Level gamemode
+void GM_Level(void) {
+GM_Level_Branch:;
+    DEBUG_LOG("level", "starting zone %u act %u (checkpoint %u, lives %u)", (unsigned)LEVEL_ZONE(level_id), (unsigned)(level_id & 0xFF) + 1, last_lamp & 0x7F, lives);
+    // Set 'title card' flag
+    gamemode |= 0x80;
+
+    if (demo >= 0) // the credits demos keep the credits music going
+        FadeOutMusic();
+
+    // Clear the pattern load queue and fade out
+    ClearPLC();
+    PaletteFadeOut();
+
+    // Load art if not in credits
+    if (demo >= 0) {
+        // Load title card art
+        if (!game_info.no_title_card)
+            NewPLC(PlcId_TitleCard);
+
+        // Load level art and general art
+        if (level_header[LEVEL_ZONE(level_id)].plc1 != 0)
+            AddPLC(level_header[LEVEL_ZONE(level_id)].plc1);
+        AddPLC(PlcId_Main2);
+    }
+
+    Level_ClearState();
+
+    // Clear screen
+    ClearScreen();
+
+    // Initialize VDP state
+    VDP_SetPlaneALocation(VRAM_FG);
+    VDP_SetPlaneBLocation(VRAM_BG);
+    VDP_SetSpriteLocation(VRAM_SPRITES);
+    VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+    VDP_SetBackgroundColour(0x20); // Line 2, entry 0
+
+    // Load water
+    VDP_SetHIntCounter(SCREEN_HEIGHT - 1);
+    hbla_counter = SCREEN_HEIGHT - 1;
+    VDP_SetHIntEnable(false);
+    if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
+        VDP_SetHIntEnable(true);
+        // Matches the original: all three water heights start at the act's
+        // WaterHeight entry, and the dynamic water routine and "screen is
+        // all underwater" flag are cleared. A checkpoint restore
+        // (Obj_Checkpoint_LoadInfo, via LevelSizeLoad below) overrides these
+        // afterwards. Without the routine reset, LZ3 inherited LZ1's
+        // finished routine (LZ2 never touches it) and started with water.
+        // LZ act 4 is SBZ3, see [[project_lz_act4_sbz3]].
+        static const int16_t WaterHeight[4] = { 0xB8, 0x328, 0x900, 0x228 };
+        wtr_pos1 = wtr_pos2 = wtr_pos3 = WaterHeight[LEVEL_ACT(level_id)];
+        wtr_routine = 0;
+        wtr_state = 0;
+    }
+    air = 30;
+
+    // Load Sonic's palette
+    PalLoad2(PalId_Sonic);
+    if (LEVEL_ZONE(level_id) == ZoneId_LZ)
+        PalLoad3_Water((LEVEL_ACT(level_id) == 3) ? PalId_SonicSBZ : PalId_SonicLZ);
+    // (The original also restores the checkpoint's water state here; this port does that with the rest of the checkpoint, see Level.c.)
+
+    if (demo >= 0) {
+        // Unlike sound_music (fully repopulated by ResumeLevelMusic's own
+        // LoadMusic call right below), sound_sfx has no per-level reset --
+        // this project models music/SFX as two fully independent chip
+        // sets mixed together (see Sound.c), not real hardware's single
+        // shared chip with SFX temporarily "stealing" a channel. Without
+        // this, a still-looping zone-specific ambient SFX (e.g. MZ's noise
+        // channel) keeps playing through a zone transition and gets mixed
+        // in with the new zone's music. Matches the same StopAllSound()
+        // call other gamemode transitions already make (GM_Title.c,
+        // GM_Sega.c, GM_SSRG.c) -- level transitions were just missing it.
+        StopAllSound();
+        ResumeLevelMusic();
+
+        // Start title card (the prototypes had none: their levels start straight away, once the art is loaded)
+        if (!game_info.no_title_card)
+            objects[2].type = ObjId_TitleCard;
+
+        do {
+            // Run game and load PLCs
+            vbla_routine = 0x0C;
+            WaitForVBla();
+            ExecuteObjects();
+            BuildSprites(NULL);
+            RunPLC();
+        } while ((!game_info.no_title_card && objects[4].pos.s.x != objects[4].scratch.u16[4]) || plc_buffer[0].art != NULL);
+
+        // Initialize HUD
+        HUD_Base();
+    }
+
+    // Load level
+    PalLoad1(PalId_Sonic);
+    LevelSizeLoad();
+    DeformLayers();
+    fg_plane.flags |= LEVEL_SCROLL_LEFT; // OK
+    LevelDataLoad();
+    LoadTilesFromStart();
+    FloorLog_Unk();
+    ColIndexLoad();
+
+    // Create player and HUD objects
+    player->type = ObjId_Sonic;
+    objects[0x1B].type = ObjId_Splash; // Spin Dash dust / skid dust / water splash companion
+    if (demo >= 0)
+        objects[1].type = ObjId_HUD;
+    Game_LevelObjects();
+
+    if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
+        objects[WATERSURFACE_SLOT_LEFT].type = ObjId_WaterSurface;
+        objects[WATERSURFACE_SLOT_LEFT].pos.l.x.f.u = 0x60;
+        objects[WATERSURFACE_SLOT_RIGHT].type = ObjId_WaterSurface;
+        objects[WATERSURFACE_SLOT_RIGHT].pos.l.x.f.u = 0x120;
+        objects[WATERSURFACE_SLOT_EXTRA].type = ObjId_WaterSurface;
+        objects[WATERSURFACE_SLOT_EXTRA].pos.l.x.f.u = 0x1E0;
+    }
+
+    // Handle debug mode cheat. Debug builds skip the "hold A" requirement
+    // too -- debug_cheat alone (itself unconditionally on in debug builds,
+    // see GM_Title.c) is enough.
+#ifndef NDEBUG
+    if (debug_cheat)
+        debug_mode = true;
+#else
+    if (debug_cheat && (jpad1_hold1 & JPAD_A))
+        debug_mode = true;
+#endif
+    jpad1_hold2 = 0;
+    jpad1_press2 = 0;
+    jpad1_hold1 = 0;
+    jpad1_press1 = 0;
+
+    // Load level objects
+    ObjPosLoad();
+    ExecuteObjects();
+    BuildSprites(NULL);
+
+    // Initialize game state
+    if (!last_lamp) {
+        rings = 0;
+        level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
+        life_num = 0;
+    }
+
+    time_over = false;
+    shield = false;
+    invincibility = false;
+    shoes = false;
+    debug_use = false;
+    restart = false;
+    frame_count = 0;
+
+    OscillateNumInit();
+
+    score_count = true;
+    ring_count = true;
+    time_count = true;
+
+    // Initialize demo
+    btn_pushtime1 = 0;
+
+    const uint8_t* demo_data;
+    if (cli_demo_override)
+        demo_data = cli_demo_override; // a demo loaded from a file (Tools > Play Demo / the CLI hook)
+    else if (demo < 0)
+        demo_data = ending_demo_ptr[credits_num - 1];
+    else
+        demo_data = intro_demo_ptr[LEVEL_ZONE(level_id)];
+    btn_pushtime2 = demo_data[1] - 1;
+    if (demo < 0)
+        demo_length = (credits_num == 4) ? 510 : 540; // Credits length
+    else if (cli_demo_length >= 0)
+        demo_length = (uint16_t)cli_demo_length; // length of the loaded demo
+    else
+        demo_length = 1800; // Demo length
+
+    // Load level's water palette (act 3 is the SBZ3-under-LZ slot -- purple
+    // water, not LZ's usual green)
+    if (LEVEL_ZONE(level_id) == ZoneId_LZ)
+        PalLoad4_Water((LEVEL_ACT(level_id) == 3) ? PalId_SBZ3Water : PalId_LZWater);
+
+    // Wait for 4 frames
+    for (int i = 0; i < 4; i++) {
+        vbla_routine = 0x08;
+        WaitForVBla();
+    }
+
+    // Fade into level
+    PaletteFadeIn_At(0x10, 0x30);
+
+    // Tell title card to move away
+    objects[2].routine += 2;
+    objects[3].routine += 4;
+    objects[4].routine += 4;
+    objects[5].routine += 4;
+
+    // Load missing art in credits demos
+    if (demo < 0) {
+        AddPLC(PlcId_Explode);
+        AddPLC(PlcId_GHZAnimals + LEVEL_ZONE(level_id));
+    }
+
+    // Enter level loop
+    gamemode &= 0x7F;
+    while (1) {
+        // Handle pausing the game when pressing Start
+        PauseGame();
+
+        // Debug console (SonicSmoke only -- see Console.c's own comment).
+        // No-ops immediately unless console_enabled AND currently open.
+        ConsoleUpdate();
+
+        // A new picture size from the menu: what the camera and the planes show changes with it
+        if (Video_ResolutionPending())
+            Level_ApplyResolution();
+
+        // Run frame
+        vbla_routine = 0x08;
+        WaitForVBla();
+        frame_count++;
+
+        MoveSonicInDemo();
+        LZWaterFeatures();
+
+        // Run game
+        ExecuteObjects();
+        // Restart level gamemode if restart flag set
+        if (restart)
+            goto GM_Level_Branch;
+
+        // Setup video and load PLCs
+        if (debug_use || player->routine < 6)
+            DeformLayers();
+        BuildSprites(NULL);
+        ObjPosLoad();
+        PaletteCycle();
+        RunPLC();
+
+        // Other level stuff
+        OscillateNumDo();
+        SynchroAnimate();
+        SignpostArtLoad();
+
+        // Check if level loop should end
+        if (gamemode != GameMode_Demo) {
+
+            // Break if exited the level gamemode
+            if (gamemode != GameMode_Level)
+                break;
+        } else {
+            // Begin to fade if restart flag set or demo ended
+            if (restart || !demo_length) {
+                // Get next game mode
+                if (gamemode == GameMode_Demo) // I HATE YOU
+                    gamemode = (demo < 0) ? GameMode_Credits : GameMode_Sega;
+
+                // Prepare fade
+                demo_length = 60;
+                palette_fade.ind = 0;
+                palette_fade.len = 0x40;
+                pal_chgspeed = 0;
+
+                // Fade loop
+                do {
+                    // Run frame
+                    vbla_routine = 0x08;
+                    WaitForVBla();
+
+                    MoveSonicInDemo();
+
+                    // Run game
+                    ExecuteObjects();
+                    BuildSprites(NULL);
+                    ObjPosLoad();
+
+                    // Fade
+                    if (--pal_chgspeed < 0) {
+                        pal_chgspeed = 2;
+                        FadeOut_ToBlack();
+                    }
+                } while (demo_length);
+                break;
+            } else if (gamemode != GameMode_Demo) // Condition never met
+            {
+                // Go to SEGA game mode
+                gamemode = GameMode_Sega;
+                break;
+            }
+        }
+    }
+}

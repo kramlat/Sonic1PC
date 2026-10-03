@@ -4,7 +4,7 @@ Sonic the Hedgehog (1991, Sega Genesis / MegaDrive) C Port
 
 A native Qt/KDE-style recompilation of the original game: the whole game is playable, from the SEGA screen to the credits,
 including the special stages, the ending, the credits with their attract demos, the continue screen and the "TRY AGAIN" / "END"
-screens. Its logic follows the original (REV01 by default); the differences are listed in the handbook (**Help > Sonic 1 PC
+screens. Its logic follows the original (REV01); the differences are listed in the handbook (**Help > Sonic 1 PC
 Handbook**, or F1).
 
 ## Features
@@ -41,7 +41,9 @@ git clone --recursive https://github.com/kramlat/Sonic1PC.git
 
 ## Building
 
-This project uses CMake, allowing it to be built with a range of compilers.
+This project uses CMake, allowing it to be built with a range of compilers. The root CMake project builds ParadoxMake (`ParadoxMake/`, the Paradox Engine
+project tool, like qmake for Qt), which reads each folder's `paradoxmakefile.yml` and builds the engine and the game; the real build tree is `build/projects`.
+You can also run it directly: `build/ParadoxMake/paradoxmake build "Sonic The Hedgehog"`.
 
 Switch to the terminal and `cd` into this folder.
 
@@ -56,7 +58,6 @@ You can also add the following flags:
 
 Name | Function
 --------|--------
-`-DREV01=ON` | Compile a REV01 ROM
 `-DJAPANESE=ON` | Compile a Japanese ROM
 `-DFIX_BUGS=ON` | Fix bugs that are blatant screw-ups that may harm performance (not gameplay bugs)
 `-DLTO=ON` | Enable link-time optimisation
@@ -70,7 +71,7 @@ You can then compile the executable with this command:
 cmake --build build --config Release
 ```
 
-The game is `bin/Release/Sonic` (`bin/Sonic` for a build without a build type). Run it from anywhere: everything it needs is built in.
+The game is `bin/Release/Sonic` (`bin/Sonic` for a build without a build type). Run it from anywhere. The game is one executable plus two shared libraries that sit next to it (`libParadoxEngine.so`, the engine every Sonic game shares, and `libparadoxsmps.so`, the sound compiler): copy the folder, not just the executable.
 
 ## Installing
 
@@ -83,7 +84,7 @@ cmake --build build
 sudo cmake --install build
 ```
 
-The install puts the binary in `<prefix>/bin`, the desktop entry in `<prefix>/share/applications`, the icons in `<prefix>/share/icons`
+The install puts the binary in `<prefix>/bin`, the two shared libraries in `<prefix>/lib`, the desktop entry in `<prefix>/share/applications`, the icons in `<prefix>/share/icons`
 and the handbook in `<prefix>/share/doc/HTML/en/sonic1pc` (KDE Help Center) and `<prefix>/share/doc/sonic1pc/html` (the game's Help window).
 
 ## Controls

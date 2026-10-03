@@ -5,9 +5,10 @@ build*/
 bin/
 
 # Exclude converted resources
-/src/Resource/
-/res/Animation/
-/res/Mappings/
+/Sonic The Hedgehog/src/Resource/
+/ParadoxEngine/src/Resource/
+/Sonic The Hedgehog/res/Animation/
+/Sonic The Hedgehog/res/Mappings/
 /.vs
 /out
 CMakeSettings.json
@@ -18,10 +19,10 @@ libs/download
 libs/install
 
 # Tracker-specific metadata written next to the converted music; the game never reads it
-tools/paradoxsmps/converted/music/*.metadata.json
+Sonic The Hedgehog/res/SMPS/converted/music/*.metadata.json
 
 # SonLVL compiles its object definitions from the .cs files and caches the result here
-SonLVL INI Files/dllcache/
+Sonic The Hedgehog/SonLVL INI Files/dllcache/
 
 # The handbook's HTML is built from doc/index.docbook
-doc/html/
+Sonic The Hedgehog/doc/html/

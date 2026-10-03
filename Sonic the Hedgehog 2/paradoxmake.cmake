@@ -1,0 +1,23 @@
+# What paradoxmakefile.yml cannot say yet, for Sonic 2: Sonic 1's build settings, as far as the reused code needs them. ${PM_DIR} is this project's folder.
+# Nick Arcade's VRAM layout for the common art (its PLC_Main): the objects of Sonic 1 that Sonic 2 reuses take their tiles from these (Constants.h lets a game override them)
+target_compile_definitions(Sonic2Core PUBLIC ArtTile_Lamppost=0x47C ArtTile_Ring=0x6BC ArtTile_Points=0x4AC ArtTile_Shield=0x4BE ArtTile_Invincibility=0x4DE ArtTile_Spikes=0x434 ArtTile_Spring_Horizontal=0x4A8 ArtTile_Spring_Vertical=0x4B8 ArtTile_SpringUp=0x45C ArtTile_SpringSide=0x470 ArtTile_SpringDiag=0x43C SONIC_DPLC_SIZE=0x400)
+if(JAPANESE)
+  target_compile_definitions(Sonic2Core PUBLIC SCP_JP)
+endif()
+if(FIX_BUGS)
+  target_compile_definitions(Sonic2Core PUBLIC SCP_FIX_BUGS)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  target_compile_options(Sonic2Core PRIVATE /W4 "/utf-8")
+else()
+  target_compile_options(Sonic2Core PRIVATE -Wall -Wextra -pedantic)
+endif()
+
+set_target_properties(Sonic2Core Sonic2 PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
+set_target_properties(Sonic2 PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
+set_target_properties(Sonic2 PROPERTIES BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
+if(TARGET SDL2::SDL2main)
+  target_link_libraries(Sonic2 PRIVATE SDL2::SDL2main)
+endif()
+install(TARGETS Sonic2 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

@@ -4,6 +4,229 @@ Session notes capturing context, rationale, and outstanding work that isn't
 already recorded in code comments or commit history — written so this
 survives conversation summarization/compaction. Newest work first.
 
+## Sonic 2 toward the Nick Arcade equivalent: Emerald Hill act 1 loads (2026-10-03)
+
+**Status: EHZ1/2 load and Sonic stands on Nick Arcade's terrain (zone slot 3). Sonic 1 unchanged (42 scenarios + PCM identical). Not yet: EHZ background deformation/scrolling, objects, music, the rest of the zones.**
+
+- **Goal: Emerald Hill with all its objects, then Nick Arcade's attract mode.** Ported so far, each Sonic 2 only (`Sonic the Hedgehog 2/src/Object/`), from the NA sources, with the assets imported by `tools/import_s2na_assets.pl` (art, mappings, animation scripts, and it lists them in the project file): bridge (`Bridge.c`: logs as child sprites of up to two objects, Sonic and Tails each give a log index; children are kept as slot indices), scenery (`Scenery.c`: bridge stakes etc.), basic platform (`Platform.c`: NA's object 18; both characters), EHZ waterfall (`EHZWaterfall.c`), Buzzer / Masher / Snail (`EHZBadniks.c`: parts find their parents by a checked slot index), corkscrew (`Spiral.c`: a character on it gets its height from a table and its flip angle set, which makes Sonic tumble along it) and the signpost (`Signpost.c`: NA's art/mappings/animation and sparkle places). `Solid.c` gained `Solid_PlatformLand`, `Solid_Platform` and `Solid_Ride`. The zone's art (bridge C6, waterfall AE, fireball E, Buzzer E6, Snail , Masher C, shield ) loads in Emerald Hill's PLC.
+- **Attract mode is Nick Arcade's.** `src/Demo.c` (Sonic 2's copy) holds NA's recorded inputs (`res/Demo/NA*`, extracted from `Demo_CPZ/EHZ/HPZ/HTZ/S1GHZ/S1SS`) by zone slot, and the title screen cycles them in NA's order (`Demo_Levels`: Chemical Plant 1, Emerald Hill 1, Hidden Palace 1, Hill Top 1), 1800 frames each as before. NA's Emerald Hill demo is a two-player one (the second pad moves Tails); with no two-player mode yet only Sonic's pad is played. Checked: the Chemical Plant demo starts from the title.
+- **Emerald Hill's boss and end of act.** `Object/EHZBoss.c`: Nick Arcade's objects 55 and 58 (with 57's code): the drill car (ship, cockpit, body, three wheels, spike, lift-off flame), hit counter, flash, defeat and drive-off, parts finding the ship by a checked slot index; its art (/C0/) in the boss PLC, which the zone's event now queues. When the boss is beaten Nick Arcade goes to the Sega screen, as here. `Level.c`: act 1 and 3 layouts etc. as NA's index (act 3 = act 1's layout with no objects or rings); the signpost-art loader skips act 2 as NA's does (Sonic 1's skipped act 3, and it cleared the art queue in the boss arena); `Object/TitleCard.c` (Sonic 2's copy: the end-of-act card) has NA's level order. Engine: `GameInfo.plc_capacity` (the art queue holds 16 in the original; Sonic 2 starts levels without a title card to drain it, so it asks for 32; Sonic 1 unchanged). Solid: the object-control flag (`lock_multi` bit 7) now switches the solid code off as NA does.
+- **Engine: shared slide routine, per-object collision path, NA path swapper.** `Slide.c`/`Slide.h` (`Slide_Update(table, count)`, `SlideSurface {chunk, speed}`): Sonic 1's Labyrinth water slide code moved out of `LZWaterFeatures.c` into a table-driven routine (`f_slidemode` and the behaviour unchanged, baseline identical); Oil Ocean's slides will pass their own table. (Nick Arcade's `Sliding_flag`/`S1_LZWaterSlides` is just Sonic 1's own slide code left in its ROM with a broken table, never used there; the override flag and `Control_Locked` of NA are `lock_multi` and `lock_ctrl` here, which `Solid.c` now honours too.) `Game_CollisionPath(const void *obj)` (GameInterface.h, weak default = the global `collision_path`, so Sonic 1 is unchanged) now decides which collision path `FindFloor`/`FindWall` use per object; Sonic 2's `CollisionPath.c` gives Sonic and Tails each their own from their `top_solid_bit` ( = second path) and everything else the first. Sonic 2's `Object/PathSwapper.c` is Nick Arcade's object 03 (tracks Sonic and Tails separately, switches on leaving the strip, sets solid bits and sprite priority); the secondary collision indices were already imported. Smoke-tested running through Emerald Hill's first stretch; the swapper logic itself is not yet checked against a loop or corkscrew (those objects aren't ported).
+- **Shield and stars (object 38).** Sonic 2's `ShieldInvincibility.c` + `res/Animation/ShieldInvincibility` (`Ani_Barrier`): the shield is 24 wide and uses tile $560 in Emerald Hill (the EHZ PLC loads it there), and the invincibility stars are Nick Arcade's unfinished ones: Sonic's own mapping frame with the stars' tiles, drawn at a trail position from a buffer that is never written (the filling routine `Unused_RecordPos` is never called), i.e. the level's top left corner, so nothing shows during invincibility but the music. **Checked against Nick Arcade and already identical to Sonic 1 (nothing to port):** the explosion (object 27: same art, mapping pieces, timing), animals (object 28: same code, zone table, speeds, PLCs and art), the ring and lost rings (objects 25/37, only the art tile differs: already overridden) and points (object 29).
+- **Springs (Nick Arcade's object 41), with the prep they need.** Prep: `Scratch_Sonic` gained named `flip_angle`, `flips_remaining`, `flip_speed`, `top_solid_bit`, `lrb_solid_bit` (same size: they replace padding; Sonic 1 untouched). Sonic.c and Tails.c (Sonic 2 only) got the tumble (animation frames from flip angle: Sonic's from $9B, Tails' from $75; `JumpAngle` steps it; `ResetOnFloor` clears it). The solid bits are stored only: the port has no secondary collision path yet, so path swappers and spring subtype bits 2/3 do nothing visible. New `src/Solid.c` (`Solid_Character`): Nick Arcade's `SolidObject_Always_SingleCharacter` and `SlopedSolid_SingleCharacter` for either character (Sonic stands with status bit 3, pushes with 5; Tails 4 and 6), with `MvSonicOnPtfm`/`MvSonicOnSlope`/`RideObject_SetRide`; `Tails_ResetOnFloor` and `KillTails` are now public (`Object/Tails.h`). The spring: Sonic 2's `Object/Spring.c` (up, sideways, down, diagonal up/down, yellow, flips, x-speed cut, run-into check for sideways ones, Tails too), `asm/Mappings/Spring.asm`+`SpringYellow.asm` (generated from `Map_obj41`/`Map_obj41a`), `res/Mappings/SpringGHZ`, `res/Animation/Spring` (`Ani_obj41`), art `SpringUp`/`SpringSide`/`SpringDiag` at $45C/$470/$43C in every zone but Green Hill (which keeps Sonic 1's spring art at $4A8/$4B8: `ArtTile_Spring_Horizontal/Vertical` are now overridable in Constants.h). Tested in Emerald Hill: yellow up spring and a diagonal one launch Sonic correctly; sideways, down, Tails and the flip tumbles not yet exercised in play. NA's wall rebound is deliberately skipped (dropped next milestone). Sonic 1 hash/PCM baseline identical.
+- Sonic 2 has its own `src/Main.c` (project-level `main:` in its yml): the ROM header title, and so the window titlebar, reads "SONIC THE HEDGEHOG 2". Sonic 1's Main.c is untouched.
+- Title screen background: the two 32-cell parts fill the whole 64-cell plane, so with the widescreen margin `CopyTilemap` spilled each row into the next row's left cells (wrong hills, blue top-left patch). `GM_Title.c` now writes them with `CopyTilemapWrapped`. Confirmed fixed by the user.
+- `Sonic the Hedgehog 2/tools/import_s2na_zone.pl ZONE ACT...` imports a zone from `~/Projects/s2na-disasm` into `res/` (layout FG+BG into the engine's interleaved blob, chunks, blocks, collision indices, objects
+  to Sonic 2 entry format with ids remapped, rings, palette, cycle, Nemesis art). Needs `ParadoxEngine/tools/kosenc` (a CLI around the engine's `KosEnc`). Sonic 2 keeps Sonic 1's object ids (the enum is in S1's Object.h);
+  Nick Arcade's own objects get ids from $8E (waterfall, Buzzer, Masher, Snail), still unwritten (null).
+- Sonic 2 copies of the files holding per-zone data (`Sonic2LevelData.c`, `Sonic2PLC.c`, `Sonic2Palettes.c`, `PaletteCycle.c`) with slot 3 (Sonic 1's SLZ slot) replaced by Emerald Hill; `Sonic2Collision.c` = Nick Arcade's solids for every zone.
+  `Level.c`: a header without art leaves it to its PLC (EHZ's Nemesis art loads at tile 0, as in Sonic 2).
+- Title: "Sonic Team Presents" screen skipped; palette cycle is EHZ's; level select palette is the Simon Wai/Nick Arcade one. `GameInfo.no_title_card` (Sonic 2 true): the protos have no title cards.
+- Title: Sonic and Tails no longer rise (the prototypes' Obj0E draws them in place; the rising code is unreachable there); the level select/debug font is the Simon Wai prototype's (`res/S2Art/Text`).
+- **Shared-code fix (Sonic 1 too): foreground right-edge corruption.** `DrawBlocks_LR` drew 21 blocks a row at 320 wide where the original draws 22 (`(320+16+16)/16`), so the block at the right edge of the view stayed stale in every
+  row drawn while the camera was off a block line (foreground only; mostly seen scrolling vertically). Test: `LevelPlane_ScrollingAtGameSpeedsLeavesNoHoles` (random level, random camera steps up to 16 px, scrolled plane vs a fresh draw).
+  Frame hashes of the scrolling scenarios (boot, credits 2-7) changed accordingly; baseline refreshed, audio identical.
+- **Levels in their slots** (`import_s2na_zone.pl` run for CPZ 1, HPZ 1, HTZ 1 2 3): Chemical Plant in the Marble slot (2), Emerald Hill in Spring-Yard-less slot 3 (Star Light's), Hidden Palace in the Spring Yard slot (4),
+  Hill Top in the Scrap Brain slot (5; Nick Arcade's HTZ3 is where the Final Zone was). Blocks of Hill Top = Emerald Hill's with its own from block $130 (Nick Arcade's MainLevelLoadBlock); its chunks, collision and base art are Emerald Hill's, its
+  own art loads from tile $1FC. Act 3s are copies of act 1 with no objects or rings (dropped in M2; GHZ is the exception, and goes in M2 itself); acts 2 of CPZ/HPZ have no objects (as in Nick Arcade).
+  Dynamic level events stay Sonic 1's (Nick Arcade never changed them; they change in M2). Palette cycles of CPZ/HPZ/HTZ are not written yet (Sonic 1's must not run on those palettes: stubbed).
+  Verified headless: all of CPZ1, HPZ1, HTZ1, HTZ2 render with their own art and palette (`--zone 2|4|5 --act n`; that start skips the title, so the HUD labels art, loaded by the title, is missing there).
+- **Scrolling, background drawing, palette cycles** (Sonic 2 copies `LevelScroll.c`, `LevelDraw.c`, `PaletteCycle.c`): Nick Arcade's BgScrollSpeed per slot (CPZ quarter-height BG, HPZ half-height, EHZ/HTZ static start), and its Deform_CPZ / Deform_EHZ /
+  Deform_HPZ (Deform_All bands) / Deform_HTZ written from `_inc/BgScrollSpeed & DeformBGLayer.asm` (the 16.16 gradients as plain accumulators; lines past the original's 222-224 repeat the last). Draw: `DrawBG_Top` gets Nick Arcade's bits 6/7 (Hidden Palace's
+  background moves by them); the initial background draw is plain for slots 2-5 (the MZ/SBZ specials of Sonic 1 only run when flags that Nick Arcade's deformations never set are raised). Palette cycles: CPZ (3 cycles), HPZ (dry + underwater), HTZ (lava, with its delay table),
+  EHZ's. The title has none (neither prototype's title loop calls a cycle; Nick Arcade's PalCycle_S1TitleScreen is unused), so `PCycle_Title` is empty. **Title**: `Deform_TitleScreen` (camera X +8 a frame to $1C00, foreground still, Emerald Hill's lines) runs each frame, so the title's background scrolls like Emerald Hill's.
+  Seen headless: EHZ clouds and sea, CPZ buildings, HPZ cave, HTZ mountains/clouds; the title with its sea line. Not exercised yet: redraws while scrolling in HPZ (bits 6/7), CPZ/HPZ/HTZ cycles in motion.
+  Note: the Sonic 1 frame-hash batch (`verify.sh`) is not deterministic under heavy CPU load (a different scenario or two diverge each time the machine is busy, e.g. while building); every flagged scenario matches the baseline when run alone.
+- **Animated art and animated blocks** (`Sonic the Hedgehog 2/src/AnimatedArt.c`, from `_inc/Animated Stage Tiles.asm`): Nick Arcade's script-driven art animation (Dynamic_Normal: per script a timer, a frame list with a shared or per-frame duration, and the tiles copied over the
+  level art at a fixed VRAM place): Emerald Hill's and Hill Top's five flower scripts, Hidden Palace's three glowing ball scripts; none for Green Hill (Nick Arcade removed Sonic 1's), Chemical Plant or the ending. LoadAnimatedBlocks (the zone's block patches written into the
+  block table at level start, from `LoadTilesFromStart` before the tiles are drawn): Green Hill's set for Green Hill, Emerald Hill and Hill Top, then Chemical Plant's and Hidden Palace's. Art files: `res/S2Art/EHZFlower1-5`, `HPZGlowingBall`.
+  Checked headless: Emerald Hill's flower tile in VRAM alternates between its frames with the script's durations. Not checked by eye: Hidden Palace's orb, the animated blocks' look.
+  (Nick Arcade's `ShiftCPZBackground` is dummied out there and not ported.)
+- **Sonic in Sonic 2** (art, mappings, animations and palette only; his code is Sonic 1's): Nick Arcade's art (`res/Art/Sonic`), mappings (`asm/Mappings/Sonic.asm`, assembled), DPLC (`res/Mappings/SonicDPLC`), animation scripts
+  (`res/Animation/Sonic`, built from `_incObj/01 - Sonic.asm` by `tools/sonic_animation_s2na.pl`; animation 31, the port's spin dash, is Nick Arcade's spin dash script) and the "Sonic and Tails" palette. `Sonic_Animate` moved out of Sonic.c into
+  `Object/SonicAnimate.c` (Sonic 1: a plain move, 42 scenarios + PCM identical); Sonic 2's copy has Nick Arcade's changes (frames go above $7F so a command is a byte >= $F0; walking and running share twelve-frame sets per angle and run at half the delay).
+  ParadoxMake: a reuse `except:` entry `res/<name>` or `asm/<name>.asm` now also drops a reused resource or assembled file, so a game can give its own.
+- **Object table follows Nick Arcade's ids** (`Sonic2Objects.c`): ids Nick Arcade removed are empty, ids where it has a different object than Sonic 1 are empty placeholders (Tails 02, Tails' tails 05, Spiral 06, ... EHZ boss 55-58) until ported, and ids where it kept the Sonic 1
+  object keep the Sonic 1 code until each is replaced. Layout imports no longer remap ids. Sonic 1's own table is untouched.
+- **Tails and his tails** (`Sonic the Hedgehog 2/src/Object/Tails.c`; objects 02 and 05 in Nick Arcade's ids): made as Sonic Team made him, by copying Sonic's object (Sonic.c) and editing it, so he has Sonic's quirks: his radii are 9x$F (ball 7x$E, five pixels up and down,
+  one when he lands from a ball), control is pad 2 which a CPU stub fills with Sonic's own pad from 16 frames ago (a pad 2 in use keeps him for 300 frames), no water, no debug mode, no flight (his animation $E exists, unused), no dust. Hurting him drops SONIC's rings (the copy of the hurt code works
+  on the shared ring count), but he does not die from enemies or with no rings, he just keeps getting hurt; he only dies by falling below the level, and comes back above Sonic (`Tails_GameOver`). His tails (object 05) copy his state and animate on their own table
+  (the $FC command turns them with his velocity). Art, mappings, DPLC and animations are Nick Arcade's (`res/Art/Tails`, `res/Mappings/Tails`, `TailsDPLC`, `res/Animation/Tails`, `TailsTails`, built by `tools/tails_animation_s2na.pl`); art windows $7A0 and $7B0 written directly (no VBlank buffer).
+  Spawned by the new weak hook `Game_LevelObjects()` (GameInterface.h; null in the engine; GM_Level calls it after the HUD): in every zone slot but Emerald Hill's, as Nick Arcade ("funny how they skipped Tails in EHZ for the Nick Arcade show": Tails loses Sonic's rings).
+  Needed on the way: Sonic 1's splash/dust object (its dust art window is $7A0, Tails') is empty in Sonic 2 (Nick Arcade has none); `ArtTile_Ring` and `ArtTile_Lamppost` can be overridden (guarded in Constants.h) and are Nick Arcade's $6BC and $47C in Sonic 2.
+  Checked headless: Tails stands beside Sonic in Chemical Plant and Hill Top (his tail drawn), none in Emerald Hill. NOT checked: his movement, spin dash, hurt, pit death/respawn (no input harness here).
+- **Level art like Sonic 1** (decompressed at level start from the level header, not by the PLC): `ParadoxEngine/tools/nem2kos` turns Nick Arcade's Nemesis tilesets into the Kosinski level art (Hill Top's is Emerald Hill's with its own over it from tile $1FC); `import_s2na_zone.pl` runs it;
+  the Sonic 2 level headers point at them and the zone PLC lists no longer hold the level art.
+- **Sonic 1 restored, Sonic 2 has its own Sonic and Level code.** Sonic 1's `Sonic.c`, `Level.c` (and the rest of Sonic 1's Sonic) are exactly as before: the animation move into `SonicAnimate.c` and the Level.c art guard were taken back (regression: 42 scenarios + PCM identical). Sonic 2 has
+  copies: `Object/Sonic.c` (with Nick Arcade's animation code) and `Level.c` (with Nick Arcade's dynamic level events). The only shared-code changes left are behaviour-free: the guarded `ArtTile_Ring`/`ArtTile_Lamppost` in Constants.h, the weak `Game_LevelObjects` hook, ParadoxMake's resource `except:`.
+- **Dynamic level events, Nick Arcade's** (`Sonic the Hedgehog 2/src/Level.c`; from `DynResize_*` in s2.asm): Green Hill keeps Sonic 1's; Chemical Plant acts 1-2, Emerald Hill act 1 and Hidden Palace act 1 have none (Sonic 1's Marble/Spring Yard events are only
+  "leftover from Sonic 1" there). **Fixes a bug in the previous build: Chemical Plant ran Marble's events, which dropped the camera's bottom limit to $1D0 so the screen scrolled by itself and killed Sonic.** Emerald Hill act 2 (boss arena: camera lock at $26E0, music), Hidden Palace act 2 (camera
+  bottom by x and Sonic's y), Hill Top acts 1 and 2 (camera bottom by x, the arena objects $83/$82/lock) are ported; the bosses themselves are not (their objects are empty, so the arenas just lock the camera). Acts 3 (copies of act 1, dropped in M2) have no events.
+- **Fixed: spin dash sound and the camera zipping ahead of Sonic while walking (Sonic 2 only).** Nick Arcade's Sonic has frames of up to 32 tiles (the run frames; that is why Tails' art window starts $20 tiles after Sonic's), but Sonic 1's `sgfx_buffer` holds 23 (`SONIC_DPLC_SIZE`
+  $2E0): loading a big frame overran it into the neighbouring spin dash variables, which made Sonic "release" a spin dash he never started (sound, and the camera delay `cam_x_delay` set to $2000, so the camera froze and then sprinted) as soon as the camera started moving. `SONIC_DPLC_SIZE` can be overridden
+  (guarded in Sonic.h) and is $400 in Sonic 2. Found with a scripted run (gdb injecting pad input at `Obj_Sonic`, a watchpoint on the camera delay, and a log of camera/Sonic/Tails positions). Tails now also has private camera variables (his copy of Sonic's code writes the shared camera delay and
+  look shift, as Nick Arcade's does: with them Tails' own spin dash release 16 frames after Sonic's set the delay again). Also fixed on the way: generated resource headers did not always trigger recompiles (a clean rebuild of Sonic 2's objects is done whenever resources change).
+- **Common objects ported so far (art, mappings, VRAM positions, code where Nick Arcade differs):** HUD (art, lives counter, digits; mapping with the swapped palettes: Nick Arcade's normal text is palette line 1 and flashing is line 0; no time over), rings, points, monitors (Sonic 2's `Monitor.c`:
+  items renumbered, animation table from `Ani_obj26`), spikes (`Spikes.c`: upright only, palette 1), lamp post (`Checkpoint.c`: no twirling ball, flickers when hit), shield and invincibility art, Tails. VRAM: lamp post $47C, rings $6BC, points $4AC, shield $4BE, stars $4DE, spikes $434 (overridable constants in Constants.h).
+  Not yet: Nick Arcade's springs, explosion, animals, lost rings, shield object code.
+- **AddressSanitizer sweep** (`paradoxmake build -B <dir> -DSANITIZE=ON`, then every zone/act under gdb-injected walking, a spin dash script, the title, special stage and ending): found a second overflow in Sonic 2, the level art scratch (`level_art_scratch` 0x7000, but Emerald Hill's and Hill Top's tilesets
+  are 912 tiles = 0x7200): 0x8000 in Sonic 2's own Level.c. Sonic 2 is clean after that; Sonic 1 is clean (18 zone/act runs + special stage + ending + title). (The Qt Multimedia SEGV at exit that every run of the hash hook ends with is the test harness, not the game.)
+- Frame dump hook (`SONIC_DUMP`) had its channels shifted (blue always 255); fixed.
+- Next: EHZ deformation + BG scrolling (level and title), EHZ objects, Tails, then CPZ/HPZ/HTZ. Later: Sega screen skipped after this milestone; replacement title cards in Gaslight font.
+
+## Sonic 2 starts out of Sonic 1: ParadoxMake `reuse:` (2026-10-03)
+
+**Status: Sonic2 builds and runs (own settings file); Sonic 1 unchanged (42 scenarios + PCM identical).**
+
+- `paradoxmakefile.yml` gained `reuse: [{project, except: [...], main: true}]`: a game starts from another project's sources, include dirs, resources, assembled files and songs, minus the files it replaces; the reused project is only read,
+  not built. Resources/songs are converted into the reusing project's own `src/Resource`. `songs:` (+ `song_dir:`) moved out of the Sonic 1 fragment into the yml (`pm_add_song` lives in the engine fragment).
+- Build policy moved out of Sonic 1's fragment to where it belongs: build types/strip/sanitizer into ParadoxMake's prelude, the engine's warnings and endianness into the engine fragment.
+- `Sonic the Hedgehog 2/`: reuses Sonic 1 except `Sonic1Assets.c` and `Sonic1Screens.c`; `Sonic2Assets.c` (identity: app id sonic2pc, own settings file; font and icon still Sonic 1's), `Sonic2Screens.c` (Sonic 1's screens for now),
+  its own `paradoxmake.cmake`. Zone slots: GHZ, (empty), CPZ, EHZ, HPZ, HTZ (slot 3 plays SLZ music, as in Nick Arcade). Next: title with Sonic 2's emblem over an EHZ background, Sonic 2 solids, objects replaced one by one.
+- Sonic 2 title (`Sonic the Hedgehog 2/src/GM_Title.c`, Sonic 1's with two changes): the level select cheat is on from the start in every build (hold A, press Start), and a plain Start begins in the
+  Emerald Hill slot (zone slot 3), which holds Sonic 1's slot-3 level until EHZ exists, as in Nick Arcade. The emblem and background are still Sonic 1's.
+- Level data split out of Sonic 1's `Level.c` into `Sonic1LevelData.c` (layouts, sizes, start positions, scroll block sizes, headers, collision indices, object and ring layouts; declared in `Level.h`), so a game with other levels replaces just that file. Output unchanged (42 scenarios + PCM identical).
+- Sonic 2's title (`Sonic the Hedgehog 2/src/GM_Title.c`, Sonic 1's code) draws the Sonic 2 Simon Wai prototype's title (the same one Nick Arcade has; from AlexField442's disassembly, cloned to `~/Projects/s2sw-disasm`):
+  wings/background art (Nemesis) at tile 0, the wings and emblem on plane A, the background in two 32-cell Enigma maps on plane B, the prototype's palette (`res/S2Title/`). No camera or scrolling (it is a picture, not a level);
+  Sonic 1's "press start" objects remain; Sonic and Tails art (`S2Title/SonicTails`) is in the resources for when their objects come.
+
+## Rings stage: ring layouts, RingsManager, SonLVL on the S2 format (2026-10-03)
+
+**Status: done. 40 of the 42 frame-hash scenarios and every sound's PCM are identical; credits demos 4 and 5 drift (below) and their baseline was refreshed.**
+
+- **Ring layouts** (`res/RingLayout/<level>`, Sonic 2's format): 4-byte entries sorted by X, ended by X = $FFFF: `u16 x, u16 y (bits 0-11) | rings-1 (12-14) | vertical (15)`, a straight line of up to 8 rings $18 apart.
+  `tools/splitrings_s1.pl` (run once, kept like objlayout_s1_to_s2.pl) took the ring objects (id $25) out of the 20 level object layouts: Sonic 1's straight $18 lines became one entry each, every other
+  formation (other spacings, diagonals, arcs) single rings, so every ring is where it was. The object layouts no longer carry rings (which also frees their respawn indexes).
+- **RingsManager** (`ParadoxEngine/src/RingsManager.{h,c}`): the objects manager's twin on ring entries -- the same load window and side pointers, a status byte per entry (bit n: ring n collected; kept until the level restarts) in
+  place of respawn marks, and a spawn callback instead of an object slot. Plain data (assignable; two cameras = two managers). Tests: `test_ringsmanager.c`.
+- **Sonic 1**: `Object/Ring.c` provides the callback: a ring is still an object (drawn and touched like before, priority 2, `col_type` $47), made when its entry comes into range; collecting it sets its status bit.
+  The old group path (`Obj_Ring` routine 0) stays for the debug placement, which still places a ring formation by subtype. `ObjPosLoad` runs `Rings_Init/Rings_Update` after the objects manager.
+- **Why two demos drift**: rings used to claim object slots at different moments (a group made its rings while the object loop ran), so other objects landed in different slots. Slot order is behaviour in these games (when two solid objects
+  touch Sonic the later one's flags win), and in the SBZ demos of credits pages 4 and 5 a pushed-against block flips Sonic's `pushing` flag one frame differently (from frame 622 / 1430): a 1-pixel difference, same outcome on screen.
+  Rings that used to be dropped when the object slots were full no longer are.
+- **SonLVL** (`SonLVL INI Files/SonLVL.ini`): `version=S2`, and every level has `rings=../res/RingLayout/<level>` beside its `objects=`. Untested here (no SonLVL on this machine); the S1 ring object definition stays for the sparkle.
+
+## Housekeeping and ObjectsManager_2P (2026-10-03)
+
+**Status: done. Frame hashes (42 scenarios) and PCM unchanged.**
+
+- **ParadoxMake finds its helpers when installed**: `$PARADOXMAKE_DATA`, else `<prefix>/share/paradoxmake/cmake` beside the tool, else the source tree it was built from. `ParadoxMake/CMakeLists.txt` installs both.
+- **Window identity is the game's** (`GameInfo`, GameInterface.h): `app_id`, `app_name`, `game_title`, `player_name`, `description`, `trademark`, `data_dir`, `url`, `bug_url`, `authors`, `credits`.
+  The About box, handbook window/paths, menu entries, controls dialog, demo tool, settings folder and the icon theme name read them; the icon search now finds `<project>/packaging/icons` beside `bin/`.
+- **Null services** (`ParadoxEngine/src/NullServices.c`): the debug services (Peek_*, Console_*, Demo_*, cli_*, frame_count) have weak null versions, so a game without them still links; a game's own definitions win.
+  The game's data/identity tables stay required.
+- **Sonic 2 skeleton** (`Sonic the Hedgehog 2/src`): `game_info`, a null-screen table, an object table; builds as `Sonic2Core`. No executable yet (that comes with its sound bank, palettes, PLCs, collision maps, Art_Text, icon).
+- **ObjectsManager2P** (`ObjectsManager.{h,c}`): two `ObjectsManager` views (one per camera) over one layout and one set of marks. A view skips the entries its partner holds (between its side pointers, minus
+  the entries the level start skipped behind its window), so an object both cameras have in range loads once -- also the ones that do not remember their state, which the marks alone would not cover. The partner pointers
+  are set again on every Update, so an `ObjectsManager2P` stays assignable data. One-player use is untouched (partner NULL). Keeping an object alive while it is near *either* camera is the object's business
+  (MarkObjGone against both views): not done yet, it comes with the first two-player object code.
+
+## Four folders and ParadoxMake (2026-10-03)
+
+**Status: done and verified (SonicTests pass; 42 frame-hash scenarios and every sound's PCM identical to before the move).**
+
+- Layout: `ParadoxEngine/` (src, fmcore, libparadoxsmps, contrib, tools, res), `Sonic The Hedgehog/` (src, res, asm, tests, doc, packaging, SonLVL INI Files),
+  `Sonic the Hedgehog 2/` (skeleton yml + the manual PDF), `ParadoxMake/` (the build tool). Each game/engine folder has a `paradoxmakefile.yml`.
+- **ParadoxMake** is to Paradox Engine what qmake is to Qt: it manages and builds a Paradox project. `paradoxmake [generate|configure|build|install|test|clean|info] [-B dir]
+  [-DNAME=VALUE] [--prefix dir] [folder]`. It reads the folder's yml, finds the projects it `depends:` on (sibling folders), and generates a CMake tree
+  (`<build>/paradoxmake/CMakeLists.txt`) which it then configures and builds -- CMake keeps doing Qt moc / SDL2 / install / ctest for now. C++17 + yaml-cpp, built by the root
+  `CMakeLists.txt` (which builds nothing else by hand: a custom target runs `paradoxmake build` into `<build>/projects`; `cmake --install` runs `paradoxmake install`).
+- The yml says: project/version/license/type, `depends`, `include`, `sources`, `resources` (bin2h -> headers), `assemble` (clownassembler), `main`/`executable`/`core_library`
+  (the whole-archive `link_game()` rule is generated). What is not declarative yet stays in each project's `paradoxmake.cmake` fragment (engine backends + SMPS tools; the game's
+  compiler flags, handbook, song catalog, tests and tools). `ParadoxMake/cmake/{options,prelude}.cmake` are the shared policy (options, bin2h/clownassembler tools).
+- Output paths are unchanged (`bin/`). Root-level options `-DSPLASH=ON -DBUILD_TESTS=OFF ...` are forwarded.
+
+## Phase 2 of the split: screens, objects, identity (2026-10-03)
+
+**Status: started. Frame hashes (42 scenarios) and PCM (every sound id) unchanged after each step.**
+
+- **Screens** (`engine/Screen.{h,c}`): the engine owns `gamemode` and the screen loop (`Screens_Run`); the game lists its screens in `game_screens[]` (`src/Sonic1Screens.c`) with
+  `game_boot_screen`. A screen the game does not have (NULL, `Screen_Null`, or past the table) is the null screen: the video is reset and the engine goes back to the boot screen -- so any
+  screen can be left out or stubbed. `Game.c` keeps only Sonic 1's start-up (`EntryPoint`) and calls `Screens_Run()`.
+- **Objects** (`engine/EngineObject.h`, `engine/ObjectCore.c`): the object slots (`objects[]`, `player`, `level_objects`, `objstate`), the `Object` type, slot allocation, `ExecuteObjects`, sprite
+  building (`BuildSprites`, `AnimateSprite`, `DisplaySprite`), `ObjectDelete`, `SpeedToPos`, `ObjectFall`, `RememberState` and `Obj_Null` moved to the engine. The game supplies
+  `game_objects[]` (`src/Sonic1Objects.c`); an id it does not list, or a NULL entry, runs as the null object. Sonic 1's `ObjId_*` ids and its object subroutines (bosses, platforms, solid
+  objects, act results) stay in `src/Object.{h,c}`. The camera positions the sprite code reads live in `engine/Camera.{h,c}`.
+- **Identity**: the settings file name and its heading come from the game (`game_info`, `GameInterface.h`), not the engine.
+- **Terrain collision** (`engine/LevelData.{h,c}`, `engine/LevelCollision.{h,c}`): the layout, chunk, block and collision-index arrays, `collision_path`, the `META_*` flags and the collision code
+  (FindFloor, FindWall, ...) are the engine's; the collision maps (`Collision_Angle/HeightMap/WidthMap`) are game data (`src/Sonic1Collision.c`). Unchanged output.
+- **Objects manager, Sonic 2's** (`engine/ObjectsManager.{h,c}`): a port of S2's `ObjectsManager` (1-player) and `ChkLoadObj`, as plain data: an `ObjectsManager` struct (a game may assign, copy or reset it; a second one can follow a second
+  camera) plus an `ObjectsManagerConfig` POD (`ahead`, `behind`: the load window, 0x280 / 0x80 for both Sonic 1 and 2 -- they turned out identical). The marks of remembered objects live in an array the game
+  provides (Sonic 1: `objstate`). The plan (user, 2026-10-03): ONE object format for every game on the engine -- Sonic 2's layout, sprite mappings and drawing.
+- **Sonic 1 runs on it now**: `Level.c`'s own loader (`ObjPosLoad`'s state machine, `ChkLoadObj`, the `opl_*`/`objstate_left/right` variables) is gone; `ObjPosLoad()` initialises/updates `objects_manager` and keeps Sonic 1's own
+  resets (`obj63_loaded`, `f_lz1tunnel_open`). The 20 object layouts in `res/ObjectLayout` were converted to Sonic 2 format by `tools/objlayout_s1_to_s2.pl` (flip bits 14/15 -> 13/14, the remember flag from the id byte to
+  bit 15 of the Y word; the `*PF*` conveyor platform lists are another format and were left alone). Tests: `test_objectsmanager.c`. Frame hashes (all demos: objects must appear on the same frames) unchanged.
+  Note for SonLVL: `SonLVL INI Files` still says `version=S1`, whose object layout is the old format; the layouts are Sonic 2 format now.
+- **PlaySoundLocal** (`engine/EngineObject.h`, Sonic 2's): an object only makes its sound effect if it is on screen; needed once there are two views (split screen). Test: `PlaySoundLocal_OnlyOnScreen`.
+- **Sonic 2's drawing, in stages.** Stage 1 (done): the sprite pipeline (`DisplaySprite`'s priority queues, `BuildSpr_Normal`, the flip variants, `BuildSprites`) moved to `engine/Sprites.{h,c}`, and the camera layers it places
+  sprites against are an assignable POD (`SpriteView sprite_view`, indexed by the render flags) instead of hard-coded pointers: Sonic 1's three layers by default, and a second view (split screen) is a second `SpriteView`.
+  The three scroll layers stay because Sonic 1 uses the third (Sonic 2 has it, unused); Sonic 3 keeps scrolling as PODs instead of code-based layers and will replace them later -- the Sonic 2 drawing and physics are ported to the common core first (user, 2026-10-03). Sonic 2's own `BuildSprites` places both level render flags against the foreground camera. Unchanged output. Planned: 2) Sonic 2's remaining draw features (multi-sprite objects with child sprites, the render flag names, the Y wrap of the cull check -- the original
+  has it, this port's does not, and "identical" wins until decided); 3) the split screen (`BuildSprites_2P`: two views, the 2P tile words, the VDP side); 4) the rings manager and ring drawing, with the rings split from the
+  object layouts (and Sonic 1's ring objects converted to it).
+- **Drawing stage 2 (done)**: the render flags carry Sonic 2's names (`level_fg`, `level_bg`, `explicit_height`, `static_mappings`, `multi_sprite`, `on_screen`); multi-sprite objects (`Object::children`, `child_count`: the main sprite's frame/width/height are the object's own `frame`, `width_pixels`, `y_rad`) draw as in S2's `BuildSprites_MultiDraw`; `SpriteView::wrap_y` switches the 11-bit Y wrap of the on-screen check (off for Sonic 1, on for Sonic 2). Tests: `test_sprites.c`. Unchanged output.
+- **Drawing stage 3 (done): the split screen's sprites** (`engine/Sprites.c`): `sprite_split_screen` makes `BuildSprites` build two tables as Sonic 2's `BuildSprites_2P` does -- player 1's in `sprite_buffer` (led by the two
+  masking sprites, link starting at 3) against `sprite_view` / the first camera, player 2's in the new `sprite_buffer_p2` against `sprite_view_p2` / `scrpos_x_p2, scrpos_y_p2` -- from the same queues. The pieces' 2-player tile
+  words and half-height sizes (`SpriteSizes_2P`) are used, the views sit one under the other in double-height coordinates (tops 0x100 and 0x100 + the screen's height), `on_screen` means "in either view" (so `PlaySoundLocal`
+  hears an object either player can see), and `Object_Adjust2PArtPointer` halves an object's base tile. The piece drawing is one function now (flips and 2P as parameters) instead of four copies. Tests: `test_sprites.c`.
+  Unchanged 1-player output (frame hashes). Not there yet: the VDP's double-height (interlace 2) display and the per-half scroll/palette handling, the HUD and rings builders per player (stage 4 / the HUD), the 2-player
+  objects manager (`ObjectsManager_2P`: it is a second `ObjectsManager` on the second camera), and Sonic 2's `Teleport_flag` quirk in the queue clearing.
+- **The split screen's VDP** (`engine/Backend/VDP.{h,c}`, `SDL2/Render.c`): `VDP_SetSplitScreen(mode, VDPView *second)`. The first view is the VDP as set up; the second is a POD the game keeps (plane locations, scroll
+  table, vscroll, sprite table, optional palette), read as the frame is drawn. `VDP_SPLIT_STACKED`: Sonic 2's 2-player look -- the double-height (interlace 2) display: a picture of twice the rows, 8x16 cells (a name table
+  entry or sprite tile number names a pair of patterns at twice its number), sprite Y doubled (screen top at 256, the second view a screen lower), each view with its own planes/scroll/sprites/palette; the renderer's texture
+  follows `VDP_OutputRows()` and is squeezed into the usual height. `VDP_SPLIT_SIDE`: for wide pictures (better use of the screen than stacking), each half the picture's width with normal 8x8 cells. One-view drawing is
+  untouched (frame hashes). `VDP_DrawFrame`/`VDP_GetFrame` draw without presenting, for tests (`test_vdpsplit.c`). `sprite_teleport_flag` reserves Sonic 2's Teleport_flag (the split screen's queues are kept while it is set).
+  Still to do for a playable split screen: the sprite pipeline's side-by-side form (half-width views, tops at 0x80, ordinary tile words), per-view widths in the cull checks, the second view's level drawing, the per-player
+  HUD (laid out as the Sonic 2 manual's: score/time/rings top-left and a lives icon bottom-left in each half, an item box top-right of the top half), the 2-player objects manager and the rings.
+- **Drawing stage 3b (done): the side-by-side sprite form** (`engine/Sprites.{h,c}`): `sprite_split_screen` is a `SpriteSplit` now (`NONE`, `STACKED` = Sonic 2's, `SIDE`). Side by side builds the same two tables
+  with ordinary tile words and sizes, both views' tops at 128, no masking sprites, and the cull checks use each view's own width (the first half the picture's width rounded down, the second the rest; they match the VDP's
+  `VDP_SPLIT_SIDE`); `Object_Adjust2PArtPointer` only halves tiles for the stacked layout. Tests in `test_sprites.c`.
+  Order from here (user, 2026-10-03): the second view's level drawing; the per-player HUD is game-specific (art and mappings with the game); the 2-player objects manager when ready; then the next stage (rings).
+- **The second view's level drawing** (`engine/LevelDrawCore.{h,c}`, `engine/LevelPlane.{h,c}`): the block drawing (`CalcVRAMPos`, `GetBlockData`, `DrawBlock`, `DrawBlocks_LR/TB`, `DrawChunks`) moved from `src/LevelDraw.c`
+  to the engine, and `LevelPlane` is the plain-data foreground plane that follows a camera: its VRAM address, its camera, the 16-pixel line state and the redraw flags (`CameraMovedX/Y` flag the column/row a camera step
+  needs, `Snapshot` copies camera and flags at the blank, `DrawPending` draws them, `DrawAll` draws the whole view). Sonic 1's own foreground now runs on it (`fg_plane`, replacing `fg_scroll_flags`, `_dup`, `fg_xblock`,
+  `fg_yblock`): identical frames, which is the proof it works; a second `LevelPlane` on `VRAM_FG_P2` and the second camera (`scrpos_x_p2`) is the second view's foreground. Tests: `test_levelplane.c`. What the second
+  view still needs from the game: its camera's follow-up (Sonic 2's ScrollHoriz/Vertical for player 2), its horizontal scroll table (the `VDPView`'s), and the HUD (game-specific art and mappings).
+- **The second view's horizontal scroll** (`engine/Video.{h,c}`): `hscroll_buffer_p2` (a foreground and a background X per line, like `hscroll_buffer`), `Video_UploadHScrollP2` (writes it to `VRAM_HSCROLL_P2`, 0xF800), and a ready-made
+  `video_second_view` (`VDPView`: plane A at `VRAM_FG_P2`, plane B shared, that scroll table, `sprite_buffer_p2`, the first view's palette); `level_plane_p2` is the second view's `LevelPlane` (idle until a split level
+  sets it up). Test: `VDPSplit_SecondViewHasItsOwnHScrollTable`.
+- **Delayed until the actual split (Sonic 2)** (user, 2026-10-03): the second camera's follow-up (player 2's scrolling) -- only placeholder variables exist (`scrshift_x_p2`, `scrshift_y_p2`, `look_shift_p2`,
+  `cam_x_delay_p2`, `cam_y_delay_p2`; nothing reads them) -- and the per-player HUD (Sonic 1 uses its own HUD art and its second screen is unused; the manual-based layout begins with Sonic 2, art and mappings in that game).
+  Next priority after that 2-player work: the 2-player objects manager, then the rings stage.
+- **Order of the engine's games** (user, 2026-10-03): Sonic 1 -> Sonic 2 -> Sonic 3 -> Sonic & Knuckles -> Sonic CD's time travel handler -> Chaotix stuff.
+- **Next**: drawing stages 3 (split screen) and 4 (rings), then the physics
+  (`BuildSprites`) with the rings split from the object layouts (a rings manager) and the split-screen (2P) code; then the solid-object/platform routines and slope physics out of `Object/Sonic.c`.
+
+## SonicCore split: ParadoxEngine + Sonic1Core (2026-10-02)
+
+**Status: stage one done. `libParadoxEngine.a` (engine/) is what every Sonic game shares; `libSonic1Core.a` (src/) is Sonic 1 on top of it. Play and
+graphics are unchanged: 42 headless scenarios (SEGA/title/attract boot, all 8 credits demos, every zone and act, special stages, ending, continue, every
+resolution) give the same hash for every rendered frame before and after, and every sound id (byte and JSON engine) renders the same PCM.**
+
+- **What moved to `engine/`**: the Mega Drive model (`Backend/`: VDP, YM2612/SN76489, joypad, SDL2 renderer/input, the whole Qt window and its tools), `fmcore/`,
+  the codecs (Kosinski, Nemesis, Enigma), `MathUtil`, `Types.h`, `Video` (resolution, planes, water-split state), `PLC`/`Palette` (the loaders), `Sound` (the SMPS driver,
+  JSON engine and the shared DAC drum bank), `DebugLog`. The DAC/PCM/PSG resources are generated into `engine/Resource/` (git-ignored like `src/Resource/`).
+- **Mixed files were split, not moved whole**: `Palette`, `PLC`, `Sound` keep the mechanism in the engine and the Sonic 1 data in `src/Sonic1Palettes.c`, `Sonic1PLC.c`,
+  `Sonic1Sound.c`. `Constants.h` and `Macros.h` likewise: `EngineConstants.h`/`EngineMacros.h` in the engine, the Sonic 1 art-tile map and `IS_OFFSCREEN`/`RES_REV` in `src/`.
+  The Sonic 1 headers `Palette.h`, `PLC.h`, `Sound.h` still exist and include the engine halves, so game code did not change.
+- **The engine never includes a Sonic 1 header** (its include path has no `src/`): the compiler enforces it. What it needs from a game is `engine/GameInterface.h`'s
+  contract, resolved at link time: `palette_pointers`, `plcs`, `game_sound_bank` (a `SoundBank`: which ids are music/effects/commands, priorities, the 1-up jingle, the
+  ring speaker pair...), `Art_Text`, `res_Icon` (in `src/Sonic1Assets.c`), `frame_count`, `cli_*`, and the `Peek_*`/`Console_*`/`Demo_*` services behind the Qt debug tools.
+  Because the engine calls back into the game, `libParadoxEngine.so` is built with those symbols undefined and the executable resolves them (`link_game()` in
+  CMakeLists links the game whole, after the engine).
+- **Shared / static (same day)**: `ParadoxEngine` and `paradoxsmps` are shared libraries (`bin/<config>/libParadoxEngine.so`, `libparadoxsmps.so`, next to the
+  executable via `$ORIGIN`; installed to `<prefix>/lib`) so each can carry its own licence -- the plan is MIT for the two Paradox libraries, whatever suits the rest.
+  `Sonic1Core` stays a static library inside the executable. Re-verified identical (frame hashes and PCM) in the all-shared and the mixed form. ELF/Linux only.
+- **FM algorithms 8-F are overridable defaults** (`fmcore/fm_voice.h`): 0-7 stay the chip's fixed routings; 8-15 ship as defaults (`FM_VOICE_ALGORITHM_DEFAULT`) that a game
+  replaces with `FMVoice_SetCustomAlgorithm` -- the driver applies the game's `SoundBank::fm_algorithms` at `Sound_Init`. The chip, the editors and the carrier test (which
+  operators the channel volume attenuates) all read the routing in force; the hard-coded `FM_SLOT_MASK` tables are gone (derived from the routing instead; identical for
+  every shipped algorithm, and ParadoxComposer's copy had algorithms 9 and 12 swapped). Tests: `test_fmalgorithm.c`. Sound output unchanged.
+- **REV00 is gone** (REV01 is the bug-fix build; the REV00 branches did not even compile): all `SCP_REV00`/`SCP_REV01` conditionals resolved to REV01, the `-DREV01`
+  option, the `*REV00` resources and `asm/Mappings/RingREV00.asm` removed. Output unchanged.
+- **Still Sonic 1 in the engine (next stages)**: the Qt window's identity strings (`Sonic1Settings.cfg`, About text, the handbook window); the object, level and game loop
+  frameworks (`Object.c`, `Level*.c`, `Game.c`) are still in `src/` because they share one RAM map with Sonic 1's own state -- splitting them is the next job.
+- **Before calling the engine MIT**: the codecs (Kosinski/Nemesis/Enigma) are deliberately the project's own C code (the decoders given by Clownacy, the Kosinski encoder written here) and NOT the KENS code, to keep
+  the codebase clean of licence contamination: never pull KENS/KensSharp-derived code in. Still check where the VDP/Mega Drive layer comes from (the C port this grew from) and that `engine/Resource` (the DAC drums, the SEGA! clip, PSG envelopes: Sega-derived audio) is allowed in an MIT library or should move to the game libraries.
+
 ## The game is complete: special stages, ending, credits, continue, resolutions, controls, handbook, install (2026-10-01/02)
 
 **Status: Sonic 1 is playable from the SEGA screen to the credits. Builds clean; `SonicTests` pass. Looked at on a real display: fullscreen,
