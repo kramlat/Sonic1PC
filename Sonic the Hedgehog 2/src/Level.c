@@ -467,8 +467,9 @@ void SynchroAnimate(void) {
 
 // Signpost loading
 void SignpostArtLoad(void) {
-    // Check if signpost should load (Nick Arcade: not in act 2, the boss's, where its art load would clear the queue of the art being loaded)
-    if (debug_use || (level_id & 0xFF) == 1)
+    // Check if signpost should load (the prototype's End_Level_Art_Load: not in Emerald Hill's act 2, the boss's, where its art load would clear the queue of the art being loaded; every other act, Chemical
+    // Plant's and Neo Green Hill's second too, has a signpost and loads its art. Nick Arcade skipped every second act.)
+    if (debug_use || level_id == LEVEL_ID(ZoneId_EHZ, 1))
         return;
 
     // Check if we've reached the end of the level
