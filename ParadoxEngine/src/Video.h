@@ -44,7 +44,7 @@ extern uint16_t sprite_buffer_p2[BUFFER_SPRITES][4]; //The split screen's second
 extern int16_t hscroll_buffer[SCREEN_MAX_HEIGHT][2];
 
 //The split screen's second view (see VDP_SetSplitScreen): its horizontal scroll (a foreground and a background X for each line, as hscroll_buffer's), a
-//ready-made VDPView for it (its foreground plane at VRAM_FG_P2, the shared background plane, its scroll table at VRAM_HSCROLL_P2, its sprite table in
+//ready-made VDPView for it (its foreground plane at VRAM_FG_P2, its background plane at VRAM_BG_P2, its scroll table at VRAM_HSCROLL_P2, its sprite table in
 //sprite_buffer_p2, the first view's palette), and the copy of the scroll table to VRAM that goes with the first's. The game fills hscroll_buffer_p2 from the
 //second camera as it does the first's, calls Video_UploadHScrollP2 where it uploads hscroll_buffer, and sets video_second_view's scroll values each frame.
 extern int16_t hscroll_buffer_p2[SCREEN_MAX_HEIGHT][2];

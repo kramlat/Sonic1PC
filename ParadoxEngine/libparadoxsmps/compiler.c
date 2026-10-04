@@ -53,6 +53,9 @@ static int dac_name_lookup(const char *s) {
     } table[] = {
         {"Kick", 0x81}, {"Snare", 0x82}, {"Timpani", 0x83}, {"HiTimpani", 0x88},
         {"MidTimpani", 0x89}, {"LowTimpani", 0x8A}, {"VLowTimpani", 0x8B},
+        // Sonic 2's own drums, by the names its source uses, in this project's extended DAC scheme (see Sound.c: the bongo is Sonic 2's "VLowClap" and its Hi/Mid/Low variants)
+        {"Scratch", 0x84}, {"Clap", 0x85}, {"HiTom", 0x86}, {"VLowClap", 0x87}, {"MidTom", 0x8C},
+        {"LowTom", 0x8D}, {"FloorTom", 0x8E}, {"HiClap", 0x8F}, {"MidClap", 0x90}, {"LowClap", 0x91},
     };
     for (size_t i = 0; i < sizeof(table) / sizeof(table[0]); i++)
         if (strcmp(s, table[i].name) == 0)

@@ -37,16 +37,21 @@ static const struct GotCard_Item {
     { 0x020C, 0x014C, 0x00CC, 2, 5 }, // Blue oval
 };
 
-// Next-act lookup, indexed by [zone slot][act] (Nick Arcade's LevelOrder): Green Hill goes on to its three acts and then to Chemical Plant, Chemical Plant to Hidden Palace, Emerald Hill (act 2, then a third)
-// to Hill Top, Hidden Palace back to the Labyrinth slot, Hill Top's last to what is left of Sonic 1's final stage. An entry of 0 is "no next level".
-static const uint16_t level_order[ZoneId_Num][4] = {
-    /* GHZ (slot 0) */ { LEVEL_ID(ZoneId_GHZ, 1), LEVEL_ID(ZoneId_GHZ, 2), LEVEL_ID(ZoneId_MZ, 0), 0 },
-    /* LZ  (slot 1) */ { LEVEL_ID(ZoneId_LZ, 1),  LEVEL_ID(ZoneId_LZ, 2),  LEVEL_ID(ZoneId_SLZ, 0), LEVEL_ID(ZoneId_SBZ, 2) },
-    /* CPZ (slot 2) */ { LEVEL_ID(ZoneId_MZ, 1),  LEVEL_ID(ZoneId_MZ, 2),  LEVEL_ID(ZoneId_SYZ, 0), 0 },
-    /* EHZ (slot 3) */ { LEVEL_ID(ZoneId_SLZ, 1), LEVEL_ID(ZoneId_SLZ, 2), LEVEL_ID(ZoneId_SBZ, 0), 0 },
-    /* HPZ (slot 4) */ { LEVEL_ID(ZoneId_SYZ, 1), LEVEL_ID(ZoneId_SYZ, 2), LEVEL_ID(ZoneId_LZ, 0),  0 },
-    /* HTZ (slot 5) */ { LEVEL_ID(ZoneId_SBZ, 1), LEVEL_ID(ZoneId_LZ, 3),  0, 0 },
-    /* EndZ (unused) */ { 0, 0, 0, 0 },
+// What each act leads to, by zone slot and act (the Simon Wai prototype's level order, word_BF9A): the first act of a zone to its second, the second to the first of the next zone. An entry of 0 is the first act of Emerald Hill,
+// where the prototype sends the acts of zones that have none, as its own table does (it does not go to the Sega screen, as Sonic 1 does for such an entry).
+static const uint16_t level_order[ZoneId_Num][2] = {
+    [0x00] = { LEVEL_ID(0x00, 1), LEVEL_ID(0x02, 0) },
+    [0x02] = { LEVEL_ID(0x02, 1), LEVEL_ID(0x04, 0) },
+    [0x04] = { LEVEL_ID(0x04, 1), LEVEL_ID(0x07, 0) },
+    [0x07] = { LEVEL_ID(0x07, 1), 0 },
+    [0x08] = { LEVEL_ID(0x08, 1), LEVEL_ID(0x0A, 0) },
+    [0x0A] = { LEVEL_ID(0x0A, 1), LEVEL_ID(0x0B, 0) },
+    [0x0B] = { LEVEL_ID(0x0B, 1), LEVEL_ID(0x0C, 0) },
+    [0x0C] = { LEVEL_ID(0x0C, 1), LEVEL_ID(0x0D, 0) },
+    [0x0D] = { LEVEL_ID(0x0D, 1), LEVEL_ID(0x07, 0) },
+    [0x0E] = { LEVEL_ID(0x0E, 1), LEVEL_ID(0x0F, 0) },
+    [0x0F] = { LEVEL_ID(0x0F, 1), LEVEL_ID(0x0D, 0) },
+    [0x10] = { LEVEL_ID(0x10, 1), 0 },
 };
 
 // SBZ2 post-level cutscene: has the Ring Bonus element (the one that drives the tally) reached its slide-out
@@ -165,29 +170,19 @@ void Obj_GotThroughCard(Object *obj) {
         } else {
             PlaySound(sfx_Cash);
             obj->routine += 2; // -> Got_Wait, before Got_NextLevel
-            if (level_id == LEVEL_ID(ZoneId_SBZ, 1))
-                obj->routine += 4; // SBZ2: -> Got_Wait ($C), before Got_SBZ2_MoveOut -- no next act, the cutscene follows
             obj->frame_time.w = 3 * 60; // 3 second post-tally delay
         }
         break;
     }
     case 0xA: { // Advance to the next act
-        uint16_t next = level_order[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)];
-        level_id = next;
+        level_id = level_order[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id) & 1];
+        last_lamp = 0;
 
-        if (next == 0) {
-            // Matches the original: an unconfigured entry (GHZ1) returns to
-            // the Sega screen instead. Dead code in practice.
-            gamemode = GameMode_Sega;
-        } else {
-            last_lamp = 0;
-
-            // Sonic jumped into a giant ring (Obj_RingFlash set big_ring): the next screen is a special stage
-            if (big_ring)
-                gamemode = GameMode_Special;
-            else
-                restart = 1;
-        }
+        // Sonic jumped into a giant ring (Obj_RingFlash set big_ring): the next screen is a special stage
+        if (big_ring)
+            gamemode = GameMode_Special;
+        else
+            restart = 1;
         break;
     }
     case 0xE: // Got_SBZ2_MoveOut
@@ -205,6 +200,16 @@ void Obj_GotThroughCard(Object *obj) {
         DisplaySprite(obj);
 }
 
+// The animals of a zone, until each has its own: those of the slot it had in Nick Arcade (and Emerald Hill's for the zones without any yet)
+static uint8_t TitleCard_AnimalsPlc(int zone) {
+    switch (zone) {
+    case ZoneId_CPZ: return PlcId_MZAnimals;
+    case ZoneId_HPZ: return PlcId_SYZAnimals;
+    case ZoneId_HTZ: return PlcId_SBZAnimals;
+    default: return PlcId_SLZAnimals;
+    }
+}
+
 // Title card object
 void Obj_TitleCard(Object *obj) {
     Scratch_TitleCard *scratch = (Scratch_TitleCard*)&obj->scratch;
@@ -213,16 +218,11 @@ void Obj_TitleCard(Object *obj) {
     case 0: {
         Object* a1 = obj;
 
-        // Get title card to render
-        uint8_t d0 = LEVEL_ZONE(level_id);
-        if (level_id == LEVEL_ID(ZoneId_LZ, 3))
-            d0 = 5;
-
-        uint16_t d2 = d0;
-        if (level_id == LEVEL_ID(ZoneId_SBZ, 2)) {
-            d0 = 6;
-            d2 = 11;
-        }
+        // The card of the zone: the name on it is the mapping frame of the zone's number (the prototype has only the cards of Sonic 1's six zones and Final Zone, so a zone past them gets no name)
+        // and the card is placed by the zone's row of the prototype's table
+        int zone = LEVEL_ZONE(level_id);
+        uint8_t d0;
+        uint16_t d2 = (uint16_t)zone;
 
         // Get configuration (built now: it depends on the size of the picture)
         const int16_t to_add = SCREEN_WIDEADD2;
@@ -235,16 +235,12 @@ void Obj_TitleCard(Object *obj) {
     { 0x00EA + SCREEN_TALLADD2, 0x02, 0x07 },
     { 0x00E0 + SCREEN_TALLADD2, 0x02, 0x0A },
 };
-        const struct TitleCard_Config titlecard_config[7][4] = {
-    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x0104 - from_sub, 0x013C + to_add }, { 0x0414 + from_add, 0x0154 + to_add }, { 0x0214 + from_add, 0x0154 + to_add } }, // GHZ
-    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x010C - from_sub, 0x0134 + to_add }, { 0x040C + from_add, 0x014C + to_add }, { 0x020C + from_add, 0x014C + to_add } }, // LZ
-    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x0120 - from_sub, 0x0120 + to_add }, { 0x03F8 + from_add, 0x0138 + to_add }, { 0x01F8 + from_add, 0x0138 + to_add } }, // MZ
-    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x0104 - from_sub, 0x013C + to_add }, { 0x0414 + from_add, 0x0154 + to_add }, { 0x0214 + from_add, 0x0154 + to_add } }, // SLZ
-    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x00FC - from_sub, 0x0144 + to_add }, { 0x041C + from_add, 0x015C + to_add }, { 0x021C + from_add, 0x015C + to_add } }, // SYZ
-    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x00FC - from_sub, 0x0144 + to_add }, { 0x041C + from_add, 0x015C + to_add }, { 0x021C + from_add, 0x015C + to_add } }, // SBZ
-    { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x011C - from_sub, 0x0124 + to_add }, { 0x03EC + from_add, 0x03EC + to_add }, { 0x01EC + from_add, 0x012C + to_add } }, // FZ
-};
-        const struct TitleCard_Config* config = &titlecard_config[d0][0];
+        const struct TitleCard_Config card_a[4] = { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x0104 - from_sub, 0x013C + to_add }, { 0x0414 + from_add, 0x0154 + to_add }, { 0x0214 + from_add, 0x0154 + to_add } };
+        const struct TitleCard_Config card_b[4] = { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x010C - from_sub, 0x0134 + to_add }, { 0x040C + from_add, 0x014C + to_add }, { 0x020C + from_add, 0x014C + to_add } };
+        const struct TitleCard_Config card_c[4] = { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x0120 - from_sub, 0x0120 + to_add }, { 0x03F8 + from_add, 0x0138 + to_add }, { 0x01F8 + from_add, 0x0138 + to_add } };
+        const struct TitleCard_Config card_d[4] = { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x00FC - from_sub, 0x0144 + to_add }, { 0x041C + from_add, 0x015C + to_add }, { 0x021C + from_add, 0x015C + to_add } };
+        const struct TitleCard_Config card_e[4] = { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x011C - from_sub, 0x0124 + to_add }, { 0x03EC + from_add, 0x03EC + to_add }, { 0x01EC + from_add, 0x012C + to_add } };
+        const struct TitleCard_Config* config = zone == 1 ? card_b : zone == 2 ? card_c : zone == 4 || zone == 5 ? card_d : zone == 0 || zone == 3 ? card_a : card_e;
         const struct TitleCard_Item* item = titlecard_item;
 
         // Create card objects
@@ -260,14 +256,8 @@ void Obj_TitleCard(Object *obj) {
             if ((d0 = item->frame) == 0)
                 d0 = d2;
 
-            // Initialize object graphics
-            if (d0 == 7) {
-                d0 += LEVEL_ACT(level_id);
-                if (LEVEL_ACT(level_id) == 3)
-                    d0--;
-            }
-
-            a1->frame = d0;
+            // Initialize object graphics (a frame past the mapping's twelve is nothing to draw; the act is not added to the ACT frame, as Sonic 1 does)
+            a1->frame = d0 < 12 ? d0 : 0xFF;
             a1->mappings = Mappings_TitleCard;
             a1->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Title_Card);
             a1->width_pixels = 0;
@@ -285,7 +275,7 @@ void Obj_TitleCard(Object *obj) {
             obj->pos.s.x += 16;
 
         // Draw
-        if (obj->pos.s.x >= 0 && obj->pos.s.x < (0x200 + SCREEN_WIDEADD))
+        if (obj->frame != 0xFF && obj->pos.s.x >= 0 && obj->pos.s.x < (0x200 + SCREEN_WIDEADD))
             DisplaySprite(obj);
         break;
     case 4: // Moving off-screen
@@ -293,7 +283,8 @@ void Obj_TitleCard(Object *obj) {
         // Wait for timer to expire
         if (obj->frame_time.b) {
             obj->frame_time.b--;
-            DisplaySprite(obj);
+            if (obj->frame != 0xFF)
+                DisplaySprite(obj);
             break;
         }
 
@@ -301,7 +292,7 @@ void Obj_TitleCard(Object *obj) {
         if (!obj->render.f.on_screen || obj->pos.s.x == scratch->final_x) {
             if (obj->routine == 4) {
                 AddPLC(PlcId_Explode);
-                AddPLC(PlcId_GHZAnimals + LEVEL_ZONE(level_id));
+                AddPLC(TitleCard_AnimalsPlc(LEVEL_ZONE(level_id)));
             }
             ObjectDelete(obj);
             break;
@@ -314,7 +305,7 @@ void Obj_TitleCard(Object *obj) {
             obj->pos.s.x += 16;
 
         // Draw
-        if (obj->pos.s.x >= 0 && obj->pos.s.x < (0x200 + SCREEN_WIDEADD))
+        if (obj->frame != 0xFF && obj->pos.s.x >= 0 && obj->pos.s.x < (0x200 + SCREEN_WIDEADD))
             DisplaySprite(obj);
         break;
     }

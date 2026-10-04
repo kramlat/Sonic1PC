@@ -9,5 +9,6 @@
 #define TAILS_OBJ (&objects[TAILS_SLOT])
 void Tails_ResetOnFloor(Object *obj);
 void KillTails(Object *obj);
+int32_t Tails_Hurt(Object *obj, Object *src); // (hurts Tails as an object hurts Sonic: HurtSonic in Sonic.c)
 
 #endif //_TAILS_H

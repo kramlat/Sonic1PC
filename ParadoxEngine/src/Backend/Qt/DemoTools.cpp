@@ -33,35 +33,65 @@ namespace DemoTools {
 
 namespace {
 
-const int kZoneCount = 7;
-const char *const kZoneNames[kZoneCount] = {"Green Hill", "Labyrinth", "Marble", "Star Light", "Spring Yard", "Scrap Brain", "Ending"};
-const int kZoneLabyrinth = 1, kZoneScrapBrain = 5, kZoneEnding = 6;
+// The zones and acts of the game, for the pickers: the game's own list (GameInterface.h's game_zone_list): each game has its own levels.
+struct ZoneDesc {
+	int id = 0;
+	QString name;
+	QStringList acts;   // the act picker's labels
+	QStringList levels; // the names the status bar uses ("Scrap Brain act 3")
+};
 
-// Acts a zone has. Labyrinth has a 4th: Scrap Brain Act 3 (SBZ3) lives in the Labyrinth slot (LZ act 4).
+const QList<ZoneDesc> &Zones() {
+	static QList<ZoneDesc> zones;
+	if (!zones.isEmpty())
+		return zones;
+	if (game_zone_list != nullptr && game_zone_list->count > 0) {
+		for (int i = 0; i < game_zone_list->count; i++) {
+			const GameZone &g = game_zone_list->zones[i];
+			ZoneDesc d;
+			d.id = g.id;
+			d.name = g.name;
+			for (int a = 0; a < g.acts; a++) {
+				QString label = g.act_names != nullptr ? QString(g.act_names[a]) : QString("Act %1").arg(a + 1);
+				d.acts << label;
+				d.levels << (g.act_names != nullptr ? QString("%1 %2").arg(g.name, g.act_names[a]) : QString("%1 act %2").arg(g.name).arg(a + 1));
+			}
+			zones << d;
+		}
+		return zones;
+	}
+	// A game with no list of its own: one zone of three acts, by the number
+	ZoneDesc d;
+	d.id = 0;
+	d.name = "Zone 0";
+	for (int a = 0; a < 3; a++) {
+		d.acts << QString("Act %1").arg(a + 1);
+		d.levels << QString("zone 0 act %1").arg(a + 1);
+	}
+	zones << d;
+	return zones;
+}
+
+const ZoneDesc &ZoneById(int id) {
+	for (const ZoneDesc &d : Zones())
+		if (d.id == id)
+			return d;
+	return Zones().first();
+}
+
+// Acts a zone has.
 int ActCount(int zone) {
-	if (zone == kZoneEnding)
-		return 2; // the two endings: 00 = bad (levels $600), 01 = good ($601)
-	return zone == kZoneLabyrinth ? 4 : 3;
+	return ZoneById(zone).acts.size();
 }
 
 QString ActLabel(int zone, int act) {
-	if (zone == kZoneLabyrinth && act == 3)
-		return "Act 4 (Scrap Brain Act 3)";
-	if (zone == kZoneScrapBrain && act == 2)
-		return "Final Zone";
-	if (zone == kZoneEnding)
-		return act == 0 ? "Bad ending (00)" : "Good ending (01)"; // without / with all six emeralds
-	return QString("Act %1").arg(act + 1);
+	const ZoneDesc &d = ZoneById(zone);
+	return d.acts.value(act, QString("Act %1").arg(act + 1));
 }
 
 QString LevelName(int zone, int act) {
-	if (zone == kZoneLabyrinth && act == 3)
-		return "Scrap Brain act 3";
-	if (zone == kZoneScrapBrain && act == 2)
-		return "Final Zone";
-	if (zone == kZoneEnding)
-		return act == 0 ? "bad ending" : "good ending";
-	return QString("%1 act %2").arg(kZoneNames[qBound(0, zone, kZoneCount - 1)]).arg(act + 1);
+	const ZoneDesc &d = ZoneById(zone);
+	return d.levels.value(act, QString("%1 act %2").arg(d.name).arg(act + 1));
 }
 
 // What the last recording was made from (for the status bar).
@@ -72,23 +102,24 @@ struct RecordInfo {
 
 // A recording's file name carries its level, so a demo file stays a plain file and Play Demo can pick the
 // level from the name: "Zone 3 Act 2 2026.10.01-021855.bin", or with a start override
-// "Zone 3 Act 2 x1290 y0460 2026.10.01-021855.bin" (act is 1-3 in the name).
+// "Zone 3 Act 2 x1290 y0460 2026.10.01-021855.bin" (act is 1-3 in the name); "Zone 3 Act 2 Split ..." was recorded in the split screen.
 struct NameInfo {
-	bool known = false;
+	bool known = false, split = false;
 	int zone = 0, act = 0, start_x = -1, start_y = -1;
 };
 
 NameInfo ParseDemoName(const QString &file) {
 	NameInfo info;
-	static const QRegularExpression re(R"(^Zone (\d+) Act (\d+)(?: x(\d+) y(\d+))? )");
+	static const QRegularExpression re(R"(^Zone (\d+) Act (\d+)( Split)?(?: x(\d+) y(\d+))? )");
 	QRegularExpressionMatch m = re.match(QFileInfo(file).fileName());
 	if (m.hasMatch()) {
 		info.known = true;
-		info.zone = qBound(0, m.captured(1).toInt(), kZoneCount - 1);
+		info.zone = ZoneById(m.captured(1).toInt()).id;
 		info.act = qBound(0, m.captured(2).toInt() - 1, 3);
-		if (!m.captured(3).isEmpty()) {
-			info.start_x = m.captured(3).toInt();
-			info.start_y = m.captured(4).toInt();
+		info.split = !m.captured(3).isEmpty();
+		if (!m.captured(4).isEmpty()) {
+			info.start_x = m.captured(4).toInt();
+			info.start_y = m.captured(5).toInt();
 		}
 	}
 	return info;
@@ -97,18 +128,22 @@ NameInfo ParseDemoName(const QString &file) {
 // Zone / act / start position pickers shared by the two dialogs.
 struct LevelPicker {
 	QComboBox *zone = nullptr, *act = nullptr;
-	QCheckBox *use_start = nullptr;
+	QCheckBox *use_start = nullptr, *split = nullptr;
 	QSpinBox *start_x = nullptr, *start_y = nullptr;
 
 	void AddTo(QFormLayout *form) {
 		zone = new QComboBox;
-		for (int i = 0; i < kZoneCount; i++)
-			zone->addItem(QString("%1 (%2)").arg(kZoneNames[i]).arg(i), i);
+		for (const ZoneDesc &d : Zones())
+			zone->addItem(QString("%1 (%2)").arg(d.name).arg(d.id), d.id);
 		act = new QComboBox;
-		FillActs(0);
+		FillActs(Zones().first().id);
 		form->addRow("Zone:", zone);
 		form->addRow("Act:", act);
-		// The act list depends on the zone (Labyrinth also offers Scrap Brain Act 3).
+		if (game_info.split_screen) {
+			split = new QCheckBox(QString("Split screen (two players: ") + game_info.player_name + " and the second player)");
+			form->addRow(split);
+		}
+		// The act list depends on the zone.
 		QObject::connect(zone, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int) {
 			int keep = act->currentIndex();
 			FillActs(Zone());
@@ -142,7 +177,7 @@ struct LevelPicker {
 	}
 
 	void Set(int z, int a, int x, int y) {
-		zone->setCurrentIndex(qBound(0, z, kZoneCount - 1)); // fills the act list for that zone
+		zone->setCurrentIndex(qMax(0, zone->findData(z))); // fills the act list for that zone
 		act->setCurrentIndex(qBound(0, a, ActCount(Zone()) - 1));
 		use_start->setChecked(x >= 0 && y >= 0);
 		start_x->setValue(qMax(0, x));
@@ -150,16 +185,18 @@ struct LevelPicker {
 	}
 	int Zone() const { return zone->currentData().toInt(); }
 	int Act() const { return act->currentData().toInt(); }
+	bool Split() const { return split != nullptr && split->isChecked(); }
+	void SetSplit(bool on) { if (split != nullptr) split->setChecked(on); }
 	int StartX() const { return use_start->isChecked() ? start_x->value() : -1; }
 	int StartY() const { return use_start->isChecked() ? start_y->value() : -1; }
 };
 
-QString DefaultDemoName(bool special, int zone, int act, int stage, int start_x, int start_y) {
+QString DefaultDemoName(bool special, int zone, int act, int stage, int start_x, int start_y, bool split) {
 	QString stamp = QDateTime::currentDateTime().toString("yyyy.MM.dd-hhmmss");
 	if (special)
 		return QString("Special Stage %1 %2.bin").arg(stage).arg(stamp);
 	QString start = (start_x >= 0 && start_y >= 0) ? QString(" x%1 y%2").arg(start_x).arg(start_y, 4, 10, QChar('0')) : QString();
-	return QString("Zone %1 Act %2%3 %4.bin").arg(zone).arg(act + 1).arg(start).arg(stamp);
+	return QString("Zone %1 Act %2%3%4 %5.bin").arg(zone).arg(act + 1).arg(split ? " Split" : "").arg(start).arg(stamp);
 }
 
 } // namespace
@@ -241,6 +278,7 @@ void RecordDialog(QWidget *parent) {
 	r.special_stage = stage->value() - 1;
 	r.start_x = r.special ? -1 : picker.StartX();
 	r.start_y = r.special ? -1 : picker.StartY();
+	r.split_screen = !r.special && picker.Split();
 	r.frames = limit->isChecked() ? frames->value() : -1;
 
 	QString dir = folder->text().isEmpty() ? Settings::DemoDir() : folder->text();
@@ -248,7 +286,7 @@ void RecordDialog(QWidget *parent) {
 	Settings::Get().demo_zone = r.zone;
 	Settings::Get().demo_act = r.act;
 	Settings::SaveSoon();
-	QString path = dir + "/" + DefaultDemoName(r.special, r.zone, r.act, r.special_stage + 1, r.start_x, r.start_y);
+	QString path = dir + "/" + DefaultDemoName(r.special, r.zone, r.act, r.special_stage + 1, r.start_x, r.start_y, r.split_screen);
 	QByteArray bytes = path.toLocal8Bit();
 	snprintf(r.path, sizeof(r.path), "%s", bytes.constData());
 
@@ -292,6 +330,7 @@ void PlayDialog(QWidget *parent) {
 	LevelPicker picker;
 	picker.AddTo(form);
 	picker.Set(zone, act, sx, sy);
+	picker.SetSplit(name.split);
 	form->addRow(new QLabel("The demo plays as attract mode does, then returns to the Sega screen."));
 	auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 	buttons->button(QDialogButtonBox::Ok)->setText("Play");
@@ -301,7 +340,7 @@ void PlayDialog(QWidget *parent) {
 	if (dialog.exec() != QDialog::Accepted)
 		return;
 
-	DemoPlayRequest p = {picker.Zone(), picker.Act(), picker.StartX(), picker.StartY()};
+	DemoPlayRequest p = {picker.Zone(), picker.Act(), picker.StartX(), picker.StartY(), picker.Split()};
 	if (!Demo_RequestPlayback(&p, reinterpret_cast<const uint8_t *>(data.constData()), (size_t)data.size()))
 		QMessageBox::warning(parent, "Play Demo", "That file isn't a usable demo (too small or too large).");
 }

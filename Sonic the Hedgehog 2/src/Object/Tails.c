@@ -2,12 +2,15 @@
 // which a stub of a "CPU" fills with Sonic's own pad from 16 frames ago; he has no water code, no debug mode and no flight yet; hurting him loses SONIC'S rings (the copy of the hurt
 // code works on the shared ring count); he does not die from enemies, only from falling below the level, and then he comes back above Sonic.
 #include "Object/Tails.h"
+#include "SplitScreen.h"
+#include "Backend/VDP.h"
 #include "Object/Sonic.h"
 #include "Constants.h"
 
 #include "Game.h"
 #include "GM_Level.h"
 #include "Level.h"
+#include "Object/CharControl.h"
 #include "LevelCollision.h"
 #include "LevelScroll.h"
 #include "MathUtil.h"
@@ -128,6 +131,8 @@ static void Tails_LoadGfx(Object *obj) {
 // Tails_Control and TailsCPU_Control: a pad 2 that is being used keeps Tails for 300 frames; otherwise he copies Sonic's pad from 16 frames back (the CPU's other states
 // only pass on to this one)
 static void Tails_Control(void) {
+    if (SplitScreen_Active()) // the second player has pad 2 (and a camera of his own)
+        return;
     // (Sonic_RecordPos: Sonic's pad this frame)
     pad_head = (uint8_t)((pad_head + 1) & 0x3F);
     pad_hold[pad_head] = jpad1_hold1;
@@ -799,6 +804,10 @@ static signed int ReactToItem(Object *obj) {
         }
     }
     return 0;
+}
+
+int32_t Tails_Hurt(Object *obj, Object *src) {
+    return HurtTails(obj, src);
 }
 
 // Sonic functions
@@ -1594,7 +1603,7 @@ void Obj_Tails(Object *obj) {
     case 2: // Regular movement
         Tails_Control();
 
-        if (!(lock_multi & 1)) {
+        if (!(CharObjControl(obj) & 1)) {
             switch ((obj->status.p.f.in_ball << 2) | (obj->status.p.f.in_air << 1)) {
             case 0: // Not in ball, not in air
                 if (Tails_SpinDash(obj))
@@ -1648,7 +1657,7 @@ void Obj_Tails(Object *obj) {
         scratch->front_angle = angle_buffer0;
         scratch->back_angle = angle_buffer1;
         Tails_Animate(obj);
-        if (!(lock_multi & 0x80))
+        if (!(CharObjControl(obj) & 0x80))
             ReactToItem(obj);
         Tails_LoadGfx(obj);
         break;
@@ -1681,17 +1690,16 @@ void Obj_Tails(Object *obj) {
     }
 }
 
-// The level's own objects, beyond what Sonic 1's level start makes: Tails, a little behind Sonic (Nick Arcade leaves him out of Emerald Hill: with him the show would have had Tails
-// lose Sonic's rings)
+// The level's own objects, beyond what Sonic 1's level start makes: Tails, a little behind Sonic (in every zone: Nick Arcade left him out of Emerald Hill, the Simon Wai prototype does not)
 void Game_LevelObjects(void) {
+    VDP_SetShadowHighlight((jpad1_hold1 & JPAD_C) != 0); // (the prototype enables the VDP's shadow/highlight mode, which darkens all but what is above the planes' priority, when C is held as a level loads)
     if (cli_start_level >= 0) // a level started from the command line skipped the title, which loads the main art (HUD, rings, ...)
         AddPLC(PlcId_Main);
-    if (LEVEL_ZONE(level_id) == ZoneId_SLZ) // (Emerald Hill's slot)
-        return;
     Object *tails = &objects[TAILS_SLOT];
     memset(tails, 0, sizeof(*tails));
     tails->type = ObjId_02;
     tails->pos.l.x.f.u = player->pos.l.x.f.u - 0x20;
     tails->pos.l.y.f.u = player->pos.l.y.f.u;
     memset(&objects[TAILSTAILS_SLOT], 0, sizeof(Object));
+    SplitScreen_LoadLevel(); // (a level picked with B in the level select is a two-player one: Tails is its second player)
 }

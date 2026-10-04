@@ -1,0 +1,65 @@
+{
+  "header": [
+    {
+      "smpsHeaderStartSong": [
+        "0x2"
+      ]
+    },
+    {
+      "smpsHeaderVoice": [
+        "sndA0_Voices"
+      ]
+    },
+    {
+      "smpsHeaderTempoSFX": [
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderChanSFX": [
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderSFXChannel": [
+        "cPSG1",
+        "sndA0_PSG1",
+        "0xF4",
+        "0x0"
+      ]
+    }
+  ],
+  "voices": [],
+  "SMPSplaylist": {
+    "sndA0_PSG1": [
+      {
+        "smpsPSGvoice": "0x0"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x9E"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x5"
+      },
+      {
+        "smpsModSet": [
+          "0x2",
+          "0x1",
+          "0xF8",
+          "0x65"
+        ]
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0xA3"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x15"
+      },
+      "smpsStop"
+    ]
+  }
+}

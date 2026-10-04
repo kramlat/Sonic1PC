@@ -7,6 +7,9 @@
 #define HUD_LIVES_SLOT 29 // a free one: slots 30 and 31 are LZ's water surfaces (WaterSurface.h)
 #define HUD_WIDE_FRAMES 4 // the HUD frames without the lives counter come after the four with it
 
+// A split screen (Sonic 2's) puts the lives counter in the lower left of each view, where the original's picture has it, not in the corner of a wide picture
+bool hud_lives_lower_left;
+
 static bool HUD_IsWide(void) { return SCREEN_WIDTH > 320; }
 
 static void HUD_UpdateLivesObject(void) {
@@ -22,8 +25,13 @@ static void HUD_UpdateLivesObject(void) {
     lives_obj->render.b = 0;
     lives_obj->priority = 0;
     lives_obj->frame = 2 * HUD_WIDE_FRAMES; // just the lives
-    lives_obj->pos.s.x = (int16_t)(0x80 + SCREEN_WIDTH - 0x40);
-    lives_obj->pos.s.y = 0x88;
+    if (hud_lives_lower_left) {
+        lives_obj->pos.s.x = 0x90;
+        lives_obj->pos.s.y = 0x148 + SCREEN_TALLADD2; // (the lives-only frame has its pieces at 0, the full frames at $40)
+    } else {
+        lives_obj->pos.s.x = (int16_t)(0x80 + SCREEN_WIDTH - 0x40);
+        lives_obj->pos.s.y = 0x88;
+    }
     DisplaySprite(lives_obj);
 }
 

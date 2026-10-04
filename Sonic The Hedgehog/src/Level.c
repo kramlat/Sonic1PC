@@ -870,3 +870,14 @@ void Level_MakeWaterSurfaces(void) {
     objects[WATERSURFACE_SLOT_EXTRA].type = ObjId_WaterSurface;
     objects[WATERSURFACE_SLOT_EXTRA].pos.l.x.f.u = 0x1E0;
 }
+
+// The level's music: one song per zone in Sonic 1's order, except Scrap Brain act 3 (stored under Labyrinth's slot, 0103) and the Final Zone (under Scrap Brain's, 0502)
+uint8_t Level_Music(uint16_t level) {
+    static const uint8_t zone_music[] = {bgm_GHZ, bgm_LZ, bgm_MZ, bgm_SLZ, bgm_SYZ, bgm_SBZ};
+    if (level == 0x0103)
+        return bgm_SBZ;
+    if (level == 0x0502)
+        return bgm_FZ;
+    uint8_t zone = LEVEL_ZONE(level);
+    return zone < sizeof(zone_music) ? zone_music[zone] : 0;
+}

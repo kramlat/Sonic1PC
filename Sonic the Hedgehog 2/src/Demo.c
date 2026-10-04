@@ -1,6 +1,7 @@
 #include "Demo.h"
 
 #include "Game.h"
+#include "SplitScreen.h"
 #include "Level.h"
 #include "SpecialStage.h"
 
@@ -30,16 +31,12 @@ uint8_t btn_pushtime2;
 #include "Resource/Demo/EndingSLZ.h"
 #include "Resource/Demo/EndingSYZ.h"
 
+// (every zone slot has one, since the level loader reads the demo's first bytes even when no demo plays: the slots without a demo of their own of the prototypes have Emerald Hill's)
 // Nick Arcade's attract-mode demos, by zone slot (the same inputs it plays back in the same levels; its Emerald Hill demo was a two-player one, whose second pad moved Tails: here only Sonic's side)
-const uint8_t* intro_demo_ptr[] = {
-    /* ZoneId_GHZ  */   Demo_NAGHZ,
-    /* ZoneId_LZ   */   Demo_NAGHZ,
-    /* ZoneId_MZ   */   Demo_NACPZ,
-    /* ZoneId_SLZ  */   Demo_NAEHZ,
-    /* ZoneId_SYZ  */   Demo_NAHPZ,
-    /* ZoneId_SBZ  */   Demo_NAHTZ,
-    /* ZoneId_EndZ */   Demo_NAGHZ,
-    /* Special Stage */ Demo_NASS,
+const uint8_t* intro_demo_ptr[ZoneId_Num] = {
+    [0x00] = Demo_NAEHZ, [0x01] = Demo_NAEHZ, [0x02] = Demo_NAEHZ, [0x03] = Demo_NAEHZ, [0x04] = Demo_NAEHZ, [0x05] = Demo_NAEHZ, [0x06] = Demo_NAEHZ, [0x07] = Demo_NAHTZ,
+    [0x08] = Demo_NAHPZ, [0x09] = Demo_NAEHZ, [0x0A] = Demo_NAEHZ, [0x0B] = Demo_NAEHZ, [0x0C] = Demo_NAEHZ, [0x0D] = Demo_NACPZ, [0x0E] = Demo_NAEHZ, [0x0F] = Demo_NAEHZ,
+    [ZoneId_SS] = Demo_NASS, // (the special stage's, where Sonic 1 has it at index 7: GM_Special.c names it by ZoneId_SS)
 };
 
 const uint8_t* ending_demo_ptr[] = {
@@ -186,6 +183,7 @@ void Demo_ServiceRequests(void) {
         cli_start_x = demo_play_request.start_x;
         cli_start_y = demo_play_request.start_y;
         level_id = (uint16_t)LEVEL_ID(demo_play_request.zone, demo_play_request.act);
+        two_player_mode = demo_play_request.split_screen; // (a demo recorded in the split screen plays in it)
         lives = 3;
         rings = 0;
         level_time.pad = level_time.min = level_time.sec = level_time.frame = 0;
@@ -211,6 +209,7 @@ void Demo_ServiceRequests(void) {
     cli_start_y = r->start_y;
 
     level_id = r->special ? 0 : (uint16_t)LEVEL_ID(r->zone, r->act);
+    two_player_mode = !r->special && r->split_screen;
     last_special = r->special ? (uint8_t)r->special_stage : 0;
     lives = 3;
     rings = 0;
@@ -273,7 +272,7 @@ void MoveSonicInDemo(void) {
     else if (demo < 0)
         demo_data = ending_demo_ptr[credits_num - 1];
     else
-        demo_data = intro_demo_ptr[(gamemode == GameMode_Special) ? 7 : LEVEL_ZONE(level_id)];
+        demo_data = intro_demo_ptr[(gamemode == GameMode_Special) ? ZoneId_SS : LEVEL_ZONE(level_id)];
 
     // Offset demo address
     demo_data += btn_pushtime1;

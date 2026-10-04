@@ -1,0 +1,102 @@
+{
+  "header": [
+    {
+      "smpsHeaderStartSong": [
+        "0x2",
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderVoice": [
+        "sndD1_Voices"
+      ]
+    },
+    {
+      "smpsHeaderTempoSFX": [
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderChanSFX": [
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderSFXChannel": [
+        "cFM5",
+        "sndD1_FM5",
+        "0x0",
+        "0x1"
+      ]
+    }
+  ],
+  "voices": [
+    {
+      "smpsVcAlgorithm": "0x5",
+      "smpsVcFeedback": "0x6",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x4",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x14",
+          "smpsVcDecayRate2": "0xF",
+          "smpsVcDecayLevel": "0xF",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x80"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x19",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0xF",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x12",
+          "smpsVcDecayRate2": "0xC",
+          "smpsVcDecayLevel": "0xE",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x0"
+        }
+      ]
+    }
+  ],
+  "SMPSplaylist": {
+    "sndD1_FM5": [
+      {
+        "smpsSetvoice": "0x0"
+      },
+      {
+        "note": "C0",
+        "duration": "0x5"
+      },
+      "smpsStop"
+    ]
+  }
+}

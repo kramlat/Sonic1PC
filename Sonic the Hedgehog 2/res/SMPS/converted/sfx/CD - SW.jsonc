@@ -1,0 +1,46 @@
+{
+  "header": [
+    {
+      "smpsHeaderStartSong": [
+        "0x2"
+      ]
+    },
+    {
+      "smpsHeaderVoice": [
+        "sndCD_Voices"
+      ]
+    },
+    {
+      "smpsHeaderTempoSFX": [
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderChanSFX": [
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderSFXChannel": [
+        "cPSG3",
+        "sndCD_PSG3",
+        "0x0",
+        "0x0"
+      ]
+    }
+  ],
+  "voices": [],
+  "SMPSplaylist": {
+    "sndCD_PSG3": [
+      {
+        "inheritedNote": true,
+        "duration": "0xBB"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x2"
+      },
+      "smpsStop"
+    ]
+  }
+}

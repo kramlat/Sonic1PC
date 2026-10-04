@@ -99,7 +99,7 @@ uint16_t sprite_buffer_p2[BUFFER_SPRITES][4];
 int16_t hscroll_buffer_p2[SCREEN_MAX_HEIGHT][2];
 VDPView video_second_view = {
 	.plane_a_location = VRAM_FG_P2,
-	.plane_b_location = VRAM_BG,
+	.plane_b_location = VRAM_BG_P2,
 	.hscroll_location = VRAM_HSCROLL_P2,
 	.vscroll_a = 0,
 	.vscroll_b = 0,

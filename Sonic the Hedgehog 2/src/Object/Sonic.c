@@ -7,6 +7,7 @@
 #include "Game.h"
 #include "GM_Level.h"
 #include "Level.h"
+#include "Object/CharControl.h"
 #include "LevelCollision.h"
 #include "LevelScroll.h"
 #include "MathUtil.h"
@@ -2011,48 +2012,10 @@ void Obj_Sonic(Object* obj) {
 
 #ifdef DEMO_WARP
     static const uint16_t demo_loc[ZoneId_Num][4] = {
-        {
-            LEVEL_ID(ZoneId_GHZ, 1),
-            LEVEL_ID(ZoneId_GHZ, 2),
-            LEVEL_ID(ZoneId_MZ, 0),
-            0,
-        },
-        {
-            LEVEL_ID(ZoneId_LZ, 1),
-            LEVEL_ID(ZoneId_LZ, 2),
-            LEVEL_ID(ZoneId_SLZ, 0),
-            LEVEL_ID(ZoneId_SBZ, 2),
-        },
-        {
-            LEVEL_ID(ZoneId_MZ, 1),
-            LEVEL_ID(ZoneId_MZ, 2),
-            LEVEL_ID(ZoneId_SYZ, 0),
-            0,
-        },
-        {
-            LEVEL_ID(ZoneId_SLZ, 1),
-            LEVEL_ID(ZoneId_SLZ, 2),
-            LEVEL_ID(ZoneId_SBZ, 0),
-            0,
-        },
-        {
-            LEVEL_ID(ZoneId_SYZ, 1),
-            LEVEL_ID(ZoneId_SYZ, 2),
-            LEVEL_ID(ZoneId_LZ, 0),
-            0,
-        },
-        {
-            LEVEL_ID(ZoneId_SBZ, 1),
-            LEVEL_ID(ZoneId_LZ, 3),
-            LEVEL_ID(ZoneId_GHZ, 0),
-            0,
-        },
-        {
-            0,
-            0,
-            0,
-            0,
-        },
+        [ZoneId_CPZ] = { LEVEL_ID(ZoneId_CPZ, 1), LEVEL_ID(ZoneId_CPZ, 2), LEVEL_ID(ZoneId_HPZ, 0), 0 },
+        [ZoneId_EHZ] = { LEVEL_ID(ZoneId_EHZ, 1), LEVEL_ID(ZoneId_EHZ, 2), LEVEL_ID(ZoneId_HTZ, 0), 0 },
+        [ZoneId_HPZ] = { LEVEL_ID(ZoneId_HPZ, 1), LEVEL_ID(ZoneId_HPZ, 2), LEVEL_ID(ZoneId_EHZ, 0), 0 },
+        [ZoneId_HTZ] = { LEVEL_ID(ZoneId_HTZ, 1), LEVEL_ID(ZoneId_HTZ, 2), LEVEL_ID(ZoneId_CPZ, 0), 0 },
     };
 
     if ((jpad1_press1 & JPAD_START) && (jpad1_hold1 & JPAD_A)) {
@@ -2105,7 +2068,7 @@ void Obj_Sonic(Object* obj) {
         }
 
         // Run player routine
-        if (!(lock_multi & 1)) {
+        if (!(CharObjControl(obj) & 1)) {
             switch ((obj->status.p.f.in_ball << 2) | (obj->status.p.f.in_air << 1)) {
             case 0: // Not in ball, not in air
                 if (Sonic_SpinDash(obj))
@@ -2175,7 +2138,7 @@ void Obj_Sonic(Object* obj) {
         Sonic_Animate(obj);
 
         // Handle object interaction
-        if (!(lock_multi & 0x80))
+        if (!(CharObjControl(obj) & 0x80))
             ReactToItem(obj);
 
         // Handle DPLCs

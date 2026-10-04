@@ -36,3 +36,21 @@ const GameInfo game_info = {
     .settings_file = "Sonic1Settings.cfg",
     .settings_title = "Sonic 1 PC settings",
 };
+
+// The zones and acts of the demo recorder's pickers. Labyrinth has a fourth act (Scrap Brain Act 3, SBZ3, lives in the Labyrinth slot: LZ act 4), Scrap Brain's third is the Final Zone, and the two endings are
+// levels $600 (without all six emeralds: bad) and $601 (with them: good)
+static const char *const s1_acts[] = { "Act 1", "Act 2", "Act 3" };
+static const char *const s1_acts_lz[] = { "Act 1", "Act 2", "Act 3", "Act 4 (Scrap Brain Act 3)" };
+static const char *const s1_acts_sbz[] = { "Act 1", "Act 2", "Final Zone" };
+static const char *const s1_acts_end[] = { "Bad ending (00)", "Good ending (01)" };
+static const GameZone s1_zones[] = {
+    { 0, "Green Hill", 3, s1_acts },
+    { 1, "Labyrinth", 4, s1_acts_lz },
+    { 2, "Marble", 3, s1_acts },
+    { 3, "Star Light", 3, s1_acts },
+    { 4, "Spring Yard", 3, s1_acts },
+    { 5, "Scrap Brain", 3, s1_acts_sbz },
+    { 6, "Ending", 2, s1_acts_end },
+};
+static const GameZoneList s1_zone_list = { (int)(sizeof(s1_zones) / sizeof(s1_zones[0])), s1_zones };
+const GameZoneList *game_zone_list = &s1_zone_list;

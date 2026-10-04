@@ -164,7 +164,7 @@ static void SS_RunStage(void) {
 	
 	//Start the demo input from its first record (the stage demo is hardcoded to the Special Stage entry)
 	btn_pushtime1 = 0;
-	btn_pushtime2 = (cli_demo_override ? cli_demo_override : intro_demo_ptr[7])[1] - 1;
+	btn_pushtime2 = (cli_demo_override ? cli_demo_override : intro_demo_ptr[ZoneId_SS])[1] - 1;
 	
 	rings = 0;
 	life_num = 0;

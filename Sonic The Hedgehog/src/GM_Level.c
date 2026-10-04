@@ -67,26 +67,10 @@ void PauseGame(void) {
     pause_state = false;
 }
 
-// Indexed by LEVEL_ZONE(level_id) -- matches the ZoneId_* enum order
-// (GHZ, LZ, MZ, SLZ, SYZ, SBZ) exactly, so no separate lookup is needed.
-static const uint8_t zone_music[] = {bgm_GHZ, bgm_LZ, bgm_MZ, bgm_SLZ, bgm_SYZ, bgm_SBZ};
-
 void ResumeLevelMusic(void) {
-    // SBZ act 3 and Final Zone don't have their own zone IDs -- SBZ3 is
-    // stored under LZ's level slot (0103), and FZ under SBZ's (0502), so
-    // both need their music special-cased ahead of the normal zone lookup.
-    if (level_id == 0x0103) {
-        PlayMusic(bgm_SBZ);
-        return;
-    }
-    if (level_id == 0x0502) {
-        PlayMusic(bgm_FZ);
-        return;
-    }
-
-    uint8_t zone = LEVEL_ZONE(level_id);
-    if (zone < sizeof(zone_music))
-        PlayMusic(zone_music[zone]);
+    uint8_t music = Level_Music(level_id);
+    if (music != 0)
+        PlayMusic(music);
 }
 
 // Wipes the per-level state (objects, scroll, camera, timers...): what the original clears at the start of a level, the

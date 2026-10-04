@@ -5,6 +5,7 @@
 #include "Constants.h"
 #include "Level.h"
 #include "LevelScroll.h"
+#include "SplitScreen.h"
 #include "Kosinski.h"
 
 #include "Backend/VDP.h"
@@ -220,11 +221,8 @@ void S2_LoadAnimatedBlocks(void); // AnimatedArt.c
 void LoadTilesFromStart(void) {
     S2_LoadAnimatedBlocks(); // (Nick Arcade patches the animated blocks into the block table before the tiles are drawn)
     DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_FG(0), VRAM_FG);
-    // Green Hill's background is drawn as Sonic 1 does; the others (Chemical Plant, Emerald Hill, Hidden Palace and Hill Top) are plain
-    if (LEVEL_ZONE(level_id) == ZoneId_GHZ || LEVEL_ZONE(level_id) == ZoneId_EndZ)
-        Draw_GHZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), VRAM_BG);
-    else
-        DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), VRAM_BG);
+    // (the backgrounds of Sonic 2's zones are plain)
+    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), VRAM_BG);
 }
 
 void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset) {
@@ -307,7 +305,7 @@ static void Draw_SBZ(int16_t sx, uint16_t *flag, const uint8_t *layout, size_t o
 void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset) {
 	if (*flag == 0)
 		return;
-		if (LEVEL_ZONE(level_id) != ZoneId_SBZ) {
+		if (LEVEL_ZONE(level_id) != ZoneId_HTZ) {
 			if (*flag & SCROLL_FLAG_LEFT2) {
 				DrawBlocks_TB_2(offset, CalcVRAMPos(sx, sy, -16, 0x70), sx, sy, -16, 0x70, layout, 3);
 				*flag &= ~SCROLL_FLAG_LEFT2;
@@ -363,12 +361,50 @@ static void Draw_MZ(int16_t sx, uint16_t *flag, const uint8_t *layout, size_t of
 	DrawBG_ColumnForBGIndex(offset, col_x, -16, bg_scrpos_y_dup.f.u, layout, MZ_ScrollArray + (idx >> 4), flag);
 }
 
+// Chemical Plant's third background (Draw_BG3's CPz branch): the same row-by-owner drawing as Metropolis's, with Chemical Plant's own table: the plane's rows down to row 18 follow the first
+// background's X (value 2), those below the second's (4); rows are 16 lines, the table 64 of them
+static const uint8_t CPZ_ScrollArrayRaw[1 + 64 + 16] = {
+    2, // (loc_718E: the strip of columns starts a row above the view, so it reads the table from one entry before the view's row)
+    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, // (what a strip reads past the end: the same)
+};
+#define CPZ_ScrollArray (CPZ_ScrollArrayRaw + 1)
+
+static void Draw_CPZ(int16_t sx, uint16_t *flag, const uint8_t *layout, size_t offset) {
+	(void)sx;
+	int16_t y_rel = -16;
+	if (*flag & SCROLL_FLAG_UP) {
+		*flag &= ~SCROLL_FLAG_UP;
+	} else if (*flag & SCROLL_FLAG_DOWN) {
+		*flag &= ~SCROLL_FLAG_DOWN;
+		y_rel = SCREEN_HEIGHT;
+	} else {
+		goto columns;
+	}
+	DrawBlocks_BG(offset, bg_scrpos_x_dup.f.u, bg_scrpos_y_dup.f.u, y_rel, layout, CPZ_ScrollArray, 64, bg_pos_table_dup, bg_pos_table_y_dup);
+columns:
+	if ((*flag & 0xFF) == 0)
+		return;
+	int16_t col_x = -16;
+	uint8_t cf = (uint8_t)(*flag & 0xFF);
+	if (cf & 0xA8) {
+		cf >>= 1;
+		*flag = (*flag & 0xFF00) | cf;
+		col_x = RIGHT_EDGE_X;
+	}
+	uint16_t idx = (uint16_t)bg_scrpos_y_dup.f.u & 0x3F0;
+	DrawBG_ColumnForBGIndex(offset, col_x, -16, bg_scrpos_y_dup.f.u, layout, CPZ_ScrollArray + (idx >> 4) - 1, flag);
+}
+
 void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset) {
 	//Check if any flags have been set
 	if (*flag == 0)
 		return;
 		//Run completely different code if in Marble Zone (what)
-		if (LEVEL_ZONE(level_id) != ZoneId_MZ) {
+		if (LEVEL_ZONE(level_id) != ZoneId_CPZ) {
 			if (*flag & SCROLL_FLAG_LEFT2) {
 				DrawBlocks_TB_2(offset, CalcVRAMPos(sx, sy, -16, 64), sx, sy, -16, 64, layout, 3);
 				*flag &= ~SCROLL_FLAG_LEFT2;
@@ -378,11 +414,12 @@ void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout
 				*flag &= ~SCROLL_FLAG_RIGHT2;
 			}
 		} else {
-			Draw_MZ(sx, flag, layout, offset);
+			Draw_CPZ(sx, flag, layout, offset);
 		}
 }
 
 void LoadTilesAsYouMove(void) {
+    SplitScreen_VBlank();
     DrawBG_Top(bg_scrpos_x_dup.f.u, bg_scrpos_y_dup.f.u,
                        &bg1_scroll_flags_dup, LEVEL_LAYOUT_BG(0), VRAM_BG);
 

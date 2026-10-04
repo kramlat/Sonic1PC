@@ -43,6 +43,7 @@ typedef struct {
 	bool special;
 	int special_stage;      // 0-5
 	int start_x, start_y;   // override Sonic's start position; -1 = the level's own
+	bool split_screen;      // record it in the split screen (a game that has one: GameInfo::split_screen)
 	int frames;             // auto-stop after this many frames; -1 = until stopped
 	char path[512];         // output file
 } DemoRecordRequest;
@@ -54,6 +55,7 @@ void Demo_RequestRecording(const DemoRecordRequest *request);
 typedef struct {
 	int zone, act;
 	int start_x, start_y;   // the same start position the demo was recorded from; -1 = the level's own
+	bool split_screen;      // it was recorded in the split screen
 } DemoPlayRequest;
 bool Demo_RequestPlayback(const DemoPlayRequest *request, const uint8_t *data, size_t length);
 void Demo_ServiceRequests(void);   // called once per frame from VBlank: applies a pending request

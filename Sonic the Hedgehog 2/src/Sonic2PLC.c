@@ -122,6 +122,16 @@
 #include "Resource/Art/EHZBridge.h"
 #include "Resource/Art/EHZWaterfall.h"
 #include "Resource/Art/CPZDust.h"
+#include "Resource/Art/CPZMetalStructure.h"
+#include "Resource/Art/CPZStripes.h"
+#include "Resource/Art/CPZBooster.h"
+#include "Resource/Art/CPZElevator.h"
+#include "Resource/Art/CPZAnimBits.h"
+#include "Resource/Art/CPZTubeSpring.h"
+#include "Resource/Art/CPZStairBlock.h"
+#include "Resource/Art/CPZMetalBlock.h"
+#include "Resource/Art/CPZDroplet.h"
+#include "Resource/Art/LeverSpring.h"
 #include "Resource/Art/HPZBridge.h"
 #include "Resource/Art/Redz.h"
 #include "Resource/Art/BBat.h"
@@ -285,27 +295,29 @@ static const PLCList PLC_LZ2 = {
 // ---------------------------------------------------------------------------
 // Pattern load cues - Marble
 // ---------------------------------------------------------------------------
-static const PLCList PLC_MZ = { // Chemical Plant
-    6,
+static const PLCList PLC_MZ = { // Chemical Plant (the prototype's Chemical_Plant_Sprites_1: its addresses in VRAM are bytes, here in tiles)
+    9,
     (const PLC[]) {
-        { Art_CPZDust,       ART_VRAM(0x3D0) },
-        { Art_CPZPlatform,   ART_VRAM(0x400) },
-        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
-        { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
-        { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
-        { Art_SpringSide,    ART_VRAM(ArtTile_SpringSide) },
+        { Art_CPZMetalStructure, ART_VRAM(0x6E60 >> 5) },
+        { Art_CPZStripes,        ART_VRAM(0x7280 >> 5) },
+        { Art_CPZBooster,        ART_VRAM(0x7380 >> 5) },
+        { Art_CPZElevator,       ART_VRAM(0x7400 >> 5) },
+        { Art_CPZAnimBits,       ART_VRAM(0x7600 >> 5) },
+        { Art_CPZTubeSpring,     ART_VRAM(0x7C00 >> 5) },
+        { Art_WaterSurface,      ART_VRAM(0x8000 >> 5) },
+        { Art_CPZStairBlock,     ART_VRAM(0x8300 >> 5) },
+        { Art_CPZMetalBlock,     ART_VRAM(0x8600 >> 5) },
     }
 };
 
-static const PLCList PLC_MZ2 = {
-    6,
+static const PLCList PLC_MZ2 = { // Chemical_Plant_Sprites_2 (without the air bubbles, whose art is not ported yet): the spikes, the droplets (the worms), the lever spring and the straight springs; no diagonal springs'
+    5,                           // art: the diagonal art of Sonic 1's places sits on the lever spring's tiles
     (const PLC[]) {
-        { Art_MZSwitch,      ART_VRAM(ArtTile_Button_Main) },
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
-        { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
+        { Art_CPZDroplet,    ART_VRAM(0x8780 >> 5) },
+        { Art_LeverSpring,   ART_VRAM(0x8800 >> 5) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
         { Art_SpringSide,    ART_VRAM(ArtTile_SpringSide) },
-        { Art_MZBlock,       ART_VRAM(ArtTile_MZ_Block) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -425,12 +437,10 @@ static const PLCList PLC_Boss = { // Emerald Hill's boss: Eggman's ship, the dri
 // ---------------------------------------------------------------------------
 // Pattern load cues - act 1/2 signpost
 // ---------------------------------------------------------------------------
-static const PLCList PLC_Signpost = {
-    3,
+static const PLCList PLC_Signpost = { // (the prototype's End_Level_Sprites: the signpost's art only. The hidden bonus's and the giant ring flash's entries that follow it in its list are not loaded
+    1,                                //  ("Not all sprites are loaded in to VRam"): the flash's place, $8C40, is inside the signpost's 82 tiles from $8680)
     (const PLC[]) {
         { Art_Signpost,      ART_VRAM(ArtTile_Signpost) },
-        { Art_HiddenBonus,   ART_VRAM(ArtTile_Hidden_Points) },
-        { Art_BigFlash,      ART_VRAM(ArtTile_Giant_Ring_Flash) },
     }
 };
 // ---------------------------------------------------------------------------

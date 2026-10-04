@@ -71,13 +71,10 @@ static void VDPSplit_OneViewIsAsItWas(void) {
     CHECK_EQ(Px(f, pitch, 0, 8), PIXEL_BACKDROP);
 }
 
-static void VDPSplit_StackedIsTwiceTheRowsWithTallCells(void) {
+static void VDPSplit_StackedSquashesTwoWholeViewsIntoHalvesOfThePicture(void) {
     Prepare();
-    // Double-height cells: name 1 is the pair of patterns 2 (rows 0-7) and 3 (rows 8-15)
-    SetPattern(2, 1);
-    SetPattern(3, 2);
-    SetPattern(4, 3); // name 2: patterns 4 and 5
-    SetPattern(5, 3);
+    SetPattern(1, 1);
+    SetPattern(2, 3);
     SetName(PLANE_A, 0, 0, 1);
     SetName(PLANE_A2, 0, 0, 2);
 
@@ -87,37 +84,33 @@ static void VDPSplit_StackedIsTwiceTheRowsWithTallCells(void) {
     second.plane_b_location = PLANE_B;
     second.hscroll_location = HSCROLL2;
     VDP_SetSplitScreen(VDP_SPLIT_STACKED, &second);
-    CHECK_EQ(VDP_OutputRows(), 2 * SCREEN_HEIGHT);
+    CHECK_EQ(VDP_OutputRows(), SCREEN_HEIGHT);
 
     VDP_DrawFrame();
     int pitch, rows;
     const uint32_t *f = VDP_GetFrame(&pitch, &rows);
-    CHECK_EQ(rows, 2 * SCREEN_HEIGHT);
-    // The first view: a cell is 16 lines, its two patterns one above the other
+    CHECK_EQ(rows, SCREEN_HEIGHT);
+    // The first view, an ordinary one (8 lines for a cell), at half height: 4 lines
     CHECK_EQ(Px(f, pitch, 0, 0), PIXEL_RED);
-    CHECK_EQ(Px(f, pitch, 0, 7), PIXEL_RED);
-    CHECK_EQ(Px(f, pitch, 0, 8), PIXEL_GREEN);
-    CHECK_EQ(Px(f, pitch, 0, 15), PIXEL_GREEN);
-    CHECK_EQ(Px(f, pitch, 0, 16), PIXEL_BACKDROP);
-    // The second view starts a screen's height down, with its own plane
-    CHECK_EQ(Px(f, pitch, 0, SCREEN_HEIGHT), PIXEL_BLUE);
-    CHECK_EQ(Px(f, pitch, 0, SCREEN_HEIGHT + 15), PIXEL_BLUE);
-    CHECK_EQ(Px(f, pitch, 0, SCREEN_HEIGHT + 16), PIXEL_BACKDROP);
+    CHECK_EQ(Px(f, pitch, 0, 3), PIXEL_RED);
+    CHECK_EQ(Px(f, pitch, 0, 4), PIXEL_BACKDROP);
+    // The second view starts half the picture down, with its own plane
+    CHECK_EQ(Px(f, pitch, 0, SCREEN_HEIGHT / 2), PIXEL_BLUE);
+    CHECK_EQ(Px(f, pitch, 0, SCREEN_HEIGHT / 2 + 3), PIXEL_BLUE);
+    CHECK_EQ(Px(f, pitch, 0, SCREEN_HEIGHT / 2 + 4), PIXEL_BACKDROP);
     VDP_SetSplitScreen(VDP_SPLIT_NONE, NULL);
 }
 
-static void VDPSplit_StackedSpritesAreInDoubleHeightCoordinates(void) {
+static void VDPSplit_StackedSpritesAreOrdinaryOnesInEachHalf(void) {
     Prepare();
-    SetPattern(8, 3); // a sprite cell with tile number 4 is the patterns 8 and 9
-    SetPattern(9, 3);
-    SetPattern(12, 2); // tile 6: patterns 12 and 13
-    SetPattern(13, 2);
+    SetPattern(4, 3);
+    SetPattern(6, 2);
     static uint16_t table1[2][4], table2[2][4];
     memset(table1, 0, sizeof(table1));
     memset(table2, 0, sizeof(table2));
-    // One cell (width 0, height 0) at x 10, line 5 of the first view (Y 0x100 + 5); the second view's sprite at line 3 of its own (0x100 + height + 3)
-    table1[0][0] = 0x100 + 5;  table1[0][1] = 0x0000; table1[0][2] = 4; table1[0][3] = 128 + 10;
-    table2[0][0] = 0x100 + SCREEN_HEIGHT + 3; table2[0][1] = 0x0000; table2[0][2] = 6; table2[0][3] = 128 + 20;
+    // One cell (width 0, height 0) at x 10, line 5 of the first view; the second view's sprite at line 3 of its own
+    table1[0][0] = 128 + 5;  table1[0][1] = 0x0000; table1[0][2] = 4; table1[0][3] = 128 + 10;
+    table2[0][0] = 128 + 3; table2[0][1] = 0x0000; table2[0][2] = 6; table2[0][3] = 128 + 20;
     VDP_SetSpriteBuffer(&table1[0][0]);
     VDPView second;
     memset(&second, 0, sizeof(second));
@@ -129,14 +122,12 @@ static void VDPSplit_StackedSpritesAreInDoubleHeightCoordinates(void) {
     VDP_DrawFrame();
     int pitch, rows;
     const uint32_t *f = VDP_GetFrame(&pitch, &rows);
-    CHECK_EQ(Px(f, pitch, 10, 4), PIXEL_BACKDROP);
-    CHECK_EQ(Px(f, pitch, 10, 5), PIXEL_BLUE);        // the cell is 16 lines tall
-    CHECK_EQ(Px(f, pitch, 17, 20), PIXEL_BLUE);
-    CHECK_EQ(Px(f, pitch, 10, 21), PIXEL_BACKDROP);
-    CHECK_EQ(Px(f, pitch, 18, 10), PIXEL_BACKDROP);   // and 8 wide
-    CHECK_EQ(Px(f, pitch, 20, SCREEN_HEIGHT + 2), PIXEL_BACKDROP);
-    CHECK_EQ(Px(f, pitch, 20, SCREEN_HEIGHT + 3), PIXEL_GREEN); // the second view's sprite, in its own half
-    CHECK_EQ(Px(f, pitch, 20, 3), PIXEL_BACKDROP);               // not in the first
+    CHECK_EQ(Px(f, pitch, 10, 0), PIXEL_BACKDROP);
+    CHECK_EQ(Px(f, pitch, 10, 3), PIXEL_BLUE);        // lines 6-7 of the view, both inside the sprite
+    CHECK_EQ(Px(f, pitch, 18, 3), PIXEL_BACKDROP);    // 8 wide
+    CHECK_EQ(Px(f, pitch, 20, SCREEN_HEIGHT / 2), PIXEL_BACKDROP);
+    CHECK_EQ(Px(f, pitch, 20, SCREEN_HEIGHT / 2 + 3), PIXEL_GREEN); // the second view's sprite, in its own half
+    CHECK_EQ(Px(f, pitch, 20, 3), PIXEL_BACKDROP);                  // not in the first
     VDP_SetSplitScreen(VDP_SPLIT_NONE, NULL);
     VDP_SetSpriteBuffer(NULL);
 }
@@ -195,7 +186,7 @@ static void VDPSplit_SecondViewHasItsOwnHScrollTable(void) {
 void RegisterVDPSplitTests(void) {
     RUN_TEST(VDPSplit_SecondViewHasItsOwnHScrollTable);
     RUN_TEST(VDPSplit_OneViewIsAsItWas);
-    RUN_TEST(VDPSplit_StackedIsTwiceTheRowsWithTallCells);
-    RUN_TEST(VDPSplit_StackedSpritesAreInDoubleHeightCoordinates);
+    RUN_TEST(VDPSplit_StackedSquashesTwoWholeViewsIntoHalvesOfThePicture);
+    RUN_TEST(VDPSplit_StackedSpritesAreOrdinaryOnesInEachHalf);
     RUN_TEST(VDPSplit_SideBySideHasEachViewItsOwnHalf);
 }

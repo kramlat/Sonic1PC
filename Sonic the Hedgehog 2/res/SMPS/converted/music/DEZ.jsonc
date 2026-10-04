@@ -1,0 +1,3890 @@
+{
+  "header": [
+    {
+      "smpsHeaderStartSong": [
+        "0x2"
+      ]
+    },
+    {
+      "smpsHeaderVoice": [
+        "Mus_DEZ_Voices"
+      ]
+    },
+    {
+      "smpsHeaderChan": [
+        "0x6",
+        "0x3"
+      ]
+    },
+    {
+      "smpsHeaderTempo": [
+        "0x1",
+        "0x3"
+      ]
+    },
+    {
+      "smpsHeaderDAC": [
+        "Mus_DEZ_DAC"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus_DEZ_FM1",
+        "0x0",
+        "0x14"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus_DEZ_FM2",
+        "0xC",
+        "0x18"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus_DEZ_FM3",
+        "0x0",
+        "0x18"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus_DEZ_FM4",
+        "0x0",
+        "0xC"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus_DEZ_FM5",
+        "0x0",
+        "0x0"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "Mus_DEZ_PSG1",
+        "0xDC",
+        "0x6",
+        "0x0",
+        "fTone_0B"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "Mus_DEZ_PSG2",
+        "0xDC",
+        "0x6",
+        "0x0",
+        "fTone_0B"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "Mus_DEZ_PSG3",
+        "0x0",
+        "0x3",
+        "0x0",
+        "fTone_01"
+      ]
+    }
+  ],
+  "voices": [
+    {
+      "smpsVcAlgorithm": "0x4",
+      "smpsVcFeedback": "0x0",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x4",
+          "smpsVcCoarseFreq": "0x9",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xD",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0x7",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x7",
+          "smpsVcCoarseFreq": "0x7",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x7",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x1",
+          "smpsVcReleaseRate": "0x0",
+          "smpsVcTotalLevel": "0x23"
+        },
+        {
+          "smpsVcDetune": "0x7",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xA",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0x7",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x7",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x7",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x1",
+          "smpsVcReleaseRate": "0x0",
+          "smpsVcTotalLevel": "0x23"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x6",
+      "smpsVcFeedback": "0x7",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x12",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x3",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x7",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x18"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x7",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x22"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0xD",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x9",
+          "smpsVcDecayRate2": "0x1",
+          "smpsVcDecayLevel": "0x5",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x18"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x1",
+      "smpsVcFeedback": "0x7",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x9",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x1",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x9",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x20"
+        },
+        {
+          "smpsVcDetune": "0x5",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x11",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x22"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x10",
+          "smpsVcDecayRate2": "0x7",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x20"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x0",
+      "smpsVcFeedback": "0x4",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x6",
+          "smpsVcDecayRate2": "0x8",
+          "smpsVcDecayLevel": "0xF",
+          "smpsVcReleaseRate": "0x8",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x9",
+          "smpsVcDecayRate2": "0x6",
+          "smpsVcDecayLevel": "0x9",
+          "smpsVcReleaseRate": "0x9",
+          "smpsVcTotalLevel": "0x3"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x3",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x6",
+          "smpsVcDecayRate2": "0x6",
+          "smpsVcDecayLevel": "0x9",
+          "smpsVcReleaseRate": "0x9",
+          "smpsVcTotalLevel": "0x18"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x3",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x7",
+          "smpsVcDecayRate2": "0x7",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0x0",
+          "smpsVcTotalLevel": "0x28"
+        }
+      ]
+    }
+  ],
+  "SMPSplaylist": {
+    "Mus_DEZ_FM1": [
+      {
+        "smpsSetvoice": "0x0"
+      },
+      {
+        "smpsJump": [
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Eb5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Eb5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "Eb6"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "D6"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "Eb5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "D6"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "D6"
+          },
+          {
+            "note": "Eb5"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "Eb5"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "Eb5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "D5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "E5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Eb5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "Eb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "C6"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "G5"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "F5"
+          },
+          {
+            "note": "Bb5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "F5"
+          }
+        ]
+      }
+    ],
+    "Mus_DEZ_FM2": [
+      {
+        "smpsSetvoice": "0x1"
+      },
+      {
+        "smpsModSet": [
+          "0xC",
+          "0x1",
+          "0x3",
+          "0x4"
+        ]
+      },
+      {
+        "smpsJump": [
+          {
+            "smpsAlterPitch": "0xF4"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsAlterPitch": "0xC"
+          },
+          {
+            "note": "A4",
+            "duration": "0x18"
+          },
+          {
+            "note": "B4",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x12"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x6"
+          },
+          {
+            "note": "E5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "A4",
+            "duration": "0x18"
+          },
+          {
+            "note": "B4",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x12"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x6"
+          },
+          {
+            "note": "E5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "A4",
+            "duration": "0x18"
+          },
+          {
+            "note": "B4",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x12"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x6"
+          },
+          {
+            "note": "E5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "E5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "E5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0xC"
+          },
+          {
+            "note": "A4",
+            "duration": "0x18"
+          },
+          {
+            "note": "B4",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x12"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x6"
+          },
+          {
+            "note": "E5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0x3",
+              {
+                "note": "E6",
+                "duration": "0x6"
+              },
+              {
+                "note": "D6"
+              },
+              {
+                "note": "Cs6",
+                "duration": "0x18"
+              }
+            ]
+          },
+          {
+            "note": "E6",
+            "duration": "0x6"
+          },
+          {
+            "note": "D6"
+          },
+          {
+            "note": "Cs6",
+            "duration": "0xC"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Cs6",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          }
+        ]
+      }
+    ],
+    "Mus_DEZ_FM3": [
+      {
+        "smpsSetvoice": "0x1"
+      },
+      {
+        "smpsModSet": [
+          "0xC",
+          "0x1",
+          "0x2",
+          "0x4"
+        ]
+      },
+      {
+        "smpsPan": [
+          "panLeft",
+          "0x0"
+        ]
+      },
+      {
+        "smpsJump": [
+          {
+            "smpsAlterPitch": "0xF4"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "smpsAlterPitch": "0xC"
+          },
+          {
+            "note": "A4",
+            "duration": "0x18"
+          },
+          {
+            "note": "B4",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x12"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x6"
+          },
+          {
+            "note": "E5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "A4",
+            "duration": "0x18"
+          },
+          {
+            "note": "B4",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x12"
+          },
+          {
+            "note": "Fs5",
+            "duration": "0x6"
+          },
+          {
+            "note": "E5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "Ab5"
+          },
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "D5",
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x18"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Ab5",
+            "duration": "0x12"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Ab5",
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x18"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs6",
+            "duration": "0x18"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          {
+            "note": "Ab5",
+            "duration": "0x6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Ab5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          {
+            "note": "E5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0x18"
+          },
+          {
+            "note": "D5",
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x18"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Ab5",
+            "duration": "0x12"
+          },
+          {
+            "note": "A5",
+            "duration": "0x6"
+          },
+          {
+            "note": "Ab5",
+            "duration": "0xC"
+          },
+          {
+            "note": "E5",
+            "duration": "0x18"
+          },
+          {
+            "note": "Cs5",
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "note": "Cs6",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0x3",
+              {
+                "note": "Cs6",
+                "duration": "0x6"
+              },
+              {
+                "note": "B5"
+              },
+              {
+                "note": "A5",
+                "duration": "0x18"
+              }
+            ]
+          },
+          {
+            "note": "Cs6",
+            "duration": "0x6"
+          },
+          {
+            "note": "B5"
+          },
+          {
+            "note": "A5",
+            "duration": "0xC"
+          },
+          {
+            "note": "Fs5"
+          },
+          {
+            "note": "A5",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          }
+        ]
+      }
+    ],
+    "Mus_DEZ_FM4": [
+      {
+        "smpsSetvoice": "0x3"
+      },
+      {
+        "smpsJump": [
+          {
+            "smpsAlterPitch": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Eb6",
+            "duration": "0x3"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb6"
+          },
+          {
+            "note": "Cs6"
+          },
+          {
+            "note": "A5"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsAlterPitch": "0xF4"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "Ab2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2",
+            "duration": "0x3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xF"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "Ab2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "A4",
+            "duration": "0x6"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "C5"
+          },
+          {
+            "note": "Cs5"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "Ab2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2",
+            "duration": "0x3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xF"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "Ab2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "C5"
+          },
+          {
+            "note": "Cs5"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "A4",
+            "duration": "0x6"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "C5"
+          },
+          {
+            "note": "Cs5"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "Ab2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "Ab2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "A4",
+            "duration": "0x6"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "C5"
+          },
+          {
+            "note": "Cs5"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "Ab2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2",
+            "duration": "0x3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xF"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "Ab2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "C5"
+          },
+          {
+            "note": "Cs5"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "A4",
+            "duration": "0x6"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "C5"
+          },
+          {
+            "note": "Cs5"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "A4",
+            "duration": "0x6"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "Fs4"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "A4",
+            "duration": "0x6"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "Fs4"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "A4",
+            "duration": "0x6"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "Fs4"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "A4",
+            "duration": "0x6"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "Fs4"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "Ab2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "C5"
+          },
+          {
+            "note": "Cs5"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "A4",
+            "duration": "0x6"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "C5"
+          },
+          {
+            "note": "Cs5"
+          }
+        ]
+      }
+    ],
+    "Mus_DEZ_FM5": [
+      {
+        "smpsSetvoice": "0x2"
+      },
+      {
+        "smpsJump": [
+          {
+            "note": "A1",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A1"
+          },
+          {
+            "note": "G2"
+          },
+          {
+            "note": "A1"
+          },
+          {
+            "note": "Fs2"
+          },
+          {
+            "note": "A1"
+          },
+          {
+            "note": "F2"
+          },
+          {
+            "note": "F2"
+          },
+          {
+            "note": "A1"
+          },
+          {
+            "note": "E2"
+          },
+          {
+            "note": "A1",
+            "duration": "0x3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x9"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "A1"
+          },
+          {
+            "note": "G2"
+          },
+          {
+            "note": "A1"
+          },
+          {
+            "note": "Fs2"
+          },
+          {
+            "note": "A1"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "A1"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "A1",
+            "duration": "0x3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x9"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          }
+        ]
+      }
+    ],
+    "Mus_DEZ_PSG2": [
+      {
+        "smpsAlterNote": "0x2"
+      },
+      {
+        "jumpTo": "Mus_DEZ_PSG1"
+      }
+    ],
+    "Mus_DEZ_PSG1": [
+      {
+        "smpsJump": [
+          {
+            "note": "A2",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "C3",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "A3",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "C4",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "A3",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "C4",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "A3",
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "note": "C4",
+            "duration": "0x18"
+          },
+          {
+            "note": "A3",
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "note": "A3"
+          },
+          {
+            "note": "C4",
+            "duration": "0x18"
+          },
+          {
+            "note": "A3"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0xC"
+          }
+        ]
+      }
+    ],
+    "Mus_DEZ_DAC": [
+      {
+        "smpsJump": [
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x18"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x6"
+          },
+          {
+            "note": "Kick"
+          },
+          {
+            "note": "Kick"
+          },
+          {
+            "note": "Snare",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0x5",
+              {
+                "note": "Kick",
+                "duration": "0xC"
+              },
+              {
+                "note": "Snare",
+                "duration": "0x6"
+              },
+              {
+                "note": "Snare"
+              },
+              {
+                "note": "Snare",
+                "duration": "0xC"
+              },
+              {
+                "note": "Kick"
+              },
+              {
+                "note": "Snare"
+              },
+              {
+                "note": "Snare"
+              },
+              {
+                "note": "Kick"
+              },
+              {
+                "note": "Snare"
+              },
+              {
+                "note": "Rst",
+                "duration": "0x6"
+              },
+              {
+                "note": "Snare"
+              },
+              {
+                "note": "Kick",
+                "duration": "0xC"
+              },
+              {
+                "note": "Snare"
+              },
+              {
+                "note": "Snare"
+              },
+              {
+                "note": "Kick"
+              },
+              {
+                "note": "Snare",
+                "duration": "0x6"
+              },
+              {
+                "inheritedNote": true,
+                "duration": "0xC"
+              },
+              {
+                "note": "Kick",
+                "duration": "0x6"
+              },
+              {
+                "inheritedNote": true,
+                "duration": "0xC"
+              },
+              {
+                "note": "Snare"
+              },
+              {
+                "note": "Snare"
+              },
+              {
+                "note": "Kick"
+              },
+              {
+                "note": "Kick",
+                "duration": "0x6"
+              },
+              {
+                "note": "Kick"
+              },
+              {
+                "note": "Rst"
+              },
+              {
+                "note": "Kick"
+              },
+              {
+                "note": "Snare",
+                "duration": "0xC"
+              },
+              {
+                "inheritedNote": true,
+                "duration": "0x6"
+              },
+              {
+                "note": "Snare"
+              },
+              {
+                "note": "Snare",
+                "duration": "0xC"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "Mus_DEZ_PSG3": [
+      {
+        "smpsPSGform": "0xE7"
+      },
+      {
+        "smpsJump": [
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "A5",
+            "duration": "0x3"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x9"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x3"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x9"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "A5",
+            "duration": "0x3"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x9"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x3"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x9"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "A5",
+            "duration": "0x3"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x9"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x3"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x9"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "A5",
+            "duration": "0x3"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x9"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x3"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x9"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0x28",
+              {
+                "note": "Rst",
+                "duration": "0xC"
+              },
+              {
+                "note": "A5",
+                "duration": "0x3"
+              },
+              "smpsNoAttack",
+              {
+                "tie": true,
+                "duration": "0x9"
+              },
+              {
+                "inheritedNote": true,
+                "duration": "0x3"
+              },
+              "smpsNoAttack",
+              {
+                "tie": true,
+                "duration": "0x9"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

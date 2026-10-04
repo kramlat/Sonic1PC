@@ -18,6 +18,9 @@
 // music) still matches its resource filename number (Mus81 = bgm_GHZ, even
 // though bgm_GHZ's own ID value is no longer literally 0x81) -- only the
 // numeric ID space changed, not the identity of anything.
+#ifdef SOUND_IDS_CUSTOM // a game built on this one with its own sound ids (Sonic 2): it defines the whole enum SoundID
+#include "SoundIds.h"
+#else
 enum SoundID {
     bgm_GHZ = 1, // 0 is reserved -- id==0 means silence/stop, same as the real $80 sentinel PlayMusic used to special-case
     bgm_LZ,
@@ -106,3 +109,4 @@ enum SoundID {
     bgm_Slowdown,
     bgm_Stop,
 };
+#endif

@@ -6,6 +6,7 @@
 #include "Backend/Joypad.h"
 #include "Game.h"
 #include "Level.h"
+#include "SplitScreen.h"
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
 #include "Video.h"
@@ -14,7 +15,11 @@
 
 // Nick Arcade's DynWater_HPZ1: Tails' pad (the second one) moves the water
 static void DynamicWaterHeight(void) {
-    if (LEVEL_ACT(level_id) == 0) {
+    if (LEVEL_ZONE(level_id) == ZoneId_CPZ) {
+        // DynamicWater_CPZ2: past x $1DE0 the water goes up to $510
+        if (scrpos_x.f.u >= 0x1DE0)
+            wtr_pos3 = 0x510;
+    } else if (LEVEL_ACT(level_id) == 0) {
         uint8_t pad2 = Joypad_GetState2();
         if ((pad2 & JPAD_UP) && wtr_pos3 != 0)
             wtr_pos3--;
@@ -61,6 +66,13 @@ void LZWaterFeatures(void) {
     wtr_state = 0;
     uint8_t sway = (uint8_t)(oscillatory.state[0][0] >> 8);
     wtr_pos1 = (int16_t)(sway >> 1) + wtr_pos2;
+
+    if (SplitScreen_Active()) {
+        // A split screen has no H interrupt at all: each view is drawn with its own water line (SplitScreen_Scroll sets them against the cameras once they have moved)
+        hbla_counter = SCREEN_HEIGHT - 1;
+        VDP_SetHIntCounter((uint8_t)hbla_counter);
+        return;
+    }
 
     int16_t line = (int16_t)(wtr_pos1 - scrpos_y.f.u);
     if (line < 0) {

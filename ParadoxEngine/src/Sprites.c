@@ -10,7 +10,7 @@
 
 // The sprite pipeline: objects queue themselves by priority (DisplaySprite), and BuildSprites turns the queues into the VDP's sprite table, front to back,
 // placing each against the camera layer its render flags name (sprite_view). With the split screen on (sprite_split_screen) it builds two tables, one for
-// each player's view: stacked, in the 2-player form of Sonic 2's BuildSprites_2P, or side by side with ordinary tiles.
+// each player's view, with ordinary tiles, stacked (each squashed into its half) or side by side.
 
 //Object draw queue
 struct SpriteQueue {
@@ -250,19 +250,15 @@ void BuildSprites(uint8_t *sprite_io) {
 		sprite_count = sprite_i;
 		EndSpriteList(sprite, sprite_i);
 	} else if (sprite_split_screen == SPRITE_SPLIT_STACKED) {
-		//Player 1's half. Two masking sprites start the list (Sonic 2 puts them at 216 to 248 so no sprite spills over the join of the two halves)
+		//Stacked: two ordinary views, each the whole picture (the VDP squashes each into its half), with ordinary tiles and sizes
 		uint16_t *sprite = &sprite_buffer[0][0];
-		*sprite++ = 0x01D8; *sprite++ = 0x0F01; *sprite++ = 0x0000; *sprite++ = 0x0001;
-		*sprite++ = 0x01D8; *sprite++ = 0x0F02; *sprite++ = 0x0000; *sprite++ = 0x0000;
-		sprite_i = 2;
-		BuildPass(&sprite, &sprite_i, &sprite_view, SPRITE_TOP_2P_P1, true, true, SCREEN_WIDTH);
+		BuildPass(&sprite, &sprite_i, &sprite_view, SPRITE_TOP_1P, false, true, SCREEN_WIDTH);
 		sprite_count = sprite_i;
 		EndSpriteList(sprite, sprite_i);
 
-		//Player 2's half: its own table, and its own camera
 		sprite = &sprite_buffer_p2[0][0];
 		sprite_i = 0;
-		BuildPass(&sprite, &sprite_i, &sprite_view_p2, SPRITE_TOP_2P_P2, true, false, SCREEN_WIDTH);
+		BuildPass(&sprite, &sprite_i, &sprite_view_p2, SPRITE_TOP_1P, false, false, SCREEN_WIDTH);
 		sprite_count = sprite_i;
 		EndSpriteList(sprite, sprite_i);
 	} else {
@@ -300,9 +296,7 @@ void DisplaySprite(Object *obj) {
 	queue->obj[queue->size++] = obj;
 }
 
-// Sonic 2's Adjust2PArtPointer: in the split screen the tile numbers are halved (double-height cells), so an object's base tile is too, flags kept
+// Sonic 2's Adjust2PArtPointer: the real hardware halves the tile numbers in its split screen (its double-height cells). This port draws two ordinary views instead, so there is nothing to do
 void Object_Adjust2PArtPointer(Object *obj) {
-	if (sprite_split_screen != SPRITE_SPLIT_STACKED)
-		return; // (only the double-height display has halved tiles: the side-by-side split uses the art as it is)
-	obj->tile = (uint16_t)((obj->tile & 0xF800) + ((obj->tile & 0x07FF) >> 1));
+	(void)obj; // (no halved tiles: the split screen draws ordinary views, the stacked one squashed, so the art is used as it is)
 }

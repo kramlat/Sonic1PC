@@ -134,20 +134,17 @@ static void Sprites_SplitScreenBuildsTwoTables(void) {
     BuildSprites(NULL);
     sprite_split_screen = 0;
 
-    // Player 1's table: the two masking sprites, then a's piece in the 2-player form
-    CHECK_EQ(sprite_buffer[0][0], 0x01D8);
-    CHECK_EQ(sprite_buffer[0][1], 0x0F01);
-    CHECK_EQ(sprite_buffer[1][1], 0x0F02);
-    CHECK_EQ(sprite_buffer[2][0], 0x100 + 100 - 8);             // the view's top is at 0x100 in double-height coordinates
-    CHECK_EQ(sprite_buffer[2][1], (0x04 << 8) | 3);            // size 5 (2x2 cells) has half the rows: 4; link 3 (after the masks)
-    CHECK_EQ(sprite_buffer[2][2], 0x80 + 0x0000);              // the 2-player tile word
-    CHECK_EQ(sprite_buffer[2][3], 128 + 100 - 8);
-    CHECK_EQ(sprite_buffer[3][0], 0);                          // the list ends
-    CHECK_EQ(sprite_buffer[3][1], 0);
+    // Player 1's table: a's piece, an ordinary one (the stacked views are two whole pictures, squashed by the VDP)
+    CHECK_EQ(sprite_buffer[0][0], 128 + 100 - 8);
+    CHECK_EQ(sprite_buffer[0][1], (0x05 << 8) | 1);            // size 5 (2x2 cells); link 1
+    CHECK_EQ(sprite_buffer[0][2], 0x81);                          // (the object's tile and the piece's)
+    CHECK_EQ(sprite_buffer[0][3], 128 + 100 - 8);
+    CHECK_EQ(sprite_buffer[1][0], 0);                          // the list ends
+    CHECK_EQ(sprite_buffer[1][1], 0);
 
-    // Player 2's table: b alone, a screen (224 double-height lines) lower, against the second camera
-    CHECK_EQ(sprite_buffer_p2[0][0], 0x100 + 224 + 100 - 8);
-    CHECK_EQ(sprite_buffer_p2[0][1], (0x04 << 8) | 1);
+    // Player 2's table: b alone, against the second camera
+    CHECK_EQ(sprite_buffer_p2[0][0], 128 + 100 - 8);
+    CHECK_EQ(sprite_buffer_p2[0][1], (0x05 << 8) | 1);
     CHECK_EQ(sprite_buffer_p2[0][3], 128 + 100 - 8);
     CHECK_EQ(sprite_buffer_p2[1][0], 0);
     CHECK_EQ(sprite_count, 1);
@@ -158,7 +155,7 @@ static void Sprites_SplitScreenBuildsTwoTables(void) {
     CHECK(!c.render.f.on_screen);
 }
 
-static void Sprites_Adjust2PArtPointerHalvesTheTile(void) {
+static void Sprites_Adjust2PArtPointerLeavesTheTile(void) {
     Object obj;
     memset(&obj, 0, sizeof(obj));
     obj.tile = 0x8000 | 0x4000 | 0x0123; // priority, palette 2, tile $123
@@ -170,7 +167,7 @@ static void Sprites_Adjust2PArtPointerHalvesTheTile(void) {
     CHECK_EQ(obj.tile, 0xC123); // the side-by-side split uses the art as it is
     sprite_split_screen = SPRITE_SPLIT_STACKED;
     Object_Adjust2PArtPointer(&obj);
-    CHECK_EQ(obj.tile, 0xC000 | (0x0123 >> 1));
+    CHECK_EQ(obj.tile, 0xC123); // so does the stacked one (two ordinary views: no halved tiles)
     sprite_split_screen = 0;
 }
 
@@ -213,7 +210,7 @@ static void Sprites_SideBySideUsesOrdinaryTilesAndHalfWidthViews(void) {
 void RegisterSpritesTests(void) {
     RUN_TEST(Sprites_SideBySideUsesOrdinaryTilesAndHalfWidthViews);
     RUN_TEST(Sprites_SplitScreenBuildsTwoTables);
-    RUN_TEST(Sprites_Adjust2PArtPointerHalvesTheTile);
+    RUN_TEST(Sprites_Adjust2PArtPointerLeavesTheTile);
     RUN_TEST(Sprites_MultiSpriteDrawsMainAndChildren);
     RUN_TEST(Sprites_MainFrameZeroIsNoMainSprite);
     RUN_TEST(Sprites_MultiSpriteOutOfViewDrawsNothing);

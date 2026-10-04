@@ -111,6 +111,15 @@ void Load() {
 			Controls_DeadzoneLeft = Clamp(Read(controls, "deadzone_left", Controls_DeadzoneLeft), 0, CONTROLS_DEADZONE_MAX);
 			Controls_DeadzoneRight = Clamp(Read(controls, "deadzone_right", Controls_DeadzoneRight), 0, CONTROLS_DEADZONE_MAX);
 			Controls_DeadzoneRing = Clamp(Read(controls, "deadzone_ring", Controls_DeadzoneRing), 0, 1);
+			Controls_DeadzoneLeft2 = Clamp(Read(controls, "deadzone_left2", Controls_DeadzoneLeft2), 0, CONTROLS_DEADZONE_MAX);
+			Controls_DeadzoneRing2 = Clamp(Read(controls, "deadzone_ring2", Controls_DeadzoneRing2), 0, 1);
+			for (int pl = 0; pl < 2; pl++) { // which gamepad is whose
+				std::string key = pl ? "pad_guid2" : "pad_guid1";
+				if (controls[key] && controls[key].IsScalar()) {
+					snprintf(Controls_PadGuid[pl], sizeof(Controls_PadGuid[pl]), "%s", controls[key].as<std::string>().c_str());
+					Controls_PadNth[pl] = Clamp(Read(controls, pl ? "pad_nth2" : "pad_nth1", 0), 0, 15);
+				}
+			}
 		}
 		if (controls && controls.IsMap())
 			for (int i = 0; i < CTL_COUNT; i++) {
@@ -120,6 +129,16 @@ void Load() {
 				Controls_Key[i][0] = Clamp(Read(n, "key1", Controls_Key[i][0]), 0, 511);
 				Controls_Key[i][1] = Clamp(Read(n, "key2", Controls_Key[i][1]), 0, 511);
 				Controls_Pad[i] = Clamp(Read(n, "pad", Controls_Pad[i]), -1, 31);
+			}
+		YAML::Node player2 = controls ? controls["player2"] : YAML::Node();
+		if (player2 && player2.IsMap())
+			for (int i = 0; i < CTL_COUNT; i++) {
+				YAML::Node n = player2[kControlNames[i]];
+				if (!n || !n.IsMap())
+					continue;
+				Controls_Key2[i][0] = Clamp(Read(n, "key1", Controls_Key2[i][0]), 0, 511);
+				Controls_Key2[i][1] = Clamp(Read(n, "key2", Controls_Key2[i][1]), 0, 511);
+				Controls_Pad2[i] = Clamp(Read(n, "pad", Controls_Pad2[i]), -1, 31);
 			}
 	} catch (const YAML::BadFile &) {
 		// No settings file yet: the defaults stand (it is written on the first change or on exit).
@@ -188,11 +207,24 @@ void Save() {
 	out << YAML::Key << "deadzone_left" << YAML::Value << Controls_DeadzoneLeft;
 	out << YAML::Key << "deadzone_right" << YAML::Value << Controls_DeadzoneRight;
 	out << YAML::Key << "deadzone_ring" << YAML::Value << Controls_DeadzoneRing;
+	out << YAML::Key << "deadzone_left2" << YAML::Value << Controls_DeadzoneLeft2;
+	out << YAML::Key << "deadzone_ring2" << YAML::Value << Controls_DeadzoneRing2;
+	for (int pl = 0; pl < 2; pl++) { // which gamepad is whose (empty: automatic)
+		out << YAML::Key << (pl ? "pad_guid2" : "pad_guid1") << YAML::Value << std::string(Controls_PadGuid[pl]);
+		out << YAML::Key << (pl ? "pad_nth2" : "pad_nth1") << YAML::Value << Controls_PadNth[pl];
+	}
 	for (int i = 0; i < CTL_COUNT; i++)
 		out << YAML::Key << kControlNames[i] << YAML::Value << YAML::Flow << YAML::BeginMap
 		    << YAML::Key << "key1" << YAML::Value << Controls_Key[i][0]
 		    << YAML::Key << "key2" << YAML::Value << Controls_Key[i][1]
 		    << YAML::Key << "pad" << YAML::Value << Controls_Pad[i] << YAML::EndMap;
+	out << YAML::Key << "player2" << YAML::Value << YAML::BeginMap; // (the second player's: a game with a two-player mode)
+	for (int i = 0; i < CTL_COUNT; i++)
+		out << YAML::Key << kControlNames[i] << YAML::Value << YAML::Flow << YAML::BeginMap
+		    << YAML::Key << "key1" << YAML::Value << Controls_Key2[i][0]
+		    << YAML::Key << "key2" << YAML::Value << Controls_Key2[i][1]
+		    << YAML::Key << "pad" << YAML::Value << Controls_Pad2[i] << YAML::EndMap;
+	out << YAML::EndMap;
 	out << YAML::EndMap;
 	out << YAML::EndMap;
 

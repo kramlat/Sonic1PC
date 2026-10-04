@@ -13,7 +13,6 @@
 
 #include "Macros.h"
 
-#include "Resource/Mappings/PlatformCPZ.h"
 #include "Resource/Mappings/PlatformEHZ.h"
 #include "Object/BasicPlatform.h" // (Sonic 1's, kept for the mappings of its zones that the debug list names)
 
@@ -139,9 +138,7 @@ void Obj_BasicPlatform(Object *obj) {
         obj->width_pixels = size[0];
         obj->frame = size[1];
         obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level);
-        obj->mappings = Mappings_PlatformCPZ;
-        if (LEVEL_ZONE(level_id) == 3 || LEVEL_ZONE(level_id) == 5) // Emerald Hill and Hill Top
-            obj->mappings = Mappings_PlatformEHZ;
+        obj->mappings = Mappings_PlatformEHZ; // (the prototype has one mapping for every zone but Neo Green Hill: the tiles of Emerald Hill's level art)
         obj->render.b = 0;
         obj->render.f.level_fg = true;
         obj->priority = 4;

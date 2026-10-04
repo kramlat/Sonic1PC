@@ -25,6 +25,8 @@ void Audio_Update(void);
 //VDP masks
 #define VDP_MASK_PLANEPRI (1 << 0)
 #define VDP_MASK_SPRITE   (1 << 1)
+#define VDP_MASK_SH_SHADOW    (1 << 2) // (shadow/highlight mode) a sprite's shadow operator (palette line 3, colour 15) is here
+#define VDP_MASK_SH_HIGHLIGHT (1 << 3) // ... its highlight operator (colour 14)
 
 //VDP internal state
 static ALIGNED2 uint8_t vdp_vram[VRAM_SIZE];
@@ -48,7 +50,14 @@ static MD_Vector vdp_hint, vdp_vint;
 //Split screen (see VDP_SetSplitScreen)
 static VDPSplitMode vdp_split_mode = VDP_SPLIT_NONE;
 static const VDPView *vdp_view2 = NULL;
+static uint32_t vdp_water_pal[2][4][16]; // the split screen's water: [0] dry, [1] wet (VDP_SetSplitWater)
+static const uint16_t *vdp_water_dry = NULL, *vdp_water_wet = NULL;
+static int16_t vdp_water_line[2];
 static bool vdp_initialized = false;
+
+//Shadow/highlight mode (see VDP_SetShadowHighlight): vdp_sh_sprites is set while sprites are being drawn, when their operator colours (palette 3, colours 14 and 15) draw nothing but change the shade of what is beneath
+static bool vdp_sh_enabled = false;
+static bool vdp_sh_sprites = false;
 
 //VDP interface
 int VDP_Init(const MD_Header *header) {
@@ -243,17 +252,25 @@ void VDP_SetHIntEnable(bool enable) {
 }
 
 int VDP_OutputRows(void) {
-	return (vdp_split_mode == VDP_SPLIT_STACKED && vdp_view2 != NULL) ? SCREEN_HEIGHT * 2 : SCREEN_HEIGHT;
+	return SCREEN_HEIGHT; //(a stacked split screen squashes its two views into the picture's own height)
+}
+
+void VDP_SetShadowHighlight(bool enable) {
+	vdp_sh_enabled = enable;
+}
+
+void VDP_SetSplitWater(const uint16_t *dry, const uint16_t *wet, int16_t line1, int16_t line2) {
+	vdp_water_dry = (dry != NULL && wet != NULL) ? dry : NULL;
+	vdp_water_wet = wet;
+	vdp_water_line[0] = line1;
+	vdp_water_line[1] = line2;
 }
 
 void VDP_SetSplitScreen(VDPSplitMode mode, const VDPView *second_view) {
-	int rows_before = VDP_OutputRows();
 	if (second_view == NULL)
 		mode = VDP_SPLIT_NONE;
 	vdp_split_mode = mode;
 	vdp_view2 = second_view;
-	if (vdp_initialized && VDP_OutputRows() != rows_before)
-		Render_SetPictureSize(false); //The picture is a different height: the renderer follows
 }
 
 //VDP rendering
@@ -326,7 +343,10 @@ static inline uint8_t *VDP_GetPatternAddress(size_t pattern) {
 #define WRITE_NIBBLE(from, to, tom, pal, and, or, nibs) { \
 	uint8_t v = (*from >> nibs) & 0xF;                    \
 	if (v != 0) {                                         \
-		if (*tom & and) {                                 \
+		if (vdp_sh_sprites && (pal) == 3 && v >= 14) {    \
+			*tom |= (v == 14) ? VDP_MASK_SH_HIGHLIGHT : VDP_MASK_SH_SHADOW; \
+			to++;                                         \
+		} else if (*tom & and) {                          \
 			*tom |= or;                                   \
 			to++;                                         \
 		} else {                                          \
@@ -543,6 +563,31 @@ struct VDP_ViewState {
 	int16_t vscroll_a, vscroll_b;
 };
 
+// Shadow/highlight mode: a pixel is shadowed (halved) unless a high-priority plane or a sprite drew it, a sprite's highlight operator raises it a step (shadowed to normal, normal to highlighted: half
+// way to white), and its shadow operator shadows it
+static inline void VDP_ApplyShadowHighlight(uint32_t *to, const uint8_t *tom, int w) {
+	for (int i = 0; i < w; i++) {
+		uint8_t m = tom[i];
+		int state = (m & (VDP_MASK_PLANEPRI | VDP_MASK_SPRITE)) ? 1 : 0; // 0 shadow, 1 normal, 2 highlight
+		if (m & VDP_MASK_SH_HIGHLIGHT)
+			state++;
+		if (m & VDP_MASK_SH_SHADOW)
+			state = 0;
+		if (state > 2)
+			state = 2;
+		if (state == 1)
+			continue;
+		uint32_t c = to[i];
+		uint32_t r = (c >> 24) & 0xFF, g = (c >> 16) & 0xFF, b = (c >> 8) & 0xFF;
+		if (state == 0) {
+			r >>= 1; g >>= 1; b >>= 1;
+		} else {
+			r = 127 + (r >> 1); g = 127 + (g >> 1); b = 127 + (b >> 1);
+		}
+		to[i] = (r << 24) | (g << 16) | (b << 8) | 0xFF;
+	}
+}
+
 // Draws one row of one view, `view_w` pixels wide, into `to`: the backdrop, plane B, plane A, then the row's sprites. `y` is the line from the view's top and
 // `ybase` the sprite Y coordinate of that top.
 static inline void VDP_DrawViewRow(size_t y, uint32_t *to, uint8_t *tom, int view_w, int ybase, bool double_cells, const struct VDP_ViewState *vs,
@@ -557,9 +602,13 @@ static inline void VDP_DrawViewRow(size_t y, uint32_t *to, uint8_t *tom, int vie
 	VDP_DrawPlaneRow(to, tom, (const uint16_t*)(vdp_vram + vs->plane_a), -hscroll[0], y + vs->vscroll_a, view_w, double_cells);
 	hbla_pos = (int16_t)y;
 
+	vdp_sh_sprites = vdp_sh_enabled;
 	//Draw sprites
 	for (uint8_t i = 0; i < scache->pushind; i++)
 		VDP_DrawSpriteRow(to, tom, scache->sprite[i], y, view_w, ybase, double_cells);
+	vdp_sh_sprites = false;
+	if (vdp_sh_enabled)
+		VDP_ApplyShadowHighlight(to, tom, view_w);
 }
 
 static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct VDP_SpriteCache *scache, const int16_t *hscroll) {
@@ -652,6 +701,12 @@ static inline void VDP_RefreshPalette(void) {
 	uint32_t *pal_to = &vdp_screen_pal[0][0];
 	for (size_t i = 0; i < 4 * 16; i++)
 		*pal_to++ = VDP_GetColour(i);
+	if (vdp_split_mode != VDP_SPLIT_NONE && vdp_water_dry != NULL) {
+		for (size_t i = 0; i < 4 * 16; i++) {
+			vdp_water_pal[0][i >> 4][i & 15] = VDP_ConvertColour(vdp_water_dry[i]);
+			vdp_water_pal[1][i >> 4][i & 15] = VDP_ConvertColour(vdp_water_wet[i]);
+		}
+	}
 	if (vdp_split_mode != VDP_SPLIT_NONE && vdp_view2 != NULL && vdp_view2->palette != NULL) {
 		pal_to = &vdp_screen_pal2[0][0];
 		for (size_t i = 0; i < 4 * 16; i++)
@@ -721,9 +776,9 @@ void VDP_DrawFrame(void) {
 	if (!stacked && !side) {
 		VDP_BuildSpriteCache(vdp_sprite_cache, H, vdp_sprite_buffer_ext, 128, false);
 	} else if (stacked) {
-		//Double-height coordinates: the screen starts at sprite Y 256, and the second view's sprites sit a view lower
-		VDP_BuildSpriteCache(vdp_sprite_cache, H, vdp_sprite_buffer_ext, 0x100, true);
-		VDP_BuildSpriteCache(vdp_sprite_cache + H, H, vdp_view2->sprite_buffer, 0x100 + H, true);
+		//Two ordinary views, one above the other in the sprite caches as they are on the screen's rows (each is squashed when drawn)
+		VDP_BuildSpriteCache(vdp_sprite_cache, H, vdp_sprite_buffer_ext, 128, false);
+		VDP_BuildSpriteCache(vdp_sprite_cache + H, H, vdp_view2->sprite_buffer, 128, false);
 	} else {
 		VDP_BuildSpriteCache(vdp_sprite_cache, H, vdp_sprite_buffer_ext, 128, false);
 		VDP_BuildSpriteCache(vdp_sprite_cache + H, H, vdp_view2->sprite_buffer, 128, false);
@@ -736,6 +791,7 @@ void VDP_DrawFrame(void) {
 	uint8_t *tom = vdp_mask;
 	const int16_t *hscroll = (int16_t*)(vdp_vram + vdp_hscroll_location);
 	const size_t rows = (size_t)VDP_OutputRows();
+	const bool water_split = (stacked || side) && vdp_water_dry != NULL;
 
 	//Real HBlank hardware is an 8-bit down-counter (VDP register $0A) that reloads and fires every (vdp_hint_counter + 1) lines for as long as H-ints are
 	//enabled -- not a single one-shot interrupt at a fixed position. This loop covers the entire picture itself; there is no "remainder" left to draw
@@ -746,16 +802,41 @@ void VDP_DrawFrame(void) {
 		if (!stacked && !side) {
 			VDP_DrawScanline(y, to, tom, &vdp_sprite_cache[y], hscroll + 2 * y);
 		} else if (stacked) {
-			//Two views one under the other, each a screen high; the second has its own planes, scroll, sprites and (perhaps) palette
-			const bool second = y >= (size_t)H;
-			size_t local = second ? y - (size_t)H : y;
-			struct VDP_ViewState vs = second
+			//Two ordinary views (each a whole picture, with its own planes, scroll, sprites and palette), the first squashed into the top half of the picture and the second into the bottom half:
+			//each output row is the average of the rows of the view it covers
+			static uint32_t src_pixels[SCREEN_MAX_PITCH];
+			static uint8_t src_mask[SCREEN_MAX_PITCH];
+			const bool second = y >= (size_t)(H / 2);
+			const size_t local = second ? y - (size_t)(H / 2) : y;
+			const size_t span = second ? (size_t)H - (size_t)(H / 2) : (size_t)(H / 2);
+			size_t first_row = local * (size_t)H / span, end_row = (local + 1) * (size_t)H / span;
+			if (end_row <= first_row)
+				end_row = first_row + 1;
+			if (end_row > (size_t)H)
+				end_row = (size_t)H;
+			const struct VDP_ViewState vs = second
 				? (struct VDP_ViewState){ vdp_view2->plane_a_location, vdp_view2->plane_b_location, vdp_view2->vscroll_a, vdp_view2->vscroll_b }
 				: (struct VDP_ViewState){ vdp_plane_a_location, vdp_plane_b_location, vdp_vscroll_a, vdp_vscroll_b };
-			const int16_t *hs = (const int16_t*)(vdp_vram + (second ? vdp_view2->hscroll_location : vdp_hscroll_location)) + 2 * local;
-			vdp_draw_pal = (second && vdp_view2->palette != NULL) ? vdp_screen_pal2 : vdp_screen_pal;
-			VDP_DrawViewRow(local, to, tom, SCREEN_WIDTH, second ? 0x100 + H : 0x100, true, &vs, &vdp_sprite_cache[y], hs);
+			const int16_t *hs = (const int16_t*)(vdp_vram + (second ? vdp_view2->hscroll_location : vdp_hscroll_location));
+			uint32_t (*view_pal)[16] = (second && vdp_view2->palette != NULL) ? vdp_screen_pal2 : vdp_screen_pal;
+			uint32_t sum_r[SCREEN_MAX_WIDTH], sum_g[SCREEN_MAX_WIDTH], sum_b[SCREEN_MAX_WIDTH];
+			memset(sum_r, 0, sizeof(uint32_t) * SCREEN_WIDTH);
+			memset(sum_g, 0, sizeof(uint32_t) * SCREEN_WIDTH);
+			memset(sum_b, 0, sizeof(uint32_t) * SCREEN_WIDTH);
+			for (size_t src = first_row; src < end_row; src++) {
+				vdp_draw_pal = water_split ? vdp_water_pal[(int16_t)src > vdp_water_line[second ? 1 : 0]] : view_pal;
+				VDP_DrawViewRow(src, src_pixels + VDP_INTERNAL_PAD, src_mask + VDP_INTERNAL_PAD, SCREEN_WIDTH, 128, false, &vs, &vdp_sprite_cache[(second ? (size_t)H : 0) + src], hs + 2 * src);
+				for (int x = 0; x < SCREEN_WIDTH; x++) {
+					uint32_t c = src_pixels[VDP_INTERNAL_PAD + x];
+					sum_r[x] += (c >> 24) & 0xFF;
+					sum_g[x] += (c >> 16) & 0xFF;
+					sum_b[x] += (c >> 8) & 0xFF;
+				}
+			}
 			vdp_draw_pal = vdp_screen_pal;
+			const uint32_t n = (uint32_t)(end_row - first_row);
+			for (int x = 0; x < SCREEN_WIDTH; x++)
+				to[x] = ((sum_r[x] / n) << 24) | ((sum_g[x] / n) << 16) | ((sum_b[x] / n) << 8) | 0xFF;
 		} else {
 			//Two views side by side: each is drawn on its own row buffer, then the halves go into the picture
 			static uint32_t half_pixels[SCREEN_MAX_PITCH];
@@ -763,16 +844,17 @@ void VDP_DrawFrame(void) {
 			const int w1 = SCREEN_WIDTH / 2, w2 = SCREEN_WIDTH - w1;
 			struct VDP_ViewState vs1 = { vdp_plane_a_location, vdp_plane_b_location, vdp_vscroll_a, vdp_vscroll_b };
 			struct VDP_ViewState vs2 = { vdp_view2->plane_a_location, vdp_view2->plane_b_location, vdp_view2->vscroll_a, vdp_view2->vscroll_b };
+			vdp_draw_pal = water_split ? vdp_water_pal[(int16_t)y > vdp_water_line[0]] : vdp_screen_pal;
 			VDP_DrawViewRow(y, half_pixels + VDP_INTERNAL_PAD, half_mask + VDP_INTERNAL_PAD, w1, 128, false, &vs1, &vdp_sprite_cache[y], hscroll + 2 * y);
 			memcpy(to, half_pixels + VDP_INTERNAL_PAD, (size_t)w1 * sizeof(uint32_t));
-			vdp_draw_pal = vdp_view2->palette != NULL ? vdp_screen_pal2 : vdp_screen_pal;
+			vdp_draw_pal = water_split ? vdp_water_pal[(int16_t)y > vdp_water_line[1]] : (vdp_view2->palette != NULL ? vdp_screen_pal2 : vdp_screen_pal);
 			const int16_t *hs2 = (const int16_t*)(vdp_vram + vdp_view2->hscroll_location) + 2 * y;
 			VDP_DrawViewRow(y, half_pixels + VDP_INTERNAL_PAD, half_mask + VDP_INTERNAL_PAD, w2, 128, false, &vs2, &vdp_sprite_cache[(size_t)H + y], hs2);
 			vdp_draw_pal = vdp_screen_pal;
 			memcpy(to + w1, half_pixels + VDP_INTERNAL_PAD, (size_t)w2 * sizeof(uint32_t));
 		}
 
-		if (vdp_hint_enable && countdown-- <= 0) {
+		if (vdp_hint_enable && !water_split && countdown-- <= 0) {
 			countdown = vdp_hint_counter;
 
 			//Send horizontal interrupt

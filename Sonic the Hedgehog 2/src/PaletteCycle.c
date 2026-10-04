@@ -212,6 +212,125 @@ static void PCycle_HTZ(void) {
         dry_palette[1][i < 2 ? 3 + i : 12 + i] = PCyc_Word(from);
 }
 
+// The Simon Wai prototype's cycles of the other zones (the tables are those of its palette cycle routines, as words of 9-bit colour). Each routine counts a timer down and, when it runs out, reloads it and
+// writes the next frame of each of its cycles over colours of the zone's palette (the frames move on after the one written).
+static const uint16_t PCyc_Wz[8] = { 0x0248, 0x046A, 0x048C, 0x06CE, 0x0248, 0x046A, 0x048C, 0x06CE };
+static const uint16_t PCyc_Mz1[6] = { 0x0006, 0x0008, 0x000A, 0x000C, 0x000A, 0x0008 };
+static const uint16_t PCyc_Mz2[6] = { 0x0422, 0x0866, 0x0ECC, 0x0422, 0x0866, 0x0ECC };
+static const uint16_t PCyc_Mz3[10] = { 0x00A0, 0x0000, 0x00EE, 0x0000, 0x002E, 0x0000, 0x0E2E, 0x0000, 0x0E80, 0x0000 };
+static const uint16_t PCyc_Ooz[8] = { 0x0400, 0x0602, 0x0804, 0x0806, 0x0400, 0x0602, 0x0804, 0x0806 };
+static const uint16_t PCyc_Mcz[4] = { 0x000C, 0x006E, 0x00CE, 0x08EE };
+static const uint16_t PCyc_Cnz1[18] = {
+    0x000C, 0x00CC, 0x004C, 0x004C, 0x000C, 0x00CC, 0x00CC, 0x004C, 0x000C,
+    0x00EC, 0x0080, 0x00C4, 0x00C4, 0x00EC, 0x0080, 0x0080, 0x00C4, 0x00EC,
+};
+static const uint16_t PCyc_Cnz2[9] = { 0x0044, 0x0088, 0x00EE, 0x0088, 0x00EE, 0x0044, 0x00EE, 0x0044, 0x0088 };
+static const uint16_t PCyc_Cnz3[42] = {
+    0x00EC, 0x0EEE, 0x00EA, 0x00E4, 0x06C0, 0x0CC4, 0x0E80, 0x0E40, 0x0E04, 0x0C08, 0x0C2E, 0x000E, 0x006E, 0x00AE,
+    0x00AE, 0x00EC, 0x0EEE, 0x00EA, 0x00E4, 0x06C0, 0x0CC4, 0x0E80, 0x0E40, 0x0E04, 0x0C08, 0x0C2E, 0x000E, 0x006E,
+    0x00EE, 0x00AE, 0x00EC, 0x0EEE, 0x00EA, 0x00E4, 0x06C0, 0x0CC4, 0x0E80, 0x0E40, 0x0E04, 0x0C08, 0x0C2E, 0x000E,
+};
+static const uint16_t PCyc_Ghz[16] = {
+    0x0A86, 0x0E86, 0x0EA8, 0x0ECA, 0x0ECA, 0x0A86, 0x0E86, 0x0EA8, 0x0EA8, 0x0ECA, 0x0A86, 0x0E86, 0x0E86, 0x0EA8, 0x0ECA, 0x0A86,
+};
+
+// Wood (PalCycle_WZ): every 3 ticks colours 3-6 of line 4, from 4 words of a table of 8, stepping backwards
+static void PCycle_WZ(void) {
+    static int16_t frame;
+    if (--pcyc_time >= 0)
+        return;
+    pcyc_time = 2;
+    int16_t at = frame;
+    frame -= 2;
+    if (frame < 0)
+        frame = 6;
+    for (int i = 0; i < 4; i++)
+        dry_palette[3][3 + i] = PCyc_Wz[at / 2 + i];
+}
+
+// Metropolis (PalCycle_Mz): three separate cycles of line 3, each with its own timer: colour 5 (every 18 ticks, 6 words), colours 1-3 (every 3, 3 frames of a table of 6) and colour 15 (every 10, 10 words)
+static void PCycle_MTZ(void) {
+    static int16_t time2, time3, frame1, frame2, frame3;
+    if (--pcyc_time < 0) {
+        pcyc_time = 0x11;
+        dry_palette[2][5] = PCyc_Mz1[frame1 / 2];
+        frame1 += 2;
+        if (frame1 >= 0xC)
+            frame1 = 0;
+    }
+    if (--time2 < 0) {
+        time2 = 2;
+        for (int i = 0; i < 3; i++)
+            dry_palette[2][1 + i] = PCyc_Mz2[frame2 / 2 + i];
+        frame2 += 2;
+        if (frame2 >= 6)
+            frame2 = 0;
+    }
+    if (--time3 < 0) {
+        time3 = 9;
+        dry_palette[2][15] = PCyc_Mz3[frame3 / 2];
+        frame3 += 2;
+        if (frame3 >= 0x14)
+            frame3 = 0;
+    }
+}
+
+// Oil Ocean (PalCycle_OOz): every 8 ticks colours 10-13 of line 3, 4 words of a table of 8
+static void PCycle_OOZ(void) {
+    static uint16_t frame;
+    if (--pcyc_time >= 0)
+        return;
+    pcyc_time = 7;
+    uint16_t at = frame;
+    frame = (uint16_t)((frame + 2) & 6);
+    for (int i = 0; i < 4; i++)
+        dry_palette[2][10 + i] = PCyc_Ooz[at / 2 + i];
+}
+
+// Dust Hill (PalCycle_DHz): every 2 ticks colour 12 of line 2
+static void PCycle_MCZ(void) {
+    static uint16_t frame;
+    if (--pcyc_time >= 0)
+        return;
+    pcyc_time = 1;
+    dry_palette[1][11] = PCyc_Mcz[frame / 2];
+    frame = (uint16_t)((frame + 2) & 6);
+}
+
+// Casino Night (PalCycle_CNz): every 8 ticks the lights of lines 3 and 4 (three colours of each of two groups of line 3 and three of line 4, each frame a step along their tables of 3 frames) and
+// three colours of line 4 from 14 steps of three tables
+static void PCycle_CNZ(void) {
+    static int16_t frame1, frame2;
+    if (--pcyc_time >= 0)
+        return;
+    pcyc_time = 7;
+    int at = frame1 / 2;
+    frame1 += 2;
+    if (frame1 >= 6)
+        frame1 = 0;
+    for (int i = 0; i < 3; i++) {
+        dry_palette[2][5 + i] = PCyc_Cnz1[at + i * 3];
+        dry_palette[2][11 + i] = PCyc_Cnz1[at + 9 + i * 3];
+        dry_palette[3][2 + i] = PCyc_Cnz2[at + i * 3];
+    }
+    int at3 = frame2 / 2;
+    frame2 += 2;
+    if (frame2 >= 0x1C)
+        frame2 = 0;
+    for (int i = 0; i < 3; i++)
+        dry_palette[3][9 + i] = PCyc_Cnz3[at3 + i * 14];
+}
+
+// Neo Green Hill (PalCycle_NGHz): Green Hill's cycle table, every 6 ticks, to colours 3-6 of line 3
+static void PCycle_ARZ(void) {
+    if (--pcyc_time >= 0)
+        return;
+    pcyc_time = 5;
+    const uint16_t *from = PCyc_Ghz + ((pcyc_num++ & 3) << 2);
+    for (int i = 0; i < 4; i++)
+        dry_palette[2][2 + i] = from[i];
+}
+
 // The title screen has no palette cycle: neither prototype's title loop calls one (Nick Arcade's PalCycle_S1TitleScreen is never referenced). Kept so the title's loop still has
 // its call.
 void PCycle_Title(void) {
@@ -472,24 +591,36 @@ void PaletteCycle(void) {
         return;
 
     switch (LEVEL_ZONE(level_id)) {
-    case ZoneId_GHZ:
-    case ZoneId_EndZ:
-        PCycle_Water(Palette_GHZCycle);
-        break;
-    case ZoneId_LZ:
-        PCycle_LZ();
-        break;
-    case ZoneId_MZ: // Chemical Plant
+    case ZoneId_CPZ:
         PCycle_CPZ();
         break;
-    case ZoneId_SLZ: // Emerald Hill
+    case ZoneId_EHZ:
         PCycle_EHZ();
         break;
-    case ZoneId_SYZ: // Hidden Palace
+    case ZoneId_HPZ:
         PCycle_HPZ();
         break;
-    case ZoneId_SBZ: // Hill Top
+    case ZoneId_HTZ:
         PCycle_HTZ();
+        break;
+    case ZoneId_WZ:
+        PCycle_WZ();
+        break;
+    case ZoneId_MTZ:
+    case ZoneId_MTZ3:
+        PCycle_MTZ();
+        break;
+    case ZoneId_OOZ:
+        PCycle_OOZ();
+        break;
+    case ZoneId_MCZ:
+        PCycle_MCZ();
+        break;
+    case ZoneId_CNZ:
+        PCycle_CNZ();
+        break;
+    case ZoneId_ARZ:
+        PCycle_ARZ();
         break;
     }
 }

@@ -6,8 +6,15 @@
 #include "Resource/S2Palette/CPZ.h"
 #include "Resource/S2Palette/HPZ.h"
 #include "Resource/S2Palette/HTZ.h"
+#include "Resource/S2Palette/WZ.h"
+#include "Resource/S2Palette/MTZ.h"
+#include "Resource/S2Palette/OOZ.h"
+#include "Resource/S2Palette/DHZ.h"
+#include "Resource/S2Palette/CNZ.h"
+#include "Resource/S2Palette/NGHZ.h"
 #include "Resource/S2Palette/LevelSel.h" // the prototypes' level select palette
 #include "Resource/S2Palette/HPZWater.h"
+#include "Resource/S2Palette/CPZWater.h"
 #include "Resource/S2Palette/SonicWater.h"
 #include "Resource/S2Palette/SonicWater4.h"
 // Palettes
@@ -53,5 +60,12 @@ PalettePointer palette_pointers[] = {
     /* PalId_SSResults */ { (const uint16_t*)Palette_SSResults, &dry_palette[0][0], 0x40 },
     /* PalId_Continue  */ { (const uint16_t*)Palette_Continue, &dry_palette[0][0], 0x20 },
     /* PalId_Ending    */ { (const uint16_t*)Palette_Ending, &dry_palette[0][0], 0x40 },
+    /* PalId_WZ        */ { (const uint16_t*)S2Palette_WZ, &dry_palette[1][0], 0x30 },
+    /* PalId_MTZ       */ { (const uint16_t*)S2Palette_MTZ, &dry_palette[1][0], 0x30 },
+    /* PalId_OOZ       */ { (const uint16_t*)S2Palette_OOZ, &dry_palette[1][0], 0x30 },
+    /* PalId_DHZ       */ { (const uint16_t*)S2Palette_DHZ, &dry_palette[1][0], 0x30 },
+    /* PalId_CNZ       */ { (const uint16_t*)S2Palette_CNZ, &dry_palette[1][0], 0x30 },
+    /* PalId_NGHZ      */ { (const uint16_t*)S2Palette_NGHZ, &dry_palette[1][0], 0x30 },
+    /* PalId_CPZWater  */ { (const uint16_t*)S2Palette_CPZWater, &dry_palette[0][0], 0x40 },
 };
 

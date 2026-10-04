@@ -19,7 +19,9 @@
 // Steam Input button/stick remapping -- works out of the box. Steam Input's
 // virtual device can appear (or disappear, e.g. the overlay taking it over)
 // after startup, so it's tracked via hotplug events rather than opened once.
-static SDL_GameController *pad = NULL;
+static SDL_GameController *pad = NULL, *pad2 = NULL; // a player's gamepad: by his choice, else the first connected one not taken (the first player's first)
+char Controls_PadGuid[2][40];  // (a player's choice: the pad's GUID, "" for automatic)
+int Controls_PadNth[2];        // ... and which of the pads with that GUID it is
 #define STICK_DEADZONE 8000 // out of a signed 16-bit axis range
 
 // Rebindable controls. Defaults: arrows or WASD for the D-pad, B/N/M for A/B/C, Return for Start; on a pad
@@ -34,8 +36,31 @@ int Controls_Key[CTL_COUNT][2] = {
 	[CTL_C]     = {SDL_SCANCODE_M,     SDL_SCANCODE_UNKNOWN},
 	[CTL_START] = {SDL_SCANCODE_RETURN, SDL_SCANCODE_UNKNOWN},
 };
+// The second player's keys: I J K L for the D-pad, U O P for A B C, Right Shift for Start; his pad buttons are the first player's
+int Controls_Key2[CTL_COUNT][2] = {
+	[CTL_UP]    = {SDL_SCANCODE_I,      SDL_SCANCODE_UNKNOWN},
+	[CTL_DOWN]  = {SDL_SCANCODE_K,      SDL_SCANCODE_UNKNOWN},
+	[CTL_LEFT]  = {SDL_SCANCODE_J,      SDL_SCANCODE_UNKNOWN},
+	[CTL_RIGHT] = {SDL_SCANCODE_L,      SDL_SCANCODE_UNKNOWN},
+	[CTL_A]     = {SDL_SCANCODE_U,      SDL_SCANCODE_UNKNOWN},
+	[CTL_B]     = {SDL_SCANCODE_O,      SDL_SCANCODE_UNKNOWN},
+	[CTL_C]     = {SDL_SCANCODE_P,      SDL_SCANCODE_UNKNOWN},
+	[CTL_START] = {SDL_SCANCODE_RSHIFT, SDL_SCANCODE_UNKNOWN},
+};
+int Controls_Pad2[CTL_COUNT] = {
+	[CTL_UP] = -1, [CTL_DOWN] = -1, [CTL_LEFT] = -1, [CTL_RIGHT] = -1,
+	[CTL_A] = SDL_CONTROLLER_BUTTON_X, [CTL_B] = SDL_CONTROLLER_BUTTON_A,
+	[CTL_C] = SDL_CONTROLLER_BUTTON_B, [CTL_START] = SDL_CONTROLLER_BUTTON_START,
+};
+int *Controls_KeySlot(int player, int ctl, int slot) {
+	return player ? &Controls_Key2[ctl][slot] : &Controls_Key[ctl][slot];
+}
+int *Controls_PadSlot(int player, int ctl) {
+	return player ? &Controls_Pad2[ctl] : &Controls_Pad[ctl];
+}
 int Controls_DeadzoneLeft = CONTROLS_DEADZONE_DEFAULT, Controls_DeadzoneRight = CONTROLS_DEADZONE_DEFAULT;
 int Controls_DeadzoneRing = 0; // 0: a box (each axis on its own), 1: a ring (the stick's overall push)
+int Controls_DeadzoneLeft2 = CONTROLS_DEADZONE_DEFAULT, Controls_DeadzoneRing2 = 0; // (the second player's left stick)
 
 // A stick's dead zone as a raw axis value.
 static int DeadzoneRaw(int percent) {
@@ -45,10 +70,10 @@ static int DeadzoneRaw(int percent) {
 // Which directions a stick is pushed in. A box dead zone looks at each axis on its own; a ring one first asks whether the stick is
 // pushed far enough at all, in any direction (so drift that sits a little off to one side stays ignored), and then reads the
 // direction as one of eight, a component counting when it is more than about 38% of the push (sin 22.5 degrees).
-static void StickDirections(int x, int y, int percent, bool *left, bool *right, bool *up, bool *down) {
+static void StickDirectionsOf(int x, int y, int percent, int ring, bool *left, bool *right, bool *up, bool *down) {
 	int dead = DeadzoneRaw(percent);
 	*left = *right = *up = *down = false;
-	if (Controls_DeadzoneRing) {
+	if (ring) {
 		double push2 = (double)x * x + (double)y * y;
 		if (push2 <= (double)dead * dead)
 			return;
@@ -65,6 +90,10 @@ static void StickDirections(int x, int y, int percent, bool *left, bool *right, 
 	*up = y < -dead;
 }
 
+static void StickDirections(int x, int y, int percent, bool *left, bool *right, bool *up, bool *down) {
+	StickDirectionsOf(x, y, percent, Controls_DeadzoneRing, left, right, up, down);
+}
+
 int Controls_Pad[CTL_COUNT] = {
 	[CTL_UP] = -1, [CTL_DOWN] = -1, [CTL_LEFT] = -1, [CTL_RIGHT] = -1,
 	[CTL_A] = SDL_CONTROLLER_BUTTON_X, [CTL_B] = SDL_CONTROLLER_BUTTON_A,
@@ -74,6 +103,8 @@ int Controls_Pad[CTL_COUNT] = {
 void Controls_Reset(void) {
 	Controls_DeadzoneLeft = Controls_DeadzoneRight = CONTROLS_DEADZONE_DEFAULT;
 	Controls_DeadzoneRing = 0;
+	Controls_DeadzoneLeft2 = CONTROLS_DEADZONE_DEFAULT;
+	Controls_DeadzoneRing2 = 0;
 	static const int keys[CTL_COUNT][2] = {
 		{SDL_SCANCODE_UP, SDL_SCANCODE_W}, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S},
 		{SDL_SCANCODE_LEFT, SDL_SCANCODE_A}, {SDL_SCANCODE_RIGHT, SDL_SCANCODE_D},
@@ -83,42 +114,86 @@ void Controls_Reset(void) {
 	                                    SDL_CONTROLLER_BUTTON_B, SDL_CONTROLLER_BUTTON_START};
 	memcpy(Controls_Key, keys, sizeof(keys));
 	memcpy(Controls_Pad, pads, sizeof(pads));
+	static const int keys2[CTL_COUNT][2] = {
+		{SDL_SCANCODE_I, 0}, {SDL_SCANCODE_K, 0}, {SDL_SCANCODE_J, 0}, {SDL_SCANCODE_L, 0},
+		{SDL_SCANCODE_U, 0}, {SDL_SCANCODE_O, 0}, {SDL_SCANCODE_P, 0}, {SDL_SCANCODE_RSHIFT, 0},
+	};
+	memcpy(Controls_Key2, keys2, sizeof(keys2));
+	memcpy(Controls_Pad2, pads, sizeof(pads));
 }
 
-static bool KeyBound(const uint8_t *key_state, int ctl) {
+static bool KeyBoundOf(const int (*keys)[2], const uint8_t *key_state, int ctl) {
 	for (int i = 0; i < 2; i++) {
-		int sc = Controls_Key[ctl][i];
+		int sc = keys[ctl][i];
 		if (sc > 0 && sc < SDL_NUM_SCANCODES && key_state[sc])
 			return true;
 	}
 	return false;
 }
 
-static bool PadBound(int ctl) {
-	return Controls_Pad[ctl] >= 0 && SDL_GameControllerGetButton(pad, (SDL_GameControllerButton)Controls_Pad[ctl]);
+static bool PadBoundOf(const int *pads, SDL_GameController *p, int ctl) {
+	return pads[ctl] >= 0 && SDL_GameControllerGetButton(p, (SDL_GameControllerButton)pads[ctl]);
 }
 
-int Controls_PollPadButton(void) {
-	if (!pad || !SDL_GameControllerGetAttached(pad))
+// One player's pad as the Genesis one: the keys and, when his gamepad is connected, its D-pad and left stick and the buttons bound to A, B, C and Start
+static uint8_t ReadPlayer(const int (*keys)[2], const int *pads, SDL_GameController *gamepad, int deadzone, int ring) {
+	const uint8_t *key_state = KEYBOARD_STATE();
+	uint8_t start = KeyBoundOf(keys, key_state, CTL_START) ? JPAD_START : 0;
+	uint8_t a     = KeyBoundOf(keys, key_state, CTL_A)     ? JPAD_A     : 0;
+	uint8_t b     = KeyBoundOf(keys, key_state, CTL_B)     ? JPAD_B     : 0;
+	uint8_t c     = KeyBoundOf(keys, key_state, CTL_C)     ? JPAD_C     : 0;
+	uint8_t right = KeyBoundOf(keys, key_state, CTL_RIGHT) ? JPAD_RIGHT : 0;
+	uint8_t left  = KeyBoundOf(keys, key_state, CTL_LEFT)  ? JPAD_LEFT  : 0;
+	uint8_t down  = KeyBoundOf(keys, key_state, CTL_DOWN)  ? JPAD_DOWN  : 0;
+	uint8_t up    = KeyBoundOf(keys, key_state, CTL_UP)    ? JPAD_UP    : 0;
+	if (gamepad && SDL_GameControllerGetAttached(gamepad)) {
+		int16_t lx = SDL_GameControllerGetAxis(gamepad, SDL_CONTROLLER_AXIS_LEFTX);
+		int16_t ly = SDL_GameControllerGetAxis(gamepad, SDL_CONTROLLER_AXIS_LEFTY);
+		bool stick_left, stick_right, stick_up, stick_down;
+		StickDirectionsOf(lx, ly, deadzone, ring, &stick_left, &stick_right, &stick_up, &stick_down);
+		if (SDL_GameControllerGetButton(gamepad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) || stick_right)
+			right = JPAD_RIGHT;
+		if (SDL_GameControllerGetButton(gamepad, SDL_CONTROLLER_BUTTON_DPAD_LEFT) || stick_left)
+			left = JPAD_LEFT;
+		if (SDL_GameControllerGetButton(gamepad, SDL_CONTROLLER_BUTTON_DPAD_DOWN) || stick_down)
+			down = JPAD_DOWN;
+		if (SDL_GameControllerGetButton(gamepad, SDL_CONTROLLER_BUTTON_DPAD_UP) || stick_up)
+			up = JPAD_UP;
+		if (PadBoundOf(pads, gamepad, CTL_A))
+			a = JPAD_A;
+		if (PadBoundOf(pads, gamepad, CTL_B))
+			b = JPAD_B;
+		if (PadBoundOf(pads, gamepad, CTL_C))
+			c = JPAD_C;
+		if (PadBoundOf(pads, gamepad, CTL_START))
+			start = JPAD_START;
+	}
+	return start | a | c | b | right | left | down | up;
+}
+
+int Controls_PollPadButton(int player) {
+	SDL_GameController *p = player ? pad2 : pad;
+	if (!p || !SDL_GameControllerGetAttached(p))
 		return -1;
 	SDL_GameControllerUpdate(); // (the game loop is not running while the controls dialog is up)
 	for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; i++) {
 		if (i >= SDL_CONTROLLER_BUTTON_DPAD_UP && i <= SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
 			continue;
-		if (SDL_GameControllerGetButton(pad, (SDL_GameControllerButton)i))
+		if (SDL_GameControllerGetButton(p, (SDL_GameControllerButton)i))
 			return i;
 	}
 	return -1;
 }
 
-bool Controls_PollAxes(int *lx, int *ly, int *rx, int *ry) {
-	if (!pad || !SDL_GameControllerGetAttached(pad))
+bool Controls_PollAxes(int player, int *lx, int *ly, int *rx, int *ry) {
+	SDL_GameController *p = player ? pad2 : pad;
+	if (!p || !SDL_GameControllerGetAttached(p))
 		return false;
 	SDL_GameControllerUpdate();
-	*lx = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
-	*ly = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
-	*rx = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
-	*ry = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
+	*lx = SDL_GameControllerGetAxis(p, SDL_CONTROLLER_AXIS_LEFTX);
+	*ly = SDL_GameControllerGetAxis(p, SDL_CONTROLLER_AXIS_LEFTY);
+	*rx = SDL_GameControllerGetAxis(p, SDL_CONTROLLER_AXIS_RIGHTX);
+	*ry = SDL_GameControllerGetAxis(p, SDL_CONTROLLER_AXIS_RIGHTY);
 	return true;
 }
 
@@ -131,16 +206,106 @@ const char *Controls_KeyName(int scancode) {
 	return scancode > 0 ? SDL_GetScancodeName((SDL_Scancode)scancode) : "";
 }
 
-static void OpenFirstPad(void) {
-	if (pad)
-		return;
+static int ConnectedDevice(int n) { // the SDL index of the n-th connected game controller, or -1
+	for (int i = 0; i < SDL_NumJoysticks(); i++)
+		if (SDL_IsGameController(i) && n-- == 0)
+			return i;
+	return -1;
+}
+
+int Controls_PadDeviceCount(void) {
+	int n = 0;
+	for (int i = 0; i < SDL_NumJoysticks(); i++)
+		if (SDL_IsGameController(i))
+			n++;
+	return n;
+}
+
+const char *Controls_PadDeviceName(int device) {
+	int i = ConnectedDevice(device);
+	const char *n = i >= 0 ? SDL_GameControllerNameForIndex(i) : NULL;
+	return n ? n : "Gamepad";
+}
+
+static void DeviceGuid(int sdl_index, char *out) {
+	SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(sdl_index), out, 40);
+}
+
+// The SDL index of the connected pad that a player chose (his GUID and which of that GUID), or -1
+static int ChosenDevice(int player) {
+	if (!Controls_PadGuid[player][0])
+		return -1;
+	int nth = Controls_PadNth[player];
 	for (int i = 0; i < SDL_NumJoysticks(); i++) {
-		if (SDL_IsGameController(i)) {
-			pad = SDL_GameControllerOpen(i);
-			if (pad)
-				break;
+		if (!SDL_IsGameController(i))
+			continue;
+		char guid[40];
+		DeviceGuid(i, guid);
+		if (strcmp(guid, Controls_PadGuid[player]) == 0 && nth-- == 0)
+			return i;
+	}
+	return -1;
+}
+
+void Controls_ReassignPads(void) {
+	if (pad)
+		SDL_GameControllerClose(pad);
+	if (pad2)
+		SDL_GameControllerClose(pad2);
+	pad = pad2 = NULL;
+	int dev[2] = {ChosenDevice(0), ChosenDevice(1)};
+	for (int p = 0; p < 2; p++) {
+		if (dev[p] >= 0 || Controls_PadGuid[p][0])
+			continue; // chosen (or the chosen pad is not here: he has none until it is)
+		for (int i = 0; i < SDL_NumJoysticks(); i++) {
+			if (!SDL_IsGameController(i) || i == dev[0] || i == dev[1])
+				continue;
+			dev[p] = i;
+			break;
 		}
 	}
+	pad = dev[0] >= 0 ? SDL_GameControllerOpen(dev[0]) : NULL;
+	pad2 = dev[1] >= 0 ? SDL_GameControllerOpen(dev[1]) : NULL;
+}
+
+int Controls_PadAssigned(int player) {
+	SDL_GameController *p = player ? pad2 : pad;
+	if (!p)
+		return -1;
+	SDL_JoystickID id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(p));
+	int n = 0;
+	for (int i = 0; i < SDL_NumJoysticks(); i++) {
+		if (!SDL_IsGameController(i))
+			continue;
+		if (SDL_JoystickGetDeviceInstanceID(i) == id)
+			return n;
+		n++;
+	}
+	return -1;
+}
+
+void Controls_ChoosePad(int player, int device) {
+	int i = device >= 0 ? ConnectedDevice(device) : -1;
+	if (i < 0) {
+		Controls_PadGuid[player][0] = 0;
+		Controls_PadNth[player] = 0;
+	} else {
+		char guid[40];
+		DeviceGuid(i, guid);
+		int nth = 0;
+		for (int k = 0; k < i; k++) { // (how many pads with this GUID come before it)
+			if (!SDL_IsGameController(k))
+				continue;
+			char g2[40];
+			DeviceGuid(k, g2);
+			if (strcmp(g2, guid) == 0)
+				nth++;
+		}
+		strncpy(Controls_PadGuid[player], guid, 39);
+		Controls_PadGuid[player][39] = 0;
+		Controls_PadNth[player] = nth;
+	}
+	Controls_ReassignPads();
 }
 
 //Backend input interface
@@ -162,15 +327,8 @@ int Input_HandleEvents(void) {
 			case SDL_QUIT:
 				return 1;
 			case SDL_CONTROLLERDEVICEADDED:
-				if (!pad)
-					pad = SDL_GameControllerOpen(e.cdevice.which);
-				break;
 			case SDL_CONTROLLERDEVICEREMOVED:
-				if (pad && e.cdevice.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad))) {
-					SDL_GameControllerClose(pad);
-					pad = NULL;
-					OpenFirstPad(); // fall back to another pad, if any
-				}
+				Controls_ReassignPads(); // the pads are given out again by the players' choices
 				break;
 			default:
 				break;
@@ -193,45 +351,11 @@ void Input_SetTextInputMode(bool enable) {
 
 
 uint8_t Input_GetState1(void) {
-
-	//Get keyboard state
+	//The first player's pad: the keyboard and, if a gamepad is connected, its D-pad and left stick (both drive the Genesis D-pad) and the
+	//buttons bound to A, B, C and Start (X/A/B and Start by default)
+	uint8_t pad_state = ReadPlayer(Controls_Key, Controls_Pad, pad, Controls_DeadzoneLeft, Controls_DeadzoneRing);
 	const uint8_t *key_state = KEYBOARD_STATE();
-	uint8_t start = KeyBound(key_state, CTL_START) ? JPAD_START : 0;
-	uint8_t a     = KeyBound(key_state, CTL_A)     ? JPAD_A     : 0;
-	uint8_t b     = KeyBound(key_state, CTL_B)     ? JPAD_B     : 0;
-	uint8_t c     = KeyBound(key_state, CTL_C)     ? JPAD_C     : 0;
-	uint8_t right = KeyBound(key_state, CTL_RIGHT) ? JPAD_RIGHT : 0;
-	uint8_t left  = KeyBound(key_state, CTL_LEFT)  ? JPAD_LEFT  : 0;
-	uint8_t down  = KeyBound(key_state, CTL_DOWN)  ? JPAD_DOWN  : 0;
-	uint8_t up    = KeyBound(key_state, CTL_UP)    ? JPAD_UP    : 0;
-
-	//Merge in gamepad state, if one's connected: D-pad and left stick both
-	//drive the Genesis D-pad, X/A/B -> Genesis A/B/C, Start/Options -> Start.
-	if (pad && SDL_GameControllerGetAttached(pad)) {
-		int16_t lx = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
-		int16_t ly = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
-
-		bool stick_left, stick_right, stick_up, stick_down;
-		StickDirections(lx, ly, Controls_DeadzoneLeft, &stick_left, &stick_right, &stick_up, &stick_down);
-
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) || stick_right)
-			right = JPAD_RIGHT;
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_LEFT) || stick_left)
-			left = JPAD_LEFT;
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN) || stick_down)
-			down = JPAD_DOWN;
-		if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP) || stick_up)
-			up = JPAD_UP;
-
-		if (PadBound(CTL_A))
-			a = JPAD_A;
-		if (PadBound(CTL_B))
-			b = JPAD_B;
-		if (PadBound(CTL_C))
-			c = JPAD_C;
-		if (PadBound(CTL_START))
-			start = JPAD_START;
-	}
+	(void)key_state;
 
 	//VDP peek view (VRAM/CRAM debug overlay): Tab or Select/Back toggles it
 	//on/off -- edge-detected, since it's a flip rather than a level, and
@@ -290,8 +414,7 @@ uint8_t Input_GetState1(void) {
 	z80_peek_toggle_held_prev = z80_peek_toggle_held;
 #endif
 
-	//Return as bitfield
-	return start | a | c | b | right | left | down | up;
+	return pad_state;
 }
 
 // Extended (non-Genesis) bindings -- see Backend/Joypad.h's own comment.
@@ -325,6 +448,6 @@ uint8_t Input_GetExtState1(void) {
 }
 
 uint8_t Input_GetState2(void) {
-	//No use in Sonic 1
-	return 0;
+	//The second player's pad (Sonic 2 and later: Tails, in the split screen and online; Sonic 1 never reads it): his keys and the second gamepad
+	return ReadPlayer(Controls_Key2, Controls_Pad2, pad2, Controls_DeadzoneLeft2, Controls_DeadzoneRing2);
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include "Types.h"
 
 // The camera: where the foreground and the two background layers the object drawing aligns to are scrolled to (pixels in .f.u, subpixels below).
@@ -18,5 +19,7 @@ extern uint8_t cam_y_delay_p2;
 
 // Is this world X position outside the range objects stay loaded in? (The range is the original 320-pixel picture's, whatever the picture size: it is
 // rounded to steps of 128 pixels, so a wider picture would move the step where objects wake and go, and attract-mode demos, which replay recorded
-// button presses, would go wrong. It is already wide enough to cover the widest picture.)
-#define IS_OFFSCREEN(x) (uint16_t)(((x) & ~0x7F) - ((scrpos_x.f.u - 0x80) & ~0x7F)) > (((320 + 0x80) & ~0x7F) + 0x100)
+// button presses, would go wrong. It is already wide enough to cover the widest picture.) In a split screen (camera_split) it is outside both cameras' ranges.
+extern bool camera_split; // the second camera is in use (a split screen)
+#define IS_OFFSCREEN_OF(x, cam) ((uint16_t)(((x) & ~0x7F) - (((cam) - 0x80) & ~0x7F)) > (((320 + 0x80) & ~0x7F) + 0x100))
+#define IS_OFFSCREEN(x) (IS_OFFSCREEN_OF(x, scrpos_x.f.u) && (!camera_split || IS_OFFSCREEN_OF(x, scrpos_x_p2.f.u)))

@@ -191,7 +191,7 @@ static const uint8_t ledge_delays_ghz[25] = { 0x1C, 0x18, 0x14, 0x10, 0x1A, 0x16
 static const uint8_t ledge_delays_hpz[12] = { 0x18, 0x1C, 0x20, 0x1E, 0x1A, 0x16, 0x06, 0x0E, 0x14, 0x12, 0x0A, 0x02 };
 
 static bool Ledge_IsHPZ(void) {
-    return LEVEL_ZONE(level_id) == 4;
+    return LEVEL_ZONE(level_id) == ZoneId_HPZ;
 }
 
 static void Ledge_Platform(Object *obj) {

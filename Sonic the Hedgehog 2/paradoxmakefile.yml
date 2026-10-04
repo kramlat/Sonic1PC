@@ -32,6 +32,7 @@ reuse:
       - "asm/Mappings/Sonic.asm"
       - "asm/Mappings/SonicDPLC.asm"
       - "src/Object/Checkpoint.c" # -> its own: Nick Arcade's lamp post (no twirling ball)
+      - "src/Sonic1Sound.c"       # -> its own Sonic2Sound.c: the Simon Wai prototype's sound ids, music and effects (SoundIds.h)
       - "src/Object/Spikes.c"   # -> its own: Nick Arcade's spikes (upright only, palette line 1)
       - "src/Object/Monitor.c"  # -> its own: Nick Arcade's monitors (items renumbered)
       - "src/Object/PathSwapper.c" # -> its own: Nick Arcade's path swapper (both characters, solid bits)
@@ -94,7 +95,6 @@ resources:
   - "Mappings/Spring"
   - "Mappings/SpringYellow"
   - "Mappings/SpringGHZ"
-  - "Mappings/PlatformCPZ"
   - "Art/Lamppost"
   - "Art/Shield"
   - "Art/Invincibility"
@@ -116,20 +116,9 @@ resources:
   - "Animation/Sonic"
   - "Mappings/Sonic"
   - "Mappings/SonicDPLC"
-  - "S2Layout/EHZ1"
-  - "S2Layout/EHZ2"
-  - "S2Map128/EHZ"
-  - "S2Map16/EHZ"
-  - "S2Collision/EHZ1"
-  - "S2Collision/EHZ2"
   - "S2Collision/Angle"
   - "S2Collision/HeightMap"
   - "S2Collision/WidthMap"
-  - "S2Objects/EHZ1"
-  - "S2Objects/EHZ2"
-  - "S2Rings/EHZ1"
-  - "S2Rings/EHZ2"
-  - "S2Palette/EHZ"
   - "S2Palette/EHZCycle"
   - "S2Palette/Sonic"     # Nick Arcade's "Sonic and Tails" palette
   - "S2Palette/CPZCycle1"
@@ -138,44 +127,153 @@ resources:
   - "S2Palette/HPZCycle"
   - "S2Palette/HPZCycleWet"
   - "S2Palette/HPZWater"
+  - "S2Palette/CPZWater"
   - "S2Palette/SonicWater"
   - "S2Palette/SonicWater4"
   - "S2Palette/HTZCycle"
   - "S2Palette/HTZCycleDelay"
   - "S2Palette/LevelSel"   # the Simon Wai and Nick Arcade prototypes' level select palette (the same file in both)
-  - "S2Art/EHZ"
   - "S2Art/EHZFlower1"
   - "S2Art/EHZFlower2"
   - "S2Art/EHZFlower3"
   - "S2Art/EHZFlower4"
   - "S2Art/EHZFlower5"
   - "S2Art/HPZGlowingBall"
-  - "S2Layout/CPZ1"
-  - "S2Map128/CPZ"
-  - "S2Map16/CPZ"
-  - "S2Collision/CPZ1"
-  - "S2Collision/CPZ2"
-  - "S2Objects/CPZ1"
-  - "S2Rings/CPZ1"
-  - "S2Palette/CPZ"
-  - "S2Art/CPZ"
-  - "S2Layout/HPZ1"
-  - "S2Map128/HPZ"
-  - "S2Map16/HPZ"
-  - "S2Collision/HPZ1"
-  - "S2Collision/HPZ2"
-  - "S2Objects/HPZ1"
-  - "S2Rings/HPZ1"
-  - "S2Palette/HPZ"
-  - "S2Art/HPZ"
-  - "S2Layout/HTZ1"
-  - "S2Layout/HTZ2"
+  - "S2Art/MTZCylinder"
+  - "S2Art/MTZLava"
+  - "S2Art/MTZAnimBack"
+  - "S2Art/MTZDrills"
+  - "S2Art/OOZPulseBall"
+  - "S2Art/OOZSquareBall1"
+  - "S2Art/OOZSquareBall2"
+  - "S2Art/OOZOil1"
+  - "S2Art/OOZOil2"
+  - "S2Art/NGHZWaterfall1"
+  - "S2Art/NGHZWaterfall2"
+  - "S2Art/NGHZWaterfall3"
+  - "S2Art/CPZAnimBack"
+  # BEGIN levels (tools/import_s2sw_levels.pl)
+  - "S2Art/EHZ"
+  - "S2Map16/EHZ"
+  - "S2Map128/EHZ"
+  - "S2Collision/EHZ1"
+  - "S2Collision/EHZ2"
+  - "S2Palette/EHZ"
+  - "S2Layout/EHZ1"
+  - "S2Objects/EHZ1"
+  - "S2Rings/EHZ1"
+  - "S2Layout/EHZ2"
+  - "S2Objects/EHZ2"
+  - "S2Rings/EHZ2"
+  - "S2Art/WZ"
+  - "S2Map16/WZ"
+  - "S2Map128/WZ"
+  - "S2Collision/WZ1"
+  - "S2Collision/WZ2"
+  - "S2Palette/WZ"
+  - "S2Layout/WZ1"
+  - "S2Objects/WZ1"
+  - "S2Rings/WZ1"
+  - "S2Layout/WZ2"
+  - "S2Objects/WZ2"
+  - "S2Rings/WZ2"
+  - "S2Art/MTZ"
+  - "S2Map16/MTZ"
+  - "S2Map128/MTZ"
+  - "S2Collision/MTZ1"
+  - "S2Collision/MTZ2"
+  - "S2Palette/MTZ"
+  - "S2Layout/MTZ1"
+  - "S2Objects/MTZ1"
+  - "S2Rings/MTZ1"
+  - "S2Layout/MTZ2"
+  - "S2Objects/MTZ2"
+  - "S2Rings/MTZ2"
+  - "S2Layout/MTZ3"
+  - "S2Objects/MTZ3"
+  - "S2Rings/MTZ3"
+  - "S2Art/HTZ"
   - "S2Map16/HTZ"
+  - "S2Map128/HTZ"
+  - "S2Collision/HTZ1"
+  - "S2Collision/HTZ2"
+  - "S2Palette/HTZ"
+  - "S2Layout/HTZ1"
   - "S2Objects/HTZ1"
   - "S2Rings/HTZ1"
+  - "S2Layout/HTZ2"
+  - "S2Objects/HTZ2"
   - "S2Rings/HTZ2"
-  - "S2Palette/HTZ"
-  - "S2Art/HTZ"
+  - "S2Art/HPZ"
+  - "S2Map16/HPZ"
+  - "S2Map128/HPZ"
+  - "S2Collision/HPZ1"
+  - "S2Collision/HPZ2"
+  - "S2Palette/HPZ"
+  - "S2Layout/HPZ1"
+  - "S2Objects/HPZ1"
+  - "S2Rings/HPZ1"
+  - "S2Art/OOZ"
+  - "S2Map16/OOZ"
+  - "S2Map128/OOZ"
+  - "S2Collision/OOZ1"
+  - "S2Collision/OOZ2"
+  - "S2Palette/OOZ"
+  - "S2Layout/OOZ1"
+  - "S2Objects/OOZ1"
+  - "S2Rings/OOZ1"
+  - "S2Layout/OOZ2"
+  - "S2Objects/OOZ2"
+  - "S2Rings/OOZ2"
+  - "S2Art/DHZ"
+  - "S2Map16/DHZ"
+  - "S2Map128/DHZ"
+  - "S2Collision/DHZ1"
+  - "S2Collision/DHZ2"
+  - "S2Palette/DHZ"
+  - "S2Layout/DHZ1"
+  - "S2Objects/DHZ1"
+  - "S2Rings/DHZ1"
+  - "S2Layout/DHZ2"
+  - "S2Objects/DHZ2"
+  - "S2Rings/DHZ2"
+  - "S2Art/CNZ"
+  - "S2Map16/CNZ"
+  - "S2Map128/CNZ"
+  - "S2Collision/CNZ1"
+  - "S2Collision/CNZ2"
+  - "S2Palette/CNZ"
+  - "S2Layout/CNZ1"
+  - "S2Objects/CNZ1"
+  - "S2Rings/CNZ1"
+  - "S2Layout/CNZ2"
+  - "S2Objects/CNZ2"
+  - "S2Rings/CNZ2"
+  - "S2Art/CPZ"
+  - "S2Map16/CPZ"
+  - "S2Map128/CPZ"
+  - "S2Collision/CPZ1"
+  - "S2Collision/CPZ2"
+  - "S2Palette/CPZ"
+  - "S2Layout/CPZ1"
+  - "S2Objects/CPZ1"
+  - "S2Rings/CPZ1"
+  - "S2Layout/CPZ2"
+  - "S2Objects/CPZ2"
+  - "S2Rings/CPZ2"
+  - "S2Art/NGHZ"
+  - "S2Map16/NGHZ"
+  - "S2Map128/NGHZ"
+  - "S2Collision/NGHZ1"
+  - "S2Collision/NGHZ2"
+  - "S2Palette/NGHZ"
+  - "S2Layout/NGHZ1"
+  - "S2Objects/NGHZ1"
+  - "S2Rings/NGHZ1"
+  - "S2Layout/NGHZ2"
+  - "S2Objects/NGHZ2"
+  - "S2Rings/NGHZ2"
+  # END levels
   - "S2Art/Text"          # the level select / debug font, from the Simon Wai prototype ("Error message and level select text")
   - "Mappings/TitleCharacters"
   - "S2Title/Art"
@@ -191,6 +289,12 @@ resources:
   - "Animation/Scenery"
   - "Mappings/HPZOrb"
   - "Mappings/HTZLift"
+  - "Mappings/DiagSpring"
+  - "Mappings/TubeSpring"
+  - "Mappings/SceneryA"
+  - "Mappings/SceneryB"
+  - "Mappings/SceneryD"
+  - "Mappings/SceneryOOZ"
   - "Mappings/PlatformEHZ"
   - "Art/EHZWaterfall"
   - "Mappings/WaterfallEHZ"
@@ -226,6 +330,16 @@ resources:
   - "Mappings/BossEHZWheels"
   - "Art/CPZPlatform"
   - "Art/CPZDust"
+  - "Art/CPZMetalStructure"
+  - "Art/CPZStripes"
+  - "Art/CPZBooster"
+  - "Art/CPZElevator"
+  - "Art/CPZAnimBits"
+  - "Art/CPZTubeSpring"
+  - "Art/CPZStairBlock"
+  - "Art/CPZMetalBlock"
+  - "Art/CPZDroplet"
+  - "Art/LeverSpring"
   - "Mappings/CPZPlatform"
   - "Mappings/CPZPlatform2"
   - "Art/HPZBridge"
@@ -257,6 +371,9 @@ sources:
   - "src/Sonic2Screens.c"
   - "src/GM_Title.c"
   - "src/Sonic2Collision.c"
+  - "src/Sonic2Sound.c"
+  - "src/SplitScreen.c"
+  - "src/S1Leftovers.c"
   - "src/Sonic2LevelData.c"
   - "src/Sonic2PLC.c"
   - "src/Solid.c"
@@ -283,6 +400,8 @@ sources:
   - "src/Object/CPZPlatforms.c"
   - "src/Object/HPZObjects.c"
   - "src/Object/HTZObjects.c"
+  - "src/Object/DiagSpring.c"
+  - "src/Object/CPZTubes.c"
   - "src/Object/HPZBadniks.c"
   - "src/Object/WaterObjects.c"
   - "src/CollisionPath.c"
@@ -302,13 +421,9 @@ assemble:
   - "Mappings/ShieldInvincibility"
   - "Mappings/RingREV01"
   - "Mappings/HUD"
-  - "Mappings/PlatformCPZ"
   - "Mappings/Spring"
   - "Mappings/SpringYellow"
   - "Mappings/HPZOrb"
-  - "Mappings/HTZLift"
-  - "Mappings/WaterfallEHZ"
-  - "Mappings/Buzzer"
   - "Mappings/Snail"
   - "Mappings/Masher"
   - "Mappings/BossEHZ"
@@ -326,5 +441,98 @@ assemble:
   - "Mappings/Redz"
   - "Mappings/NAWaterSurface"
   - "Mappings/HTZSeesaw"
-  - "Mappings/HTZSeesawBall"
 cmake: paradoxmake.cmake
+
+# Sonic 2's own music: the Simon Wai prototype's (SMPS driver 2 sources, converted with asm2json), by the names its disassembly gives
+songs:
+  - {file: "music/BOZ.jsonc", name: S2Mus_BOZ}
+  - {file: "music/Boss.jsonc", name: S2Mus_Boss}
+  - {file: "music/CNZ.jsonc", name: S2Mus_CNZ}
+  - {file: "music/CPZ.jsonc", name: S2Mus_CPZ}
+  - {file: "music/Continue.jsonc", name: S2Mus_Continue}
+  - {file: "music/DEZ.jsonc", name: S2Mus_DEZ}
+  - {file: "music/DHZ.jsonc", name: S2Mus_DHZ}
+  - {file: "music/End of level.jsonc", name: S2Mus_End_of_level}
+  - {file: "music/Extra life.jsonc", name: S2Mus_Extra_life}
+  - {file: "music/Final boss.jsonc", name: S2Mus_Final_boss}
+  - {file: "music/GHZ.jsonc", name: S2Mus_GHZ}
+  - {file: "music/Game over.jsonc", name: S2Mus_Game_over}
+  - {file: "music/Got an emerald.jsonc", name: S2Mus_Got_an_emerald}
+  - {file: "music/HPZ.jsonc", name: S2Mus_HPZ}
+  - {file: "music/HTZ.jsonc", name: S2Mus_HTZ}
+  - {file: "music/Invincible.jsonc", name: S2Mus_Invincible}
+  - {file: "music/Level select.jsonc", name: S2Mus_Level_select}
+  - {file: "music/MTZ.jsonc", name: S2Mus_MTZ}
+  - {file: "music/NGHZ.jsonc", name: S2Mus_NGHZ}
+  - {file: "music/OOZ.jsonc", name: S2Mus_OOZ}
+  - {file: "music/RWZ.jsonc", name: S2Mus_RWZ}
+  - {file: "music/SSZ.jsonc", name: S2Mus_SSZ}
+  - {file: "music/Special Stage.jsonc", name: S2Mus_Special_Stage}
+  - {file: "music/Title screen.jsonc", name: S2Mus_Title_screen}
+  - {file: "music/Unused 1.jsonc", name: S2Mus_Unused_1}
+  - {file: "music/Unused 2.jsonc", name: S2Mus_Unused_2}
+  - {file: "sfx/D0 - CNZ Boss Zap.jsonc", name: S2Sfx_D0}
+  - {file: "sfx/D1 - Unknown (Unused).jsonc", name: S2Sfx_D1}
+  - {file: "sfx/D2 - Unknown (Unused).jsonc", name: S2Sfx_D2}
+  - {file: "sfx/D3 - Signpost 2P.jsonc", name: S2Sfx_D3}
+  - {file: "sfx/D4 - OOZ Lid Pop.jsonc", name: S2Sfx_D4}
+  - {file: "sfx/D5 - Sliding Spike.jsonc", name: S2Sfx_D5}
+  - {file: "sfx/D6 - CNZ Elevator.jsonc", name: S2Sfx_D6}
+  - {file: "sfx/D7 - Platform Knock.jsonc", name: S2Sfx_D7}
+  - {file: "sfx/D8 - Bonus Bumper.jsonc", name: S2Sfx_D8}
+  - {file: "sfx/D9 - Large Bumper.jsonc", name: S2Sfx_D9}
+  - {file: "sfx/DA - Gloop.jsonc", name: S2Sfx_DA}
+  - {file: "sfx/DB - Pre-Arrow Firing.jsonc", name: S2Sfx_DB}
+  - {file: "sfx/DC - Fire.jsonc", name: S2Sfx_DC}
+  - {file: "sfx/DD - Arrow Stick.jsonc", name: S2Sfx_DD}
+  - {file: "sfx/DE - Helicopter.jsonc", name: S2Sfx_DE}
+  - {file: "sfx/DF - Super Transform.jsonc", name: S2Sfx_DF}
+  - {file: "sfx/E0 - Spin Dash Rev.jsonc", name: S2Sfx_E0}
+  - {file: "sfx/A0 - SW.jsonc", name: S2Sfx_A0}
+  - {file: "sfx/A1 - SW.jsonc", name: S2Sfx_A1}
+  - {file: "sfx/A2 - SW.jsonc", name: S2Sfx_A2}
+  - {file: "sfx/A3 - SW.jsonc", name: S2Sfx_A3}
+  - {file: "sfx/A4 - SW.jsonc", name: S2Sfx_A4}
+  - {file: "sfx/A5 - SW.jsonc", name: S2Sfx_A5}
+  - {file: "sfx/A6 - SW.jsonc", name: S2Sfx_A6}
+  - {file: "sfx/A7 - SW.jsonc", name: S2Sfx_A7}
+  - {file: "sfx/A8 - SW.jsonc", name: S2Sfx_A8}
+  - {file: "sfx/A9 - SW.jsonc", name: S2Sfx_A9}
+  - {file: "sfx/AA - SW.jsonc", name: S2Sfx_AA}
+  - {file: "sfx/AB - SW.jsonc", name: S2Sfx_AB}
+  - {file: "sfx/AC - SW.jsonc", name: S2Sfx_AC}
+  - {file: "sfx/AD - SW.jsonc", name: S2Sfx_AD}
+  - {file: "sfx/AE - SW.jsonc", name: S2Sfx_AE}
+  - {file: "sfx/AF - SW.jsonc", name: S2Sfx_AF}
+  - {file: "sfx/B0 - SW.jsonc", name: S2Sfx_B0}
+  - {file: "sfx/B1 - SW.jsonc", name: S2Sfx_B1}
+  - {file: "sfx/B2 - SW.jsonc", name: S2Sfx_B2}
+  - {file: "sfx/B3 - SW.jsonc", name: S2Sfx_B3}
+  - {file: "sfx/B4 - SW.jsonc", name: S2Sfx_B4}
+  - {file: "sfx/B5 - SW.jsonc", name: S2Sfx_B5}
+  - {file: "sfx/B6 - SW.jsonc", name: S2Sfx_B6}
+  - {file: "sfx/B7 - SW.jsonc", name: S2Sfx_B7}
+  - {file: "sfx/B8 - SW.jsonc", name: S2Sfx_B8}
+  - {file: "sfx/B9 - SW.jsonc", name: S2Sfx_B9}
+  - {file: "sfx/BA - SW.jsonc", name: S2Sfx_BA}
+  - {file: "sfx/BB - SW.jsonc", name: S2Sfx_BB}
+  - {file: "sfx/BC - SW.jsonc", name: S2Sfx_BC}
+  - {file: "sfx/BD - SW.jsonc", name: S2Sfx_BD}
+  - {file: "sfx/BE - SW.jsonc", name: S2Sfx_BE}
+  - {file: "sfx/BF - SW.jsonc", name: S2Sfx_BF}
+  - {file: "sfx/C0 - SW.jsonc", name: S2Sfx_C0}
+  - {file: "sfx/C1 - SW.jsonc", name: S2Sfx_C1}
+  - {file: "sfx/C2 - SW.jsonc", name: S2Sfx_C2}
+  - {file: "sfx/C3 - SW.jsonc", name: S2Sfx_C3}
+  - {file: "sfx/C4 - SW.jsonc", name: S2Sfx_C4}
+  - {file: "sfx/C5 - SW.jsonc", name: S2Sfx_C5}
+  - {file: "sfx/C6 - SW.jsonc", name: S2Sfx_C6}
+  - {file: "sfx/C7 - SW.jsonc", name: S2Sfx_C7}
+  - {file: "sfx/C8 - SW.jsonc", name: S2Sfx_C8}
+  - {file: "sfx/C9 - SW.jsonc", name: S2Sfx_C9}
+  - {file: "sfx/CA - SW.jsonc", name: S2Sfx_CA}
+  - {file: "sfx/CB - SW.jsonc", name: S2Sfx_CB}
+  - {file: "sfx/CC - SW.jsonc", name: S2Sfx_CC}
+  - {file: "sfx/CD - SW.jsonc", name: S2Sfx_CD}
+  - {file: "sfx/CE - SW.jsonc", name: S2Sfx_CE}
+  - {file: "sfx/CF - SW.jsonc", name: S2Sfx_CF}

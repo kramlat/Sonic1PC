@@ -1,0 +1,121 @@
+{
+  "header": [
+    {
+      "smpsHeaderStartSong": [
+        "0x2"
+      ]
+    },
+    {
+      "smpsHeaderVoice": [
+        "sndB1_Voices"
+      ]
+    },
+    {
+      "smpsHeaderTempoSFX": [
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderChanSFX": [
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderSFXChannel": [
+        "cFM5",
+        "sndB1_FM5",
+        "0xFB",
+        "0x2"
+      ]
+    }
+  ],
+  "voices": [
+    {
+      "smpsVcAlgorithm": "0x3",
+      "smpsVcFeedback": "0x0",
+      "smpsVcUnusedBits": "0x2",
+      "operators": [
+        {
+          "smpsVcDetune": "0x1",
+          "smpsVcCoarseFreq": "0xE",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x3",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x7"
+        },
+        {
+          "smpsVcDetune": "0x1",
+          "smpsVcCoarseFreq": "0x3",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0xF",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x34"
+        },
+        {
+          "smpsVcDetune": "0x1",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x10"
+        },
+        {
+          "smpsVcDetune": "0x1",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x5"
+        }
+      ]
+    }
+  ],
+  "SMPSplaylist": {
+    "sndB1_FM5": [
+      {
+        "smpsSetvoice": "0x0"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0xB3"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x5"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x80"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x1"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0xB3"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x9"
+      },
+      "smpsStop"
+    ]
+  }
+}

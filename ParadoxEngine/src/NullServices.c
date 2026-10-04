@@ -18,6 +18,7 @@
 WEAK uint16_t frame_count;
 WEAK int32_t cli_start_level = -1;
 WEAK int32_t cli_resolution = -1;
+WEAK const GameZoneList *game_zone_list = NULL; // (the demo recorder's zone and act pickers get one zone of three acts)
 
 WEAK void Game_LevelObjects(void) {}
 

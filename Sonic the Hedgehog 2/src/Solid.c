@@ -3,12 +3,13 @@
 #include "Solid.h"
 
 #include "Level.h"
+#include "Object/CharControl.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
 
 // The character is carried along with the object it stands on (MvSonicOnPtfm / MvSonicOnSlope): put on its top, and moved along by what the object moved
 static void MoveOnObject(Object *obj, Object *chr, int16_t x, int16_t y_top) {
-    if ((lock_multi & 0x80) || chr->routine >= 6) // (an object holding the player: no carrying)
+    if ((CharObjControl(chr) & 0x80) || chr->routine >= 6) // (an object holding the character: no carrying)
         return;
     chr->pos.l.y.f.u = y_top - chr->y_rad;
     chr->pos.l.x.f.u -= x - obj->pos.l.x.f.u;
@@ -82,7 +83,7 @@ int32_t Solid_Character(Object *obj, Object *chr, int who, int16_t x_rad, int16_
         d4 = d2 << 1;
         miss = d3 < 0 || (uint16_t)d3 >= (uint16_t)d4;
     }
-    if (lock_multi & 0x80) // an object has switched the player's object collisions off
+    if (CharObjControl(chr) & 0x80) // an object has switched the character's object collisions off
         miss = true;
 
     if (!miss) {
@@ -170,7 +171,7 @@ static bool LandAt(Object *obj, Object *chr, int who, int16_t surface_y) {
     int16_t dist = surface_y - (int16_t)(chr->pos.l.y.f.u + chr->y_rad + 4);
     if (dist > 0 || (uint16_t)dist < 0xFFF0u) // (the surface has to be within 16 pixels above the feet)
         return false;
-    if ((lock_multi & 0x80) || chr->routine >= 6)
+    if ((CharObjControl(chr) & 0x80) || chr->routine >= 6)
         return false;
 
     chr->pos.l.y.f.u += dist + 3;

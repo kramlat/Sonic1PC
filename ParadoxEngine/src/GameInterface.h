@@ -49,9 +49,25 @@ typedef struct {
     const char *settings_file;  // the settings file's name in the user's data directory ("Sonic1Settings.cfg"): the game's own, so games do not share one
     const char *settings_title; // the comment on the settings file's first line ("Sonic 1 PC settings")
     bool no_title_card;         // a level starts without its title card (the prototypes had none)
+    bool split_screen;          // the game has a two-player split screen (Sonic 2 and later): the demo recorder offers it
     unsigned plc_capacity;      // how many art loads can wait in the queue (0: the original's 16). A game that starts its levels without a title card to drain the queue needs more
 } GameInfo;
 extern const GameInfo game_info;
+
+// The zones and acts a game has, for the demo recorder's pickers (Tools > Record Demo / Play Demo). `id` is the zone as the game's level ids number it (the number the recorder and the demo file names carry),
+// `acts` how many acts it has (1-4) and `act_names` their names (a list of that many, or NULL for "Act 1", "Act 2", ...). Each game has its own levels, so each defines its own list; a game that does not gets a single zone of three acts.
+typedef struct {
+    int id;
+    const char *name;
+    int acts;
+    const char *const *act_names;
+} GameZone;
+
+typedef struct {
+    int count;
+    const GameZone *zones;
+} GameZoneList;
+extern const GameZoneList *game_zone_list;
 
 // The objects a game makes when a level starts, beyond the player, the HUD and the splash the level start makes itself (Sonic 2: Tails). A weak null where the game has none.
 void Game_LevelObjects(void);

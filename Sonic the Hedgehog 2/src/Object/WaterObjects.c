@@ -34,8 +34,10 @@ void Obj_NAWaterSurface(Object *obj) {
         obj->priority = 0;
     }
 
-    int16_t base = (int16_t)(scrpos_x.f.u + ((frame_count & 1) ? 0x20 : 0));
-    obj->pos.l.x.f.u = (int16_t)(base + (which == 0 ? 0x60 : which == 1 ? 0x120 : 0x1E0));
+    // (3 to 5 are the second view's of a split screen: the same places along its camera)
+    int16_t base = (int16_t)((which >= 3 ? scrpos_x_p2.f.u : scrpos_x.f.u) + ((frame_count & 1) ? 0x20 : 0));
+    int kind = which >= 3 ? which - 3 : which;
+    obj->pos.l.x.f.u = (int16_t)(base + (kind == 0 ? 0x60 : kind == 1 ? 0x120 : 0x1E0));
     obj->pos.l.y.f.u = wtr_pos1;
     obj->frame = surface_frames[obj->anim_frame & 0x3F];
     obj->anim_frame = (uint8_t)((obj->anim_frame + 1) & 0x3F);

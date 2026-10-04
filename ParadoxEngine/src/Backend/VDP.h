@@ -163,6 +163,14 @@ typedef struct {
 
 void VDP_SetSplitScreen(VDPSplitMode mode, const VDPView *second_view);
 
+//Water in a split screen: each view is its own screen with its own water line, as if it had a horizontal interrupt of its own. `dry` and `wet` are the palettes (4 lines of 16 CRAM words, read live
+//as each frame is drawn), `line1` and `line2` the row of the first and the second view (counted in the view's own rows) the surface is at: the rows after it are drawn with the wet palette
+//(below 0: all of the view is wet; at or beyond its last row: none). While it is set (dry not NULL) the views use these palettes in place of the VDP's colour RAM, and the H interrupt is not run.
+void VDP_SetSplitWater(const uint16_t *dry, const uint16_t *wet, int16_t line1, int16_t line2);
+
+//Shadow/highlight mode (the VDP's register $0C bit 3): every pixel not drawn by a high-priority plane or a sprite is shadowed, and the sprites' operator colours (palette line 3, colours 14 and 15) highlight or shadow what is beneath
+void VDP_SetShadowHighlight(bool enable);
+
 //How many rows the picture the VDP draws has: the screen's height, twice that when stacked
 int VDP_OutputRows(void);
 

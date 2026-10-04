@@ -31,12 +31,12 @@ extern SpriteView sprite_view;
 extern SpriteView sprite_view_p2;
 
 // The split screen (Sonic 2's Two_player_mode, for the sprites): BuildSprites then builds two tables, the first player's in sprite_buffer and the second's in
-// sprite_buffer_p2, from the same queues, one per view; an object's on_screen flag says whether it was in either. Two layouts, matching the VDP's
-// (VDP_SetSplitScreen):
-//   SPRITE_SPLIT_STACKED: Sonic 2's: one view above the other in the VDP's double-height mode. The pieces' 2-player tile words and half-height sizes are used,
-//     the views' tops are at 0x100 and 0x100 + the screen's height, and the first table starts with two masking sprites.
-//   SPRITE_SPLIT_SIDE: for wide pictures: the views side by side, the first half the picture's width (rounded down), the second the rest. Ordinary tiles and sizes,
-//     both tops at 128, and the cull checks use the view's width, not the picture's.
+// sprite_buffer_p2, from the same queues, one per view; an object's on_screen flag says whether it was in either. Two layouts, matching the VDP's (VDP_SetSplitScreen),
+// both drawn with ordinary tiles and sizes (the real hardware's double-height mode is not imitated: each view is drawn as a whole picture, and the stacked layout squashes
+// each into its half of the picture):
+//   SPRITE_SPLIT_STACKED: one view above the other, each as wide and as high as the picture before it is squashed.
+//   SPRITE_SPLIT_SIDE: for wide pictures: the views side by side, the first half the picture's width (rounded down), the second the rest, both tops at 128, and the cull
+//     checks use the view's width, not the picture's.
 typedef enum {
 	SPRITE_SPLIT_NONE,
 	SPRITE_SPLIT_STACKED,

@@ -6,6 +6,7 @@
 #include "Kosinski.h"
 #include "LevelDraw.h"
 #include "LevelScroll.h"
+#include "SplitScreen.h"
 #include "PLC.h"
 #include "Palette.h"
 #include "Sound.h"
@@ -46,12 +47,6 @@ void Obj_Checkpoint_LoadInfo(void) {
     LampSetPos(&bg2_scrpos_y, lamp_state.background2.y);
     LampSetPos(&bg3_scrpos_x, lamp_state.background3.x);
     LampSetPos(&bg3_scrpos_y, lamp_state.background3.y);
-
-    if (LEVEL_ZONE(level_id) == ZoneId_LZ) {  // Is this Labyrinth Zone?
-        wtr_pos2 = lamp_state.water_level.pos;
-        wtr_routine = lamp_state.water_level.routine;
-        wtr_state = lamp_state.water_level.state;
-    }
 
     if ((int8_t)last_lamp >= 0) {
         return;
@@ -311,10 +306,6 @@ void LevelDataLoad(void) {
 
     // Load level palette
     PaletteId pal = header->pal;
-    if (level_id == LEVEL_ID(ZoneId_LZ, 3))
-        pal = PalId_SBZ3;
-    if (level_id == LEVEL_ID(ZoneId_SBZ, 1) || level_id == LEVEL_ID(ZoneId_SBZ, 2))
-        pal = PalId_SBZ2;
     PalLoad1(pal);
 
     // Load level art
@@ -327,8 +318,7 @@ void ColIndexLoad(void) {
     // indices, one per path. Both currently hold identical data (no real
     // content path-swaps exist yet -- Obj03 isn't ported to C), but they're
     // separate resources, not a single blob decoded twice.
-    // The ending sequence (zone EndZ) uses Green Hill's collision
-    int zone = LEVEL_ZONE(level_id) < ZoneId_EndZ ? LEVEL_ZONE(level_id) : ZoneId_GHZ;
+    int zone = LEVEL_ZONE(level_id);
     KosDec(level_coli[zone][0], coll_index[0]);
     KosDec(level_coli[zone][1], coll_index[1]);
     collision_path = 0;
@@ -340,88 +330,7 @@ void ColIndexLoad(void) {
 // Camera_Max_Y_pos_target, limit_btm2 Camera_Max_Y_pos, limit_top2 Camera_Min_Y_pos, limit_left2 Camera_Min_X_pos.
 void DynamicLevelEvents(void) {
     switch (LEVEL_ZONE(level_id)) {
-    case ZoneId_GHZ:
-        switch (LEVEL_ACT(level_id)) {
-        case 0: // Act 1
-            if ((uint16_t)scrpos_x.f.u >= (0x1780 - SCREEN_WIDEADD2))
-                limit_btm1 = 0x400 - SCREEN_TALLADD;
-            else
-                limit_btm1 = 0x300 - SCREEN_TALLADD;
-            break;
-        case 1: // Act 2
-            limit_btm1 = 0x300 - SCREEN_TALLADD;
-            if ((uint16_t)scrpos_x.f.u < (0xED0 - SCREEN_WIDEADD2))
-                break;
-            limit_btm1 = 0x200 - SCREEN_TALLADD;
-            if ((uint16_t)scrpos_x.f.u < (0x1600 - SCREEN_WIDEADD2))
-                break;
-            limit_btm1 = 0x400 - SCREEN_TALLADD;
-            if ((uint16_t)scrpos_x.f.u < (0x1D60 - SCREEN_WIDEADD2)) {
-                ghz2_tube_exit_timer = 0;
-                break;
-            }
-            // Real hardware shrinks the boundary back down the instant X
-            // crosses 0x1D60, with nothing accounting for Sonic still
-            // being deep in the tube at that point -- added a 20-second
-            // (1200 frame) debounce here so the shrink only applies once
-            // he's plausibly actually clear of it, resetting above if he
-            // drifts back before the delay elapses.
-            if (++ghz2_tube_exit_timer < 1200)
-                break;
-            limit_btm1 = 0x300 - SCREEN_TALLADD;
-            break;
-        case 2: // Act 3
-            switch (dle_routine) {
-            case 0:
-                limit_btm1 = 0x300 - SCREEN_TALLADD;
-                if ((uint16_t)scrpos_x.f.u < (0x380 - SCREEN_WIDEADD2))
-                    break;
-                limit_btm1 = 0x310 - SCREEN_TALLADD;
-                if ((uint16_t)scrpos_x.f.u < (0x960 - SCREEN_WIDEADD2))
-                    break;
-                if (scrpos_y.f.u >= 0x280 + SCREEN_TALLADD) {
-                    limit_btm1 = 0x400 - SCREEN_TALLADD;
-                    if ((uint16_t)scrpos_x.f.u < (0x1380 - SCREEN_WIDEADD2)) {
-                        limit_btm1 = 0x4C0 - SCREEN_TALLADD;
-                        limit_btm2 = 0x4C0 - SCREEN_TALLADD;
-                    } else if ((uint16_t)scrpos_x.f.u >= (0x1700 - SCREEN_WIDEADD2)) {
-                        limit_btm1 = 0x300 - SCREEN_TALLADD;
-                        dle_routine += 2;
-                    }
-                } else {
-                    limit_btm1 = 0x300 - SCREEN_TALLADD;
-                    dle_routine += 2;
-                }
-                break;
-            case 2:
-                if ((uint16_t)scrpos_x.f.u < (0x960 - SCREEN_WIDEADD2))
-                    dle_routine -= 2;
-                if ((uint16_t)scrpos_x.f.u < (0x2960 - SCREEN_WIDEADD2))
-                    break;
-                {
-                    Object *boss = FindFreeObj();
-                    if (boss != NULL) {
-                        boss->type = ObjId_BossGreenHill;
-                        boss->pos.l.x.f.u = 0x2960 + 0x100;
-                        boss->pos.l.y.f.u = 0x300 - 0x80;
-                    }
-                }
-                QueueSound1(bgm_Boss);
-                lock_screen = true;
-                dle_routine += 2;
-                AddPLC(PlcId_Boss);
-                break;
-            case 4:
-                // Continuously pin the left boundary to the camera's
-                // current position so Sonic can't scroll back out of the
-                // boss arena for the rest of the fight.
-                limit_left2 = (uint16_t)scrpos_x.f.u;
-                break;
-            }
-            break;
-        }
-        break;
-    case ZoneId_SLZ: // Emerald Hill
+    case ZoneId_EHZ:
         if (LEVEL_ACT(level_id) != 1)
             break; // (act 1 has none, and act 3 is a copy of it)
         switch (dle_routine) {
@@ -457,7 +366,7 @@ void DynamicLevelEvents(void) {
             break;
         }
         break;
-    case ZoneId_SYZ: // Hidden Palace
+    case ZoneId_HPZ:
         switch (LEVEL_ACT(level_id)) {
         case 1: // act 2
             limit_btm1 = 0x520 - SCREEN_TALLADD;
@@ -470,7 +379,7 @@ void DynamicLevelEvents(void) {
             break;
         }
         break;
-    case ZoneId_SBZ: // Hill Top
+    case ZoneId_HTZ:
         switch (LEVEL_ACT(level_id)) {
         case 0: // act 1
             limit_btm1 = 0x720 - SCREEN_TALLADD;
@@ -573,6 +482,7 @@ void SignpostArtLoad(void) {
 // Level object loading: the engine's objects manager (ObjectsManager.h) on Sonic 1's layouts. Its load range (0x280 pixels ahead of the camera, 0x80 behind) is the
 // original 320-pixel picture's, whatever the picture size: see IS_OFFSCREEN.
 ObjectsManager objects_manager;
+static ObjectsManager2P objects_manager_2p; // (a split screen: one manager for each camera, on the same layout and marks)
 
 void ObjPosLoad(void) {
     if (opl_routine == 0) {
@@ -583,11 +493,21 @@ void ObjPosLoad(void) {
         f_lz1tunnel_open = false; // doors respawn shut along with the remembered object state
 
         static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
-        ObjectsManager_Init(&objects_manager, &config, objstate, sizeof(objstate), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)], scrpos_x.f.u);
+        if (camera_split) {
+            ObjectsManager2P_Init(&objects_manager_2p, &config, objstate, sizeof(objstate), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)], scrpos_x.f.u, scrpos_x_p2.f.u);
+            objects_manager = objects_manager_2p.view[0];
+        } else {
+            ObjectsManager_Init(&objects_manager, &config, objstate, sizeof(objstate), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)], scrpos_x.f.u);
+        }
         Rings_Init(level_ring[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)], scrpos_x.f.u);
     } else {
-        ObjectsManager_Update(&objects_manager, scrpos_x.f.u);
-        Rings_Update(scrpos_x.f.u);
+        if (camera_split) {
+            ObjectsManager2P_Update(&objects_manager_2p, scrpos_x.f.u, scrpos_x_p2.f.u);
+            objects_manager = objects_manager_2p.view[0]; // (what the rest of the game reads of it: the marks)
+        } else {
+            ObjectsManager_Update(&objects_manager, scrpos_x.f.u);
+        }
+        Rings_Update(scrpos_x.f.u); // (the rings only load around the first camera)
     }
 }
 
@@ -595,16 +515,22 @@ void ObjPosLoad(void) {
 #include "Object/WaterSurface.h"
 
 bool Level_HasWater(void) {
-    return LEVEL_ZONE(level_id) == ZoneId_SYZ;
+    return LEVEL_ZONE(level_id) == ZoneId_HPZ || (LEVEL_ZONE(level_id) == ZoneId_CPZ && LEVEL_ACT(level_id) == 1); // (Chemical Plant's second act: the first has none)
 }
 
 // WaterHeight: the first act's is $600 (the lower the number the higher the water; Tails' pad moves it)
 int16_t Level_WaterStartHeight(void) {
+    if (LEVEL_ZONE(level_id) == ZoneId_CPZ)
+        return 0x710; // (the prototype's WaterHeight: Chemical Plant's second act)
     static const int16_t WaterHeight[4] = { 0x600, 0x328, 0x900, 0x228 };
     return WaterHeight[LEVEL_ACT(level_id)];
 }
 
 void Level_LoadWaterPalettes(bool sonic) {
+    if (LEVEL_ZONE(level_id) == ZoneId_CPZ) { // (the prototype's CPZ underwater palette covers all four lines, Sonic's too)
+        PalLoad4_Water(PalId_CPZWater);
+        return;
+    }
     if (sonic)
         PalLoad3_Water((LEVEL_ACT(level_id) == 3) ? PalId_SonicSBZ : PalId_SonicLZ);
     else
@@ -613,10 +539,27 @@ void Level_LoadWaterPalettes(bool sonic) {
 
 // Two surfaces (Nick Arcade's), each as wide as the screen was ($80 each side of its place), and a third for pictures wider than the original; their places follow the camera
 void Level_MakeWaterSurfaces(void) {
+    // (the extra one has a slot of its own here: Sonic 1's, 28, is Tails' in Sonic 2)
     objects[WATERSURFACE_SLOT_LEFT].type = 0x04;
     objects[WATERSURFACE_SLOT_LEFT].scratch.u8[0] = 0;
     objects[WATERSURFACE_SLOT_RIGHT].type = 0x04;
     objects[WATERSURFACE_SLOT_RIGHT].scratch.u8[0] = 1;
-    objects[WATERSURFACE_SLOT_EXTRA].type = 0x04;
-    objects[WATERSURFACE_SLOT_EXTRA].scratch.u8[0] = 2;
+    objects[27].type = 0x04;
+    objects[27].scratch.u8[0] = 2;
+    if (camera_split) { // the second view has its own three, along its own camera
+        for (int i = 0; i < 3; i++) {
+            objects[26 - i].type = 0x04;
+            objects[26 - i].scratch.u8[0] = (uint8_t)(3 + i);
+        }
+    }
+}
+
+// The level's music, one song for each zone slot as the Simon Wai prototype's MusicList has it (its zone ids are these slots)
+uint8_t Level_Music(uint16_t level) {
+    static const uint8_t zone_music[ZoneId_Num] = {
+        [0x00] = mus_GHZ, [0x01] = mus_GHZ, [0x02] = mus_MTZ, [0x03] = mus_SSZ, [0x04] = mus_MTZ, [0x05] = mus_MTZ, [0x06] = mus_BOZ, [0x07] = mus_HTZ,
+        [0x08] = mus_HPZ, [0x09] = mus_RWZ, [0x0A] = mus_OOZ, [0x0B] = mus_DHZ, [0x0C] = mus_CNZ, [0x0D] = mus_CPZ, [0x0E] = mus_CPZ, [0x0F] = mus_NGHZ,
+    };
+    unsigned zone = LEVEL_ZONE(level);
+    return zone < ZoneId_Num ? zone_music[zone] : 0;
 }

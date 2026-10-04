@@ -93,10 +93,15 @@ static void Buzzer_Shoot(Object *obj) {
         return;
     shot->col_type = 0x98;
     shot->anim = BuzzerAnim_Bullet;
+    shot->pos.l.y.f.u += 0x18; // (from its stinger)
     shot->ysp = 0x180;
     shot->xsp = -0x180;
-    if (shot->render.f.x_flip)
+    int16_t reach = 0xD;
+    if (shot->render.f.x_flip) {
         shot->xsp = -shot->xsp;
+        reach = -reach;
+    }
+    shot->pos.l.x.f.u += reach;
 }
 
 void Obj_Buzzer(Object *obj) {

@@ -14,6 +14,9 @@
 
 
 //Level types
+#ifdef ZONE_SLOTS // a game built on this one with its own zone slots (Sonic 2 has 17): every per-zone table is sized by ZoneId_Num
+#include "ZoneIds.h"
+#else
 typedef enum {
 	ZoneId_GHZ,
 	ZoneId_LZ,
@@ -25,6 +28,7 @@ typedef enum {
 	ZoneId_SS,
 	ZoneId_Num,
 } ZoneId;
+#endif
 
 typedef struct {
 	uint8_t frame;
@@ -161,6 +165,9 @@ bool Level_HasWater(void);
 int16_t Level_WaterStartHeight(void);
 void Level_LoadWaterPalettes(bool sonic); // Sonic's underwater palette (sonic) or the level's
 void Level_MakeWaterSurfaces(void);
+
+// The music a level plays when it starts (and after a jingle or drowning), or 0 for none: each game's own Level.c has its zone table (Sonic 1's is zone by zone, with act 3 of Scrap Brain and the Final Zone stored under other zones' slots)
+uint8_t Level_Music(uint16_t level);
 
 
 

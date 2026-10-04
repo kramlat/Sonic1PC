@@ -1,0 +1,2649 @@
+{
+  "header": [
+    {
+      "smpsHeaderStartSong": [
+        "0x2"
+      ]
+    },
+    {
+      "smpsHeaderVoice": [
+        "Mus_HTZ_Voices"
+      ]
+    },
+    {
+      "smpsHeaderChan": [
+        "0x6",
+        "0x3"
+      ]
+    },
+    {
+      "smpsHeaderTempo": [
+        "0x1",
+        "0x9"
+      ]
+    },
+    {
+      "smpsHeaderDAC": [
+        "Mus_HTZ_DAC"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus_HTZ_FM1",
+        "0xC",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus_HTZ_FM2",
+        "0xC",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus_HTZ_FM3",
+        "0x0",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus_HTZ_FM4",
+        "0xC",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "Mus_HTZ_FM5",
+        "0x0",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "Mus_HTZ_PSG1",
+        "0xF4",
+        "0x6",
+        "0x0",
+        "0x0"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "Mus_HTZ_PSG2",
+        "0xE8",
+        "0x5",
+        "0x0",
+        "0x0"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "Mus_HTZ_PSG3",
+        "0x0",
+        "0x0",
+        "0x0",
+        "0x0"
+      ]
+    }
+  ],
+  "voices": [
+    {
+      "smpsVcAlgorithm": "0x0",
+      "smpsVcFeedback": "0x1",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xA",
+          "smpsVcDecayRate2": "0x3",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x4"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xA",
+          "smpsVcDecayRate2": "0x4",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x13"
+        },
+        {
+          "smpsVcDetune": "0x7",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xE",
+          "smpsVcDecayRate2": "0x4",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x30"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x9",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x12",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x25"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x0",
+      "smpsVcFeedback": "0x7",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x10",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x6"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x14",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0x0",
+          "smpsVcTotalLevel": "0x20"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x8",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x14",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0x0",
+          "smpsVcTotalLevel": "0x2C"
+        },
+        {
+          "smpsVcDetune": "0x2",
+          "smpsVcCoarseFreq": "0x3",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x14",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0x0",
+          "smpsVcTotalLevel": "0x20"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x5",
+      "smpsVcFeedback": "0x1",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x19",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x13"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x19",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0xB"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x4",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x19",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x6"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xA",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x3",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x28"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x2",
+      "smpsVcFeedback": "0x7",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x13",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x3",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x6"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0xD",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xE",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x1",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x27"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x7",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0xE",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xE",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0xF",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x28"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0xE",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xE",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x1",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x17"
+        }
+      ]
+    }
+  ],
+  "SMPSplaylist": {
+    "Mus_HTZ_PSG1": [],
+    "Mus_HTZ_PSG2": [
+      {
+        "note": "Rst",
+        "duration": "0x40"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "smpsCall": "Mus_HTZ_Call08"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x40"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "smpsCall": "Mus_HTZ_Call09"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x40"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "smpsCall": "Mus_HTZ_Call08"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x40"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "smpsCall": "Mus_HTZ_Call0A"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x10"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "A2"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x10"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "A2"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x30"
+      },
+      {
+        "note": "A2",
+        "duration": "0x8"
+      },
+      {
+        "note": "G2"
+      },
+      {
+        "note": "A2"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x10"
+      },
+      {
+        "note": "F2",
+        "duration": "0x8"
+      },
+      {
+        "note": "E2"
+      },
+      {
+        "note": "F2"
+      },
+      {
+        "note": "G2"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x20"
+      },
+      {
+        "smpsCall": "Mus_HTZ_Call0F"
+      },
+      {
+        "note": "E3",
+        "duration": "0x4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "E3",
+        "duration": "0x18"
+      },
+      {
+        "note": "F3",
+        "duration": "0x4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0xC"
+      },
+      {
+        "note": "F3",
+        "duration": "0x10"
+      },
+      {
+        "note": "Fs3",
+        "duration": "0x4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0xC"
+      },
+      {
+        "note": "Fs3",
+        "duration": "0x10"
+      },
+      {
+        "note": "G3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x20"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "A2"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x10"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "A2"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x30"
+      },
+      {
+        "note": "A2",
+        "duration": "0x8"
+      },
+      {
+        "note": "G2"
+      },
+      {
+        "note": "A2"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x10"
+      },
+      {
+        "note": "F2",
+        "duration": "0x8"
+      },
+      {
+        "note": "E2"
+      },
+      {
+        "note": "F2"
+      },
+      {
+        "note": "G2"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x20"
+      },
+      {
+        "smpsCall": "Mus_HTZ_Call0F"
+      },
+      {
+        "note": "E3",
+        "duration": "0x4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "E3",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x70"
+      },
+      {
+        "jumpTo": "Mus_HTZ_PSG1"
+      }
+    ],
+    "Mus_HTZ_PSG3": [
+      "smpsStop"
+    ],
+    "Mus_HTZ_FM1": [
+      {
+        "smpsJump": [
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsAlterNote": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsModSet": [
+              "0x8",
+              "0x1",
+              "0x2",
+              "0x40"
+            ]
+          },
+          {
+            "note": "D4",
+            "duration": "0x40"
+          },
+          {
+            "smpsModSet": [
+              "0x8",
+              "0x1",
+              "0x3",
+              "0x20"
+            ]
+          },
+          "smpsNoAttack",
+          {
+            "note": "D4",
+            "duration": "0x20"
+          },
+          {
+            "smpsModSet": [
+              "0x8",
+              "0x1",
+              "0x3",
+              "0x20"
+            ]
+          },
+          "smpsNoAttack",
+          {
+            "note": "D4",
+            "duration": "0x20"
+          },
+          {
+            "smpsMod": false
+          },
+          {
+            "note": "C4",
+            "duration": "0x10"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x20"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x20"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x20"
+          },
+          {
+            "inheritedNote": true,
+            "duration": "0x10"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0C"
+          },
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0D"
+          },
+          {
+            "smpsSetvoice": "0x3"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call08"
+          },
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0E"
+          },
+          {
+            "smpsSetvoice": "0x3"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call09"
+          },
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0D"
+          },
+          {
+            "smpsSetvoice": "0x3"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call08"
+          },
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0E"
+          },
+          {
+            "smpsSetvoice": "0x3"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0A"
+          },
+          {
+            "smpsAlterNote": "0xFE"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x10"
+          },
+          {
+            "note": "Bb2",
+            "duration": "0x8"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Bb2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x10"
+          },
+          {
+            "note": "Bb2",
+            "duration": "0x8"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Bb2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x30"
+          },
+          {
+            "note": "A2",
+            "duration": "0x8"
+          },
+          {
+            "note": "G2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x10"
+          },
+          {
+            "note": "F2",
+            "duration": "0x8"
+          },
+          {
+            "note": "E2"
+          },
+          {
+            "note": "F2"
+          },
+          {
+            "note": "G2"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x20"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0F"
+          },
+          {
+            "note": "E3",
+            "duration": "0x4"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "E3",
+            "duration": "0x18"
+          },
+          {
+            "note": "F3",
+            "duration": "0x4"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "F3",
+            "duration": "0x10"
+          },
+          {
+            "note": "Fs3",
+            "duration": "0x4"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Fs3",
+            "duration": "0x10"
+          },
+          {
+            "note": "G3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x20"
+          },
+          {
+            "note": "Bb2",
+            "duration": "0x8"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Bb2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x10"
+          },
+          {
+            "note": "Bb2",
+            "duration": "0x8"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Bb2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x30"
+          },
+          {
+            "note": "A2",
+            "duration": "0x8"
+          },
+          {
+            "note": "G2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x10"
+          },
+          {
+            "note": "F2",
+            "duration": "0x8"
+          },
+          {
+            "note": "E2"
+          },
+          {
+            "note": "F2"
+          },
+          {
+            "note": "G2"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x20"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0F"
+          },
+          {
+            "note": "E3",
+            "duration": "0x4"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "E3",
+            "duration": "0x8"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x70"
+          }
+        ]
+      }
+    ],
+    "Mus_HTZ_Call0F": [
+      {
+        "note": "E3",
+        "duration": "0x4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0xC"
+      },
+      {
+        "note": "E3",
+        "duration": "0x10"
+      },
+      {
+        "note": "F3",
+        "duration": "0x4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0xC"
+      },
+      {
+        "note": "F3",
+        "duration": "0x10"
+      },
+      {
+        "note": "Fs3",
+        "duration": "0x4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0xC"
+      },
+      {
+        "note": "Fs3",
+        "duration": "0x10"
+      },
+      {
+        "note": "G3",
+        "duration": "0x20"
+      }
+    ],
+    "Mus_HTZ_Call0D": [
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      },
+      {
+        "note": "G3",
+        "duration": "0x8"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Eb4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4",
+        "duration": "0x8"
+      }
+    ],
+    "Mus_HTZ_Call0E": [
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      },
+      {
+        "note": "G4",
+        "duration": "0x18"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Eb4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4",
+        "duration": "0x8"
+      }
+    ],
+    "Mus_HTZ_FM2": [
+      {
+        "smpsJump": [
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsAlterPitch": "0xF4"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsSetvoice": "0x3"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call08"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsSetvoice": "0x3"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call09"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsSetvoice": "0x3"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call08"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsSetvoice": "0x3"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0A"
+          },
+          {
+            "smpsAlterPitch": "0xC"
+          },
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0B"
+          },
+          {
+            "note": "C4",
+            "duration": "0x40"
+          },
+          "smpsNoAttack",
+          {
+            "note": "C4",
+            "duration": "0x40"
+          },
+          "smpsNoAttack",
+          {
+            "note": "C4",
+            "duration": "0x10"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call0B"
+          },
+          {
+            "note": "C4",
+            "duration": "0x40"
+          },
+          "smpsNoAttack",
+          {
+            "note": "C4",
+            "duration": "0x40"
+          },
+          "smpsNoAttack",
+          {
+            "note": "C4",
+            "duration": "0x10"
+          },
+          {
+            "note": "G4",
+            "duration": "0x4"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "G4",
+            "duration": "0x8"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x70"
+          }
+        ]
+      }
+    ],
+    "Mus_HTZ_Call0B": [
+      {
+        "note": "Rst",
+        "duration": "0x10"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x18"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D4",
+        "duration": "0x18"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      },
+      {
+        "note": "E4",
+        "duration": "0x18"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      },
+      {
+        "note": "F4",
+        "duration": "0x18"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      },
+      {
+        "note": "E4",
+        "duration": "0x18"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x18"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      }
+    ],
+    "Mus_HTZ_Call0C": [
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      },
+      {
+        "smpsAlterVol": "0x18"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x6"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x6"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x6"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x6"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "D4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x4"
+      }
+    ],
+    "Mus_HTZ_Call08": [
+      {
+        "note": "Rst",
+        "duration": "0x10"
+      },
+      {
+        "note": "G3",
+        "duration": "0x8"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x18"
+      },
+      {
+        "note": "G3",
+        "duration": "0x8"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Eb4"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      }
+    ],
+    "Mus_HTZ_Call09": [
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x18"
+      },
+      {
+        "note": "A3",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x18"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb3"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      }
+    ],
+    "Mus_HTZ_Call0A": [
+      {
+        "note": "Rst",
+        "duration": "0x8"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x18"
+      },
+      {
+        "note": "A3",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x18"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4",
+        "duration": "0x18"
+      }
+    ],
+    "Mus_HTZ_FM3": [
+      {
+        "smpsSetvoice": "0x2"
+      },
+      {
+        "smpsAlterNote": "0x4"
+      },
+      {
+        "smpsJump": [
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0x2",
+              {
+                "note": "G4",
+                "duration": "0x4"
+              },
+              "smpsNoAttack",
+              {
+                "note": "A4",
+                "duration": "0x7C"
+              },
+              {
+                "note": "F4",
+                "duration": "0x4"
+              },
+              "smpsNoAttack",
+              {
+                "note": "G4",
+                "duration": "0x7C"
+              },
+              {
+                "note": "Eb4",
+                "duration": "0x4"
+              },
+              "smpsNoAttack",
+              {
+                "note": "F4",
+                "duration": "0x7C"
+              },
+              {
+                "note": "F4",
+                "duration": "0x4"
+              },
+              "smpsNoAttack",
+              {
+                "note": "G4",
+                "duration": "0x7C"
+              }
+            ]
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call07"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call07"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call07"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call07"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0xF",
+              {
+                "note": "C5",
+                "duration": "0x8"
+              }
+            ]
+          },
+          {
+            "note": "Rst",
+            "duration": "0x8"
+          }
+        ]
+      }
+    ],
+    "Mus_HTZ_Call07": [
+      {
+        "note": "A4",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "G4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x18"
+      },
+      {
+        "note": "A4",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "G4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x18"
+      }
+    ],
+    "Mus_HTZ_FM5": [
+      {
+        "smpsSetvoice": "0x2"
+      },
+      {
+        "smpsJump": [
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0x2",
+              {
+                "note": "Eb4",
+                "duration": "0x4"
+              },
+              "smpsNoAttack",
+              {
+                "note": "F4",
+                "duration": "0x7C"
+              },
+              {
+                "note": "D4",
+                "duration": "0x4"
+              },
+              "smpsNoAttack",
+              {
+                "note": "E4",
+                "duration": "0x7C"
+              },
+              {
+                "note": "C4",
+                "duration": "0x4"
+              },
+              "smpsNoAttack",
+              {
+                "note": "D4",
+                "duration": "0x7C"
+              },
+              {
+                "note": "D4",
+                "duration": "0x4"
+              },
+              "smpsNoAttack",
+              {
+                "note": "E4",
+                "duration": "0x7C"
+              }
+            ]
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call06"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call06"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call06"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call06"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x40"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0xF",
+              {
+                "note": "Bb4",
+                "duration": "0x8"
+              }
+            ]
+          },
+          {
+            "note": "Rst",
+            "duration": "0x8"
+          }
+        ]
+      }
+    ],
+    "Mus_HTZ_Call06": [
+      {
+        "note": "F4",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "F4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "E4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x18"
+      },
+      {
+        "note": "F4",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "F4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "E4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x18"
+      }
+    ],
+    "Mus_HTZ_FM4": [
+      {
+        "smpsSetvoice": "0x0"
+      },
+      {
+        "smpsJump": [
+          {
+            "smpsCall": "Mus_HTZ_Call02"
+          },
+          {
+            "note": "Eb3",
+            "duration": "0x8"
+          },
+          {
+            "note": "E3"
+          },
+          {
+            "note": "B2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x28"
+          },
+          {
+            "note": "A1",
+            "duration": "0x8"
+          },
+          {
+            "note": "A1",
+            "duration": "0x10"
+          },
+          {
+            "note": "Bb1"
+          },
+          {
+            "note": "B1"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call02"
+          },
+          {
+            "note": "Eb3",
+            "duration": "0x8"
+          },
+          {
+            "note": "E3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x70"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call03"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call04"
+          },
+          {
+            "note": "B1",
+            "duration": "0x10"
+          },
+          {
+            "note": "B2",
+            "duration": "0x8"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call03"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call04"
+          },
+          {
+            "note": "B1",
+            "duration": "0x10"
+          },
+          {
+            "note": "B2",
+            "duration": "0x8"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call03"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call04"
+          },
+          {
+            "note": "B1",
+            "duration": "0x10"
+          },
+          {
+            "note": "B2",
+            "duration": "0x8"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call03"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call04"
+          },
+          {
+            "note": "C2",
+            "duration": "0x10"
+          },
+          {
+            "note": "C3",
+            "duration": "0x8"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call05"
+          },
+          {
+            "note": "C2",
+            "duration": "0x8"
+          },
+          {
+            "note": "C2",
+            "duration": "0x18"
+          },
+          {
+            "note": "D2",
+            "duration": "0x8"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "D2",
+            "duration": "0x10"
+          },
+          {
+            "note": "Eb2",
+            "duration": "0x8"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb2",
+            "duration": "0x10"
+          },
+          {
+            "note": "E2",
+            "duration": "0x8"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "E2",
+            "duration": "0x10"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call05"
+          },
+          {
+            "note": "C2",
+            "duration": "0x8"
+          },
+          {
+            "note": "C2"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x70"
+          }
+        ]
+      }
+    ],
+    "Mus_HTZ_Call02": [
+      {
+        "note": "C2",
+        "duration": "0x8"
+      },
+      {
+        "note": "G2"
+      },
+      {
+        "note": "A2"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D3"
+      },
+      {
+        "note": "C3",
+        "duration": "0x18"
+      }
+    ],
+    "Mus_HTZ_Call03": [
+      {
+        "note": "C2",
+        "duration": "0x10"
+      },
+      {
+        "note": "C3",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A1",
+        "duration": "0x10"
+      },
+      {
+        "note": "A2",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb1",
+        "duration": "0x10"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "B1",
+        "duration": "0x10"
+      },
+      {
+        "note": "Eb3",
+        "duration": "0x8"
+      },
+      {
+        "note": "D3"
+      }
+    ],
+    "Mus_HTZ_Call04": [
+      {
+        "note": "C2",
+        "duration": "0x8"
+      },
+      {
+        "note": "C2",
+        "duration": "0x18"
+      },
+      {
+        "note": "A1",
+        "duration": "0x10"
+      },
+      {
+        "note": "A2",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb1",
+        "duration": "0x10"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      }
+    ],
+    "Mus_HTZ_Call05": [
+      {
+        "note": "Bb1",
+        "duration": "0x10"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "Bb1",
+        "duration": "0x10"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "Bb1",
+        "duration": "0x10"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "Bb1",
+        "duration": "0x10"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "A1"
+      },
+      {
+        "note": "A1",
+        "duration": "0x18"
+      },
+      {
+        "note": "A1",
+        "duration": "0x10"
+      },
+      {
+        "note": "A2",
+        "duration": "0x8"
+      },
+      {
+        "note": "A2"
+      },
+      {
+        "note": "G1",
+        "duration": "0x10"
+      },
+      {
+        "note": "G2",
+        "duration": "0x8"
+      },
+      {
+        "note": "G2"
+      },
+      {
+        "note": "G1",
+        "duration": "0x10"
+      },
+      {
+        "note": "G2",
+        "duration": "0x8"
+      },
+      {
+        "note": "G2"
+      },
+      {
+        "note": "C2"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C2",
+        "duration": "0x10"
+      },
+      {
+        "note": "D2",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D2",
+        "duration": "0x10"
+      },
+      {
+        "note": "Eb2",
+        "duration": "0x8"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Eb2",
+        "duration": "0x10"
+      },
+      {
+        "note": "E2"
+      },
+      {
+        "note": "G1",
+        "duration": "0x8"
+      },
+      {
+        "note": "A1"
+      }
+    ],
+    "Mus_HTZ_DAC": [
+      {
+        "smpsJump": [
+          {
+            "note": "Kick",
+            "duration": "0x30"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x10"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x40"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x8"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x28"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x10"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x20"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x30"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x10"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x40"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x8"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x28"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x10"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x20"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x10"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x8"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call00"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call01"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call00"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call01"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x10"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x8"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call00"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call01"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x10"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x8"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call00"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x8"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x18"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x10"
+          },
+          {
+            "note": "Kick"
+          },
+          {
+            "note": "Kick"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x8"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call00"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call01"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x10"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x8"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call00"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call01"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call00"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call01"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x10"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x8"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "Mus_HTZ_Call00"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x8"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x10"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x8"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x10"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x8"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x10"
+          },
+          {
+            "note": "Kick"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x8"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x10"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x8"
+          },
+          {
+            "note": "Snare"
+          }
+        ]
+      }
+    ],
+    "Mus_HTZ_Call00": [
+      {
+        "note": "Kick",
+        "duration": "0x20"
+      },
+      {
+        "note": "Snare",
+        "duration": "0x10"
+      },
+      {
+        "note": "Kick"
+      },
+      {
+        "note": "Kick",
+        "duration": "0x20"
+      },
+      {
+        "note": "Snare"
+      }
+    ],
+    "Mus_HTZ_Call01": [
+      {
+        "note": "Kick",
+        "duration": "0x8"
+      },
+      {
+        "note": "Kick",
+        "duration": "0x18"
+      },
+      {
+        "note": "Snare",
+        "duration": "0x10"
+      },
+      {
+        "note": "Kick"
+      },
+      {
+        "note": "Kick",
+        "duration": "0x20"
+      }
+    ]
+  }
+}

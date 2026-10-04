@@ -175,7 +175,9 @@
 #define ArtTile_Warp 0x541
 #define ArtTile_Mini_Sonic 0x551
 #define ArtTile_Bonuses 0x570
+#ifndef ArtTile_Signpost // (a game built on this one, Sonic 2, puts it elsewhere)
 #define ArtTile_Signpost 0x680
+#endif
 
 // Sega Screen
 #define ArtTile_Sega_Tiles 0x000

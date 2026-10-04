@@ -261,11 +261,11 @@ void Obj_Bridge(Object *obj) {
         obj->mappings = Mappings_BridgeGHZ;
         obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Bridge);
         obj->priority = 3;
-        if (LEVEL_ZONE(level_id) == 3) { // Emerald Hill
+        if (LEVEL_ZONE(level_id) == ZoneId_EHZ) {
             obj->mappings = Mappings_BridgeEHZ;
             obj->tile = TILE_MAP(0, 2, 0, 0, 0x3C6);
         }
-        if (LEVEL_ZONE(level_id) == 4) { // Hidden Palace
+        if (LEVEL_ZONE(level_id) == ZoneId_HPZ) {
             obj->routine += 4;
             obj->mappings = Mappings_BridgeHPZ;
             obj->tile = TILE_MAP(0, 3, 0, 0, 0x300);

@@ -7,7 +7,7 @@
 
 #include "Macros.h"
 
-// The signpost for Sonic 2 (Nick Arcade's object 0D): Sonic 1's with its own art, mappings and animations, and its own sparkle places (two of them are mirrored)
+// The signpost for Sonic 2 (the Simon Wai prototype's object 0D): Sonic 1's with its own art, mappings and animations, and its own sparkle places (two of them are mirrored). Its art is loaded over the spikes' place (tile $434) when the act ends, and its sparkles are rings of tile $7B2 (Sonic 1's ring place, which is not the ring's here: the sparkles are not what they were)
 static const int8_t sparkle_pos[8][2] = {
     { -24, -16 },
     { 8, 8 },
@@ -75,7 +75,7 @@ void Obj_Signpost(Object* obj) {
 
                 // Set sparkle drawing information
                 sparkle->mappings = Mappings_RingREV01;
-                sparkle->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
+                sparkle->tile = TILE_MAP(0, 1, 0, 0, 0x7B2);
                 sparkle->render.b = 0;
                 sparkle->render.f.level_fg = true;
                 sparkle->priority = 2;
