@@ -359,6 +359,7 @@ resources:
   - "Art/CPZMetalBlock"
   - "Art/CPZDroplet"
   - "Art/NGHZWaterSurface"
+  - "Art/CNZCards"
   - "Art/AirBubbles"
   - "Art/NGHZLeaves"
   - "Art/NGHZArrowShooter"

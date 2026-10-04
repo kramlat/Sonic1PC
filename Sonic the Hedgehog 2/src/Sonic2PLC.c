@@ -132,6 +132,7 @@
 #include "Resource/Art/CPZMetalBlock.h"
 #include "Resource/Art/CPZDroplet.h"
 #include "Resource/Art/NGHZWaterSurface.h"
+#include "Resource/Art/CNZCards.h"
 #include "Resource/Art/AirBubbles.h"
 #include "Resource/Art/NGHZLeaves.h"
 #include "Resource/Art/NGHZArrowShooter.h"
@@ -254,36 +255,16 @@ static const PLCList PLC_GHZ2 = { // Neo_Green_Hill_Sprites_2: the air bubbles a
 // ---------------------------------------------------------------------------
 // Pattern load cues - Labyrinth
 // ---------------------------------------------------------------------------
-static const PLCList PLC_LZ = {
-    11,
+static const PLCList PLC_LZ = { // Casino Night (the prototype's Casino_Night_Sprites_1; its addresses in VRAM are bytes, here in tiles): the turning cards
+    1,
     (const PLC[]) {
-        { Art_LZBlock1,      ART_VRAM(ArtTile_LZ_Block_1) },
-        { Art_LZBlock2,      ART_VRAM(ArtTile_LZ_Block_2) },
-        { Art_Splash,        ART_VRAM(ArtTile_LZ_Splash) }, // waterfalls and splash -- object art, not part of the Kosinski level art
-        { Art_Water,         ART_VRAM(ArtTile_LZ_Water_Surface) },
-        { Art_LZSpikeBall,   ART_VRAM(ArtTile_LZ_Spikeball_Chain) },
-        { Art_FlapDoor,      ART_VRAM(ArtTile_LZ_Flapping_Door) },
-        { Art_Bubbles,       ART_VRAM(ArtTile_LZ_Bubbles) },
-        { Art_LZBlock3,      ART_VRAM(ArtTile_LZ_Moving_Block) },
-        { Art_LZDoor1,       ART_VRAM(ArtTile_LZ_Door) },
-        { Art_Harpoon,       ART_VRAM(ArtTile_LZ_Harpoon) },
-        { Art_Burrobot,      ART_VRAM(ArtTile_Burrobot) },
+        { Art_CNZCards,      ART_VRAM(0x7A00 >> 5) },
     }
 };
 
-static const PLCList PLC_LZ2 = {
-    14,
+static const PLCList PLC_LZ2 = { // Casino_Night_Sprites_2: the spikes, the diagonal spring and the straight springs
+    4,
     (const PLC[]) {
-        { Art_LZPole,        ART_VRAM(ArtTile_LZ_Pole) },
-        { Art_LZDoor2,       ART_VRAM(ArtTile_LZ_Blocks) },
-        { Art_LZWheel,       ART_VRAM(ArtTile_LZ_Conveyor_Belt) },
-        { Art_Gargoyle,      ART_VRAM(ArtTile_LZ_Gargoyle) },
-        { Art_LZSonic,       ART_VRAM(ArtTile_LZ_Sonic_Drowning) },
-        { Art_LZPlatfm,      ART_VRAM(ArtTile_LZ_Rising_Platform) },
-        { Art_Orbinaut,      ART_VRAM(ArtTile_LZ_Orbinaut) },
-        { Art_Jaws,          ART_VRAM(ArtTile_Jaws) },
-        { Art_LZSwitch,      ART_VRAM(ArtTile_GHZ_SLZ_Smashable_Wall) },
-        { Art_Cork,          ART_VRAM(ArtTile_LZ_Cork) },
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },

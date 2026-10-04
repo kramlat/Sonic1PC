@@ -264,7 +264,7 @@ const LevelHeader level_header[ZoneId_Num] = {
     [0x08] = { PlcId_SYZ, S2Art_HPZ, 0, S2Map16_HPZ, PalId_HPZ, S2Map128_HPZ },
     [0x0A] = { PlcId_SBZ, S2Art_OOZ, 0, S2Map16_OOZ, PalId_OOZ, S2Map128_OOZ },
     [0x0B] = { PlcId_SBZ, S2Art_DHZ, 0, S2Map16_DHZ, PalId_DHZ, S2Map128_DHZ },
-    [0x0C] = { PlcId_SBZ, S2Art_CNZ, 0, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ },
+    [0x0C] = { PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ },
     [0x0D] = { PlcId_MZ, S2Art_CPZ, PlcId_MZ2, S2Map16_CPZ, PalId_CPZ, S2Map128_CPZ },
     [0x0F] = { PlcId_GHZ, S2Art_NGHZ, PlcId_GHZ2, S2Map16_NGHZ, PalId_NGHZ, S2Map128_NGHZ },
 };
