@@ -19,7 +19,7 @@ static void DynamicWaterHeight(void) {
         // DynamicWater_CPZ2: past x $1DE0 the water goes up to $510
         if (scrpos_x.f.u >= 0x1DE0)
             wtr_pos3 = 0x510;
-    } else if (LEVEL_ACT(level_id) == 0) {
+    } else if (LEVEL_ZONE(level_id) == ZoneId_HPZ && LEVEL_ACT(level_id) == 0) { // (Neo Green Hill's water stays where it starts)
         uint8_t pad2 = Joypad_GetState2();
         if ((pad2 & JPAD_UP) && wtr_pos3 != 0)
             wtr_pos3--;

@@ -515,20 +515,34 @@ void ObjPosLoad(void) {
 #include "Object/WaterSurface.h"
 
 bool Level_HasWater(void) {
-    return LEVEL_ZONE(level_id) == ZoneId_HPZ || (LEVEL_ZONE(level_id) == ZoneId_CPZ && LEVEL_ACT(level_id) == 1); // (Chemical Plant's second act: the first has none)
+    return LEVEL_ZONE(level_id) == ZoneId_HPZ || LEVEL_ZONE(level_id) == ZoneId_ARZ || (LEVEL_ZONE(level_id) == ZoneId_CPZ && LEVEL_ACT(level_id) == 1); // (Chemical Plant's second act: the first has none; Neo Green Hill's both do)
 }
 
 // WaterHeight: the first act's is $600 (the lower the number the higher the water; Tails' pad moves it)
 int16_t Level_WaterStartHeight(void) {
     if (LEVEL_ZONE(level_id) == ZoneId_CPZ)
         return 0x710; // (the prototype's WaterHeight: Chemical Plant's second act)
+    if (LEVEL_ZONE(level_id) == ZoneId_ARZ)
+        return LEVEL_ACT(level_id) == 0 ? 0x410 : 0x510; // (Neo Green Hill's)
     static const int16_t WaterHeight[4] = { 0x600, 0x328, 0x900, 0x228 };
     return WaterHeight[LEVEL_ACT(level_id)];
 }
 
 void Level_LoadWaterPalettes(bool sonic) {
-    if (LEVEL_ZONE(level_id) == ZoneId_CPZ) { // (the prototype's CPZ underwater palette covers all four lines, Sonic's too)
-        PalLoad4_Water(PalId_CPZWater);
+    // The prototype's CPZ and NGHZ underwater palettes cover all four lines, Sonic's first row too: that row is the one that is loaded live (PalLoad3_Water, as Sonic 1's Sonic palette is) and
+    // the whole of it is the reference the fades go to (PalLoad4_Water); the live other three are reached by the fade-in. (Loading only the whole one left Sonic's row black underwater.)
+    if (LEVEL_ZONE(level_id) == ZoneId_CPZ) {
+        if (sonic)
+            PalLoad3_Water(PalId_CPZWaterSonic);
+        else
+            PalLoad4_Water(PalId_CPZWater);
+        return;
+    }
+    if (LEVEL_ZONE(level_id) == ZoneId_ARZ) {
+        if (sonic)
+            PalLoad3_Water(PalId_NGHZWaterSonic);
+        else
+            PalLoad4_Water(PalId_NGHZWater);
         return;
     }
     if (sonic)
@@ -539,13 +553,13 @@ void Level_LoadWaterPalettes(bool sonic) {
 
 // Two surfaces (Nick Arcade's), each as wide as the screen was ($80 each side of its place), and a third for pictures wider than the original; their places follow the camera
 void Level_MakeWaterSurfaces(void) {
-    // (the extra one has a slot of its own here: Sonic 1's, 28, is Tails' in Sonic 2)
+    // (the extra one has a slot of its own here: Sonic 1's, 28, is Tails' in Sonic 2, and 27 is the splash's and the spin dash dust's (it was there, which kept the splash from ever showing))
     objects[WATERSURFACE_SLOT_LEFT].type = 0x04;
     objects[WATERSURFACE_SLOT_LEFT].scratch.u8[0] = 0;
     objects[WATERSURFACE_SLOT_RIGHT].type = 0x04;
     objects[WATERSURFACE_SLOT_RIGHT].scratch.u8[0] = 1;
-    objects[27].type = 0x04;
-    objects[27].scratch.u8[0] = 2;
+    objects[22].type = 0x04;
+    objects[22].scratch.u8[0] = 2;
     if (camera_split) { // the second view has its own three, along its own camera
         for (int i = 0; i < 3; i++) {
             objects[26 - i].type = 0x04;

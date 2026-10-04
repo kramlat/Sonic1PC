@@ -10,7 +10,9 @@
 #include "Macros.h"
 
 #include "Resource/Animation/WaterSplash.h"
+#include "Resource/Animation/WaterSplashSW.h"
 #include "Resource/Mappings/WaterSplash.h"
+#include "Resource/Mappings/WaterSplashSW.h"
 #include "Resource/Mappings/NAWaterSurface.h"
 
 // The frame of the surface on each frame of its cycle (Ani_WaterSurface)
@@ -44,7 +46,7 @@ void Obj_NAWaterSurface(Object *obj) {
     DisplaySprite(obj);
 }
 
-static bool splash_requested;
+static bool splash_requested, splash_sw;
 
 // Sonic enters or leaves the water: the splash plays once, where he is, at the water's height
 void NAWaterSplash_Request(void) {
@@ -59,8 +61,10 @@ void Obj_NAWaterSplash(Object *obj) {
             return; // (waiting: the object is made when the level starts)
         splash_requested = false;
         obj->routine += 2;
-        obj->mappings = Mappings_WaterSplash;
-        obj->tile = TILE_MAP(0, 2, 0, 0, 0x259);
+        // The Simon Wai prototype's own splash (Obj_0x08_Water_Splash) has the art of the air bubbles' list ($A000: its tiles after $49C are the splash's); Hidden Palace keeps Nick Arcade's
+        splash_sw = LEVEL_ZONE(level_id) == ZoneId_CPZ || LEVEL_ZONE(level_id) == ZoneId_ARZ;
+        obj->mappings = splash_sw ? Mappings_WaterSplashSW : Mappings_WaterSplash;
+        obj->tile = splash_sw ? TILE_MAP(0, 2, 0, 0, 0x49C) : TILE_MAP(0, 2, 0, 0, 0x259);
         obj->render.b = 0;
         obj->render.f.level_fg = true;
         obj->priority = 1;
@@ -71,7 +75,7 @@ void Obj_NAWaterSplash(Object *obj) {
         // Fallthrough
     case 2:
         obj->pos.l.y.f.u = wtr_pos1;
-        AnimateSprite(obj, Animation_WaterSplash);
+        AnimateSprite(obj, splash_sw ? Animation_WaterSplashSW : Animation_WaterSplash);
         DisplaySprite(obj);
         break;
     default: // the animation is over (its last command sent the object on): back to waiting

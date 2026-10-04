@@ -22,6 +22,7 @@ uint8_t btn_pushtime2;
 #include "Resource/Demo/NAHTZ.h"
 #include "Resource/Demo/NASS.h"
 
+#include "Resource/Demo/SWEHZTails.h"
 #include "Resource/Demo/EndingGHZ1.h"
 #include "Resource/Demo/EndingGHZ2.h"
 #include "Resource/Demo/EndingLZ.h"
@@ -257,6 +258,9 @@ void RecordDemoFrame(void) {
 }
 
 // Demo playback
+static uint16_t tails_demo_pos;
+static uint8_t tails_demo_time, tails_demo_last;
+
 void MoveSonicInDemo(void) {
     if (!demo)
         return;
@@ -273,6 +277,22 @@ void MoveSonicInDemo(void) {
         demo_data = ending_demo_ptr[credits_num - 1];
     else
         demo_data = intro_demo_ptr[(gamemode == GameMode_Special) ? ZoneId_SS : LEVEL_ZONE(level_id)];
+
+    // The Simon Wai prototype's Emerald Hill demo is a two-player one: Tails plays pad 2 from a demo of his own (Demo_Tails_Ghz) -- a recorded demo of the split screen has no second pad
+    if (demo > 0 && two_player_mode && !cli_demo_override && LEVEL_ZONE(level_id) == ZoneId_EHZ) {
+        if (btn_pushtime1 == 0 && btn_pushtime2 == demo_data[1] - 1) { // (the start of the demo: Sonic's has not moved on yet)
+            tails_demo_pos = 0;
+            tails_demo_time = Demo_SWEHZTails[1] - 1;
+        }
+        const uint8_t *tails = Demo_SWEHZTails + tails_demo_pos;
+        jpad2_hold = tails[0];
+        jpad2_press = tails[0] & (uint8_t)~tails_demo_last;
+        tails_demo_last = tails[0];
+        if (--tails_demo_time == 0xFF) {
+            tails_demo_time = tails[3];
+            tails_demo_pos += 2;
+        }
+    }
 
     // Offset demo address
     demo_data += btn_pushtime1;

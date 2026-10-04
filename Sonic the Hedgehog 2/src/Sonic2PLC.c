@@ -131,6 +131,11 @@
 #include "Resource/Art/CPZStairBlock.h"
 #include "Resource/Art/CPZMetalBlock.h"
 #include "Resource/Art/CPZDroplet.h"
+#include "Resource/Art/NGHZWaterSurface.h"
+#include "Resource/Art/AirBubbles.h"
+#include "Resource/Art/NGHZLeaves.h"
+#include "Resource/Art/NGHZArrowShooter.h"
+#include "Resource/Art/NGHZWaterSplash.h"
 #include "Resource/Art/LeverSpring.h"
 #include "Resource/Art/HPZBridge.h"
 #include "Resource/Art/Redz.h"
@@ -226,31 +231,24 @@ static const PLCList PLC_GameOver = {
 // ---------------------------------------------------------------------------
 // Pattern load cues - Green Hill
 // ---------------------------------------------------------------------------
-static const PLCList PLC_GHZ = {
-    10,
+static const PLCList PLC_GHZ = { // Neo Green Hill (the prototype's Neo_Green_Hill_Sprites_1; its addresses in VRAM are bytes, here in tiles): the water's surface, the leaves, the arrow shooter and its arrows, the splash
+    4,
     (const PLC[]) {
-        { Art_GHZStalk,      ART_VRAM(ArtTile_GHZ_Flower_Stalk) },
-        { Art_GHZRock,       ART_VRAM(ArtTile_GHZ_Purple_Rock) },
-        { Art_Crabmeat,      ART_VRAM(ArtTile_Crabmeat) },
-        { Art_BuzzBomber,    ART_VRAM(ArtTile_Buzz_Bomber) },
-        { Art_Chopper,       ART_VRAM(ArtTile_Chopper) },
-        { Art_Newtron,       ART_VRAM(ArtTile_Newtron) },
-        { Art_Motobug,       ART_VRAM(ArtTile_Moto_Bug) },
-        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
-        { Art_SpringH,       ART_VRAM(ArtTile_Spring_Horizontal) },
-        { Art_SpringV,       ART_VRAM(ArtTile_Spring_Vertical) },
+        { Art_NGHZWaterSurface, ART_VRAM(0x8000 >> 5) },
+        { Art_NGHZLeaves,       ART_VRAM(0x8200 >> 5) },
+        { Art_NGHZArrowShooter, ART_VRAM(0x82E0 >> 5) },
+        { Art_NGHZWaterSplash,  ART_VRAM(0x8500 >> 5) },
     }
 };
 
-static const PLCList PLC_GHZ2 = {
-    6,
+static const PLCList PLC_GHZ2 = { // Neo_Green_Hill_Sprites_2: the air bubbles and numbers (which also hold the water splash), the spikes, the lever spring and the straight springs
+    5,
     (const PLC[]) {
-        { Art_GHZSwing,      ART_VRAM(ArtTile_GHZ_MZ_Swing) },
-        { Art_GHZBridge,     ART_VRAM(ArtTile_GHZ_Bridge) },
-        { Art_GHZLog,        ART_VRAM(ArtTile_GHZ_Spike_Pole) },
-        { Art_GHZBall,       ART_VRAM(ArtTile_GHZ_Giant_Ball) },
-        { Art_GHZWall1,      ART_VRAM(ArtTile_GHZ_SLZ_Smashable_Wall) },
-        { Art_GHZWall2,      ART_VRAM(ArtTile_GHZ_Edge_Wall) },
+        { Art_AirBubbles,    ART_VRAM(0xA000 >> 5) },
+        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
+        { Art_LeverSpring,   ART_VRAM(0x8800 >> 5) },
+        { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
+        { Art_SpringSide,    ART_VRAM(ArtTile_SpringSide) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -310,9 +308,10 @@ static const PLCList PLC_MZ = { // Chemical Plant (the prototype's Chemical_Plan
     }
 };
 
-static const PLCList PLC_MZ2 = { // Chemical_Plant_Sprites_2 (without the air bubbles, whose art is not ported yet): the spikes, the droplets (the worms), the lever spring and the straight springs; no diagonal springs'
-    5,                           // art: the diagonal art of Sonic 1's places sits on the lever spring's tiles
+static const PLCList PLC_MZ2 = { // Chemical_Plant_Sprites_2: the air bubbles and numbers (which also hold the water splash), the spikes, the droplets (the worms), the lever spring and the straight springs; no diagonal springs'
+    6,                           // art: the diagonal art of Sonic 1's places sits on the lever spring's tiles
     (const PLC[]) {
+        { Art_AirBubbles,    ART_VRAM(0xA000 >> 5) },
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_CPZDroplet,    ART_VRAM(0x8780 >> 5) },
         { Art_LeverSpring,   ART_VRAM(0x8800 >> 5) },

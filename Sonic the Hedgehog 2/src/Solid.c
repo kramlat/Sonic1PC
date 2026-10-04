@@ -62,7 +62,7 @@ int32_t Solid_Character(Object *obj, Object *chr, int who, int16_t x_rad, int16_
         if (slope == NULL)
             MoveOnObject(obj, chr, x, obj->pos.l.y.f.u - y_walk);
         else if (chr->status.p.f.object_stand)
-            MoveOnObject(obj, chr, x, obj->pos.l.y.f.u - SlopeHeight(obj, chr, x_rad, slope) + slope[0]); // (the height as the table says it: the top of the object, not relative to its first column)
+            MoveOnObject(obj, chr, x, obj->pos.l.y.f.u - SlopeHeight(obj, chr, x_rad, slope) - slope[0]); // (the height as the table says it: the top of the object, not relative to its first column, as the prototype's MvSonicOnSlope has it. It was + here, which sank him 2 x the table's first entry into the slope: 16 pixels on a lever spring)
         return 0;
     }
 

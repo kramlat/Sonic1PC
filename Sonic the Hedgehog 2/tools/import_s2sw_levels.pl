@@ -28,10 +28,10 @@ my %zones = (
     'Chemical Plant' => ['CPZ', 0x0D], 'Neo Green Hill' => ['NGHZ', 0x0F],
 );
 # What each zone's header names: its sprite art list (PlcId; the zones that are not built yet share Hill Top's, which has the common art) and its palette (PalId)
-my %plc = (EHZ => 'PlcId_SLZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', CPZ => 'PlcId_MZ');
-my %plc2 = (CPZ => 'PlcId_MZ2'); # (the second list of a zone, loaded with the first: only the zones that have a second one)
+my %plc = (EHZ => 'PlcId_SLZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ');
+my %plc2 = (CPZ => 'PlcId_MZ2', NGHZ => 'PlcId_GHZ2'); # (the second list of a zone, loaded with the first: only the zones that have a second one)
 # The zones whose objects are ported: the others have the object layouts imported but none put in their level yet (their objects come with the zone)
-my %objects_built = map { $_ => 1 } qw(EHZ HTZ HPZ CPZ);
+my %objects_built = map { $_ => 1 } qw(EHZ HTZ HPZ CPZ NGHZ);
 my %pal = (EHZ => 'PalId_EHZ', HTZ => 'PalId_HTZ', HPZ => 'PalId_HPZ', CPZ => 'PalId_CPZ', WZ => 'PalId_WZ', MTZ => 'PalId_MTZ', OOZ => 'PalId_OOZ', DHZ => 'PalId_DHZ', CNZ => 'PalId_CNZ', NGHZ => 'PalId_NGHZ');
 
 sub slurp { my $p = shift; open my $f, '<:raw', $p or die "$p: $!\n"; local $/; my $d = <$f>; close $f; $d }

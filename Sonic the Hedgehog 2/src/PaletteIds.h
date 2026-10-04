@@ -31,6 +31,9 @@ enum {
 	PalId_CNZ,
 	PalId_NGHZ,
 	PalId_CPZWater,
+	PalId_NGHZWater,
+	PalId_CPZWaterSonic,
+	PalId_NGHZWaterSonic,
 
 	PalId_EHZ = PalId_SLZ,
 	PalId_CPZ = PalId_MZ,

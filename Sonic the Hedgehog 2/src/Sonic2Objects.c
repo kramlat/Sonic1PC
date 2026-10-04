@@ -126,6 +126,20 @@ void Obj_HTZSeesaw(Object *obj);
 void Obj_HTZLift(Object *obj);
 void Obj_DiagSpring(Object *obj);
 void Obj_CPZTube(Object *obj);
+void Obj_CPZElevator(Object *obj);
+void Obj_CPZBooster(Object *obj);
+void Obj_CPZPipeTipper(Object *obj);
+void Obj_CPZBlock(Object *obj);
+void Obj_ArrowShooter(Object *obj);
+void Obj_NGHZLeaves(Object *obj);
+void Obj_SwingDispatch(Object *obj);
+void Obj_CPZWorm(Object *obj);
+void Obj_FloatingPlatform(Object *obj);
+void Obj_CPZBarrier(Object *obj);
+void Obj_TubeCover(Object *obj);
+void Obj_CPZInvisibleBlock(Object *obj);
+void Obj_CPZRotor(Object *obj);
+void Obj_CPZSlider(Object *obj);
 void Obj_CPZTubeSpring(Object *obj);
 void Obj_Electrocuter(Object *obj);
 void Obj_SmallDoor(Object *obj);
@@ -175,8 +189,8 @@ const ObjectFunc game_objects[] = {
 	/* 08 ObjId_Splash              */ Obj_NAWaterSplash, // (Nick Arcade's water splash: waits in the slot Sonic 1 puts the spin dash dust in until it is asked for)
 	/* 09 ObjId_SpecialSonic        */ Obj_SpecialSonic,
 	/* 0A ObjId_DrownCount          */ Obj_DrownCount,
-	/* 0B ObjId_Pole               */ Obj_Null, // Nick Arcade's TippingFloor: not ported yet
-	/* 0C ObjId_FlapDoor           */ Obj_Null, // (Nick Arcade's Chemical Plant platform: its art is not loaded now; the prototype's small platform, if used, comes later)
+	/* 0B ObjId_Pole               */ Obj_CPZPipeTipper, // (the prototype's section of pipe that tips you off)
+	/* 0C ObjId_FlapDoor           */ Obj_FloatingPlatform, // (the prototype's small floating platform: none in its levels)
 	/* 0D ObjId_Signpost            */ Obj_Signpost,
 	/* 0E ObjId_TitleSonic          */ Obj_TitleCharacters,
 	/* 0F ObjId_PSB                */ Obj_Null, // Nick Arcade's Unknown0F: not ported yet
@@ -185,20 +199,20 @@ const ObjectFunc game_objects[] = {
 	/* 12 ObjId_SpinningLight      */ Obj_HPZEmerald,
 	/* 13 ObjId_LavaMaker          */ Obj_HPZWaterfall,
 	/* 14 ObjId_LavaBall           */ Obj_HTZSeesaw,
-	/* 15 ObjId_SwingingPlatform    */ Obj_SwingingPlatform,
+	/* 15 ObjId_SwingingPlatform    */ Obj_SwingDispatch, // (Neo Green Hill's swinging platform is the prototype's own: see NGHZObjects.c; the other zones keep the one they had)
 	/* 16 ObjId_Harpoon            */ Obj_HTZLift,
 	/* 17 ObjId_Helix               */ Obj_Helix,
 	/* 18 ObjId_BasicPlatform       */ Obj_BasicPlatform,
-	/* 19 ObjId_19                 */ Obj_Null, // (the prototype's elevator is not ported yet; Nick Arcade's platform here used art that Chemical Plant does not load now)
+	/* 19 ObjId_19                 */ Obj_CPZElevator, // (the prototype's elevator of Chemical Plant)
 	/* 1A ObjId_CollapseLedge       */ Obj_CollapsingLedge,
-	/* 1B ObjId_WaterSurface       */ Obj_Null, // removed in Nick Arcade
+	/* 1B ObjId_WaterSurface       */ Obj_CPZBooster, // (the prototype's speed booster of Chemical Plant)
 	/* 1C ObjId_Scenery             */ Obj_Scenery,
-	/* 1D ObjId_MagicSwitch        */ Obj_Null, // removed in Nick Arcade
+	/* 1D ObjId_MagicSwitch        */ Obj_CPZWorm, // (the prototype's droplet chain of Chemical Plant)
 	/* 1E ObjId_BallHog            */ Obj_CPZTube, // (the prototype's tube network of Chemical Plant)
 	/* 1F ObjId_Crabmeat            */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 20 ObjId_Cannonball         */ Obj_Null, // removed in Nick Arcade
 	/* 21 ObjId_HUD                 */ Obj_HUD,
-	/* 22 ObjId_BuzzBomber          */ Obj_Null, // (the prototype's object here is not ported yet)
+	/* 22 ObjId_BuzzBomber          */ Obj_ArrowShooter, // (the prototype's arrow shooter of Neo Green Hill)
 	/* 23 ObjId_BuzzMissile         */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 24 ObjId_BuzzExplode         */ Obj_BuzzExplode,
 	/* 25 ObjId_Ring                */ Obj_Ring,
@@ -208,13 +222,13 @@ const ObjectFunc game_objects[] = {
 	/* 29 ObjId_Points              */ Obj_Points,
 	/* 2A ObjId_SmallDoor           */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 2B ObjId_Chopper             */ Obj_Null, // (the prototype's object here is not ported yet)
-	/* 2C ObjId_Jaws                */ Obj_Null, // (the prototype's object here is not ported yet)
-	/* 2D ObjId_Burrobot           */ Obj_Null, // removed in Nick Arcade
+	/* 2C ObjId_Jaws                */ Obj_NGHZLeaves, // (the prototype's leaves of Neo Green Hill)
+	/* 2D ObjId_Burrobot           */ Obj_CPZBarrier, // (the prototype's one way barrier of Chemical Plant)
 	/* 2E ObjId_MonitorItem         */ Obj_MonitorItem,
 	/* 2F ObjId_LargeGrass         */ Obj_Null, // removed in Nick Arcade
 	/* 30 ObjId_GlassBlock         */ Obj_Null, // removed in Nick Arcade
 	/* 31 ObjId_ChainStomp         */ Obj_Null, // removed in Nick Arcade
-	/* 32 ObjId_Button             */ Obj_Null, // removed in Nick Arcade
+	/* 32 ObjId_Button             */ Obj_TubeCover, // (the prototype's tube cover of Chemical Plant)
 	/* 33 ObjId_PushBlock          */ Obj_Null, // removed in Nick Arcade
 	/* 34 ObjId_TitleCard           */ Obj_TitleCard,
 	/* 35 ObjId_GrassFire          */ Obj_Null, // removed in Nick Arcade
@@ -271,7 +285,7 @@ const ObjectFunc game_objects[] = {
 	/* 68 ObjId_SBZConveyor        */ Obj_Null, // removed in Nick Arcade
 	/* 69 ObjId_SpinPlatform       */ Obj_Null, // removed in Nick Arcade
 	/* 6A ObjId_Saw                */ Obj_Null, // removed in Nick Arcade
-	/* 6B ObjId_ScrapStomp         */ Obj_Null, // removed in Nick Arcade
+	/* 6B ObjId_ScrapStomp         */ Obj_CPZBlock, // (the prototype's moving block of Chemical Plant: the staircases)
 	/* 6C ObjId_VanishPlatform     */ Obj_Null, // removed in Nick Arcade
 	/* 6D ObjId_Flamethrower       */ Obj_Null, // removed in Nick Arcade
 	/* 6E ObjId_Electrocuter       */ Obj_Null, // removed in Nick Arcade
@@ -280,13 +294,13 @@ const ObjectFunc game_objects[] = {
 	/* 71 ObjId_InvisibleBarrier   */ Obj_HPZDecor,
 	/* 72 ObjId_Teleporter         */ Obj_Null, // removed in Nick Arcade
 	/* 73 ObjId_BossMarble         */ Obj_Null, // removed in Nick Arcade
-	/* 74 ObjId_BossFire           */ Obj_Null, // removed in Nick Arcade
+	/* 74 ObjId_BossFire           */ Obj_CPZInvisibleBlock, // (the prototype's invisible block)
 	/* 75 ObjId_BossSpringYard     */ Obj_Null, // removed in Nick Arcade
 	/* 76 ObjId_BossBlock          */ Obj_Null, // removed in Nick Arcade
 	/* 77 ObjId_BossLabyrinth      */ Obj_Null, // removed in Nick Arcade
-	/* 78 ObjId_Caterkiller        */ Obj_Null, // removed in Nick Arcade
+	/* 78 ObjId_Caterkiller        */ Obj_CPZRotor, // (the prototype's rotating platforms of Chemical Plant)
 	/* 79 ObjId_Checkpoint          */ Obj_Checkpoint,
-	/* 7A ObjId_BossStarLight      */ Obj_Null, // removed in Nick Arcade
+	/* 7A ObjId_BossStarLight      */ Obj_CPZSlider, // (the prototype's sliding platforms of Chemical Plant)
 	/* 7B ObjId_BossSpikeball      */ Obj_CPZTubeSpring, // (the prototype's spring tubes of Chemical Plant)
 	/* 7C ObjId_RingFlash          */ Obj_Null, // removed in Nick Arcade
 	/* 7D ObjId_HiddenBonus         */ Obj_HiddenBonus,

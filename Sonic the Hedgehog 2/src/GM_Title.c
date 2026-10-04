@@ -334,15 +334,15 @@ static void PlayLevel(bool new_game) {
    FadeOutMusic();
 }
 
-// Sonic 2's title Start: the level select cheat is on from the start (hold A and press Start, no code to enter), and a plain Start begins in the Emerald Hill slot (zone slot 0: Emerald Hill in
-// this game's 17 slots, see ZoneIds.h).
+// Sonic 2's title Start: the level select cheat is on from the start (hold A and press Start, no code to enter), and a plain Start begins in Neo Green Hill (the prototype's title sets
+// Current_ZoneAndAct to neo_green_hill_zone_act_1: zone slot $0F, Aquatic Ruin in the final game).
 static void Tit_ChkLevSel(bool level_select_cheat) {
     (void)level_select_cheat;
     if (jpad1_hold1 & JPAD_A) {
         LevelSelect();
     } else {
         two_player_mode = 0;
-        level_id = LEVEL_ID(ZoneId_EHZ, 0);
+        level_id = LEVEL_ID(ZoneId_ARZ, 0);
         PlayLevel(true);
     }
 }
@@ -579,7 +579,7 @@ void GM_Title(void) {
                 last_special = 0;
             }
 
-            two_player_mode = 0; // (the attract demos are one player's, whatever the level select started last)
+            two_player_mode = level_id == LEVEL_ID(ZoneId_EHZ, 0); // (only the Emerald Hill demo is a two player one, in the split screen)
 
             // Set game state
             lives = 3;

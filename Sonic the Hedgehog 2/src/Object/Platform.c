@@ -14,6 +14,7 @@
 #include "Macros.h"
 
 #include "Resource/Mappings/PlatformEHZ.h"
+#include "Resource/Mappings/PlatformNGHZ.h"
 #include "Object/BasicPlatform.h" // (Sonic 1's, kept for the mappings of its zones that the debug list names)
 
 typedef struct {
@@ -30,7 +31,7 @@ typedef struct {
 // Width and mapping frame by size (Obj18_Conf)
 static const uint8_t sizes[5][2] = { { 0x20, 0 }, { 0x20, 1 }, { 0x20, 2 }, { 0x40, 3 }, { 0x30, 4 } };
 
-enum { PlatRoutine_Init = 0, PlatRoutine_Main = 2, PlatRoutine_Delete = 4, PlatRoutine_Falling = 6 };
+enum { PlatRoutine_Init = 0, PlatRoutine_Main = 2, PlatRoutine_Delete = 4, PlatRoutine_Falling = 6, PlatRoutine_Solid = 8 };
 
 static void Platform_ChangeMotion(Object *obj) {
     obj->angle = (uint8_t)(oscillatory.state[6][0] >> 8);
@@ -134,11 +135,11 @@ void Obj_BasicPlatform(Object *obj) {
     switch (obj->routine) {
     case PlatRoutine_Init: {
         obj->routine += 2;
-        const uint8_t *size = sizes[((scratch->subtype >> 4) & 0xF) % 5];
+        const uint8_t *size = sizes[((scratch->subtype >> 4) & 7) % 5]; // (the Simon Wai prototype's: bit 7 is the solid kind below, so the size has three bits)
         obj->width_pixels = size[0];
         obj->frame = size[1];
         obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level);
-        obj->mappings = Mappings_PlatformEHZ; // (the prototype has one mapping for every zone but Neo Green Hill: the tiles of Emerald Hill's level art)
+        obj->mappings = LEVEL_ZONE(level_id) == ZoneId_ARZ ? Mappings_PlatformNGHZ : Mappings_PlatformEHZ; // (the prototype has one mapping for every zone but Neo Green Hill: the tiles of the level art)
         obj->render.b = 0;
         obj->render.f.level_fg = true;
         obj->priority = 4;
@@ -147,7 +148,14 @@ void Obj_BasicPlatform(Object *obj) {
         scratch->centre_y = obj->pos.l.y.f.u;
         scratch->base_x = obj->pos.l.x.f.u;
         obj->angle = 0x80;
+        const bool solid = scratch->subtype & 0x80; // (a block that is solid on every side, with a height of its own)
         scratch->subtype &= 0xF;
+        if (solid) {
+            obj->routine = PlatRoutine_Solid;
+            obj->y_rad = LEVEL_ZONE(level_id) == ZoneId_ARZ ? 0x28 : 0x30;
+            obj->render.f.explicit_height = true;
+            goto solid_block;
+        }
     }
         // Fallthrough
     case PlatRoutine_Main: {
@@ -166,6 +174,27 @@ void Obj_BasicPlatform(Object *obj) {
             Object *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
             if (chr != NULL)
                 Solid_Platform(obj, chr, who, obj->width_pixels, 8, x);
+        }
+        Platform_Display(obj, scratch);
+        break;
+    }
+    case PlatRoutine_Solid:
+    solid_block: {
+        if (!(obj->status.b & 0x18)) {
+            if (scratch->sink != 0)
+                scratch->sink -= 4;
+        } else if (scratch->sink != 0x40) {
+            scratch->sink += 4;
+        }
+        int16_t x = obj->pos.l.x.f.u;
+        Platform_Move(obj, scratch);
+        Platform_Sink(obj, scratch);
+        if (obj->render.f.on_screen) {
+            for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+                Object *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+                if (chr != NULL)
+                    Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), obj->y_rad, (int16_t)(obj->y_rad + 1), x, NULL);
+            }
         }
         Platform_Display(obj, scratch);
         break;
