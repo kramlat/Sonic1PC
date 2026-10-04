@@ -412,6 +412,7 @@ sources:
   - "src/Sonic2Palettes.c"
   - "src/PaletteCycle.c"
   - "src/LevelScroll.c"
+  - "src/HTZQuake.c"
   - "src/Level.c"
   - "src/HUD.c"
   - "src/Object/Monitor.c"

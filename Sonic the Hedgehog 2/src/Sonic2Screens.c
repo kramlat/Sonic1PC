@@ -9,6 +9,7 @@
 
 #include "Backend/VDP.h"
 #include "Camera.h"
+#include "HTZQuake.h"
 #include "Sprites.h"
 
 // Sonic 2's screens, by game mode (the engine's Screen.h). They start as Sonic 1's -- the SEGA logo, the title, the level, the special stage, the continue screen, the ending
@@ -16,6 +17,7 @@
 // A level is where the shadow/highlight mode may be on (a level started with C held, see Game_LevelObjects): it ends with the level, and the split screen too
 static void Screen_Level(void) {
     GM_Level();
+    HTZQuake_Reset(); // (the sprites follow the camera again)
     VDP_SetShadowHighlight(false);
     VDP_SetSplitScreen(VDP_SPLIT_NONE, NULL);
     VDP_SetSplitWater(NULL, NULL, 0, 0);

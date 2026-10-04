@@ -125,6 +125,7 @@ void Obj_Seesaw(Object *obj);
 void Obj_HTZSeesaw(Object *obj);
 void Obj_HTZLift(Object *obj);
 void Obj_HTZBreakFloor(Object *obj);
+void Obj_HTZQuakeBlock(Object *obj);
 void Obj_HTZLavaBox(Object *obj);
 void Obj_DiagSpring(Object *obj);
 void Obj_CPZTube(Object *obj);
@@ -228,7 +229,7 @@ const ObjectFunc game_objects[] = {
 	/* 2D ObjId_Burrobot           */ Obj_CPZBarrier, // (the prototype's one way barrier of Chemical Plant)
 	/* 2E ObjId_MonitorItem         */ Obj_MonitorItem,
 	/* 2F ObjId_LargeGrass         */ Obj_HTZBreakFloor, // (the prototype's breakable floor of Hill Top)
-	/* 30 ObjId_GlassBlock         */ Obj_Null, // removed in Nick Arcade
+	/* 30 ObjId_GlassBlock         */ Obj_HTZQuakeBlock, // (the prototype's solid ground of Hill Top's earthquake)
 	/* 31 ObjId_ChainStomp         */ Obj_HTZLavaBox, // (the prototype's lava boxes of Hill Top)
 	/* 32 ObjId_Button             */ Obj_TubeCover, // (the prototype's tube cover of Chemical Plant)
 	/* 33 ObjId_PushBlock          */ Obj_Null, // removed in Nick Arcade

@@ -1,4 +1,5 @@
 #include "Level.h"
+#include "HTZQuake.h"
 
 #include "Constants.h"
 #include "Enigma.h"
@@ -201,6 +202,7 @@ void LevelSizeLoad(void) {
     // Reset level state
     dle_routine = 0;
     ghz2_tube_exit_timer = 0;
+    HTZQuake_Reset();
 
     // Get sizes to load
     const int16_t* sizes = LevelSizes(LEVEL_ZONE(level_id), LEVEL_ACT(level_id));
@@ -380,57 +382,7 @@ void DynamicLevelEvents(void) {
         }
         break;
     case ZoneId_HTZ:
-        switch (LEVEL_ACT(level_id)) {
-        case 0: // act 1
-            limit_btm1 = 0x720 - SCREEN_TALLADD;
-            if ((uint16_t)scrpos_x.f.u < (0x1880 - SCREEN_WIDEADD2))
-                break;
-            limit_btm1 = 0x620 - SCREEN_TALLADD;
-            if ((uint16_t)scrpos_x.f.u < (0x2000 - SCREEN_WIDEADD2))
-                break;
-            limit_btm1 = 0x2A0 - SCREEN_TALLADD;
-            break;
-        case 1: // act 2
-            switch (dle_routine) {
-            case 0:
-                limit_btm1 = 0x800 - SCREEN_TALLADD;
-                if ((uint16_t)scrpos_x.f.u < (0x1800 - SCREEN_WIDEADD2))
-                    break;
-                limit_btm1 = 0x510 - SCREEN_TALLADD;
-                if ((uint16_t)scrpos_x.f.u < (0x1E00 - SCREEN_WIDEADD2))
-                    break;
-                dle_routine += 2;
-                break;
-            case 2:
-                if ((uint16_t)scrpos_x.f.u < (0x1EB0 - SCREEN_WIDEADD2))
-                    break;
-                {
-                    Object *boss = FindFreeObj();
-                    if (boss != NULL) {
-                        boss->type = 0x83; // (not in Nick Arcade's table any more)
-                        dle_routine += 2;
-                    }
-                }
-                break;
-            case 4:
-                if ((uint16_t)scrpos_x.f.u >= (0x1F60 - SCREEN_WIDEADD2)) {
-                    Object *boss = FindFreeObj();
-                    if (boss != NULL) {
-                        boss->type = 0x82;
-                        dle_routine += 2;
-                    }
-                    lock_screen = true;
-                }
-                limit_left2 = scrpos_x.f.u;
-                break;
-            case 6:
-                if ((uint16_t)scrpos_x.f.u >= (0x2050 - SCREEN_WIDEADD2))
-                    return;
-                limit_left2 = scrpos_x.f.u;
-                break;
-            }
-            break;
-        }
+        HTZQuake_Events(); // (the prototype's: Hill Top's earthquake; Nick Arcade's boss arenas are not in it)
         break;
     }
 }

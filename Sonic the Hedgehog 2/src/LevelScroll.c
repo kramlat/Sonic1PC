@@ -1,5 +1,6 @@
 // Sonic 2's level scrolling: Sonic 1's (a copy of LevelScroll.c) with Nick Arcade's zones: their background starts and deformation routines.
 #include "LevelScroll.h"
+#include "HTZQuake.h"
 #include "SplitScreen.h"
 
 #include <string.h>
@@ -541,6 +542,11 @@ void Deform_HPZ(void) {
 
 // Hill Top (Deform_HTZ): the top of the background a eighth of the way across, then bands that run on to a half
 void Deform_HTZ(void) {
+	if (htz_quake) { // a quake's stretch of the level: the prototype's shaking branch
+		HTZQuake_Deform();
+		return;
+	}
+	HTZQuake_SpritesNormal();
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 	int16_t d2 = (int16_t)-scrpos_x.f.u;
 	HScroll h;
