@@ -133,6 +133,11 @@
 #include "Resource/Art/CPZDroplet.h"
 #include "Resource/Art/NGHZWaterSurface.h"
 #include "Resource/Art/CNZCards.h"
+#include "Resource/Art/HTZRock.h"
+#include "Resource/Art/HTZValveBarrier.h"
+#include "Resource/Art/HTZSpiker.h"
+#include "Resource/Art/HTZLavaBubble.h"
+#include "Resource/Art/HTZFireball.h"
 #include "Resource/Art/AirBubbles.h"
 #include "Resource/Art/NGHZLeaves.h"
 #include "Resource/Art/NGHZArrowShooter.h"
@@ -363,11 +368,13 @@ static const PLCList PLC_SYZ2 = {
 // ---------------------------------------------------------------------------
 // Pattern load cues - Scrap Brain
 // ---------------------------------------------------------------------------
-static const PLCList PLC_SBZ = { // Hill Top: Emerald Hill's art, and its own from tile $1FC
-    6,
+static const PLCList PLC_SBZ = { // Hill Top (the prototype's Hill_Top_Sprites_1, also what the zones that are not built yet have; its addresses in VRAM are bytes, here in tiles): the fireball, the rock, the see-saw and its badnik, the spikes and the springs
+    8,
     (const PLC[]) {
-        { Art_HTZSeesaw,     ART_VRAM(0x3CE) },
-        { Art_HTZLift,       ART_VRAM(0x3E6) },
+        { Art_HTZFireball,   ART_VRAM(0x73C0 >> 5) },
+        { Art_HTZRock,       ART_VRAM(0x7640 >> 5) },
+        { Art_HTZSeesaw,     ART_VRAM(0x78C0 >> 5) },
+        { Art_HTZSpiker,     ART_VRAM(0x7BC0 >> 5) },
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
@@ -375,23 +382,12 @@ static const PLCList PLC_SBZ = { // Hill Top: Emerald Hill's art, and its own fr
     }
 };
 
-static const PLCList PLC_SBZ2 = {
-    14,
+static const PLCList PLC_SBZ2 = { // Hill_Top_Sprites_2: the zip-line platform, the lava bubble and the valve barrier
+    3,
     (const PLC[]) {
-        { Art_Caterkiller,   ART_VRAM(ArtTile_SBZ_Caterkiller) },
-        { Art_Bomb,          ART_VRAM(ArtTile_Bomb) },
-        { Art_Orbinaut,      ART_VRAM(ArtTile_SBZ_Orbinaut) },
-        { Art_SlideFloor,    ART_VRAM(ArtTile_SBZ_Moving_Block_Long) },
-        { Art_SBZDoor2,      ART_VRAM(ArtTile_SBZ_Horizontal_Door) },
-        { Art_Electric,      ART_VRAM(ArtTile_SBZ_Electric_Orb) },
-        { Art_TrapDoor,      ART_VRAM(ArtTile_SBZ_Trap_Door) },
-        { Art_SBZFloor,      0x7F20 }, // SBZ2's own variant offset for the same art -- no separate real constant
-        { Art_SPinPform,     ART_VRAM(ArtTile_SBZ_Spinning_Platform) },
-        { Art_LZSwitch,      ART_VRAM(ArtTile_GHZ_SLZ_Smashable_Wall) },
-        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
-        { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
-        { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
-        { Art_SpringSide,    ART_VRAM(ArtTile_SpringSide) },
+        { Art_HTZLift,       ART_VRAM(0x7CC0 >> 5) },
+        { Art_HTZLavaBubble, ART_VRAM(0x82C0 >> 5) },
+        { Art_HTZValveBarrier, ART_VRAM(0x84C0 >> 5) },
     }
 };
 // ---------------------------------------------------------------------------

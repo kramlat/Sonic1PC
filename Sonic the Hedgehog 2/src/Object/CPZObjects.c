@@ -26,6 +26,7 @@
 #include "Resource/Mappings/CPZElevator.h"
 #include "Resource/Mappings/PipeTipper.h"
 #include "Resource/Mappings/TubeCover.h"
+#include "Resource/Mappings/HTZRock.h"
 
 extern Oscillatory oscillatory;
 
@@ -399,6 +400,7 @@ typedef struct {
 } Scratch_CPZBarrier;
 
 #define ARTTILE_CPZ_STRIPES 0x394 // ($7280 in the zone's art list)
+#define ARTTILE_HTZ_VALVE_BARRIER 0x426 // ($84C0 in Hill Top's second list)
 
 void Obj_CPZBarrier(Object *obj) {
     Scratch_CPZBarrier *scratch = (Scratch_CPZBarrier *)&obj->scratch;
@@ -406,8 +408,10 @@ void Obj_CPZBarrier(Object *obj) {
     if (obj->routine == 0) {
         obj->routine += 2;
         obj->mappings = Mappings_CPZBarrier;
-        obj->tile = TILE_MAP(0, 1, 0, 0, ARTTILE_CPZ_STRIPES);
-        obj->width_pixels = 0xC;
+        // (Hill Top's valve barrier has art and a width of its own: the default of Obj2D_Init; Chemical Plant's is the stripes)
+        const bool cpz = LEVEL_ZONE(level_id) == ZoneId_CPZ;
+        obj->tile = TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
+        obj->width_pixels = cpz ? 0xC : 8;
         obj->render.f.level_fg = true;
         obj->priority = 4;
         scratch->base_y = obj->pos.l.y.f.u;
@@ -457,9 +461,11 @@ void Obj_CPZBarrier(Object *obj) {
 // Object 32: the tube cover (in Hill Top the rock): solid, until a character rolls into it from above: it breaks into four pieces and throws him up
 // ---------------------------------------------------------------------------------------------------------------------------------------
 #define ARTTILE_TUBE_COVER 0x430 // ($8600 in the zone's art list)
+#define ARTTILE_HTZ_ROCK 0x3B2 // ($7640 in Hill Top's)
 
-// loc_17808: the speed of each piece (x, y)
+// loc_17808: the speed of each piece (x, y); and Hill Top's rock's (loc_177F0), which is in six
 static const int16_t cover_pieces[4][2] = { { -0x100, -0x200 }, { 0x100, -0x200 }, { -0xC0, -0x1C0 }, { 0xC0, -0x1C0 } };
+static const int16_t rock_pieces[6][2] = { { -0x200, -0x200 }, { 0, -0x280 }, { 0x200, -0x200 }, { -0x1C0, -0x1C0 }, { 0, -0x200 }, { 0x1C0, -0x1C0 } };
 
 // loc_17778: a rolling character bounces off what he has broken, curled up
 static void Cover_Bounce(Object *chr) {
@@ -480,7 +486,7 @@ static void Cover_Launch(Object *chr, bool rolling) {
 }
 
 // loc_17818: the score for it, as for a badnik (Obj29, 10, 20, 50 then 100 and, after fifteen in a row, 1000)
-static void Cover_Score(Object *obj) {
+void ObjectChainScore(Object *obj) {
     Object *points = FindFreeObj();
     if (points == NULL)
         return;
@@ -502,7 +508,7 @@ static void Cover_Score(Object *obj) {
 }
 
 // BreakObjectToPieces: the object is its first piece, and each other piece of the frame is a new object of the same id, in routine 4, that drifts away on the speed its piece is given
-static void BreakToPieces(Object *obj, const int16_t (*speeds)[2], int count) {
+void ObjectBreakToPieces(Object *obj, const int16_t (*speeds)[2], int count) {
     const uint8_t *piece;
     Mappings_FramePieces((const uint8_t *)obj->mappings, obj->frame, &piece);
     obj->render.f.static_mappings = true;
@@ -532,9 +538,10 @@ static void BreakToPieces(Object *obj, const int16_t (*speeds)[2], int count) {
 void Obj_TubeCover(Object *obj) {
     if (obj->routine == 0) {
         obj->routine += 2;
-        obj->mappings = Mappings_TubeCover;
-        obj->tile = TILE_MAP(0, 3, 0, 0, ARTTILE_TUBE_COVER);
-        obj->width_pixels = 0x10;
+        const bool rock = LEVEL_ZONE(level_id) != ZoneId_CPZ; // (Hill Top's rock: Obj_0x32 is the same object there, with its own art, width and pieces)
+        obj->mappings = rock ? Mappings_HTZRock : Mappings_TubeCover;
+        obj->tile = rock ? TILE_MAP(0, 2, 0, 0, ARTTILE_HTZ_ROCK) : TILE_MAP(0, 3, 0, 0, ARTTILE_TUBE_COVER);
+        obj->width_pixels = rock ? 0x18 : 0x10;
         obj->render.f.level_fg = true;
         obj->priority = 4;
     }
@@ -580,8 +587,11 @@ void Obj_TubeCover(Object *obj) {
         return;
     }
     obj->status.b &= 0xE7;
-    BreakToPieces(obj, cover_pieces, 4);
-    Cover_Score(obj);
+    if (obj->mappings == Mappings_HTZRock)
+        ObjectBreakToPieces(obj, rock_pieces, 6);
+    else
+        ObjectBreakToPieces(obj, cover_pieces, 4);
+    ObjectChainScore(obj);
     // (it goes on as its first piece, this very frame)
     SpeedToPos(obj);
     obj->ysp += 0x18;

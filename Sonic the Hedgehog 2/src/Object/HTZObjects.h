@@ -5,5 +5,7 @@
 
 void Obj_HTZSeesaw(Object *obj);
 void Obj_HTZLift(Object *obj);
+void Obj_HTZBreakFloor(Object *obj);
+void Obj_HTZLavaBox(Object *obj);
 
 #endif //_HTZOBJECTS_H

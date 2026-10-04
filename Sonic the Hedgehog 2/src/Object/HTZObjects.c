@@ -1,9 +1,11 @@
 // Hill Top's own objects for Sonic 2 (Nick Arcade's 14 and 16): the seesaw with its ball (14), and the lift that carries whoever stands on it down the slope (16). Both carry Sonic and Tails.
+// The Simon Wai prototype adds the breakable floor (2F) and the lava boxes (31).
 #include "Object/HTZObjects.h"
 #include "Constants.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
+#include "Object/CPZObjects.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
 #include "Solid.h"
@@ -12,6 +14,7 @@
 #include "Macros.h"
 
 extern const uint8_t Mappings_HTZLift[]; // (defined with Scenery.c, which draws its poles)
+#include "Resource/Mappings/HTZBreakFloor.h"
 #include "Resource/Mappings/HTZSeesaw.h"
 #include "Resource/Mappings/HTZSeesawBall.h"
 
@@ -77,7 +80,7 @@ static void Seesaw_ChangeFrame(Object *obj, Scratch_Seesaw *scratch, int wanted)
 static void Seesaw_Init(Object *obj, Scratch_Seesaw *scratch) {
     obj->routine += 2;
     obj->mappings = Mappings_HTZSeesaw;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x3CE);
+    obj->tile = TILE_MAP(0, 0, 0, 0, 0x3C6);
     obj->render.f.level_fg = true;
     obj->priority = 4;
     obj->width_pixels = 0x30;
@@ -138,7 +141,7 @@ static Object *Seesaw_Parent(const Object *ball, const Scratch_Seesaw *scratch) 
 static void Seesaw_Ball_Init(Object *obj, Scratch_Seesaw *scratch) {
     obj->routine += 2;
     obj->mappings = Mappings_HTZSeesawBall;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x3CE);
+    obj->tile = TILE_MAP(0, 0, 0, 0, 0x3C6);
     obj->render.f.level_fg = true;
     obj->priority = 4;
     obj->col_type = 0x8B;
@@ -287,12 +290,16 @@ void Obj_HTZSeesaw(Object *obj) {
 // Object 16: the lift
 // ---------------------------------------------------------------------------------------------------------------------------------------
 typedef struct {
-    uint8_t state;     // 0x28: 0 waits for someone to stand on it, 1 slides down the slope, 2 has stopped
+    uint8_t subtype;   // 0x28: how long it slides, in eighths of a frame (the prototype's lsl #3)
     uint8_t pad0[7];   // 0x29-0x2F
     int16_t pad1[2];   // 0x30, 0x32: (where it began, kept by the original but not used)
-    int16_t timer;     // 0x34: how long it slides
+    int16_t timer;     // 0x34: how long it still slides
 } Scratch_HTZLift;
 
+enum { LiftState_Wait = 0, LiftState_Slide = 2, LiftState_Fall = 4 }; // (routine_sec, $25)
+
+// The Simon Wai prototype's lift (Obj16): it waits until it is stood on, slides down the slope (to the left if it is flipped) for as many frames as its subtype times eight, and then stops, leaves a
+// broken pole behind (a scenery object, subtype 6) and falls
 void Obj_HTZLift(Object *obj) {
     Scratch_HTZLift *scratch = (Scratch_HTZLift *)&obj->scratch;
 
@@ -304,22 +311,42 @@ void Obj_HTZLift(Object *obj) {
         obj->width_pixels = 0x20;
         obj->frame = 0;
         obj->priority = 1;
+        scratch->timer = (int16_t)(scratch->subtype << 3);
     }
 
     int16_t old_x = obj->pos.l.x.f.u;
-    switch (scratch->state & 0xF) {
-    case 0: // when it is stood on it starts to slide
+    switch (obj->routine_sec) {
+    case LiftState_Wait: // when it is stood on it starts to slide
         if (obj->status.b & 0x18) {
-            scratch->state++;
-            obj->xsp = 0x200;
+            obj->routine_sec += 2;
+            obj->xsp = obj->status.o.f.x_flip ? -0x200 : 0x200;
             obj->ysp = 0x100;
-            scratch->timer = 0xA0;
         }
         break;
-    case 1:
+    case LiftState_Slide:
         SpeedToPos(obj);
-        if (--scratch->timer == 0)
-            scratch->state++;
+        if (--scratch->timer == 0) {
+            obj->routine_sec += 2;
+            obj->frame = 2;
+            obj->xsp = 0;
+            obj->ysp = 0;
+            Object *pole = FindNextFreeObj(obj + 1);
+            if (pole != NULL) {
+                pole->type = 0x1C; // (scenery)
+                pole->pos.l.x.f.u = obj->pos.l.x.f.u;
+                pole->pos.l.y.f.u = obj->pos.l.y.f.u;
+                pole->render.b = obj->render.b;
+                pole->scratch.u8[0] = 6;
+            }
+        }
+        break;
+    default: // it falls, and goes when it is below the bottom of the level
+        SpeedToPos(obj);
+        obj->ysp += 0x38;
+        if ((uint16_t)(limit_btm2 + 0xE0) < (uint16_t)obj->pos.l.y.f.u) {
+            ObjectDelete(obj);
+            return;
+        }
         break;
     }
 
@@ -328,9 +355,127 @@ void Obj_HTZLift(Object *obj) {
         if (chr != NULL)
             Solid_Platform(obj, chr, who, obj->width_pixels, -0x28, old_x);
     }
+    RememberState(obj);
+}
 
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object 2F: the breakable floor (Obj_0x2F_Breakable_Floor, loc_1747C): a solid slab (a stack of five heights, by subtype) that breaks into its pieces, row by row from the top, when it is stood on and
+// rolled on from the secondary collision path (or by anyone rolling, with subtype bit 7), and throws no one: they fall with it. Whoever is not rolling on it is put back on the primary path.
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype; // 0x28: bits 1-3 the height (bit 7: breaks for any roller)
+} Scratch_BreakFloor;
+
+// loc_17490: the half height and the frame of each height
+static const uint8_t floor_heights[5][2] = { { 0x24, 0 }, { 0x20, 2 }, { 0x18, 4 }, { 0x10, 6 }, { 0x08, 8 } };
+// loc_17662: the speed of each piece (x, y), a piece of the frame after the one that was there taking the pair at its frame number (the table goes on into zeros past its end)
+static const int16_t floor_pieces[32][2] = {
+    { -0x100, -0x800 }, { 0x100, -0x800 }, { -0xE0, -0x700 }, { 0xE0, -0x700 }, { -0xC0, -0x600 }, { 0xC0, -0x600 }, { -0xA0, -0x500 }, { 0xA0, -0x500 }, { -0x80, -0x400 }, { 0x80, -0x400 },
+};
+
+// loc_175AE and loc_175B4: a roller keeps rolling as he falls (loc_175CC: he is in the air and off the floor, whatever he was doing)
+static void BreakFloor_Drop(Object *chr, bool rolling) {
+    if (rolling) {
+        chr->status.p.f.in_ball = true;
+        chr->y_rad = 0xE;
+        chr->x_rad = 7;
+        chr->anim = SonAnimId_Roll;
+    }
+    chr->status.p.f.in_air = true;
+    chr->status.p.f.object_stand = false;
+    chr->routine = 2;
+}
+
+void Obj_HTZBreakFloor(Object *obj) {
+    Scratch_BreakFloor *scratch = (Scratch_BreakFloor *)&obj->scratch;
+
+    if (obj->routine == 0) {
+        obj->routine += 2;
+        obj->mappings = Mappings_HTZBreakFloor;
+        obj->tile = TILE_MAP(1, 2, 0, 0, 0);
+        obj->render.b = 0;
+        obj->render.f.level_fg = true;
+        obj->width_pixels = 0x10;
+        obj->priority = 4;
+        const int height = ((scratch->subtype & 0x1E) >> 1) % 5;
+        obj->y_rad = (int8_t)floor_heights[height][0];
+        obj->frame = floor_heights[height][1];
+    }
+
+    if (obj->routine == 4) { // a piece
+        SpeedToPos(obj);
+        obj->ysp += 0x18;
+        if (!obj->render.f.on_screen)
+            ObjectDelete(obj);
+        else
+            DisplaySprite(obj);
+        return;
+    }
+
+    Object *sidekick = TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL;
+    const bool sonic_rolls = player->anim == SonAnimId_Roll, tails_rolls = sidekick != NULL && sidekick->anim == SonAnimId_Roll;
+    const bool secondary = collision_path != 0, any = scratch->subtype & 0x80; // (a character's path is the level's here)
+    if (obj->render.f.on_screen) {
+        for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+            Object *chr = Character(who);
+            if (chr != NULL)
+                Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), obj->y_rad, (int16_t)(obj->y_rad + 1), obj->pos.l.x.f.u, NULL);
+        }
+    }
+    const uint8_t stand = obj->status.b & 0x18;
+    bool broken = false;
+    const bool sonic_breaks = sonic_rolls && (any || secondary), tails_breaks = tails_rolls && (any || secondary);
+    if (stand == 0x18) {
+        if (sonic_breaks || tails_breaks) {
+            BreakFloor_Drop(player, sonic_rolls);
+            if (sidekick != NULL)
+                BreakFloor_Drop(sidekick, tails_rolls);
+            broken = true;
+        }
+    } else if (stand & 0x08) {
+        if (sonic_breaks) {
+            BreakFloor_Drop(player, true);
+            broken = true;
+        }
+    } else if (stand & 0x10) {
+        if (tails_breaks && sidekick != NULL) {
+            BreakFloor_Drop(sidekick, true);
+            broken = true;
+        }
+    }
+    if (!broken) {
+        if (stand)
+            collision_path = 0; // (whoever is on it and does not break it is put back on the primary path)
+        RememberState(obj);
+        return;
+    }
+
+    obj->status.b &= 0xE7;
+    const int old_frame = obj->frame;
+    obj->frame++;
+    const uint8_t *piece;
+    const int count = Mappings_FramePieces((const uint8_t *)obj->mappings, obj->frame, &piece);
+    ObjectBreakToPieces(obj, floor_pieces + old_frame, count);
+    ObjectChainScore(obj);
+    SpeedToPos(obj); // (it goes on as its first piece, this very frame)
+    obj->ysp += 0x18;
+    DisplaySprite(obj);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object 31: the lava boxes (Obj_0x31_Lava_Attributes): an invisible box, $80 wide, that hurts (col $96, $94, $95 by subtype, none for the fourth)
+// ---------------------------------------------------------------------------------------------------------------------------------------
+void Obj_HTZLavaBox(Object *obj) {
+    static const uint8_t collision[4] = { 0x96, 0x94, 0x95, 0x00 };
+
+    if (obj->routine == 0) {
+        obj->routine += 2;
+        obj->col_type = collision[obj->scratch.u8[0] & 3];
+        obj->width_pixels = 0x80;
+        obj->priority = 4;
+        obj->frame = obj->scratch.u8[0];
+    }
+    obj->render.b = 0x84; // (never drawn, but the touch response has to find it "on screen")
     if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-        ObjectDelete(obj);
-    else
-        DisplaySprite(obj);
+        ObjectDelete(obj); // (the prototype does not forget its mark here either)
 }
