@@ -142,7 +142,7 @@ static Object *Seesaw_Parent(const Object *ball, const Scratch_Seesaw *scratch) 
 static void Seesaw_Ball_Init(Object *obj, Scratch_Seesaw *scratch) {
     obj->routine += 2;
     obj->mappings = Mappings_HTZSeesawBall;
-    obj->tile = TILE_MAP(0, 0, 0, 0, 0x3C6);
+    obj->tile = TILE_MAP(0, 0, 0, 0, 0x3DE);
     obj->render.f.level_fg = true;
     obj->priority = 4;
     obj->col_type = 0x8B;

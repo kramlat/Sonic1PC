@@ -76,7 +76,30 @@ static void HTZFloor_AWalkerOnTheSecondPathIsPutBackOnTheFirst(void) {
     CHECK_EQ(((Scratch_Sonic *)&player->scratch)->lrb_solid_bit, 0xD);
 }
 
+// The see-saw's ball is the Sol badnik (the prototype's Obj14_Ball_Init: tile $3DE, over the art the zone's art list loads at $7BC0), not drawn from the see-saw's own tiles ($3C6)
+static void HTZSeesaw_TheBallIsTheBadniksArt(void) {
+    memset(objects, 0, sizeof(Object) * 0x40);
+    scrpos_x.v = scrpos_y.v = 0;
+    Object *seesaw = &objects[0x20];
+    seesaw->type = 0x14;
+    seesaw->scratch.u8[0] = 0;
+    seesaw->pos.l.x.f.u = 100;
+    seesaw->pos.l.y.f.u = 200;
+    Obj_HTZSeesaw(seesaw);
+    CHECK_EQ(seesaw->tile & 0x7FF, 0x3C6);
+    Object *ball = NULL;
+    for (int i = 0x21; i < 0x40; i++)
+        if (objects[i].type == 0x14)
+            ball = &objects[i];
+    CHECK(ball != NULL);
+    if (ball != NULL) {
+        Obj_HTZSeesaw(ball); // (its first call sets it up)
+        CHECK_EQ(ball->tile & 0x7FF, 0x3DE);
+    }
+}
+
 void RegisterHTZFloorTests(void) {
+    RUN_TEST(HTZSeesaw_TheBallIsTheBadniksArt);
     RUN_TEST(HTZFloor_ABallOnTheSecondPathBreaksIt);
     RUN_TEST(HTZFloor_ABallOnTheFirstPathDoesNotBreakIt);
     RUN_TEST(HTZFloor_SubtypeBitSevenBreaksItForAnyRoller);
