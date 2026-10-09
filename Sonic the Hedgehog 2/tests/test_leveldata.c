@@ -46,6 +46,10 @@ static void LevelData_ArtListsAreThePrototypes(void) {
     CHECK_EQ(level_header[ZoneId_EHZ].plc1, PlcId_SLZ);
     CHECK_EQ(level_header[ZoneId_WZ].plc1, 0); // (Wood_Sprites_1 is only the zone's own art)
     CHECK_EQ(level_header[ZoneId_WZ].plc2, PlcId_SLZ2);
+    CHECK_EQ(level_header[ZoneId_MCZ].plc1, PlcId_DHZ); // (Dust Hill: Dust_Hill_Sprites_1 and 2: the crate, collapsing platform, pull switch and vine; the spikes, gate log and springs)
+    CHECK_EQ(level_header[ZoneId_MCZ].plc2, PlcId_DHZ2);
+    CHECK_EQ(plcs[PlcId_DHZ]->plcs, 4);
+    CHECK_EQ(plcs[PlcId_DHZ2]->plcs, 6);
     CHECK_EQ(plcs[PlcId_SLZ2]->plcs, 3); // Wood_Sprites_2: spikes, diagonal and up springs
     CHECK_EQ(level_header[ZoneId_HTZ].plc1, PlcId_SBZ);
     CHECK_EQ(level_header[ZoneId_HTZ].plc2, PlcId_SBZ2);

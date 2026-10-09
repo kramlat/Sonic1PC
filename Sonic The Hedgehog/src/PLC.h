@@ -36,6 +36,9 @@ enum {
 	PlcId_TryAgain,
 	PlcId_EggmanSBZ2,
 	PlcId_FZBoss,
+#ifdef PLC_IDS_EXTRA // a game built on this one with pattern load cues of its own (Sonic 2's zones that are not in Sonic 1's slots): it names them in PlcIdsExtra.h
+#include "PlcIdsExtra.h"
+#endif
 	PlcId_Num,
 };
 

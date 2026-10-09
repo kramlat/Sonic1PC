@@ -70,6 +70,12 @@
 #include "Resource/Art/SLZSpike.h"
 #include "Resource/Art/Roller.h"
 #include "Resource/Art/SYZSpike1.h"
+#include "Resource/Art/DHZCrate.h"
+#include "Resource/Art/DHZCollapsePlat.h"
+#include "Resource/Art/DHZVineSwitch.h"
+#include "Resource/Art/DHZVinePulley.h"
+#include "Resource/Art/DHZGateLog.h"
+#include "Resource/Art/HorizSpike.h"
 #include "Resource/Art/SYZSpike2.h"
 #include "Resource/Art/Stomper.h"
 #include "Resource/Art/SBZDoor1.h"
@@ -574,6 +580,31 @@ static const PLCList PLC_EggmanSBZ2 = {
     }
 };
 // ---------------------------------------------------------------------------
+// Pattern load cues - Dust Hill (Dust_Hill_Sprites_1 and 2)
+// ---------------------------------------------------------------------------
+static const PLCList PLC_DHZ = { // (the zone's own art is the level header's)
+    4,
+    (const PLC[]) {
+        { Art_DHZCrate,        ART_VRAM(0x7A80 >> 5) },
+        { Art_DHZCollapsePlat, ART_VRAM(0x7E80 >> 5) },
+        { Art_DHZVineSwitch,   ART_VRAM(0x81C0 >> 5) },
+        { Art_DHZVinePulley,   ART_VRAM(0x83C0 >> 5) },
+    }
+};
+
+static const PLCList PLC_DHZ2 = {
+    6,
+    (const PLC[]) {
+        { Art_HorizSpike,    ART_VRAM(0x8580 >> 5) },
+        { Art_Spikes,        ART_VRAM(0x8680 >> 5) },
+        { Art_DHZGateLog,    ART_VRAM(0x8780 >> 5) },
+        { Art_LeverSpring,   ART_VRAM(0x8800 >> 5) },
+        { Art_SpringUp,      ART_VRAM(0x8B80 >> 5) },
+        { Art_SpringSide,    ART_VRAM(0x8E00 >> 5) },
+    }
+};
+
+// ---------------------------------------------------------------------------
 // Pattern load cues - final boss
 // ---------------------------------------------------------------------------
 static const PLCList PLC_FZBoss = {
@@ -622,5 +653,7 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_TryAgain    */ &PLC_TryAgain,
     /* PlcId_EggmanSBZ2  */ &PLC_EggmanSBZ2,
     /* PlcId_FZBoss      */ &PLC_FZBoss,
+    /* PlcId_DHZ         */ &PLC_DHZ,
+    /* PlcId_DHZ2        */ &PLC_DHZ2,
 };
 
