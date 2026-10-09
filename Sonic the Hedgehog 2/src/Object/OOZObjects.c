@@ -458,7 +458,6 @@ void Obj_OOZPushSpring(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_OOZPushSpring;
         obj->tile = TILE_MAP(0, 2, 0, 0, 0x3C5);
-        obj->render.b = 0;
         obj->render.f.level_fg = true;
         obj->width_pixels = 0x10;
         obj->priority = 4;

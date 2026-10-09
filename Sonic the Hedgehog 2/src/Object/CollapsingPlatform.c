@@ -50,8 +50,7 @@ void Obj_CollapsingPlatform(Object *obj) {
     switch (obj->routine) {
     case CollapseRoutine_Init:
         obj->routine += 2;
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
+        obj->render.f.level_fg = true; // (ori.b #4: the facing the layout gave it stays, and its pieces take it)
         obj->priority = 4;
         scratch->timer = 7;
         if (IsOilOcean()) {

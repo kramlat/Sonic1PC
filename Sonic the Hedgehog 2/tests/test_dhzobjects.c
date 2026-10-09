@@ -87,6 +87,30 @@ static void DHZ_TheCollapsingPlatformOfOilOceanIsWiderAndHasSevenPieces(void) {
     CHECK_EQ(CountOf(0x1F, 6), 7);
 }
 
+// The platform keeps the facing its layout gave it (the prototype ORs the level flag in), and so do its pieces
+static void DHZ_TheCollapsingPlatformKeepsItsFacingAndItsPiecesTakeIt(void) {
+    for (int zone = 0; zone < 2; zone++) {
+        Reset(zone ? ZoneId_OOZ : ZoneId_MCZ);
+        Object *obj = Spawn(0x1F, 0, 200, 400);
+        obj->render.f.x_flip = true;
+        obj->status.o.f.x_flip = true;
+        Obj_CollapsingPlatform(obj);
+        CHECK(obj->render.f.x_flip);
+        CHECK(obj->render.f.level_fg);
+        for (int i = 0; i < 30 && obj->routine != 6; i++) {
+            StandOn(200, 400 - 0x10);
+            Obj_CollapsingPlatform(obj);
+        }
+        int pieces = 0;
+        for (int i = 0x20; i < 0x60; i++)
+            if (objects[i].type == 0x1F && objects[i].routine == 6) {
+                pieces++;
+                CHECK(objects[i].render.f.x_flip);
+            }
+        CHECK(pieces >= 6);
+    }
+}
+
 // A piece falls when its delay has gone: the others wait
 static void DHZ_PiecesFallOneAfterAnother(void) {
     Reset(ZoneId_MCZ);
@@ -375,6 +399,7 @@ void RegisterDHZObjectTests(void) {
     RUN_TEST(DHZ_TheCradleSwingsOutOnOneSideOnlyAndTheMiddleHangsStill);
     RUN_TEST(DHZ_TheCollapsingPlatformBreaksIntoSixPiecesOnceStoodOn);
     RUN_TEST(DHZ_TheCollapsingPlatformOfOilOceanIsWiderAndHasSevenPieces);
+    RUN_TEST(DHZ_TheCollapsingPlatformKeepsItsFacingAndItsPiecesTakeIt);
     RUN_TEST(DHZ_PiecesFallOneAfterAnother);
     RUN_TEST(DHZ_TheStomperRisesAPixelAFrameAndDropsEight);
     RUN_TEST(DHZ_TheSwitchIsDownWhileSomeoneStandsOnIt);
