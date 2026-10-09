@@ -54,7 +54,7 @@ void Obj_DHZStomper(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_DHZStomper;
         obj->tile = TILE_MAP(0, 2, 0, 0, 0);
-        obj->render.f.level_fg = true;
+        obj->render.b |= 4; // ori.b #4,1(a0): the layout's facing stays
         obj->width_pixels = 0x10;
         obj->priority = 4;
         scratch->base_y = obj->pos.l.y.f.u;
@@ -172,7 +172,7 @@ void Obj_RotatingBoxes(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_RotatingBoxes;
         obj->tile = TILE_MAP(0, 3, 0, 0, 0x3D4);
-        obj->render.f.level_fg = true;
+        obj->render.b |= 4; // ori.b #4,1(a0): the layout's facing stays
         obj->priority = 4;
         obj->width_pixels = 0x20;
         obj->y_rad = 0x20;
@@ -355,7 +355,7 @@ void Obj_PlatformSpikes(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_PlatformSpikes;
         obj->tile = TILE_MAP(0, 0, 0, 0, 0);
-        obj->render.f.level_fg = true;
+        obj->render.b |= 4; // ori.b #4,1(a0): the layout's facing stays
         obj->priority = 4;
         // The size by the subtype's high nibble (loc_1D08A: only the first of its four bytes' rows is data in the prototype): $40 wide, $10 high, frame 0
         obj->width_pixels = 0x40;
@@ -419,7 +419,7 @@ void Obj_DHZGate(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_DHZGate;
         obj->tile = TILE_MAP(0, 3, 0, 0, 0x43C);
-        obj->render.f.level_fg = true;
+        obj->render.b |= 4; // ori.b #4,1(a0): the layout's facing stays
         obj->width_pixels = 0x80;
         obj->priority = 0;
     }
