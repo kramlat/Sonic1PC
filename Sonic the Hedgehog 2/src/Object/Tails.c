@@ -1701,5 +1701,7 @@ void Game_LevelObjects(void) {
     tails->pos.l.x.f.u = player->pos.l.x.f.u - 0x20;
     tails->pos.l.y.f.u = player->pos.l.y.f.u;
     memset(&objects[TAILSTAILS_SLOT], 0, sizeof(Object));
+    if (LEVEL_ZONE(level_id) == ZoneId_OOZ)
+        objects[0x1E].type = 7; // (the oil, where Hidden Palace and the others have a water surface: Oil Ocean has no water)
     SplitScreen_LoadLevel(); // (a level picked with B in the level select is a two-player one: Tails is its second player)
 }

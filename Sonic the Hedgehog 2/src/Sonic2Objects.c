@@ -2,6 +2,7 @@
 
 #include "Object/AirBubbles.h"
 #include "Object/DHZObjects.h"
+#include "Object/OOZObjects.h"
 #include "Object/DrownCount.h"
 #include "Object/InvisibleBarrier.h"
 #include "Object/PathSwapper.h"
@@ -191,7 +192,7 @@ const ObjectFunc game_objects[] = {
 	/* 04 ObjId_04                 */ Obj_NAWaterSurface,
 	/* 05 ObjId_05                 */ Obj_TailsTails,
 	/* 06 ObjId_06                 */ Obj_Spiral,
-	/* 07 ObjId_07                 */ Obj_Null, // removed in Nick Arcade
+	/* 07 ObjId_07                 */ Obj_OilSurface, // (the prototype's oil of Oil Ocean: made by the level)
 	/* 08 ObjId_Splash              */ Obj_NAWaterSplash, // (Nick Arcade's water splash: waits in the slot Sonic 1 puts the spin dash dust in until it is asked for)
 	/* 09 ObjId_SpecialSonic        */ Obj_SpecialSonic,
 	/* 0A ObjId_DrownCount          */ Obj_DrownCount,
@@ -235,7 +236,7 @@ const ObjectFunc game_objects[] = {
 	/* 30 ObjId_GlassBlock         */ Obj_HTZQuakeBlock, // (the prototype's solid ground of Hill Top's earthquake)
 	/* 31 ObjId_ChainStomp         */ Obj_HTZLavaBox, // (the prototype's lava boxes of Hill Top)
 	/* 32 ObjId_Button             */ Obj_TubeCover, // (the prototype's tube cover of Chemical Plant)
-	/* 33 ObjId_PushBlock          */ Obj_Null, // removed in Nick Arcade
+	/* 33 ObjId_PushBlock          */ Obj_OOZLauncher, // (the prototype's hopping and launching platform of Oil Ocean)
 	/* 34 ObjId_TitleCard           */ Obj_TitleCard,
 	/* 35 ObjId_GrassFire          */ Obj_Null, // removed in Nick Arcade
 	/* 36 ObjId_Spikes              */ Obj_Spikes,
@@ -251,12 +252,12 @@ const ObjectFunc game_objects[] = {
 	/* 40 ObjId_Motobug             */ Obj_DiagSpring, // (the prototype's diagonal springs)
 	/* 41 ObjId_Spring              */ Obj_Spring,
 	/* 42 ObjId_Newtron             */ Obj_Null, // (the prototype's object here is not ported yet)
-	/* 43 ObjId_Roller             */ Obj_Null, // removed in Nick Arcade
+	/* 43 ObjId_Roller             */ Obj_OOZSpikeball, // (the prototype's rolling spiked balls of Oil Ocean)
 	/* 44 ObjId_GHZEdge             */ Obj_Null, // (the prototype's object here is not ported yet)
-	/* 45 ObjId_SidewaysStomper    */ Obj_Null, // removed in Nick Arcade
-	/* 46 ObjId_MarbleBrick        */ Obj_Null, // removed in Nick Arcade
+	/* 45 ObjId_SidewaysStomper    */ Obj_OOZPushSpring, // (the prototype's spring and pusher of Oil Ocean)
+	/* 46 ObjId_MarbleBrick        */ Obj_OOZSpringBall, // (the prototype's ball on a spring of Oil Ocean)
 	/* 47 ObjId_Bumper             */ Obj_Switch, // (the prototype's switch)
-	/* 48 ObjId_BossBall            */ Obj_Null, // (the prototype's object here is not ported yet)
+	/* 48 ObjId_BossBall            */ Obj_OOZCannon, // (the prototype's cannon of Oil Ocean)
 	/* 49 ObjId_Waterfall          */ Obj_EHZWaterfall,
 	/* 4A ObjId_VanishSonic        */ Obj_Null, // Nick Arcade's Octus: not ported yet
 	/* 4B ObjId_GiantRing          */ Obj_Buzzer,

@@ -76,6 +76,18 @@
 #include "Resource/Art/DHZVinePulley.h"
 #include "Resource/Art/DHZGateLog.h"
 #include "Resource/Art/HorizSpike.h"
+#include "Resource/Art/OOZElevator.h"
+#include "Resource/Art/OOZSpikyBall.h"
+#include "Resource/Art/OOZBurnerLid.h"
+#include "Resource/Art/OOZStripedBlocks.h"
+#include "Resource/Art/OOZOilfall.h"
+#include "Resource/Art/OOZOilfall2.h"
+#include "Resource/Art/OOZBall.h"
+#include "Resource/Art/OOZLaunchBall.h"
+#include "Resource/Art/OOZCollapsePlat.h"
+#include "Resource/Art/OOZPushSpring.h"
+#include "Resource/Art/OOZSwingPlat.h"
+#include "Resource/Art/Button.h"
 #include "Resource/Art/SYZSpike2.h"
 #include "Resource/Art/Stomper.h"
 #include "Resource/Art/SBZDoor1.h"
@@ -605,6 +617,37 @@ static const PLCList PLC_DHZ2 = {
 };
 
 // ---------------------------------------------------------------------------
+// Pattern load cues - Oil Ocean (Oil_Ocean_Sprites_1 and 2)
+// ---------------------------------------------------------------------------
+static const PLCList PLC_OOZ = { // (the zone's own art is the level header's)
+    7,
+    (const PLC[]) {
+        { Art_OOZElevator,      ART_VRAM(0x6000 >> 5) },
+        { Art_OOZSpikyBall,     ART_VRAM(0x6180 >> 5) },
+        { Art_OOZBurnerLid,     ART_VRAM(0x6580 >> 5) },
+        { Art_OOZStripedBlocks, ART_VRAM(0x6640 >> 5) },
+        { Art_OOZOilfall,       ART_VRAM(0x66C0 >> 5) },
+        { Art_OOZOilfall2,      ART_VRAM(0x68C0 >> 5) },
+    }
+};
+
+static const PLCList PLC_OOZ2 = {
+    10,
+    (const PLC[]) {
+        { Art_OOZBall,          ART_VRAM(0x6A80 >> 5) },
+        { Art_OOZLaunchBall,    ART_VRAM(0x6D00 >> 5) },
+        { Art_OOZCollapsePlat,  ART_VRAM(0x73A0 >> 5) },
+        { Art_OOZPushSpring,    ART_VRAM(0x78A0 >> 5) },
+        { Art_OOZSwingPlat,     ART_VRAM(0x7C60 >> 5) },
+        { Art_Button,           ART_VRAM(0x8480 >> 5) },
+        { Art_Spikes,           ART_VRAM(0x8680 >> 5) },
+        { Art_SpringDiag,       ART_VRAM(0x8780 >> 5) },
+        { Art_SpringUp,         ART_VRAM(0x8B80 >> 5) },
+        { Art_SpringSide,       ART_VRAM(0x8E00 >> 5) },
+    }
+};
+
+// ---------------------------------------------------------------------------
 // Pattern load cues - final boss
 // ---------------------------------------------------------------------------
 static const PLCList PLC_FZBoss = {
@@ -655,5 +698,7 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_FZBoss      */ &PLC_FZBoss,
     /* PlcId_DHZ         */ &PLC_DHZ,
     /* PlcId_DHZ2        */ &PLC_DHZ2,
+    /* PlcId_OOZ         */ &PLC_OOZ,
+    /* PlcId_OOZ2        */ &PLC_OOZ2,
 };
 

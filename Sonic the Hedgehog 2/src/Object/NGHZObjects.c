@@ -263,7 +263,7 @@ static uint8_t Swing_Spiked(Object *obj, Scratch_NGHZSwing *scratch) {
         return obj->angle;
     }
     if (!scratch->started) {
-        if ((uint16_t)(player->pos.l.x.f.u - scratch->base_x + 0x20) >= 0x40 || debug_mode)
+        if ((uint16_t)(player->pos.l.x.f.u - scratch->base_x + 0x20) >= 0x40 || debug_use)
             return obj->angle;
         scratch->started = 1;
     }
