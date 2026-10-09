@@ -12,6 +12,7 @@
 #include "DebugPeek.h"
 #include "GameInterface.h"
 #include "LevelData.h"
+#include "Oscillator.h"
 
 #define WEAK __attribute__((weak))
 
@@ -19,6 +20,8 @@ WEAK uint16_t frame_count;
 WEAK int32_t cli_start_level = -1;
 WEAK int32_t cli_resolution = -1;
 WEAK const GameZoneList *game_zone_list = NULL; // (the demo recorder's zone and act pickers get one zone of three acts)
+
+WEAK const OscillatorData oscillator_data = { 0 }; // (the oscillators' table: none stand still at zero, all with no rate of change and an amplitude of 0; a game defines its own)
 
 WEAK void Game_LevelObjects(void) {}
 

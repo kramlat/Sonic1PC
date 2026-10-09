@@ -17,6 +17,9 @@ typedef struct {
     OscillateSettings settings[16];
 } OscillatorData;
 
+// The game's table: the engine has a null one (weak, in NullServices.c) that a game's own definition replaces
+extern const OscillatorData oscillator_data;
+
 typedef struct {
     uint16_t direction;
     uint16_t state[16][2]; // value, rate
