@@ -135,6 +135,46 @@ static void Dynamic_Normal(const AnimScript *scripts, int count) {
     }
 }
 
+// The first frame of every script, put in VRAM without starting its counters (so the animation's own phase is the prototype's): at the level's load, before the title card, so that the art is there from
+// the first picture and the animated tiles do not show what an earlier screen (the title's TM) left there until the level loop's first frame
+static void Prime(const AnimScript *scripts, int count) {
+    for (int i = 0; i < count; i++) {
+        const AnimScript *s = &scripts[i];
+        VDP_SeekVRAM(s->vram);
+        VDP_WriteVRAM(s->art + s->frame_data[0] * 0x20, s->tiles * 0x20);
+    }
+}
+
+void S2_PrimeLevelArt(void) {
+    switch (LEVEL_ZONE(level_id)) {
+    case ZoneId_HTZ:
+        HTZBackground_Animate(two_player_mode != 0); // (the mountains' tiles: they are not in the level's art at all)
+        Prime(AnimCue_EHZ, (int)(sizeof(AnimCue_EHZ) / sizeof(AnimCue_EHZ[0])));
+        break;
+    case ZoneId_EHZ:
+        Prime(AnimCue_EHZ, (int)(sizeof(AnimCue_EHZ) / sizeof(AnimCue_EHZ[0])));
+        break;
+    case ZoneId_HPZ:
+        Prime(AnimCue_HPZ, (int)(sizeof(AnimCue_HPZ) / sizeof(AnimCue_HPZ[0])));
+        break;
+    case ZoneId_MTZ:
+    case ZoneId_MTZ3:
+        Prime(AnimCue_MTZ, (int)(sizeof(AnimCue_MTZ) / sizeof(AnimCue_MTZ[0])));
+        break;
+    case ZoneId_CPZ:
+        Prime(AnimCue_CPZ, (int)(sizeof(AnimCue_CPZ) / sizeof(AnimCue_CPZ[0])));
+        break;
+    case ZoneId_OOZ:
+        Prime(AnimCue_OOZ, (int)(sizeof(AnimCue_OOZ) / sizeof(AnimCue_OOZ[0])));
+        break;
+    case ZoneId_ARZ:
+        Prime(AnimCue_ARZ, (int)(sizeof(AnimCue_ARZ) / sizeof(AnimCue_ARZ[0])));
+        break;
+    default:
+        break;
+    }
+}
+
 // AniArt_Load: Emerald Hill and Hill Top animate their flowers, Hidden Palace its glowing ball
 void S2_AnimateLevelArt(void) {
     switch (LEVEL_ZONE(level_id)) {

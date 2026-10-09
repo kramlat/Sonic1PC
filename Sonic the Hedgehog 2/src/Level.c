@@ -2,6 +2,8 @@
 #include "HTZQuake.h"
 #include "HTZBackground.h"
 
+void S2_PrimeLevelArt(void); // AnimatedArt.c
+
 #include "Constants.h"
 #include "Enigma.h"
 #include "Game.h"
@@ -316,10 +318,9 @@ void LevelDataLoad(void) {
     if (header->plc2 != 0)
         AddPLC(header->plc2);
 
-    // Hill Top's mountains are tiles that only its animated art puts in VRAM, and that runs once the level loop does, after the title card: put them in now, or the sky shows the title screen's leftovers
-    // (its TM) all through the title card and the fade, a second or two
-    if (LEVEL_ZONE(level_id) == ZoneId_HTZ)
-        HTZBackground_Animate(two_player_mode != 0);
+    // The animated art's first frames, at once (see S2_PrimeLevelArt): Hill Top's mountains are tiles that only its animated art puts in VRAM, and that otherwise runs once the level loop does, after the title
+    // card: until then the sky would show the title screen's leftovers (its TM), a second or two
+    S2_PrimeLevelArt();
 }
 
 void ColIndexLoad(void) {
