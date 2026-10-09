@@ -19,8 +19,7 @@ PaletteFade palette_fade;
 
 // Palette interface
 uint16_t Palette_FromRGB24(uint8_t r, uint8_t g, uint8_t b) {
-    unsigned r3 = (r * 7u + 127u) / 255u, g3 = (g * 7u + 127u) / 255u, b3 = (b * 7u + 127u) / 255u;
-    return (uint16_t)((b3 << 9) | (g3 << 5) | (r3 << 1));
+    return VDP_RGB2Genesis(((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
 }
 
 // The colours of an entry, brought to the machine's format, into a palette

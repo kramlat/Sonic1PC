@@ -30,10 +30,10 @@ void Audio_Update(void);
 
 //VDP internal state
 static ALIGNED2 uint8_t vdp_vram[VRAM_SIZE];
-static uint16_t vdp_cram[4][16];
+static uint32_t vdp_cram[4][16]; // 0x00RRGGBB: the colour RAM holds true colour; the Mega Drive's 9 bit words are upscaled as they are written
 
 static uint8_t *vdp_vram_p;
-static uint16_t *vdp_cram_p;
+static uint32_t *vdp_cram_p;
 
 static size_t vdp_plane_a_location, vdp_plane_b_location, vdp_sprite_location, vdp_hscroll_location;
 static const uint16_t *vdp_sprite_buffer_ext = NULL; // see VDP_SetSpriteBuffer
@@ -137,6 +137,26 @@ void VDP_FillVRAM(uint8_t data, size_t len) {
 	vdp_vram_p += len;
 }
 
+// The Mega Drive's colours: 3 bits a channel, 0000bbb0ggg0rrr0, which its DAC puts out at these levels of 255 (not evenly: the real thing's). True colour is what the colour RAM holds; these are the way in and out
+static const uint8_t vdp_col_level[8] = { 0, 52, 87, 116, 144, 172, 206, 255 };
+
+uint32_t VDP_Genesis2RGB(uint16_t cv) {
+	return ((uint32_t)vdp_col_level[(cv & 0x00E) >> 1] << 16) | ((uint32_t)vdp_col_level[(cv & 0x0E0) >> 5] << 8) | vdp_col_level[(cv & 0xE00) >> 9];
+}
+
+// The nearest of the machine's levels for each channel (a colour of the machine's own comes back as it was)
+static unsigned VDP_NearestLevel(uint8_t v) {
+	unsigned best = 0;
+	for (unsigned n = 1; n < 8; n++)
+		if (abs((int)v - vdp_col_level[n]) < abs((int)v - vdp_col_level[best]))
+			best = n;
+	return best;
+}
+
+uint16_t VDP_RGB2Genesis(uint32_t rgb) {
+	return (uint16_t)((VDP_NearestLevel((uint8_t)(rgb >> 16)) << 1) | (VDP_NearestLevel((uint8_t)(rgb >> 8)) << 5) | (VDP_NearestLevel((uint8_t)rgb) << 9));
+}
+
 void VDP_SeekCRAM(size_t offset) {
 	#ifdef VDP_SANITY
 	if (offset >= COLOURS) {
@@ -154,8 +174,19 @@ void VDP_WriteCRAM(const uint16_t *data, size_t len) {
 		return;
 	}
 	#endif
-	memcpy(vdp_cram_p, data, len << 1);
-	vdp_cram_p += len;
+	for (size_t i = 0; i < len; i++)
+		*vdp_cram_p++ = VDP_Genesis2RGB(data[i]);
+}
+
+void VDP_WriteCRAM_RGB(const uint32_t *data, size_t len) {
+	#ifdef VDP_SANITY
+	if ((vdp_cram_p - &vdp_cram[0][0]) >= COLOURS || (vdp_cram_p - &vdp_cram[0][0] + len) > COLOURS) {
+		puts("VDP_WriteCRAM_RGB: Out-of-bounds");
+		return;
+	}
+	#endif
+	for (size_t i = 0; i < len; i++)
+		*vdp_cram_p++ = data[i] & 0xFFFFFF;
 }
 
 void VDP_FillCRAM(uint16_t data, size_t len) {
@@ -165,8 +196,9 @@ void VDP_FillCRAM(uint16_t data, size_t len) {
 		return;
 	}
 	#endif
+	uint32_t rgb = VDP_Genesis2RGB(data);
 	while (len-- > 0)
-		*vdp_cram_p++ = data;
+		*vdp_cram_p++ = rgb;
 }
 
 void VDP_SetPlaneALocation(size_t loc) {
@@ -303,13 +335,13 @@ static struct VDP_SpriteCache {
 	uint16_t pixels;
 } vdp_sprite_cache[SCREEN_MAX_HEIGHT * 2];
 
+// A colour as the screen holds it: 0xRRGGBBAA
+static inline uint32_t VDP_RGBAOf(uint32_t rgb) {
+	return (rgb << 8) | 0xFF;
+}
+
 static inline uint32_t VDP_ConvertColour(uint16_t cv) {
-	uint8_t r = (cv & 0x00E) >> 1;
-	uint8_t g = (cv & 0x0E0) >> 5;
-	uint8_t b = (cv & 0xE00) >> 9;
-	
-	static const uint8_t col_level[] = {0, 52, 87, 116, 144, 172, 206, 255};
-	return (col_level[r] << 24) | (col_level[g] << 16) | (col_level[b] << 8) | 0xFF;
+	return VDP_RGBAOf(VDP_Genesis2RGB(cv));
 }
 
 static inline uint32_t VDP_GetColour(size_t index) {
@@ -320,13 +352,7 @@ static inline uint32_t VDP_GetColour(size_t index) {
 	}
 	#endif
 	
-	uint16_t cv = vdp_cram[index >> 4][index & 0xF];
-	uint8_t r = (cv & 0x00E) >> 1;
-	uint8_t g = (cv & 0x0E0) >> 5;
-	uint8_t b = (cv & 0xE00) >> 9;
-	
-	static const uint8_t col_level[] = {0, 52, 87, 116, 144, 172, 206, 255};
-	return (col_level[r] << 24) | (col_level[g] << 16) | (col_level[b] << 8) | 0xFF;
+	return VDP_RGBAOf(vdp_cram[index >> 4][index & 0xF]);
 }
 
 static inline uint8_t *VDP_GetPatternAddress(size_t pattern) {
@@ -900,7 +926,7 @@ const uint8_t *VDP_PeekVRAM(void) {
 }
 
 uint16_t VDP_PeekCRAM(int pal, int index) {
-	return vdp_cram[pal & 3][index & 0xF];
+	return VDP_RGB2Genesis(vdp_cram[pal & 3][index & 0xF]);
 }
 
 uint32_t VDP_PeekColour(int pal, int index) {

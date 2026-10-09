@@ -37,7 +37,7 @@ extern uint16_t wet_palette_dup[4][16];
 
 extern PaletteFade palette_fade;
 
-//One 24 bit colour as the machine's 0x0BGR (each channel rounded to the nearest of its 8 levels)
+//One 24 bit colour as the machine's 0x0BGR (each channel the nearest of the 8 levels its DAC puts out: 0, 52, 87, 116, 144, 172, 206, 255)
 uint16_t Palette_FromRGB24(uint8_t r, uint8_t g, uint8_t b);
 
 //Palette interface

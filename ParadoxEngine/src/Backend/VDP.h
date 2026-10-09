@@ -63,7 +63,11 @@ void VDP_WriteLong(uint32_t val);
 void VDP_FillVRAM(uint8_t data, size_t len);
 
 void VDP_SeekCRAM(size_t offset);
-void VDP_WriteCRAM(const uint16_t *data, size_t len);
+void VDP_WriteCRAM(const uint16_t *data, size_t len); // Mega Drive colour words (0000bbb0ggg0rrr0), upscaled to true colour as they go in
+void VDP_WriteCRAM_RGB(const uint32_t *data, size_t len); // true colour, 0x00RRGGBB
+// The conversions between the two: the machine's colour to the true colour its DAC puts out, and a true colour to the machine's nearest
+uint32_t VDP_Genesis2RGB(uint16_t cv);
+uint16_t VDP_RGB2Genesis(uint32_t rgb);
 void VDP_FillCRAM(uint16_t data, size_t len);
 
 void VDP_SetPlaneALocation(size_t loc);
@@ -114,7 +118,7 @@ void Render_SetZ80Peek(bool active, const Z80PeekData *data);
 
 // Read-only views of VDP memory for the debug viewers. pal is 0-3, index 0-15.
 // VDP_PeekColour returns the RGBA8888-packed colour (0xRRGGBBAA, same packing as
-// VDP_GetColour); VDP_PeekCRAM the raw 9-bit CRAM word.
+// VDP_GetColour); VDP_PeekCRAM the CRAM word as the machine's (the nearest 9 bit colour of what is held).
 const uint8_t *VDP_PeekVRAM(void); // VRAM_SIZE bytes
 uint16_t VDP_PeekCRAM(int pal, int index);
 uint32_t VDP_PeekColour(int pal, int index);

@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "Backend/VDP.h"
 #include "EnginePalette.h"
 
 // The palette loader reads colours in any of three formats: the Mega Drive's own (big-endian words, 0000bbb0ggg0rrr0), 24 bit RGB (three bytes a colour) and 00rrggbb (four, big-endian), the 24 bit ones brought
@@ -13,13 +14,14 @@ static void Palette_24BitColoursBecomeTheMachinesNine(void) {
     CHECK_EQ(Palette_FromRGB24(255, 0, 0), 0x000E); // (red is the low channel)
     CHECK_EQ(Palette_FromRGB24(0, 255, 0), 0x00E0);
     CHECK_EQ(Palette_FromRGB24(0, 0, 255), 0x0E00);
-    CHECK_EQ(Palette_FromRGB24(128, 128, 128), 0x0888); // (4 of 7, doubled)
+    CHECK_EQ(Palette_FromRGB24(128, 128, 128), 0x0666); // (nearer the machine's level 3, 116, than 4, 144)
 }
 
-// The levels the machine can show (n/7 of full, for n of 0 to 7) come back as themselves, and no result has a bit outside 0000bbb0ggg0rrr0
+// The levels the machine can show come back as themselves, and no result has a bit outside 0000bbb0ggg0rrr0
 static void Palette_TheMachinesLevelsRoundTrip(void) {
+    static const uint8_t level[8] = { 0, 52, 87, 116, 144, 172, 206, 255 }; // (what the machine's DAC puts out, not evenly)
     for (int n = 0; n < 8; n++) {
-        uint8_t v = (uint8_t)(n * 255 / 7);
+        uint8_t v = level[n];
         uint16_t c = Palette_FromRGB24(v, v, v);
         CHECK_EQ(c, (uint16_t)((n << 9) | (n << 5) | (n << 1)));
         CHECK_EQ(c & 0xF111, 0);
@@ -31,9 +33,52 @@ static void Palette_TheMachinesLevelsRoundTrip(void) {
 }
 
 static void Palette_RoundingGoesToTheNearestLevel(void) {
-    CHECK_EQ(Palette_FromRGB24(18, 0, 0), 0x0000); // (a 7th is 36.4: 18 is below half of it)
-    CHECK_EQ(Palette_FromRGB24(19, 0, 0), 0x0002);
-    CHECK_EQ(Palette_FromRGB24(0, 236, 0), 0x00C0); // (6 of 7 is 218.6, 7 of 7 is 255: 236 is nearer to 6.5 and over: 7)
+    CHECK_EQ(Palette_FromRGB24(26, 0, 0), 0x0000); // (halfway between 0 and 52: the lower)
+    CHECK_EQ(Palette_FromRGB24(27, 0, 0), 0x0002);
+    CHECK_EQ(Palette_FromRGB24(0, 230, 0), 0x00C0); // (halfway between 206 and 255 is 230.5)
+    CHECK_EQ(Palette_FromRGB24(0, 236, 0), 0x00E0);
+}
+
+// The way in and out of the video chip's colour RAM: its true colour is the DAC's levels, and a word of the machine's comes back from it as it went in
+static void Palette_TheVDPUpscalesGenesisWords(void) {
+    CHECK_EQ(VDP_Genesis2RGB(0x0000), 0x000000);
+    CHECK_EQ(VDP_Genesis2RGB(0x0EEE), 0xFFFFFF);
+    CHECK_EQ(VDP_Genesis2RGB(0x000E), 0xFF0000); // (red is the low channel; and RGB's high byte)
+    CHECK_EQ(VDP_Genesis2RGB(0x0E00), 0x0000FF);
+    CHECK_EQ(VDP_Genesis2RGB(0x0246), (uint32_t)((116 << 16) | (87 << 8) | 52)); // (red 3, green 2, blue 1)
+}
+
+// Every one of the machine's 512 colours goes up to true colour and back down as itself
+static void Palette_EveryGenesisColourRoundTripsThroughTrueColour(void) {
+    for (int b = 0; b < 8; b++)
+        for (int g = 0; g < 8; g++)
+            for (int r = 0; r < 8; r++) {
+                uint16_t word = (uint16_t)((b << 9) | (g << 5) | (r << 1));
+                CHECK_EQ(VDP_RGB2Genesis(VDP_Genesis2RGB(word)), word);
+            }
+}
+
+// Words and true colour written to the colour RAM read back (as the machine's words)
+static void Palette_ColourRAMTakesWordsAndTrueColour(void) {
+    static const uint16_t words[3] = { 0x0EEE, 0x000E, 0x0246 };
+    VDP_SeekCRAM(0);
+    VDP_WriteCRAM(words, 3);
+    CHECK_EQ(VDP_PeekCRAM(0, 0), 0x0EEE);
+    CHECK_EQ(VDP_PeekCRAM(0, 1), 0x000E);
+    CHECK_EQ(VDP_PeekCRAM(0, 2), 0x0246);
+    CHECK_EQ(VDP_PeekColour(0, 1), 0xFF0000FFu); // (0xRRGGBBAA)
+
+    static const uint32_t rgb[2] = { 0x00FF8000, 0x00123456 };
+    VDP_SeekCRAM(3);
+    VDP_WriteCRAM_RGB(rgb, 2);
+    CHECK_EQ(VDP_PeekColour(0, 3), 0xFF8000FFu); // (kept as it is: true colour)
+    CHECK_EQ(VDP_PeekColour(0, 4), 0x123456FFu);
+    CHECK_EQ(VDP_PeekCRAM(0, 3), VDP_RGB2Genesis(0xFF8000)); // (its nearest, as the machine's word)
+
+    VDP_SeekCRAM(0);
+    VDP_FillCRAM(0x0ACE, 2);
+    CHECK_EQ(VDP_PeekCRAM(0, 0), 0x0ACE);
+    CHECK_EQ(VDP_PeekCRAM(0, 1), 0x0ACE);
 }
 
 static uint16_t aligned_genesis[4];
@@ -80,7 +125,7 @@ static void Palette_RGB24ColoursLoadConverted(void) {
     PutBack();
     CHECK_EQ(dry_palette[0][0], 0x0EEE);
     CHECK_EQ(dry_palette[0][1], 0x000E);
-    CHECK_EQ(dry_palette[0][2], 0x0E80);
+    CHECK_EQ(dry_palette[0][2], 0x0E60); // (green 128 is nearer 116 than 144)
     CHECK_EQ(dry_palette[0][3], 0xFFFF);
 }
 
@@ -92,7 +137,7 @@ static void Palette_0RGB32ColoursLoadConverted(void) {
     PalLoad2(0);
     PutBack();
     CHECK_EQ(dry_palette[0][0], 0x000E);
-    CHECK_EQ(dry_palette[0][1], 0x0E80);
+    CHECK_EQ(dry_palette[0][1], 0x0E60);
     CHECK_EQ(dry_palette[0][2], 0x0EEE); // (the top byte is not a channel)
     CHECK_EQ(dry_palette[0][3], 0xFFFF);
 }
@@ -153,6 +198,9 @@ void RegisterPaletteTests(void) {
     RUN_TEST(Palette_24BitColoursBecomeTheMachinesNine);
     RUN_TEST(Palette_TheMachinesLevelsRoundTrip);
     RUN_TEST(Palette_RoundingGoesToTheNearestLevel);
+    RUN_TEST(Palette_TheVDPUpscalesGenesisWords);
+    RUN_TEST(Palette_EveryGenesisColourRoundTripsThroughTrueColour);
+    RUN_TEST(Palette_ColourRAMTakesWordsAndTrueColour);
     RUN_TEST(Palette_GenesisColoursLoadAsTheyWere);
     RUN_TEST(Palette_AnEntryWithNoFormatIsGenesis);
     RUN_TEST(Palette_RGB24ColoursLoadConverted);
