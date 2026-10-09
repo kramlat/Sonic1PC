@@ -1,5 +1,5 @@
-// Monitors for Sonic 2 (Nick Arcade's objects 26 and 2E): Sonic 1's Monitor.c with Nick Arcade's changes: its items are numbered 1 Sonic, 2 Tails, 4 rings, 5 shoes, 6 shield, 7 invincibility (3, 8 and 9 do
-// nothing: no Eggman monitor, no S monitor), the icons are mapping frame subtype + 1, and a broken monitor plays animation 10.
+// Monitors for Sonic 2 (Nick Arcade's objects 26 and 2E): Sonic 1's Monitor.c with Nick Arcade's changes: its items are numbered 1 Sonic, 2 Tails, 4 rings, 5 shoes, 6 shield, 7 invincibility, 3 Eggman (hurts), and 8 and 9, which do nothing as in
+// the prototype (8 shows a spring, where the final game's teleporter goes; 9 a "?"), the icons are mapping frame subtype + 1, and a broken monitor plays animation 10.
 #include "Object/Monitor.h"
 #include "Constants.h"
 
@@ -286,7 +286,10 @@ void Obj_MonitorItem(Object *obj) {
                     PlayMusic(bgm_Invincible);
                 }
                 break;
-            default: // 0, 3, 8, 9: nothing
+            case 3: // Eggman: hurts whoever broke it (a monitor with a face on it, as Sonic 1's and the final game's)
+                HurtSonic(player, obj);
+                break;
+            default: // 0, 8 (the spring), 9 (the "?"): nothing, as in the prototype
                 break;
             }
         }

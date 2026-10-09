@@ -116,16 +116,19 @@ static void DebugList_InitRingVariants(void) {
 #define RING_VARIANTS DebugVariants_Ring, 128, 0, 0xFF
 
 // The monitor's subtype is the item and its icon is the mapping's frame subtype + 1 (Monitor.c): 1 Sonic, 2 Tails, 4 rings, 5 shoes, 6 shield, 7 invincibility do something; the box is drawn with its icon
-static const DebugFramePiece DebugStack_Monitor[8][2] = {
+static const DebugFramePiece DebugStack_Monitor[10][2] = {
     {{1, 0, 0}, {0, 0, 0}}, {{2, 0, 0}, {0, 0, 0}}, {{3, 0, 0}, {0, 0, 0}}, {{4, 0, 0}, {0, 0, 0}},
     {{5, 0, 0}, {0, 0, 0}}, {{6, 0, 0}, {0, 0, 0}}, {{7, 0, 0}, {0, 0, 0}}, {{8, 0, 0}, {0, 0, 0}},
+    {{9, 0, 0}, {0, 0, 0}}, {{10, 0, 0}, {0, 0, 0}},
 };
 static const DebugSubtypeVariant DebugVariants_Monitor[] = {
     {1, DebugStack_Monitor[1], 2, 0, 0, 0}, {2, DebugStack_Monitor[2], 2, 0, 0, 0},
+    {3, DebugStack_Monitor[3], 2, 0, 0, 0},
     {4, DebugStack_Monitor[4], 2, 0, 0, 0}, {5, DebugStack_Monitor[5], 2, 0, 0, 0},
     {6, DebugStack_Monitor[6], 2, 0, 0, 0}, {7, DebugStack_Monitor[7], 2, 0, 0, 0},
+    {8, DebugStack_Monitor[8], 2, 0, 0, 0}, {9, DebugStack_Monitor[9], 2, 0, 0, 0},
 };
-#define MONITOR_VARIANTS DebugVariants_Monitor, 6, 0, 0xFF
+#define MONITOR_VARIANTS DebugVariants_Monitor, 9, 0, 0xFF
 
 #define RING_ENTRY {OBJ(0x25), Mappings_RingREV01, TILE_MAP(0, 1, 0, 0, ArtTile_Ring), 0, 0, RING_VARIANTS}
 #define MONITOR_ENTRY(sub) {OBJ(0x26), Mappings_Monitor, 0x680, sub, 0, MONITOR_VARIANTS}
