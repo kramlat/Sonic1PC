@@ -67,6 +67,10 @@ void VDP_WriteVRAM(const uint8_t *data, size_t len);
 void VDP_WriteLong(uint32_t val);
 void VDP_FillVRAM(uint8_t data, size_t len);
 
+// One row (y, 0 to 7) of an 8 bits a pixel tile (64 bytes: a byte a pixel, the colour RAM index; 0 transparent; patterns in 64 byte steps) into 8 pixels of `to` (0xRRGGBBAA) and their priority mask `tom`: a pixel
+// is not drawn if the mask already has a bit of `and`, and `or` is put into the mask of every pixel that is not transparent (as the 4bpp tiles' rows do). The planes and sprites do not use it yet.
+void VDP_DrawTileRow8(uint32_t *to, uint8_t *tom, size_t pattern, int y, bool x_flip, bool y_flip, uint8_t and, uint8_t or);
+
 void VDP_SeekCRAM(size_t offset);
 void VDP_WriteCRAM(const uint16_t *data, size_t len); // Mega Drive colour words (0000bbb0ggg0rrr0), upscaled to true colour as they go in
 void VDP_WriteCRAM_RGB(const uint32_t *data, size_t len); // true colour, 0x00RRGGBB

@@ -9,6 +9,7 @@ const char *test_current_name = NULL;
 
 void RegisterCompressionTests(void);
 void RegisterPaletteTests(void);
+void RegisterVdp8bppTests(void);
 void RegisterLevelDataTests(void);
 void RegisterObjectCoverageTests(void);
 void RegisterSolidTests(void);
@@ -32,6 +33,8 @@ int main(void) {
     RegisterCompressionTests();
     printf("Palette tests:\n");
     RegisterPaletteTests();
+    printf("VDP 8bpp tile tests:\n");
+    RegisterVdp8bppTests();
     printf("Level data tests:\n");
     RegisterLevelDataTests();
     printf("Object coverage tests:\n");

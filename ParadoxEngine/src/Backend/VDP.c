@@ -398,6 +398,32 @@ static inline uint8_t *VDP_GetPatternAddress(size_t pattern) {
 	from--;                                               \
 }
 
+// --- 8 bits a pixel ---
+// An 8bpp tile is 64 bytes, a byte a pixel, rows of 8 bytes, the byte the colour RAM index (0 to 255: any of the 16 lines' colours; 0 is transparent). Patterns are numbered in 64 byte steps. Nothing draws the planes
+// or sprites with it yet (they are 4bpp: the tile format has no bit to say otherwise); this is the row handler a later tile format would call, working to the same rules as the 4bpp one (the priority masks).
+static inline const uint8_t *VDP_GetPattern8Address(size_t pattern) {
+	#ifdef VDP_SANITY
+	if (pattern >= (VRAM_SIZE >> 6)) {
+		puts("VDP_GetPattern8Address: Out-of-bounds");
+		return vdp_vram;
+	}
+	#endif
+	
+	return vdp_vram + (pattern << 6);
+}
+
+void VDP_DrawTileRow8(uint32_t *to, uint8_t *tom, size_t pattern, int y, bool x_flip, bool y_flip, uint8_t and, uint8_t or) {
+	const uint8_t *from = VDP_GetPattern8Address(pattern) + (((y_flip ? (y ^ 7) : y) & 7) << 3);
+	for (int i = 0; i < 8; i++) {
+		uint8_t v = from[x_flip ? (7 - i) : i];
+		if (v != 0) {
+			if (!(tom[i] & and))
+				to[i] = VDP_GetColour(v);
+			tom[i] |= or;
+		}
+	}
+}
+
 // Draws one row of a plane `view_w` pixels wide. With double_cells (the stacked split screen's double-height mode) a cell is 8x16: a name table entry names a pair
 // of patterns, one above the other, at twice its number.
 static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const uint16_t *plane, int16_t x, int16_t y, int view_w, bool double_cells) {
