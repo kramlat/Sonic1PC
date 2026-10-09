@@ -161,7 +161,6 @@
 #include "Resource/Art/Buzzer.h"
 #include "Resource/Art/Snail.h"
 #include "Resource/Art/Masher.h"
-#include "Resource/Art/EHZFireball.h"
 #include "Resource/Art/SpringUp.h"
 #include "Resource/Art/SpringSide.h"
 #include "Resource/Art/SpringDiag.h"
@@ -317,7 +316,7 @@ static const PLCList PLC_SLZ = { // Emerald Hill
         { Art_Buzzer,        ART_VRAM(0x3E6) },
         { Art_Snail,         ART_VRAM(0x402) },
         { Art_Masher,        ART_VRAM(0x41C) },
-        { Art_EHZFireball,   ART_VRAM(0x39E) },
+        { Art_HTZFireball,   ART_VRAM(0x79C0 >> 5) }, // (the prototype's FireBall, Fireball.nem, at $79C0: no Emerald Hill object uses it; Nick Arcade had another art, at $39E)
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },

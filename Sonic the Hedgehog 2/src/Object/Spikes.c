@@ -18,13 +18,11 @@ static Object *Character(int who) {
     return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
 }
 
-// Touch_ChkHurt2: the character is pushed back out of the spikes and hurt (unless he is invincible, already hurt, or still flashing from a hit)
+// Touch_ChkHurt2: the character is pushed back out of the spikes and hurt (unless he is invincible or already hurt)
 static void Spike_Hurt(Object *obj, Object *chr, int who) {
     if (invincibility)
         return;
-    Scratch_Sonic *scratch = (Scratch_Sonic *)&chr->scratch;
-    if (scratch->flash_time) // ("Proper Spike Bug Fix")
-        return;
+    // (the prototype's Touch_ChkHurt2 has no check for the flashing after a hit -- Sonic 1's "Proper Spike Bug Fix" is not in it: spikes hurt a character who is still flashing, and the port keeps that)
     if (chr->routine >= 4)
         return;
     chr->pos.l.y.v -= chr->ysp << 8;
