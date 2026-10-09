@@ -30,7 +30,7 @@ void Audio_Update(void);
 
 //VDP internal state
 static ALIGNED2 uint8_t vdp_vram[VRAM_SIZE];
-static uint32_t vdp_cram[4][16]; // 0x00RRGGBB: the colour RAM holds true colour; the Mega Drive's 9 bit words are upscaled as they are written
+static uint32_t vdp_cram[VDP_PALETTES][16]; // 0x00RRGGBB: the colour RAM holds true colour; the Mega Drive's 9 bit words are upscaled as they are written
 
 static uint8_t *vdp_vram_p;
 static uint32_t *vdp_cram_p;
@@ -50,7 +50,7 @@ static MD_Vector vdp_hint, vdp_vint;
 //Split screen (see VDP_SetSplitScreen)
 static VDPSplitMode vdp_split_mode = VDP_SPLIT_NONE;
 static const VDPView *vdp_view2 = NULL;
-static uint32_t vdp_water_pal[2][4][16]; // the split screen's water: [0] dry, [1] wet (VDP_SetSplitWater)
+static uint32_t vdp_water_pal[2][VDP_PALETTES_ACTIVE][16]; // the split screen's water: [0] dry, [1] wet (VDP_SetSplitWater)
 static const uint16_t *vdp_water_dry = NULL, *vdp_water_wet = NULL;
 static int16_t vdp_water_line[2];
 static bool vdp_initialized = false;
@@ -324,8 +324,8 @@ static uint8_t vdp_mask_internal[SCREEN_MAX_HEIGHT * 2 * SCREEN_MAX_PITCH];
 static uint32_t *vdp_screen;
 static uint8_t *vdp_mask;
 
-static uint32_t vdp_screen_pal[4][16];
-static uint32_t vdp_screen_pal2[4][16]; // the second view's palette, when it has its own
+static uint32_t vdp_screen_pal[VDP_PALETTES_ACTIVE][16];
+static uint32_t vdp_screen_pal2[VDP_PALETTES_ACTIVE][16]; // the second view's palette, when it has its own
 static uint32_t (*vdp_draw_pal)[16] = vdp_screen_pal; // the palette the row being drawn uses
 
 // One entry per output line (the second view's lines follow the first's, whichever way the views are laid out)
@@ -725,17 +725,17 @@ static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct
 
 static inline void VDP_RefreshPalette(void) {
 	uint32_t *pal_to = &vdp_screen_pal[0][0];
-	for (size_t i = 0; i < 4 * 16; i++)
+	for (size_t i = 0; i < ACTIVE_COLOURS; i++)
 		*pal_to++ = VDP_GetColour(i);
 	if (vdp_split_mode != VDP_SPLIT_NONE && vdp_water_dry != NULL) {
-		for (size_t i = 0; i < 4 * 16; i++) {
+		for (size_t i = 0; i < ACTIVE_COLOURS; i++) {
 			vdp_water_pal[0][i >> 4][i & 15] = VDP_ConvertColour(vdp_water_dry[i]);
 			vdp_water_pal[1][i >> 4][i & 15] = VDP_ConvertColour(vdp_water_wet[i]);
 		}
 	}
 	if (vdp_split_mode != VDP_SPLIT_NONE && vdp_view2 != NULL && vdp_view2->palette != NULL) {
 		pal_to = &vdp_screen_pal2[0][0];
-		for (size_t i = 0; i < 4 * 16; i++)
+		for (size_t i = 0; i < ACTIVE_COLOURS; i++)
 			*pal_to++ = VDP_ConvertColour(vdp_view2->palette[i]);
 	}
 }
@@ -926,11 +926,11 @@ const uint8_t *VDP_PeekVRAM(void) {
 }
 
 uint16_t VDP_PeekCRAM(int pal, int index) {
-	return VDP_RGB2Genesis(vdp_cram[pal & 3][index & 0xF]);
+	return VDP_RGB2Genesis(vdp_cram[pal & (VDP_PALETTES - 1)][index & 0xF]);
 }
 
 uint32_t VDP_PeekColour(int pal, int index) {
-	return VDP_GetColour((size_t)(((pal & 3) << 4) | (index & 0xF)));
+	return VDP_GetColour((size_t)(((pal & (VDP_PALETTES - 1)) << 4) | (index & 0xF)));
 }
 
 int VDP_PeekSprites(VdpSpritePeek *out, int max) {

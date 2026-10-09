@@ -93,6 +93,30 @@ static void PutBack(void) {
     palette_pointers[0] = saved_entry;
 }
 
+// The colour RAM has 16 lines of storage (a later game needs them), of which the first 4 are drawn with so far: the others can be written and read back, each its own, and the first four are untouched by them
+static void Palette_ColourRAMHasSixteenLines(void) {
+    CHECK_EQ(VDP_PALETTES, 16);
+    CHECK_EQ(VDP_PALETTES_ACTIVE, 4);
+    CHECK_EQ(COLOURS, 256);
+    VDP_SeekCRAM(0);
+    VDP_FillCRAM(0x0222, 64);
+    for (int line = 4; line < 16; line++) {
+        VDP_SeekCRAM((size_t)(line * 16));
+        VDP_FillCRAM((uint16_t)(((line & 7) << 1) | ((line >> 3) << 5)), 16); // (each line its own colour: the line's low bits in red, its high bit in green)
+    }
+    for (int line = 4; line < 16; line++)
+        for (int i = 0; i < 16; i++)
+            CHECK_EQ(VDP_PeekCRAM(line, i), (uint16_t)(((line & 7) << 1) | ((line >> 3) << 5)));
+    for (int line = 0; line < 4; line++)
+        CHECK_EQ(VDP_PeekCRAM(line, 5), 0x0222);
+    static const uint32_t last[1] = { 0x00ABCDEF };
+    VDP_SeekCRAM(255);
+    VDP_WriteCRAM_RGB(last, 1); // (the very last colour)
+    CHECK_EQ(VDP_PeekColour(15, 15), 0xABCDEFFFu);
+    VDP_SeekCRAM(0);
+    VDP_FillCRAM(0, COLOURS);
+}
+
 static void Palette_GenesisColoursLoadAsTheyWere(void) {
     static const uint8_t file[8] = { 0x0E, 0xEE, 0x00, 0x0E, 0x02, 0x46, 0x00, 0x00 }; // (big-endian, as the files are)
     memcpy(aligned_genesis, file, sizeof(file));
@@ -201,6 +225,7 @@ void RegisterPaletteTests(void) {
     RUN_TEST(Palette_TheVDPUpscalesGenesisWords);
     RUN_TEST(Palette_EveryGenesisColourRoundTripsThroughTrueColour);
     RUN_TEST(Palette_ColourRAMTakesWordsAndTrueColour);
+    RUN_TEST(Palette_ColourRAMHasSixteenLines);
     RUN_TEST(Palette_GenesisColoursLoadAsTheyWere);
     RUN_TEST(Palette_AnEntryWithNoFormatIsGenesis);
     RUN_TEST(Palette_RGB24ColoursLoadConverted);

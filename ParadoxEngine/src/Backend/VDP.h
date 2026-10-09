@@ -14,7 +14,12 @@
 #define PLANE_SIZE   0x2000
 #define SPRITES      80
 #define SPRITES_SIZE (SPRITES * 8)
-#define COLOURS      (4 * 16)
+// The colour RAM: VDP_PALETTES lines of 16 colours of storage (the machine has 4; later games need more), of which the first VDP_PALETTES_ACTIVE are the ones the picture is drawn with so far: a tile or sprite
+// names its line in 2 bits, so a line past the fourth can be written and read but not yet drawn with. Raise VDP_PALETTES_ACTIVE (and the tile format's palette bits) when a game needs them.
+#define VDP_PALETTES        16
+#define VDP_PALETTES_ACTIVE 4
+#define COLOURS             (VDP_PALETTES * 16)
+#define ACTIVE_COLOURS      (VDP_PALETTES_ACTIVE * 16)
 
 //Tile structure
 #define TILE_PRIORITY_AND   0x8000
