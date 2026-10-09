@@ -21,6 +21,7 @@ void RegisterDemoTests(void);
 void RegisterCPZObjectTests(void);
 void RegisterNGHZObjectTests(void);
 void RegisterHTZObjectTests(void);
+void RegisterCameraTests(void);
 
 int main(void) {
     printf("Compression tests:\n");
@@ -49,6 +50,8 @@ int main(void) {
     RegisterNGHZObjectTests();
     printf("Hill Top object tests:\n");
     RegisterHTZObjectTests();
+    printf("Camera tests:\n");
+    RegisterCameraTests();
     printf("Demo tests:\n");
     RegisterDemoTests();
 
