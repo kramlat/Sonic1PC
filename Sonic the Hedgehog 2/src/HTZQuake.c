@@ -2,6 +2,7 @@
 // object 30 (Obj_0x30, the solid pieces of the ground that moves). The events move the background by a diff of their own while the camera is in a quake's stretch of the level (Screen_Shaking_Flag_HTZ),
 // and every now and then they move the ground up or down by a quarter pixel a frame, between two limits, with the screen shaking (Screen_Shaking_Flag) while it does.
 #include "HTZQuake.h"
+#include "LevelCollision.h"
 #include "Constants.h"
 
 #include "Game.h"
@@ -343,7 +344,18 @@ void Obj_HTZQuakeBlock(Object *obj) {
         if (chr != NULL)
             Solid_Character(obj, chr, who, x_rad, y_rad, (int16_t)(y_rad + 1), x, ((scratch->subtype >> 1) % 5) == 4 ? (const int8_t *)quake_slope : NULL);
     }
-    if (((scratch->subtype >> 1) % 5) == 2) { // the lava's top hurts whoever stands on it (Touch_ChkHurt: not while invincible or flashing)
+    // loc_FBF4: whoever stands on it is let go when the level's own floor is at or under his feet (the ground moves up through him)
+    for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+        Object *chr = Char(who);
+        if (chr == NULL || !(obj->status.b & (1 << (3 + who))))
+            continue;
+        if (ObjFloorDist(chr, chr->pos.l.x.f.u) <= 0) {
+            chr->status.p.f.object_stand = false;
+            obj->status.b &= (uint8_t)~(1 << (3 + who));
+        }
+    }
+    const int kind = (scratch->subtype >> 1) % 5;
+    if (kind == 2 || kind == 3) { // the lava's top (kinds 4 and 6) hurts whoever stands on it (Touch_ChkHurt: not while invincible or flashing)
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
             Object *chr = Char(who);
             if (chr == NULL || !(obj->status.b & (1 << (3 + who))) || invincibility || ((Scratch_Sonic *)&chr->scratch)->flash_time)

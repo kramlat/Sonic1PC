@@ -127,6 +127,7 @@ void Obj_HTZLift(Object *obj);
 void Obj_HTZBreakFloor(Object *obj);
 void Obj_HTZQuakeBlock(Object *obj);
 void Obj_HTZLavaBox(Object *obj);
+void Obj_HTZFireball(Object *obj);
 void Obj_DiagSpring(Object *obj);
 void Obj_CPZTube(Object *obj);
 void Obj_CPZElevator(Object *obj);
@@ -213,7 +214,7 @@ const ObjectFunc game_objects[] = {
 	/* 1D ObjId_MagicSwitch        */ Obj_CPZWorm, // (the prototype's droplet chain of Chemical Plant)
 	/* 1E ObjId_BallHog            */ Obj_CPZTube, // (the prototype's tube network of Chemical Plant)
 	/* 1F ObjId_Crabmeat            */ Obj_Null, // (the prototype's object here is not ported yet)
-	/* 20 ObjId_Cannonball         */ Obj_Null, // removed in Nick Arcade
+	/* 20 ObjId_Cannonball         */ Obj_HTZFireball, // (the prototype's fireball of Hill Top: the lava bubble)
 	/* 21 ObjId_HUD                 */ Obj_HUD,
 	/* 22 ObjId_BuzzBomber          */ Obj_ArrowShooter, // (the prototype's arrow shooter of Neo Green Hill)
 	/* 23 ObjId_BuzzMissile         */ Obj_Null, // (the prototype's object here is not ported yet)

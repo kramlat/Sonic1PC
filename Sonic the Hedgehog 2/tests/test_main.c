@@ -12,6 +12,7 @@ void RegisterObjectCoverageTests(void);
 void RegisterSolidTests(void);
 void RegisterHTZQuakeTests(void);
 void RegisterHTZFloorTests(void);
+void RegisterHTZFireballTests(void);
 void RegisterHTZBackgroundTests(void);
 void RegisterWaterTests(void);
 void RegisterSignpostTests(void);
@@ -28,6 +29,8 @@ int main(void) {
     RegisterHTZQuakeTests();
     printf("Hill Top breakable floor tests:\n");
     RegisterHTZFloorTests();
+    printf("Hill Top fireball tests:\n");
+    RegisterHTZFireballTests();
     printf("Hill Top background tests:\n");
     RegisterHTZBackgroundTests();
     printf("Water tests:\n");

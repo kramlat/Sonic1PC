@@ -15,7 +15,11 @@
 #include "Macros.h"
 
 extern const uint8_t Mappings_HTZLift[]; // (defined with Scenery.c, which draws its poles)
+#include "LevelCollision.h"
+#include "Resource/Animation/HTZFireball.h"
 #include "Resource/Mappings/HTZBreakFloor.h"
+#include "Resource/Mappings/HTZFireball.h"
+#include "Resource/Mappings/HTZFireFlames.h"
 #include "Resource/Mappings/HTZSeesaw.h"
 #include "Resource/Mappings/HTZSeesawBall.h"
 
@@ -499,4 +503,145 @@ void Obj_HTZLavaBox(Object *obj) {
     obj->render.b = 0x84; // (never drawn, but the touch response has to find it "on screen")
     if (IS_OFFSCREEN(obj->pos.l.x.f.u))
         ObjectDelete(obj); // (the prototype does not forget its mark here either)
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object 20: the fireball (Obj_0x20_Fireball): a bubble in the lava that throws two fireballs, one to each side, when its animation is at the right moment; they fall, burn where they land and spread three
+// steps along the ground. The subtype's low nibble times 16 is how long it waits between throws, and its next three bits give the speed (up and out) of the balls.
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype;  // 0x28
+    uint8_t pad0[7];
+    int16_t base_y;   // 0x30
+    int16_t timer;    // 0x32
+    int16_t reload;   // 0x34
+    uint8_t spread;   // 0x36: how many more steps the fire goes on
+    uint8_t pad1[1];
+} Scratch_Fireball;
+
+#define ARTTILE_LAVA_BUBBLE 0x416 // ($82C0 in Hill Top's second list)
+#define ARTTILE_FIRE 0x39E        // ($73C0 in its first)
+
+enum { FireRoutine_Init = 0, FireRoutine_Bubble = 2, FireRoutine_Throw = 4, FireRoutine_Wait = 6, FireRoutine_Fly = 8, FireRoutine_Burn = 0xA, FireRoutine_Gone = 0xC };
+
+// loc_1723E: one fireball
+static void Fireball_Throw(Object *obj, Object *ball) {
+    ball->type = obj->type;
+    ball->routine = FireRoutine_Fly;
+    ball->pos.l.x.f.u = obj->pos.l.x.f.u;
+    ball->pos.l.y.f.u = obj->pos.l.y.f.u;
+    ball->xsp = obj->xsp;
+    ball->ysp = obj->ysp;
+    ball->y_rad = ball->x_rad = 8;
+    ball->mappings = obj->mappings;
+    ball->tile = obj->tile;
+    ball->render.b = 4;
+    ball->priority = 3;
+    ball->width_pixels = 8;
+    ball->col_type = 0x8B;
+    ((Scratch_Fireball *)&ball->scratch)->base_y = ball->pos.l.y.f.u;
+}
+
+void Obj_HTZFireball(Object *obj) {
+    Scratch_Fireball *scratch = (Scratch_Fireball *)&obj->scratch;
+
+    switch (obj->routine) {
+    case FireRoutine_Init: {
+        obj->routine += 2;
+        obj->y_rad = obj->x_rad = 8;
+        obj->mappings = Mappings_HTZFireball;
+        obj->tile = TILE_MAP(1, 0, 0, 0, ARTTILE_LAVA_BUBBLE);
+        obj->render.b = 4;
+        obj->priority = 3;
+        obj->width_pixels = 8;
+        scratch->base_y = obj->pos.l.y.f.u;
+        const int16_t speed = (int16_t)-(((int)scratch->subtype << 3) & 0x780);
+        obj->xsp = obj->ysp = speed;
+        scratch->timer = scratch->reload = (int16_t)((scratch->subtype & 0xF) << 4);
+    }
+        // Fallthrough
+    case FireRoutine_Bubble:
+        AnimateSprite(obj, Animation_HTZFireball);
+        RememberState(obj);
+        break;
+    case FireRoutine_Throw:
+        if (obj->frame_time.b == 5) { // the moment of the animation: two fireballs, one the other way
+            Object *first = FindNextFreeObj(obj + 1);
+            if (first != NULL) {
+                Fireball_Throw(obj, first);
+                Object *second = FindNextFreeObj(obj + 1);
+                if (second != NULL) {
+                    Fireball_Throw(obj, second);
+                    second->xsp = (int16_t)-second->xsp;
+                    second->render.f.x_flip = true;
+                }
+            }
+            PlaySound(sfx_Fireball);
+            obj->routine += 2;
+        }
+        AnimateSprite(obj, Animation_HTZFireball);
+        RememberState(obj);
+        break;
+    case FireRoutine_Wait:
+        if (--scratch->timer < 0) {
+            scratch->timer = scratch->reload;
+            obj->routine = FireRoutine_Bubble;
+            obj->anim = 0;
+            obj->prev_anim = 1; // (the animation starts again)
+        }
+        AnimateSprite(obj, Animation_HTZFireball);
+        RememberState(obj);
+        break;
+    case FireRoutine_Fly:
+        if (--obj->frame_time.b < 0) {
+            obj->frame_time.b = 7;
+            obj->frame = (uint8_t)((obj->frame + 1) & 1);
+        }
+        SpeedToPos(obj);
+        obj->ysp += 0x18;
+        if ((uint16_t)(limit_btm2 + 0xE0) < (uint16_t)obj->pos.l.y.f.u) {
+            ObjectDelete(obj);
+            return;
+        }
+        obj->render.f.y_flip = false;
+        if (obj->ysp >= 0) { // falling: it burns where it lands
+            obj->render.f.y_flip = true;
+            const int16_t d1 = ObjFloorDist(obj, obj->pos.l.x.f.u);
+            if (d1 < 0) {
+                obj->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + d1);
+                obj->routine += 2;
+                obj->anim = 2;
+                obj->ysp = 0;
+                obj->mappings = Mappings_HTZFireFlames;
+                obj->tile = TILE_MAP(1, 0, 0, 0, ARTTILE_FIRE);
+                obj->frame = 0;
+                scratch->timer = 9;
+                scratch->spread = 3;
+            }
+        }
+        RememberState(obj);
+        break;
+    case FireRoutine_Burn:
+        if (--scratch->timer < 0) {
+            scratch->timer = 0x7F;
+            if ((int8_t)--scratch->spread >= 0) { // the fire goes on one step along the ground
+                Object *next = FindNextFreeObj(obj + 1);
+                if (next != NULL) {
+                    *next = *obj;
+                    Scratch_Fireball *ns = (Scratch_Fireball *)&next->scratch;
+                    ns->timer = 9;
+                    next->anim = 2;
+                    next->prev_anim = 0;
+                    next->pos.l.x.f.u = (int16_t)(next->pos.l.x.f.u + (next->xsp < 0 ? -0x0E : 0x0E));
+                    next->pos.l.y.f.u = (int16_t)(next->pos.l.y.f.u + ObjFloorDist(next, next->pos.l.x.f.u));
+                }
+            }
+        }
+        AnimateSprite(obj, Animation_HTZFireball);
+        RememberState(obj);
+        break;
+    default:
+        ObjectDelete(obj);
+        break;
+    }
 }
