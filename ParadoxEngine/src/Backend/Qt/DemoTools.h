@@ -9,6 +9,7 @@ namespace DemoTools {
 
 void RecordDialog(QWidget *parent);  // asks which level to record, then files the request
 void PlayDialog(QWidget *parent);    // asks for a demo file (and its level), then files the request
+void CountdownDialog(QWidget *parent); // asks for the song and the length, then files a countdown request (Demo.h's Countdown_Request)
 void StopRecording();                // saves the recording and carries on playing
 bool Recording();                    // a recording is running (or about to start)
 

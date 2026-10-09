@@ -27,6 +27,7 @@
 
 extern "C" {
 #include "../../Demo.h" // the recorder/player request API (a C header)
+#include "../SoundInspect.h" // the sound list of the countdown's song picker
 }
 
 namespace DemoTools {
@@ -365,6 +366,11 @@ static void RunEnvironmentHooks(int frame) {
 			Demo_RequestRecording(&r);
 		}
 	}
+	if (const char *countdown = getenv("SONIC_QT_COUNTDOWN")) { // "music,seconds": Tools > Countdown, for the tests
+		QStringList a = QString(countdown).split(',');
+		if (a.size() >= 2)
+			Countdown_Request(a[0].toInt(), a[1].toInt());
+	}
 	if (const char *play = getenv("SONIC_QT_PLAY")) {
 		QStringList a = QString(play).split(',');
 		QFile f(a[0]);
@@ -402,6 +408,44 @@ void Poll(QMainWindow *window) {
 		}
 	}
 	was_recording = now;
+}
+
+} // namespace DemoTools
+
+namespace DemoTools {
+
+void CountdownDialog(QWidget *parent) {
+    QDialog dialog(parent);
+    dialog.setWindowTitle("Countdown");
+    auto *form = new QFormLayout(&dialog);
+
+    auto *music = new QComboBox;
+    music->setMinimumContentsLength(32);
+    music->addItem("The game's own countdown song", -1);
+    for (int i = 0; i < Sound_InspectEntryCount(); i++) {
+        const SoundInspectEntry *e = Sound_InspectEntryAt(i);
+        if (e->is_music)
+            music->addItem(QString("%1  %2").arg(e->id, 2, 16, QChar('0')).toUpper().arg(e->name), e->id);
+    }
+    form->addRow("Music:", music);
+
+    auto *seconds = new QSpinBox;
+    seconds->setRange(1, 3600);
+    seconds->setValue(60);
+    seconds->setSuffix(" seconds");
+    form->addRow("Counts:", seconds);
+
+    form->addRow(new QLabel("Start skips it. The title screen follows."));
+
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    buttons->button(QDialogButtonBox::Ok)->setText("Start Countdown");
+    QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    form->addRow(buttons);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    Countdown_Request(music->currentData().toInt(), seconds->value());
 }
 
 } // namespace DemoTools

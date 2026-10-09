@@ -10,6 +10,9 @@
 #include "Settings.h"
 #include "../../DebugPeek.h"
 #include "../../DebugLog.h"
+extern "C" {
+#include "../../Demo.h" // Countdown_Available
+}
 
 #include <QAction>
 #include <QActionGroup>
@@ -240,6 +243,7 @@ public:
 			record_action->setEnabled(!recording);
 			stop_record_action->setEnabled(recording);
 			play_action->setEnabled(!recording);
+			countdown_action->setEnabled(Countdown_Available()); // (a game without the countdown screen leaves it greyed out)
 			// keep the menu item in step with the log (it can also be started/stopped from the Log window)
 			const char *wanted = DebugViewers::IsLogging() ? "Stop Logging" : "Start Logging";
 			if (log_toggle->text() != wanted)
@@ -386,7 +390,7 @@ private:
 	bool launch_injected = false;
 	QAction *debug_menu = nullptr;
 	QAction *tools_menu = nullptr;
-	QAction *record_action = nullptr, *stop_record_action = nullptr, *play_action = nullptr;
+	QAction *record_action = nullptr, *stop_record_action = nullptr, *play_action = nullptr, *countdown_action = nullptr;
 	QAction *log_toggle = nullptr;
 
 public:
@@ -473,6 +477,9 @@ private:
 		tools->addSeparator();
 		play_action = tools->addAction("Play Demo...");
 		connect(play_action, &QAction::triggered, this, [this] { DemoTools::PlayDialog(this); });
+		tools->addSeparator();
+		countdown_action = tools->addAction("Countdown...");
+		connect(countdown_action, &QAction::triggered, this, [this] { DemoTools::CountdownDialog(this); });
 		tools->addSeparator();
 		connect(tools->addAction("SMPS Inspector"), &QAction::triggered, this, [this] { SmpsInspector::Show(this); });
 

@@ -1,6 +1,9 @@
 #include "Game.h"
 
 #include "GM_Continue.h"
+#ifdef SCP_COUNTDOWN
+#include "GM_Countdown.h"
+#endif
 #include "GM_Ending.h"
 #include "GM_Level.h"
 #include "GM_Sega.h"
@@ -34,6 +37,9 @@ const ScreenFunc game_screens[] = {
     [GameMode_Continue] = GM_Continue,
     [GameMode_Ending] = GM_Ending,
     [GameMode_Credits] = GM_Credits,
+#ifdef SCP_COUNTDOWN
+    [GameMode_Countdown] = GM_Countdown,
+#endif
 };
 const int game_screen_count = (int)(sizeof(game_screens) / sizeof(game_screens[0]));
 const uint8_t game_boot_screen = GameMode_Sega;

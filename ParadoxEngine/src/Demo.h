@@ -66,5 +66,10 @@ void Demo_StopRecording(void);     // writes the file and stops; the game keeps 
 const char *Demo_LastSavedPath(void);   // the most recent file written ("" if none), and its length
 int Demo_LastSavedFrames(void);
 
+// Tools > Countdown (Premier builds): a 1-minute-style countdown screen with a pie wipe and music, for streams and premieres. The game says whether it has one; the request names the song
+// (a sound id of the game, as the SMPS Inspector lists them; -1 = the game's own default) and how many seconds it counts. START skips it, and the title screen follows.
+bool Countdown_Available(void);
+void Countdown_Request(int music_id, int seconds);
+
 //Demo playback
 void MoveSonicInDemo(void);

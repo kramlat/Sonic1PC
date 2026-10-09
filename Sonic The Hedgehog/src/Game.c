@@ -26,8 +26,10 @@
 #include "GM_Ending.h"
 #include "GM_Continue.h"
 #include "GM_Title.h"
-#ifdef SCP_SPLASH
+#ifdef SCP_COUNTDOWN
 #include "GM_Countdown.h"
+#endif
+#ifdef SCP_SPLASH
 #include "GM_SSRG.h"
 #endif
 
@@ -49,7 +51,7 @@ bool cli_force_demo = false;
 bool cli_start_special = false;
 int32_t cli_special_stage = -1;
 uint8_t (*cli_ai_control_hook)(void) = NULL;
-#ifdef SCP_SPLASH
+#ifdef SCP_COUNTDOWN
 bool cli_countdown = false;
 int32_t cli_countdown_music = -1;
 uint8_t countdown_target_gamemode;
@@ -152,7 +154,7 @@ void EntryPoint(void) {
         }
     }
 
-#ifdef SCP_SPLASH
+#ifdef SCP_COUNTDOWN
     // Countdown intro: capture whatever gamemode was just decided above --
     // GameMode_Sega (normal boot, if --zone wasn't given) or Level/Demo/
     // Special (if it was) -- as the hand-off target, and show the countdown
@@ -257,6 +259,9 @@ static void UpdateZ80Peek(void) {
 
 void VBlank(void) {
     Demo_ServiceRequests(); // in-app demo recording requests (Demo.h)
+#ifdef SCP_COUNTDOWN
+    Countdown_ServiceRequest(); // Tools > Countdown (Demo.h)
+#endif
     UpdateZ80Peek();
 
     uint8_t routine = vbla_routine;

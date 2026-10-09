@@ -42,6 +42,8 @@ WEAK uint32_t Console_LineCount(void) { return 0; }
 WEAK const char *Console_GetLogLine(int index_from_bottom) { (void)index_from_bottom; return ""; }
 WEAK const char *Console_GetInputLine(void) { return ""; }
 
+WEAK bool Countdown_Available(void) { return false; }
+WEAK void Countdown_Request(int music_id, int seconds) { (void)music_id; (void)seconds; }
 WEAK void Demo_RequestRecording(const DemoRecordRequest *request) { (void)request; }
 WEAK bool Demo_RequestPlayback(const DemoPlayRequest *request, const uint8_t *data, size_t length) { (void)request; (void)data; (void)length; return false; }
 WEAK bool Demo_PlaybackActive(void) { return false; }

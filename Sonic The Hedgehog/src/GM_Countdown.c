@@ -14,6 +14,7 @@
 #include "GM_Countdown.h"
 
 #include "Backend/VDP.h"
+#include "Demo.h"
 #include "Game.h"
 #include "PLC.h"
 #include "Palette.h"
@@ -22,14 +23,20 @@
 
 // Default music if cli_countdown_music wasn't given one -- GHZ's theme,
 // picked purely because it's the game's own opening/most recognizable track.
+// (A game with other sound ids defines COUNTDOWN_DEFAULT_MUSIC itself: Sonic 2's is its Emerald Hill theme.)
+#ifndef COUNTDOWN_DEFAULT_MUSIC
 #define COUNTDOWN_DEFAULT_MUSIC 0x81
+#endif
 
 // $CD (Switch) -- a short, punchy click, played once per second for the
 // final 10 seconds as an audible tick.
 #define COUNTDOWN_TICK_SOUND 0xCD
 
 #define COUNTDOWN_SECONDS  60
-#define COUNTDOWN_TOTAL_FRAMES (COUNTDOWN_SECONDS * 60)
+
+// How long it counts (Tools > Countdown can choose; the command line's is the usual minute)
+static int countdown_seconds = COUNTDOWN_SECONDS;
+#define COUNTDOWN_TOTAL_FRAMES ((uint32_t)countdown_seconds * 60)
 
 void GM_Countdown(void) {
     // Clear the pattern load queue and fade out whatever was on screen
@@ -78,4 +85,33 @@ void GM_Countdown(void) {
     // Stop drawing the overlay and hand off to whatever was queued up.
     Render_SetCountdownPie(false, 0.0f, 0);
     gamemode = countdown_target_gamemode;
+}
+
+// Tools > Countdown: the Qt window's request. It is applied by the next VBlank that finds the game on a screen that can be left (as demo requests are).
+static volatile bool countdown_pending;
+static volatile int countdown_request_music, countdown_request_seconds;
+
+bool Countdown_Available(void) {
+    return true;
+}
+
+void Countdown_Request(int music_id, int seconds) {
+    countdown_request_music = music_id;
+    countdown_request_seconds = seconds;
+    countdown_pending = true;
+}
+
+void Countdown_ServiceRequest(void) {
+    if (!countdown_pending)
+        return;
+    // Only the screens whose loops notice an outside mode change (Sega, title) or leave on one (level, special stage) can be left right now
+    uint8_t mode = gamemode & 0x7F;
+    if (mode != GameMode_Sega && mode != GameMode_Title && mode != GameMode_Demo && mode != GameMode_Level && mode != GameMode_Special)
+        return;
+    countdown_pending = false;
+    cli_countdown_music = countdown_request_music;
+    countdown_seconds = countdown_request_seconds > 0 ? countdown_request_seconds : COUNTDOWN_SECONDS;
+    countdown_target_gamemode = GameMode_Title; // (a countdown started from the menu hands over to the title screen)
+    demo = 0;
+    gamemode = GameMode_Countdown;
 }

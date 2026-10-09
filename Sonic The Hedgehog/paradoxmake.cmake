@@ -13,7 +13,7 @@ endif()
 
 # Splash
 if(SPLASH)
-  target_compile_definitions(Sonic1Core PUBLIC SCP_SPLASH)
+  target_compile_definitions(Sonic1Core PUBLIC SCP_SPLASH SCP_COUNTDOWN)
   target_sources(Sonic1Core PRIVATE "${PM_DIR}/src/GM_SSRG.c" "${PM_DIR}/src/GM_SSRG.h" "${PM_DIR}/src/GM_Countdown.c" "${PM_DIR}/src/GM_Countdown.h")
   list(
     APPEND

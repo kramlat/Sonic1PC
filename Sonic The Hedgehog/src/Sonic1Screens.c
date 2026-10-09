@@ -6,8 +6,10 @@
 #include "GM_Sega.h"
 #include "GM_Special.h"
 #include "GM_Title.h"
-#ifdef SCP_SPLASH
+#ifdef SCP_COUNTDOWN
 #include "GM_Countdown.h"
+#endif
+#ifdef SCP_SPLASH
 #include "GM_SSRG.h"
 #endif
 
@@ -23,6 +25,8 @@ const ScreenFunc game_screens[] = {
     [GameMode_Credits] = GM_Credits,
 #ifdef SCP_SPLASH
     [GameMode_SSRG] = GM_SSRG,
+#endif
+#ifdef SCP_COUNTDOWN
     [GameMode_Countdown] = GM_Countdown,
 #endif
 };

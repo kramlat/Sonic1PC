@@ -18,6 +18,8 @@ typedef enum {
 	GameMode_Credits,
 #ifdef SCP_SPLASH
 	GameMode_SSRG,
+#endif
+#ifdef SCP_COUNTDOWN
 	GameMode_Countdown,
 #endif
 } GameMode;
@@ -67,7 +69,7 @@ extern int32_t cli_special_stage;
 // Backend/Joypad.h) of currently-held buttons.
 extern uint8_t (*cli_ai_control_hook)(void);
 
-#ifdef SCP_SPLASH
+#ifdef SCP_COUNTDOWN
 // If true, EntryPoint() routes through GameMode_Countdown (a 1-minute
 // countdown screen with a pie-wipe progress indicator and music, see
 // GM_Countdown.c) before whatever cli_start_level/cli_force_demo/
