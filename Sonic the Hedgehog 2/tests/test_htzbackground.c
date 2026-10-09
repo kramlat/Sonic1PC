@@ -57,7 +57,16 @@ static void HTZBackground_ScrollHasTheEighthThenBands(void) {
     CHECK_EQ(htz_layerdef[0x11], 8);
 }
 
+// The title screen leaves its TM in VRAM at $A200, where Hill Top's background tiles go: the first frame has to put the chunks over it (no step is "current" yet), or the TM shows in the sky
+static void HTZBackground_TheFirstFramePutsTheChunksOverTheTitlesTM(void) {
+    HTZBackground_Reset();
+    CHECK_EQ(HTZBackground_LastStep(), 0xFF);
+    for (int x = 0; x < 0x3000; x += 5)
+        CHECK(HTZBackground_Step((int16_t)x) != 0xFF); // (so no camera place counts as "already done")
+}
+
 void RegisterHTZBackgroundTests(void) {
+    RUN_TEST(HTZBackground_TheFirstFramePutsTheChunksOverTheTitlesTM);
     RUN_TEST(HTZBackground_StepFollowsTheCamera);
     RUN_TEST(HTZBackground_FirstStepShowsTheFirstSixChunks);
     RUN_TEST(HTZBackground_StripRowsAreTheirPicturesWhenNothingScrolls);

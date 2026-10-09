@@ -44,8 +44,13 @@ static uint8_t last_step;            // the camera step the chunks were last cho
 
 void HTZBackground_Reset(void) {
     memset(htz_layerdef, 0, sizeof(htz_layerdef));
-    last_step = 0;
+    last_step = 0xFF; // (no step: the first frame puts the chunks in. The prototype starts with step 0 and so shows what the title left at $A200 -- its TM -- until the camera's step changes)
     chunk_art_loaded = false;
+}
+
+// For the tests: the step the chunks were last chosen for (0xFF: none yet)
+int HTZBackground_LastStep(void) {
+    return last_step;
 }
 
 // loc_22D62: the background's art, decompressed once for the level

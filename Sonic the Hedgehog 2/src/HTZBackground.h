@@ -12,6 +12,7 @@ void HTZBackground_Deform(void);             // the usual branch of the backgrou
 
 // (pure parts, for the tests)
 int HTZBackground_Step(int16_t camera_x);
+int HTZBackground_LastStep(void);
 void HTZBackground_StepChunks(int step, int chunks[6]);
 void HTZBackground_BuildStrips(int16_t camera_x, const int16_t *layers, uint8_t out[0x100]);
 
