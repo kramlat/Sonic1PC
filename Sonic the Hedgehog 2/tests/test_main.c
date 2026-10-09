@@ -7,6 +7,7 @@
 int test_failures = 0;
 const char *test_current_name = NULL;
 
+void RegisterCompressionTests(void);
 void RegisterLevelDataTests(void);
 void RegisterObjectCoverageTests(void);
 void RegisterSolidTests(void);
@@ -22,6 +23,8 @@ void RegisterNGHZObjectTests(void);
 void RegisterHTZObjectTests(void);
 
 int main(void) {
+    printf("Compression tests:\n");
+    RegisterCompressionTests();
     printf("Level data tests:\n");
     RegisterLevelDataTests();
     printf("Object coverage tests:\n");
