@@ -224,11 +224,15 @@ void Obj_NGHZLeaves(Object *obj) {
 // falls to the water, floats on it and drifts to the right until it meets a wall. Only the plain swing of the subtype's bits 4-6 (0), the two that hold one side (1 and 3) and the one that
 // hangs still (2) are here; the prototype's 4 (a spiked ball that falls at Sonic) is not used by Neo Green Hill.
 // ---------------------------------------------------------------------------------------------------------------------------------------
+#include "Game.h"
 #include "Object/Sonic.h"
 #include "Solid.h"
 #include "Oscillatory Routines.h"
 
+#include "Resource/Mappings/DHZSwing.h"
+#include "Resource/Mappings/DHZSwingSpiked.h"
 #include "Resource/Mappings/NGHZSwing.h"
+#include "Resource/Mappings/OOZSwing.h"
 
 extern Oscillatory oscillatory;
 
@@ -236,16 +240,57 @@ typedef struct {
     uint8_t subtype;  // 0x28: bits 4-6 how it swings (the length, bits 0-3, is only used at the start)
     uint8_t pad0[7];
     uint8_t chain;    // 0x30: the slot of the chain's object
-    uint8_t pad1[7];
+    uint8_t pad1[3];
+    uint8_t started;  // 0x34: the spiked kind has been set off
+    uint8_t angle_low;// 0x35: the low byte of its angle (the high byte is the object's own)
+    int16_t wait;     // 0x36: frames to wait at the end of a swing (the spiked kind)
     int16_t base_y;   // 0x38: where it hangs from (and, once a raft, where it floats about)
     int16_t base_x;   // 0x3A
     uint8_t radius;   // 0x3C: from the hub to the platform
-    uint8_t pad2[3];
+    uint8_t up;       // 0x3D: the spiked kind is swinging up
+    int16_t accel;    // 0x3E: its angle's speed
 } Scratch_NGHZSwing;
 
 enum { SwingRoutine_Init = 0, SwingRoutine_Swing = 2, SwingRoutine_SwingLoose = 6, SwingRoutine_Empty = 8, SwingRoutine_Fall = 0xA, SwingRoutine_Raft = 0xC };
 
 #define SWING_OSC(i) ((uint8_t)(oscillatory.state[(i)][0] >> 8))
+
+// loc_885E: the spiked platform's swing: it waits for Sonic to come within $20 pixels of where it hangs, then swings between the left ($80) and the bottom ($40) with a speed that grows and shrinks by 8 a frame, and waits
+// $3C frames at each end. Its angle is a word (the object's own byte is the high one). Returns the angle
+static uint8_t Swing_Spiked(Object *obj, Scratch_NGHZSwing *scratch) {
+    if (scratch->wait != 0) {
+        scratch->wait--;
+        return obj->angle;
+    }
+    if (!scratch->started) {
+        if ((uint16_t)(player->pos.l.x.f.u - scratch->base_x + 0x20) >= 0x40 || debug_mode)
+            return obj->angle;
+        scratch->started = 1;
+    }
+    uint16_t angle = (uint16_t)((obj->angle << 8) | scratch->angle_low);
+    if (scratch->up) {
+        scratch->accel += 8;
+        angle = (uint16_t)(angle + scratch->accel);
+        if (scratch->accel == 0x200) {
+            scratch->accel = 0;
+            angle = 0x8000;
+            scratch->up = 0;
+            scratch->wait = 0x3C;
+        }
+    } else {
+        scratch->accel -= 8;
+        angle = (uint16_t)(angle + scratch->accel);
+        if (scratch->accel == -0x200) {
+            scratch->accel = 0;
+            angle = 0x4000;
+            scratch->up = 1;
+            scratch->wait = 0x3C;
+        }
+    }
+    obj->angle = (uint8_t)(angle >> 8);
+    scratch->angle_low = (uint8_t)angle;
+    return obj->angle;
+}
 
 // loc_8784: where the platform and the chain are, from the swing's angle
 static void Swing_Move(Object *obj, Scratch_NGHZSwing *scratch) {
@@ -260,6 +305,9 @@ static void Swing_Move(Object *obj, Scratch_NGHZSwing *scratch) {
     case 0x30:
         if (d0 >= 0x40)
             d0 = 0x40;
+        break;
+    case 0x40: // (the spiked platform: its own angle)
+        d0 = Swing_Spiked(obj, scratch);
         break;
     default:
         break;
@@ -313,13 +361,25 @@ void Obj_NGHZSwing(Object *obj) {
     switch (obj->routine) {
     case SwingRoutine_Init: {
         obj->routine += 2;
-        obj->mappings = Mappings_NGHZSwing;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0);
         obj->render.b = 0;
         obj->render.f.level_fg = true;
         obj->priority = 3;
-        obj->width_pixels = 0x20;
-        obj->y_rad = 8;
+        if (LEVEL_ZONE(level_id) == ZoneId_ARZ) {
+            obj->mappings = Mappings_NGHZSwing;
+            obj->tile = TILE_MAP(0, 0, 0, 0, 0);
+            obj->width_pixels = 0x20;
+            obj->y_rad = 8;
+        } else if (LEVEL_ZONE(level_id) == ZoneId_MCZ) { // Dust Hill
+            obj->mappings = Mappings_DHZSwing;
+            obj->tile = TILE_MAP(0, 0, 0, 0, 0);
+            obj->width_pixels = 0x18;
+            obj->y_rad = 8;
+        } else { // Oil Ocean
+            obj->mappings = Mappings_OOZSwing;
+            obj->tile = TILE_MAP(0, 2, 0, 0, 0x3E3);
+            obj->width_pixels = 0x20;
+            obj->y_rad = 0x10;
+        }
         scratch->base_y = obj->pos.l.y.f.u;
         scratch->base_x = obj->pos.l.x.f.u;
         if (scratch->subtype & 0x80)
@@ -353,6 +413,10 @@ void Obj_NGHZSwing(Object *obj) {
         obj->pos.l.y.f.u = (int16_t)(y + 8);
         obj->angle = 0x80;
         scratch->subtype &= 0x70;
+        if (scratch->subtype == 0x40) { // the spiked platform (it hurts)
+            obj->mappings = Mappings_DHZSwingSpiked;
+            obj->col_type = 0xA7;
+        }
     }
         // Fallthrough
     case SwingRoutine_Swing: {
@@ -394,7 +458,26 @@ void Obj_NGHZSwing(Object *obj) {
         Swing_Move(obj, scratch);
         Swing_Display(obj, scratch);
         break;
-    default: { // the raft (and, in the other zones, one that falls to the floor)
+    case SwingRoutine_Fall: { // (a platform that has let go, in the other zones: it falls to $720 and bobs there)
+        const int16_t old_x = obj->pos.l.x.f.u;
+        if (obj->status.b & 2) {
+            SpeedToPos(obj);
+            obj->ysp += 0x18;
+            if ((uint16_t)obj->pos.l.y.f.u >= 0x720) {
+                obj->pos.l.y.f.u = 0x720;
+                obj->status.b &= (uint8_t)~2;
+                obj->xsp = 0;
+                obj->ysp = 0;
+                scratch->base_y = 0x720;
+            }
+        } else {
+            obj->pos.l.y.f.u = (int16_t)(scratch->base_y + (SWING_OSC(5) >> 1));
+        }
+        Swing_Platform(obj, old_x);
+        RememberState(obj);
+        break;
+    }
+    default: { // the raft
         const int16_t old_x = obj->pos.l.x.f.u;
         SpeedToPos(obj);
         if (obj->status.b & 2) { // falling to the water
@@ -424,7 +507,8 @@ void Obj_NGHZSwing(Object *obj) {
 }
 
 void Obj_SwingDispatch(Object *obj) {
-    if (LEVEL_ZONE(level_id) == ZoneId_ARZ)
+    const int zone = LEVEL_ZONE(level_id);
+    if (zone == ZoneId_ARZ || zone == ZoneId_MCZ || zone == ZoneId_OOZ)
         Obj_NGHZSwing(obj);
     else
         Obj_SwingingPlatform(obj);
