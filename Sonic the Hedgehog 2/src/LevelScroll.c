@@ -949,6 +949,7 @@ typedef struct {
 	dword_s bg_x, bg_y, bg2_x, bg2_y, bg3_x, bg3_y;
 	int16_t ehz_wave;
 	uint8_t ehz_runcount;
+	uint8_t xblock[3], yblock[3]; // (which 16 pixel block each background was last in: what decides that a row or column is new, so each view needs its own)
 } DeformState;
 static DeformState deform_p2;
 static uint16_t p2_flags[3], p2_flags_dup[3];
@@ -960,10 +961,12 @@ static void DeformSwap(DeformState *s) {
 	DEFORM_SWAP(bg2_scrpos_x, s->bg2_x); DEFORM_SWAP(bg2_scrpos_y, s->bg2_y);
 	DEFORM_SWAP(bg3_scrpos_x, s->bg3_x); DEFORM_SWAP(bg3_scrpos_y, s->bg3_y);
 	DEFORM_SWAP(ehz_wave, s->ehz_wave); DEFORM_SWAP(ehz_runcount, s->ehz_runcount);
+	DEFORM_SWAP(bg1_xblock, s->xblock[0]); DEFORM_SWAP(bg2_xblock, s->xblock[1]); DEFORM_SWAP(bg3_xblock, s->xblock[2]);
+	DEFORM_SWAP(bg1_yblock, s->yblock[0]); DEFORM_SWAP(bg2_yblock, s->yblock[1]); DEFORM_SWAP(bg3_yblock, s->yblock[2]);
 }
 
 void DeformLayersP2_Init(void) {
-	deform_p2 = (DeformState){ bg_scrpos_x, bg_scrpos_y, bg2_scrpos_x, bg2_scrpos_y, bg3_scrpos_x, bg3_scrpos_y, ehz_wave, ehz_runcount };
+	deform_p2 = (DeformState){ bg_scrpos_x, bg_scrpos_y, bg2_scrpos_x, bg2_scrpos_y, bg3_scrpos_x, bg3_scrpos_y, ehz_wave, ehz_runcount, { bg1_xblock, bg2_xblock, bg3_xblock }, { bg1_yblock, bg2_yblock, bg3_yblock } };
 	memset(p2_flags, 0, sizeof(p2_flags));
 	memset(p2_flags_dup, 0, sizeof(p2_flags_dup));
 }

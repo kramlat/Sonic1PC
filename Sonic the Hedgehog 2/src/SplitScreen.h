@@ -20,6 +20,10 @@ bool SplitScreen_Active(void);
 // How far from the view's left edge the first camera keeps Sonic (144 in the original's whole picture)
 int16_t SplitScreen_FollowX(void);
 
+// The end sign's lock: the cameras that see an object at x (half_width wide each way) stop being held back from the right edge of the level (limit_left2 = limit_right2 for the first, its own for the second;
+// with no split screen, the one camera). The second camera's left limit is otherwise the level's own.
+void SplitScreen_LockCameras(int16_t x, int16_t half_width);
+
 // Once a frame, with the first camera moved: moves the second camera after Tails and fills the second view's scroll
 void SplitScreen_Scroll(void);
 

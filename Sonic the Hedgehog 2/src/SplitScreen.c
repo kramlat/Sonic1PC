@@ -26,6 +26,7 @@ void DeformLayersP2_Draw(void);
 static bool side_by_side;  // the views are next to each other (a wide picture)
 static int16_t view_width; // how wide each view is
 static int16_t follow_x;   // where its camera keeps the player from the view's left edge
+static uint16_t left_limit_p2; // the second camera's left limit: the level's, until something locks it
 
 bool SplitScreen_Active(void) {
     return camera_split;
@@ -52,6 +53,7 @@ void SplitScreen_LoadLevel(void) {
     view_width = side_by_side ? SCREEN_WIDTH / 2 : SCREEN_WIDTH;
     follow_x = (int16_t)(view_width / 2 - 16);
     camera_split = true;
+    left_limit_p2 = limit_left1;
     hud_lives_lower_left = true;
     sprite_split_screen = side_by_side ? SPRITE_SPLIT_SIDE : SPRITE_SPLIT_STACKED;
     VDP_SetSplitScreen(side_by_side ? VDP_SPLIT_SIDE : VDP_SPLIT_STACKED, &video_second_view);
@@ -82,6 +84,18 @@ void SplitScreen_LoadLevel(void) {
     video_second_view.vscroll_b = vid_bg_scrpos_y_dup;
 }
 
+void SplitScreen_LockCameras(int16_t x, int16_t half_width) {
+    if (!camera_split) {
+        limit_left2 = limit_right2;
+        return;
+    }
+    // Each view locks (its camera's left limit goes up to the right limit, so the screen runs on to the end of the level and stays) only if the object is in sight there
+    if ((uint16_t)(x + half_width - scrpos_x.f.u) < (uint16_t)(view_width + 2 * half_width))
+        limit_left2 = limit_right2;
+    if ((uint16_t)(x + half_width - scrpos_x_p2.f.u) < (uint16_t)(view_width + 2 * half_width))
+        left_limit_p2 = limit_right2;
+}
+
 // The second camera: Sonic's own rules (a dead zone of 16 pixels at the following place, at most 16 pixels a frame, the level's limits), with a simpler vertical, which is Sonic's without the look
 // up and down
 static void MoveCameraP2(void) {
@@ -97,8 +111,8 @@ static void MoveCameraP2(void) {
     else if (push >= 16)
         step = (push - 16) > 16 ? 16 : (int16_t)(push - 16);
     int16_t x = (int16_t)(old_x + step);
-    if (x < (int16_t)limit_left2)
-        x = (int16_t)limit_left2;
+    if (x < (int16_t)left_limit_p2)
+        x = (int16_t)left_limit_p2;
     if (x > (int16_t)limit_right2)
         x = (int16_t)limit_right2;
     scrshift_x_p2 = (int16_t)((x - old_x) << 8);

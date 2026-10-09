@@ -376,7 +376,7 @@ static void RunEnvironmentHooks(int frame) {
 		QFile f(a[0]);
 		if (a.size() >= 3 && f.open(QIODevice::ReadOnly)) {
 			QByteArray data = f.readAll();
-			DemoPlayRequest p = {a[1].toInt(), a[2].toInt(), -1, -1};
+			DemoPlayRequest p = {a[1].toInt(), a[2].toInt(), -1, -1, a.size() >= 4 && a[3] == "split"};
 			Demo_RequestPlayback(&p, reinterpret_cast<const uint8_t *>(data.constData()), (size_t)data.size());
 		}
 	}

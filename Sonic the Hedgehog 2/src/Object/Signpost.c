@@ -4,6 +4,7 @@
 #include "Level.h"
 #include "LevelScroll.h"
 #include "Sound.h"
+#include "SplitScreen.h"
 
 #include "Macros.h"
 
@@ -41,7 +42,7 @@ void Obj_Signpost(Object* obj) {
             // Start spinning
             PlaySound(sfx_Signpost);
             time_count = false;
-            limit_left2 = limit_right2;
+            SplitScreen_LockCameras(obj->pos.l.x.f.u, obj->width_pixels); // (the views the sign is in)
             obj->routine += 2;
         }
         break;
