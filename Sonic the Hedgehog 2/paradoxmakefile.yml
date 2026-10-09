@@ -20,7 +20,7 @@ reuse:
       - "src/Sonic1LevelData.c" # -> Sonic2LevelData.c: the zone slots' level data, Emerald Hill's imported from Nick Arcade
       - "src/Sonic1PLC.c"       # -> Sonic2PLC.c: the pattern load cues (Emerald Hill's art at tile 0)
       - "src/Sonic1Palettes.c"  # -> Sonic2Palettes.c: the palettes
-      - "src/Oscillatory Routines.c" # -> its own copy: the prototype's oscillator start values and amplitudes
+      - "src/Sonic1OscillatorData.c" # -> Sonic2OscillatorData.c: the prototype's oscillator start values and amplitudes (the routines are shared)
       - "src/Level.c"           # -> its own Level.c: Nick Arcade's dynamic level events
       - "src/LevelScroll.c"     # -> its own LevelScroll.c: Nick Arcade's zones' background starts and deformation, and the title screen's
       - "src/LevelDraw.c"       # -> its own LevelDraw.c: the background drawing those zones need
@@ -428,7 +428,7 @@ sources:
   - "src/Object/Bridge.c"
   - "src/Object/Scenery.c"
   - "src/LZWaterFeatures.c"
-  - "src/Oscillatory Routines.c"
+  - "src/Sonic2OscillatorData.c"
   - "src/Demo.c"
   - "src/Object/TitleCard.c"
   - "src/Object/Signpost.c"

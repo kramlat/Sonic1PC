@@ -34,6 +34,7 @@ sources:
   - "src/PaletteCycle.c"
   - "src/PaletteCycle.h"
   - "src/Oscillatory Routines.c"
+  - "src/Sonic1OscillatorData.c"
   - "src/Oscillatory Routines.h"
   - "src/GM_Sega.c"
   - "src/GM_Sega.h"

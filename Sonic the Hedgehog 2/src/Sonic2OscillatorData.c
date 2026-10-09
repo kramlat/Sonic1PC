@@ -1,0 +1,42 @@
+#include "Oscillatory Routines.h"
+
+// Sonic 2's oscillators, the Simon Wai prototype's (Osc_Data and Oscillate_Data2): Sonic 1's with the start values of entries 9 and 15 (and entry 15 heading down at the start, control word %0000000001111101) and the amplitudes of entries 8, 9, 14 and 15 ($38, $38, $40, $40; Sonic 1 has $50, $50, $10, $10)
+const OscillatorData oscillator_data = {
+    .direction = 0x007D,
+    .start = {
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x3848, 0xEE},
+        {0x2080, 0xB4},
+        {0x3080, 0x10E},
+        {0x5080, 0x1C2},
+        {0x7080, 0x276},
+        {0x80, 0},
+        {0x4000, 0xFE},
+    },
+    .settings = {
+        {2, 0x10},
+        {2, 0x18},
+        {2, 0x20},
+        {2, 0x30},
+        {4, 0x20},
+        {8, 8},
+        {8, 0x40},
+        {4, 0x40},
+        {2, 0x38},
+        {2, 0x38},
+        {2, 0x20},
+        {3, 0x30},
+        {5, 0x50},
+        {7, 0x70},
+        {2, 0x40},
+        {2, 0x40},
+    },
+};

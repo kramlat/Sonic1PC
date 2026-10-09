@@ -1,0 +1,42 @@
+#include "Oscillatory Routines.h"
+
+// Sonic 1's oscillators (OscillateNumInit's table and OscNumDo's): the control word %0000000001111100, then each oscillator's start value and rate and its rate of change and amplitude
+const OscillatorData oscillator_data = {
+    .direction = 0x007C,
+    .start = {
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x80, 0},
+        {0x50F0, 0x11E},
+        {0x2080, 0xB4},
+        {0x3080, 0x10E},
+        {0x5080, 0x1C2},
+        {0x7080, 0x276},
+        {0x80, 0},
+        {0x80, 0},
+    },
+    .settings = {
+        {2, 0x10},
+        {2, 0x18},
+        {2, 0x20},
+        {2, 0x30},
+        {4, 0x20},
+        {8, 8},
+        {8, 0x40},
+        {4, 0x40},
+        {2, 0x50},
+        {2, 0x50},
+        {2, 0x20},
+        {3, 0x30},
+        {5, 0x50},
+        {7, 0x70},
+        {2, 0x10},
+        {2, 0x10},
+    },
+};
