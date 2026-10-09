@@ -17,6 +17,9 @@ void RegisterHTZBackgroundTests(void);
 void RegisterWaterTests(void);
 void RegisterSignpostTests(void);
 void RegisterDemoTests(void);
+void RegisterCPZObjectTests(void);
+void RegisterNGHZObjectTests(void);
+void RegisterHTZObjectTests(void);
 
 int main(void) {
     printf("Level data tests:\n");
@@ -37,6 +40,12 @@ int main(void) {
     RegisterWaterTests();
     printf("Signpost tests:\n");
     RegisterSignpostTests();
+    printf("Chemical Plant object tests:\n");
+    RegisterCPZObjectTests();
+    printf("Neo Green Hill object tests:\n");
+    RegisterNGHZObjectTests();
+    printf("Hill Top object tests:\n");
+    RegisterHTZObjectTests();
     printf("Demo tests:\n");
     RegisterDemoTests();
 

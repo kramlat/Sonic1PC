@@ -40,6 +40,8 @@ void RegisterObjCollisionTests(void);
 void RegisterWaterSplitTests(void);
 void RegisterGiantRingTests(void);
 void RegisterCheckpointTests(void);
+void RegisterSpringTests(void);
+void RegisterSpikesTests(void);
 
 int main(void) {
     printf("PLC tests:\n");
@@ -98,6 +100,12 @@ int main(void) {
 
     printf("Checkpoint tests:\n");
     RegisterCheckpointTests();
+
+    printf("Spring tests:\n");
+    RegisterSpringTests();
+
+    printf("Spikes tests:\n");
+    RegisterSpikesTests();
 
     printf("\n%s\n", test_failures == 0 ? "All tests passed." : "Some tests FAILED.");
     return test_failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;

@@ -34,7 +34,8 @@ install(TARGETS Sonic2 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 if(BUILD_TESTS AND NOT CMAKE_BUILD_TYPE STREQUAL "Showcase")
   enable_testing()
   add_executable(Sonic2Tests "${PM_DIR}/tests/test_main.c" "${PM_DIR}/tests/test_leveldata.c" "${PM_DIR}/tests/test_objects.c" "${PM_DIR}/tests/test_solid.c" "${PM_DIR}/tests/test_htzquake.c" "${PM_DIR}/tests/test_htzfloor.c" "${PM_DIR}/tests/test_htzfireball.c" "${PM_DIR}/tests/test_htzbackground.c"
-                             "${PM_DIR}/tests/test_water.c" "${PM_DIR}/tests/test_signpost.c" "${PM_DIR}/tests/test_demo.c")
+                             "${PM_DIR}/tests/test_water.c" "${PM_DIR}/tests/test_signpost.c" "${PM_DIR}/tests/test_demo.c"
+                             "${PM_DIR}/tests/test_cpzobjects.c" "${PM_DIR}/tests/test_nghzobjects.c" "${PM_DIR}/tests/test_htzobjects.c")
   target_include_directories(Sonic2Tests PRIVATE "${PM_DIR}/../Sonic The Hedgehog/tests")
   link_game(Sonic2Tests)
   set_target_properties(Sonic2Tests PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
