@@ -13,6 +13,7 @@ main: src/Main.c      # its own entry point: the ROM header (and so the window t
 reuse:
   - project: SonicTheHedgehog
     except:
+      - "src/Object/DebugList.c" # -> its own DebugList.c: the prototype's debug lists
       - "src/Sonic1Assets.c"    # -> Sonic2Assets.c: the identity (and, for now, the same font and icon)
       - "src/Sonic1Screens.c"   # -> Sonic2Screens.c: the screens by game mode
       - "src/Sonic1Objects.c"   # -> Sonic2Objects.c: the objects by id, replaced one by one with Sonic 2's (Sonic and Tails on the title first)
@@ -502,6 +503,7 @@ sources:
   - "src/Object/OOZObjects.c"
   - "src/Object/MTZObjects.c"
   - "src/Object/MTZObjects2.c"
+  - "src/Object/DebugList.c"
   - "src/Object/HPZObjects.c"
   - "src/Object/HTZObjects.c"
   - "src/Object/DiagSpring.c"

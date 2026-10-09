@@ -2,6 +2,7 @@
 
 #include "Level.h"
 #include "Object.h"
+#include "Object/DebugList.h"
 
 // The prototype's levels place objects by id; every id a built zone places has to run something (Obj_Null just deletes itself). The zones that are built are checked completely: the ids that are still not
 // ported are listed here, so a zone that gains an object (or one that loses it) makes the test say so (remove the id from the list when it is ported).
@@ -59,7 +60,32 @@ static void ObjectCoverage_NoPlacedObjectIsFalselyPending(void) {
     }
 }
 
+// The prototype's debug lists (Debug_* in its disassembly): how many entries each has, and that what each one places is an object this port runs (the ones that are not built are placeholders of type null)
+static void DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects(void) {
+    static const struct { int zone, count; } expect[] = {
+        { ZoneId_EHZ, 18 }, { ZoneId_MTZ, 28 }, { ZoneId_MTZ3, 28 }, { ZoneId_HTZ, 25 }, { ZoneId_HPZ, 8 }, { ZoneId_OOZ, 16 },
+        { ZoneId_MCZ, 16 }, { ZoneId_CNZ, 2 }, { ZoneId_CPZ, 19 }, { ZoneId_ARZ, 17 }, { ZoneId_WZ, 2 },
+    };
+    for (size_t i = 0; i < sizeof(expect) / sizeof(expect[0]); i++) {
+        level_id = LEVEL_ID(expect[i].zone, 0);
+        int count = 0;
+        const DebugListEntry *list = DebugList_Get(&count);
+        CHECK_EQ(count, expect[i].count);
+        for (int e = 0; e < count; e++) {
+            if (list[e].type == ObjId_Null)
+                continue;
+            const bool ported = (int)list[e].type < game_object_count && game_objects[list[e].type] != NULL && game_objects[list[e].type] != Obj_Null;
+            if (!ported) {
+                printf("\n    zone %d entry %d places object %02X, which is not ported", expect[i].zone, e, (int)list[e].type);
+                CHECK(ported);
+            }
+            CHECK(list[e].mappings != NULL);
+        }
+    }
+}
+
 void RegisterObjectCoverageTests(void) {
+    RUN_TEST(DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects);
     RUN_TEST(ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace);
     RUN_TEST(ObjectCoverage_NoPlacedObjectIsFalselyPending);
 }

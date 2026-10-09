@@ -163,7 +163,19 @@ void HUD_Base(void) {
 }
 
 void HUD_Update(void) {
-    if (!debug_mode) {
+    // As in Sonic & Knuckles, the HUD looks normal until Sonic is replaced by an object (debug_use) and is put back to normal when he is himself again
+    static bool was_object;
+    const bool is_object = debug_use != 0;
+    if (was_object && !is_object) {
+        HUD_Base();
+        score_count = true;
+        ring_count = true;
+        HUD_WriteNumber2(0xDE40, level_time.min, &hud_dec[5], 0);
+        HUD_WriteNumber2(0xDEC0, level_time.sec, &hud_dec[4], 1);
+    }
+    was_object = is_object;
+
+    if (!is_object) {
         // Update score
         if (score_count) {
             score_count = false;
