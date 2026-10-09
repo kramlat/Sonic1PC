@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Oscillator.h"
 #include "Object.h"
 #include "LevelData.h"
 #include "ObjectsManager.h" // the layout, chunk and collision data, and the collision flags: the engine's
@@ -34,11 +35,6 @@ typedef struct {
 	uint8_t frame;
 	int8_t time;
 } LevelAnim;
-
-typedef struct {
-	uint16_t direction;
-	uint16_t state[16][2];
-} Oscillatory;
 
 // 3 longs per zone, matching s2disasm's LevelArtPointers (12 bytes/zone,
 // zone_id*12): each long's upper byte is a small metadata value, the lower
@@ -204,7 +200,6 @@ extern bool f_lz1tunnel_open;
 extern uint8_t obj63_loaded[0x80]; // LZConveyor.c -- per-group "platform group already spawned" flags
 extern bool f_slidemode; // LZWaterFeatures.c -- set while Sonic is on a water slide
 
-extern Oscillatory oscillatory;
 
 extern LevelAnim sprite_anim[4];
 extern uint16_t sprite_anim_3buf;

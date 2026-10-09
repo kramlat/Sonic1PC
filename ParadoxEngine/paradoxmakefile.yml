@@ -46,6 +46,8 @@ sources:
   - "src/Nemesis.h"
   - "src/MathUtil.c"
   - "src/MathUtil.h"
+  - "src/Oscillator.c"
+  - "src/Oscillator.h"
   - "src/Demo.h"
   - "src/Video.c"
   - "src/Video.h"

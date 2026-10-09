@@ -154,7 +154,6 @@ bool f_lz1tunnel_open = false;
 uint8_t obj63_loaded[0x80];
 bool f_slidemode = false;
 
-Oscillatory oscillatory;
 
 LevelAnim sprite_anim[4];
 uint16_t sprite_anim_3buf;
