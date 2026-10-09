@@ -112,10 +112,40 @@ static void Vdp8_PatternsAreSixtyFourBytesApart(void) {
     CHECK_EQ(out[0], Px(0x7F));
 }
 
+// The colours are read from the colour RAM as the row is drawn, so rewriting a range of it recolours the same tile with no new pixels: a palette cycle of an 8bpp tileset, over any of the 16 lines
+static void Vdp8_ChangingTheColourRAMCyclesTheSameTile(void) {
+    uint8_t tile[64];
+    for (int i = 0; i < 64; i++)
+        tile[i] = (uint8_t)(0xC1 + (i & 3)); // colours 0xC1 to 0xC4: line 12
+    VDP_SeekVRAM(6 << 6);
+    VDP_WriteVRAM(tile, sizeof(tile));
+
+    static const uint32_t ramp[4] = { 0x00110000, 0x00220000, 0x00330000, 0x00440000 };
+    uint32_t cycled[4];
+    uint32_t out[8], first[8];
+    uint8_t mask[8];
+    for (int step = 0; step < 4; step++) {
+        for (int i = 0; i < 4; i++)
+            cycled[i] = ramp[(i + step) & 3]; // the ramp rotated one place a step
+        VDP_SeekCRAM(0xC1);
+        VDP_WriteCRAM_RGB(cycled, 4);
+        memset(mask, 0, sizeof(mask));
+        VDP_DrawTileRow8(out, mask, 6, 0, false, false, 0, 0);
+        if (step == 0)
+            memcpy(first, out, sizeof(out));
+        for (int x = 0; x < 8; x++)
+            CHECK_EQ(out[x], (ramp[((x & 3) + step) & 3] << 8) | 0xFF);
+    }
+    CHECK(first[0] != out[0] || first[1] != out[1]); // (it did change on the way)
+    VDP_SeekCRAM(0);
+    VDP_FillCRAM(0, COLOURS);
+}
+
 void RegisterVdp8bppTests(void) {
     RUN_TEST(Vdp8_RowComesFromTheRightLineOfTheTile);
     RUN_TEST(Vdp8_FlipsAreTheTilesOwn);
     RUN_TEST(Vdp8_ZeroIsTransparentAndTheRestReachAllTwoFiftySixColours);
     RUN_TEST(Vdp8_PriorityMasksWork);
     RUN_TEST(Vdp8_PatternsAreSixtyFourBytesApart);
+    RUN_TEST(Vdp8_ChangingTheColourRAMCyclesTheSameTile);
 }
