@@ -324,9 +324,13 @@ static const PLCList PLC_SLZ = { // Emerald Hill
     }
 };
 
-static const PLCList PLC_SLZ2 = { // (Emerald Hill's objects' art comes with the objects)
-    0,
-    NULL,
+static const PLCList PLC_SLZ2 = { // Wood_Sprites_2 (Emerald Hill has no second list): the spikes and the springs, $8680/$8780/$8B80; the first list (Wood_Sprites_1) is only the zone's own art, which the level header loads
+    3,
+    (const PLC[]) {
+        { Art_Spikes,        ART_VRAM(0x8680 >> 5) },
+        { Art_SpringDiag,    ART_VRAM(0x8780 >> 5) },
+        { Art_SpringUp,      ART_VRAM(0x8B80 >> 5) },
+    }
 };
 // ---------------------------------------------------------------------------
 // Pattern load cues - Spring Yard

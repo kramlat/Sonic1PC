@@ -14,7 +14,7 @@ static void LevelData_StartPositionsMatchThePrototype(void) {
     static const Start starts[] = {
         { ZoneId_EHZ, 0, 0x60, 0x28F }, { ZoneId_EHZ, 1, 0x40, 0x2AF }, { ZoneId_HTZ, 0, 0x40, 0x3AF }, { ZoneId_HTZ, 1, 0x60, 0x68F },
         { ZoneId_CNZ, 0, 0x60, 0x28F }, { ZoneId_CNZ, 1, 0x40, 0x2AF }, { ZoneId_CPZ, 0, 0x30, 0x1EC }, { ZoneId_CPZ, 1, 0x30, 0x12C },
-        { ZoneId_ARZ, 0, 0x50, 0x37C }, { ZoneId_ARZ, 1, 0x50, 0x37C },
+        { ZoneId_ARZ, 0, 0x50, 0x37C }, { ZoneId_ARZ, 1, 0x50, 0x37C }, { ZoneId_WZ, 0, 0x60, 0x1AC },
     };
     for (size_t i = 0; i < sizeof(starts) / sizeof(starts[0]); i++) {
         CHECK_EQ(StartLocArray[starts[i].zone][starts[i].act][0], starts[i].x);
@@ -31,6 +31,7 @@ static void LevelData_LevelSizesMatchThePrototype(void) {
     static const Size sizes[] = {
         { ZoneId_HTZ, 0, 0x2800, 0, 0x720 }, { ZoneId_HTZ, 1, 0x2880, 0, 0x720 }, { ZoneId_CPZ, 0, 0x2780, 0, 0x720 }, { ZoneId_CPZ, 1, 0x2880, 0, 0x720 },
         { ZoneId_CNZ, 0, 0x3FFF, 0, 0x720 }, { ZoneId_CNZ, 1, 0x3FFF, 0, 0x720 }, { ZoneId_ARZ, 0, 0x28C0, 0x200, 0x3A0 }, { ZoneId_ARZ, 1, 0x26C0, 0x180, 0x5A0 },
+        { ZoneId_WZ, 0, 0x3FFF, 0, 0x720 },
     };
     for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++) {
         const int16_t *s = LevelSizes(sizes[i].zone, sizes[i].act);
@@ -43,6 +44,9 @@ static void LevelData_LevelSizesMatchThePrototype(void) {
 static void LevelData_ArtListsAreThePrototypes(void) {
     // levartptrs: each zone's first and second sprite art list (the zones not built yet share Hill Top's first)
     CHECK_EQ(level_header[ZoneId_EHZ].plc1, PlcId_SLZ);
+    CHECK_EQ(level_header[ZoneId_WZ].plc1, 0); // (Wood_Sprites_1 is only the zone's own art)
+    CHECK_EQ(level_header[ZoneId_WZ].plc2, PlcId_SLZ2);
+    CHECK_EQ(plcs[PlcId_SLZ2]->plcs, 3); // Wood_Sprites_2: spikes, diagonal and up springs
     CHECK_EQ(level_header[ZoneId_HTZ].plc1, PlcId_SBZ);
     CHECK_EQ(level_header[ZoneId_HTZ].plc2, PlcId_SBZ2);
     CHECK_EQ(level_header[ZoneId_CPZ].plc1, PlcId_MZ);

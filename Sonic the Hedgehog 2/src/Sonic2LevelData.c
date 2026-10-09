@@ -257,7 +257,7 @@ const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
 // Level headers (sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's
 const LevelHeader level_header[ZoneId_Num] = {
     [0x00] = { PlcId_SLZ, S2Art_EHZ, 0, S2Map16_EHZ, PalId_EHZ, S2Map128_EHZ },
-    [0x02] = { PlcId_SBZ, S2Art_WZ, 0, S2Map16_WZ, PalId_WZ, S2Map128_WZ },
+    [0x02] = { 0, S2Art_WZ, PlcId_SLZ2, S2Map16_WZ, PalId_WZ, S2Map128_WZ },
     [0x04] = { PlcId_SBZ, S2Art_MTZ, 0, S2Map16_MTZ, PalId_MTZ, S2Map128_MTZ },
     [0x05] = { PlcId_SBZ, S2Art_MTZ, 0, S2Map16_MTZ, PalId_MTZ, S2Map128_MTZ },
     [0x07] = { PlcId_SBZ, S2Art_HTZ, PlcId_SBZ2, S2Map16_HTZ, PalId_HTZ, S2Map128_EHZ },
