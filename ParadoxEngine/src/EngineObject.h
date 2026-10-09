@@ -35,6 +35,10 @@ typedef union {
 	uint8_t b;
 } ObjectRender;
 
+//The original's sprite_cam_field (render flag bit 2): the object is positioned against the level's foreground camera. Inits that `ori.b #sprite_cam_field,obRender(a0)` OR it in (`render.b |= SPRITE_CAM_FIELD`: the flips the
+//layout gave the object stay); those that `move.b #sprite_cam_field,obRender(a0)` assign it (`render.b = SPRITE_CAM_FIELD`: they are cleared)
+#define SPRITE_CAM_FIELD 0x04
+
 typedef union {
 	struct {
 		unsigned int x_flip : 1;       //Horizontally flipped

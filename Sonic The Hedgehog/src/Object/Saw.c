@@ -142,7 +142,7 @@ static void Saw_Main(Object *obj, Scratch_Saw *scratch) {
     obj->routine = 2; // advance to Saw_Action
     obj->mappings = Mappings_SawsPizzaCutters;
     obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Saw); // | Tile_Pal3
-    obj->render.f.level_fg = true;
+    obj->render.b = SPRITE_CAM_FIELD;
     obj->priority = 4;
     obj->width_pixels = 64 / 2;
     scratch->orig_x = obj->pos.l.x.f.u;

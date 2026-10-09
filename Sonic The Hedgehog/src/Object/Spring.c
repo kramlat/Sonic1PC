@@ -20,7 +20,7 @@ void Obj_Spring(Object* obj) {
         // Set object drawing information
         obj->mappings = Mappings_Spring;
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Spring_Horizontal);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 16;
         obj->priority = 4;
 

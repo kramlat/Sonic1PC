@@ -39,7 +39,7 @@ void Obj_VanishSonic(Object *obj) {
 
         obj->routine = 2; // advance to Van_DeleteSonic
         obj->mappings = Mappings_VanishSonic;
-        obj->render.f.level_fg = true;
+        obj->render.b = SPRITE_CAM_FIELD;
         obj->priority = 1;
         obj->width_pixels = 112 / 2;
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Warp);

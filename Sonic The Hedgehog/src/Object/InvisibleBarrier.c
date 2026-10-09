@@ -33,7 +33,7 @@ void Obj_InvisibleBarrier(Object *obj) {
         // either, but its own Map_Invis is looked up by real hardware's
         // own debug tools differently -- doesn't need this same care).
         obj->frame = 0;
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = (uint8_t)((((scratch->subtype >> 4) & 0xF) + 1) * 8);
         // Fallthrough
     case 2: { // Invis_Solid

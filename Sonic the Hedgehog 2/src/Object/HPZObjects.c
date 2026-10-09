@@ -29,7 +29,7 @@ void Obj_HPZEmerald(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_HPZEmerald;
         obj->tile = TILE_MAP(0, 3, 0, 0, 0x392);
-        obj->render.f.level_fg = true;
+        obj->render.b = SPRITE_CAM_FIELD;
         obj->width_pixels = 0x20;
         obj->priority = 4;
     }
@@ -91,7 +91,7 @@ void Obj_HPZWaterfall(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_HPZWaterfall;
         obj->tile = TILE_MAP(1, 3, 0, 0, 0x315);
-        obj->render.f.level_fg = true;
+        obj->render.b = SPRITE_CAM_FIELD;
         obj->width_pixels = 0x10;
         obj->priority = 1;
         obj->frame = 0x12;
@@ -211,7 +211,7 @@ void Obj_CollapsingLedge(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_LedgeGHZ;
         obj->tile = TILE_MAP(0, 2, 0, 0, 0);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 4;
         scratch->timer = 7;
         obj->frame = scratch->subtype;

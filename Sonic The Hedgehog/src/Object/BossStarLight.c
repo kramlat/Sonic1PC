@@ -461,7 +461,7 @@ static void BSB_Main(Object *obj, Scratch_BossSpikeball *scratch) {
     obj->mappings = Mappings_SeesawBall;
     obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman_Spikeball);
     obj->frame = 1;
-    obj->render.f.level_fg = true;
+    obj->render.b |= SPRITE_CAM_FIELD;
     obj->priority = 4;
     obj->col_type = 0x17 | 0x80; // col_16x16 | col_hurt
     obj->width_pixels = 24 / 2;
@@ -613,7 +613,7 @@ static void BSB_Explode(Object *obj, Scratch_BossSpikeball *scratch) {
         frag->ysp = BSB_FragSpeed[n][1];
         n++;
         frag->col_type = 0x18 | 0x80; // col_8x8 | col_hurt
-        frag->render.f.level_fg = true;
+        frag->render.b |= SPRITE_CAM_FIELD;
         frag->render.f.on_screen = true; // display immediately
         frag->width_pixels = 24 / 2;
     }

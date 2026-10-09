@@ -127,7 +127,7 @@ void Obj_Burrobot(Object *obj) {
         obj->x_rad = 16 / 2;
         obj->mappings = Mappings_Burrobot;
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Burrobot);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 4;
         obj->col_type = 0x05; // col_24x36 | col_badnik
         obj->width_pixels = 24 / 2;

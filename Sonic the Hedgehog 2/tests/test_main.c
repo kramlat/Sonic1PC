@@ -24,6 +24,7 @@ void RegisterCPZObjectTests(void);
 void RegisterNGHZObjectTests(void);
 void RegisterHTZObjectTests(void);
 void RegisterCameraTests(void);
+void RegisterRenderFlagsTests(void);
 void RegisterDHZObjectTests(void);
 void RegisterOOZObjectTests(void);
 void RegisterScrollBlockTests(void);
@@ -67,6 +68,8 @@ int main(void) {
     RegisterOOZObjectTests();
     printf("Camera tests:\n");
     RegisterCameraTests();
+    printf("Render flag tests:\n");
+    RegisterRenderFlagsTests();
     printf("Scroll block tests:\n");
     RegisterScrollBlockTests();
     printf("Oscillation tests:\n");

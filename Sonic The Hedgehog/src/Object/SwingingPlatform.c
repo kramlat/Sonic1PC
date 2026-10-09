@@ -39,7 +39,7 @@ void Obj_SwingingPlatform(Object *obj) {
             obj->routine += 2;
             obj->mappings = Mappings_GHZSwing;
             obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_MZ_Swing);
-            obj->render.f.level_fg = true;
+            obj->render.b = SPRITE_CAM_FIELD;
             obj->priority = 3;
             obj->width_pixels = 0x18;
             obj->y_rad = 8;
@@ -91,7 +91,7 @@ void Obj_SwingingPlatform(Object *obj) {
                 link->type = obj->type;
                 link->mappings = obj->mappings;
                 link->tile = obj->tile & ~(1 << 14); // bclr #6 on the high byte -> bit 14 of the full word (palette line 3 -> 1)
-                link->render.f.level_fg = true;
+                link->render.b = SPRITE_CAM_FIELD;
                 link->priority = 4;
                 link->width_pixels = 8;
                 link->frame = 1;

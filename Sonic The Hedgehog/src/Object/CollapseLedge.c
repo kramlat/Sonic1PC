@@ -45,8 +45,7 @@ void Obj_CollapseLedge(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_CollapsingLedge;
         obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level);
-        obj->render.b &= 0x03;
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 4;
         scratch->timedelay = 7;
         obj->width_pixels = 96 / 2;

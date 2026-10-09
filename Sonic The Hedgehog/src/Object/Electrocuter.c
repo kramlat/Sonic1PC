@@ -16,7 +16,7 @@ static void Elec_Main(Object *obj, Scratch_Electrocuter *scratch) {
     obj->routine = 2; // advance to Elec_Shock
     obj->mappings = Mappings_Electrocuter;
     obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Electric_Orb);
-    obj->render.f.level_fg = true;
+    obj->render.b |= SPRITE_CAM_FIELD;
     obj->width_pixels = 80 / 2;
     // AnimateSprite only resets anim_frame/frame_time when obj->anim !=
     // obj->prev_anim. Setting just obj->anim = 0 here isn't enough: if a

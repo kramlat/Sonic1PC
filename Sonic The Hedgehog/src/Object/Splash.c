@@ -55,7 +55,7 @@ static void Splash_LoadGfx(Object *obj) {
 
 static void Splash_Construct(Object *obj) {
     obj->mappings = Mappings_SplashDust;
-    obj->render.f.level_fg = true;
+    obj->render.b |= SPRITE_CAM_FIELD;
     obj->priority = 1;
     obj->width_pixels = 0x10;
     obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SplashDust);

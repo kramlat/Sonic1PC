@@ -36,8 +36,7 @@ void Obj_CollapseFloor(Object *obj) {
         } else if (LEVEL_ZONE(level_id) == ZoneId_SBZ) {
             obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Collapsing_Floor); // | Tile_Pal3
         }
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 4;
         scratch->timedelay = 7;
         obj->width_pixels = 136 / 2;

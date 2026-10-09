@@ -86,7 +86,7 @@ static void Seesaw_Init(Object *obj, Scratch_Seesaw *scratch) {
     obj->routine += 2;
     obj->mappings = Mappings_HTZSeesaw;
     obj->tile = TILE_MAP(0, 0, 0, 0, 0x3C6);
-    obj->render.f.level_fg = true;
+    obj->render.b |= SPRITE_CAM_FIELD;
     obj->priority = 4;
     obj->width_pixels = 0x30;
     scratch->orig_x = obj->pos.l.x.f.u;
@@ -321,7 +321,7 @@ void Obj_HTZLift(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_HTZLift;
         obj->tile = TILE_MAP(0, 2, 0, 0, 0x3E6);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 0x20;
         obj->frame = 0;
         obj->priority = 1;
@@ -551,7 +551,7 @@ void Obj_HTZFireball(Object *obj) {
         obj->y_rad = obj->x_rad = 8;
         obj->mappings = Mappings_HTZFireball;
         obj->tile = TILE_MAP(1, 0, 0, 0, ARTTILE_LAVA_BUBBLE);
-        obj->render.b = 4;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 3;
         obj->width_pixels = 8;
         scratch->base_y = obj->pos.l.y.f.u;

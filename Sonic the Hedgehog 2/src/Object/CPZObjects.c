@@ -127,8 +127,7 @@ void Obj_CPZElevator(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_CPZElevator;
         obj->tile = TILE_MAP(0, 3, 0, 0, LEVEL_ZONE(level_id) == ZoneId_OOZ ? 0x300 : 0x3A0);
-        obj->render.b = (uint8_t)(obj->render.b & 3);
-        obj->render.f.level_fg = true;
+        obj->render.b = SPRITE_CAM_FIELD;
         int size = (scratch->subtype >> 4) & 0xF;
         if (size > 4)
             size = 4;
@@ -186,7 +185,7 @@ void Obj_CPZBooster(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_Booster;
         obj->tile = TILE_MAP(1, 3, 0, 0, ARTTILE_BOOSTER);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 0x20;
         obj->priority = 1;
         scratch->speed = (scratch->subtype & 2) ? 0xA00 : 0x1000;
@@ -233,7 +232,7 @@ void Obj_CPZPipeTipper(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_PipeTipper;
         obj->tile = TILE_MAP(1, 3, 0, 0, ARTTILE_PIPE_TIPPER);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 0x10;
         obj->priority = 4;
         int d0 = (scratch->subtype & 0xF0) + 0x10;
@@ -360,7 +359,7 @@ void Obj_CPZBlock(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_CPZBlock;
         obj->tile = TILE_MAP(0, 3, 0, 0, ARTTILE_CPZ_BLOCK);
-        obj->render.f.level_fg = true;
+        obj->render.b = SPRITE_CAM_FIELD;
         obj->priority = 3;
         const bool small = (scratch->subtype >> 4) & 1; // (loc_1BCFE: a wide block of 12 high, or a square one of 16)
         obj->width_pixels = small ? 0x10 : 0x20;
@@ -412,7 +411,7 @@ void Obj_CPZBarrier(Object *obj) {
         const bool cpz = LEVEL_ZONE(level_id) == ZoneId_CPZ;
         obj->tile = TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
         obj->width_pixels = cpz ? 0xC : 8;
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 4;
         scratch->base_y = obj->pos.l.y.f.u;
         obj->frame = scratch->subtype;
@@ -542,7 +541,7 @@ void Obj_TubeCover(Object *obj) {
         obj->mappings = rock ? Mappings_HTZRock : Mappings_TubeCover;
         obj->tile = rock ? TILE_MAP(0, 2, 0, 0, ARTTILE_HTZ_ROCK) : TILE_MAP(0, 3, 0, 0, ARTTILE_TUBE_COVER);
         obj->width_pixels = rock ? 0x18 : 0x10;
-        obj->render.f.level_fg = true;
+        obj->render.b = SPRITE_CAM_FIELD;
         obj->priority = 4;
     }
 
@@ -827,7 +826,7 @@ void Obj_CPZInvisibleBlock(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_CPZInvisibleBlock;
         obj->tile = TILE_MAP(1, 0, 0, 0, 0x680);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         const uint8_t subtype = obj->scratch.u8[0];
         obj->width_pixels = (uint8_t)((((subtype & 0xF0) + 0x10)) >> 1);
         obj->y_rad = (int8_t)(((subtype & 0xF) + 1) << 3);
@@ -954,7 +953,7 @@ void Obj_FloatingPlatform(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_FloatingPlatform;
         obj->tile = TILE_MAP(1, 3, 0, 0, ARTTILE_CPZ_BLOCK);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 0x10;
         obj->priority = 4;
         scratch->base_y = (int16_t)(obj->pos.l.y.f.u - 0x10);

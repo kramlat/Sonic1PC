@@ -15,7 +15,7 @@ void Obj_GiantRing(Object *obj) {
         // Only OR the camera-relative flag in, like the real object: clearing the
         // whole byte here every frame also wiped the "on screen" bit that the
         // renderer sets, so the on-screen check below could never succeed.
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 128 / 2;
 
         // The real object only decides whether to show the ring once it is on
@@ -77,7 +77,7 @@ void Obj_RingFlash(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_RingFlash;
         obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Giant_Ring_Flash); // | Tile_Pal2
-        obj->render.f.level_fg = true; // x_flip (if set by GiantRing's Collect case, above) is untouched by this
+        obj->render.b |= SPRITE_CAM_FIELD; // x_flip (if set by GiantRing's Collect case, above) is untouched by this
         obj->priority = 0;
         obj->width_pixels = 64 / 2;
         obj->frame_time.b = -1;

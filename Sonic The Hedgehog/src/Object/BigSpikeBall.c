@@ -64,7 +64,7 @@ void Obj_BigSpikeBall(Object *obj) {
             obj->mappings = Mappings_BigSpikedBall;
             // SYZ Spikeball VRAM tile index
             obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SYZ_Big_Spikeball);
-            obj->render.f.level_fg = true;
+            obj->render.b = SPRITE_CAM_FIELD;
             obj->priority = 4;
             obj->width_pixels = 24;
             obj->col_type = 0x86;

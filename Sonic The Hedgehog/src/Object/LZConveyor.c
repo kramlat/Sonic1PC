@@ -152,7 +152,7 @@ static void LCon_Main_Platform(Object *obj, Scratch_LCon *scratch, uint8_t subty
     obj->routine += 2;
     obj->mappings = Mappings_LZConveyor;
     obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Conveyor_Belt); // | Tile_Pal3
-    obj->render.f.level_fg = true;
+    obj->render.b |= SPRITE_CAM_FIELD;
     obj->width_pixels = 32 / 2;
     obj->priority = 4;
 

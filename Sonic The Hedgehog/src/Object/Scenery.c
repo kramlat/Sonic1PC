@@ -39,7 +39,7 @@ void Obj_Scenery(Object *obj) {
         obj->tile = v->tile;
         // Original is `ori.b #sprite_cam_field,obRender`: keeps the X/Y flip bits from the
         // object layout, so the scenery draws facing the way it was placed.
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->frame = v->frame;
         obj->width_pixels = v->width_pixels;
         obj->priority = v->priority;

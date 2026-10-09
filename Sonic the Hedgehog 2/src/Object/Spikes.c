@@ -71,7 +71,7 @@ void Obj_Spikes(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_Spikes;
         obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Spikes);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 4;
 
         unsigned kind = scratch->subtype >> 4;

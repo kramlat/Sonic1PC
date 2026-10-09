@@ -65,8 +65,7 @@ void Obj_NAWaterSplash(Object *obj) {
         splash_sw = LEVEL_ZONE(level_id) == ZoneId_CPZ || LEVEL_ZONE(level_id) == ZoneId_ARZ;
         obj->mappings = splash_sw ? Mappings_WaterSplashSW : Mappings_WaterSplash;
         obj->tile = splash_sw ? TILE_MAP(0, 2, 0, 0, 0x49C) : TILE_MAP(0, 2, 0, 0, 0x259);
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 1;
         obj->width_pixels = 0x10;
         obj->anim = 0;

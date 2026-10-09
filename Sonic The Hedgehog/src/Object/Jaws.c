@@ -30,7 +30,7 @@ void Obj_Jaws(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_Jaws;
         obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Jaws); // | Tile_Pal2
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->col_type = 0x0A; // col_32x24 | col_badnik
         obj->priority = 4;
         obj->width_pixels = 48 / 2; // Bug fix: real hardware's original 32/2 gets culled too early

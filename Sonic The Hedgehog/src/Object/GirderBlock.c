@@ -62,7 +62,7 @@ void Obj_GirderBlock(Object *obj) {
         obj->routine = 2; // advance to Gird_Action
         obj->mappings = Mappings_GirderBlock;
         obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Girder); // | Tile_Pal3
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 4;
         obj->width_pixels = 192 / 2;
         obj->y_rad = 48 / 2;

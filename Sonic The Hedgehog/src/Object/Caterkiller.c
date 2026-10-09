@@ -286,8 +286,8 @@ void Obj_Caterkiller(Object *obj) {
             ? TILE_MAP(0, 1, 0, 0, ArtTile_SBZ_Caterkiller)  // | Tile_Pal2
             : TILE_MAP(0, 1, 0, 0, ArtTile_MZ_SYZ_Caterkiller); // | Tile_Pal2
 
-        obj->render.b &= 0x03; // keep only the spawn-time x/y flip
-        obj->render.f.level_fg = true;
+        obj->render.b &= 0x03; // andi.b #sprite_xflip|sprite_yflip: keep only the spawn-time x/y flip
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->status.b = obj->render.b;
         obj->priority = 4;
         obj->width_pixels = 16 / 2;

@@ -39,8 +39,7 @@ void Obj_HiddenBonus(Object *obj) {
                 obj->routine += 2;
                 obj->mappings = Mappings_HiddenBonuses;
                 obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Hidden_Points);
-                obj->render.b = 0;
-                obj->render.f.level_fg = true;
+                obj->render.b |= SPRITE_CAM_FIELD;
                 obj->priority = 0;
                 obj->width_pixels = 32 / 2;
 

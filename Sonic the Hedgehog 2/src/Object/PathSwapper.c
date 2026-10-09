@@ -92,8 +92,7 @@ void Obj_PathSwapper(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_PathSwapper;
         obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 0x10;
         obj->priority = 5;
         obj->frame = scratch->subtype & 7;

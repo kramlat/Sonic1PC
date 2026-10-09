@@ -103,7 +103,7 @@ static void Orb_Main(Object *obj, Scratch_Orbinaut *scratch) {
     if (zone == ZoneId_LZ)
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Orbinaut);
 
-    obj->render.f.level_fg = true;
+    obj->render.b |= SPRITE_CAM_FIELD;
     obj->priority = 4;
     obj->col_type = 0x0B; // col_16x16 | col_badnik
     obj->width_pixels = 24 / 2;
@@ -122,7 +122,7 @@ static void Orb_Main(Object *obj, Scratch_Orbinaut *scratch) {
         ball->routine = 6; // Orb_CircleSpikeball
         ball->mappings = obj->mappings;
         ball->tile = obj->tile;
-        ball->render.f.level_fg = true;
+        ball->render.b |= SPRITE_CAM_FIELD;
         ball->priority = 4;
         ball->width_pixels = 16 / 2;
         ball->frame = 3; // spikeball frame

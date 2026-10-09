@@ -458,7 +458,7 @@ void Obj_OOZPushSpring(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_OOZPushSpring;
         obj->tile = TILE_MAP(0, 2, 0, 0, 0x3C5);
-        obj->render.b |= 4; // ori.b #4,1(a0): the layout's facing stays
+        obj->render.b |= SPRITE_CAM_FIELD; // ori.b #4,1(a0): the layout's facing stays
         obj->width_pixels = 0x10;
         obj->priority = 4;
         if (scratch->subtype & 0x10) { // the pusher
@@ -613,7 +613,7 @@ void Obj_OOZSpringBall(Object *obj) {
             spring->mappings = Mappings_OOZPushSpring;
             spring->tile = TILE_MAP(0, 2, 0, 0, 0x3C5);
             spring->render.b = 0;
-            spring->render.b |= 4; // ori.b #4,1(a0): the layout's facing stays
+            spring->render.b |= SPRITE_CAM_FIELD; // ori.b #4,1(a0): the layout's facing stays
             spring->width_pixels = 0x10;
             spring->priority = 4;
             spring->frame = 9;

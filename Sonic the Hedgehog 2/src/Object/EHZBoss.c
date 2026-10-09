@@ -264,7 +264,7 @@ static void Boss_Run(Object *obj) {
     case 0: { // Initialization
         obj->mappings = Mappings_BossEHZ;
         obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_BossShipEHZ); // (palette line 2; $2400 + $60 for the subtype $81)
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 0x20;
         obj->priority = 3;
         obj->col_type = 0xF;

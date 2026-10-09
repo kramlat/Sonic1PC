@@ -38,7 +38,7 @@ void Obj_SmallDoor(Object *obj) {
         obj->routine = 2; // advance to ADoor_OpenShut
         obj->mappings = Mappings_SmallDoor;
         obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Door); // | Tile_Pal3
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 16 / 2;
         obj->priority = 4;
     }

@@ -21,7 +21,7 @@ void Obj_Waterfall(Object *obj) {
     switch (obj->routine) {
         case 0: // WSnd_Main
             obj->routine = 2;
-            obj->render.f.level_fg = true;
+            obj->render.b = SPRITE_CAM_FIELD;
             break;
 
         case 2: { // WSnd_PlaySnd

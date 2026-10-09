@@ -214,7 +214,7 @@ void Obj_Spring(Object *obj) {
         obj->routine += 2;
         obj->mappings = ghz ? Mappings_SpringGHZ : Mappings_Spring;
         obj->tile = TILE_MAP(0, 0, 0, 0, ghz ? ArtTile_Spring_Horizontal : ArtTile_SpringUp);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 0x10;
         obj->priority = 4;
 

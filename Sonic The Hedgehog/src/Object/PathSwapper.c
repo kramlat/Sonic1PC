@@ -126,7 +126,7 @@ void Obj_PathSwapper(Object *obj) {
         // just never gets displayed in that case.
         obj->mappings = Mappings_PathSwapper;
         obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring); // | Tile_Pal2
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 32 / 2;
         obj->priority = 5;
         obj->frame = scratch->subtype & (PSWAP_BIT_SIZE_MASK | PSWAP_BIT_HORIZONTAL);

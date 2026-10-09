@@ -60,7 +60,7 @@ void Obj_SpinPlatform(Object *obj) {
         obj->routine = 2; // advance to Spin_Trapdoor
         obj->mappings = Mappings_Trapdoor;
         obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Trap_Door); // | Tile_Pal3
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 128 / 2; // FixBugs: real hardware used 256/2 here, causing screen-wrap issues
 
         uint8_t subtype = obj->scratch.u8[0];

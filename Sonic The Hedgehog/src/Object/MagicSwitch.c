@@ -50,7 +50,7 @@ void Obj_MagicSwitch(Object *obj) {
         obj->routine = 2; // advance to Swi_Action
         obj->mappings = Mappings_UnusedSwitch;
         obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
-        obj->render.f.level_fg = true;
+        obj->render.b = SPRITE_CAM_FIELD;
         scratch->orig_y = obj->pos.l.y.f.u;
         obj->width_pixels = 32 / 2;
         obj->priority = 5;

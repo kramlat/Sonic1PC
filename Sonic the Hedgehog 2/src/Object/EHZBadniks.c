@@ -111,7 +111,7 @@ void Obj_Buzzer(Object *obj) {
     case BuzzerRoutine_Init: {
         obj->mappings = Mappings_Buzzer;
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Buzzer);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->col_type = 0xA;
         obj->width_pixels = 0x10;
         obj->y_rad = 0x10;
@@ -202,7 +202,7 @@ void Obj_Masher(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_Masher;
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Masher);
-        obj->render.f.level_fg = true;
+        obj->render.b = SPRITE_CAM_FIELD;
         obj->priority = 4;
         obj->col_type = 9;
         obj->width_pixels = 0x10;
@@ -279,7 +279,7 @@ void Obj_Snail(Object *obj) {
     case SnailRoutine_Init: {
         obj->mappings = Mappings_Snail;
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Snail);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->col_type = 0xA;
         obj->priority = 4;
         obj->width_pixels = 0x10;

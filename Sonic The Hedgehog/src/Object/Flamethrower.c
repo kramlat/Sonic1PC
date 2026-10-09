@@ -54,7 +54,7 @@ void Obj_Flamethrower(Object *obj) {
         obj->routine = 2; // advance to Flame_Action
         obj->mappings = Mappings_Flamethrower;
         obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_SBZ_Flamethrower); // | Tile_Prio
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 1;
         obj->width_pixels = 24 / 2;
 

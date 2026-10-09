@@ -97,7 +97,7 @@ void Obj_LavaMaker(Object *obj) {
         obj->mappings = Mappings_Fireballs;
         obj->tile = TILE_MAP(0, 0, 0, 0,
             (LEVEL_ZONE(level_id) == ZoneId_SLZ) ? ArtTile_SLZ_Fireball : ArtTile_MZ_Fireball);
-        obj->render.f.level_fg = true;
+        obj->render.b = SPRITE_CAM_FIELD;
 
         // Matches LavaBall.c's own Main-routine flip/anim setup exactly,
         // for each of the 9 launch patterns. A fixed frame, not

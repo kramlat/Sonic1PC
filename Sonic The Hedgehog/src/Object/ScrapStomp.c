@@ -233,7 +233,7 @@ static void Sto_Main(Object *obj, Scratch_ScrapStomp *scratch) {
         }
     }
 
-    obj->render.f.level_fg = true;
+    obj->render.b |= SPRITE_CAM_FIELD;
     obj->priority = 4;
     scratch->orig_x = obj->pos.l.x.f.u;
     scratch->orig_y = obj->pos.l.y.f.u;

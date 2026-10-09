@@ -145,7 +145,7 @@ static void Disc_Main(Object *obj, Scratch_RunningDisc *scratch) {
     obj->routine = 2; // advance to Disc_Action
     obj->mappings = Mappings_RunningDisc;
     obj->tile = TILE_MAP(1, 2, 0, 0, ArtTile_SBZ_Disc); // | Tile_Pal3 | Tile_Prio
-    obj->render.f.level_fg = true;
+    obj->render.b = SPRITE_CAM_FIELD;
     obj->priority = 4;
     obj->width_pixels = 16 / 2;
 

@@ -53,7 +53,7 @@ void Obj_FlapDoor(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_FlappingDoor;
         obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Flapping_Door); // | Tile_Pal3
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 80 / 2;
         scratch->time = (int16_t)(obj->scratch.u8[0] * 60);
         __attribute__((fallthrough));

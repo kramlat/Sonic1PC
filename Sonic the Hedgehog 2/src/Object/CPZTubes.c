@@ -308,7 +308,7 @@ void Obj_CPZTubeSpring(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_TubeSpring;
         obj->tile = TILE_MAP(0, 0, 0, 0, ARTTILE_TUBE_SPRING);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 0x10;
         obj->priority = 1;
         scratch->power = (scratch->subtype & 2) ? -0xA00 : -0x1000;

@@ -97,7 +97,7 @@ static void SpinC_Main_Platform(Object *obj, Scratch_LCon *scratch, uint8_t subt
     obj->mappings = Mappings_SpinningPlatforms;
     obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Spinning_Platform);
     obj->width_pixels = 32 / 2;
-    obj->render.f.level_fg = true;
+    obj->render.b |= SPRITE_CAM_FIELD;
     obj->priority = 4;
 
     uint8_t group_idx = (subtype >> 4) & 0xF;

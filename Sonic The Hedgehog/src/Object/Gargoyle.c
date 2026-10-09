@@ -17,7 +17,7 @@ static void Gar_Main(Object *obj, Scratch_Gargoyle *scratch) {
     obj->routine += 2;
     obj->mappings = Mappings_Gargoyle;
     obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Gargoyle); // | Tile_Pal3
-    obj->render.f.level_fg = true;
+    obj->render.b |= SPRITE_CAM_FIELD;
     obj->priority = 3;
     obj->width_pixels = 32 / 2;
 
@@ -74,7 +74,7 @@ static bool Gar_FireBall(Object *obj) {
     obj->x_rad = 16 / 2;
     obj->mappings = Mappings_Gargoyle;
     obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Gargoyle); // (different palette line than head)
-    obj->render.f.level_fg = true;
+    obj->render.b |= SPRITE_CAM_FIELD;
     obj->priority = 4;
     obj->col_type = 0x18 | 0x80; // col_8x8 | col_hurt
     obj->width_pixels = 16 / 2;

@@ -47,7 +47,7 @@ void Obj_ArrowShooter(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_ArrowShooter;
         obj->tile = TILE_MAP(0, 0, 0, 0, ARTTILE_NGHZ_ARROW);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 3;
         obj->width_pixels = 0x10;
         obj->frame = 1;

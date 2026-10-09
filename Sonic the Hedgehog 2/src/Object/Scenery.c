@@ -53,8 +53,7 @@ void Obj_Scenery(Object *obj) {
         const SceneryLook *look = &looks[scratch->subtype % (sizeof(looks) / sizeof(looks[0]))];
         obj->mappings = look->mappings;
         obj->tile = look->tile;
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->frame = look->frame;
         obj->width_pixels = look->width;
         obj->priority = look->priority;
@@ -92,8 +91,7 @@ void Obj_HPZDecor(Object *obj) {
         const SceneryLook *look = &decor_looks[kind];
         obj->mappings = look->mappings;
         obj->tile = look->tile;
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->frame = look->frame;
         obj->width_pixels = look->width;
         obj->priority = look->priority;

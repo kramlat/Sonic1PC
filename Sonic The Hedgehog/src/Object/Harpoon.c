@@ -42,7 +42,7 @@ void Obj_Harpoon(Object *obj) {
         obj->routine += 2;
         obj->mappings = Mappings_Harpoon;
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Harpoon);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 4;
         obj->anim = obj->scratch.u8[0]; // subtype: 0 = sideways, 2 = upright
         obj->width_pixels = 40 / 2;

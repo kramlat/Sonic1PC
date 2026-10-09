@@ -50,7 +50,7 @@ void Obj_CollapsingPlatform(Object *obj) {
     switch (obj->routine) {
     case CollapseRoutine_Init:
         obj->routine += 2;
-        obj->render.b |= 4; // ori.b #4,1(a0): the layout's facing stays
+        obj->render.b |= SPRITE_CAM_FIELD; // ori.b #4,1(a0): the layout's facing stays
         obj->priority = 4;
         scratch->timer = 7;
         if (IsOilOcean()) {

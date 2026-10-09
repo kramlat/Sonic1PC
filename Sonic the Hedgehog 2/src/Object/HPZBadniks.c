@@ -127,7 +127,7 @@ void Obj_BBat(Object *obj) {
     case BBatRoutine_Init:
         obj->mappings = Mappings_BBat;
         obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_BBat); // (palette line 2: Nick Arcade\x27s mistake, its flame and ears look odd)
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->col_type = 0xA;
         obj->priority = 4;
         obj->width_pixels = 0x10;
@@ -200,7 +200,7 @@ void Obj_Redz(Object *obj) {
     case RedzRoutine_Init: {
         obj->mappings = Mappings_Redz;
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Redz);
-        obj->render.f.level_fg = true;
+        obj->render.b = SPRITE_CAM_FIELD;
         obj->priority = 4;
         obj->width_pixels = 0x10;
         obj->y_rad = 0x10;

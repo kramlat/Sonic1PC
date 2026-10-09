@@ -7,6 +7,7 @@ const char *test_current_name = NULL;
 
 void RegisterCompressionTests(void);
 void RegisterPaletteTests(void);
+void RegisterRenderFlagsTests(void);
 void RegisterVdp8bppTests(void);
 void RegisterMathTests(void);
 void RegisterPLCTests(void);
@@ -52,6 +53,8 @@ int main(void) {
     RegisterCompressionTests();
     printf("Palette tests:\n");
     RegisterPaletteTests();
+    printf("Render flag tests:\n");
+    RegisterRenderFlagsTests();
     printf("VDP 8bpp tile tests:\n");
     RegisterVdp8bppTests();
     printf("Math tests:\n");

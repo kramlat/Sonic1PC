@@ -129,7 +129,7 @@ static void Elev_Main(Object *obj, Scratch_Elevator *scratch) {
 
     obj->mappings = Mappings_Elevator;
     obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
-    obj->render.f.level_fg = true;
+    obj->render.b = SPRITE_CAM_FIELD;
     obj->priority = 4;
     scratch->orig_x = obj->pos.l.x.f.u;
     scratch->orig_y = obj->pos.l.y.f.u;

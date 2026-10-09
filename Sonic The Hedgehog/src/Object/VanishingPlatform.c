@@ -59,7 +59,7 @@ void Obj_VanishPlatform(Object *obj) {
             obj->routine += 6; // VanP_Sync
             obj->mappings = Mappings_VanishingPlatforms;
             obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Vanishing_Block); // | Tile_Pal3
-            obj->render.f.level_fg = true;
+            obj->render.b |= SPRITE_CAM_FIELD;
             obj->width_pixels = 32 / 2;
             obj->priority = 4;
 

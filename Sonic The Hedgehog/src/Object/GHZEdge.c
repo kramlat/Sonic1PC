@@ -104,7 +104,7 @@ void Obj_GHZEdge(Object *obj)
         // Set object drawing information
         obj->mappings = Mappings_GHZEdge;
         obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Edge_Wall);
-        obj->render.f.level_fg = true;
+        obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 8;
         obj->priority = 6;
         obj->frame = obj->scratch.u8[0]; // subtype
