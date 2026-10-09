@@ -135,6 +135,7 @@ resources:
   - "S2Palette/HTZCycleDelay"
   - "S2Palette/LevelSel"   # the Simon Wai and Nick Arcade prototypes' level select palette (the same file in both)
   - "S2Art/EHZFlower1"
+  - "S2Art/HTZBgStrips"
   - "S2Art/EHZFlower2"
   - "S2Art/EHZFlower3"
   - "S2Art/EHZFlower4"
@@ -361,6 +362,7 @@ resources:
   - "Art/CPZMetalBlock"
   - "Art/CPZDroplet"
   - "Art/NGHZWaterSurface"
+  - "Art/HTZBackground"
   - "Art/HTZRock"
   - "Art/HTZValveBarrier"
   - "Art/HTZSpiker"
@@ -413,6 +415,7 @@ sources:
   - "src/PaletteCycle.c"
   - "src/LevelScroll.c"
   - "src/HTZQuake.c"
+  - "src/HTZBackground.c"
   - "src/Level.c"
   - "src/HUD.c"
   - "src/Object/Monitor.c"

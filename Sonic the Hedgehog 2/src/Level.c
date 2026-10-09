@@ -1,5 +1,6 @@
 #include "Level.h"
 #include "HTZQuake.h"
+#include "HTZBackground.h"
 
 #include "Constants.h"
 #include "Enigma.h"
@@ -203,6 +204,7 @@ void LevelSizeLoad(void) {
     dle_routine = 0;
     ghz2_tube_exit_timer = 0;
     HTZQuake_Reset();
+    HTZBackground_Reset();
 
     // Get sizes to load
     const int16_t* sizes = LevelSizes(LEVEL_ZONE(level_id), LEVEL_ACT(level_id));

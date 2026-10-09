@@ -258,6 +258,13 @@ static void Seesaw_BallFall(Object *obj, Scratch_Seesaw *scratch) {
     obj->routine -= 2;
 }
 
+// Obj14_Animate (the Sol badnik): every fourth frame its palette line alternates (the flash of red and yellow), and it faces Sonic (flipped when he is at or to its right)
+static void Seesaw_BallAnimate(Object *obj) {
+    if ((frame_count & 3) == 0)
+        obj->tile ^= 0x2000;
+    obj->render.f.x_flip = (uint16_t)player->pos.l.x.f.u >= (uint16_t)obj->pos.l.x.f.u;
+}
+
 void Obj_HTZSeesaw(Object *obj) {
     Scratch_Seesaw *scratch = (Scratch_Seesaw *)&obj->scratch;
 
@@ -272,9 +279,11 @@ void Obj_HTZSeesaw(Object *obj) {
         Seesaw_Ball_Init(obj, scratch);
         // fallthrough
     case SeesawRoutine_MoveBall:
+        Seesaw_BallAnimate(obj);
         Seesaw_MoveBall(obj, scratch);
         break;
     case SeesawRoutine_BallFall:
+        Seesaw_BallAnimate(obj);
         Seesaw_BallFall(obj, scratch);
         break;
     }

@@ -1,6 +1,7 @@
 // Sonic 2's level scrolling: Sonic 1's (a copy of LevelScroll.c) with Nick Arcade's zones: their background starts and deformation routines.
 #include "LevelScroll.h"
 #include "HTZQuake.h"
+#include "HTZBackground.h"
 #include "SplitScreen.h"
 
 #include <string.h>
@@ -548,23 +549,7 @@ void Deform_HTZ(void) {
 	}
 	HTZQuake_SpritesNormal();
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-	int16_t d2 = (int16_t)-scrpos_x.f.u;
-	HScroll h;
-	HS_Start(&h, d2);
-	HS_Lines(&h, 0x80, d2 >> 3);
-	int32_t delta = HS_Delta((int16_t)((d2 >> 1) - (d2 >> 3)), 4, 0x18);
-	uint32_t acc = (uint32_t)(uint16_t)(d2 >> 3) << 16;
-	static const struct { int steps, lines; } bands[] = { { 1, 3 }, { 1, 5 }, { 1, 7 }, { 2, 8 }, { 2, 10 }, { 3, 15 } };
-	for (size_t i = 0; i < sizeof(bands) / sizeof(bands[0]); i++) {
-		acc += (uint32_t)bands[i].steps * (uint32_t)delta;
-		HS_Lines(&h, bands[i].lines, (int16_t)(acc >> 16));
-	}
-	acc += 3 * (uint32_t)delta;
-	for (int i = 0; i < 3; i++) {
-		HS_Lines(&h, 16, (int16_t)(acc >> 16));
-		acc += 4 * (uint32_t)delta;
-	}
-	HS_Finish(&h);
+	HTZBackground_Deform(); // the usual branch (loc_6108), whose layers the mountains' animated art follows
 }
 
 // The prototype's plain backgrounds (Bg_Scroll_Wz, _Mz, _OOz and _CNz): the whole background in one piece, moved by a share of the camera's move (the delta is the camera's move shifted left by x_shift and y_shift

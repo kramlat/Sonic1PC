@@ -31,6 +31,9 @@
 #include "Resource/S2Art/NGHZWaterfall3.h"
 #include "Resource/S2Art/CPZAnimBack.h"
 
+#include "HTZBackground.h"
+#include "SplitScreen.h"
+
 typedef struct {
     const uint8_t *art;       // the animation's frames
     uint16_t vram;            // where its tiles are in VRAM (a byte address)
@@ -135,8 +138,11 @@ static void Dynamic_Normal(const AnimScript *scripts, int count) {
 // AniArt_Load: Emerald Hill and Hill Top animate their flowers, Hidden Palace its glowing ball
 void S2_AnimateLevelArt(void) {
     switch (LEVEL_ZONE(level_id)) {
+    case ZoneId_HTZ: // (the prototype's loc_2244E: the mountains' tiles, then the flowers, whose script is Emerald Hill's, on counters of their own)
+        HTZBackground_Animate(two_player_mode != 0);
+        Dynamic_Normal(AnimCue_EHZ, (int)(sizeof(AnimCue_EHZ) / sizeof(AnimCue_EHZ[0])));
+        break;
     case ZoneId_EHZ:
-    case ZoneId_HTZ:
         Dynamic_Normal(AnimCue_EHZ, (int)(sizeof(AnimCue_EHZ) / sizeof(AnimCue_EHZ[0])));
         break;
     case ZoneId_HPZ:
