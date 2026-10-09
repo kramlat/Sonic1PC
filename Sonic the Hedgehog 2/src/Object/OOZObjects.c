@@ -9,6 +9,7 @@
 #include "LevelCollision.h"
 #include "LevelScroll.h"
 #include "Object/CharControl.h"
+#include "Object/CharThrow.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
 #include "Solid.h"
@@ -33,35 +34,6 @@ static Object *Character(int who) {
 static void ForgetIfRemembered(Object *obj) {
     if (obj->respawn_index)
         objstate[obj->respawn_index] &= 0x7F;
-}
-
-// The character's tumble when a spring or pusher throws it (the subtype's bit 0, and bit 1 for a short one; bits 2 and 3 pick the collision path): flips_remaining, flip_speed and the path are the same ones
-// the Chemical Plant spring tube sets (Obj_CPZTubeSpring)
-static void ThrowTumble(Object *chr, uint8_t subtype, uint8_t flip_speed, uint8_t flips_short, uint8_t flips_long) {
-    Scratch_Sonic *sscratch = (Scratch_Sonic *)&chr->scratch;
-    if (subtype & 1) {
-        chr->inertia = 1;
-        sscratch->flip_angle = 1;
-        chr->anim = SonAnimId_Walk;
-        sscratch->flips_remaining = flips_short;
-        sscratch->flip_speed = flip_speed;
-        if (!(subtype & 2))
-            sscratch->flips_remaining = flips_long;
-        if (chr->status.p.f.x_flip) {
-            sscratch->flip_angle = (uint8_t)-sscratch->flip_angle;
-            chr->inertia = -chr->inertia;
-        }
-    }
-    switch (subtype & 0xC) {
-    case 4:
-        sscratch->top_solid_bit = 0xC;
-        sscratch->lrb_solid_bit = 0xD;
-        break;
-    case 8:
-        sscratch->top_solid_bit = 0xE;
-        sscratch->lrb_solid_bit = 0xF;
-        break;
-    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -368,7 +340,7 @@ static void PushSpring_Launch(Object *obj, Scratch_PushSpring *scratch, Object *
     chr->routine = 2;
     if (scratch->subtype & 0x80)
         chr->xsp = 0;
-    ThrowTumble(chr, scratch->subtype, 4, 0, 1);
+    CharThrow_Tumble(chr, scratch->subtype, 4, 0, 1);
     PlaySound(sfx_Spring);
 }
 
@@ -400,7 +372,7 @@ static void PushSpring_Fling(Object *obj, Scratch_PushSpring *scratch) {
             chr->anim = SonAnimId_Walk;
         if (scratch->subtype & 0x80)
             chr->ysp = 0;
-        ThrowTumble(chr, scratch->subtype, 8, 1, 3);
+        CharThrow_Tumble(chr, scratch->subtype, 8, 1, 3);
         chr->status.p.f.pushing = false;
         chr->prev_anim = 1;
         PlaySound(sfx_Spring);

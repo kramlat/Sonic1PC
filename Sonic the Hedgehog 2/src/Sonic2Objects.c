@@ -2,6 +2,7 @@
 
 #include "Object/AirBubbles.h"
 #include "Object/DHZObjects.h"
+#include "Object/MTZObjects.h"
 #include "Object/OOZObjects.h"
 #include "Object/DrownCount.h"
 #include "Object/InvisibleBarrier.h"
@@ -251,7 +252,7 @@ const ObjectFunc game_objects[] = {
 	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBomb,
 	/* 40 ObjId_Motobug             */ Obj_DiagSpring, // (the prototype's diagonal springs)
 	/* 41 ObjId_Spring              */ Obj_Spring,
-	/* 42 ObjId_Newtron             */ Obj_Null, // (the prototype's object here is not ported yet)
+	/* 42 ObjId_Newtron             */ Obj_MTZSteamVent, // (the prototype's steam vent of Metropolis)
 	/* 43 ObjId_Roller             */ Obj_OOZSpikeball, // (the prototype's rolling spiked balls of Oil Ocean)
 	/* 44 ObjId_GHZEdge             */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 45 ObjId_SidewaysStomper    */ Obj_OOZPushSpring, // (the prototype's spring and pusher of Oil Ocean)
@@ -285,21 +286,21 @@ const ObjectFunc game_objects[] = {
 	/* 61 ObjId_LabyrinthBlock     */ Obj_Null, // removed in Nick Arcade
 	/* 62 ObjId_Gargoyle           */ Obj_Null, // removed in Nick Arcade
 	/* 63 ObjId_LabyrinthConvey    */ Obj_Null, // removed in Nick Arcade
-	/* 64 ObjId_Bubble             */ Obj_Null, // removed in Nick Arcade
-	/* 65 ObjId_LZWaterfall        */ Obj_Null, // removed in Nick Arcade
-	/* 66 ObjId_Junction           */ Obj_Null, // removed in Nick Arcade
-	/* 67 ObjId_RunningDisc        */ Obj_Null, // removed in Nick Arcade
-	/* 68 ObjId_SBZConveyor        */ Obj_Null, // removed in Nick Arcade
-	/* 69 ObjId_SpinPlatform       */ Obj_Null, // removed in Nick Arcade
+	/* 64 ObjId_Bubble             */ Obj_MTZPiston, // (the prototype's piston of Metropolis)
+	/* 65 ObjId_LZWaterfall        */ Obj_MTZPlatform, // (the prototype's sliding platform of Metropolis, and its cog)
+	/* 66 ObjId_Junction           */ Obj_MTZSpringWall, // (the prototype's spring in a wall of Metropolis)
+	/* 67 ObjId_RunningDisc        */ Obj_MTZTeleport, // (the prototype's teleporter of Metropolis)
+	/* 68 ObjId_SBZConveyor        */ Obj_MTZBlockArrow, // (the prototype's block with a spiked arrow of Metropolis)
+	/* 69 ObjId_SpinPlatform       */ Obj_MTZScrewNut, // (the prototype's screw nut of Metropolis)
 	/* 6A ObjId_Saw                */ Obj_RotatingBoxes, // (the prototype's moving boxes of Dust Hill; Metropolis's come with that zone)
 	/* 6B ObjId_ScrapStomp         */ Obj_CPZBlock, // (the prototype's moving block of Chemical Plant: the staircases)
-	/* 6C ObjId_VanishPlatform     */ Obj_Null, // removed in Nick Arcade
-	/* 6D ObjId_Flamethrower       */ Obj_Null, // removed in Nick Arcade
-	/* 6E ObjId_Electrocuter       */ Obj_Null, // removed in Nick Arcade
-	/* 6F ObjId_SpinConvey         */ Obj_Null, // removed in Nick Arcade
-	/* 70 ObjId_GirderBlock        */ Obj_Null, // removed in Nick Arcade
+	/* 6C ObjId_VanishPlatform     */ Obj_MTZMovingPlatform, // (the prototype's platforms that go round a path, Metropolis)
+	/* 6D ObjId_Flamethrower       */ Obj_MTZHarpoon, // (the prototype's harpoon in the floor of Metropolis)
+	/* 6E ObjId_Electrocuter       */ Obj_MTZMachine, // (the prototype's machinery of Metropolis)
+	/* 6F ObjId_SpinConvey         */ Obj_MTZElevator, // (the prototype's parallelogram elevators of Metropolis)
+	/* 70 ObjId_GirderBlock        */ Obj_MTZGear, // (the prototype's gears of Metropolis)
 	/* 71 ObjId_InvisibleBarrier   */ Obj_HPZDecor,
-	/* 72 ObjId_Teleporter         */ Obj_Null, // removed in Nick Arcade
+	/* 72 ObjId_Teleporter         */ Obj_MTZConveyor, // (the prototype's conveyor belts of Metropolis)
 	/* 73 ObjId_BossMarble         */ Obj_Null, // removed in Nick Arcade
 	/* 74 ObjId_BossFire           */ Obj_CPZInvisibleBlock, // (the prototype's invisible block)
 	/* 75 ObjId_BossSpringYard     */ Obj_SpikeballChain, // (the prototype's spiked ball on a chain of Dust Hill)

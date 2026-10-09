@@ -88,6 +88,18 @@
 #include "Resource/Art/OOZPushSpring.h"
 #include "Resource/Art/OOZSwingPlat.h"
 #include "Resource/Art/Button.h"
+#include "Resource/Art/MTZTeleport.h"
+#include "Resource/Art/MTZWheel.h"
+#include "Resource/Art/MTZWheelIndent.h"
+#include "Resource/Art/MTZLavaCup.h"
+#include "Resource/Art/MTZBoltRope.h"
+#include "Resource/Art/MTZSteam.h"
+#include "Resource/Art/MTZSpikeBlock.h"
+#include "Resource/Art/MTZSpike.h"
+#include "Resource/Art/MTZAssBlocks.h"
+#include "Resource/Art/MTZLavaBubble.h"
+#include "Resource/Art/MTZPlatform.h"
+#include "Resource/Art/MTZCog.h"
 #include "Resource/Art/SYZSpike2.h"
 #include "Resource/Art/Stomper.h"
 #include "Resource/Art/SBZDoor1.h"
@@ -648,6 +660,38 @@ static const PLCList PLC_OOZ2 = {
 };
 
 // ---------------------------------------------------------------------------
+// Pattern load cues - Metropolis (Metropolis_Sprites_1 and 2)
+// ---------------------------------------------------------------------------
+static const PLCList PLC_MTZ = { // (the zone's own art is the level header's)
+    8,
+    (const PLC[]) {
+        { Art_MTZTeleport,   ART_VRAM(0x6780 >> 5) },
+        { Art_MTZWheel,      ART_VRAM(0x6F00 >> 5) },
+        { Art_MTZWheelIndent,ART_VRAM(0x7E00 >> 5) },
+        { Art_MTZLavaCup,    ART_VRAM(0x7F20 >> 5) },
+        { Art_MTZBoltRope,   ART_VRAM(0x7FA0 >> 5) },
+        { Art_MTZSteam,      ART_VRAM(0x80A0 >> 5) },
+        { Art_MTZSpikeBlock, ART_VRAM(0x8280 >> 5) },
+        { Art_MTZSpike,      ART_VRAM(0x8380 >> 5) },
+    }
+};
+
+static const PLCList PLC_MTZ2 = {
+    9,
+    (const PLC[]) {
+        { Art_Button,        ART_VRAM(0x8480 >> 5) },
+        { Art_Spikes,        ART_VRAM(0x8680 >> 5) },
+        { Art_SpringDiag,    ART_VRAM(0x8780 >> 5) },
+        { Art_SpringUp,      ART_VRAM(0x8B80 >> 5) },
+        { Art_SpringSide,    ART_VRAM(0x8E00 >> 5) },
+        { Art_MTZAssBlocks,  ART_VRAM(0xA000 >> 5) },
+        { Art_MTZLavaBubble, ART_VRAM(0xA6C0 >> 5) },
+        { Art_MTZPlatform,   ART_VRAM(0xA7E0 >> 5) },
+        { Art_MTZCog,        ART_VRAM(0xABE0 >> 5) },
+    }
+};
+
+// ---------------------------------------------------------------------------
 // Pattern load cues - final boss
 // ---------------------------------------------------------------------------
 static const PLCList PLC_FZBoss = {
@@ -700,5 +744,7 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_DHZ2        */ &PLC_DHZ2,
     /* PlcId_OOZ         */ &PLC_OOZ,
     /* PlcId_OOZ2        */ &PLC_OOZ2,
+    /* PlcId_MTZ         */ &PLC_MTZ,
+    /* PlcId_MTZ2        */ &PLC_MTZ2,
 };
 

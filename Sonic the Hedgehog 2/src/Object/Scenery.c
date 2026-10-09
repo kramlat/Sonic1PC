@@ -11,6 +11,7 @@
 
 #include "Resource/Mappings/HPZOrb.h"
 #include "Resource/Mappings/HTZLift.h"
+#include "Resource/Mappings/MTZLavaBubble.h"
 #include "Resource/Mappings/SceneryA.h"
 #include "Resource/Mappings/SceneryB.h"
 #include "Resource/Mappings/SceneryD.h"
@@ -72,10 +73,11 @@ static const uint8_t Animation_HPZDecor[] = {
     0x7F, 6, 0xFD, 2,
 };
 
-// Obj71_InitData: bridge stake, glowing orb (and Metropolis's lava bubble, which is not built yet)
+// Obj71_InitData: bridge stake, glowing orb and Metropolis's lava bubble
 static const SceneryLook decor_looks[] = {
     { Mappings_BridgeHPZ, TILE_MAP(0, 3, 0, 0, 0x300), 3, 4, 1 },
     { Mappings_HPZOrb, TILE_MAP(1, 3, 0, 0, 0x35A), 0, 0x10, 1 },
+    { Mappings_MTZLavaBubble, TILE_MAP(0, 2, 0, 0, 0x536), 0, 0x10, 1 },
 };
 
 void Obj_HPZDecor(Object *obj) {
@@ -84,7 +86,7 @@ void Obj_HPZDecor(Object *obj) {
     if (obj->routine == 0) {
         obj->routine += 2;
         unsigned kind = scratch->subtype & 0xF;
-        if (kind >= sizeof(decor_looks) / sizeof(decor_looks[0])) { // (the lava bubble)
+        if (kind >= sizeof(decor_looks) / sizeof(decor_looks[0])) {
             ObjectDelete(obj);
             return;
         }

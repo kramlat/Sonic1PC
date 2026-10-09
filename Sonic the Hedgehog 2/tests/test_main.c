@@ -27,6 +27,7 @@ void RegisterCameraTests(void);
 void RegisterRenderFlagsTests(void);
 void RegisterDHZObjectTests(void);
 void RegisterOOZObjectTests(void);
+void RegisterMTZObjectTests(void);
 void RegisterScrollBlockTests(void);
 void RegisterOscillationTests(void);
 void RegisterMathTests(void);
@@ -66,6 +67,7 @@ int main(void) {
     RegisterDHZObjectTests();
     printf("Oil Ocean object tests:\n");
     RegisterOOZObjectTests();
+    RegisterMTZObjectTests();
     printf("Camera tests:\n");
     RegisterCameraTests();
     printf("Render flag tests:\n");

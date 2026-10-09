@@ -12,6 +12,10 @@ enum { SolidChar_Sonic = 0, SolidChar_Tails = 1 };
 // Returns 0 for nothing, 1 for a side, -1 for standing on top, -2 for the underside.
 int32_t Solid_Character(Object *obj, Object *chr, int who, int16_t x_rad, int16_t y_air, int16_t y_walk, int16_t x, const int8_t *slope);
 
+// The same against an object whose top and thickness both change across it (DoubleSlopedSolid): `table` has two signed bytes for every two pixels, how high the top is above the object's centre and how thick
+// it is there
+int32_t Solid_CharacterDouble(Object *obj, Object *chr, int who, int16_t x_rad, int16_t x, const int8_t *table);
+
 // Landing on a platform's top: see Solid.c. True if the character has just landed.
 bool Solid_PlatformLand(Object *obj, Object *chr, int who, int16_t x_rad, int16_t width, int16_t y_walk);
 

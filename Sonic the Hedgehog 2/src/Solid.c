@@ -47,7 +47,17 @@ static void RideObject(Object *obj, Object *chr, int who) {
     obj->status.b |= (uint8_t)(1 << (3 + who));
 }
 
-int32_t Solid_Character(Object *obj, Object *chr, int who, int16_t x_rad, int16_t y_air, int16_t y_walk, int16_t x, const int8_t *slope) {
+// The pair of heights of a double slope at the pixel `c` across the object (DoubleSlopedSolid): how far the top is above the object's centre and how thick it is there. A pair is for two pixels
+static const int8_t *DoubleSlopePair(const int8_t *table, int16_t c, int16_t x_rad) {
+    int16_t index = (int16_t)(c & ~1);
+    if (index < 0)
+        index = 0;
+    if (index > (x_rad << 1) - 2)
+        index = (int16_t)((x_rad << 1) - 2);
+    return &table[index];
+}
+
+static int32_t SolidCore(Object *obj, Object *chr, int who, int16_t x_rad, int16_t y_air, int16_t y_walk, int16_t x, const int8_t *slope, const int8_t *dbl) {
     const uint8_t stand_bit = (uint8_t)(1 << (3 + who));
     const uint8_t push_bit = (uint8_t)(1 << (5 + who));
 
@@ -59,7 +69,14 @@ int32_t Solid_Character(Object *obj, Object *chr, int who, int16_t x_rad, int16_
             obj->status.b &= (uint8_t)~stand_bit;
             return 0;
         }
-        if (slope == NULL)
+        if (dbl != NULL) {
+            if (chr->status.p.f.object_stand) {
+                int16_t c = d0;
+                if (obj->render.f.x_flip)
+                    c = (int16_t)(~c + x_rad); // (the prototype adds half the width here, not all of it, when the object is flipped)
+                MoveOnObject(obj, chr, x, obj->pos.l.y.f.u - DoubleSlopePair(dbl, c, x_rad)[0]);
+            }
+        } else if (slope == NULL)
             MoveOnObject(obj, chr, x, obj->pos.l.y.f.u - y_walk);
         else if (chr->status.p.f.object_stand)
             MoveOnObject(obj, chr, x, obj->pos.l.y.f.u - SlopeHeight(obj, chr, x_rad, slope) - slope[0]); // (the height as the table says it: the top of the object, not relative to its first column, as the prototype's MvSonicOnSlope has it. It was + here, which sank him 2 x the table's first entry into the slope: 16 pixels on a lever spring)
@@ -78,9 +95,20 @@ int32_t Solid_Character(Object *obj, Object *chr, int who, int16_t x_rad, int16_
             y_top = obj->pos.l.y.f.u - SlopeHeight(obj, chr, x_rad, slope);
 
         // ... and along y
-        d2 += chr->y_rad;
-        d3 = chr->pos.l.y.f.u - y_top + 4 + d2;
-        d4 = d2 << 1;
+        if (dbl != NULL) { // (a top at one height and a thickness at another: the character's own half height is all that is added to the thickness)
+            int16_t c = d0;
+            if (obj->render.f.x_flip)
+                c = (int16_t)(~c + x_dia);
+            const int8_t *pair = DoubleSlopePair(dbl, c, x_rad);
+            y_top = obj->pos.l.y.f.u - pair[0];
+            d2 = (int16_t)(pair[1] + chr->y_rad);
+            d3 = chr->pos.l.y.f.u - y_top + chr->y_rad + 4;
+            d4 = (int16_t)(d2 + chr->y_rad);
+        } else {
+            d2 += chr->y_rad;
+            d3 = chr->pos.l.y.f.u - y_top + 4 + d2;
+            d4 = d2 << 1;
+        }
         miss = d3 < 0 || (uint16_t)d3 >= (uint16_t)d4;
     }
     if (CharObjControl(chr) & 0x80) // an object has switched the character's object collisions off
@@ -162,6 +190,14 @@ int32_t Solid_Character(Object *obj, Object *chr, int who, int16_t x_rad, int16_
     // Not touching: stop pushing
     obj->status.b &= (uint8_t)~push_bit;
     return 0;
+}
+
+int32_t Solid_Character(Object *obj, Object *chr, int who, int16_t x_rad, int16_t y_air, int16_t y_walk, int16_t x, const int8_t *slope) {
+    return SolidCore(obj, chr, who, x_rad, y_air, y_walk, x, slope, NULL);
+}
+
+int32_t Solid_CharacterDouble(Object *obj, Object *chr, int who, int16_t x_rad, int16_t x, const int8_t *table) {
+    return SolidCore(obj, chr, who, x_rad, 0, 0, x, NULL, table);
 }
 
 // Landing on top of a platform (PlatformObject_cont / PlatformObject11_cont): `x_rad` is half the platform's width, `width` the whole span measured from its left edge (a bridge's logs are not as wide as its

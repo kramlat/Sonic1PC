@@ -28,6 +28,8 @@
 #include "Resource/Mappings/TubeCover.h"
 #include "Resource/Mappings/HTZRock.h"
 
+extern const uint8_t Mappings_MTZPlatformA[]; // (defined with MTZObjects.c, whose platforms they are)
+
 extern Oscillatory oscillatory;
 
 // What the object does for each of the two characters: `chr` is NULL for a Tails who is not there
@@ -357,8 +359,9 @@ void Obj_CPZBlock(Object *obj) {
 
     if (obj->routine == 0) {
         obj->routine += 2;
-        obj->mappings = Mappings_CPZBlock;
-        obj->tile = TILE_MAP(0, 3, 0, 0, ARTTILE_CPZ_BLOCK);
+        const bool cpz = LEVEL_ZONE(level_id) == ZoneId_CPZ; // (loc_1BD06: Metropolis's platforms are the slide-out platform's: object 65's mappings)
+        obj->mappings = cpz ? Mappings_CPZBlock : Mappings_MTZPlatformA;
+        obj->tile = TILE_MAP(0, 3, 0, 0, cpz ? ARTTILE_CPZ_BLOCK : 0);
         obj->render.b = SPRITE_CAM_FIELD;
         obj->priority = 3;
         const bool small = (scratch->subtype >> 4) & 1; // (loc_1BCFE: a wide block of 12 high, or a square one of 16)
@@ -409,8 +412,9 @@ void Obj_CPZBarrier(Object *obj) {
         obj->mappings = Mappings_CPZBarrier;
         // (Hill Top's valve barrier has art and a width of its own: the default of Obj2D_Init; Chemical Plant's is the stripes)
         const bool cpz = LEVEL_ZONE(level_id) == ZoneId_CPZ;
-        obj->tile = TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
-        obj->width_pixels = cpz ? 0xC : 8;
+        const bool mtz = LEVEL_ZONE(level_id) == ZoneId_MTZ; // (Metropolis's is the first tile of its art, and as wide as Chemical Plant's)
+        obj->tile = mtz ? TILE_MAP(0, 3, 0, 0, 0) : TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
+        obj->width_pixels = (cpz || mtz) ? 0xC : 8;
         obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 4;
         scratch->base_y = obj->pos.l.y.f.u;

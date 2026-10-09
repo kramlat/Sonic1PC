@@ -20,6 +20,8 @@
 #include "Resource/Mappings/SpikeballChain.h"
 #include "Resource/Mappings/Switch.h"
 
+extern const uint8_t Mappings_MTZPlatformA[]; // (defined with MTZObjects.c, whose platforms they are)
+
 // (the spikes' hurt, Touch_ChkHurt2: Spikes.c)
 void Spikes_HurtCharacter(Object *obj, Object *chr, int who);
 
@@ -137,8 +139,10 @@ typedef struct {
     int16_t base_y;    // 0x30
     int16_t base_x;    // 0x32: where it is, for when it is forgotten
     int16_t timer;     // 0x34: frames left of the step
-    uint8_t pad1[2];   // 0x36-0x37
+    uint16_t moving;   // 0x36: Metropolis: it is on its way
     uint8_t step;      // 0x38: the index of the next step in the path
+    uint8_t pad2[3];   // 0x39-0x3B
+    uint8_t stood;     // 0x3C: Metropolis: who was standing on it (its status as of last frame)
 } Scratch_Boxes;
 
 // The path (loc_1BC74; loc_1BC92 for a box that is flipped, which goes the other way): x speed, y speed and frames of each step. Its fifth step is not in the cycle: it is only where a box that starts
@@ -150,12 +154,17 @@ static const int16_t boxes_path_flipped[5][3] = {
     { 0x0000, 0x0100, 0x0040 }, { 0x0100, 0x0000, 0x0080 }, { 0x0000, -0x0100, 0x0040 }, { -0x0100, 0x0000, 0x0080 }, { -0x0100, 0x0000, 0x0040 },
 };
 
+// Metropolis's (loc_1BC5C): down, right and up, down, left and up
+static const int16_t boxes_path_mtz[4][3] = {
+    { 0x0000, 0x0400, 0x0010 }, { 0x0400, -0x0200, 0x0020 }, { 0x0000, 0x0400, 0x0010 }, { -0x0400, -0x0200, 0x0020 },
+};
+
 // loc_1BC22: the next step
 static void Boxes_NextStep(Object *obj, Scratch_Boxes *scratch) {
     int index = scratch->step / 6;
     if (index > 4)
         index = 0; // (the prototype reads past its path here; no layout starts a box so)
-    const int16_t *step = obj->status.o.f.x_flip ? boxes_path_flipped[index] : boxes_path[index];
+    const int16_t *step = LEVEL_ZONE(level_id) != ZoneId_MCZ ? boxes_path_mtz[index & 3] : obj->status.o.f.x_flip ? boxes_path_flipped[index] : boxes_path[index];
     obj->xsp = step[0];
     obj->ysp = step[1];
     scratch->timer = step[2];
@@ -168,16 +177,21 @@ void Obj_RotatingBoxes(Object *obj) {
     Scratch_Boxes *scratch = (Scratch_Boxes *)&obj->scratch;
 
     if (obj->routine == 0) {
-        obj->routine += 2; // (Metropolis's boxes, which wait for a character to step on them, are routine 2 and come with that zone)
         obj->routine += 2;
-        obj->mappings = Mappings_RotatingBoxes;
-        obj->tile = TILE_MAP(0, 3, 0, 0, 0x3D4);
+        const bool mtz = LEVEL_ZONE(level_id) != ZoneId_MCZ;
+        if (!mtz)
+            obj->routine += 2; // (Metropolis's boxes wait for a character to step off them: routine 2)
+        obj->mappings = mtz ? Mappings_MTZPlatformA : Mappings_RotatingBoxes;
+        obj->tile = TILE_MAP(0, 3, 0, 0, mtz ? 0 : 0x3D4);
         obj->render.b |= SPRITE_CAM_FIELD; // ori.b #4,1(a0): the layout's facing stays
         obj->priority = 4;
         obj->width_pixels = 0x20;
-        obj->y_rad = 0x20;
-        obj->frame = 0;
-        if (scratch->subtype == 0x18) {
+        obj->y_rad = mtz ? 0x0C : 0x20;
+        obj->frame = mtz ? 1 : 0;
+        if (mtz) {
+            scratch->base_x = obj->pos.l.x.f.u;
+            scratch->base_y = obj->pos.l.y.f.u;
+        } else if (scratch->subtype == 0x18) {
             const bool flipped = obj->status.o.f.x_flip;
             for (int i = 0; i < 2; i++) {
                 Object *box = FindNextFreeObj(obj + 1);
@@ -197,7 +211,41 @@ void Obj_RotatingBoxes(Object *obj) {
         }
         scratch->step = scratch->subtype;
         Boxes_NextStep(obj, scratch);
+        scratch->moving = 0;
         return; // (the first frame only sets it up: loc_1BC22 ends the routine)
+    }
+
+    if (obj->routine == 2) { // Metropolis: it sets off when whoever stood on it steps off, and stops after a step
+        const int16_t old_x = obj->pos.l.x.f.u;
+        if (scratch->moving) {
+            SpeedToPos(obj);
+            if (--scratch->timer == 0) {
+                Boxes_NextStep(obj, scratch);
+                scratch->moving = 0;
+            }
+        } else {
+            const uint8_t status = obj->status.b, before = scratch->stood;
+            if (status & 8)
+                scratch->stood = status;
+            else if (before & 8) {
+                scratch->moving = 1;
+                scratch->stood = 0;
+            }
+            if (status & 8 || !(before & 8)) {
+                if (status & 0x10)
+                    scratch->stood = status;
+                else if (before & 0x10) {
+                    scratch->moving = 1;
+                    scratch->stood = 0;
+                }
+            }
+        }
+        if (obj->render.f.on_screen) {
+            FOR_EACH_CHARACTER(chr, who)
+                Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), obj->y_rad, (int16_t)(obj->y_rad + 1), old_x, NULL);
+        }
+        GoneIfOffscreen(obj, scratch->base_x);
+        return;
     }
 
     const int16_t old_x = obj->pos.l.x.f.u;
