@@ -1,6 +1,7 @@
 #include "Object.h"
 
 #include "Object/AirBubbles.h"
+#include "Object/DHZObjects.h"
 #include "Object/DrownCount.h"
 #include "Object/InvisibleBarrier.h"
 #include "Object/PathSwapper.h"
@@ -73,6 +74,7 @@ void Obj_CPZPlatform2(Object *obj);
 void Obj_HPZEmerald(Object *obj);
 void Obj_HPZWaterfall(Object *obj);
 void Obj_CollapsingLedge(Object *obj);
+void Obj_CollapsingPlatform(Object *obj);
 void Obj_BBat(Object *obj);
 void Obj_NAWaterSurface(Object *obj);
 void Obj_NAWaterSplash(Object *obj);
@@ -213,7 +215,7 @@ const ObjectFunc game_objects[] = {
 	/* 1C ObjId_Scenery             */ Obj_Scenery,
 	/* 1D ObjId_MagicSwitch        */ Obj_CPZWorm, // (the prototype's droplet chain of Chemical Plant)
 	/* 1E ObjId_BallHog            */ Obj_CPZTube, // (the prototype's tube network of Chemical Plant)
-	/* 1F ObjId_Crabmeat            */ Obj_Null, // (the prototype's object here is not ported yet)
+	/* 1F ObjId_Crabmeat            */ Obj_CollapsingPlatform, // (the prototype's collapsing platform of Dust Hill and Oil Ocean)
 	/* 20 ObjId_Cannonball         */ Obj_HTZFireball, // (the prototype's fireball of Hill Top: the lava bubble)
 	/* 21 ObjId_HUD                 */ Obj_HUD,
 	/* 22 ObjId_BuzzBomber          */ Obj_ArrowShooter, // (the prototype's arrow shooter of Neo Green Hill)
@@ -224,7 +226,7 @@ const ObjectFunc game_objects[] = {
 	/* 27 ObjId_Explosion           */ Obj_Explosion,
 	/* 28 ObjId_Animal              */ Obj_Animals,
 	/* 29 ObjId_Points              */ Obj_Points,
-	/* 2A ObjId_SmallDoor           */ Obj_Null, // (the prototype's object here is not ported yet)
+	/* 2A ObjId_SmallDoor           */ Obj_DHZStomper, // (the prototype's stomper of Dust Hill)
 	/* 2B ObjId_Chopper             */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 2C ObjId_Jaws                */ Obj_NGHZLeaves, // (the prototype's leaves of Neo Green Hill)
 	/* 2D ObjId_Burrobot           */ Obj_CPZBarrier, // (the prototype's one way barrier of Chemical Plant)
@@ -253,7 +255,7 @@ const ObjectFunc game_objects[] = {
 	/* 44 ObjId_GHZEdge             */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 45 ObjId_SidewaysStomper    */ Obj_Null, // removed in Nick Arcade
 	/* 46 ObjId_MarbleBrick        */ Obj_Null, // removed in Nick Arcade
-	/* 47 ObjId_Bumper             */ Obj_Null, // removed in Nick Arcade
+	/* 47 ObjId_Bumper             */ Obj_Switch, // (the prototype's switch)
 	/* 48 ObjId_BossBall            */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 49 ObjId_Waterfall          */ Obj_EHZWaterfall,
 	/* 4A ObjId_VanishSonic        */ Obj_Null, // Nick Arcade's Octus: not ported yet
@@ -288,7 +290,7 @@ const ObjectFunc game_objects[] = {
 	/* 67 ObjId_RunningDisc        */ Obj_Null, // removed in Nick Arcade
 	/* 68 ObjId_SBZConveyor        */ Obj_Null, // removed in Nick Arcade
 	/* 69 ObjId_SpinPlatform       */ Obj_Null, // removed in Nick Arcade
-	/* 6A ObjId_Saw                */ Obj_Null, // removed in Nick Arcade
+	/* 6A ObjId_Saw                */ Obj_RotatingBoxes, // (the prototype's moving boxes of Dust Hill; Metropolis's come with that zone)
 	/* 6B ObjId_ScrapStomp         */ Obj_CPZBlock, // (the prototype's moving block of Chemical Plant: the staircases)
 	/* 6C ObjId_VanishPlatform     */ Obj_Null, // removed in Nick Arcade
 	/* 6D ObjId_Flamethrower       */ Obj_Null, // removed in Nick Arcade
@@ -299,9 +301,9 @@ const ObjectFunc game_objects[] = {
 	/* 72 ObjId_Teleporter         */ Obj_Null, // removed in Nick Arcade
 	/* 73 ObjId_BossMarble         */ Obj_Null, // removed in Nick Arcade
 	/* 74 ObjId_BossFire           */ Obj_CPZInvisibleBlock, // (the prototype's invisible block)
-	/* 75 ObjId_BossSpringYard     */ Obj_Null, // removed in Nick Arcade
-	/* 76 ObjId_BossBlock          */ Obj_Null, // removed in Nick Arcade
-	/* 77 ObjId_BossLabyrinth      */ Obj_Null, // removed in Nick Arcade
+	/* 75 ObjId_BossSpringYard     */ Obj_SpikeballChain, // (the prototype's spiked ball on a chain of Dust Hill)
+	/* 76 ObjId_BossBlock          */ Obj_PlatformSpikes, // (the prototype's platform with spikes at its sides, Dust Hill)
+	/* 77 ObjId_BossLabyrinth      */ Obj_DHZGate, // (the prototype's drawbridge of Dust Hill)
 	/* 78 ObjId_Caterkiller        */ Obj_CPZRotor, // (the prototype's rotating platforms of Chemical Plant)
 	/* 79 ObjId_Checkpoint          */ Obj_Checkpoint,
 	/* 7A ObjId_BossStarLight      */ Obj_CPZSlider, // (the prototype's sliding platforms of Chemical Plant)

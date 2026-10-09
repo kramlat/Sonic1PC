@@ -19,7 +19,7 @@ static Object *Character(int who) {
 }
 
 // Touch_ChkHurt2: the character is pushed back out of the spikes and hurt (unless he is invincible or already hurt)
-static void Spike_Hurt(Object *obj, Object *chr, int who) {
+void Spikes_HurtCharacter(Object *obj, Object *chr, int who) {
     if (invincibility)
         return;
     // (the prototype's Touch_ChkHurt2 has no check for the flashing after a hit -- Sonic 1's "Proper Spike Bug Fix" is not in it: spikes hurt a character who is still flashing, and the port keeps that)
@@ -108,17 +108,17 @@ void Obj_Spikes(Object *obj) {
         switch (obj->routine) {
         case 2: // upright: hurts whoever stands on it
             if (obj->status.b & (1 << (3 + who)))
-                Spike_Hurt(obj, chr, who);
+                Spikes_HurtCharacter(obj, chr, who);
             break;
         case 4: // sideways: whoever runs into it
             if (solid == 1) {
-                Spike_Hurt(obj, chr, who);
+                Spikes_HurtCharacter(obj, chr, who);
                 obj->status.b &= (uint8_t)~(1 << (5 + who));
             }
             break;
         case 6: // upside down: whoever hits it from below
             if (solid == -2)
-                Spike_Hurt(obj, chr, who);
+                Spikes_HurtCharacter(obj, chr, who);
             break;
         }
     }

@@ -19,6 +19,7 @@ static const Pending pending[] = {
     { ZoneId_HPZ, 0, { 0 } },
     { ZoneId_CPZ, 0, { 0 } },
     { ZoneId_ARZ, 0, { 0 } },
+    { ZoneId_MCZ, 0, { 0 } }, // (Dust Hill)
 };
 
 static bool IsPending(const Pending *p, uint8_t id) {

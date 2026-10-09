@@ -24,6 +24,7 @@ void RegisterCPZObjectTests(void);
 void RegisterNGHZObjectTests(void);
 void RegisterHTZObjectTests(void);
 void RegisterCameraTests(void);
+void RegisterDHZObjectTests(void);
 void RegisterScrollBlockTests(void);
 void RegisterOscillationTests(void);
 void RegisterMathTests(void);
@@ -59,6 +60,8 @@ int main(void) {
     RegisterNGHZObjectTests();
     printf("Hill Top object tests:\n");
     RegisterHTZObjectTests();
+    printf("Dust Hill object tests:\n");
+    RegisterDHZObjectTests();
     printf("Camera tests:\n");
     RegisterCameraTests();
     printf("Scroll block tests:\n");
