@@ -23,6 +23,8 @@ void RegisterNGHZObjectTests(void);
 void RegisterHTZObjectTests(void);
 void RegisterCameraTests(void);
 void RegisterScrollBlockTests(void);
+void RegisterOscillationTests(void);
+void RegisterMathTests(void);
 
 int main(void) {
     printf("Compression tests:\n");
@@ -55,6 +57,10 @@ int main(void) {
     RegisterCameraTests();
     printf("Scroll block tests:\n");
     RegisterScrollBlockTests();
+    printf("Oscillation tests:\n");
+    RegisterOscillationTests();
+    printf("Math tests:\n");
+    RegisterMathTests();
     printf("Demo tests:\n");
     RegisterDemoTests();
 
