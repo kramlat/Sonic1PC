@@ -1,0 +1,40 @@
+// Sonic 2's unit tests: the same dependency-free harness as Sonic 1's (its test.h), linked against Sonic2Core, so they exercise the real production code of the prototype port (the Simon Wai
+// prototype's tables, objects and level events) rather than reimplementing it.
+#include "test.h"
+
+#include <stdlib.h>
+
+int test_failures = 0;
+const char *test_current_name = NULL;
+
+void RegisterLevelDataTests(void);
+void RegisterObjectCoverageTests(void);
+void RegisterSolidTests(void);
+void RegisterHTZQuakeTests(void);
+void RegisterWaterTests(void);
+void RegisterSignpostTests(void);
+void RegisterDemoTests(void);
+
+int main(void) {
+    printf("Level data tests:\n");
+    RegisterLevelDataTests();
+    printf("Object coverage tests:\n");
+    RegisterObjectCoverageTests();
+    printf("Solid object tests:\n");
+    RegisterSolidTests();
+    printf("Hill Top earthquake tests:\n");
+    RegisterHTZQuakeTests();
+    printf("Water tests:\n");
+    RegisterWaterTests();
+    printf("Signpost tests:\n");
+    RegisterSignpostTests();
+    printf("Demo tests:\n");
+    RegisterDemoTests();
+
+    if (test_failures) {
+        printf("\n%d check(s) FAILED\n", test_failures);
+        return EXIT_FAILURE;
+    }
+    printf("\nAll tests passed.\n");
+    return EXIT_SUCCESS;
+}
