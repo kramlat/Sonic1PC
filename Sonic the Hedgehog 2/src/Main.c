@@ -109,6 +109,7 @@ static void ParseCommandLine(int argc, char *argv[]) {
 //MegaDrive entry point
 int main(int argc, char *argv[]) {
 	ParseCommandLine(argc, argv);
+	pause_pad2 = true; // (Sonic 2: either player's Start pauses)
 	console_enabled = true; // the console drawer (Qt) only opens while debugging is available
 
 	// stdout is fully buffered by libc whenever it's not a terminal (e.g.

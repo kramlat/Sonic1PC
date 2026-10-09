@@ -1,4 +1,5 @@
 #include "SplitScreen.h"
+#include "HTZQuake.h"
 
 #include <string.h>
 
@@ -167,7 +168,7 @@ void SplitScreen_Scroll(void) {
         hscroll_buffer_p2[i][0] = lines[i][0];
         hscroll_buffer_p2[i][1] = lines[i][1];
     }
-    video_second_view.vscroll_a = scrpos_y_p2.f.u;
+    video_second_view.vscroll_a = (int16_t)(scrpos_y_p2.f.u + htz_p2_shake_y);
     video_second_view.vscroll_b = bg_y2;
 
     // The sea: each view has its own water line against its own camera

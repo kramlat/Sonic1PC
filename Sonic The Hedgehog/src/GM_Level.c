@@ -38,11 +38,15 @@
 // (counting C presses during the level select code) isn't implemented in
 // this port (see GM_Title.c), so frame advance is available unconditionally
 // here instead of being locked behind it.
+static bool PauseStartPressed(void) {
+    return ((jpad1_press1 | (pause_pad2 ? jpad2_press_raw : 0)) & JPAD_START) != 0;
+}
+
 void PauseGame(void) {
     if (!lives)
         return;
     if (!pause_state) {
-        if (!(jpad1_press1 & JPAD_START))
+        if (!PauseStartPressed())
             return;
         pause_state = true;
         Sound_Pause();
@@ -62,7 +66,7 @@ void PauseGame(void) {
 
         if ((jpad1_hold1 & JPAD_B) || (jpad1_press1 & JPAD_C))
             return; // Frame advance -- pause_state stays true
-    } while (!(jpad1_press1 & JPAD_START));
+    } while (!PauseStartPressed());
     Sound_Resume();
     pause_state = false;
 }

@@ -542,7 +542,14 @@ void Deform_HPZ(void) {
 }
 
 // Hill Top (Deform_HTZ): the top of the background a eighth of the way across, then bands that run on to a half
+static bool deforming_p2; // the deformation is running for the second view of a split screen
 void Deform_HTZ(void) {
+	if (deforming_p2) { // the second camera is no part of the first's quake (the events follow the first): its own background, shaking when the ground does
+		vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
+		HTZBackground_Deform();
+		HTZQuake_ShakeP2();
+		return;
+	}
 	if (htz_quake) { // a quake's stretch of the level: the prototype's shaking branch
 		HTZQuake_Deform();
 		return;
@@ -989,7 +996,9 @@ void DeformLayersP2(int16_t (*lines)[2], int16_t *bg_y) {
 	scrpos_x = scrpos_x_p2; scrpos_y = scrpos_y_p2;
 	scrshift_x = scrshift_x_p2; scrshift_y = scrshift_y_p2;
 	bg1_scroll_flags = p2_flags[0]; bg2_scroll_flags = p2_flags[1]; bg3_scroll_flags = p2_flags[2];
+	deforming_p2 = true;
 	deform();
+	deforming_p2 = false;
 	*bg_y = vid_bg_scrpos_y_dup;
 	p2_flags[0] = bg1_scroll_flags; p2_flags[1] = bg2_scroll_flags; p2_flags[2] = bg3_scroll_flags;
 	DeformSwap(&deform_p2);
