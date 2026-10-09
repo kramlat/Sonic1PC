@@ -18,44 +18,46 @@ uint16_t wet_palette_dup[4][16];
 PaletteFade palette_fade;
 
 // Palette interface
-void PalLoad1(PaletteId id) {
-    // Load given palette
-    struct PalettePointer* palload = &palette_pointers[id];
-    const uint16_t* inp = palload->palette;
-    uint16_t* outp = &dry_palette_dup[0][0] + (palload->target - &dry_palette[0][0]);
+uint16_t Palette_FromRGB24(uint8_t r, uint8_t g, uint8_t b) {
+    unsigned r3 = (r * 7u + 127u) / 255u, g3 = (g * 7u + 127u) / 255u, b3 = (b * 7u + 127u) / 255u;
+    return (uint16_t)((b3 << 9) | (g3 << 5) | (r3 << 1));
+}
 
-    for (size_t i = 0; i < palload->colours; i++, inp++)
-        *outp++ = LESWAP_16(*inp);
+// The colours of an entry, brought to the machine's format, into a palette
+static void LoadColours(const PalettePointer *palload, uint16_t *outp) {
+    if (palload->format == PAL_FORMAT_RGB24) {
+        const uint8_t *inp = (const uint8_t *)palload->palette;
+        for (size_t i = 0; i < palload->colours; i++, inp += 3)
+            *outp++ = Palette_FromRGB24(inp[0], inp[1], inp[2]);
+    } else if (palload->format == PAL_FORMAT_0RGB32) {
+        const uint8_t *inp = (const uint8_t *)palload->palette;
+        for (size_t i = 0; i < palload->colours; i++, inp += 4)
+            *outp++ = Palette_FromRGB24(inp[1], inp[2], inp[3]);
+    } else {
+        const uint16_t *inp = (const uint16_t *)palload->palette;
+        for (size_t i = 0; i < palload->colours; i++, inp++)
+            *outp++ = LESWAP_16(*inp);
+    }
+}
+
+void PalLoad1(PaletteId id) {
+    const PalettePointer *palload = &palette_pointers[id];
+    LoadColours(palload, &dry_palette_dup[0][0] + (palload->target - &dry_palette[0][0]));
 }
 
 void PalLoad2(PaletteId id) {
-    // Load given palette
-    struct PalettePointer* palload = &palette_pointers[id];
-    const uint16_t* inp = palload->palette;
-    uint16_t* outp = palload->target;
-
-    for (size_t i = 0; i < palload->colours; i++, inp++)
-        *outp++ = LESWAP_16(*inp);
+    const PalettePointer *palload = &palette_pointers[id];
+    LoadColours(palload, palload->target);
 }
 
 void PalLoad3_Water(PaletteId id) {
-    // Load given palette
-    struct PalettePointer* palload = &palette_pointers[id];
-    const uint16_t* inp = palload->palette;
-    uint16_t* outp = &wet_palette[0][0] + (palload->target - &dry_palette[0][0]);
-
-    for (size_t i = 0; i < palload->colours; i++, inp++)
-        *outp++ = LESWAP_16(*inp);
+    const PalettePointer *palload = &palette_pointers[id];
+    LoadColours(palload, &wet_palette[0][0] + (palload->target - &dry_palette[0][0]));
 }
 
 void PalLoad4_Water(PaletteId id) {
-    // Load given palette
-    struct PalettePointer* palload = &palette_pointers[id];
-    const uint16_t* inp = palload->palette;
-    uint16_t* outp = &wet_palette_dup[0][0] + (palload->target - &dry_palette[0][0]);
-
-    for (size_t i = 0; i < palload->colours; i++, inp++)
-        *outp++ = LESWAP_16(*inp);
+    const PalettePointer *palload = &palette_pointers[id];
+    LoadColours(palload, &wet_palette_dup[0][0] + (palload->target - &dry_palette[0][0]));
 }
 
 // Fade in from black

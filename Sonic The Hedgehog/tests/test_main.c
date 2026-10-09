@@ -6,6 +6,7 @@ int test_failures = 0;
 const char *test_current_name = NULL;
 
 void RegisterCompressionTests(void);
+void RegisterPaletteTests(void);
 void RegisterMathTests(void);
 void RegisterPLCTests(void);
 void RegisterLevelDrawTests(void);
@@ -48,6 +49,8 @@ void RegisterSpikesTests(void);
 int main(void) {
     printf("Compression tests:\n");
     RegisterCompressionTests();
+    printf("Palette tests:\n");
+    RegisterPaletteTests();
     printf("Math tests:\n");
     RegisterMathTests();
     printf("PLC tests:\n");
