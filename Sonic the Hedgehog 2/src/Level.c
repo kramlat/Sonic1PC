@@ -315,6 +315,11 @@ void LevelDataLoad(void) {
     // Load level art
     if (header->plc2 != 0)
         AddPLC(header->plc2);
+
+    // Hill Top's mountains are tiles that only its animated art puts in VRAM, and that runs once the level loop does, after the title card: put them in now, or the sky shows the title screen's leftovers
+    // (its TM) all through the title card and the fade, a second or two
+    if (LEVEL_ZONE(level_id) == ZoneId_HTZ)
+        HTZBackground_Animate(two_player_mode != 0);
 }
 
 void ColIndexLoad(void) {
