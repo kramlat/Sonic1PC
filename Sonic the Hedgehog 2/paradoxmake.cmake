@@ -33,7 +33,7 @@ install(TARGETS Sonic2 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 # Sonic 2's unit tests, with Sonic 1's test.h: they link the exact same compiled game logic (Sonic2Core) as the real Sonic2 executable. Not built in Showcase builds (no developer tools there).
 if(BUILD_TESTS AND NOT CMAKE_BUILD_TYPE STREQUAL "Showcase")
   enable_testing()
-  add_executable(Sonic2Tests "${PM_DIR}/tests/test_main.c" "${PM_DIR}/tests/test_leveldata.c" "${PM_DIR}/tests/test_objects.c" "${PM_DIR}/tests/test_solid.c" "${PM_DIR}/tests/test_htzquake.c"
+  add_executable(Sonic2Tests "${PM_DIR}/tests/test_main.c" "${PM_DIR}/tests/test_leveldata.c" "${PM_DIR}/tests/test_objects.c" "${PM_DIR}/tests/test_solid.c" "${PM_DIR}/tests/test_htzquake.c" "${PM_DIR}/tests/test_htzfloor.c"
                              "${PM_DIR}/tests/test_water.c" "${PM_DIR}/tests/test_signpost.c" "${PM_DIR}/tests/test_demo.c")
   target_include_directories(Sonic2Tests PRIVATE "${PM_DIR}/../Sonic The Hedgehog/tests")
   link_game(Sonic2Tests)

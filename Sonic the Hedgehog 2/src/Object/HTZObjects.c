@@ -5,6 +5,7 @@
 
 #include "Level.h"
 #include "LevelScroll.h"
+#include "GameInterface.h"
 #include "Object/CPZObjects.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
@@ -386,6 +387,13 @@ static void BreakFloor_Drop(Object *chr, bool rolling) {
     chr->routine = 2;
 }
 
+// $3E and $3F of the character, the solid bits of the first path ($C, $D)
+static void BreakFloor_PrimaryPath(Object *chr) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)&chr->scratch;
+    scratch->top_solid_bit = 0xC;
+    scratch->lrb_solid_bit = 0xD;
+}
+
 void Obj_HTZBreakFloor(Object *obj) {
     Scratch_BreakFloor *scratch = (Scratch_BreakFloor *)&obj->scratch;
 
@@ -414,7 +422,9 @@ void Obj_HTZBreakFloor(Object *obj) {
 
     Object *sidekick = TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL;
     const bool sonic_rolls = player->anim == SonAnimId_Roll, tails_rolls = sidekick != NULL && sidekick->anim == SonAnimId_Roll;
-    const bool secondary = collision_path != 0, any = scratch->subtype & 0x80; // (a character's path is the level's here)
+    const bool any = scratch->subtype & 0x80;
+    // (a character's collision path is the solid bits he carries, the swappers' work: Game_CollisionPath; the floor puts whoever stands on it and does not break it back on the first path)
+    const bool sonic_secondary = Game_CollisionPath(player) != 0, tails_secondary = sidekick != NULL && Game_CollisionPath(sidekick) != 0;
     if (obj->render.f.on_screen) {
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
             Object *chr = Character(who);
@@ -424,7 +434,7 @@ void Obj_HTZBreakFloor(Object *obj) {
     }
     const uint8_t stand = obj->status.b & 0x18;
     bool broken = false;
-    const bool sonic_breaks = sonic_rolls && (any || secondary), tails_breaks = tails_rolls && (any || secondary);
+    const bool sonic_breaks = sonic_rolls && (any || sonic_secondary), tails_breaks = tails_rolls && (any || tails_secondary);
     if (stand == 0x18) {
         if (sonic_breaks || tails_breaks) {
             BreakFloor_Drop(player, sonic_rolls);
@@ -444,8 +454,10 @@ void Obj_HTZBreakFloor(Object *obj) {
         }
     }
     if (!broken) {
-        if (stand)
-            collision_path = 0; // (whoever is on it and does not break it is put back on the primary path)
+        if (stand & 0x08)
+            BreakFloor_PrimaryPath(player);
+        if ((stand & 0x10) && sidekick != NULL)
+            BreakFloor_PrimaryPath(sidekick);
         RememberState(obj);
         return;
     }
