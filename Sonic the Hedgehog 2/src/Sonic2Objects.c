@@ -33,7 +33,7 @@ void Obj_Chopper(Object *obj);
 void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
 void Obj_GotThroughCard(Object *obj);
-void Obj_Animals(Object *obj);
+void Obj_FlickyAnimals(Object *obj);
 void Obj_Points(Object *obj);
 void Obj_Spikes(Object *obj);
 void Obj_RingLoss(Object *obj);
@@ -228,7 +228,7 @@ const ObjectFunc game_objects[] = {
 	/* 25 ObjId_Ring                */ Obj_Ring,
 	/* 26 ObjId_Monitor             */ Obj_Monitor,
 	/* 27 ObjId_Explosion           */ Obj_Explosion,
-	/* 28 ObjId_Animal              */ Obj_Animals,
+	/* 28 ObjId_Animal              */ Obj_FlickyAnimals,
 	/* 29 ObjId_Points              */ Obj_Points,
 	/* 2A ObjId_SmallDoor           */ Obj_DHZStomper, // (the prototype's stomper of Dust Hill)
 	/* 2B ObjId_Chopper             */ Obj_Null, // (the prototype's object here is not ported yet)

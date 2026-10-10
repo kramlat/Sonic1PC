@@ -125,6 +125,9 @@ extern uint8_t time_over;
 
 extern uint16_t frame_count;
 
+// The pattern load cue of the animals the zone lets out of its badniks (after the title cards, and for the credits' demos)
+uint8_t Level_AnimalsPlc(void);
+
 extern uint32_t score;
 extern LevelTime level_time;
 extern uint16_t rings;

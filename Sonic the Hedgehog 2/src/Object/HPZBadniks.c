@@ -16,7 +16,7 @@
 #include "Resource/Mappings/Redz.h"
 
 #define ArtTile_Redz 0x500
-#define ArtTile_BBat 0x580 // (the alpha's is $530: the bubbles' art of Hidden Palace's water has that now, see Sonic2PLC.c)
+#define ArtTile_BBat 0x5A8 // (the alpha's is $530: the bubbles' art of Hidden Palace's water has that now, and the animals' $580 to $5A7, see Sonic2PLC.c)
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
 // The BBat (object 4C)

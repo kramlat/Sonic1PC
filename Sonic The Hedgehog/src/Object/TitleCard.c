@@ -307,7 +307,7 @@ void Obj_TitleCard(Object *obj) {
         if (!obj->render.f.on_screen || obj->pos.s.x == scratch->final_x) {
             if (obj->routine == 4) {
                 AddPLC(PlcId_Explode);
-                AddPLC(PlcId_GHZAnimals + LEVEL_ZONE(level_id));
+                AddPLC(Level_AnimalsPlc());
             }
             ObjectDelete(obj);
             break;

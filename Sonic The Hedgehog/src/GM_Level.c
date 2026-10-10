@@ -429,7 +429,7 @@ GM_Level_Branch:;
     // Load missing art in credits demos
     if (demo < 0) {
         AddPLC(PlcId_Explode);
-        AddPLC(PlcId_GHZAnimals + LEVEL_ZONE(level_id));
+        AddPLC(Level_AnimalsPlc());
     }
 
     // Enter level loop

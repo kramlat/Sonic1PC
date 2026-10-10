@@ -71,3 +71,9 @@ copy_file('Art/Uncompressed/OxygNumb.dat', 'Art/CountdownNumbers');
 copy_file('Art/Nemesis/Oxygen.nem', 'Art/OxygenBubbles');
 copy_file('Art/Nemesis/Bubbles.nem', 'Art/CountdownBubbles'); # (the small bubbles: bubbles.nem, at VRAM $BD00, tile $5E8, which frames 1 to 4 of the bubbles' mappings point at)
 write_file('Animation/OxygenBubbles', slice(0x014CD2, 0x014CFC));
+
+# The animals that come out of a destroyed badnik (object 28): the mappings of their five kinds of frames ($00A978 to $00AA2C) and the art of the twelve animals, which the zone's art list brings in two at a time
+write_file('Mappings/Animals', slice(0xA978, 0xAA2C));
+for my $animal (qw(Rabbit Chicken Penguin Seal Pig BlueBird Squirrel Pigeon Mouse Monkey Turtle Bear)) {
+    copy_file("Art/Nemesis/$animal.nem", "Art/Animal$animal");
+}

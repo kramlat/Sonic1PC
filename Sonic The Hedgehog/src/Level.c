@@ -880,3 +880,7 @@ uint8_t Level_Music(uint16_t level) {
     uint8_t zone = LEVEL_ZONE(level);
     return zone < sizeof(zone_music) ? zone_music[zone] : 0;
 }
+
+uint8_t Level_AnimalsPlc(void) {
+    return PlcId_GHZAnimals + LEVEL_ZONE(level_id);
+}

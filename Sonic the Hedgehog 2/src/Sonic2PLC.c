@@ -14,6 +14,18 @@
 #include "Resource/Art/SYZ.h"
 
 // Object art
+#include "Resource/Art/AnimalRabbit.h"
+#include "Resource/Art/AnimalChicken.h"
+#include "Resource/Art/AnimalPenguin.h"
+#include "Resource/Art/AnimalSeal.h"
+#include "Resource/Art/AnimalPig.h"
+#include "Resource/Art/AnimalBlueBird.h"
+#include "Resource/Art/AnimalSquirrel.h"
+#include "Resource/Art/AnimalPigeon.h"
+#include "Resource/Art/AnimalMouse.h"
+#include "Resource/Art/AnimalMonkey.h"
+#include "Resource/Art/AnimalTurtle.h"
+#include "Resource/Art/AnimalBear.h"
 #include "Resource/Art/TitleCard.h"
 #include "Resource/Art/BigFlash.h"
 #include "Resource/Art/Bumper.h"
@@ -373,7 +385,7 @@ static const PLCList PLC_SYZ = { // Hidden Palace
     15,
     (const PLC[]) {
         { Art_Redz,          ART_VRAM(0x500) },
-        { Art_BBat,          ART_VRAM(0x580) }, // (the alpha has it at $530, over the bubbles' art at $55B: Hidden Palace has water too, so it is moved up, see HPZBadniks.c)
+        { Art_BBat,          ART_VRAM(0x5A8) }, // (the alpha has it at $530, over the bubbles' art at $55B: Hidden Palace has water too, so it is moved up past the animals' $580 to $5A7, see HPZBadniks.c)
         { Art_OxygenBubbles, ART_VRAM(0xAB60 >> 5) },
         { Art_CountdownBubbles, ART_VRAM(0xBD00 >> 5) },
         { Art_HPZBridge,     ART_VRAM(0x300) },
@@ -712,6 +724,80 @@ static const PLCList PLC_FZBoss = {
 };
 
 
+// ---------------------------------------------------------------------------
+// Pattern load cues - the alpha's animals (see Object/Animals.c)
+// ---------------------------------------------------------------------------
+static const PLCList PLC_Flicky32 = { // Squirrel and BlueBird
+    2,
+    (const PLC[]) {
+        { Art_AnimalSquirrel, ART_VRAM(0xB000 >> 5) },
+        { Art_AnimalBlueBird, ART_VRAM(0xB280 >> 5) },
+    }
+};
+static const PLCList PLC_Flicky33 = { // Mouse and Chicken
+    2,
+    (const PLC[]) {
+        { Art_AnimalMouse, ART_VRAM(0xB000 >> 5) },
+        { Art_AnimalChicken, ART_VRAM(0xB280 >> 5) },
+    }
+};
+static const PLCList PLC_Flicky34 = { // Monkey and Pigeon
+    2,
+    (const PLC[]) {
+        { Art_AnimalMonkey, ART_VRAM(0xB000 >> 5) },
+        { Art_AnimalPigeon, ART_VRAM(0xB280 >> 5) },
+    }
+};
+static const PLCList PLC_Flicky35 = { // Pig and Chicken
+    2,
+    (const PLC[]) {
+        { Art_AnimalPig, ART_VRAM(0xB000 >> 5) },
+        { Art_AnimalChicken, ART_VRAM(0xB280 >> 5) },
+    }
+};
+static const PLCList PLC_Flicky36 = { // Mouse and Seal
+    2,
+    (const PLC[]) {
+        { Art_AnimalMouse, ART_VRAM(0xB000 >> 5) },
+        { Art_AnimalSeal, ART_VRAM(0xB280 >> 5) },
+    }
+};
+static const PLCList PLC_Flicky37 = { // Penguin and Seal
+    2,
+    (const PLC[]) {
+        { Art_AnimalPenguin, ART_VRAM(0xB000 >> 5) },
+        { Art_AnimalSeal, ART_VRAM(0xB280 >> 5) },
+    }
+};
+static const PLCList PLC_Flicky38 = { // Turtle and Chicken
+    2,
+    (const PLC[]) {
+        { Art_AnimalTurtle, ART_VRAM(0xB000 >> 5) },
+        { Art_AnimalChicken, ART_VRAM(0xB280 >> 5) },
+    }
+};
+static const PLCList PLC_Flicky39 = { // Bear and BlueBird
+    2,
+    (const PLC[]) {
+        { Art_AnimalBear, ART_VRAM(0xB000 >> 5) },
+        { Art_AnimalBlueBird, ART_VRAM(0xB280 >> 5) },
+    }
+};
+static const PLCList PLC_Flicky3A = { // Rabbit and Pigeon
+    2,
+    (const PLC[]) {
+        { Art_AnimalRabbit, ART_VRAM(0xB000 >> 5) },
+        { Art_AnimalPigeon, ART_VRAM(0xB280 >> 5) },
+    }
+};
+static const PLCList PLC_Flicky3B = { // Penguin and BlueBird
+    2,
+    (const PLC[]) {
+        { Art_AnimalPenguin, ART_VRAM(0xB000 >> 5) },
+        { Art_AnimalBlueBird, ART_VRAM(0xB280 >> 5) },
+    }
+};
+
 // PLC list
 const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Main        */ &PLC_Main,
@@ -752,5 +838,15 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_OOZ2        */ &PLC_OOZ2,
     /* PlcId_MTZ         */ &PLC_MTZ,
     /* PlcId_MTZ2        */ &PLC_MTZ2,
+    /* PlcId_Flicky32    */ &PLC_Flicky32,
+    /* PlcId_Flicky33    */ &PLC_Flicky33,
+    /* PlcId_Flicky34    */ &PLC_Flicky34,
+    /* PlcId_Flicky35    */ &PLC_Flicky35,
+    /* PlcId_Flicky36    */ &PLC_Flicky36,
+    /* PlcId_Flicky37    */ &PLC_Flicky37,
+    /* PlcId_Flicky38    */ &PLC_Flicky38,
+    /* PlcId_Flicky39    */ &PLC_Flicky39,
+    /* PlcId_Flicky3A    */ &PLC_Flicky3A,
+    /* PlcId_Flicky3B    */ &PLC_Flicky3B,
 };
 
