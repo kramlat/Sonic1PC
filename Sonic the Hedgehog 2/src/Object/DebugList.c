@@ -76,10 +76,17 @@ extern const uint8_t Mappings_TubeSpring[];
 extern const uint8_t Mappings_ArrowShooter[];
 extern const int8_t ring_pos[16][2]; // Object/Ring.c -- ring row/column formation offsets
 
-// The prototype's Obj31_MapUnc_15612: three empty frames (the lava boxes and the leaves are never drawn)
-static const uint8_t Mappings_EmptyBox[] = { 0, 6, 0, 6, 0, 6, 0, 0 };
+// What an object that has nothing to show (the lava boxes and the leaves, which are never drawn, and the objects not built yet) shows in the list: the "?" of the monitor art (tile 56 from the monitors' own,
+// the icon of the monitor that does nothing), as three identical frames so that the subtype's frame still picks one. The prototype's own mapping for them (Obj31_MapUnc_15612) is empty.
+#define UNKNOWN_FRAME 0, 1, 0xF8, 5, 0, 56, 0, 28, 0xFF, 0xF8
+static const uint8_t Mappings_DebugUnknown[] = {
+    0, 6, 0, 16, 0, 26,
+    UNKNOWN_FRAME,
+    UNKNOWN_FRAME,
+    UNKNOWN_FRAME,
+};
 
-#define NULL_ENTRY {ObjId_Null, NULL, 0, 0, 0, NULL, 0, 0, 0}
+#define NULL_ENTRY {ObjId_Null, Mappings_DebugUnknown, 0x680, 0, 0, NULL, 0, 0, 0} // (counted, drawn as a "?", and not placeable)
 #define OBJ(id) ((ObjectId)(id))
 #define PLAIN(id, map, tile, sub, frame) {OBJ(id), map, tile, sub, frame, NULL, 0, 0, 0}
 
@@ -226,9 +233,9 @@ static const DebugListEntry DebugList_HTZ[] = {
     PLAIN(0x1C, Mappings_SceneryA, 0x4000, 7, 0),
     PLAIN(0x1C, Mappings_SceneryA, 0x4000, 8, 1),
     PLAIN(0x32, Mappings_HTZRock, 0x43B2, 0, 0),
-    PLAIN(0x31, Mappings_EmptyBox, 0x8680, 0, 0),
-    PLAIN(0x31, Mappings_EmptyBox, 0x8680, 1, 1),
-    PLAIN(0x31, Mappings_EmptyBox, 0x8680, 2, 2),
+    PLAIN(0x31, Mappings_DebugUnknown, 0x680, 0, 0),
+    PLAIN(0x31, Mappings_DebugUnknown, 0x680, 1, 1),
+    PLAIN(0x31, Mappings_DebugUnknown, 0x680, 2, 2),
 };
 
 // Debug_HPZ (Hidden Palace)
@@ -322,9 +329,9 @@ static const DebugListEntry DebugList_NGHZ[] = {
     PLAIN(0x22, Mappings_ArrowShooter, 0x417, 0, 1),
     NULL_ENTRY, // 23: the pillar is not ported yet
     NULL_ENTRY, // 2B: the breakable pillar is not ported yet
-    PLAIN(0x2C, Mappings_EmptyBox, 0x8680, 0, 0),
-    PLAIN(0x2C, Mappings_EmptyBox, 0x8680, 1, 1),
-    PLAIN(0x2C, Mappings_EmptyBox, 0x8680, 2, 2),
+    PLAIN(0x2C, Mappings_DebugUnknown, 0x680, 0, 0),
+    PLAIN(0x2C, Mappings_DebugUnknown, 0x680, 1, 1),
+    PLAIN(0x2C, Mappings_DebugUnknown, 0x680, 2, 2),
     DIAG_SPRING_ENTRY,
     SPRING_UP_RED,
     SPRING_SIDE_RED,
