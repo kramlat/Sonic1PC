@@ -24,6 +24,14 @@ typedef struct {
 	int16_t a, b;
 } vsram_t;
 
+// The window: a part of the picture where plane A is replaced by the window plane, which does not scroll (its tiles stay where they are on the picture: a status bar, a menu). The part is bounded by an edge from the left
+// or right, an edge from the top or bottom, or both (then it is the two parts together: an L). Edges are in pixels, in whole tiles.
+typedef struct {
+	bool use_x, use_y;  // which edges there are (none: no window)
+	uint16_t x, y;      // where they are: counted from the left and from the top of the viewport
+	bool right, below;  // the window is on the right of its x edge and below its y edge (else on the left and above)
+} window_region_t;
+
 // A sprite table entry (the Genesis' four words: y, size and link, tile, x) and the bank its tile's patterns are in (as a name table entry names its tile: TileBank.h)
 typedef struct {
 	uint16_t y;
@@ -40,7 +48,8 @@ typedef struct {
 	uint16_t width, height;      // the viewport's picture size in pixels (the whole picture's, or half of it in a split screen)
 	uint16_t plane_width, plane_height; // its planes' size in tiles
 	plane_t plane_a, plane_b;    // the foreground and the background
-	plane_t window;              // the window (the VDP does not draw it yet: it stays empty)
+	plane_t window;              // the window plane's name table, drawn where window_region is (Viewport_SetWindow)
+	window_region_t window_region;
 	int16_t *hscroll;            // its horizontal scroll table: a foreground and a background X for each line
 	size_t hscroll_bytes;
 	vsram_t vsram;
@@ -79,3 +88,7 @@ void Viewport_UploadHScroll(viewport_t *v, const void *table, size_t bytes);
 
 // Sets the size of both viewports: the picture in pixels and the planes in tiles (the second view's picture is set again when a split screen starts)
 void Viewport_SetSize(uint16_t width, uint16_t height, uint16_t plane_width, uint16_t plane_height);
+
+// Puts the window where `region` says (its plane's entries are the game's to fill, as the other planes'), or takes it away
+void Viewport_SetWindow(viewport_t *v, window_region_t region);
+void Viewport_ClearWindow(viewport_t *v);

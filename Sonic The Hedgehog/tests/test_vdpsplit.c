@@ -35,6 +35,7 @@ static void Prepare(void) {
         Viewport_UseOwnPlanes(both[i]);
         Plane_Clear(&both[i]->plane_a);
         Plane_Clear(&both[i]->plane_b);
+        Viewport_ClearWindow(both[i]);
         memset(both[i]->hscroll, 0, both[i]->hscroll_bytes);
         both[i]->vsram = (vsram_t){ 0, 0 };
         both[i]->sprites = NULL;

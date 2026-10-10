@@ -14,12 +14,15 @@ static int16_t hscroll_p1[SCREEN_MAX_HEIGHT][2];
 static int16_t hscroll_p2[SCREEN_MAX_HEIGHT][2];
 static sprite_t sprite_table_p1[VIEWPORT_SPRITES + 1];
 static sprite_t sprite_table_p2[VIEWPORT_SPRITES + 1];
+static tile_entry_t window_p1[PLANE_ENTRIES];
+static tile_entry_t window_p2[PLANE_ENTRIES];
 static tile_entry_t scratch_planes[0x8000]; // the scratch plane memory (Plane_UseScratchAt)
 
 viewport_t screen1p = {
 	.plane_width = 64, .plane_height = 32,
 	.plane_a = { nametable_fg, PLANE_ENTRIES },
 	.plane_b = { nametable_bg, PLANE_ENTRIES },
+	.window = { window_p1, PLANE_ENTRIES },
 	.hscroll = &hscroll_p1[0][0], .hscroll_bytes = sizeof(hscroll_p1),
 	.sprite_table = sprite_table_p1, .sprites = sprite_table_p1,
 };
@@ -28,6 +31,7 @@ viewport_t screen2p = {
 	.plane_width = 64, .plane_height = 32,
 	.plane_a = { nametable_fg_p2, PLANE_ENTRIES },
 	.plane_b = { nametable_bg_p2, PLANE_ENTRIES },
+	.window = { window_p2, PLANE_ENTRIES },
 	.hscroll = &hscroll_p2[0][0], .hscroll_bytes = sizeof(hscroll_p2),
 	.sprite_table = sprite_table_p2, .sprites = sprite_table_p2,
 };
@@ -37,9 +41,11 @@ void Viewport_UseOwnPlanes(viewport_t *v) {
 	if (v == &screen2p) {
 		v->plane_a = (plane_t){ nametable_fg_p2, PLANE_ENTRIES, main_bank };
 		v->plane_b = (plane_t){ nametable_bg_p2, PLANE_ENTRIES, main_bank };
+		v->window = (plane_t){ window_p2, PLANE_ENTRIES, main_bank };
 	} else {
 		v->plane_a = (plane_t){ nametable_fg, PLANE_ENTRIES, main_bank };
 		v->plane_b = (plane_t){ nametable_bg, PLANE_ENTRIES, main_bank };
+		v->window = (plane_t){ window_p1, PLANE_ENTRIES, main_bank };
 	}
 }
 
@@ -112,4 +118,14 @@ void Plane_Write(uint16_t entry) {
 	if (cursor_plane != NULL)
 		Plane_Put(cursor_plane, cursor_offset, entry);
 	cursor_offset += 2;
+}
+
+void Viewport_SetWindow(viewport_t *v, window_region_t region) {
+	region.x &= ~7; // (whole tiles)
+	region.y &= ~7;
+	v->window_region = region;
+}
+
+void Viewport_ClearWindow(viewport_t *v) {
+	v->window_region = (window_region_t){ 0 };
 }

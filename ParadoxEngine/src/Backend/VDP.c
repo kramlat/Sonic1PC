@@ -585,6 +585,23 @@ static inline void VDP_ApplyShadowHighlight(uint32_t *to, const uint8_t *tom, in
 
 // Draws one row of one view, `view_w` pixels wide, into `to`: the backdrop, plane B, plane A, then the row's sprites. `y` is the line from the view's top and
 // `ybase` the sprite Y coordinate of that top.
+// Where the window is on a row of a view: the columns [x0, x1) that the window plane replaces plane A in (the edges' union), false if none
+static inline bool VDP_WindowSpan(const viewport_t *vp, size_t y, int view_w, int *x0, int *x1) {
+	const window_region_t *w = &vp->window_region;
+	if (w->use_y && (w->below ? y >= w->y : y < w->y)) {
+		*x0 = 0;
+		*x1 = view_w;
+		return true;
+	}
+	if (w->use_x) {
+		const int edge = w->x < (uint16_t)view_w ? w->x : view_w;
+		*x0 = w->right ? edge : 0;
+		*x1 = w->right ? view_w : edge;
+		return *x1 > *x0;
+	}
+	return false;
+}
+
 static inline void VDP_DrawViewRow(size_t y, uint32_t *to, uint8_t *tom, int view_w, int ybase, bool double_cells, const viewport_t *vp,
                                    struct VDP_SpriteCache *scache, const int16_t *hscroll) {
 	//Clear scanline
@@ -594,7 +611,21 @@ static inline void VDP_DrawViewRow(size_t y, uint32_t *to, uint8_t *tom, int vie
 	
 	//Draw planes
 	VDP_DrawPlaneRow(to, tom, vp->plane_b.entries, vp->plane_width, vp->plane_height, -hscroll[1], y + vp->vsram.b, view_w, double_cells);
-	VDP_DrawPlaneRow(to, tom, vp->plane_a.entries, vp->plane_width, vp->plane_height, -hscroll[0], y + vp->vsram.a, view_w, double_cells);
+	int wx0, wx1;
+	if (vp->window.entries != NULL && VDP_WindowSpan(vp, y, view_w, &wx0, &wx1)) {
+		// The window replaces plane A where it is: plane B shows through its transparent pixels, not what plane A would have had there (plane A's last tile runs past its edge, so plane B's
+		// pixels under the window are kept and put back)
+		static uint32_t kept_pixels[SCREEN_MAX_PITCH];
+		static uint8_t kept_mask[SCREEN_MAX_PITCH];
+		memcpy(kept_pixels, to + wx0, (size_t)(wx1 - wx0) * sizeof(uint32_t));
+		memcpy(kept_mask, tom + wx0, (size_t)(wx1 - wx0));
+		VDP_DrawPlaneRow(to, tom, vp->plane_a.entries, vp->plane_width, vp->plane_height, -hscroll[0], y + vp->vsram.a, view_w, double_cells);
+		memcpy(to + wx0, kept_pixels, (size_t)(wx1 - wx0) * sizeof(uint32_t));
+		memcpy(tom + wx0, kept_mask, (size_t)(wx1 - wx0));
+		VDP_DrawPlaneRow(to + wx0, tom + wx0, vp->window.entries, vp->plane_width, vp->plane_height, (int16_t)wx0, (int16_t)y, wx1 - wx0, double_cells);
+	} else {
+		VDP_DrawPlaneRow(to, tom, vp->plane_a.entries, vp->plane_width, vp->plane_height, -hscroll[0], y + vp->vsram.a, view_w, double_cells);
+	}
 	hbla_pos = (int16_t)y;
 
 	vdp_sh_sprites = vdp_sh_enabled;

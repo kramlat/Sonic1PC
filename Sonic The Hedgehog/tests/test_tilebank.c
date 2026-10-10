@@ -19,6 +19,7 @@ static void Prepare(void) {
     Viewport_UseOwnPlanes(&screen1p);
     Plane_Clear(&screen1p.plane_a);
     Plane_Clear(&screen1p.plane_b);
+    Viewport_ClearWindow(&screen1p);
     memset(screen1p.hscroll, 0, screen1p.hscroll_bytes);
     screen1p.vsram = (vsram_t){ 0, 0 };
     screen1p.sprites = NULL;
