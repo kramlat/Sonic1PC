@@ -120,6 +120,11 @@ static void HTZQuake_TheSecondViewShakesWithTheGround(void) {
     CHECK_EQ(vid_bg_scrpos_y_dup, 0x500);
     CHECK_EQ(hscroll_buffer[5][0], 0);
     htz_shaking = 1;
+    htz_quake = 0; // (a shake flag left over after the quake: nothing moves)
+    HTZQuake_ShakeView();
+    CHECK_EQ(htz_p2_shake_y, 0);
+    CHECK_EQ(hscroll_buffer[5][0], 0);
+    htz_quake = 1;
     HTZQuake_ShakeView();
     CHECK(htz_p2_shake_y >= 1 && htz_p2_shake_y <= 3);
     CHECK_EQ(vid_bg_scrpos_y_dup, 0x500 + htz_p2_shake_y);
@@ -138,11 +143,28 @@ static void HTZQuake_TheSecondCameraCanStartTheQuake(void) {
     HTZQuake_EventsP2();
     CHECK_EQ(htz_quake, 1);
     CHECK_EQ(HTZQuake_Owner(), 1);
-    CHECK_EQ(dle_routine, 2);
+    CHECK_EQ(dle_routine, 0); // (the first camera's own step: the second has one of its own)
     Camera(0x100, 0x500); // the first camera, far from it: its events leave the second's quake be
     HTZQuake_Events();
     CHECK_EQ(htz_quake, 1);
-    CHECK_EQ(dle_routine, 2);
+    CHECK_EQ(dle_routine, 0);
+}
+
+static void HTZQuake_TheSecondCameraPastTheEndDoesNotStartTheFirstsQuake(void) {
+    Start(0);
+    Camera(0x1900, 0x500);
+    HTZQuake_EventsP2(); // (the second camera starts the quake, then goes on past its end)
+    Camera(0x2000, 0x500);
+    HTZQuake_EventsP2();
+    Camera(0x2000, 0x500);
+    HTZQuake_EventsP2();
+    htz_quake = 0; // (eased out)
+    bg_scrpos_x.v = 0x12340000; // (the first view's background, which only its own camera moves)
+    Camera(0x40, 0x500); // the first camera, at the start of the level
+    HTZQuake_Events();
+    CHECK_EQ(htz_quake, 0);
+    CHECK_EQ(dle_routine, 0);
+    CHECK_EQ(bg_scrpos_x.v, 0x12340000);
 }
 
 static void HTZQuake_TheFirstCameraKeepsItsQuakeFromTheSecond(void) {
@@ -159,6 +181,7 @@ static void HTZQuake_TheFirstCameraKeepsItsQuakeFromTheSecond(void) {
 
 void RegisterHTZQuakeTests(void) {
     RUN_TEST(HTZQuake_TheSecondCameraCanStartTheQuake);
+    RUN_TEST(HTZQuake_TheSecondCameraPastTheEndDoesNotStartTheFirstsQuake);
     RUN_TEST(HTZQuake_TheFirstCameraKeepsItsQuakeFromTheSecond);
     RUN_TEST(HTZQuake_TheSecondViewShakesWithTheGround);
     RUN_TEST(HTZQuake_ActOneIsQuietOutsideItsStretch);

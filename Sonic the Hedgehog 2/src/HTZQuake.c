@@ -56,7 +56,12 @@ static void SpritesFollow(int view, bool copy) {
     }
 }
 
+// Each camera is at its own step of the events (the prototype has one camera and one step): the second's is kept here and swapped in for its run, so a camera that has gone past the stretch's end does not
+// start the other's quake at the beginning of the level
+static uint8_t p2_dle_routine;
+
 void HTZQuake_Reset(void) {
+    p2_dle_routine = 0;
     SpritesFollow(0, false);
     SpritesFollow(1, false); // (the second view's sprites follow its own camera again)
     htz_p2_shake_y = 0;
@@ -267,7 +272,11 @@ void HTZQuake_EventsP2(void) {
     if (htz_quake && quake_owner == 0)
         return;
     const uint8_t was = htz_quake;
+    const uint8_t first = dle_routine;
+    dle_routine = p2_dle_routine;
     RunEvents();
+    p2_dle_routine = dle_routine;
+    dle_routine = first;
     if (!was && htz_quake)
         quake_owner = 1;
 }
@@ -318,7 +327,7 @@ void HTZQuake_Deform(void) {
 void HTZQuake_ShakeView(void) {
     const int view = cur_view;
     int16_t shake_x = 0, shake_y = 0;
-    if (htz_shaking) {
+    if (htz_shaking && htz_quake) { // (the flag outlives a quake left mid-shake: only the quake's own branch ever read it in the prototype)
         const uint8_t *shake = &shake_table[frame_count & 0x3F];
         shake_y = shake[0];
         shake_x = shake[1];

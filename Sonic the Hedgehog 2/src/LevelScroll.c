@@ -987,7 +987,7 @@ void DeformLayersP2(int16_t (*lines)[2], int16_t *bg_y) {
 	static int16_t saved[SCREEN_MAX_HEIGHT][2];
 	memcpy(saved, hscroll_buffer, sizeof(saved));
 	dword_s sx = scrpos_x, sy = scrpos_y;
-	int16_t shx = scrshift_x, shy = scrshift_y, bgy_dup = vid_bg_scrpos_y_dup;
+	int16_t shx = scrshift_x, shy = scrshift_y, bgy_dup = vid_bg_scrpos_y_dup, fgy_dup = vid_scrpos_y_dup; // (the first view's own scroll dups: the second camera's quake branch writes them too)
 	uint16_t f1 = bg1_scroll_flags, f2 = bg2_scroll_flags, f3 = bg3_scroll_flags;
 	DeformSwap(&deform_p2);
 	scrpos_x = scrpos_x_p2; scrpos_y = scrpos_y_p2;
@@ -1005,7 +1005,7 @@ void DeformLayersP2(int16_t (*lines)[2], int16_t *bg_y) {
 	DeformSwap(&deform_p2);
 	memcpy(lines, hscroll_buffer, sizeof(saved));
 	memcpy(hscroll_buffer, saved, sizeof(saved));
-	scrpos_x = sx; scrpos_y = sy; scrshift_x = shx; scrshift_y = shy; vid_bg_scrpos_y_dup = bgy_dup;
+	scrpos_x = sx; scrpos_y = sy; scrshift_x = shx; scrshift_y = shy; vid_bg_scrpos_y_dup = bgy_dup; vid_scrpos_y_dup = fgy_dup;
 	bg1_scroll_flags = f1; bg2_scroll_flags = f2; bg3_scroll_flags = f3;
 }
 
