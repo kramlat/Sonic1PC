@@ -282,11 +282,12 @@ typedef struct {
     uint8_t pad[7];
     int16_t base_y;   // 0x30
     int16_t base_x;   // 0x34
+    uint8_t started;  // 0x38: (kind 7) it has been stood on
 } Scratch_CPZBlock;
 
 #define ARTTILE_CPZ_BLOCK 0x418 // ($8300 in the zone's art list)
 
-// What the block does (loc_1BDC8): 0 and 7 nothing, 1 and 2 slide along x, 3 and 4 along y, 5 waits to be stood on and goes on to 6, which falls; 8-11 go round a square of side 2x$10, $30, $50 or $70, as the
+// What the block does (loc_1BDC8): 0 nothing (7 is the alpha's new one, below), 1 and 2 slide along x, 3 and 4 along y, 5 waits to be stood on and goes on to 6, which falls; 8-11 go round a square of side 2x$10, $30, $50 or $70, as the
 // oscillator that the kind names goes
 static void CPZBlock_Move(Object *obj, Scratch_CPZBlock *scratch) {
     const int kind = scratch->subtype & 0xF;
@@ -315,6 +316,22 @@ static void CPZBlock_Move(Object *obj, Scratch_CPZBlock *scratch) {
         obj->ysp = (int16_t)(obj->ysp + 8);
         if (!((uint16_t)(limit_btm1 + 0xE0) >= (uint16_t)obj->pos.l.y.f.u))
             scratch->subtype = 0;
+        break;
+    case 7: // (the alpha's: waits to be stood on, then drops $70 pixels as a pendulum would, speeding up and slowing down by 8, and stops where its speed is 0 again)
+        if (!scratch->started) {
+            if (!(obj->status.b & 0x18))
+                break;
+            scratch->started = 1;
+        }
+        SpeedToPos(obj);
+        {
+            int16_t accel = 8;
+            if ((uint16_t)(scratch->base_y + 0x70) < (uint16_t)obj->pos.l.y.f.u)
+                accel = -8;
+            obj->ysp = (int16_t)(obj->ysp + accel);
+            if (obj->ysp == 0)
+                scratch->subtype = 0;
+        }
         break;
     case 8:
     case 9:
@@ -412,7 +429,7 @@ void Obj_CPZBarrier(Object *obj) {
         obj->mappings = Mappings_CPZBarrier;
         // (Hill Top's valve barrier has art and a width of its own: the default of Obj2D_Init; Chemical Plant's is the stripes)
         const bool cpz = LEVEL_ZONE(level_id) == ZoneId_CPZ;
-        const bool mtz = LEVEL_ZONE(level_id) == ZoneId_MTZ; // (Metropolis's is the first tile of its art, and as wide as Chemical Plant's)
+        const bool mtz = LEVEL_ZONE(level_id) == ZoneId_MTZ || LEVEL_ZONE(level_id) == ZoneId_MTZ3; // (Metropolis's is the first tile of its art, and as wide as Chemical Plant's)
         obj->tile = mtz ? TILE_MAP(0, 3, 0, 0, 0) : TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
         obj->width_pixels = (cpz || mtz) ? 0xC : 8;
         obj->render.b |= SPRITE_CAM_FIELD;

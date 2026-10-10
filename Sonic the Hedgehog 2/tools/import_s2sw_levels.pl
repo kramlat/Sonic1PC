@@ -34,6 +34,9 @@ my %zones = (
 my %alpha = (
     EHZ => { dir => 'Emerald Hill Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
              blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => '../Shared/Chunks.kos', col => ['../Shared/Ghz_Col1.dat', '../Shared/Ghz_Col2.dat'], pal => '../../Palettes/GHz.pal' },
+    # (Metropolis: three acts, one background, rings in each, and one collision index for both paths)
+    MTZ => { dir => 'Metropolis Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat', 'Fg_Map3.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat', 'Obj_Act3.dat'],
+             rng => ['Rng_Act1.dat', 'Rng_Act2.dat', 'Rng_Act3.dat'], blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['Mz_Col.dat', 'Mz_Col.dat'], pal => '../../Palettes/Mz.pal' },
 );
 # What each zone's header names: its sprite art list (PlcId; the zones that are not built yet share Hill Top's, which has the common art) and its palette (PalId)
 my %plc = (EHZ => 'PlcId_SLZ', WZ => '0', MTZ => 'PlcId_MTZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', OOZ => 'PlcId_OOZ', DHZ => 'PlcId_DHZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ', CNZ => 'PlcId_LZ');

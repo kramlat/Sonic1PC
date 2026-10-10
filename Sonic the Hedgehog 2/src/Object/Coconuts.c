@@ -1,6 +1,7 @@
 // Emerald Hill's Coconuts for Sonic 2 (the alpha's object 9D) and the object that carries what its badniks throw (object 98). Both set themselves up from the alpha's table of badnik looks (Object_Settings: the
 // subtype is the index into it) and the monkey is always in one of: hanging on the trunk (waiting until it is time to climb), climbing, or throwing.
 #include "Object/Coconuts.h"
+#include "Object/MTZBadniks.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -24,13 +25,6 @@ typedef struct {
 
 enum { CoconutsRoutine_Init = 0, CoconutsRoutine_Wait = 2, CoconutsRoutine_Climb = 4, CoconutsRoutine_Throw = 6 };
 enum { CoconutsAnim_Climb, CoconutsAnim_Throw };
-
-typedef enum { Weapon_Coconut } Weapon;
-
-typedef struct {
-    uint8_t subtype;
-    uint8_t weapon;
-} Scratch_Weapon;
 
 // How it climbs (Offset_0x029280): each step is a vertical speed (the high byte) and how many frames it lasts
 static const struct { int8_t ysp_hi; uint8_t frames; } climb[6] = {
@@ -144,15 +138,16 @@ void Obj_Coconuts(Object *obj) {
 // What the weapon objects look like (the alpha's Object_Settings table entries for them): mappings, tile, render flags, priority, width and collision
 typedef struct { const uint8_t *mappings; uint16_t tile; uint8_t render, priority, width, col; } WeaponLook;
 static const WeaponLook weapon_looks[] = {
-    { Mappings_Coconuts, TILE_MAP(0, 0, 0, 0, ArtTile_Coconuts), 0x84, 4, 8, 0x8B }, // the coconut
+    { NULL, TILE_MAP(0, 0, 0, 0, ArtTile_Coconuts), 0x84, 4, 8, 0x8B }, // the coconut (its mappings are Coconuts')
+    { NULL, TILE_MAP(1, 0, 0, 0, 0x368), 0x84, 5, 4, 0x98 },             // the Asteron's spike (Asteron_Mappings)
 };
 
 void Obj_EnemyWeapon(Object *obj) {
     Scratch_Weapon *scratch = (Scratch_Weapon *)&obj->scratch;
 
     if (obj->routine == 0) {
-        const WeaponLook *look = &weapon_looks[0];
-        obj->mappings = look->mappings;
+        const WeaponLook *look = &weapon_looks[scratch->weapon];
+        obj->mappings = scratch->weapon == Weapon_AsteronSpike ? Asteron_Mappings() : Mappings_Coconuts;
         obj->tile = look->tile;
         obj->render.b |= look->render;
         obj->priority = look->priority;
@@ -169,6 +164,9 @@ void Obj_EnemyWeapon(Object *obj) {
     switch (scratch->weapon) {
     case Weapon_Coconut:
         obj->ysp += 0x20;
+        SpeedToPos(obj);
+        break;
+    case Weapon_AsteronSpike:
         SpeedToPos(obj);
         break;
     }

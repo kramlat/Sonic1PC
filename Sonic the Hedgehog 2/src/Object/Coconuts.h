@@ -8,6 +8,14 @@
 #define ObjId_Coconuts    0x9D
 #define ObjId_EnemyWeapon 0x98
 
+// What a weapon object (98) is: it is made with its kind in its scratch memory (the alpha keeps the address of the routine it runs there)
+typedef enum { Weapon_Coconut, Weapon_AsteronSpike } Weapon;
+
+typedef struct {
+    uint8_t subtype; // 0x28
+    uint8_t weapon;  // 0x29: a Weapon
+} Scratch_Weapon;
+
 void Obj_Coconuts(Object *obj);
 void Obj_EnemyWeapon(Object *obj);
 

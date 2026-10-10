@@ -450,14 +450,18 @@ void Obj_MTZPlatform(Object *obj) {
         if (obj->status.b & 8)
             scratch->subtype++;
         break;
-    case 5: // goes to and fro between $1800 and $1B40
+    case 5: // goes to and fro (the alpha's: out to $1BC0 and back to $1880; in the third act it goes right to $2940 and stays)
         if (!scratch->out) {
             obj->pos.l.x.f.u += 2;
-            if (obj->pos.l.x.f.u == 0x1B40)
+            if (LEVEL_ZONE(level_id) == ZoneId_MTZ3) {
+                if (obj->pos.l.x.f.u == 0x2940)
+                    scratch->subtype = 0;
+            } else if (obj->pos.l.x.f.u == 0x1BC0) {
                 scratch->out = 1;
+            }
         } else {
             obj->pos.l.x.f.u -= 2;
-            if (obj->pos.l.x.f.u == 0x1800)
+            if (obj->pos.l.x.f.u == 0x1880)
                 scratch->out = 0;
         }
         scratch->base_x = obj->pos.l.x.f.u;

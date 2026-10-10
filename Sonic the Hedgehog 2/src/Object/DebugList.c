@@ -25,6 +25,9 @@ extern const uint8_t Mappings_DiagSpring[];
 extern const uint8_t Mappings_Buzzer[];
 extern const uint8_t Mappings_Snail[];
 extern const uint8_t Mappings_Coconuts[];
+extern const uint8_t Mappings_Shellcracker[];
+extern const uint8_t Mappings_Asteron[];
+extern const uint8_t Mappings_Slicer[];
 extern const uint8_t Mappings_Masher[];
 extern const uint8_t Mappings_MTZSteamVent[];
 extern const uint8_t Mappings_MTZPiston[];
@@ -198,7 +201,7 @@ static const DebugListEntry DebugList_MTZ[] = {
     PLAIN(0x68, Mappings_MTZBlockArrow, 0x6414, 0, 4),
     PLAIN(0x69, Mappings_MTZScrewNut, 0x2500, 4, 0),
     PLAIN(0x6A, Mappings_MTZPlatformA, 0x6000, 0, 1),
-    PLAIN(0x6B, Mappings_MTZPlatformA, 0x6000, 1, 1),
+    PLAIN(0x6B, Mappings_MTZPlatformA, 0x6000, 7, 1),
     PLAIN(0x6D, Mappings_MTZBlockArrow, 0x241C, 0, 0),
     PLAIN(0x6E, Mappings_MTZMachine, 0x6000, 0, 0),
     PLAIN(0x6E, Mappings_MTZMachine, 0x6000, 0x10, 1),
@@ -210,6 +213,9 @@ static const DebugListEntry DebugList_MTZ[] = {
     PLAIN(0x1C, Mappings_SceneryD, 0x43FD, 1, 1),
     PLAIN(0x1C, Mappings_SceneryD, 0x23FD, 3, 2),
     PLAIN(0x65, Mappings_MTZPlatformA, 0x6000, 0xB0, 0),
+    PLAIN(0x9F, Mappings_Shellcracker, 0x30F, 0x24, 0),
+    PLAIN(0xA4, Mappings_Asteron, 0x8368, 0x2E, 0),
+    PLAIN(0xA1, Mappings_Slicer, 0x243C, 0x28, 0),
 };
 
 // Debug_HTZ (Hill Top)

@@ -15,6 +15,11 @@
 
 // Object art
 #include "Resource/Art/Coconuts.h"
+#include "Resource/Art/Shellcracker.h"
+#include "Resource/Art/Asteron.h"
+#include "Resource/Art/Slicer.h"
+#include "Resource/Art/MTZBossBalls.h"
+#include "Resource/Art/ShipBoost.h"
 #include "Resource/Art/BossExplosion.h"
 #include "Resource/Art/AnimalRabbit.h"
 #include "Resource/Art/AnimalChicken.h"
@@ -682,10 +687,9 @@ static const PLCList PLC_OOZ2 = {
 // ---------------------------------------------------------------------------
 // Pattern load cues - Metropolis (Metropolis_Sprites_1 and 2)
 // ---------------------------------------------------------------------------
-static const PLCList PLC_MTZ = { // (the zone's own art is the level header's)
-    8,
+static const PLCList PLC_MTZ = { // (the zone's own art is the level header's) the alpha's list 0C: the Shellcracker and the Asteron are in it, the prototype's drills' place is the Asteron's
+    9,
     (const PLC[]) {
-        { Art_MTZTeleport,   ART_VRAM(0x6780 >> 5) },
         { Art_MTZWheel,      ART_VRAM(0x6F00 >> 5) },
         { Art_MTZWheelIndent,ART_VRAM(0x7E00 >> 5) },
         { Art_MTZLavaCup,    ART_VRAM(0x7F20 >> 5) },
@@ -693,21 +697,24 @@ static const PLCList PLC_MTZ = { // (the zone's own art is the level header's)
         { Art_MTZSteam,      ART_VRAM(0x80A0 >> 5) },
         { Art_MTZSpikeBlock, ART_VRAM(0x8280 >> 5) },
         { Art_MTZSpike,      ART_VRAM(0x8380 >> 5) },
+        { Art_Shellcracker,  ART_VRAM(0x61E0 >> 5) },
+        { Art_Asteron,       ART_VRAM(0x6D00 >> 5) },
     }
 };
 
-static const PLCList PLC_MTZ2 = {
-    9,
+static const PLCList PLC_MTZ2 = { // the alpha's list 0D (the Slicer is where the diagonal spring is in other zones)
+    10,
     (const PLC[]) {
         { Art_Button,        ART_VRAM(0x8480 >> 5) },
         { Art_Spikes,        ART_VRAM(0x8680 >> 5) },
-        { Art_SpringDiag,    ART_VRAM(0x8780 >> 5) },
+        { Art_Slicer,        ART_VRAM(0x8780 >> 5) },
         { Art_SpringUp,      ART_VRAM(0x8B80 >> 5) },
         { Art_SpringSide,    ART_VRAM(0x8E00 >> 5) },
         { Art_MTZAssBlocks,  ART_VRAM(0xA000 >> 5) },
         { Art_MTZLavaBubble, ART_VRAM(0xA6C0 >> 5) },
         { Art_MTZPlatform,   ART_VRAM(0xA7E0 >> 5) },
         { Art_MTZCog,        ART_VRAM(0xABE0 >> 5) },
+        { Art_MTZTeleport,   ART_VRAM(0xAD60 >> 5) }, // (the object draws tile $33C, as in the alpha, where the Shellcracker's art is)
     }
 };
 
@@ -800,6 +807,16 @@ static const PLCList PLC_Flicky3B = { // Penguin and BlueBird
     }
 };
 
+static const PLCList PLC_MTZBoss = { // the alpha's list $2E (the boss is unreachable there)
+    4,
+    (const PLC[]) {
+        { Art_BossShip,      ART_VRAM(0x7180 >> 5) },
+        { Art_MTZBossBalls,  ART_VRAM(0x7D80 >> 5) },
+        { Art_ShipBoost,     ART_VRAM(0xA000 >> 5) },
+        { Art_BossExplosion, ART_VRAM(0xB000 >> 5) },
+    }
+};
+
 // PLC list
 const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Main        */ &PLC_Main,
@@ -850,5 +867,6 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Flicky39    */ &PLC_Flicky39,
     /* PlcId_Flicky3A    */ &PLC_Flicky3A,
     /* PlcId_Flicky3B    */ &PLC_Flicky3B,
+    /* PlcId_MTZBoss     */ &PLC_MTZBoss,
 };
 

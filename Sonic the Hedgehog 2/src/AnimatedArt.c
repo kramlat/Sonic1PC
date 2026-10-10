@@ -20,7 +20,6 @@
 #include "Resource/S2Art/MTZCylinder.h"
 #include "Resource/S2Art/MTZLava.h"
 #include "Resource/S2Art/MTZAnimBack.h"
-#include "Resource/S2Art/MTZDrills.h"
 #include "Resource/S2Art/OOZPulseBall.h"
 #include "Resource/S2Art/OOZSquareBall1.h"
 #include "Resource/S2Art/OOZSquareBall2.h"
@@ -70,14 +69,11 @@ static const uint8_t MTZ1_Frames[] = { 0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60,
 static const uint8_t MTZ2_Frames[] = { 0x00, 0x0C, 0x18, 0x24, 0x18, 0x0C };
 static const uint8_t MTZ3_Frames[] = { 0x00, 0x13, 0x06, 0x07, 0x0C, 0x13, 0x06, 0x07 };
 static const uint8_t MTZ4_Frames[] = { 0x0C, 0x13, 0x06, 0x07, 0x00, 0x13, 0x06, 0x07 };
-static const uint8_t MTZ5_Frames[] = { 0x00, 0x08, 0x10, 0x18 };
 static const AnimScript AnimCue_MTZ[] = {
     { S2Art_MTZCylinder, 0x6980, 8, 0x10, 0, MTZ1_Frames },
     { S2Art_MTZLava, 0x6800, 6, 0x0C, 0x0D, MTZ2_Frames },
     { S2Art_MTZAnimBack, 0x6B80, 4, 6, -1, MTZ3_Frames },
     { S2Art_MTZAnimBack, 0x6C40, 4, 6, -1, MTZ4_Frames },
-    { S2Art_MTZDrills, 0x6D00, 4, 8, 5, MTZ5_Frames },
-    { S2Art_MTZDrills, 0x6E00, 4, 8, 5, MTZ5_Frames },
 };
 
 // Oil Ocean (loc_227E4): the pulsing ball, two squares turning round a ball, and two layers of oil

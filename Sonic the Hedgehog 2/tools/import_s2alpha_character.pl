@@ -88,3 +88,23 @@ copy_file('Art/Nemesis/Buzzer.nem',   'Art/Buzzer');
 # Emerald Hill's boss (objects 56, 5B and 58): its explosions (GHz_Boss_Mappings_02, $020430, seven frames) and their art (explosns.nem, at VRAM $B000: tile $580). The ship, car and blades are the prototype's, as the alpha has them.
 write_file('Mappings/BossExplosion', slice(0x020430, 0x020484));
 copy_file('Art/Nemesis/Explosns.nem', 'Art/BossExplosion');
+
+# Metropolis's badniks: the Shellcracker (9F, with the claw's pieces as object A0: mappings $029866, animations $029856, art Shellcrc.nem) and the Asteron (A4: mappings $029FB0, animations $029FAA, art Asteron.nem)
+write_file('Mappings/Shellcracker',  slice(0x029866, 0x029906));
+write_file('Animation/Shellcracker', slice(0x029856, 0x029866));
+copy_file('Art/Nemesis/Shellcrc.nem', 'Art/Shellcracker');
+write_file('Mappings/Asteron',  slice(0x029FB0, 0x02A004));
+write_file('Animation/Asteron', slice(0x029FAA, 0x029FB0));
+copy_file('Art/Nemesis/Asteron.nem', 'Art/Asteron');
+
+# The Slicer (A1) and its pincers (A2): mappings ($029AD8), the two animation tables ($029ACA, $029AD0) and art (Slicer.nem, at VRAM $8780)
+write_file('Mappings/Slicer',         slice(0x029AD8, 0x029C34));
+write_file('Animation/Slicer',        slice(0x029ACA, 0x029AD0));
+write_file('Animation/SlicerPincers', slice(0x029AD0, 0x029AD8));
+copy_file('Art/Nemesis/Slicer.nem', 'Art/Slicer');
+
+# Metropolis's boss (objects 53, 54 and 55), the alpha's unfinished one: its mappings ($027DAA) and animations ($027D88), and the art its list $2E has (the balls and the mini Robotniks, bossball.nem, at $7D80; the ship's boost, shpboost.nem, at $A000)
+write_file('Mappings/MTZBoss',  slice(0x027DAA, 0x027E8C));
+write_file('Animation/MTZBoss', slice(0x027D88, 0x027DAA));
+copy_file('Art/Nemesis/BossBall.nem', 'Art/MTZBossBalls');
+copy_file('Art/Nemesis/ShpBoost.nem', 'Art/ShipBoost');

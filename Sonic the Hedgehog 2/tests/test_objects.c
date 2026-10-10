@@ -15,6 +15,8 @@
 #include "Object/Animals.h"
 #include "Object/Coconuts.h"
 #include "Object/EHZBoss.h"
+#include "Object/MTZBadniks.h"
+#include "Object/MTZBoss.h"
 #include "PLC.h"
 #include "EngineSound.h"
 #include "Backend/VDP.h"
@@ -77,10 +79,10 @@ static void ObjectCoverage_NoPlacedObjectIsFalselyPending(void) {
     }
 }
 
-// The prototype's debug lists (Debug_* in its disassembly): how many entries each has, and that what each one places is an object this port runs (the ones that are not built are placeholders of type null)
+// The debug lists (Debug_* in the disassemblies: the prototype's, and the alpha's for the zones taken from it): how many entries each has, and that what each one places is an object this port runs (the ones that are not built are placeholders of type null)
 static void DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects(void) {
     static const struct { int zone, count; } expect[] = {
-        { ZoneId_EHZ, 18 }, { ZoneId_MTZ, 28 }, { ZoneId_MTZ3, 28 }, { ZoneId_HTZ, 25 }, { ZoneId_HPZ, 8 }, { ZoneId_OOZ, 16 },
+        { ZoneId_EHZ, 18 }, { ZoneId_MTZ, 31 }, { ZoneId_MTZ3, 31 }, { ZoneId_HTZ, 25 }, { ZoneId_HPZ, 8 }, { ZoneId_OOZ, 16 },
         { ZoneId_MCZ, 16 }, { ZoneId_CNZ, 2 }, { ZoneId_CPZ, 19 }, { ZoneId_ARZ, 17 }, { ZoneId_WZ, 2 },
     };
     for (size_t i = 0; i < sizeof(expect) / sizeof(expect[0]); i++) {
@@ -396,6 +398,62 @@ static void BossExplosion_RunsSevenFramesAndGoes(void) {
 }
 
 
+// The alpha's Slicer: it walks towards the left, and when Sonic is within $80 pixels in front of it raises its blades and sends two pincers at him
+static void Slicer_RaisesItsBladesAndSendsTwoPincers(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    objects[0].type = ObjId_Sonic;
+    objects[0].pos.l.x.f.u = 0x400;
+    objects[0].pos.l.y.f.u = 0x300;
+    scrpos_x.f.u = 0x300;
+    scrpos_y.f.u = 0x200;
+    Object *slicer = &objects[0x20];
+    slicer->type = ObjId_Slicer;
+    slicer->pos.l.x.f.u = 0x440;
+    slicer->pos.l.y.f.u = 0x300;
+    Obj_Slicer(slicer);
+    CHECK_EQ(slicer->routine, 2);
+    CHECK_EQ(slicer->xsp, -0x40);
+    CHECK_EQ(slicer->col_type, 6);
+    Obj_Slicer(slicer); // (Sonic is in front of it, $40 away)
+    CHECK_EQ(slicer->routine, 6);
+    CHECK_EQ(slicer->frame, 3);
+    for (int f = 0; f < 10; f++)
+        Obj_Slicer(slicer);
+    CHECK_EQ(slicer->frame, 4);
+    int pincers = 0;
+    for (int i = 1; i < 0x40; i++)
+        if (objects[i].type == ObjId_SlicerPincers)
+            pincers++;
+    CHECK_EQ(pincers, 2);
+}
+
+// The alpha's unfinished Metropolis boss: its ship makes the object of the balls, which makes seven of them (the object itself the first) that orbit the ship; a hit lets them go
+static void MTZBoss_MakesSevenBallsThatOrbitTheShip(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    scrpos_x.f.u = 0x1D00;
+    scrpos_y.f.u = 0x100;
+    Object *ship = &objects[0x20];
+    ship->type = ObjId_MTZBoss;
+    Obj_MTZBoss(ship);
+    CHECK_EQ(ship->pos.l.x.f.u, 0x1EA0 - 2);
+    CHECK_EQ(ship->col_type, 0xF);
+    Object *first = NULL;
+    for (int i = 1; i < 0x40 && first == NULL; i++)
+        if (objects[i].type == ObjId_MTZBossBall)
+            first = &objects[i];
+    CHECK(first != NULL);
+    if (first != NULL)
+        Obj_MTZBossBall(first); // (it makes the seven)
+    int balls = 0;
+    for (int i = 1; i < 0x40; i++)
+        if (objects[i].type == ObjId_MTZBossBall && objects[i].routine == 2)
+            balls++;
+    CHECK_EQ(balls, 7);
+}
+
+
 void RegisterObjectCoverageTests(void) {
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
     RUN_TEST(TailsTails_ShowWhileRollingAndDashing);
@@ -403,6 +461,8 @@ void RegisterObjectCoverageTests(void) {
     RUN_TEST(Countdown_CountsAPlayersAirAndDrownsHim);
     RUN_TEST(Coconuts_ThrowACoconutWhenSonicIsNear);
     RUN_TEST(BossExplosion_RunsSevenFramesAndGoes);
+    RUN_TEST(Slicer_RaisesItsBladesAndSendsTwoPincers);
+    RUN_TEST(MTZBoss_MakesSevenBallsThatOrbitTheShip);
     RUN_TEST(Animals_ZonesHaveTheirPairAndEndAnimalsTheirOwnMovement);
     RUN_TEST(DustSplash_FollowsTheSpinDashAndSplashesAtTheWater);
     RUN_TEST(Sonic_SuperSonicHasHisOwnAnimations);
