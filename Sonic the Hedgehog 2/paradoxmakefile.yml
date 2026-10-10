@@ -504,6 +504,7 @@ sources:
   - "src/Object/MTZObjects.c"
   - "src/Object/MTZObjects2.c"
   - "src/Object/DebugList.c"
+  - "src/Object/DebugMarkers.c"
   - "src/Object/HPZObjects.c"
   - "src/Object/HTZObjects.c"
   - "src/Object/DiagSpring.c"

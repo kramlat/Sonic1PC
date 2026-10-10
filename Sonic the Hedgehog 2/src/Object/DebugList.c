@@ -74,17 +74,19 @@ extern const uint8_t Mappings_CPZBlock[];
 extern const uint8_t Mappings_CPZSlider[];
 extern const uint8_t Mappings_TubeSpring[];
 extern const uint8_t Mappings_ArrowShooter[];
+#include "Object/DebugMarkers.h"
 extern const int8_t ring_pos[16][2]; // Object/Ring.c -- ring row/column formation offsets
 
-// What an object that has nothing to show (the lava boxes and the leaves, which are never drawn, and the objects not built yet) shows in the list: the "?" of the monitor art (tile 56 from the monitors' own,
-// the icon of the monitor that does nothing), as three identical frames so that the subtype's frame still picks one. The prototype's own mapping for them (Obj31_MapUnc_15612) is empty.
-#define UNKNOWN_FRAME 0, 1, 0xF8, 5, 0, 56, 0, 28, 0xFF, 0xF8
-static const uint8_t Mappings_DebugUnknown[] = {
-    0, 6, 0, 16, 0, 26,
-    UNKNOWN_FRAME,
-    UNKNOWN_FRAME,
-    UNKNOWN_FRAME,
+// The corners of the boxes of the invisible objects (31, 2C): a "?" at each, by the box a subtype touches (col $16, $14 and $15: $20 by $20, $40 by $20, $80 by $20 either side of the middle)
+#define CORNERS(w, h) { {0, 8 - (w), 8 - (h)}, {0, (w) - 8, 8 - (h)}, {0, 8 - (w), (h) - 8}, {0, (w) - 8, (h) - 8} } // (inside the box: the icon is 16 across)
+static const DebugFramePiece DebugStack_Box[3][4] = {
+    CORNERS(0x20, 0x20), CORNERS(0x40, 0x20), CORNERS(0x80, 0x20),
 };
+static const DebugSubtypeVariant DebugVariants_Box[] = {
+    {0, DebugStack_Box[0], 4, 0, 0, 0}, {1, DebugStack_Box[1], 4, 0, 0, 0}, {2, DebugStack_Box[2], 4, 0, 0, 0},
+};
+#define BOX_VARIANTS DebugVariants_Box, 3, 0, 0xFF
+#define BOX_ENTRY(id, sub) {OBJ(id), Mappings_DebugUnknown, 0x680, sub, 0, BOX_VARIANTS}
 
 #define NULL_ENTRY {ObjId_Null, Mappings_DebugUnknown, 0x680, 0, 0, NULL, 0, 0, 0} // (counted, drawn as a "?", and not placeable)
 #define OBJ(id) ((ObjectId)(id))
@@ -233,9 +235,9 @@ static const DebugListEntry DebugList_HTZ[] = {
     PLAIN(0x1C, Mappings_SceneryA, 0x4000, 7, 0),
     PLAIN(0x1C, Mappings_SceneryA, 0x4000, 8, 1),
     PLAIN(0x32, Mappings_HTZRock, 0x43B2, 0, 0),
-    PLAIN(0x31, Mappings_DebugUnknown, 0x680, 0, 0),
-    PLAIN(0x31, Mappings_DebugUnknown, 0x680, 1, 1),
-    PLAIN(0x31, Mappings_DebugUnknown, 0x680, 2, 2),
+    BOX_ENTRY(0x31, 0),
+    BOX_ENTRY(0x31, 1),
+    BOX_ENTRY(0x31, 2),
 };
 
 // Debug_HPZ (Hidden Palace)
@@ -329,9 +331,9 @@ static const DebugListEntry DebugList_NGHZ[] = {
     PLAIN(0x22, Mappings_ArrowShooter, 0x417, 0, 1),
     NULL_ENTRY, // 23: the pillar is not ported yet
     NULL_ENTRY, // 2B: the breakable pillar is not ported yet
-    PLAIN(0x2C, Mappings_DebugUnknown, 0x680, 0, 0),
-    PLAIN(0x2C, Mappings_DebugUnknown, 0x680, 1, 1),
-    PLAIN(0x2C, Mappings_DebugUnknown, 0x680, 2, 2),
+    BOX_ENTRY(0x2C, 0),
+    BOX_ENTRY(0x2C, 1),
+    BOX_ENTRY(0x2C, 2),
     DIAG_SPRING_ENTRY,
     SPRING_UP_RED,
     SPRING_SIDE_RED,

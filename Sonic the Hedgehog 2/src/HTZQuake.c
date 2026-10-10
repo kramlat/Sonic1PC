@@ -16,6 +16,7 @@
 
 #include "Backend/VDP.h"
 #include "Sprites.h"
+#include "Object/DebugMarkers.h"
 #include "Macros.h"
 
 // (LevelScroll.c's, Sonic 2's own scroll helpers)
@@ -384,6 +385,7 @@ void Obj_HTZQuakeBlock(Object *obj) {
             obj->status.b &= (uint8_t)~(1 << (3 + who));
         }
     }
+    DebugMarkers_Show(obj, (int16_t)(x_rad - 0xB), y_rad); // (the debug cheat shows the corners of its box)
     const int kind = (scratch->subtype >> 1) % 5;
     if (kind == 2 || kind == 3) { // the lava's top (kinds 4 and 6) hurts whoever stands on it (Touch_ChkHurt: not while invincible or flashing)
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {

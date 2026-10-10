@@ -12,6 +12,8 @@
 #include "Solid.h"
 #include "Sound.h"
 
+#include "Object/DebugMarkers.h"
+
 #include "Macros.h"
 
 extern const uint8_t Mappings_HTZLift[]; // (defined with Scenery.c, which draws its poles)
@@ -501,6 +503,9 @@ void Obj_HTZLavaBox(Object *obj) {
         obj->frame = obj->scratch.u8[0];
     }
     obj->render.b = 0x84; // (never drawn, but the touch response has to find it "on screen")
+    int16_t box_w, box_h;
+    if (DebugMarkers_TouchBox(obj->col_type, &box_w, &box_h))
+        DebugMarkers_Show(obj, box_w, box_h); // (the debug cheat shows its corners)
     if (IS_OFFSCREEN(obj->pos.l.x.f.u))
         ObjectDelete(obj); // (the prototype does not forget its mark here either)
 }

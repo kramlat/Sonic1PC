@@ -1,8 +1,12 @@
 #include "test.h"
 
+#include <string.h>
+
+#include "Game.h"
 #include "Level.h"
 #include "Object.h"
 #include "Object/DebugList.h"
+#include "Object/DebugMarkers.h"
 
 // The prototype's levels place objects by id; every id a built zone places has to run something (Obj_Null just deletes itself). The zones that are built are checked completely: the ids that are still not
 // ported are listed here, so a zone that gains an object (or one that loses it) makes the test say so (remove the id from the list when it is ported).
@@ -84,7 +88,33 @@ static void DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects(void) {
     }
 }
 
+// The "?" corners of an invisible box (Sonic 1's lava tag has the same with the debug cheat on)
+static void DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat(void) {
+    Object box;
+    memset(&box, 0, sizeof(box));
+    box.pos.l.x.f.u = 0x1000;
+    box.pos.l.y.f.u = 0x400;
+    debug_cheat = false;
+    DebugMarkers_Show(&box, 0x40, 0x20);
+    CHECK_EQ(box.child_count, 0);
+    debug_cheat = true;
+    DebugMarkers_Show(&box, 0x40, 0x20);
+    CHECK_EQ(box.child_count, 4);
+    CHECK(box.render.f.multi_sprite);
+    CHECK_EQ(box.children[0].x, 0x1000 - 0x40 + 8);
+    CHECK_EQ(box.children[0].y, 0x400 - 0x20 + 8);
+    CHECK_EQ(box.children[3].x, 0x1000 + 0x40 - 8);
+    CHECK_EQ(box.children[3].y, 0x400 + 0x20 - 8);
+    int16_t w, h;
+    CHECK(DebugMarkers_TouchBox(0x95, &w, &h));
+    CHECK_EQ(w, 0x80);
+    CHECK_EQ(h, 0x20);
+    CHECK(!DebugMarkers_TouchBox(0x00, &w, &h));
+    debug_cheat = false;
+}
+
 void RegisterObjectCoverageTests(void) {
+    RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
     RUN_TEST(DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects);
     RUN_TEST(ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace);
     RUN_TEST(ObjectCoverage_NoPlacedObjectIsFalselyPending);

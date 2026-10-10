@@ -12,6 +12,8 @@
 #include "Solid.h"
 #include "Sound.h"
 
+#include "Object/DebugMarkers.h"
+
 #include "Macros.h"
 
 #include "Resource/Animation/ArrowShooter.h"
@@ -178,6 +180,11 @@ void Obj_NGHZLeaves(Object *obj) {
             return;
         }
         obj->render.f.on_screen = true; // (the box is never drawn: the touch response needs to find it "on screen" all the same)
+        {
+            int16_t box_w, box_h;
+            if (DebugMarkers_TouchBox(obj->col_type, &box_w, &box_h))
+                DebugMarkers_Show(obj, box_w, box_h); // (the debug cheat shows its corners)
+        }
         if (obj->col_property == 0)
             return;
         if ((frame_count & 0xF) == 0) {
