@@ -86,13 +86,14 @@ static void DrawPieces(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 			tile ^= TILE_Y_FLIP_AND;
 		*(*sprite)++ = tile; //tile
 		uint16_t px = x_flip ? (uint16_t)(x - map_x - piece_width) : (uint16_t)(x + map_x);
-		#if (SCREEN_WIDTH <= 320)
+		// The VDP's sprite x is 9 bits. SCREEN_WIDTH is a variable, not a constant: a preprocessor test of it was always true (an unknown name is 0), so every picture wrapped at 512, and a child sprite far
+		// out on one side (a wide object's far corner) came in at the other, even in a widescreen picture, which has no use for the wrap
+		if (SCREEN_WIDTH <= 320) {
 			if ((px &= 0x1FF) == 0)
 				px++; //Prevent sprite from being x=0 (acts as a mask)
-		#else
-			if (px == 0)
-				px++;
-		#endif
+		} else if (px == 0) {
+			px++;
+		}
 		*(*sprite)++ = px; //x
 	}
 }
