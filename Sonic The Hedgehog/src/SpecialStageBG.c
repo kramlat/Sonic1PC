@@ -29,7 +29,8 @@ uint16_t ss_bg_anim;
 
 // TilemapToVRAM: a width x height block of tilemap words (big-endian bytes) into a nametable at `vram`.
 static void SS_WriteTilemap(const uint8_t *tilemap, size_t vram, size_t width, size_t height) {
-    plane_t canvas = { (uint16_t *)(VDP_TileSpace() + vram), vram < VRAM_SIZE ? VRAM_SIZE - vram : 0 }; // (a canvas is a nametable kept among the tiles)
+    plane_t canvas; // (a canvas is a name table kept in the scratch plane memory, where the original kept it among its tiles)
+    Plane_UseScratchAt(&canvas, vram);
     CopyTilemap(tilemap, &canvas, 0, width, height);
 }
 
@@ -90,9 +91,9 @@ void SS_BGSetMode(uint16_t anim, uint16_t bg_plane_tile) {
     uint16_t mode = anim >> 1;
     if (mode >= 7)
         mode = 0;
-    Plane_UseTiles(&screen1p.plane_a, ss_bg_modes[mode].plane_tile);
+    Plane_UseScratchAt(&screen1p.plane_a, (size_t)ss_bg_modes[mode].plane_tile * TILE_SIZE);
     vid_scrpos_y_dup = (int16_t)(ss_bg_modes[mode].yscroll << 8);
-    Plane_UseTiles(&screen1p.plane_b, bg_plane_tile);
+    Plane_UseScratchAt(&screen1p.plane_b, (size_t)bg_plane_tile * TILE_SIZE);
 }
 
 // ---------------------------------------------------------------------------

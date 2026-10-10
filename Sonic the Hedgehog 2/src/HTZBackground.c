@@ -13,6 +13,7 @@
 
 #include "Backend/VDP.h"
 #include "Nemesis.h"
+#include "TileBank.h"
 
 #include "Resource/Art/HTZBackground.h"
 #include "Resource/S2Art/HTZBgStrips.h"
@@ -102,32 +103,46 @@ void HTZBackground_BuildStrips(int16_t camera_x, const int16_t *layers, uint8_t 
     }
 }
 
-// One view's mountains: the chunks when its camera's step has changed, the strip every frame; `vram` is where its set of 32 tiles starts (the first view's is where the prototype has it, $A000, and the second view's
-// is $800 on, its background plane's tiles moved to it as they are drawn: SplitScreen.c)
-static void AnimateView(int view, int16_t camera_x, uint32_t vram) {
+// The second view's own set of the mountains' 32 tiles: a tile bank of its own that SplitScreen.c makes with the split screen and frees with it (NULL: none)
+static tilebank_t *p2_bank;
+
+void HTZBackground_SetSecondBank(tilebank_t *bank) {
+    p2_bank = bank;
+    last_step[1] = 0xFF; // (a new bank is empty: the chunks go in again)
+}
+
+// Where one view's mountains go: the first view's are VRAM (the prototype's $A000, in the main bank's tiles), the second's the tiles of its bank
+static void PutTiles(int view, size_t byte_offset, const void *data, size_t bytes) {
+    if (view == 0) {
+        VDP_SeekVRAM(0xA000 + byte_offset);
+        VDP_WriteVRAM(data, bytes);
+    } else if (p2_bank != NULL) {
+        TileBank_Write(p2_bank, byte_offset / 32, data, bytes);
+    }
+}
+
+// One view's mountains: the chunks when its camera's step has changed, the strip every frame
+static void AnimateView(int view, int16_t camera_x) {
     const int step = HTZBackground_Step(camera_x);
     if (step != last_step[view]) {
         last_step[view] = (uint8_t)step;
         int chunks[6];
         HTZBackground_StepChunks(step, chunks);
-        for (int k = 0; k < 6; k++) {
-            VDP_SeekVRAM(vram + k * 0x80);
-            VDP_WriteVRAM(chunk_art + chunks[k] * 0x80, 0x80);
-        }
+        for (int k = 0; k < 6; k++)
+            PutTiles(view, (size_t)k * 0x80, chunk_art + chunks[k] * 0x80, 0x80);
     }
     uint8_t strips[0x100];
     HTZBackground_BuildStrips(camera_x, htz_layerdef[view], strips);
-    VDP_SeekVRAM(vram + 0x300);
-    VDP_WriteVRAM(strips, 0x100);
+    PutTiles(view, 0x300, strips, 0x100);
 }
 
 // The animated art routine's own part (loc_2244E, before the flowers). The prototype makes the mountains for one camera only (its two player scroll has no mountains); a split screen here gives each view
 // its own set.
 void HTZBackground_Animate(void) {
     LoadChunkArt();
-    AnimateView(0, (int16_t)scrpos_x.f.u, 0xA000);
-    if (camera_split)
-        AnimateView(1, (int16_t)scrpos_x_p2.f.u, 0xA000 + HTZ_P2_TILES * 0x20);
+    AnimateView(0, (int16_t)scrpos_x.f.u);
+    if (camera_split && p2_bank != NULL)
+        AnimateView(1, (int16_t)scrpos_x_p2.f.u);
 }
 
 // Bg_Scroll_HTz, the usual branch (loc_6108): the first $80 lines at an eighth of the camera, then bands that run on to a half of it, whose 16 layers' scroll (htz_layerdef) the strip above uses. The drift

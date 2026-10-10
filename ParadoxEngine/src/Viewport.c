@@ -5,67 +5,79 @@
 #include "Backend/VDP.h"
 
 // Each plane's name table and each view's scroll table is an array of its own: nothing written in one can reach another
-#define PLANE_MEMORY 0x2000
-static uint16_t nametable_fg[PLANE_MEMORY / 2];
-static uint16_t nametable_bg[PLANE_MEMORY / 2];
-static uint16_t nametable_fg_p2[PLANE_MEMORY / 2];
-static uint16_t nametable_bg_p2[PLANE_MEMORY / 2];
+#define PLANE_ENTRIES 0x1000 // 64 x 64
+static tile_entry_t nametable_fg[PLANE_ENTRIES];
+static tile_entry_t nametable_bg[PLANE_ENTRIES];
+static tile_entry_t nametable_fg_p2[PLANE_ENTRIES];
+static tile_entry_t nametable_bg_p2[PLANE_ENTRIES];
 static int16_t hscroll_p1[SCREEN_MAX_HEIGHT][2];
 static int16_t hscroll_p2[SCREEN_MAX_HEIGHT][2];
+static tile_entry_t scratch_planes[0x8000]; // the scratch plane memory (Plane_UseScratchAt)
 
 viewport_t screen1p = {
 	.plane_width = 64, .plane_height = 32,
-	.plane_a = { nametable_fg, sizeof(nametable_fg) },
-	.plane_b = { nametable_bg, sizeof(nametable_bg) },
+	.plane_a = { nametable_fg, PLANE_ENTRIES },
+	.plane_b = { nametable_bg, PLANE_ENTRIES },
 	.hscroll = &hscroll_p1[0][0], .hscroll_bytes = sizeof(hscroll_p1),
 };
 
 viewport_t screen2p = {
 	.plane_width = 64, .plane_height = 32,
-	.plane_a = { nametable_fg_p2, sizeof(nametable_fg_p2) },
-	.plane_b = { nametable_bg_p2, sizeof(nametable_bg_p2) },
+	.plane_a = { nametable_fg_p2, PLANE_ENTRIES },
+	.plane_b = { nametable_bg_p2, PLANE_ENTRIES },
 	.hscroll = &hscroll_p2[0][0], .hscroll_bytes = sizeof(hscroll_p2),
 };
 
 void Viewport_UseOwnPlanes(viewport_t *v) {
+	tilebank_t *main_bank = TileBank_Main();
 	if (v == &screen2p) {
-		v->plane_a = (plane_t){ nametable_fg_p2, sizeof(nametable_fg_p2) };
-		v->plane_b = (plane_t){ nametable_bg_p2, sizeof(nametable_bg_p2) };
+		v->plane_a = (plane_t){ nametable_fg_p2, PLANE_ENTRIES, main_bank };
+		v->plane_b = (plane_t){ nametable_bg_p2, PLANE_ENTRIES, main_bank };
 	} else {
-		v->plane_a = (plane_t){ nametable_fg, sizeof(nametable_fg) };
-		v->plane_b = (plane_t){ nametable_bg, sizeof(nametable_bg) };
+		v->plane_a = (plane_t){ nametable_fg, PLANE_ENTRIES, main_bank };
+		v->plane_b = (plane_t){ nametable_bg, PLANE_ENTRIES, main_bank };
 	}
 }
 
-void Plane_UseTiles(plane_t *plane, size_t tile) {
-	uint8_t *space = VDP_TileSpace();
-	const size_t at = tile * 32;
-	plane->entries = (uint16_t *)(space + at);
-	plane->bytes = at < VRAM_SIZE ? ((VRAM_SIZE - at) < PLANE_MEMORY ? (VRAM_SIZE - at) : PLANE_MEMORY) : 0;
+void Plane_UseScratchAt(plane_t *plane, size_t byte_address) {
+	const size_t first = byte_address / 2;
+	const size_t total = sizeof(scratch_planes) / sizeof(scratch_planes[0]);
+	plane->entries = scratch_planes + (first < total ? first : total);
+	plane->count = first < total ? (total - first < PLANE_ENTRIES ? total - first : PLANE_ENTRIES) : 0;
+	plane->bank = TileBank_Main();
 }
 
-uint16_t *Plane_At(const plane_t *plane, size_t byte_offset) {
-	if (byte_offset + 2 > plane->bytes)
+tile_entry_t *Plane_At(const plane_t *plane, size_t byte_offset) {
+	const size_t index = byte_offset / 2;
+	if (index >= plane->count)
 		return NULL;
-	return (uint16_t *)((uint8_t *)plane->entries + byte_offset);
+	return &plane->entries[index];
 }
 
-void Plane_Put(plane_t *plane, size_t byte_offset, uint16_t entry) {
-	uint16_t *at = Plane_At(plane, byte_offset);
+uint16_t Plane_Word(const plane_t *plane, size_t byte_offset) {
+	const tile_entry_t *at = Plane_At(plane, byte_offset);
+	return at != NULL ? TileEntry_Word(at) : 0;
+}
+
+void Plane_Put(plane_t *plane, size_t byte_offset, uint16_t word) {
+	tile_entry_t *at = Plane_At(plane, byte_offset);
+	if (at != NULL)
+		*at = TileEntry_FromWord(word, plane->bank != NULL ? plane->bank : TileBank_Main());
+}
+
+void Plane_PutEntry(plane_t *plane, size_t byte_offset, tile_entry_t entry) {
+	tile_entry_t *at = Plane_At(plane, byte_offset);
 	if (at != NULL)
 		*at = entry;
 }
 
 void Plane_Fill(plane_t *plane, size_t byte_offset, size_t bytes, uint8_t value) {
-	if (byte_offset >= plane->bytes)
-		return;
-	if (bytes > plane->bytes - byte_offset)
-		bytes = plane->bytes - byte_offset;
-	memset((uint8_t *)plane->entries + byte_offset, value, bytes);
+	for (size_t at = byte_offset; at + 2 <= byte_offset + bytes; at += 2)
+		Plane_Put(plane, at, (uint16_t)((value << 8) | value));
 }
 
 void Plane_Clear(plane_t *plane) {
-	memset(plane->entries, 0, plane->bytes);
+	memset(plane->entries, 0, plane->count * sizeof(tile_entry_t));
 }
 
 void Viewport_UploadHScroll(viewport_t *v, const void *table, size_t bytes) {

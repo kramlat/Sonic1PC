@@ -1,5 +1,6 @@
 #include "VDP.h"
 #include "Viewport.h"
+#include "TileBank.h"
 
 #include "MegaDrive.h"
 #include "../Video.h"
@@ -354,11 +355,11 @@ void VDP_DrawTileRow8(uint32_t *to, uint8_t *tom, size_t pattern, int y, bool x_
 
 // Draws one row of a plane `view_w` pixels wide. With double_cells (the stacked split screen's double-height mode) a cell is 8x16: a name table entry names a pair
 // of patterns, one above the other, at twice its number.
-static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const uint16_t *plane, size_t plane_w, size_t plane_h, int16_t x, int16_t y, int view_w, bool double_cells) {
+static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const tile_entry_t *plane, size_t plane_w, size_t plane_h, int16_t x, int16_t y, int view_w, bool double_cells) {
 	//Get plane tile to use
 	size_t px = (x >> 3) % plane_w;
 	size_t py = (double_cells ? (y >> 4) : (y >> 3)) % plane_h;
-	const uint16_t *pb = plane + py * plane_w;
+	const tile_entry_t *pb = plane + py * plane_w;
 	
 	//Draw plane row
 	uint32_t *toend = to + view_w;
@@ -366,25 +367,34 @@ static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const uint16_t *
 	tom -= x & 7;
 	y &= double_cells ? 15 : 7;
 	
-	for (; to < toend; px = (px + 1) % plane_w, plane++) {
-		//Get tile information
-		const uint16_t tile = pb[px];
+	for (; to < toend; px = (px + 1) % plane_w) {
+		//Get tile information: the entry names its tile by bank, generation and pattern (a tile that is not there draws nothing)
+		const tile_entry_t *entry = &pb[px];
+		const uint16_t tile = entry->attrs;
 		uint8_t or = (tile & TILE_PRIORITY_AND) ? VDP_MASK_PLANEPRI : 0;
 		uint8_t palette = (tile & TILE_PALETTE_AND) >> TILE_PALETTE_SHIFT;
 		uint8_t y_flip = (tile & TILE_Y_FLIP_AND) != 0;
 		uint8_t x_flip = (tile & TILE_X_FLIP_AND) != 0;
-		uint16_t pattern = (tile & TILE_PATTERN_AND) >> TILE_PATTERN_SHIFT;
 		
 		//Write tile
 		const uint8_t *from;
 		if (!double_cells) {
-			if (y_flip)
-				from = VDP_GetPatternAddress(pattern) + ((y ^ 7) << 2);
-			else
-				from = VDP_GetPatternAddress(pattern) + (y << 2);
+			from = TileBank_Pattern(entry);
+			if (from != NULL)
+				from += (y_flip ? (y ^ 7) : y) << 2;
 		} else {
+			// (the stacked split screen's cells are 8x16: an entry names a pair of patterns, the second at the next number)
 			int row = y_flip ? (y ^ 15) : y;
-			from = VDP_GetPatternAddress(((size_t)pattern << 1) + (row >> 3)) + ((row & 7) << 2);
+			tile_entry_t half = *entry;
+			half.pattern = (entry->pattern << 1) + (row >> 3);
+			from = TileBank_Pattern(&half);
+			if (from != NULL)
+				from += (row & 7) << 2;
+		}
+		if (from == NULL) { // not there: the eight pixels are left as they are
+			to += 8;
+			tom += 8;
+			continue;
 		}
 		if (x_flip) {
 			from += 3;

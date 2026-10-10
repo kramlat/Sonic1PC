@@ -9,6 +9,7 @@ void RegisterCompressionTests(void);
 void RegisterPaletteTests(void);
 void RegisterRenderFlagsTests(void);
 void RegisterVdp8bppTests(void);
+void RegisterTileBankTests(void);
 void RegisterMathTests(void);
 void RegisterPLCTests(void);
 void RegisterLevelDrawTests(void);
@@ -57,6 +58,7 @@ int main(void) {
     RegisterRenderFlagsTests();
     printf("VDP 8bpp tile tests:\n");
     RegisterVdp8bppTests();
+    RegisterTileBankTests();
     printf("Math tests:\n");
     RegisterMathTests();
     printf("PLC tests:\n");

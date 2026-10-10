@@ -38,7 +38,12 @@ int16_t SplitScreen_FollowX(void) {
     return (camera_split && side_by_side) ? follow_x : 144;
 }
 
+static tilebank_t *htz_p2_bank; // the second view's own mountains in Hill Top
+
 static void SplitOff(void) {
+    HTZBackground_SetSecondBank(NULL);
+    TileBank_Free(htz_p2_bank);
+    htz_p2_bank = NULL;
     hud_lives_lower_left = false;
     camera_split = false;
     sprite_split_screen = SPRITE_SPLIT_NONE;
@@ -77,7 +82,11 @@ void SplitScreen_LoadLevel(void) {
     scrpos_x_p2 = scrpos_x;
     scrpos_y_p2 = scrpos_y;
     if (LEVEL_ZONE(level_id) == ZoneId_HTZ) // (the second view's background has mountains of its own: the tiles of the first's set are drawn as the second's)
-        DrawTileRemap_Set(&screen2p.plane_b, 0x500, 0x20, HTZ_P2_TILES);
+    {
+        htz_p2_bank = TileBank_Create(0x20);
+        HTZBackground_SetSecondBank(htz_p2_bank);
+        DrawTileRemap_Set(&screen2p.plane_b, 0x500, 0x20, htz_p2_bank);
+    }
     LevelPlane_Init(&fg_plane, &screen1p.plane_a, &scrpos_x, &scrpos_y, view_width);
     LevelPlane_Init(&level_plane_p2, &screen2p.plane_a, &scrpos_x_p2, &scrpos_y_p2, view_width);
     level_plane_p2.xblock = fg_plane.xblock;

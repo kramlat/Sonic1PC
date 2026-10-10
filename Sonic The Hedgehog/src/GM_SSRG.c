@@ -116,10 +116,10 @@ static void SRG_DrawFG(void) {
             add = 0x0000; // White
         else
             add = 0x2000; // Grey
-        // (The original address of plane A's row 14 ($C000 on the Genesis), where this port wrote it into the tile space, as it still does: a name table kept among the tiles at that address)
-        plane_t tiles_at_c000;
-        Plane_UseTiles(&tiles_at_c000, 0xC000 / TILE_SIZE);
-        CopyTilemap_Add(buffer0000, &tiles_at_c000, 0x704 + PLANE_WIDEADD, 35, 3, add);
+        // (The original address of plane A's row 14 ($C000 on the Genesis): this port wrote it there, into the tile space, among the art. It goes to the scratch plane memory now, where it does no harm and shows nothing.)
+        plane_t at_c000;
+        Plane_UseScratchAt(&at_c000, 0xC000);
+        CopyTilemap_Add(buffer0000, &at_c000, 0x704 + PLANE_WIDEADD, 35, 3, add);
     }
 }
 

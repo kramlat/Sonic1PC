@@ -6,8 +6,10 @@
 
 extern int16_t htz_layerdef[2][0x12];
 
-// The second view of a split screen has a set of the mountains' 32 tiles of its own, this many tiles on from the first's ($500): its background plane's tiles from $500 to $51F are drawn as these
-#define HTZ_P2_TILES 0x40
+#include "TileBank.h"
+
+// The second view of a split screen has its own set of the mountains' 32 tiles, in a tile bank of its own (made with the split screen; its background plane's tiles $500-$51F are drawn from it)
+void HTZBackground_SetSecondBank(tilebank_t *bank);
 
 void HTZBackground_Reset(void);
 void HTZBackground_Animate(void);             // the animated art routine's part for Hill Top (before the flowers): one set of tiles for each view

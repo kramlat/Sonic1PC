@@ -12,11 +12,11 @@
 // The foreground plane that follows a camera (engine/LevelPlane.c), on a made-up level: every chunk of row 0 is chunk 1, whose blocks are all block 5 (tiles
 // $101-$104); everything else is the empty chunk 0.
 
-static uint16_t plane_memory[0x1000];
-static plane_t test_plane = { plane_memory, sizeof(plane_memory) };
+static tile_entry_t plane_memory[0x1000];
+static plane_t test_plane = { plane_memory, 0x1000, NULL };
 
 static uint16_t Word(size_t offset) {
-    return *Plane_At(&test_plane, offset);
+    return Plane_Word(&test_plane, offset);
 }
 
 static void MakeLevel(void) {
@@ -124,7 +124,7 @@ static void MakeRandomLevel(unsigned seed) {
 
 // The cells of the view (the camera's picture) that differ from a plane drawn afresh at that camera
 static int ViewMismatches(int16_t cam_x, int16_t cam_y) {
-    static uint8_t scratch[0x2000];
+    static tile_entry_t scratch[0x1000];
     memcpy(scratch, plane_memory, sizeof(scratch)); // the plane as scrolled
     dword_s fx = { 0 }, fy = { 0 };
     fx.f.u = (uint16_t)cam_x;
@@ -135,8 +135,8 @@ static int ViewMismatches(int16_t cam_x, int16_t cam_y) {
     int bad = 0;
     for (int wy = 0; wy < SCREEN_HEIGHT; wy += 8)
         for (int wx = 0; wx < SCREEN_WIDTH; wx += 8) {
-            size_t cell = (size_t)((((cam_y + wy) >> 3) & (PLANE_HEIGHT - 1)) * PLANE_WIDTH + (((cam_x + wx) >> 3) & (PLANE_WIDTH - 1))) * 2;
-            if (memcmp((const uint8_t *)plane_memory + cell, scratch + cell, 2))
+            size_t cell = (size_t)((((cam_y + wy) >> 3) & (PLANE_HEIGHT - 1)) * PLANE_WIDTH + (((cam_x + wx) >> 3) & (PLANE_WIDTH - 1)));
+            if (memcmp(&plane_memory[cell], &scratch[cell], sizeof(tile_entry_t)))
                 bad++;
         }
     memcpy(plane_memory, scratch, sizeof(scratch)); // put the scrolled plane back, so the test goes on from it

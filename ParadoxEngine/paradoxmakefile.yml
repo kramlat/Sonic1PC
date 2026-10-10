@@ -16,6 +16,8 @@ sources:
   - "src/LevelPlane.h"
   - "src/Viewport.c"
   - "src/Viewport.h"
+  - "src/TileBank.c"
+  - "src/TileBank.h"
   - "src/LevelDrawCore.c"
   - "src/LevelDrawCore.h"
   - "src/Sprites.c"

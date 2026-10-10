@@ -56,33 +56,37 @@ void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int
 	*block = level_map16 + (tile << 3);
 }
 
-// A plane's tiles can be moved to other patterns as they are written (see LevelDrawCore.h)
-static const uint16_t *remap_plane;
+// A plane's tiles can be moved to another bank as they are written (see LevelDrawCore.h)
+static const tile_entry_t *remap_plane;
 static uint16_t remap_first, remap_count;
-static int16_t remap_add;
+static const tilebank_t *remap_bank;
 
-void DrawTileRemap_Set(const plane_t *plane, uint16_t first, uint16_t count, int16_t add) {
+void DrawTileRemap_Set(const plane_t *plane, uint16_t first, uint16_t count, const tilebank_t *bank) {
 	remap_plane = plane->entries;
 	remap_first = first;
 	remap_count = count;
-	remap_add = add;
+	remap_bank = bank;
 }
 
 void DrawTileRemap_Clear(void) {
 	remap_count = 0;
 }
 
-static inline uint16_t RemapTile(const plane_t *plane, uint16_t v) {
-	if (remap_count != 0 && plane->entries == remap_plane && (uint16_t)((v & 0x7FF) - remap_first) < remap_count)
-		v = (uint16_t)(v + remap_add);
-	return v;
+static inline tile_entry_t EntryFor(const plane_t *plane, uint16_t word) {
+	tile_entry_t e = TileEntry_FromWord(word, plane->bank != NULL ? plane->bank : TileBank_Main());
+	if (remap_count != 0 && plane->entries == remap_plane && (uint16_t)((word & 0x7FF) - remap_first) < remap_count) {
+		e.bank = remap_bank->id; // (a tile of the range comes from the other bank, from its first tile on)
+		e.generation = remap_bank->generation;
+		e.pattern = (uint32_t)((word & 0x7FF) - remap_first);
+	}
+	return e;
 }
 
-#define WRITE_TILE(off, xor)                                    \
-    {                                                           \
-        uint16_t v = ((block[0] << 8) | (block[1] << 0)) ^ xor; \
-        Plane_Put(plane, pos + (off), RemapTile(plane, v));     \
-        block += 2;                                             \
+#define WRITE_TILE(off, xor)                                           \
+    {                                                                  \
+        uint16_t v = ((block[0] << 8) | (block[1] << 0)) ^ xor;        \
+        Plane_PutEntry(plane, pos + (off), EntryFor(plane, v));        \
+        block += 2;                                                    \
     }
 
 void DrawFlipXY(const uint8_t* block, plane_t *plane, size_t pos) {
