@@ -64,6 +64,7 @@ uint8_t debug_cheat, debug_mode;
 
 uint8_t jpad2_hold, jpad2_press; // Joypad 2 state (jpad2_press is what a game may overwrite, as Sonic 2 does with the pad a CPU Tails copies)
 uint8_t jpad2_press_raw; // pad 2 as it was pressed, left alone
+uint8_t true_two_player; // a second human is playing, whatever the screen shows (nothing reads it yet: see Game.h)
 uint8_t pause_pad2;      // pad 2's Start pauses too (a game with a second player sets it)
 uint8_t jpad1_hold1, jpad1_press1; // Joypad 1 state
 uint8_t jpad1_hold2, jpad1_press2; // Sonic controls

@@ -98,6 +98,11 @@ extern uint8_t debug_cheat, debug_mode;
 
 extern uint8_t jpad2_hold,  jpad2_press;
 extern uint8_t jpad2_press_raw, pause_pad2;
+
+// True two player mode: a second human plays the second character, on this machine (pad 2) or on another (a websocket client), whatever the screen shows. It is not the split screen (`two_player_mode` and
+// `camera_split`, Sonic 2's versus: two views of the level) nor the CPU Tails: any combination is meant to work (a split screen with one human, a single view with two, a split screen with two, and
+// a remote second player over either). Nothing is connected to it yet: the input of the second player (`jpad2_*`) will come from the local pad or the network by it, and the CPU Tails will stay away while it is set.
+extern uint8_t true_two_player;
 extern uint8_t jpad1_hold1, jpad1_press1;
 extern uint8_t jpad1_hold2, jpad1_press2;
 extern uint8_t jpad1_hold_ext, jpad1_press_ext;
