@@ -7,6 +7,9 @@
 #include "GM_Ending.h"
 #include "GM_Level.h"
 #include "GM_Sega.h"
+#ifdef SCP_SPLASH
+#include "GM_SSRG.h"
+#endif
 #include "GM_Special.h"
 #include "GM_Title.h"
 
@@ -37,6 +40,9 @@ const ScreenFunc game_screens[] = {
     [GameMode_Continue] = GM_Continue,
     [GameMode_Ending] = GM_Ending,
     [GameMode_Credits] = GM_Credits,
+#ifdef SCP_SPLASH
+    [GameMode_SSRG] = GM_SSRG,
+#endif
 #ifdef SCP_COUNTDOWN
     [GameMode_Countdown] = GM_Countdown,
 #endif
