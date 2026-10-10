@@ -335,7 +335,8 @@ static void PlayLevel(bool new_game) {
 // Current_ZoneAndAct to neo_green_hill_zone_act_1: zone slot $0F, Aquatic Ruin in the final game).
 static void Tit_ChkLevSel(bool level_select_cheat) {
     (void)level_select_cheat;
-    if (jpad1_hold1 & JPAD_A) {
+    // The alpha asks for A and Start together and nothing else held (its pad byte is exactly $C0); the prototype only looks at A
+    if ((jpad1_hold1 & 0xFF) == (JPAD_A | JPAD_START)) {
         LevelSelect();
     } else {
         two_player_mode = 0;
