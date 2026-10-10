@@ -1675,7 +1675,12 @@ void Obj_Tails(Object *obj) {
         break;
     case 6: // Dead (fell below the level): back above Sonic once he is well out of sight
         if ((uint16_t)(limit_btm2 + 0x100) < (uint16_t)obj->pos.l.y.f.u) {
-            obj->pos.l.x.f.u = player->pos.l.x.f.u - 0x40;
+            // (Tails is not meant to wrap: with Sonic against the left boundary the word would put him past the right one, and he would fall and come back there over and over. The level's wraparound itself is
+            // Sonic's, and stays.)
+            int16_t back = (int16_t)(player->pos.l.x.f.u - 0x40);
+            if (player->pos.l.x.f.u < 0x40 || back < (int16_t)(limit_left2 + 16))
+                back = (int16_t)(limit_left2 + 16);
+            obj->pos.l.x.f.u = back;
             obj->pos.l.y.f.u = player->pos.l.y.f.u - 0x80;
             obj->routine = 2;
             obj->tile &= ~TILE_PRIORITY_AND;
