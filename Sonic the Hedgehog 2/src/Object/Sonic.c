@@ -2250,6 +2250,10 @@ void Obj_Sonic(Object* obj) {
             }
         }
 
+        // In a level that wraps vertically (its top limit is exactly $FF00: Metropolis) his height is kept to $7FF, whichever way he left it
+        if (limit_top2 == 0xFF00)
+            obj->pos.l.y.f.u &= 0x7FF;
+
         // Handle general player state stuff
         Sonic_Display(obj);
         Sonic_RecordPosition(obj);

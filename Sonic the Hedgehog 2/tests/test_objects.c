@@ -15,6 +15,8 @@
 #include "Object/Animals.h"
 #include "Object/Coconuts.h"
 #include "Object/EHZBoss.h"
+#include "LevelScroll.h"
+#include "Object/Spiral.h"
 #include "Object/MTZBadniks.h"
 #include "Object/MTZBoss.h"
 #include "PLC.h"
@@ -22,6 +24,8 @@
 #include "Backend/VDP.h"
 
 void Obj_TailsTails(Object *obj);
+void Obj_Signpost(Object *obj);
+void ScrollVertical(void);
 
 // The prototype's levels place objects by id; every id a built zone places has to run something (Obj_Null just deletes itself). The zones that are built are checked completely: the ids that are still not
 // ported are listed here, so a zone that gains an object (or one that loses it) makes the test say so (remove the id from the list when it is ported).
@@ -454,6 +458,113 @@ static void MTZBoss_MakesSevenBallsThatOrbitTheShip(void) {
 }
 
 
+// The alpha's Emerald Hill boss, from the level's event to its parts: in act 2, as the camera reaches $26E0, the event puts the ship (object 56, subtype $81) in the arena, locks the screen and starts the boss's music; the ship makes
+// its face and the car's parts (objects 5B), and the explosions of its wreck are object 58
+static void EHZBoss_TheEventPutsTheAlphasShipInTheArena(void) {
+    for (int i = 0; i < 0x80; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    level_id = LEVEL_ID(ZoneId_EHZ, 1);
+    dle_routine = 0;
+    boss_status = 0;
+    lock_screen = false;
+    scrpos_x.f.u = 0x2700;
+    DynamicLevelEvents();
+    CHECK(lock_screen);
+    CHECK_EQ(dle_routine, 2);
+    Object *ship = NULL;
+    for (int i = 1; i < 0x80; i++)
+        if (objects[i].type == 0x56)
+            ship = &objects[i];
+    CHECK(ship != NULL);
+    if (ship == NULL)
+        return;
+    CHECK_EQ(ship->pos.l.x.f.u, 0x29D0);
+    Obj_EHZBoss(ship);
+    CHECK_EQ(ship->pos.l.x.f.u, 0x2A00); // (the ship is put at $2A00,$2C0, out of the arena, and slides in from the right)
+    CHECK_EQ(ship->pos.l.y.f.u, 0x2C0);
+    int parts = 0;
+    for (int i = 1; i < 0x80; i++)
+        if (objects[i].type == 0x5B)
+            parts++;
+    CHECK_EQ(parts, 6); // (the car's body, its three wheels and spike, and the cockpit's glass, as the alpha makes them)
+}
+
+// The rotating cylinder of Metropolis (object 06 with bit 7 in its subtype): a character level with its middle is taken onto it and carried round (his height follows a cosine, his flip angle goes on by 4), and let go at its end
+static void Cylinder_TakesACharacterAndLetsGoAtTheEnd(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    objects[0].type = ObjId_Sonic;
+    objects[0].y_rad = 0x13;
+    objects[0].pos.l.x.f.u = 0x500;
+    objects[0].pos.l.y.f.u = 0x429; // (his feet 4 pixels into the cylinder's top)
+    objects[0].inertia = 0x700;
+    scrpos_x.f.u = 0x400;
+    scrpos_y.f.u = 0x300;
+    Object *cyl = &objects[0x20];
+    cyl->type = 6;
+    cyl->scratch.u8[0] = 0x80;
+    cyl->pos.l.x.f.u = 0x500;
+    cyl->pos.l.y.f.u = 0x400;
+    Obj_Spiral(cyl);
+    CHECK_EQ(cyl->routine, 4);
+    CHECK(cyl->status.b & 8); // (he is on it)
+    CHECK_EQ(objects[0].pos.l.y.f.u, 0x428);
+    Obj_Spiral(cyl);
+    const int16_t y_start = objects[0].pos.l.y.f.u;
+    for (int f = 0; f < 4; f++)
+        Obj_Spiral(cyl);
+    CHECK(objects[0].pos.l.y.f.u != y_start || ((Scratch_Sonic *)&objects[0].scratch)->flip_angle != 0); // (round it)
+    objects[0].pos.l.x.f.u = 0x500 + 0x100; // (past its end)
+    Obj_Spiral(cyl);
+    CHECK(!(cyl->status.b & 8));
+    CHECK(objects[0].status.p.f.in_air);
+}
+
+// The end of an act: the characters that run on to the right are despawned when they leave the screen (not before), so they do not fall out of the level and die under the results card
+static void Signpost_LevelEndDespawnsCharactersThatLeaveTheScreen(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    objects[0].type = ObjId_Sonic;
+    scrpos_x.f.u = 0x1000;
+    Object *sign = &objects[0x20];
+    sign->type = ObjId_Signpost;
+    sign->routine = 8;
+    sign->pos.l.x.f.u = 0x1000 + 0x80;
+    objects[0].pos.l.x.f.u = 0x1000 + SCREEN_WIDTH - 8; // (still on the screen)
+    Obj_Signpost(sign);
+    CHECK_EQ(objects[0].type, ObjId_Sonic);
+    objects[0].pos.l.x.f.u = 0x1000 + SCREEN_WIDTH + 8; // (gone off its right)
+    Obj_Signpost(sign);
+    CHECK_EQ(objects[0].type, ObjId_Null);
+}
+
+// A level that wraps vertically (its top limit is exactly $FF00, its bottom $800: Metropolis): with the camera near the bottom of the level and the character just over the wrap (at the top), the camera goes on (it is
+// $60 above him) and does not jump a whole level's height, and one level's height up is the same: the distance is taken modulo $800
+static void Scroll_AWrappingLevelKeepsTheCameraWithACharacterOverTheWrap(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    objects[0].type = ObjId_Sonic;
+    limit_top2 = 0xFF00;
+    limit_btm2 = 0x800;
+    look_shift = 0x60;
+    bgscrollvert = false;
+    scrpos_y.v = 0x7C0 << 16;
+    objects[0].pos.l.y.f.u = 0x7C0 + 0x60; // (the character is where the camera wants him: $60 down)
+    objects[0].pos.l.y.f.u &= 0x7FF;       // (= $20, over the wrap)
+    ScrollVertical();
+    CHECK(scrpos_y.f.u == 0x7C0 || scrpos_y.f.u == 0x7C0 - 0x800 + 0x800); // (it stays)
+    CHECK(scrshift_y == 0);
+    objects[0].pos.l.y.f.u = 0x7E0; // (above where he should be: the camera goes up a little, not a level's height)
+    ScrollVertical();
+    CHECK(scrpos_y.f.u < 0x7C0 && scrpos_y.f.u > 0x7C0 - 0x20);
+    scrpos_y.v = 0x7F0 << 16;
+    objects[0].pos.l.y.f.u = 0x10; // (over the wrap, $20 below the camera's top: well above its reference, $40 up)
+    ScrollVertical();
+    CHECK(scrpos_y.f.u < 0x7F0 && scrpos_y.f.u > 0x7F0 - 0x20);
+    limit_top2 = 0;
+    limit_btm2 = 0x720;
+}
+
 void RegisterObjectCoverageTests(void) {
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
     RUN_TEST(TailsTails_ShowWhileRollingAndDashing);
@@ -461,6 +572,10 @@ void RegisterObjectCoverageTests(void) {
     RUN_TEST(Countdown_CountsAPlayersAirAndDrownsHim);
     RUN_TEST(Coconuts_ThrowACoconutWhenSonicIsNear);
     RUN_TEST(BossExplosion_RunsSevenFramesAndGoes);
+    RUN_TEST(Scroll_AWrappingLevelKeepsTheCameraWithACharacterOverTheWrap);
+    RUN_TEST(Signpost_LevelEndDespawnsCharactersThatLeaveTheScreen);
+    RUN_TEST(Cylinder_TakesACharacterAndLetsGoAtTheEnd);
+    RUN_TEST(EHZBoss_TheEventPutsTheAlphasShipInTheArena);
     RUN_TEST(Slicer_RaisesItsBladesAndSendsTwoPincers);
     RUN_TEST(MTZBoss_MakesSevenBallsThatOrbitTheShip);
     RUN_TEST(Animals_ZonesHaveTheirPairAndEndAnimalsTheirOwnMovement);

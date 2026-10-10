@@ -56,23 +56,23 @@ static Object *Spawn(Object *slot, uint8_t type, uint8_t subtype, int16_t x, int
 
 static void MTZ_TheTeleporterTakesACharacterAlongItsPath(void) {
     Reset();
-    // path 1: two points, (0xBD8, 0x5F0) and (0xE00, 0x5F0)
-    scrpos_x.f.u = 0xB00;
-    Object *tele = Spawn(SLOT(0x20), 0x67, 1, 0xBD8, 0x5F0);
+    // path 1 (the alpha's): two points, (0xC58, 0x5F0) and (0xE28, 0x5F0)
+    scrpos_x.f.u = 0xB80;
+    Object *tele = Spawn(SLOT(0x20), 0x67, 1, 0xC58, 0x5F0);
     Obj_MTZTeleport(tele);
-    player->pos.l.x.f.u = 0xBD8;
+    player->pos.l.x.f.u = 0xC58;
     player->pos.l.y.f.u = 0x5F0 - 0x10;
     Obj_MTZTeleport(tele);
     CHECK_EQ(OBJ_CONTROL(player), 0x81);
-    CHECK_EQ(player->pos.l.x.f.u, 0xBD8);
+    CHECK_EQ(player->pos.l.x.f.u, 0xC58);
     CHECK_EQ(player->pos.l.y.f.u, 0x5F0);
     int frames = 0;
     while (OBJ_CONTROL(player) != 0 && frames < 2000) {
         Obj_MTZTeleport(tele);
         frames++;
     }
-    CHECK(frames > 64 + 30 && frames < 64 + 45); // (the lift is 64 frames, the path $228 pixels at 16 a frame)
-    CHECK_EQ(player->pos.l.x.f.u, 0xE00);
+    CHECK(frames > 64 + 20 && frames < 64 + 40); // (the lift is 64 frames, the path $1D0 pixels at 16 a frame)
+    CHECK_EQ(player->pos.l.x.f.u, 0xE28);
     CHECK_EQ(player->pos.l.y.f.u, 0x5F0);
     CHECK_EQ(player->xsp, 0);
     CHECK_EQ(player->ysp, 0);
@@ -80,9 +80,9 @@ static void MTZ_TheTeleporterTakesACharacterAlongItsPath(void) {
 
 static void MTZ_ANegativeSubtypeSendsHimBackwards(void) {
     Reset();
-    Object *tele = Spawn(SLOT(0x20), 0x67, 0xFF, 0xE00, 0x5F0); // (path 1, the other way)
+    Object *tele = Spawn(SLOT(0x20), 0x67, 0xFF, 0xE28, 0x5F0); // (path 1, the other way)
     Obj_MTZTeleport(tele);
-    player->pos.l.x.f.u = 0xE00;
+    player->pos.l.x.f.u = 0xE28;
     player->pos.l.y.f.u = 0x5F0 - 0x10;
     Obj_MTZTeleport(tele);
     int frames = 0;
@@ -90,17 +90,17 @@ static void MTZ_ANegativeSubtypeSendsHimBackwards(void) {
         Obj_MTZTeleport(tele);
         frames++;
     }
-    CHECK_EQ(player->pos.l.x.f.u, 0xBD8);
+    CHECK_EQ(player->pos.l.x.f.u, 0xC58);
     CHECK_EQ(player->pos.l.y.f.u, 0x5F0);
 }
 
 static void MTZ_ALongerPathFollowsEveryPoint(void) {
     Reset();
-    // path 0: six points, from (0x728, 0x270) round to (0x728, 0x3F0)
-    scrpos_x.f.u = 0x620;
-    Object *tele = Spawn(SLOT(0x20), 0x67, 0x10, 0x728, 0x270); // (bit 4: he keeps his speed)
+    // path 0 (the alpha's): six points, from (0x7A8, 0x270) round to (0x7A8, 0x3F0)
+    scrpos_x.f.u = 0x6A0;
+    Object *tele = Spawn(SLOT(0x20), 0x67, 0x10, 0x7A8, 0x270); // (bit 4: he keeps his speed)
     Obj_MTZTeleport(tele);
-    player->pos.l.x.f.u = 0x728;
+    player->pos.l.x.f.u = 0x7A8;
     player->pos.l.y.f.u = 0x270 - 0x10;
     Obj_MTZTeleport(tele);
     int frames = 0;
@@ -108,23 +108,23 @@ static void MTZ_ALongerPathFollowsEveryPoint(void) {
         Obj_MTZTeleport(tele);
         frames++;
     }
-    CHECK_EQ(player->pos.l.x.f.u, 0x728);
+    CHECK_EQ(player->pos.l.x.f.u, 0x7A8);
     CHECK_EQ(player->pos.l.y.f.u, 0x3F0);
     CHECK(player->ysp != 0 || player->xsp != 0); // (bit 4: still going)
 }
 
 static void MTZ_TheTeleporterIgnoresACharacterThatIsBusy(void) {
     Reset();
-    scrpos_x.f.u = 0xB00;
-    Object *tele = Spawn(SLOT(0x20), 0x67, 1, 0xBD8, 0x5F0);
+    scrpos_x.f.u = 0xB80;
+    Object *tele = Spawn(SLOT(0x20), 0x67, 1, 0xC58, 0x5F0);
     Obj_MTZTeleport(tele);
-    player->pos.l.x.f.u = 0xBD8;
+    player->pos.l.x.f.u = 0xC58;
     player->pos.l.y.f.u = 0x5F0 - 0x10;
     OBJ_CONTROL(player) = 0x81; // (in a tube)
     Obj_MTZTeleport(tele);
     CHECK_EQ(tele->scratch.u8[0x2C - 0x28], 0);
     OBJ_CONTROL(player) = 0;
-    player->pos.l.x.f.u = 0xBD8 + 0x20; // (and out of reach)
+    player->pos.l.x.f.u = 0xC58 + 0x20; // (and out of reach)
     Obj_MTZTeleport(tele);
     CHECK_EQ(tele->scratch.u8[0x2C - 0x28], 0);
 }

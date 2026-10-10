@@ -5,6 +5,7 @@
 #include "LevelScroll.h"
 #include "Sound.h"
 #include "SplitScreen.h"
+#include "Object/Tails.h"
 
 #include "Macros.h"
 
@@ -19,6 +20,15 @@ static const int8_t sparkle_pos[8][2] = {
     { -24, 8 },
     { 24, 16 },
 };
+
+// (the type is cleared and the rest of the object is left as it is, so that the camera, which follows his place, stays where it is)
+static void DespawnWhenOffScreenRight(Object *chr) {
+    if (chr->type == ObjId_Null)
+        return;
+    const int16_t x = (int16_t)(chr->pos.l.x.f.u - scrpos_x.f.u);
+    if (x >= SCREEN_WIDTH)
+        chr->type = ObjId_Null;
+}
 
 void Obj_Signpost(Object* obj) {
     Scratch_Signpost* scratch = (Scratch_Signpost*)&obj->scratch;
@@ -102,7 +112,10 @@ void Obj_Signpost(Object* obj) {
         obj->routine += 2;
         GotThroughAct();
         break;
-    case 8: // Level end
+    case 8: // Level end: the characters run on to the right, and are gone (despawned) when they leave the screen, so that they do not fall out of the level and die while the results card is up
+        DespawnWhenOffScreenRight(player);
+        if (TAILS_OBJ->type != ObjId_Null)
+            DespawnWhenOffScreenRight(TAILS_OBJ);
         break;
     }
 

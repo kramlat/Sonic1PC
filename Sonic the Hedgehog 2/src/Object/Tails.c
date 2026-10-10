@@ -1720,6 +1720,9 @@ void Obj_Tails(Object *obj) {
             }
         }
 
+        if (limit_top2 == 0xFF00) // (a level that wraps vertically: see Sonic.c)
+            obj->pos.l.y.f.u &= 0x7FF;
+
         Tails_Display(obj);
         Tails_Water(obj);
         scratch->front_angle = angle_buffer0;

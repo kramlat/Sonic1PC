@@ -862,11 +862,21 @@ static void LimitScrollBottom(dword_s *scroll) {
 	}
 }
 
+// A level whose top limit is exactly $FF00 wraps vertically (Metropolis, above all, uses it in both directions): the camera and the characters go on past the top or the bottom as if the level's 8 rows were
+// round a drum, so everything that compares places in height does it modulo $800
+static bool LevelWrapsVertically(void) {
+	return limit_top2 == 0xFF00;
+}
+
 void ScrollVertical(void) {
 	dword_s scroll;
 	int16_t y = player->pos.l.y.f.u - scrpos_y.f.u;
 	uint16_t speed = 0;
 	bool force_snap = false;
+
+	// The distance between the player and the camera is taken modulo $800 in a wrapping level, so that he and the camera on either side of the wrap (he at the top of the level, it just before the bottom) are close
+	if (LevelWrapsVertically())
+		y &= 0x7FF;
 
 	if (player->status.p.f.in_ball)
 		y -= 5;
