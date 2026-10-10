@@ -16,7 +16,10 @@ void HTZQuake_SpritesNormal(void); // the sprites follow the camera itself again
 
 // The second view of a split screen shakes with the ground too (the prototype's two player scroll never does): what its foreground is moved down by, and the shake of its background and sprites
 extern int16_t htz_p2_shake_y;
-void HTZQuake_ShakeP2(void); // after the zone's deformation has run for the second camera
+void HTZQuake_SetView(int view);  // the view the deformation runs for (0 the first, 1 the second: LevelScroll.c sets it around the second's)
+int HTZQuake_Owner(void);         // the view whose camera started the quake that is on (the other only shakes)
+void HTZQuake_EventsP2(void);     // the events for the second camera (called with it swapped in)
+void HTZQuake_ShakeView(void);    // after the zone's usual deformation for that view: it shakes with the ground
 
 void Obj_HTZQuakeBlock(Object *obj);
 

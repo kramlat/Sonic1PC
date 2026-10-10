@@ -30,20 +30,38 @@ static int16_t htz_bg_x_diff, htz_bg_y_diff; // (Camera_BG_X_pos_diff and _Y_: a
 static uint8_t htz_direction;                // HTZ_Terrain_Direction
 static int16_t htz_delay;                    // HTZ_Terrain_Delay
 
-// The sprites follow the camera's copy (Camera_X_pos_copy, _Y_), which the shake moves with the screen: its own variables while a quake's branch runs, the camera itself otherwise
-static int16_t sprite_cam_x, sprite_cam_y;
-static void SpritesFollow(bool copy) {
-    sprite_view.layer[1].x = copy ? &sprite_cam_x : &scrpos_x.f.u;
-    sprite_view.layer[1].y = copy ? &sprite_cam_y : &scrpos_y.f.u;
+// The sprites follow the camera's copy (Camera_X_pos_copy, _Y_), which the shake moves with the screen: its own variables while a quake's branch runs, the camera itself otherwise. Each view has its own
+// (the second view of a split screen follows the second camera, and any layer of it).
+static int16_t sprite_cam_x[2], sprite_cam_y[2];
+static int cur_view;       // the view the deformation is running for now (0 the first, 1 the second)
+static uint8_t quake_owner; // the view whose camera started the quake: its events and its background follow it
+
+void HTZQuake_SetView(int view) {
+    cur_view = view;
+}
+
+int HTZQuake_Owner(void) {
+    return quake_owner;
+}
+
+static void SpritesFollow(int view, bool copy) {
+    if (view == 0) {
+        sprite_view.layer[1].x = copy ? &sprite_cam_x[0] : &scrpos_x.f.u;
+        sprite_view.layer[1].y = copy ? &sprite_cam_y[0] : &scrpos_y.f.u;
+        return;
+    }
+    for (int layer = 1; layer < 4; layer++) {
+        sprite_view_p2.layer[layer].x = copy ? &sprite_cam_x[1] : &scrpos_x_p2.f.u;
+        sprite_view_p2.layer[layer].y = copy ? &sprite_cam_y[1] : &scrpos_y_p2.f.u;
+    }
 }
 
 void HTZQuake_Reset(void) {
-    SpritesFollow(false);
-    for (int layer = 1; layer < 4; layer++) { // (the second view's sprites follow its own camera again)
-        sprite_view_p2.layer[layer].x = &scrpos_x_p2.f.u;
-        sprite_view_p2.layer[layer].y = &scrpos_y_p2.f.u;
-    }
+    SpritesFollow(0, false);
+    SpritesFollow(1, false); // (the second view's sprites follow its own camera again)
     htz_p2_shake_y = 0;
+    quake_owner = 0;
+    cur_view = 0;
     htz_quake = htz_shaking = 0;
     htz_direction = 0;
     htz_delay = 0;
@@ -136,10 +154,10 @@ static void Follow(void) {
 
 // DynResize_HTz: Hill Top's act 1 (loc_7B00, loc_7B6C, loc_7C20) and act 2 (loc_7D0E ... loc_7F5C)
 void HTZQuake_SpritesNormal(void) {
-    SpritesFollow(false);
+    SpritesFollow(0, false);
 }
 
-void HTZQuake_Events(void) {
+static void RunEvents(void) {
     const uint16_t camx = (uint16_t)scrpos_x.f.u, camy = (uint16_t)scrpos_y.f.u;
     if (LEVEL_ACT(level_id) == 0) {
         switch (dle_routine) {
@@ -234,6 +252,26 @@ void HTZQuake_Events(void) {
     }
 }
 
+// The events follow a camera, and a split screen has two: the quake belongs to the view whose camera starts it (the first view's events run first, the second's when the first's have not started one),
+// and the other view only shakes with the ground (HTZQuake_ShakeView). The second camera's events run with it swapped in (LevelScroll.c).
+void HTZQuake_Events(void) {
+    if (htz_quake && quake_owner == 1)
+        return;
+    const uint8_t was = htz_quake;
+    RunEvents();
+    if (!was && htz_quake)
+        quake_owner = 0;
+}
+
+void HTZQuake_EventsP2(void) {
+    if (htz_quake && quake_owner == 0)
+        return;
+    const uint8_t was = htz_quake;
+    RunEvents();
+    if (!was && htz_quake)
+        quake_owner = 1;
+}
+
 // loc_5F60: how far the screen shakes (y, then x) by the frame
 static const uint8_t shake_table[0x42] = {
     1, 2, 1, 3, 1, 2, 2, 1, 2, 3, 1, 2, 1, 2, 0, 0, 2, 0, 3, 2, 2, 3, 2, 2, 1, 3, 0, 0, 1, 0, 1, 3,
@@ -242,25 +280,32 @@ static const uint8_t shake_table[0x42] = {
 
 int16_t htz_camera_shake_x, htz_camera_shake_y; // what the sprites are moved by (Camera_X_pos_copy and _Y_)
 
-// loc_6236, the shaking branch of Bg_Scroll_HTz: the background moves by the events' diffs, the screen shakes while the ground moves
+int16_t htz_p2_shake_y; // what the second view's foreground is moved down by (SplitScreen.c)
+
+// loc_6236, the shaking branch of Bg_Scroll_HTz, for the view that owns the quake: the background moves by the events' diffs, the screen shakes while the ground moves
 void HTZQuake_Deform(void) {
+    const int view = cur_view;
     UpdateBGScroll(&bg_scrpos_x, (int32_t)htz_bg_x_diff << 8, &bg1_xblock, &bg1_scroll_flags, SCROLL_FLAG_LEFT, SCROLL_FLAG_RIGHT); // (Scroll_Block2)
     BGScroll_YRelative((int32_t)htz_bg_y_diff << 8);                                                                                    // (Scroll_Block3)
     vid_scrpos_y_dup = scrpos_y.f.u;
     vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-    int16_t shake_x = 0;
-    htz_camera_shake_x = htz_camera_shake_y = 0;
+    int16_t shake_x = 0, shake_y = 0;
     if (htz_shaking) {
         const uint8_t *shake = &shake_table[frame_count & 0x3F];
         vid_scrpos_y_dup = (int16_t)(vid_scrpos_y_dup + shake[0]);
         vid_bg_scrpos_y_dup = (int16_t)(vid_bg_scrpos_y_dup + shake[0]);
-        htz_camera_shake_y = shake[0];
+        shake_y = shake[0];
         shake_x = shake[1];
-        htz_camera_shake_x = shake_x;
     }
-    sprite_cam_x = (int16_t)(scrpos_x.f.u + shake_x);
-    sprite_cam_y = (int16_t)(scrpos_y.f.u + htz_camera_shake_y);
-    SpritesFollow(true);
+    if (view == 0) {
+        htz_camera_shake_x = shake_x;
+        htz_camera_shake_y = shake_y;
+    } else {
+        htz_p2_shake_y = shake_y;
+    }
+    sprite_cam_x[view] = (int16_t)(scrpos_x.f.u + shake_x);
+    sprite_cam_y[view] = (int16_t)(scrpos_y.f.u + shake_y);
+    SpritesFollow(view, true);
     int16_t *bufp = &hscroll_buffer[0][0];
     for (int i = 0; i < SCREEN_HEIGHT; i++) {
         *bufp++ = (int16_t)-(scrpos_x.f.u + shake_x);
@@ -268,28 +313,35 @@ void HTZQuake_Deform(void) {
     }
 }
 
-// The second view's shake: the same as the first's (the ground is the same ground), on the second camera: its background and scroll lines, its foreground (SplitScreen.c adds htz_p2_shake_y) and its sprites
-int16_t htz_p2_shake_y;
-static int16_t sprite_cam_x_p2, sprite_cam_y_p2;
-
-void HTZQuake_ShakeP2(void) {
-    int16_t shake_x = 0;
-    htz_p2_shake_y = 0;
+// The view that does not own the quake (or has none to own: the other view's quake is the same ground) shakes with the ground by the same table and frame: its background, scroll lines, foreground (the first
+// by vid_scrpos_y_dup, the second by htz_p2_shake_y, which SplitScreen.c adds) and sprites. Run after the zone's usual deformation for that view's camera.
+void HTZQuake_ShakeView(void) {
+    const int view = cur_view;
+    int16_t shake_x = 0, shake_y = 0;
     if (htz_shaking) {
         const uint8_t *shake = &shake_table[frame_count & 0x3F];
-        htz_p2_shake_y = shake[0];
+        shake_y = shake[0];
         shake_x = shake[1];
-        vid_bg_scrpos_y_dup = (int16_t)(vid_bg_scrpos_y_dup + shake[0]);
+        if (view == 0)
+            vid_scrpos_y_dup = (int16_t)(vid_scrpos_y_dup + shake_y);
+        vid_bg_scrpos_y_dup = (int16_t)(vid_bg_scrpos_y_dup + shake_y);
         for (int i = 0; i < SCREEN_HEIGHT; i++) {
             hscroll_buffer[i][0] = (int16_t)(hscroll_buffer[i][0] - shake_x);
             hscroll_buffer[i][1] = (int16_t)(hscroll_buffer[i][1] - shake_x);
         }
     }
-    sprite_cam_x_p2 = (int16_t)(scrpos_x.f.u + shake_x); // (scrpos is the second camera while its deformation runs)
-    sprite_cam_y_p2 = (int16_t)(scrpos_y.f.u + htz_p2_shake_y);
-    for (int layer = 1; layer < 4; layer++) {
-        sprite_view_p2.layer[layer].x = &sprite_cam_x_p2;
-        sprite_view_p2.layer[layer].y = &sprite_cam_y_p2;
+    if (view == 0) {
+        htz_camera_shake_x = shake_x;
+        htz_camera_shake_y = shake_y;
+    } else {
+        htz_p2_shake_y = shake_y;
+    }
+    if (shake_x != 0 || shake_y != 0 || view == 1) {
+        sprite_cam_x[view] = (int16_t)(scrpos_x.f.u + shake_x); // (scrpos is the second camera while its deformation runs)
+        sprite_cam_y[view] = (int16_t)(scrpos_y.f.u + shake_y);
+        SpritesFollow(view, true);
+    } else {
+        SpritesFollow(view, false);
     }
 }
 
