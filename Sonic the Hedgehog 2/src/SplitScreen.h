@@ -24,6 +24,9 @@ int16_t SplitScreen_FollowX(void);
 // with no split screen, the one camera). The second camera's left limit is otherwise the level's own.
 void SplitScreen_LockCameras(int16_t x, int16_t half_width);
 
+// The cameras reaching the end of the level (the sign's stretch, from end_x): each held in its own view. True when the sign's art should load now (the first to get there)
+bool SplitScreen_ReachEnd(int16_t end_x);
+
 // Once a frame, with the first camera moved: moves the second camera after Tails and fills the second view's scroll
 void SplitScreen_Scroll(void);
 

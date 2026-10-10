@@ -186,6 +186,27 @@ static void Split_SignInTheSecondViewLocksTheSecondOnly(void) {
     Teardown();
 }
 
+static void Split_TheEndOfTheLevelHoldsOnlyTheViewThatReachedIt(void) {
+    Setup(true);
+    const int16_t end_x = 0x1000;
+    scrpos_x.f.u = 0x1010; // the first camera has got there, the second has not
+    scrpos_x_p2.f.u = 0x400;
+    limit_left2 = 0;
+    CHECK(SplitScreen_ReachEnd(end_x)); // (the sign's art loads)
+    CHECK_EQ(limit_left2, end_x);
+    TAILS_OBJ->pos.l.x.f.u = 0x400 + SplitScreen_FollowX() - 8;
+    TAILS_OBJ->pos.l.y.f.u = scrpos_y_p2.f.u + 96;
+    SplitScreen_Scroll();
+    CHECK_EQ(scrpos_x_p2.f.u, 0x400 - 8); // (the second view is still free to go back)
+    scrpos_x_p2.f.u = 0x1020; // now the second gets there: held, and no second load of the art
+    CHECK(!SplitScreen_ReachEnd(end_x));
+    TAILS_OBJ->pos.l.x.f.u = 0x800; // (Tails far behind pulls the camera back, but not past the end's limit)
+    for (int i = 0; i < 4; i++)
+        SplitScreen_Scroll();
+    CHECK_EQ(scrpos_x_p2.f.u, end_x);
+    Teardown();
+}
+
 static void Split_SignInSightOfNeitherViewLocksNeither(void) {
     Setup(true);
     scrpos_x_p2.f.u = 0x1000;
@@ -256,6 +277,7 @@ void RegisterCameraTests(void) {
     RUN_TEST(Split_OnePlayerModeHasNoSecondView);
     RUN_TEST(Split_SignInTheFirstViewLocksTheFirstOnly);
     RUN_TEST(Split_SignInTheSecondViewLocksTheSecondOnly);
+    RUN_TEST(Split_TheEndOfTheLevelHoldsOnlyTheViewThatReachedIt);
     RUN_TEST(Split_SignInSightOfNeitherViewLocksNeither);
     RUN_TEST(Split_SignInSightOfBothLocksBoth);
     RUN_TEST(Split_SignJustOutsideTheViewIsNotInSight);

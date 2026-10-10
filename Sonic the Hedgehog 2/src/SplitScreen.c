@@ -97,6 +97,22 @@ void SplitScreen_LockCameras(int16_t x, int16_t half_width) {
         left_limit_p2 = limit_right2;
 }
 
+// The level's end, found by the cameras (SignpostArtLoad): a camera that has got to the sign's stretch (end_x) can no longer go back from it. Each view's left limit is its own, so the first camera getting there
+// holds the first view only. True when the end is newly reached by a camera and no other has been held there before (the sign's art is loaded then, once).
+bool SplitScreen_ReachEnd(int16_t end_x) {
+    const bool held = limit_left2 == (uint16_t)end_x || (camera_split && left_limit_p2 == (uint16_t)end_x);
+    bool reached = false;
+    if (scrpos_x.f.u >= end_x && limit_left2 != (uint16_t)end_x) {
+        limit_left2 = (uint16_t)end_x;
+        reached = true;
+    }
+    if (camera_split && scrpos_x_p2.f.u >= end_x && left_limit_p2 != (uint16_t)end_x) {
+        left_limit_p2 = (uint16_t)end_x;
+        reached = true;
+    }
+    return reached && !held;
+}
+
 // The second camera: Sonic's own rules (a dead zone of 16 pixels at the following place, at most 16 pixels a frame, the level's limits), with a simpler vertical, which is Sonic's without the look
 // up and down
 static void MoveCameraP2(void) {

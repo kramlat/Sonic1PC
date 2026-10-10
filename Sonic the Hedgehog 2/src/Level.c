@@ -338,6 +338,9 @@ void ColIndexLoad(void) {
 // but this port has not ported yet (the boss objects are empty, so the camera locks there and nothing else happens). The camera limits are named as in Sonic 1: limit_btm1 is
 // Camera_Max_Y_pos_target, limit_btm2 Camera_Max_Y_pos, limit_top2 Camera_Min_Y_pos, limit_left2 Camera_Min_X_pos.
 void DynamicLevelEvents(void) {
+    // (The events follow the first camera and set limits for the whole level, which a split screen has two views of: its levels are the versus ones, without a boss, so the arena of Emerald Hill's act 2 is left out)
+    if (camera_split && LEVEL_ZONE(level_id) == ZoneId_EHZ)
+        return;
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_EHZ:
         if (LEVEL_ACT(level_id) != 1)
@@ -433,10 +436,8 @@ void SignpostArtLoad(void) {
 
     // Check if we've reached the end of the level
     int16_t end_x = limit_right2 - 0x100 - SCREEN_WIDEADD2;
-    if (scrpos_x.f.u >= end_x && time_count && limit_left2 != end_x) {
-        limit_left2 = end_x;
+    if (time_count && SplitScreen_ReachEnd(end_x))
         NewPLC(PlcId_Signpost);
-    }
 }
 
 // Level object loading: the engine's objects manager (ObjectsManager.h) on Sonic 1's layouts. Its load range (0x280 pixels ahead of the camera, 0x80 behind) is the
