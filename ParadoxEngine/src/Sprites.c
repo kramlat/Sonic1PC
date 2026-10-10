@@ -59,7 +59,7 @@ static const uint8_t sprite_sizes_2p[16] = { 0, 0, 1, 1, 4, 4, 5, 5, 8, 8, 9, 9,
 
 // Draws `count` consecutive sprite pieces (Mappings.h) with their origin at (x, y) in sprite coordinates. The flips mirror the whole sprite about that origin;
 // `base_tile` is added to every piece's tile; the 2-player form uses the pieces' second tile word and the half-height sizes.
-static void DrawPieces(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t base_tile, bool x_flip, bool y_flip, bool two_p, const uint8_t *piece, unsigned count) {
+static void DrawPieces(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t base_tile, const tilebank_t *bank, bool x_flip, bool y_flip, bool two_p, const uint8_t *piece, unsigned count) {
 	while (count-- > 0) {
 		//Don't overflow the sprite buffer
 		if (*sprite_i >= BUFFER_SPRITES)
@@ -77,14 +77,18 @@ static void DrawPieces(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 		int piece_width = ((map_size << 1) & 0x18) + 8;
 
 		//Write sprite
-		*(*sprite)++ = y_flip ? (uint16_t)(y - map_y - piece_height) : (uint16_t)(y + map_y); //y
-		*(*sprite)++ = ((two_p ? sprite_sizes_2p[map_size & 0xF] : map_size) << 8) | ++(*sprite_i); //size and link
+		sprite_t *out = (*sprite)++;
+		out->y = y_flip ? (uint16_t)(y - map_y - piece_height) : (uint16_t)(y + map_y);
+		out->size_link = (uint16_t)(((two_p ? sprite_sizes_2p[map_size & 0xF] : map_size) << 8) | ++(*sprite_i));
 		uint16_t tile = map_tile + base_tile;
 		if (x_flip)
 			tile ^= TILE_X_FLIP_AND;
 		if (y_flip)
 			tile ^= TILE_Y_FLIP_AND;
-		*(*sprite)++ = tile; //tile
+		out->tile = tile;
+		const tilebank_t *tile_bank = bank != NULL ? bank : TileBank_Main();
+		out->bank = tile_bank->id;
+		out->generation = tile_bank->generation;
 		uint16_t px = x_flip ? (uint16_t)(x - map_x - piece_width) : (uint16_t)(x + map_x);
 		// The VDP's sprite x is 9 bits. SCREEN_WIDTH is a variable, not a constant: a preprocessor test of it was always true (an unknown name is 0), so every picture wrapped at 512, and a child sprite far
 		// out on one side (a wide object's far corner) came in at the other, even in a widescreen picture, which has no use for the wrap
@@ -94,25 +98,25 @@ static void DrawPieces(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 		} else if (px == 0) {
 			px++;
 		}
-		*(*sprite)++ = px; //x
+		out->x = px;
 	}
 }
 
-void BuildSpr_Normal(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces) {
-	DrawPieces(sprite, sprite_i, x, y, tile, false, false, false, mappings, (unsigned)pieces + 1);
+void BuildSpr_Normal(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces) {
+	DrawPieces(sprite, sprite_i, x, y, tile, NULL, false, false, false, mappings, (unsigned)pieces + 1);
 }
 
 // One frame of an object's mappings, pieces and all, at a place on screen (Sonic 2's ChkDrawSprite)
-static void DrawFrame(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, const Object *obj, unsigned frame, bool two_p) {
+static void DrawFrame(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, const Object *obj, unsigned frame, bool two_p) {
 	const uint8_t *pieces;
 	uint16_t count = Mappings_FramePieces((const uint8_t *)obj->mappings, frame, &pieces);
 	if (count)
-		DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->render.f.x_flip, obj->render.f.y_flip, two_p, pieces, count);
+		DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->bank, obj->render.f.x_flip, obj->render.f.y_flip, two_p, pieces, count);
 }
 
 // BuildSprites_MultiDraw: an object that is a main sprite (frame, width_pixels, y_rad) and up to OBJECT_CHILDREN children placed in the level. Always against the
 // foreground camera. Out of the screen horizontally, and none of it is drawn; the main sprite's frame 0 means no main sprite.
-static void DrawMultiSprite(uint16_t **sprite, uint8_t *sprite_i, Object *obj, const SpriteView *view, int16_t top, bool two_p, int view_w) {
+static void DrawMultiSprite(sprite_t **sprite, uint8_t *sprite_i, Object *obj, const SpriteView *view, int16_t top, bool two_p, int view_w) {
 	const SpriteLayer *layer = &view->layer[1];
 	int16_t cam_x = *layer->x, cam_y = *layer->y;
 	bool wrap = view->wrap_y && !two_p;
@@ -165,7 +169,7 @@ static void DrawMultiSprite(uint16_t **sprite, uint8_t *sprite_i, Object *obj, c
 // One pass over the queued objects for one view: Sonic 2's BuildSprites_LevelLoop and the 2-player passes. `top` is where the view's top is in sprite
 // coordinates, `view_w` how wide it is (the cull checks use it). The first pass clears each object's on-screen flag; a second one only adds to it, so an object is
 // on screen if it is in either view.
-static void BuildPass(uint16_t **sprite, uint8_t *sprite_i, const SpriteView *view, int16_t top, bool two_p, bool clear_on_screen, int view_w) {
+static void BuildPass(sprite_t **sprite, uint8_t *sprite_i, const SpriteView *view, int16_t top, bool two_p, bool clear_on_screen, int view_w) {
 	struct SpriteQueue *queue = sprite_queue;
 	for (int i = 0; i < 8; i++, queue++) {
 		//Iterate through all queued objects
@@ -230,10 +234,10 @@ static void BuildPass(uint16_t **sprite, uint8_t *sprite_i, const SpriteView *vi
 				const uint8_t *pieces;
 				uint16_t count = Mappings_FramePieces((const uint8_t *)obj->mappings, obj->frame, &pieces);
 				if (count)
-					DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->render.f.x_flip, obj->render.f.y_flip, two_p, pieces, count);
+					DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->bank, obj->render.f.x_flip, obj->render.f.y_flip, two_p, pieces, count);
 			} else {
 				//Directly use object mappings pointer: one piece
-				DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->render.f.x_flip, obj->render.f.y_flip, two_p, (const uint8_t *)obj->mappings, 1);
+				DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->bank, obj->render.f.x_flip, obj->render.f.y_flip, two_p, (const uint8_t *)obj->mappings, 1);
 			}
 			obj->render.f.on_screen = true;
 		}
@@ -241,12 +245,12 @@ static void BuildPass(uint16_t **sprite, uint8_t *sprite_i, const SpriteView *vi
 }
 
 // Ends a sprite list. If the table is full, the last entry's link is cleared; otherwise the next entry is zeroed (a terminator)
-static void EndSpriteList(uint16_t *sprite, uint8_t sprite_i) {
+static void EndSpriteList(sprite_t *sprite, uint8_t sprite_i) {
 	if (sprite_i >= BUFFER_SPRITES) {
-		sprite[-3] &= 0xFF00; //Clear link byte
+		sprite[-1].size_link &= 0xFF00; //Clear link byte
 	} else {
-		*sprite++ = 0;
-		*sprite++ = 0;
+		sprite->y = 0;
+		sprite->size_link = 0;
 	}
 }
 
@@ -254,18 +258,18 @@ void BuildSprites(uint8_t *sprite_io) {
 	uint8_t sprite_i = 0;
 
 	if (sprite_split_screen == SPRITE_SPLIT_NONE) {
-		uint16_t *sprite = &sprite_buffer[0][0];
+		sprite_t *sprite = screen1p.sprite_table;
 		BuildPass(&sprite, &sprite_i, &sprite_view, SPRITE_TOP_1P, false, true, SCREEN_WIDTH);
 		sprite_count = sprite_i;
 		EndSpriteList(sprite, sprite_i);
 	} else if (sprite_split_screen == SPRITE_SPLIT_STACKED) {
 		//Stacked: two ordinary views, each the whole picture (the VDP squashes each into its half), with ordinary tiles and sizes
-		uint16_t *sprite = &sprite_buffer[0][0];
+		sprite_t *sprite = screen1p.sprite_table;
 		BuildPass(&sprite, &sprite_i, &sprite_view, SPRITE_TOP_1P, false, true, SCREEN_WIDTH);
 		sprite_count = sprite_i;
 		EndSpriteList(sprite, sprite_i);
 
-		sprite = &sprite_buffer_p2[0][0];
+		sprite = screen2p.sprite_table;
 		sprite_i = 0;
 		BuildPass(&sprite, &sprite_i, &sprite_view_p2, SPRITE_TOP_1P, false, false, SCREEN_WIDTH);
 		sprite_count = sprite_i;
@@ -274,12 +278,12 @@ void BuildSprites(uint8_t *sprite_io) {
 		//Side by side: ordinary tiles and sizes, each view the left or right part of the picture (the VDP counts sprite X from each view's own left edge), both
 		//tops at the usual 128
 		const int w1 = SCREEN_WIDTH / 2, w2 = SCREEN_WIDTH - w1;
-		uint16_t *sprite = &sprite_buffer[0][0];
+		sprite_t *sprite = screen1p.sprite_table;
 		BuildPass(&sprite, &sprite_i, &sprite_view, SPRITE_TOP_1P, false, true, w1);
 		sprite_count = sprite_i;
 		EndSpriteList(sprite, sprite_i);
 
-		sprite = &sprite_buffer_p2[0][0];
+		sprite = screen2p.sprite_table;
 		sprite_i = 0;
 		BuildPass(&sprite, &sprite_i, &sprite_view_p2, SPRITE_TOP_1P, false, false, w2);
 		sprite_count = sprite_i;

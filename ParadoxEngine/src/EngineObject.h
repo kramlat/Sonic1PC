@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdint.h>
+#include "TileBank.h"
+#include "Viewport.h"
 #include <stdbool.h>
 
 #include "Types.h"
@@ -82,6 +84,7 @@ typedef struct {
 	ObjectRender render;     //Object render
 	uint16_t tile;           //Object base tile
 	const void *mappings;    //Object mappings
+	const tilebank_t *bank;  //The tile bank its art is in (NULL: the main bank)
 	union {
 		struct {
 			dword_s x, y;
@@ -147,7 +150,7 @@ Object *FindFreeObj(void);
 Object *FindNextFreeObj(Object *obj);
 void ExecuteObjects(void);
 
-void BuildSpr_Normal(uint16_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces);
+void BuildSpr_Normal(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces);
 void BuildSprites(uint8_t *sprite_io);
 
 void AnimateSprite(Object *obj, const uint8_t *anim_script);

@@ -24,7 +24,7 @@
 // (120) stays comfortably under that wall, and is already far more than
 // any real level scene needs (a busy scene was measured well under 50
 // total this session).
-#define BUFFER_SPRITES 0x78
+#define BUFFER_SPRITES VIEWPORT_SPRITES
 
 //Video globals
 extern uint8_t vbla_routine;
@@ -40,8 +40,7 @@ extern int16_t hbla_counter; //v_hblank_line: the scanline the HBlank H-int is c
 
 extern int16_t vid_scrpos_y_dup, vid_bg_scrpos_y_dup, vid_scrpos_x_dup, vid_bg_scrpos_x_dup, vid_bg3_scrpos_y_dup, vid_bg3_scrpos_x_dup;
 
-extern uint16_t sprite_buffer[BUFFER_SPRITES][4];
-extern uint16_t sprite_buffer_p2[BUFFER_SPRITES][4]; //The split screen's second player's sprite table (Sonic 2's Sprite_Table_P2)
+//(The sprite tables are the viewports': screen1p.sprite_table and screen2p.sprite_table, the second being the split screen's second player's, Sonic 2's Sprite_Table_P2)
 extern int16_t hscroll_buffer[SCREEN_MAX_HEIGHT][2];
 
 //The split screen's second view (see VDP_SetSplitScreen) is screen2p (Viewport.h). Its horizontal scroll (a foreground and a background X for each line, as hscroll_buffer's) is built in hscroll_buffer_p2 and copied

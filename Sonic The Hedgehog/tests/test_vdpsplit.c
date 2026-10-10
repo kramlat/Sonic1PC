@@ -97,14 +97,14 @@ static void VDPSplit_StackedSpritesAreOrdinaryOnesInEachHalf(void) {
     Prepare();
     SetPattern(4, 3);
     SetPattern(6, 2);
-    static uint16_t table1[2][4], table2[2][4];
+    static sprite_t table1[2], table2[2];
     memset(table1, 0, sizeof(table1));
     memset(table2, 0, sizeof(table2));
     // One cell (width 0, height 0) at x 10, line 5 of the first view; the second view's sprite at line 3 of its own
-    table1[0][0] = 128 + 5;  table1[0][1] = 0x0000; table1[0][2] = 4; table1[0][3] = 128 + 10;
-    table2[0][0] = 128 + 3; table2[0][1] = 0x0000; table2[0][2] = 6; table2[0][3] = 128 + 20;
-    screen1p.sprites = &table1[0][0];
-    screen2p.sprites = &table2[0][0];
+    table1[0] = (sprite_t){ 128 + 5, 0x0000, 4, 128 + 10, 0, 0 };
+    table2[0] = (sprite_t){ 128 + 3, 0x0000, 6, 128 + 20, 0, 0 };
+    screen1p.sprites = table1;
+    screen2p.sprites = table2;
     VDP_SetSplitScreen(VDP_SPLIT_STACKED);
     VDP_DrawFrame();
     int pitch, rows;

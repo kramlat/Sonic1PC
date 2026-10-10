@@ -58,6 +58,19 @@ void TileBank_Write(tilebank_t *bank, size_t tile, const void *data, size_t byte
 	memcpy(bank->patterns + tile * 32, data, bytes);
 }
 
+const tilebank_t *TileBank_Get(uint8_t id, uint8_t generation) {
+	Init();
+	const tilebank_t *bank = &banks[id % TILEBANKS];
+	if (bank->live && bank->generation == generation)
+		return bank;
+	tilebank_stale_count++;
+	if (tilebank_stale_fatal) {
+		fprintf(stderr, "TileBank: a reference to a bank that is not there (bank %u, generation %u)\n", id, generation);
+		abort();
+	}
+	return NULL;
+}
+
 const uint8_t *TileBank_Pattern(const tile_entry_t *entry) {
 	Init();
 	const tilebank_t *bank = &banks[entry->bank % TILEBANKS];

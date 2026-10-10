@@ -259,7 +259,7 @@ static uint32_t (*vdp_draw_pal)[16] = vdp_screen_pal; // the palette the row bei
 
 // One entry per output line (the second view's lines follow the first's, whichever way the views are laid out)
 static struct VDP_SpriteCache {
-	const uint16_t *sprite[SCANLINE_SPRITES];
+	const sprite_t *sprite[SCANLINE_SPRITES];
 	uint8_t pushind;
 	uint16_t pixels;
 } vdp_sprite_cache[SCREEN_MAX_HEIGHT * 2];
@@ -282,6 +282,12 @@ static inline uint32_t VDP_GetColour(size_t index) {
 	#endif
 	
 	return VDP_RGBAOf(vdp_cram[index >> 4][index & 0xF]);
+}
+
+// A sprite's pattern in its bank (a pattern past the bank's end is a blank tile)
+static const uint8_t vdp_blank_tile[32];
+static inline const uint8_t *VDP_SpritePattern(const tilebank_t *bank, size_t pattern) {
+	return pattern < bank->tiles ? bank->patterns + (pattern << 5) : vdp_blank_tile;
 }
 
 static inline uint8_t *VDP_GetPatternAddress(size_t pattern) {
@@ -413,12 +419,16 @@ static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const tile_entry
 
 // Draws one row of one sprite. `y` is the line, counted from the view's top, and `ybase` the sprite Y coordinate of that top (128; the stacked split screen's
 // views are drawn in double-height coordinates, where the screen starts at 256 and a sprite cell is 16 lines tall).
-static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const uint16_t *sprite, int16_t y, int view_w, int ybase, bool double_cells) {
+static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const sprite_t *sprite, int16_t y, int view_w, int ybase, bool double_cells) {
 	//Get sprite information
-	uint16_t sprite_y = *sprite++;
-	uint16_t sprite_sl = *sprite++;
-	uint16_t sprite_tile = *sprite++;
-	uint16_t sprite_x = *sprite++;
+	uint16_t sprite_y = sprite->y;
+	uint16_t sprite_sl = sprite->size_link;
+	uint16_t sprite_tile = sprite->tile;
+	uint16_t sprite_x = sprite->x;
+	// The tile art comes from the bank the sprite names (a bank that is not there draws nothing)
+	const tilebank_t *bank = TileBank_Get(sprite->bank, sprite->generation);
+	if (bank == NULL)
+		return;
 	
 	uint8_t width = (sprite_sl & SPRITE_SL_W_AND) >> SPRITE_SL_W_SHIFT;
 	uint8_t height = (sprite_sl & SPRITE_SL_H_AND) >> SPRITE_SL_H_SHIFT;
@@ -454,7 +464,7 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const uint16_t 
 		for (size_t col = 0; col < cols; col++, left += 8) {
 			size_t src_col = x_flip ? (cols - 1 - col) : col;
 			size_t cell = (size_t)pattern + ty + src_col * (height + 1);
-			const uint8_t *from = VDP_GetPatternAddress((cell << 1) + (row >> 3)) + ((row & 7) << 2);
+			const uint8_t *from = VDP_SpritePattern(bank, (cell << 1) + (row >> 3)) + ((row & 7) << 2);
 			if (x_flip) {
 				from += 3;
 				WRITE_BYTE_FLIP(from, to, tom, palette, and, VDP_MASK_SPRITE)
@@ -487,7 +497,7 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const uint16_t 
 		pattern += width * (height + 1);
 		for (; left < right; left += 8) {
 			//Write tile
-			const uint8_t *from = VDP_GetPatternAddress(pattern) + (y << 2) + 3;
+			const uint8_t *from = VDP_SpritePattern(bank, pattern) + (y << 2) + 3;
 			WRITE_BYTE_FLIP(from, to, tom, palette, and, VDP_MASK_SPRITE)
 			WRITE_BYTE_FLIP(from, to, tom, palette, and, VDP_MASK_SPRITE)
 			WRITE_BYTE_FLIP(from, to, tom, palette, and, VDP_MASK_SPRITE)
@@ -497,7 +507,7 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const uint16_t 
 	} else {
 		for (; left < right; left += 8) {
 			//Write tile
-			const uint8_t *from = VDP_GetPatternAddress(pattern) + (y << 2);
+			const uint8_t *from = VDP_SpritePattern(bank, pattern) + (y << 2);
 			WRITE_BYTE(from, to, tom, palette, and, VDP_MASK_SPRITE)
 			WRITE_BYTE(from, to, tom, palette, and, VDP_MASK_SPRITE)
 			WRITE_BYTE(from, to, tom, palette, and, VDP_MASK_SPRITE)
@@ -700,7 +710,7 @@ static inline void VDP_RefreshPalette(void) {
 
 // Fills `cache` (one entry per line of a view, `rows` of them) with the sprites each line shows, from a sprite table: the dedicated buffer if there is one,
 // the VDP's own table in VRAM otherwise.
-static void VDP_BuildSpriteCache(struct VDP_SpriteCache *cache, int rows, const uint16_t *table, int ybase, bool double_cells) {
+static void VDP_BuildSpriteCache(struct VDP_SpriteCache *cache, int rows, const sprite_t *table, int ybase, bool double_cells) {
 	for (uint8_t i = 0;;) {
 		//Get sprite values -- from the dedicated external buffer if one's
 		//been registered (see VDP_SetSpriteBuffer), otherwise fall back to
@@ -708,9 +718,9 @@ static void VDP_BuildSpriteCache(struct VDP_SpriteCache *cache, int rows, const 
 		//use it.
 		if (table == NULL)
 			return; // (no sprite table: no sprites)
-		const uint16_t *sprite = table + ((uint16_t)i << 2);
-		uint16_t sprite_y = sprite[0];
-		uint16_t sprite_sl = sprite[1];
+		const sprite_t *sprite = table + i;
+		uint16_t sprite_y = sprite->y;
+		uint16_t sprite_sl = sprite->size_link;
 		uint8_t sprite_width = (sprite_sl & SPRITE_SL_W_AND) >> SPRITE_SL_W_SHIFT;
 		uint8_t sprite_height = (sprite_sl & SPRITE_SL_H_AND) >> SPRITE_SL_H_SHIFT;
 		uint8_t sprite_link = (sprite_sl & SPRITE_SL_L_AND) >> SPRITE_SL_L_SHIFT;
@@ -893,13 +903,13 @@ int VDP_PeekSprites(VdpSpritePeek *out, int max) {
 	while (n < max) {
 		if (screen1p.sprites == NULL)
 			break;
-		const uint16_t *sprite = screen1p.sprites + ((uint16_t)i << 2);
-		uint16_t sl = sprite[1], tile = sprite[2];
+		const sprite_t *sprite = screen1p.sprites + i;
+		uint16_t sl = sprite->size_link, tile = sprite->tile;
 		VdpSpritePeek *e = &out[n++];
 		e->index = i;
 		e->link = (sl & SPRITE_SL_L_AND) >> SPRITE_SL_L_SHIFT;
-		e->y = (int16_t)((sprite[0] & SPRITE_Y_AND) - 128);
-		e->x = (int16_t)((sprite[3] & SPRITE_X_AND) - 128);
+		e->y = (int16_t)((sprite->y & SPRITE_Y_AND) - 128);
+		e->x = (int16_t)((sprite->x & SPRITE_X_AND) - 128);
 		e->width = ((sl & SPRITE_SL_W_AND) >> SPRITE_SL_W_SHIFT) + 1;
 		e->height = ((sl & SPRITE_SL_H_AND) >> SPRITE_SL_H_SHIFT) + 1;
 		e->pattern = (tile & TILE_PATTERN_AND) >> TILE_PATTERN_SHIFT;

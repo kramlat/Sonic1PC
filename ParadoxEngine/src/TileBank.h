@@ -41,6 +41,9 @@ void TileBank_Write(tilebank_t *bank, size_t tile, const void *data, size_t byte
 // The art of a tile an entry names, or NULL if its bank is not there, has been freed since the entry was made, or is not that big
 const uint8_t *TileBank_Pattern(const tile_entry_t *entry);
 
+// The bank an id and generation name, or NULL if there is none live with that generation (a reference that has gone stale counts in tilebank_stale_count)
+const tilebank_t *TileBank_Get(uint8_t id, uint8_t generation);
+
 // How many entries have been drawn that named a tile that is not there (a stale or bad reference): for the tests and the debug displays. With tilebank_stale_fatal set the first one aborts.
 extern unsigned tilebank_stale_count;
 extern bool tilebank_stale_fatal;

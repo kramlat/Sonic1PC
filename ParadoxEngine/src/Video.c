@@ -92,10 +92,7 @@ int16_t hbla_counter = 223; // (the dormant line: the last one of the picture; s
 
 int16_t vid_scrpos_y_dup, vid_bg_scrpos_y_dup, vid_scrpos_x_dup, vid_bg_scrpos_x_dup, vid_bg3_scrpos_y_dup, vid_bg3_scrpos_x_dup;
 
-uint16_t sprite_buffer[BUFFER_SPRITES][4]; //Apparently the last 16 entries of this intrude other memory in the original
-                                           //... now how would I emulate that?
 int16_t hscroll_buffer[SCREEN_MAX_HEIGHT][2];
-uint16_t sprite_buffer_p2[BUFFER_SPRITES][4];
 int16_t hscroll_buffer_p2[SCREEN_MAX_HEIGHT][2];
 void Video_UploadHScrollP2(void) {
 	Viewport_UploadHScroll(&screen2p, hscroll_buffer_p2, sizeof(hscroll_buffer_p2));
@@ -122,8 +119,8 @@ void VDPSetupGame(void) {
 	//Initialize VDP state: both viewports have their own planes and tables; their sprite tables are buffers of their own
 	Viewport_UseOwnPlanes(&screen1p);
 	Viewport_UseOwnPlanes(&screen2p);
-	screen1p.sprites = &sprite_buffer[0][0];
-	screen2p.sprites = &sprite_buffer_p2[0][0];
+	screen1p.sprites = screen1p.sprite_table;
+	screen2p.sprites = screen2p.sprite_table;
 	Viewport_SetSize(SCREEN_WIDTH, SCREEN_HEIGHT, PLANE_WIDTH, PLANE_HEIGHT);
 	VDP_SetBackgroundColour(0);
 	
@@ -159,8 +156,8 @@ void ClearScreen(void) {
 	vid_bg_scrpos_x_dup = 0;
 	
 	//Clear sprite buffer and hscroll buffer
-	memset(sprite_buffer, 0, sizeof(sprite_buffer));
-	memset(sprite_buffer_p2, 0, sizeof(sprite_buffer_p2));
+	memset(screen1p.sprite_table, 0, (BUFFER_SPRITES + 1) * sizeof(sprite_t));
+	memset(screen2p.sprite_table, 0, (BUFFER_SPRITES + 1) * sizeof(sprite_t));
 	memset(hscroll_buffer, 0, sizeof(hscroll_buffer));
 	memset(hscroll_buffer_p2, 0, sizeof(hscroll_buffer_p2));
 }

@@ -24,6 +24,18 @@ typedef struct {
 	int16_t a, b;
 } vsram_t;
 
+// A sprite table entry (the Genesis' four words: y, size and link, tile, x) and the bank its tile's patterns are in (as a name table entry names its tile: TileBank.h)
+typedef struct {
+	uint16_t y;
+	uint16_t size_link;
+	uint16_t tile;       // the tile word: priority, palette line, flips and the first pattern
+	uint16_t x;
+	uint8_t bank;
+	uint8_t generation;
+} sprite_t;
+
+#define VIEWPORT_SPRITES 0x78 // how many sprites a viewport's table holds (see Video.h's BUFFER_SPRITES for why this is more than the Genesis' 80)
+
 typedef struct {
 	uint16_t width, height;      // the viewport's picture size in pixels (the whole picture's, or half of it in a split screen)
 	uint16_t plane_width, plane_height; // its planes' size in tiles
@@ -32,7 +44,8 @@ typedef struct {
 	int16_t *hscroll;            // its horizontal scroll table: a foreground and a background X for each line
 	size_t hscroll_bytes;
 	vsram_t vsram;
-	const uint16_t *sprites;     // its sprite table, a buffer as VDP_SetSpriteBuffer takes (4 words a sprite), or NULL
+	sprite_t *sprite_table;      // its sprite table's memory (one more entry than it holds: the list's end)
+	const sprite_t *sprites;     // the table the VDP draws it from: its own, or another (the tests), or NULL for none
 	const uint16_t *palette;     // its own palette (4 x 16 CRAM words), or NULL for the shared one
 	int16_t hint_counter;        // the horizontal interrupt: the line counter (VDP register $0A) and its enable
 	bool hint_enable;

@@ -145,7 +145,29 @@ static void TileBank_APlaneWordKeepsItsFlagsAndPattern(void) {
     CHECK(Plane_At(&screen1p.plane_a, 0x2000 * 2) == NULL); // past its memory
 }
 
+// A sprite drawn from a bank of its own, and from a bank that is gone
+static void TileBank_ASpriteDrawsFromItsBankAndNothingFromAFreedOne(void) {
+    Prepare();
+    tilebank_t *bank = TileBank_Create(8);
+    Solid(bank, 2, 3);
+    Solid(TileBank_Main(), 2, 1);
+    screen1p.sprites = screen1p.sprite_table;
+    memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
+    // one 8x8 cell (width 0, height 0) at the picture's top left, pattern 2 of the bank
+    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, 2, 128, bank->id, bank->generation };
+    CHECK_EQ(TopLeft(), PIXEL_BLUE);
+    screen1p.sprite_table[0].bank = 0; // as the main bank's
+    screen1p.sprite_table[0].generation = 0;
+    CHECK_EQ(TopLeft(), PIXEL_RED);
+    screen1p.sprite_table[0].bank = bank->id;
+    screen1p.sprite_table[0].generation = bank->generation;
+    TileBank_Free(bank);
+    CHECK_EQ(TopLeft(), PIXEL_BACKDROP); // not read once the bank is gone
+    memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
+}
+
 void RegisterTileBankTests(void) {
+    RUN_TEST(TileBank_ASpriteDrawsFromItsBankAndNothingFromAFreedOne);
     RUN_TEST(TileBank_TheMainBankIsTheTileSpaceAndNeverGoesStale);
     RUN_TEST(TileBank_AnEntryDrawsFromItsOwnBank);
     RUN_TEST(TileBank_AFreedBanksEntriesDrawNothing);

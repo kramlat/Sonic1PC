@@ -1,4 +1,6 @@
 #include "test.h"
+#include "Viewport.h"
+#include "Video.h"
 
 #include <string.h>
 
@@ -19,7 +21,7 @@ static const uint8_t mappings[] = {
 static Object o;
 
 static void Prepare(void) {
-    memset(sprite_buffer, 0, sizeof(sprite_buffer));
+    memset(screen1p.sprite_table, 0, (BUFFER_SPRITES + 1) * sizeof(sprite_t));
     memset(&o, 0, sizeof(o));
     o.type = 1;
     o.mappings = mappings;
@@ -36,6 +38,23 @@ static void Build(void) {
     BuildSprites(NULL);
 }
 
+static void Sprites_AnObjectsSpritesNameTheBankOfItsArt(void) {
+    Prepare();
+    o.pos.l.x.f.u = 100;
+    o.pos.l.y.f.u = 100;
+    o.frame = 1;
+    Build();
+    CHECK_EQ(screen1p.sprite_table[0].bank, 0); // (no bank given: the main bank)
+    CHECK_EQ(screen1p.sprite_table[0].generation, 0);
+
+    tilebank_t *bank = TileBank_Create(0x200);
+    o.bank = bank;
+    Build();
+    CHECK_EQ(screen1p.sprite_table[0].bank, bank->id);
+    CHECK_EQ(screen1p.sprite_table[0].generation, bank->generation);
+    TileBank_Free(bank);
+}
+
 static void Sprites_MultiSpriteDrawsMainAndChildren(void) {
     Prepare();
     o.render.f.multi_sprite = 1;
@@ -50,19 +69,19 @@ static void Sprites_MultiSpriteDrawsMainAndChildren(void) {
     CHECK_EQ(sprite_count, 3);
     CHECK(o.render.f.on_screen);
     // The main sprite: its piece at (-8,-8) from (128 + 100, 128 + 100)
-    CHECK_EQ(sprite_buffer[0][0], 128 + 100 - 8);
-    CHECK_EQ(sprite_buffer[0][1], (0x05 << 8) | 1);
-    CHECK_EQ(sprite_buffer[0][2], 0x100 + 1);
-    CHECK_EQ(sprite_buffer[0][3], 128 + 100 - 8);
+    CHECK_EQ(screen1p.sprite_table[0].y, 128 + 100 - 8);
+    CHECK_EQ(screen1p.sprite_table[0].size_link, (0x05 << 8) | 1);
+    CHECK_EQ(screen1p.sprite_table[0].tile, 0x100 + 1);
+    CHECK_EQ(screen1p.sprite_table[0].x, 128 + 100 - 8);
     // The first child, frame 2, at (120, 100)
-    CHECK_EQ(sprite_buffer[1][0], 128 + 100);
-    CHECK_EQ(sprite_buffer[1][1], (0x00 << 8) | 2);
-    CHECK_EQ(sprite_buffer[1][2], 0x100 + 2);
-    CHECK_EQ(sprite_buffer[1][3], 128 + 120);
+    CHECK_EQ(screen1p.sprite_table[1].y, 128 + 100);
+    CHECK_EQ(screen1p.sprite_table[1].size_link, (0x00 << 8) | 2);
+    CHECK_EQ(screen1p.sprite_table[1].tile, 0x100 + 2);
+    CHECK_EQ(screen1p.sprite_table[1].x, 128 + 120);
     // The second child, frame 1, at (80, 110)
-    CHECK_EQ(sprite_buffer[2][0], 128 + 110 - 8);
-    CHECK_EQ(sprite_buffer[2][2], 0x100 + 1);
-    CHECK_EQ(sprite_buffer[2][3], 128 + 80 - 8);
+    CHECK_EQ(screen1p.sprite_table[2].y, 128 + 110 - 8);
+    CHECK_EQ(screen1p.sprite_table[2].tile, 0x100 + 1);
+    CHECK_EQ(screen1p.sprite_table[2].x, 128 + 80 - 8);
 }
 
 static void Sprites_MainFrameZeroIsNoMainSprite(void) {
@@ -115,7 +134,7 @@ static void Sprites_YWrapIsASwitch(void) {
 
 static void Sprites_SplitScreenBuildsTwoTables(void) {
     Object a, b, c;
-    memset(sprite_buffer_p2, 0, sizeof(sprite_buffer_p2));
+    memset(screen2p.sprite_table, 0, (BUFFER_SPRITES + 1) * sizeof(sprite_t));
     Prepare();
     a = b = c = o;
     a.tile = b.tile = c.tile = 0x80;
@@ -135,18 +154,18 @@ static void Sprites_SplitScreenBuildsTwoTables(void) {
     sprite_split_screen = 0;
 
     // Player 1's table: a's piece, an ordinary one (the stacked views are two whole pictures, squashed by the VDP)
-    CHECK_EQ(sprite_buffer[0][0], 128 + 100 - 8);
-    CHECK_EQ(sprite_buffer[0][1], (0x05 << 8) | 1);            // size 5 (2x2 cells); link 1
-    CHECK_EQ(sprite_buffer[0][2], 0x81);                          // (the object's tile and the piece's)
-    CHECK_EQ(sprite_buffer[0][3], 128 + 100 - 8);
-    CHECK_EQ(sprite_buffer[1][0], 0);                          // the list ends
-    CHECK_EQ(sprite_buffer[1][1], 0);
+    CHECK_EQ(screen1p.sprite_table[0].y, 128 + 100 - 8);
+    CHECK_EQ(screen1p.sprite_table[0].size_link, (0x05 << 8) | 1);            // size 5 (2x2 cells); link 1
+    CHECK_EQ(screen1p.sprite_table[0].tile, 0x81);                          // (the object's tile and the piece's)
+    CHECK_EQ(screen1p.sprite_table[0].x, 128 + 100 - 8);
+    CHECK_EQ(screen1p.sprite_table[1].y, 0);                          // the list ends
+    CHECK_EQ(screen1p.sprite_table[1].size_link, 0);
 
     // Player 2's table: b alone, against the second camera
-    CHECK_EQ(sprite_buffer_p2[0][0], 128 + 100 - 8);
-    CHECK_EQ(sprite_buffer_p2[0][1], (0x05 << 8) | 1);
-    CHECK_EQ(sprite_buffer_p2[0][3], 128 + 100 - 8);
-    CHECK_EQ(sprite_buffer_p2[1][0], 0);
+    CHECK_EQ(screen2p.sprite_table[0].y, 128 + 100 - 8);
+    CHECK_EQ(screen2p.sprite_table[0].size_link, (0x05 << 8) | 1);
+    CHECK_EQ(screen2p.sprite_table[0].x, 128 + 100 - 8);
+    CHECK_EQ(screen2p.sprite_table[1].y, 0);
     CHECK_EQ(sprite_count, 1);
 
     // On screen means in either view
@@ -173,7 +192,7 @@ static void Sprites_Adjust2PArtPointerLeavesTheTile(void) {
 
 static void Sprites_SideBySideUsesOrdinaryTilesAndHalfWidthViews(void) {
     Object a, b, d;
-    memset(sprite_buffer_p2, 0, sizeof(sprite_buffer_p2));
+    memset(screen2p.sprite_table, 0, (BUFFER_SPRITES + 1) * sizeof(sprite_t));
     Prepare();
     a = b = d = o;
     a.tile = b.tile = d.tile = 0x80;
@@ -193,21 +212,22 @@ static void Sprites_SideBySideUsesOrdinaryTilesAndHalfWidthViews(void) {
     sprite_split_screen = 0;
 
     // Player 1's table: no masking sprites, the ordinary tile word and size, the usual top
-    CHECK_EQ(sprite_buffer[0][0], 128 + 100 - 8);
-    CHECK_EQ(sprite_buffer[0][1], (0x05 << 8) | 1);
-    CHECK_EQ(sprite_buffer[0][2], 0x80 + 0x0001);
-    CHECK_EQ(sprite_buffer[0][3], 128 + 100 - 8);
-    CHECK_EQ(sprite_buffer[1][0], 0);                   // d was out of the half-width view
+    CHECK_EQ(screen1p.sprite_table[0].y, 128 + 100 - 8);
+    CHECK_EQ(screen1p.sprite_table[0].size_link, (0x05 << 8) | 1);
+    CHECK_EQ(screen1p.sprite_table[0].tile, 0x80 + 0x0001);
+    CHECK_EQ(screen1p.sprite_table[0].x, 128 + 100 - 8);
+    CHECK_EQ(screen1p.sprite_table[1].y, 0);                   // d was out of the half-width view
     CHECK(a.render.f.on_screen);
     CHECK(!d.render.f.on_screen);
     // Player 2's table: b, against the second camera, at the same top
-    CHECK_EQ(sprite_buffer_p2[0][0], 128 + 100 - 8);
-    CHECK_EQ(sprite_buffer_p2[0][1], (0x05 << 8) | 1);
-    CHECK_EQ(sprite_buffer_p2[0][3], 128 + 100 - 8);
+    CHECK_EQ(screen2p.sprite_table[0].y, 128 + 100 - 8);
+    CHECK_EQ(screen2p.sprite_table[0].size_link, (0x05 << 8) | 1);
+    CHECK_EQ(screen2p.sprite_table[0].x, 128 + 100 - 8);
     CHECK(b.render.f.on_screen);
 }
 
 void RegisterSpritesTests(void) {
+    RUN_TEST(Sprites_AnObjectsSpritesNameTheBankOfItsArt);
     RUN_TEST(Sprites_SideBySideUsesOrdinaryTilesAndHalfWidthViews);
     RUN_TEST(Sprites_SplitScreenBuildsTwoTables);
     RUN_TEST(Sprites_Adjust2PArtPointerLeavesTheTile);

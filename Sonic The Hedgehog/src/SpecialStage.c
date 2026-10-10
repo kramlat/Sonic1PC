@@ -418,7 +418,7 @@ void SS_ShowLayout(uint8_t sprite_i) {
 
     // Draw sprites
     const int16_t* pos = ss_drawtable;
-    uint16_t* sprite = &sprite_buffer[sprite_i][0];
+    sprite_t* sprite = &screen1p.sprite_table[sprite_i];
 
     for (int i = 0; i < grid; i++) {
         for (int j = 0; j < grid; j++, pos += 2) {
@@ -446,10 +446,10 @@ void SS_ShowLayout(uint8_t sprite_i) {
     // Terminate end of sprite list
     sprite_count = sprite_i;
     if (sprite_i >= BUFFER_SPRITES) {
-        sprite[-3] &= 0xFF00; // Clear link byte
+        sprite[-1].size_link &= 0xFF00; // Clear link byte
     } else {
-        *sprite++ = 0;
-        *sprite++ = 0;
+        sprite->y = 0;
+        sprite->size_link = 0;
     }
 }
 

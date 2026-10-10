@@ -12,6 +12,8 @@ static tile_entry_t nametable_fg_p2[PLANE_ENTRIES];
 static tile_entry_t nametable_bg_p2[PLANE_ENTRIES];
 static int16_t hscroll_p1[SCREEN_MAX_HEIGHT][2];
 static int16_t hscroll_p2[SCREEN_MAX_HEIGHT][2];
+static sprite_t sprite_table_p1[VIEWPORT_SPRITES + 1];
+static sprite_t sprite_table_p2[VIEWPORT_SPRITES + 1];
 static tile_entry_t scratch_planes[0x8000]; // the scratch plane memory (Plane_UseScratchAt)
 
 viewport_t screen1p = {
@@ -19,6 +21,7 @@ viewport_t screen1p = {
 	.plane_a = { nametable_fg, PLANE_ENTRIES },
 	.plane_b = { nametable_bg, PLANE_ENTRIES },
 	.hscroll = &hscroll_p1[0][0], .hscroll_bytes = sizeof(hscroll_p1),
+	.sprite_table = sprite_table_p1, .sprites = sprite_table_p1,
 };
 
 viewport_t screen2p = {
@@ -26,6 +29,7 @@ viewport_t screen2p = {
 	.plane_a = { nametable_fg_p2, PLANE_ENTRIES },
 	.plane_b = { nametable_bg_p2, PLANE_ENTRIES },
 	.hscroll = &hscroll_p2[0][0], .hscroll_bytes = sizeof(hscroll_p2),
+	.sprite_table = sprite_table_p2, .sprites = sprite_table_p2,
 };
 
 void Viewport_UseOwnPlanes(viewport_t *v) {
