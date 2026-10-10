@@ -34,6 +34,9 @@ my %zones = (
 my %alpha = (
     EHZ => { dir => 'Emerald Hill Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
              blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => '../Shared/Chunks.kos', col => ['../Shared/Ghz_Col1.dat', '../Shared/Ghz_Col2.dat'], pal => '../../Palettes/GHz.pal' },
+    # (Hill Top: Emerald Hill's tiles and blocks with its own over them, the shared chunks)
+    HTZ => { dir => 'Hill Top Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map1.dat', 'Bg_Map2.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
+             blocks => ['../Emerald Hill Zone/Blocks.dat', 'Blocks.dat@0x980'], tiles => ['../Emerald Hill Zone/Tiles.nem', 'Tiles.nem@0x3F80'], chunks => '../Shared/Chunks.kos', col => ['../Shared/Ghz_Col1.dat', '../Shared/Ghz_Col2.dat'], pal => '../../Palettes/HTz.pal' },
     # (Metropolis: three acts, one background, rings in each, and one collision index for both paths)
     MTZ => { dir => 'Metropolis Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat', 'Fg_Map3.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat', 'Obj_Act3.dat'],
              rng => ['Rng_Act1.dat', 'Rng_Act2.dat', 'Rng_Act3.dat'], blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['Mz_Col.dat', 'Mz_Col.dat'], pal => '../../Palettes/Mz.pal' },
@@ -80,7 +83,9 @@ for my $name (@order) {
         my $al = $alpha{$zone};
         my $alp = sub { "$alpha_dir/Level/$al->{dir}/" . shift };
         my @nem;
-        if ($al) { push @nem, $alp->($al->{tiles}) }
+        if ($al) { # (a name, or a list of "name@byte offset" for a zone made of another's with its own over it)
+            for my $t (ref $al->{tiles} ? @{ $al->{tiles} } : ($al->{tiles})) { my ($f, $off) = split /@/, $t; push @nem, $alp->($f) . (defined $off ? '@' . (hex($off) / 32) : '') }
+        }
         else { for my $t (split /\|/, $s->{tiles}) {
             my ($file, $off) = split /:/, $t;
             push @nem, path($file) . (defined $off ? '@' . (hex($off) / 32) : '');
@@ -88,7 +93,13 @@ for my $name (@order) {
         system($nem2kos, "$res/S2Art/$zone", @nem) == 0 or die "nem2kos failed for $zone\n";
         # blocks
         my $blocks = '';
-        if ($al) { $blocks = slurp($alp->($al->{blocks})) }
+        if ($al) {
+            for my $t (ref $al->{blocks} ? @{ $al->{blocks} } : ($al->{blocks})) {
+                my ($f, $off) = split /@/, $t;
+                my $d = slurp($alp->($f));
+                if (defined $off) { $blocks = substr($blocks, 0, hex $off) . $d } else { $blocks .= $d }
+            }
+        }
         else { for my $t (split /\|/, $s->{blocks}) {
             my ($file, $off) = split /:/, $t;
             my $d = slurp(path($file));

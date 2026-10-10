@@ -18,6 +18,10 @@
 #include "Resource/Art/Shellcracker.h"
 #include "Resource/Art/Asteron.h"
 #include "Resource/Art/Slicer.h"
+#include "Resource/Art/Rexon.h"
+#include "Resource/Art/HTZBossFire.h"
+#include "Resource/Art/BossSmoke.h"
+#include "Resource/Art/SpikerBadnik.h"
 #include "Resource/Art/MTZBossBalls.h"
 #include "Resource/Art/ShipBoost.h"
 #include "Resource/Art/BossExplosion.h"
@@ -425,13 +429,15 @@ static const PLCList PLC_SYZ2 = {
 // ---------------------------------------------------------------------------
 // Pattern load cues - Scrap Brain
 // ---------------------------------------------------------------------------
-static const PLCList PLC_SBZ = { // Hill Top (the prototype's Hill_Top_Sprites_1, also what the zones that are not built yet have; its addresses in VRAM are bytes, here in tiles): the fireball, the rock, the see-saw and its badnik, the spikes and the springs
-    8,
+static const PLCList PLC_SBZ = { // Hill Top (the alpha's Hill_Top_Art_Data_0, also what the zones that are not built yet have; its addresses in VRAM are bytes, here in tiles): the fireball, the rock, the see-saw and its badnik, the Rexon and the Spiker, the spikes and the springs
+    10,
     (const PLC[]) {
         { Art_HTZFireball,   ART_VRAM(0x73C0 >> 5) },
         { Art_HTZRock,       ART_VRAM(0x7640 >> 5) },
         { Art_HTZSeesaw,     ART_VRAM(0x78C0 >> 5) },
         { Art_HTZSpiker,     ART_VRAM(0x7BC0 >> 5) },
+        { Art_Rexon,         ART_VRAM(0x6FC0 >> 5) },
+        { Art_SpikerBadnik,  ART_VRAM(0xA400 >> 5) },
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
@@ -817,6 +823,16 @@ static const PLCList PLC_MTZBoss = { // the alpha's list $2E (the boss is unreac
     }
 };
 
+static const PLCList PLC_HTZBoss = { // the alpha's list $2A: Hill Top's boss: the ship, its fire and cannon, the explosions (over the animals' first art) and the smoke
+    4,
+    (const PLC[]) {
+        { Art_BossShip,      ART_VRAM(0x7820 >> 5) },
+        { Art_HTZBossFire,   ART_VRAM(0x8420 >> 5) },
+        { Art_BossExplosion, ART_VRAM(0xB000 >> 5) },
+        { Art_BossSmoke,     ART_VRAM(0xBC80 >> 5) },
+    }
+};
+
 // PLC list
 const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Main        */ &PLC_Main,
@@ -868,5 +884,6 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Flicky3A    */ &PLC_Flicky3A,
     /* PlcId_Flicky3B    */ &PLC_Flicky3B,
     /* PlcId_MTZBoss     */ &PLC_MTZBoss,
+    /* PlcId_HTZBoss     */ &PLC_HTZBoss,
 };
 

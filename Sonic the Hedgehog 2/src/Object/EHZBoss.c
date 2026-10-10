@@ -2,6 +2,7 @@
 // drives to and fro over the arena on three wheels (object 58 parts that follow it and each other) with a spike on its front; Sonic spins into it (a hit counter of eight, with a flash and a moment of safety after
 // each), and when it is beaten it blows up, the wheels roll off, and Eggman's car drives away to the right. The parts find the ship by its slot (checked every frame: it has to be an object of the ship's own id).
 #include "Object/EHZBoss.h"
+#include "Object/BossCommon.h"
 #include "Constants.h"
 
 #include "EnginePalette.h"
@@ -94,23 +95,8 @@ static void Boss_Turn(Object *obj) {
     obj->xsp = -obj->xsp;
 }
 
-// The wreck blows up (Boss_Defeated): every eight frames an explosion, a random distance (up to $20 each way) from the boss
-static void Boss_Explode(Object *obj) {
-    if (frame_count & 7)
-        return;
-    Object *exp = FindFreeObj();
-    if (exp == NULL)
-        return;
-    exp->type = ObjId_BossExplosion;
-    exp->pos.l.x.f.u = obj->pos.l.x.f.u;
-    exp->pos.l.y.f.u = obj->pos.l.y.f.u;
-    const uint32_t rand = RandomNumber();
-    exp->pos.l.x.f.u += (int16_t)(((rand & 0xFF) >> 2) - 0x20);
-    exp->pos.l.y.f.u += (int16_t)((((rand >> 8) & 0xFF) >> 2) - 0x20);
-}
-
 // Hit by Sonic (sub_17A8C): flashes and is safe a while after each hit; beaten when the hits are out
-static void Boss_Hit(Object *obj) {
+static void EHZ_Hit(Object *obj) {
     Scratch_Boss *scratch = (Scratch_Boss *)&obj->scratch;
 
     if (obj->routine_sec >= 6)
@@ -164,7 +150,7 @@ static void Boss_Ship(Object *obj) {
         }
         break;
     case 4: // driving to and fro: its height from its wheels
-        Boss_Hit(obj);
+        EHZ_Hit(obj);
         Boss_Turn(obj);
         obj->pos.l.y.f.u = (int16_t)((scratch->height >> 1) - 0x14);
         scratch->height = 0;
@@ -172,7 +158,7 @@ static void Boss_Ship(Object *obj) {
         break;
     case 6: // beaten: blowing up
         if (--scratch->countdown >= 0) {
-            Boss_Explode(obj);
+            Boss_Defeated(obj);
             break;
         }
         obj->status.o.f.x_flip = true;

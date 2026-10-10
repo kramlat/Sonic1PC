@@ -306,6 +306,19 @@ void LevelDataLoad(void) {
     VDP_SeekVRAM(0x0000);
     VDP_WriteVRAM(level_art_scratch, (size_t)(art_end - level_art_scratch));
 
+    // A zone's sprite art may sit over the end of its terrain tiles (Hill Top: the alpha's list puts the Rexon at tile $37E, in the last tiles of a tileset of $390): the original loads the tileset first and
+    // the list over it, but the list has been streamed in already here (during the title card), so it goes in again
+    if (header->plc1 != 0 && plcs[header->plc1] != NULL) {
+        const PLCList *list = plcs[header->plc1];
+        const size_t art_size = (size_t)(art_end - level_art_scratch);
+        for (size_t i = 0; i < list->plcs; i++) {
+            if (list->plc[i].off < art_size) {
+                QuickPLC(header->plc1);
+                break;
+            }
+        }
+    }
+
     // Load level layout
     LoadLevelLayout();
 

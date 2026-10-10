@@ -18,7 +18,10 @@
 #include "LevelScroll.h"
 #include "Object/Spiral.h"
 #include "Object/MTZBadniks.h"
+#include "Object/HTZBadniks.h"
 #include "Object/MTZBoss.h"
+#include "Object/HTZBoss.h"
+#include "Object/BossCommon.h"
 #include "PLC.h"
 #include "EngineSound.h"
 #include "Backend/VDP.h"
@@ -86,7 +89,7 @@ static void ObjectCoverage_NoPlacedObjectIsFalselyPending(void) {
 // The debug lists (Debug_* in the disassemblies: the prototype's, and the alpha's for the zones taken from it): how many entries each has, and that what each one places is an object this port runs (the ones that are not built are placeholders of type null)
 static void DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects(void) {
     static const struct { int zone, count; } expect[] = {
-        { ZoneId_EHZ, 18 }, { ZoneId_MTZ, 31 }, { ZoneId_MTZ3, 31 }, { ZoneId_HTZ, 25 }, { ZoneId_HPZ, 8 }, { ZoneId_OOZ, 16 },
+        { ZoneId_EHZ, 18 }, { ZoneId_MTZ, 31 }, { ZoneId_MTZ3, 31 }, { ZoneId_HTZ, 28 }, { ZoneId_HPZ, 8 }, { ZoneId_OOZ, 16 },
         { ZoneId_MCZ, 16 }, { ZoneId_CNZ, 2 }, { ZoneId_CPZ, 19 }, { ZoneId_ARZ, 17 }, { ZoneId_WZ, 2 },
     };
     for (size_t i = 0; i < sizeof(expect) / sizeof(expect[0]); i++) {
@@ -565,6 +568,138 @@ static void Scroll_AWrappingLevelKeepsTheCameraWithACharacterOverTheWrap(void) {
     limit_btm2 = 0x720;
 }
 
+// Hill Top's Spiker: it walks to and fro, and with Sonic within $20 pixels across it stops, and fires its drill (once)
+static void Spiker_FiresItsDrillOnceWhenSonicIsAbove(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    objects[0].type = ObjId_Sonic;
+    objects[0].pos.l.x.f.u = 0x410;
+    objects[0].pos.l.y.f.u = 0x200;
+    scrpos_x.f.u = 0x300;
+    scrpos_y.f.u = 0x100;
+    Object *spiker = &objects[0x20];
+    spiker->type = ObjId_Spiker;
+    spiker->pos.l.x.f.u = 0x400;
+    spiker->pos.l.y.f.u = 0x300;
+    Obj_Spiker(spiker);
+    CHECK_EQ(spiker->routine, 2);
+    CHECK_EQ(spiker->col_type, 0x12);
+    for (int f = 0; f < 40; f++)
+        Obj_Spiker(spiker);
+    int drills = 0;
+    for (int i = 1; i < 0x40; i++)
+        if (objects[i].type == ObjId_SpikerDrill)
+            drills++;
+    CHECK_EQ(drills, 1); // (and not another, however long it stays)
+    CHECK_EQ(spiker->frame == 2 || spiker->anim == 1, true);
+}
+
+// The alpha's Hill Top boss: it rises to the top of its side, opens its cannon (a jet of flame, once, and a second hitbox while it is open), sinks and throws two balls of lava; with its hits out it blows up and the act's boss is done
+static void HTZBoss_FiresItsJetThenThrowsTwoLavaBalls(void) {
+    for (int i = 0; i < 0x80; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    memset(&boss_move, 0, sizeof(boss_move));
+    boss_status = 0;
+    objects[0].type = ObjId_Sonic;
+    objects[0].pos.l.x.f.u = 0x3000;
+    objects[0].pos.l.y.f.u = 0x500;
+    scrpos_x.f.u = 0x2F00;
+    scrpos_y.f.u = 0x400;
+    Object *boss = &objects[0x20];
+    boss->type = ObjId_HTZBoss;
+    Obj_HTZBoss(boss);
+    CHECK_EQ(boss->col_type, 0xF);
+    CHECK_EQ(((Scratch_AlphaBoss *)&boss->scratch)->hits, 8);
+    int jets = 0, balls = 0;
+    bool box_was_there = false;
+    for (int f = 0; f < 1200 && balls < 2; f++) {
+        frame_count++;
+        Obj_HTZBoss(boss);
+        int16_t cx, cy, hw;
+        box_was_there |= HTZBoss_CannonBox(boss, &cx, &cy, &hw);
+        jets = balls = 0;
+        for (int i = 0x21; i < 0x80; i++) {
+            if (objects[i].type != ObjId_HTZBoss)
+                continue;
+            if (((Scratch_AlphaBoss *)&objects[i].scratch)->boss_routine == 6 && objects[i].routine_sec == 0)
+                Obj_HTZBoss(&objects[i]); // (the spawner makes its two)
+            const uint8_t part = ((Scratch_AlphaBoss *)&objects[i].scratch)->boss_routine;
+            jets += part == 4;
+            balls += part == 6;
+        }
+    }
+    CHECK_EQ(jets, 1);
+    CHECK_EQ(balls, 2);
+    CHECK_EQ(box_was_there, true);
+    int16_t left = 0, right = 0;
+    for (int i = 0x21; i < 0x80; i++)
+        if (objects[i].type == ObjId_HTZBoss && ((Scratch_AlphaBoss *)&objects[i].scratch)->boss_routine == 6) {
+            left += objects[i].xsp < 0;
+            right += objects[i].xsp > 0;
+        }
+    CHECK_EQ(left, 1);
+    CHECK_EQ(right, 1);
+
+    // beaten: its explosions, and then the boss is done
+    ((Scratch_AlphaBoss *)&boss->scratch)->hits = 0;
+    for (int f = 0; f < 1200 && !boss_status; f++) {
+        frame_count++;
+        Obj_HTZBoss(boss);
+    }
+    CHECK_EQ(boss_status, 1);
+    CHECK_EQ(boss->type, 0);
+}
+
+// The Sol: it makes four fireballs that circle it, and with Sonic near and its frame 2 it throws them one by one
+static void Sol_MakesFourFireballs(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    objects[0].type = ObjId_Sonic;
+    objects[0].pos.l.x.f.u = 0x1000;
+    scrpos_x.f.u = 0x300;
+    scrpos_y.f.u = 0x100;
+    Object *sol = &objects[0x20];
+    sol->type = ObjId_Sol;
+    sol->pos.l.x.f.u = 0x400;
+    sol->pos.l.y.f.u = 0x300;
+    Obj_Sol(sol);
+    CHECK_EQ(sol->routine, 2);
+    int balls = 0;
+    for (int i = 1; i < 0x40; i++)
+        if (objects[i].type == ObjId_Sol && objects[i].routine == 6)
+            balls++;
+    CHECK_EQ(balls, 4);
+    CHECK_EQ(sol->col_type, 0x0B);
+}
+
+// The Rexon: the body walks to and fro, and with Sonic within reach it rears up and makes its five heads, the last of which throws fireballs; with the last one gone the rest come apart
+static void Rexon_RearsUpIntoFiveHeads(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    objects[0].type = ObjId_Sonic;
+    objects[0].pos.l.x.f.u = 0x1000; // (far)
+    scrpos_x.f.u = 0x300;
+    scrpos_y.f.u = 0x100;
+    Object *rexon = &objects[0x20];
+    rexon->type = ObjId_RexonBody;
+    rexon->pos.l.x.f.u = 0x400;
+    rexon->pos.l.y.f.u = 0x300;
+    Obj_RexonBody(rexon);
+    CHECK_EQ(rexon->routine, 2);
+    CHECK_EQ(rexon->frame, 2);
+    Obj_RexonBody(rexon);
+    CHECK_EQ(rexon->routine, 2); // (nothing yet)
+    objects[0].pos.l.x.f.u = 0x420;
+    objects[0].pos.l.y.f.u = 0x300;
+    Obj_RexonBody(rexon);
+    CHECK_EQ(rexon->routine, 6);
+    int heads = 0;
+    for (int i = 1; i < 0x40; i++)
+        if (objects[i].type == ObjId_RexonHead)
+            heads++;
+    CHECK_EQ(heads, 5);
+}
+
 void RegisterObjectCoverageTests(void) {
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
     RUN_TEST(TailsTails_ShowWhileRollingAndDashing);
@@ -576,6 +711,10 @@ void RegisterObjectCoverageTests(void) {
     RUN_TEST(Signpost_LevelEndDespawnsCharactersThatLeaveTheScreen);
     RUN_TEST(Cylinder_TakesACharacterAndLetsGoAtTheEnd);
     RUN_TEST(EHZBoss_TheEventPutsTheAlphasShipInTheArena);
+    RUN_TEST(Spiker_FiresItsDrillOnceWhenSonicIsAbove);
+    RUN_TEST(HTZBoss_FiresItsJetThenThrowsTwoLavaBalls);
+    RUN_TEST(Rexon_RearsUpIntoFiveHeads);
+    RUN_TEST(Sol_MakesFourFireballs);
     RUN_TEST(Slicer_RaisesItsBladesAndSendsTwoPincers);
     RUN_TEST(MTZBoss_MakesSevenBallsThatOrbitTheShip);
     RUN_TEST(Animals_ZonesHaveTheirPairAndEndAnimalsTheirOwnMovement);

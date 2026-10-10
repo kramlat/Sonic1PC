@@ -28,6 +28,9 @@ extern const uint8_t Mappings_Coconuts[];
 extern const uint8_t Mappings_Shellcracker[];
 extern const uint8_t Mappings_Asteron[];
 extern const uint8_t Mappings_Slicer[];
+extern const uint8_t Mappings_Rexon[];
+extern const uint8_t Mappings_SpikerBadnik[];
+extern const uint8_t Mappings_Sol[];
 extern const uint8_t Mappings_Masher[];
 extern const uint8_t Mappings_MTZSteamVent[];
 extern const uint8_t Mappings_MTZPiston[];
@@ -245,6 +248,9 @@ static const DebugListEntry DebugList_HTZ[] = {
     BOX_ENTRY(0x31, 0),
     BOX_ENTRY(0x31, 1),
     BOX_ENTRY(0x31, 2),
+    PLAIN(0x96, Mappings_Rexon, 0x637E, 0x0E, 2),
+    PLAIN(0x92, Mappings_SpikerBadnik, 0, 0x0A, 0),
+    PLAIN(0x95, Mappings_Sol, 0, 0, 0),
 };
 
 // Debug_HPZ (Hidden Palace)

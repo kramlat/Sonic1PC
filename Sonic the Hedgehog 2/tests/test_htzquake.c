@@ -56,6 +56,7 @@ static void HTZQuake_TheGroundRestsThenTurnsBack(void) {
     Camera(0x1800, 0x400);
     HTZQuake_Events();
     htz_bg_y_offset = 0x140;
+    Camera(0x1A00, 0x400); // (the alpha moves the ground only with the camera between $1978 and $1E00)
     // The delay starts at 0: arriving at the top for the first time the ground turns at once, with the screen shaking
     Tick();
     CHECK_EQ(htz_shaking, 1);
@@ -77,6 +78,46 @@ static void HTZQuake_TheGroundRestsThenTurnsBack(void) {
     } while (htz_shaking == 0 && calls < 0x100);
     CHECK_EQ(calls, 0x79);
     CHECK_EQ(htz_shaking, 1);
+}
+
+static void HTZQuake_TheGroundMovesOnlyBetweenTheAlphasTwoPlaces(void) {
+    Start(0);
+    Camera(0x1800, 0x400);
+    HTZQuake_Events();
+    htz_bg_y_offset = 0x140;
+    Camera(0x1900, 0x400); // (before $1978: still)
+    for (int i = 0; i < 40; i++)
+        Tick();
+    CHECK_EQ(htz_bg_y_offset, 0x140);
+    Camera(0x1E10, 0x400); // (after $1E00: still, and the screen does not shake)
+    htz_shaking = 1;
+    for (int i = 0; i < 40; i++)
+        Tick();
+    CHECK_EQ(htz_bg_y_offset, 0x140);
+    CHECK_EQ(htz_shaking, 0);
+    Camera(0x1A00, 0x400); // (between: it goes down)
+    for (int i = 0; i < 40; i++)
+        Tick();
+    CHECK(htz_bg_y_offset < 0x140);
+}
+
+static void HTZQuake_TheBossArenaTakesOverPastTheQuakeInActTwo(void) {
+    Start(1);
+    Camera(0x14C0, 0x200);
+    HTZQuake_Events();
+    CHECK_EQ(htz_quake, 1);
+    Camera(0x2B10, 0x400); // (past $2B00: the quake is over and the boss's states begin)
+    HTZQuake_Events();
+    CHECK_EQ(htz_quake, 0);
+    CHECK_EQ(dle_routine, 0xA);
+    Camera(0x2B80, 0x400); // (at $2B80 the boss comes)
+    lock_screen = false;
+    HTZQuake_Events();
+    CHECK_EQ(dle_routine, 0xC);
+    CHECK(lock_screen);
+    Camera(0x2E80, 0x400);
+    HTZQuake_Events();
+    CHECK_EQ(dle_routine, 0xE);
 }
 
 static void HTZQuake_LeavingTheStretchResetsTheBackground(void) {
@@ -187,6 +228,8 @@ void RegisterHTZQuakeTests(void) {
     RUN_TEST(HTZQuake_ActOneIsQuietOutsideItsStretch);
     RUN_TEST(HTZQuake_ActOneStartsAtTheStretchesEntrance);
     RUN_TEST(HTZQuake_TheGroundRestsThenTurnsBack);
+    RUN_TEST(HTZQuake_TheGroundMovesOnlyBetweenTheAlphasTwoPlaces);
+    RUN_TEST(HTZQuake_TheBossArenaTakesOverPastTheQuakeInActTwo);
     RUN_TEST(HTZQuake_LeavingTheStretchResetsTheBackground);
     RUN_TEST(HTZQuake_ActTwoStartsLowOrHighByTheCamera);
 }

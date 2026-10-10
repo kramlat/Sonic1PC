@@ -3,7 +3,7 @@
 #include "Level.h"
 #include "Constants.h"
 
-// The Simon Wai prototype's level tables, as its disassembly has them (s2b.asm: StartLocations, LevelSize, levartptrs): the port's own tables must say the same, zone by zone.
+// The Simon Wai prototype's level tables (Emerald Hill's, Metropolis's and Hill Top's are the alpha's since it was imported: these are the zones' rows that are still the prototype's, and Hill Top's), as its disassembly has them (s2b.asm: StartLocations, LevelSize, levartptrs): the port's own tables must say the same, zone by zone.
 
 typedef struct {
     int zone, act;
@@ -12,7 +12,7 @@ typedef struct {
 
 static void LevelData_StartPositionsMatchThePrototype(void) {
     static const Start starts[] = {
-        { ZoneId_EHZ, 0, 0x60, 0x28F }, { ZoneId_EHZ, 1, 0x40, 0x2AF }, { ZoneId_HTZ, 0, 0x40, 0x3AF }, { ZoneId_HTZ, 1, 0x60, 0x68F },
+        { ZoneId_EHZ, 0, 0x60, 0x28F }, { ZoneId_EHZ, 1, 0x40, 0x2AF }, { ZoneId_HTZ, 0, 0x60, 0x3EF }, { ZoneId_HTZ, 1, 0x60, 0x6AF }, // (Hill Top's are the alpha's)
         { ZoneId_CNZ, 0, 0x60, 0x28F }, { ZoneId_CNZ, 1, 0x40, 0x2AF }, { ZoneId_CPZ, 0, 0x30, 0x1EC }, { ZoneId_CPZ, 1, 0x30, 0x12C },
         { ZoneId_ARZ, 0, 0x50, 0x37C }, { ZoneId_ARZ, 1, 0x50, 0x37C }, { ZoneId_WZ, 0, 0x60, 0x1AC },
     };
@@ -29,7 +29,7 @@ typedef struct {
 
 static void LevelData_LevelSizesMatchThePrototype(void) {
     static const Size sizes[] = {
-        { ZoneId_HTZ, 0, 0x2800, 0, 0x720 }, { ZoneId_HTZ, 1, 0x2880, 0, 0x720 }, { ZoneId_CPZ, 0, 0x2780, 0, 0x720 }, { ZoneId_CPZ, 1, 0x2880, 0, 0x720 },
+        { ZoneId_HTZ, 0, 0x2800, 0, 0x720 }, { ZoneId_HTZ, 1, 0x3280, 0, 0x720 }, // (Hill Top's second act is the alpha's) { ZoneId_CPZ, 0, 0x2780, 0, 0x720 }, { ZoneId_CPZ, 1, 0x2880, 0, 0x720 },
         { ZoneId_CNZ, 0, 0x3FFF, 0, 0x720 }, { ZoneId_CNZ, 1, 0x3FFF, 0, 0x720 }, { ZoneId_ARZ, 0, 0x28C0, 0x200, 0x3A0 }, { ZoneId_ARZ, 1, 0x26C0, 0x180, 0x5A0 },
         { ZoneId_WZ, 0, 0x3FFF, 0, 0x720 },
     };

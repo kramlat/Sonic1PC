@@ -17,3 +17,4 @@ PlcId_Flicky39, // Bear+BlueBird
 PlcId_Flicky3A, // Rabbit+Pigeon
 PlcId_Flicky3B, // Penguin+BlueBird
 PlcId_MTZBoss, // the alpha's list $2E: Metropolis's boss (unreachable in the alpha)
+PlcId_HTZBoss, // the alpha's list $2A: Hill Top's boss

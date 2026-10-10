@@ -157,7 +157,7 @@ static void Seesaw_Ball_Init(Object *obj, Scratch_Seesaw *scratch) {
     obj->pos.l.x.f.u += 0x28;
     obj->pos.l.y.f.u += 0x10;
     scratch->orig_y = obj->pos.l.y.f.u;
-    obj->frame = 1;
+    obj->frame = 0; // (the alpha's mappings: frame 0 is on palette line 0, frame 1 on line 1, and the flash adds a line to it)
     if (obj->status.o.f.x_flip) { // the seesaw is flipped: the ball starts on the other side
         obj->pos.l.x.f.u -= 0x50;
         scratch->state = 2;
@@ -649,4 +649,18 @@ void Obj_HTZFireball(Object *obj) {
         ObjectDelete(obj);
         break;
     }
+}
+
+void HTZFireball_BossBallLands(Object *obj) {
+    Scratch_Fireball *scratch = (Scratch_Fireball *)&obj->scratch;
+    obj->type = 0x20;
+    obj->routine = FireRoutine_Burn;
+    obj->anim = 2;
+    obj->ysp = 0;
+    obj->mappings = Mappings_HTZFireFlames;
+    obj->tile = TILE_MAP(1, 0, 0, 0, ARTTILE_FIRE);
+    obj->frame = 0;
+    scratch->timer = 9;
+    scratch->spread = 3;
+    Obj_HTZFireball(obj);
 }

@@ -8,9 +8,11 @@
 #include "Game.h"
 #include "Level.h"
 #include "LevelScroll.h"
+#include "Object/BossCommon.h"
 #include "Object/CPZObjects.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
+#include "PLC.h"
 #include "Solid.h"
 #include "Video.h"
 
@@ -120,25 +122,46 @@ static void Start(int16_t y_offset) {
     htz_delay = 0;
 }
 
+// The alpha's quake has sounds that the prototype's does not: $E1 (the ground rumbling as it moves, every 64th frame) and $F8 (as the stretch is left). They are sound effects of the alpha's own driver ($E0 to $E9 are
+// new in it, and $F8 is a command of it), which this port has not imported yet: until it has, they are silent
+static void QuakeSound(uint8_t alpha_id) {
+    (void)alpha_id;
+}
+
 // The quake's stretch is left: the background goes back to its own resting place
 static void Leave(void) {
+    QuakeSound(0xF8);
     bg_scrpos_x.v = 0x04000000;
     bg_scrpos_y.v = 0;
     htz_bg_x_offset = htz_bg_y_offset = 0;
     htz_direction = 0;
 }
 
-// The ground between its two offsets: a quarter pixel every fourth frame, and at each end it rests for $78 frames with the screen still before it turns and the shaking begins again
-static void Terrain(int16_t low, int16_t high) {
+// The ground between its two offsets: a quarter pixel every fourth frame, and at each end it rests for $78 frames with the screen still before it turns and the shaking begins again. The alpha moves it only
+// while the camera is between two places ($1978 and $1E00 in act 1; $1678 and $1A00, then $15F0 and $1AC0 in act 2), and the screen stops shaking past the second
+static void Terrain(int16_t low, int16_t high, uint16_t from, uint16_t to) {
+    const uint16_t camx = (uint16_t)scrpos_x.f.u;
+    if (camx < from)
+        return;
+    if (camx >= to) {
+        htz_shaking = 0;
+        return;
+    }
     if (!htz_direction) {
         if (htz_bg_y_offset != high) {
-            if ((frame_count & 3) == 0)
+            if ((frame_count & 3) == 0) {
                 htz_bg_y_offset++;
+                if ((frame_count & 0x3F) == 0)
+                    QuakeSound(0xE1);
+            }
             return;
         }
     } else if (htz_bg_y_offset != low) {
-        if ((frame_count & 3) == 0)
+        if ((frame_count & 3) == 0) {
             htz_bg_y_offset--;
+            if ((frame_count & 0x3F) == 0)
+                QuakeSound(0xE1);
+        }
         return;
     }
     htz_shaking = 0;
@@ -175,7 +198,7 @@ static void RunEvents(void) {
             }
             break;
         case 2:
-            Terrain(0xE0, 0x140);
+            Terrain(0xE0, 0x140, 0x1978, 0x1E00);
             if (camx < 0x1800) {
                 Leave();
                 dle_routine -= 2;
@@ -197,6 +220,10 @@ static void RunEvents(void) {
         }
         return;
     }
+    if (camx >= 0x2B00 && dle_routine < 0xA) { // the boss's arena: the quake is over
+        dle_routine = 0xA;
+        htz_quake = 0;
+    }
     switch (dle_routine) {
     case 0:
         if (camx >= 0x14C0) {
@@ -213,7 +240,7 @@ static void RunEvents(void) {
         }
         break;
     case 2:
-        Terrain(0, 0x2C0);
+        Terrain(0, 0x2C0, 0x1678, 0x1A00);
         if (camx < 0x14C0) {
             Leave();
             dle_routine -= 2;
@@ -233,7 +260,7 @@ static void RunEvents(void) {
         }
         break;
     case 6:
-        Terrain(0, 0x300);
+        Terrain(0, 0x300, 0x15F0, 0x1AC0);
         if (camx < 0x14C0) {
             Leave();
             dle_routine -= 6;
@@ -253,6 +280,32 @@ static void RunEvents(void) {
             bg_scrpos_x.f.u = (int16_t)(bg_scrpos_x.f.u + 0x480);
             dle_routine -= 2;
         }
+        break;
+    case 0xA: // the boss: at $2B80 the screen stops there, the arena's floor is fixed and the boss (object 52) comes
+        if (camx < 0x2B80)
+            break;
+        limit_left2 = scrpos_x.f.u;
+        limit_btm1 = 0x4A0 - SCREEN_TALLADD;
+        dle_routine += 2;
+        {
+            Object *boss = FindFreeObj();
+            if (boss != NULL)
+                boss->type = 0x52;
+            boss_flag = 3;
+        }
+        lock_screen = true;
+        AddPLC(PlcId_HTZBoss);
+        break;
+    case 0xC: // at $2E80 the right edge of the arena
+        if (camx < 0x2E80)
+            break;
+        limit_right1 = 0x3040 + SCREEN_WIDEADD2;
+        limit_left2 = 0x2E80 - SCREEN_WIDEADD2;
+        dle_routine += 2;
+        break;
+    case 0xE: // when it is beaten, the results card
+        if (boss_status)
+            GotThroughAct();
         break;
     }
 }
@@ -365,11 +418,9 @@ typedef struct {
     int16_t base_y;  // 0x32
 } Scratch_QuakeBlock;
 
-// loc_17B74: the sloped top of kind 8, one value for each pixel
-static const uint8_t quake_slope[268] = {
-    0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x3F, 0x3F, 0x3E, 0x3E, 0x3D, 0x3D, 0x3C, 0x3C,
-    0x3B, 0x3B, 0x3A, 0x3A, 0x39, 0x39, 0x38, 0x38, 0x37, 0x37, 0x36, 0x36, 0x35, 0x35, 0x34, 0x34,
-    0x33, 0x33, 0x32, 0x32, 0x31, 0x31, 0x30, 0x30, 0x2F, 0x2F, 0x2E, 0x2E, 0x2D, 0x2D, 0x2C, 0x2C,
+// loc_17B74: the sloped top of kind 8, one value for each pixel (the alpha's: $CC pixels wide)
+static const uint8_t quake_slope[204] = {
+    0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x2F, 0x2F, 0x2E, 0x2E, 0x2D, 0x2D, 0x2C, 0x2C,
     0x2B, 0x2B, 0x2A, 0x2A, 0x29, 0x29, 0x28, 0x28, 0x27, 0x27, 0x26, 0x26, 0x25, 0x25, 0x24, 0x24,
     0x23, 0x23, 0x22, 0x22, 0x21, 0x21, 0x20, 0x20, 0x1F, 0x1F, 0x1E, 0x1E, 0x1D, 0x1D, 0x1C, 0x1C,
     0x1B, 0x1B, 0x1A, 0x1A, 0x19, 0x19, 0x18, 0x18, 0x17, 0x17, 0x16, 0x16, 0x15, 0x15, 0x14, 0x14,
@@ -381,9 +432,7 @@ static const uint8_t quake_slope[268] = {
     0xEB, 0xEB, 0xEA, 0xEA, 0xE9, 0xE9, 0xE8, 0xE8, 0xE7, 0xE7, 0xE6, 0xE6, 0xE5, 0xE5, 0xE4, 0xE4,
     0xE3, 0xE3, 0xE2, 0xE2, 0xE1, 0xE1, 0xE0, 0xE0, 0xDF, 0xDF, 0xDE, 0xDE, 0xDD, 0xDD, 0xDC, 0xDC,
     0xDB, 0xDB, 0xDA, 0xDA, 0xD9, 0xD9, 0xD8, 0xD8, 0xD7, 0xD7, 0xD6, 0xD6, 0xD5, 0xD5, 0xD4, 0xD4,
-    0xD3, 0xD3, 0xD2, 0xD2, 0xD1, 0xD1, 0xD0, 0xD0, 0xCF, 0xCF, 0xCE, 0xCE, 0xCD, 0xCD, 0xCC, 0xCC,
-    0xCB, 0xCB, 0xCA, 0xCA, 0xC9, 0xC9, 0xC8, 0xC8, 0xC7, 0xC7, 0xC6, 0xC6, 0xC5, 0xC5, 0xC4, 0xC4,
-    0xC3, 0xC3, 0xC2, 0xC2, 0xC1, 0xC1, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0, 0xC0,
+    0xD3, 0xD3, 0xD2, 0xD2, 0xD1, 0xD1, 0xD0, 0xD0, 0xD0, 0xD0, 0xD0, 0xD0,
 };
 
 static Object *Char(int who) {
@@ -427,8 +476,8 @@ void Obj_HTZQuakeBlock(Object *obj) {
         y_rad = 0x78;
         break;
     default:
-        x_rad = 0x10A;
-        y_rad = 0x3E;
+        x_rad = 0xCB; // (the alpha's: Nick Arcade's was $10A by $3E)
+        y_rad = 0x2E;
         break;
     }
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {

@@ -108,3 +108,21 @@ write_file('Mappings/MTZBoss',  slice(0x027DAA, 0x027E8C));
 write_file('Animation/MTZBoss', slice(0x027D88, 0x027DAA));
 copy_file('Art/Nemesis/BossBall.nem', 'Art/MTZBossBalls');
 copy_file('Art/Nemesis/ShpBoost.nem', 'Art/ShipBoost');
+
+# Hill Top's badniks: the Spiker (92, with its drill 93: mappings $02868E, animations $028682, art spiker.nem at VRAM $A400), the Sol (95, with the fireballs that circle it: mappings $0288E2, animations $0288CE and $0288DC;
+# its art is the see-saw's badnik's and the fireball's) and the Rexon (96, 97; art rexon.nem at $6FC0)
+write_file('Mappings/SpikerBadnik',  slice(0x02868E, 0x0286FA));
+write_file('Animation/SpikerBadnik', slice(0x028682, 0x02868E));
+copy_file('Art/Nemesis/Spiker.nem', 'Art/SpikerBadnik');
+write_file('Mappings/Sol',      slice(0x0288E2, 0x02891E));
+write_file('Animation/Sol',     slice(0x0288CE, 0x0288DC));
+write_file('Animation/SolFire', slice(0x0288DC, 0x0288E2));
+copy_file('Art/Nemesis/Rexon.nem', 'Art/Rexon');
+
+# Hill Top's boss: the art its list $2A has besides the ship and the explosions (the fire and the cannon, bossfire.nem, at $8420; the smoke, boss_smk.nem, at $BC80)
+copy_file('Art/Nemesis/BossFire.nem', 'Art/HTZBossFire');
+copy_file('Art/Nemesis/Boss_Smk.nem', 'Art/BossSmoke');
+write_file('Mappings/Rexon', slice(0x028C74, 0x028CA4));
+write_file('Mappings/HTZBoss',        slice(0x025E3C, 0x025FB0));
+write_file('Animation/HTZBoss',       slice(0x025E08, 0x025E3C));
+write_file('Mappings/HTZBossSmoke',   slice(0x025DD8, 0x025E08));

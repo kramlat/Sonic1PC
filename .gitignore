@@ -26,3 +26,6 @@ Sonic The Hedgehog/SonLVL INI Files/dllcache/
 
 # The handbook's HTML is built from doc/index.docbook
 Sonic The Hedgehog/doc/html/
+
+# The user's staging folder for imports: never committed
+/Sonic the Hedgehog 2/import and toss/

@@ -38,7 +38,13 @@ void Obj_Coconuts(Object *obj);
 void Obj_Shellcracker(Object *obj);
 void Obj_ShellcrackerClaw(Object *obj);
 void Obj_Asteron(Object *obj);
+void Obj_Spiker(Object *obj);
+void Obj_SpikerDrill(Object *obj);
+void Obj_Sol(Object *obj);
+void Obj_RexonBody(Object *obj);
+void Obj_RexonHead(Object *obj);
 void Obj_MTZBoss(Object *obj);
+void Obj_HTZBoss(Object *obj);
 void Obj_MTZBossBall(Object *obj);
 void Obj_Slicer(Object *obj);
 void Obj_SlicerPincers(Object *obj);
@@ -280,7 +286,7 @@ const ObjectFunc game_objects[] = {
 	/* 4F ObjId_4F                 */ Obj_Redz,
 	/* 50 ObjId_Yadrin             */ Obj_Null, // Nick Arcade's Seahorse: not ported yet
 	/* 51 ObjId_SmashBlock         */ Obj_Null, // Nick Arcade's Skyhorse: not ported yet
-	/* 52 ObjId_MovingBlock        */ Obj_Null, // Nick Arcade's BFish: not ported yet
+	/* 52 ObjId_MovingBlock        */ Obj_HTZBoss, // (the alpha's Hill Top boss; Nick Arcade's BFish was here)
 	/* 53 ObjId_53                 */ Obj_MTZBossBall, // (the alpha's: Nick Arcade's Masher was here, it is 5C now)
 	/* 54 ObjId_54                 */ Obj_MTZBoss, // (the alpha's Metropolis boss: Nick Arcade's Snail was here)
 	/* 55 ObjId_55                 */ Obj_MTZBoss, // (the same code as 54, as in the alpha)
@@ -344,12 +350,12 @@ const ObjectFunc game_objects[] = {
 	/* 8F ObjId_8F                 */ Obj_Null, // (the alpha's Wall Grounder: not ported yet)
 	/* 90 ObjId_90                 */ Obj_Null, // (the alpha's Rock Grounder: not ported yet)
 	/* 91 ObjId_91                 */ Obj_Null, // (the alpha's Chop Chop: not ported yet)
-	/* 92 ObjId_92                 */ Obj_Null, // (the alpha's Spiker: not ported yet)
-	/* 93 ObjId_93                 */ Obj_Null, // (the alpha's Spiker drill: not ported yet)
-	/* 94 ObjId_94                 */ Obj_Null, // (the alpha's Rexon body: not ported yet)
-	/* 95 ObjId_95                 */ Obj_Null, // (the alpha's Sol: not ported yet)
-	/* 96 ObjId_96                 */ Obj_Null, // (the alpha's Rexon body: not ported yet)
-	/* 97 ObjId_97                 */ Obj_Null, // (the alpha's Rexon head: not ported yet)
+	/* 92 ObjId_92                 */ Obj_Spiker,
+	/* 93 ObjId_93                 */ Obj_SpikerDrill,
+	/* 94 ObjId_94                 */ Obj_RexonBody,
+	/* 95 ObjId_95                 */ Obj_Sol,
+	/* 96 ObjId_96                 */ Obj_RexonBody,
+	/* 97 ObjId_97                 */ Obj_RexonHead,
 	/* 98 ObjId_98                 */ Obj_EnemyWeapon,
 	/* 99 ObjId_99                 */ Obj_Null, // (the alpha's Nebula: not ported yet)
 	/* 9A ObjId_9A                 */ Obj_Null, // (the alpha's Turtloid: not ported yet)

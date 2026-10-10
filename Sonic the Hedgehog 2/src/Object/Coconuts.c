@@ -2,6 +2,7 @@
 // subtype is the index into it) and the monkey is always in one of: hanging on the trunk (waiting until it is time to climb), climbing, or throwing.
 #include "Object/Coconuts.h"
 #include "Object/MTZBadniks.h"
+#include "Object/HTZBadniks.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -140,6 +141,7 @@ typedef struct { const uint8_t *mappings; uint16_t tile; uint8_t render, priorit
 static const WeaponLook weapon_looks[] = {
     { NULL, TILE_MAP(0, 0, 0, 0, ArtTile_Coconuts), 0x84, 4, 8, 0x8B }, // the coconut (its mappings are Coconuts')
     { NULL, TILE_MAP(1, 0, 0, 0, 0x368), 0x84, 5, 4, 0x98 },             // the Asteron's spike (Asteron_Mappings)
+    { NULL, TILE_MAP(0, 1, 0, 0, 0x37E), 0x84, 4, 4, 0x98 },             // the Rexon's fireball (Rexon_Mappings)
 };
 
 void Obj_EnemyWeapon(Object *obj) {
@@ -147,7 +149,7 @@ void Obj_EnemyWeapon(Object *obj) {
 
     if (obj->routine == 0) {
         const WeaponLook *look = &weapon_looks[scratch->weapon];
-        obj->mappings = scratch->weapon == Weapon_AsteronSpike ? Asteron_Mappings() : Mappings_Coconuts;
+        obj->mappings = scratch->weapon == Weapon_AsteronSpike ? Asteron_Mappings() : scratch->weapon == Weapon_RexonFireball ? Rexon_Mappings() : Mappings_Coconuts;
         obj->tile = look->tile;
         obj->render.b |= look->render;
         obj->priority = look->priority;
@@ -167,6 +169,7 @@ void Obj_EnemyWeapon(Object *obj) {
         SpeedToPos(obj);
         break;
     case Weapon_AsteronSpike:
+    case Weapon_RexonFireball:
         SpeedToPos(obj);
         break;
     }

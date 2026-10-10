@@ -145,8 +145,12 @@ void NemDecRun(NemesisState *state) {
 	}
 }
 
+// The decoders that finish in one call have a dictionary of their own: the level's streaming loader (RunPLC, over several frames) keeps its dictionary in nemesis_buffer, and one of these running
+// in between (a level's object or its background decompressing art) would wreck the art that is being streamed.
+static uint8_t immediate_buffer[0x200];
+
 static void NemDecMain(NemesisState *state) {
-	state->dictionary = nemesis_buffer;
+	state->dictionary = immediate_buffer;
 	
 	uint16_t header = (state->source[0] << 8) | state->source[1];
 	state->source += 2;

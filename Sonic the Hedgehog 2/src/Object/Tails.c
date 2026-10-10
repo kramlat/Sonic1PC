@@ -6,6 +6,8 @@
 #include "Object/Countdown.h"
 #include "SplitScreen.h"
 #include "Backend/VDP.h"
+#include "Object/BossCommon.h"
+#include "Object/HTZBoss.h"
 #include "Object/Sonic.h"
 #include "Constants.h"
 
@@ -732,6 +734,22 @@ static signed int React_Enemy(Object *obj, Object *hit)
     if (!(invincibility || obj->anim == SonAnimId_Roll))
         return React_ChkHurt(obj, hit);
 
+    // The alpha's bosses are multi-sprite objects whose hit counter Sonic's touch counts down (the touch code of the alpha)
+    if (hit->render.f.multi_sprite) {
+        Scratch_AlphaBoss *boss = (Scratch_AlphaBoss *)&hit->scratch;
+        if (boss->hits) {
+            obj->xsp = -obj->xsp;
+            obj->ysp = -obj->ysp;
+            if (boss_flag != 3) { // (Hill Top's does not take the speed from him)
+                obj->xsp >>= 1;
+                obj->ysp >>= 1;
+            }
+            hit->col_type = 0;
+            boss->hits--;
+        }
+        return 0;
+    }
+
     // Check if enemy is a boss
     if (hit->col_property) {
         // Hit boss
@@ -819,6 +837,15 @@ static signed int ReactToItem(Object *obj) {
         // Check if object is collidable
         if (!(hit->render.f.on_screen && hit->col_type))
             continue;
+
+        // The alpha's Hill Top boss has a second hitbox, its open cannon
+        int16_t cannon_x, cannon_y, cannon_w;
+        if (HTZBoss_CannonBox(hit, &cannon_x, &cannon_y, &cannon_w)) {
+            const int16_t cx = x - (cannon_x - cannon_w);
+            const int16_t cy = y - (cannon_y - 4);
+            if (cx >= -width && cx <= cannon_w * 2 && cy >= -height && cy <= 8)
+                return React_Enemy(obj, hit);
+        }
 
         // Get object's size
         const uint8_t *sizep = obj_sizes[hit->col_type & 0x3F];
