@@ -28,8 +28,8 @@ extern int screen_width, screen_height;
 #define VRAM_FG_P2   0x14000 //The second view's foreground nametable in a split screen (the special stage's planes live here otherwise: never both at once)
 #define VRAM_BG_P2   0x16000 //The second view's background nametable in a split screen (each view scrolls its own background)
 #define VRAM_SONIC   0xF000 //Sonic graphics
-#define VRAM_SPRITES 0xF800 //Sprite table
-#define VRAM_HSCROLL 0xFC00 //horizontal scroll table
+#define VRAM_SPRITES 0xF800 //Sprite table (when it is in the tile space at all: the games keep theirs in a buffer of its own)
+#define VRAM_HSCROLL 0x1A000 //horizontal scroll table (its own space, like the planes')
 #define VRAM_HSCROLL_P2 0x18000 //The second view's horizontal scroll table in a split screen (above its planes: the low 64 KB is all tile art, the HUD's lives counter among it)
 
 #define PLANE_WIDTH  64

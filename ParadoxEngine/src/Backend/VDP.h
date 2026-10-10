@@ -10,7 +10,10 @@
 //VDP constants
 #define VDP_INTERNAL_PAD 32
 
-#define VRAM_SIZE    0x20000 // the 64 KB of tile space, then room for nametables (Constants.h's VRAM_FG/VRAM_BG, ArtTile_SS_Plane_*)
+#define VRAM_SIZE    0x10000 // the 64 KB of tile space (patterns, and whatever a game keeps in it: the special stage's planes). Above it, from this address, the VDP has a separate space of its own for each of
+                             // the planes' name tables and the scroll tables (VDP_REGIONS of VDP_REGION_SIZE bytes: EngineConstants.h's VRAM_FG ... VRAM_HSCROLL), so that the tiles are all the tile space holds
+#define VDP_REGION_SIZE 0x2000
+#define VDP_REGIONS     6
 #define PLANE_SIZE   0x2000
 #define SPRITES      80
 #define SPRITES_SIZE (SPRITES * 8)
@@ -66,6 +69,7 @@ void VDP_SeekVRAM(size_t offset);
 void VDP_WriteVRAM(const uint8_t *data, size_t len);
 void VDP_WriteLong(uint32_t val);
 void VDP_FillVRAM(uint8_t data, size_t len);
+void VDP_ClearVRAM(void); // the tile space and every space above it, to zero
 
 // One row (y, 0 to 7) of an 8 bits a pixel tile (64 bytes: a byte a pixel, the colour RAM index; 0 transparent; patterns in 64 byte steps) into 8 pixels of `to` (0xRRGGBBAA) and their priority mask `tom`: a pixel
 // is not drawn if the mask already has a bit of `and`, and `or` is put into the mask of every pixel that is not transparent (as the 4bpp tiles' rows do). The planes and sprites do not use it yet.

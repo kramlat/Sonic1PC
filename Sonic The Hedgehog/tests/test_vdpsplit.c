@@ -35,8 +35,7 @@ static void SetName(size_t plane, unsigned col, unsigned row, uint16_t entry) {
 
 static void Prepare(void) {
     VDP_SetSplitScreen(VDP_SPLIT_NONE, NULL);
-    VDP_SeekVRAM(0);
-    VDP_FillVRAM(0, VRAM_SIZE);
+    VDP_ClearVRAM();
     uint16_t cram[64];
     memset(cram, 0, sizeof(cram));
     cram[1] = RED; cram[2] = GREEN; cram[3] = BLUE;

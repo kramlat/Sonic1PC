@@ -140,8 +140,7 @@ void VDPSetupGame(void) {
 	VDP_SetBackgroundColour(0);
 	
 	//Clear VRAM and CRAM
-	VDP_SeekVRAM(0);
-	VDP_FillVRAM(0x00, VRAM_SIZE);
+	VDP_ClearVRAM(); // (the tile space and the spaces of the name tables and scroll tables)
 	VDP_SeekCRAM(0);
 	VDP_FillCRAM(0x0000, COLOURS);
 	

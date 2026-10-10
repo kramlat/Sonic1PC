@@ -29,10 +29,36 @@ void Audio_Update(void);
 #define VDP_MASK_SH_HIGHLIGHT (1 << 3) // ... its highlight operator (colour 14)
 
 //VDP internal state
+// The VDP's memory spaces, each its own symbol: the tile space (vdp_vram, patterns only) and, above it, a space for each plane's name table and each view's horizontal scroll table. The addresses the games use
+// (VRAM_FG ... VRAM_HSCROLL, EngineConstants.h) name them through VDP_Space; nothing written in one can run on into another.
 static ALIGNED2 uint8_t vdp_vram[VRAM_SIZE];
+static ALIGNED2 uint8_t vdp_nametable_fg[VDP_REGION_SIZE];       // the first view's foreground (plane A)
+static ALIGNED2 uint8_t vdp_nametable_bg[VDP_REGION_SIZE];       // ... and background (plane B)
+static ALIGNED2 uint8_t vdp_nametable_fg_p2[VDP_REGION_SIZE];    // the second view's
+static ALIGNED2 uint8_t vdp_nametable_bg_p2[VDP_REGION_SIZE];
+static ALIGNED2 uint8_t vdp_hscroll_p2[VDP_REGION_SIZE];         // the second view's horizontal scroll table
+static ALIGNED2 uint8_t vdp_hscroll_p1[VDP_REGION_SIZE];         // the first view's
+static uint8_t *const vdp_regions[VDP_REGIONS] = { vdp_nametable_fg, vdp_nametable_bg, vdp_nametable_fg_p2, vdp_nametable_bg_p2, vdp_hscroll_p2, vdp_hscroll_p1 };
+
+// The memory at an address of the VDP's address space (the tile space, then the regions above it, VDP_REGION_SIZE each); `left` gets how many bytes are left in the space it is in. NULL if there is none.
+static inline uint8_t *VDP_Space(size_t addr, size_t *left) {
+	if (addr < VRAM_SIZE) {
+		if (left != NULL)
+			*left = VRAM_SIZE - addr;
+		return vdp_vram + addr;
+	}
+	const size_t r = (addr - VRAM_SIZE) / VDP_REGION_SIZE;
+	if (r >= VDP_REGIONS)
+		return NULL;
+	const size_t at = (addr - VRAM_SIZE) % VDP_REGION_SIZE;
+	if (left != NULL)
+		*left = VDP_REGION_SIZE - at;
+	return vdp_regions[r] + at;
+}
 static uint32_t vdp_cram[VDP_PALETTES][16]; // 0x00RRGGBB: the colour RAM holds true colour; the Mega Drive's 9 bit words are upscaled as they are written
 
 static uint8_t *vdp_vram_p;
+static size_t vdp_vram_left; // bytes left in the space vdp_vram_p is in
 static uint32_t *vdp_cram_p;
 
 static size_t vdp_plane_a_location, vdp_plane_b_location, vdp_sprite_location, vdp_hscroll_location;
@@ -91,50 +117,64 @@ void VDP_Quit(void) {
 }
 
 void VDP_SeekVRAM(size_t offset) {
+	size_t left = 0;
+	uint8_t *p = VDP_Space(offset, &left);
 	#ifdef VDP_SANITY
-	if (offset >= VRAM_SIZE) {
+	if (p == NULL)
 		puts("VDP_SeekVRAM: Out-of-bounds");
+	#endif
+	if (p == NULL) { // (writes go nowhere until the next seek)
+		vdp_vram_p = vdp_vram;
+		vdp_vram_left = 0;
 		return;
 	}
-	#endif
-	vdp_vram_p = vdp_vram + offset;
+	vdp_vram_p = p;
+	vdp_vram_left = left;
 }
 
 void VDP_WriteVRAM(const uint8_t *data, size_t len) {
-	#ifdef VDP_SANITY
-	if ((vdp_vram_p - vdp_vram) >= VRAM_SIZE || (vdp_vram_p - vdp_vram + len) > VRAM_SIZE) {
+	if (len > vdp_vram_left) {
+		#ifdef VDP_SANITY
 		puts("VDP_WriteVRAM: Out-of-bounds");
-		return;
+		#endif
+		len = vdp_vram_left; // (what does not fit in the space is dropped, not put into the next)
 	}
-	#endif
 	memcpy(vdp_vram_p, data, len);
 	vdp_vram_p += len;
+	vdp_vram_left -= len;
 }
 
 void VDP_WriteLong(uint32_t val) {
-	#ifdef VDP_SANITY
-	if ((vdp_vram_p - vdp_vram) >= VRAM_SIZE || (vdp_vram_p - vdp_vram + 4) > VRAM_SIZE) {
-		puts("VDP_WriteVRAM: Out-of-bounds");
+	if (vdp_vram_left < 4) {
+		#ifdef VDP_SANITY
+		puts("VDP_WriteLong: Out-of-bounds");
+		#endif
 		return;
 	}
-	#endif
 	vdp_vram_p[0] = (uint8_t)(val >> 24);
 	vdp_vram_p[1] = (uint8_t)(val >> 16);
 	vdp_vram_p[2] = (uint8_t)(val >> 8);
 	vdp_vram_p[3] = (uint8_t)(val);
 	vdp_vram_p += 4;
+	vdp_vram_left -= 4;
 }
 
 void VDP_FillVRAM(uint8_t data, size_t len) {
-	#ifdef VDP_SANITY
-	if ((vdp_vram_p - vdp_vram) >= VRAM_SIZE || (vdp_vram_p - vdp_vram + len) > VRAM_SIZE)
-	{
-		puts("VDP_WriteVRAM: Out-of-bounds");
-		return;
+	if (len > vdp_vram_left) {
+		#ifdef VDP_SANITY
+		puts("VDP_FillVRAM: Out-of-bounds");
+		#endif
+		len = vdp_vram_left;
 	}
-	#endif
 	memset(vdp_vram_p, data, len);
 	vdp_vram_p += len;
+	vdp_vram_left -= len;
+}
+
+void VDP_ClearVRAM(void) {
+	memset(vdp_vram, 0, sizeof(vdp_vram));
+	for (int r = 0; r < VDP_REGIONS; r++)
+		memset(vdp_regions[r], 0, VDP_REGION_SIZE);
 }
 
 // The Mega Drive's colours: 3 bits a channel, 0000bbb0ggg0rrr0, which its DAC puts out at these levels of 255 (not evenly: the real thing's). True colour is what the colour RAM holds; these are the way in and out
@@ -204,7 +244,7 @@ void VDP_FillCRAM(uint16_t data, size_t len) {
 void VDP_SetPlaneALocation(size_t loc) {
 	loc &= ~0x3FF;
 	#ifdef VDP_SANITY
-	if (loc > VRAM_SIZE - PLANE_SIZE) {
+	if (VDP_Space(loc, NULL) == NULL) {
 		puts("VDP_SetPlaneALocation: Out-of-bounds");
 		return;
 	}
@@ -215,7 +255,7 @@ void VDP_SetPlaneALocation(size_t loc) {
 void VDP_SetPlaneBLocation(size_t loc) {
 	loc &= ~0x1FFF;
 	#ifdef VDP_SANITY
-	if (loc > VRAM_SIZE - PLANE_SIZE) {
+	if (VDP_Space(loc, NULL) == NULL) {
 		puts("VDP_SetPlaneBLocation: Out-of-bounds");
 		return;
 	}
@@ -241,7 +281,7 @@ void VDP_SetSpriteBuffer(const uint16_t *buffer) {
 void VDP_SetHScrollLocation(size_t loc) {
 	loc &= ~0x3FF;
 	#ifdef VDP_SANITY
-	if (loc > VRAM_SIZE - SCREEN_HEIGHT * 4) {
+	if (VDP_Space(loc, NULL) == NULL) {
 		puts("VDP_SetHScrollLocation: Out-of-bounds");
 		return;
 	}
@@ -650,8 +690,8 @@ static inline void VDP_DrawViewRow(size_t y, uint32_t *to, uint8_t *tom, int vie
 	memset(tom, 0, (size_t)view_w);
 	
 	//Draw planes
-	VDP_DrawPlaneRow(to, tom, (const uint16_t*)(vdp_vram + vs->plane_b), -hscroll[1], y + vs->vscroll_b, view_w, double_cells);
-	VDP_DrawPlaneRow(to, tom, (const uint16_t*)(vdp_vram + vs->plane_a), -hscroll[0], y + vs->vscroll_a, view_w, double_cells);
+	VDP_DrawPlaneRow(to, tom, (const uint16_t*)VDP_Space(vs->plane_b, NULL), -hscroll[1], y + vs->vscroll_b, view_w, double_cells);
+	VDP_DrawPlaneRow(to, tom, (const uint16_t*)VDP_Space(vs->plane_a, NULL), -hscroll[0], y + vs->vscroll_a, view_w, double_cells);
 	hbla_pos = (int16_t)y;
 
 	vdp_sh_sprites = vdp_sh_enabled;
@@ -841,7 +881,7 @@ void VDP_DrawFrame(void) {
 
 	uint32_t *to = vdp_screen;
 	uint8_t *tom = vdp_mask;
-	const int16_t *hscroll = (int16_t*)(vdp_vram + vdp_hscroll_location);
+	const int16_t *hscroll = (int16_t*)VDP_Space(vdp_hscroll_location, NULL);
 	const size_t rows = (size_t)VDP_OutputRows();
 	const bool water_split = (stacked || side) && vdp_water_dry != NULL;
 
@@ -869,7 +909,7 @@ void VDP_DrawFrame(void) {
 			const struct VDP_ViewState vs = second
 				? (struct VDP_ViewState){ vdp_view2->plane_a_location, vdp_view2->plane_b_location, vdp_view2->vscroll_a, vdp_view2->vscroll_b }
 				: (struct VDP_ViewState){ vdp_plane_a_location, vdp_plane_b_location, vdp_vscroll_a, vdp_vscroll_b };
-			const int16_t *hs = (const int16_t*)(vdp_vram + (second ? vdp_view2->hscroll_location : vdp_hscroll_location));
+			const int16_t *hs = (const int16_t*)VDP_Space(second ? vdp_view2->hscroll_location : vdp_hscroll_location, NULL);
 			uint32_t (*view_pal)[16] = (second && vdp_view2->palette != NULL) ? vdp_screen_pal2 : vdp_screen_pal;
 			uint32_t sum_r[SCREEN_MAX_WIDTH], sum_g[SCREEN_MAX_WIDTH], sum_b[SCREEN_MAX_WIDTH];
 			memset(sum_r, 0, sizeof(uint32_t) * SCREEN_WIDTH);
@@ -900,7 +940,7 @@ void VDP_DrawFrame(void) {
 			VDP_DrawViewRow(y, half_pixels + VDP_INTERNAL_PAD, half_mask + VDP_INTERNAL_PAD, w1, 128, false, &vs1, &vdp_sprite_cache[y], hscroll + 2 * y);
 			memcpy(to, half_pixels + VDP_INTERNAL_PAD, (size_t)w1 * sizeof(uint32_t));
 			vdp_draw_pal = water_split ? vdp_water_pal[(int16_t)y > vdp_water_line[1]] : (vdp_view2->palette != NULL ? vdp_screen_pal2 : vdp_screen_pal);
-			const int16_t *hs2 = (const int16_t*)(vdp_vram + vdp_view2->hscroll_location) + 2 * y;
+			const int16_t *hs2 = (const int16_t*)VDP_Space(vdp_view2->hscroll_location, NULL) + 2 * y;
 			VDP_DrawViewRow(y, half_pixels + VDP_INTERNAL_PAD, half_mask + VDP_INTERNAL_PAD, w2, 128, false, &vs2, &vdp_sprite_cache[(size_t)H + y], hs2);
 			vdp_draw_pal = vdp_screen_pal;
 			memcpy(to + w1, half_pixels + VDP_INTERNAL_PAD, (size_t)w2 * sizeof(uint32_t));
