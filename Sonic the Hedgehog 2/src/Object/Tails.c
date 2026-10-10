@@ -131,8 +131,7 @@ static void Tails_LoadGfx(Object *obj) {
 // Tails_Control and TailsCPU_Control: a pad 2 that is being used keeps Tails for 300 frames; otherwise he copies Sonic's pad from 16 frames back (the CPU's other states
 // only pass on to this one)
 static void Tails_Control(void) {
-    if (SplitScreen_Active()) // the second player has pad 2 (and a camera of his own)
-        return;
+    // (The prototype's TailsCPU_Control runs in the split screen too, with no check of the mode: while pad 2 is idle Tails copies Sonic's pad, and the second player's pad takes him over for 5 seconds)
     // (Sonic_RecordPos: Sonic's pad this frame)
     pad_head = (uint8_t)((pad_head + 1) & 0x3F);
     pad_hold[pad_head] = jpad1_hold1;
