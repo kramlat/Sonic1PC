@@ -213,7 +213,7 @@ static void DustSplash_FollowsTheSpinDashAndSplashesAtTheWater(void) {
     memset(&objects[0], 0, sizeof(Object));
     objects[0].pos.l.x.f.u = 0x123;
     objects[0].pos.l.y.f.u = 0x234;
-    air = 30;
+    ((Scratch_Sonic *)&objects[0].scratch)->air = 30;
     Object *dust = &objects[0x1B];
     memset(dust, 0, sizeof(*dust));
     dust->type = ObjId_Splash;
@@ -231,10 +231,10 @@ static void DustSplash_FollowsTheSpinDashAndSplashesAtTheWater(void) {
         art |= tiles[b] != 0;
     CHECK(art);
 
-    air = 5; // (about to drown: no dust)
+    ((Scratch_Sonic *)&objects[0].scratch)->air = 5; // (about to drown: no dust)
     Obj_DustSplash(dust);
     CHECK_EQ(dust->anim, DUST_NULL);
-    air = 30;
+    ((Scratch_Sonic *)&objects[0].scratch)->air = 30;
 
     wtr_pos1 = 0x300;
     DustSplash_Show(dust, DUST_SPLASH);
@@ -287,6 +287,7 @@ static void Countdown_CountsAPlayersAirAndDrownsHim(void) {
         Obj_Countdown(counter);
     CHECK_EQ(sonic->routine, 6);
 }
+
 
 void RegisterObjectCoverageTests(void) {
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);

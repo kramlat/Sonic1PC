@@ -14,7 +14,7 @@
 #include "MathUtil.h"
 #include "Object.h"
 #include "Object/DebugList.h"
-#include "Object/DrownCount.h"
+#include "Object/Countdown.h"
 #include "Object/Splash.h"
 #include "Object/DustSplash.h"
 #include "PLC.h"
@@ -63,7 +63,7 @@ static void Sonic_Display(Object *obj) {
     if (scratch->invincibility_time) {
         if (--scratch->invincibility_time == 0) {
             // Restore music
-            if (!(lock_screen || air < 12)) {
+            if (!(lock_screen || scratch->air < 12)) {
                 ResumeLevelMusic();
             }
 
@@ -1684,7 +1684,7 @@ static bool Sonic_SpinDash(Object *obj) {
     PlaySound(sfx_SpindashRev);
     spindash_flag |= 1;
     spindash_count = 0;
-    if (air >= 12)
+    if (((Scratch_Sonic *)&obj->scratch)->air >= 12)
         DustSplash_Show(&objects[0x1B], DUST_DASH);
 
     // Because we're skipping the rest of the normal-movement case
@@ -1706,7 +1706,7 @@ static void Sonic_Water(Object *obj) {
         if (!obj->status.p.f.underwater)
             return;
         obj->status.p.f.underwater = false;
-        ResumeMusic(); // replenish air and resume music if necessary
+        Countdown_ResumeMusic(obj); // replenish air and resume music if necessary
 
         sonspeed_max = 0x600;
         sonspeed_acc = 0xC;
@@ -1734,11 +1734,9 @@ static void Sonic_Water(Object *obj) {
         if (obj->status.p.f.underwater)
             return;
         obj->status.p.f.underwater = true;
-        ResumeMusic(); // replenish air (music won't resume here, we've only just entered water)
+        Countdown_ResumeMusic(obj); // replenish air (music won't resume here, we've only just entered water)
 
-        objects[DROWNCOUNT_SLOT].type = ObjId_DrownCount;
-        objects[DROWNCOUNT_SLOT].routine = 0;
-        objects[DROWNCOUNT_SLOT].scratch.u8[0] = DROWNCOUNT_MASTER_BIT | 1; // subtype -- selects the master tracker path
+        Countdown_Make(COUNTDOWN_SONIC_SLOT, false); // the counting of his air
 
         sonspeed_max = 0x300;
         sonspeed_acc = 0x6;
@@ -2162,6 +2160,7 @@ void Obj_Sonic(Object* obj) {
         // Tumbling (springs) and the collision path (path swappers), as Nick Arcade's init sets them
         scratch->flips_remaining = 0;
         scratch->flip_speed = 4;
+        scratch->air = 30;
         scratch->top_solid_bit = 0xC;
         scratch->lrb_solid_bit = 0xD;
 

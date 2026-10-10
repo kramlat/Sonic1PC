@@ -169,6 +169,8 @@
 #include "Resource/Art/HTZLavaBubble.h"
 #include "Resource/Art/HTZFireball.h"
 #include "Resource/Art/AirBubbles.h"
+#include "Resource/Art/OxygenBubbles.h"
+#include "Resource/Art/CountdownBubbles.h"
 #include "Resource/Art/NGHZLeaves.h"
 #include "Resource/Art/NGHZArrowShooter.h"
 #include "Resource/Art/NGHZWaterSplash.h"
@@ -276,10 +278,11 @@ static const PLCList PLC_GHZ = { // Neo Green Hill (the prototype's Neo_Green_Hi
     }
 };
 
-static const PLCList PLC_GHZ2 = { // Neo_Green_Hill_Sprites_2: the air bubbles and numbers (which also hold the water splash), the spikes, the lever spring and the straight springs
-    5,
+static const PLCList PLC_GHZ2 = { // Neo_Green_Hill_Sprites_2: the air bubbles (the alpha's), the spikes, the lever spring and the straight springs
+    6,
     (const PLC[]) {
-        { Art_AirBubbles,    ART_VRAM(0xA000 >> 5) },
+        { Art_OxygenBubbles, ART_VRAM(0xAB60 >> 5) }, // (the alpha's bubbles: the counting object's and the vents'; the splash and the numbers have art windows of their own)
+        { Art_CountdownBubbles, ART_VRAM(0xBD00 >> 5) }, // (and its small ones)
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_LeverSpring,   ART_VRAM(0x8800 >> 5) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
@@ -323,10 +326,11 @@ static const PLCList PLC_MZ = { // Chemical Plant (the prototype's Chemical_Plan
     }
 };
 
-static const PLCList PLC_MZ2 = { // Chemical_Plant_Sprites_2: the air bubbles and numbers (which also hold the water splash), the spikes, the droplets (the worms), the lever spring and the straight springs; no diagonal springs'
-    6,                           // art: the diagonal art of Sonic 1's places sits on the lever spring's tiles
+static const PLCList PLC_MZ2 = { // Chemical_Plant_Sprites_2: the air bubbles (the alpha's), the spikes, the droplets (the worms), the lever spring and the straight springs; no diagonal springs'
+    7,                           // art: the diagonal art of Sonic 1's places sits on the lever spring's tiles
     (const PLC[]) {
-        { Art_AirBubbles,    ART_VRAM(0xA000 >> 5) },
+        { Art_OxygenBubbles, ART_VRAM(0xAB60 >> 5) }, // (the alpha's bubbles: the counting object's and the vents'; the splash and the numbers have art windows of their own)
+        { Art_CountdownBubbles, ART_VRAM(0xBD00 >> 5) }, // (and its small ones)
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_CPZDroplet,    ART_VRAM(0x8780 >> 5) },
         { Art_LeverSpring,   ART_VRAM(0x8800 >> 5) },
@@ -366,10 +370,12 @@ static const PLCList PLC_SLZ2 = { // Wood_Sprites_2 (Emerald Hill has no second 
 // Pattern load cues - Spring Yard
 // ---------------------------------------------------------------------------
 static const PLCList PLC_SYZ = { // Hidden Palace
-    13,
+    15,
     (const PLC[]) {
         { Art_Redz,          ART_VRAM(0x500) },
-        { Art_BBat,          ART_VRAM(0x530) },
+        { Art_BBat,          ART_VRAM(0x580) }, // (the alpha has it at $530, over the bubbles' art at $55B: Hidden Palace has water too, so it is moved up, see HPZBadniks.c)
+        { Art_OxygenBubbles, ART_VRAM(0xAB60 >> 5) },
+        { Art_CountdownBubbles, ART_VRAM(0xBD00 >> 5) },
         { Art_HPZBridge,     ART_VRAM(0x300) },
         { Art_HPZWaterfall,  ART_VRAM(0x315) },
         { Art_HPZPlatform,   ART_VRAM(0x34A) },

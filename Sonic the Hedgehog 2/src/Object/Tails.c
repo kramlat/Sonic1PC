@@ -3,6 +3,7 @@
 // code works on the shared ring count); he does not die from enemies, only from falling below the level, and then he comes back above Sonic.
 #include "Object/Tails.h"
 #include "Object/DustSplash.h"
+#include "Object/Countdown.h"
 #include "SplitScreen.h"
 #include "Backend/VDP.h"
 #include "Object/Sonic.h"
@@ -72,8 +73,7 @@ static inline uint8_t scratch_air(const Object *obj) {
     return ((const Scratch_Sonic *)&obj->scratch)->air;
 }
 
-// Water (the alpha's Miles_Water): Tails slows in it as Sonic does, with the speeds of his own, and the water splashes where he goes in and out. (His air and his drowning are not here yet: the alpha's
-// breathing bubbles for him belong to the counting object.)
+// Water (the alpha's Miles_Water): Tails slows in it as Sonic does, with the speeds of his own, the water splashes where he goes in and out, and his air is counted (Countdown.c) so that he drowns too.
 static void Tails_Water(Object *obj) {
     if (!Level_HasWater())
         return;
@@ -83,6 +83,7 @@ static void Tails_Water(Object *obj) {
         if (!obj->status.p.f.underwater)
             return;
         obj->status.p.f.underwater = false;
+        Countdown_ResumeMusic(obj);
 
         tails_speed_max = 0x600;
         tails_speed_acc = 0xC;
@@ -101,6 +102,8 @@ static void Tails_Water(Object *obj) {
         if (obj->status.p.f.underwater)
             return;
         obj->status.p.f.underwater = true;
+        Countdown_ResumeMusic(obj);
+        Countdown_Make(COUNTDOWN_TAILS_SLOT, true); // the counting of his air
 
         tails_speed_max = 0x300;
         tails_speed_acc = 0x6;

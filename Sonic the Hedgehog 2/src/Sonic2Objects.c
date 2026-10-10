@@ -4,7 +4,6 @@
 #include "Object/DHZObjects.h"
 #include "Object/MTZObjects.h"
 #include "Object/OOZObjects.h"
-#include "Object/DrownCount.h"
 #include "Object/InvisibleBarrier.h"
 #include "Object/PathSwapper.h"
 #include "Object/Splash.h"
@@ -80,6 +79,8 @@ void Obj_CollapsingPlatform(Object *obj);
 void Obj_BBat(Object *obj);
 void Obj_NAWaterSurface(Object *obj);
 void Obj_DustSplash(Object *obj);
+void Obj_Countdown(Object *obj);
+void Obj_OxygenBubbles(Object *obj);
 void Obj_SuperSonicStars(Object *obj);
 void Obj_Redz(Object *obj);
 void Obj_CollapseLedge(Object *obj);
@@ -197,7 +198,7 @@ const ObjectFunc game_objects[] = {
 	/* 07 ObjId_07                 */ Obj_OilSurface, // (the prototype's oil of Oil Ocean: made by the level)
 	/* 08 ObjId_Splash              */ Obj_DustSplash, // (the alpha's: the spin dash's dust, the skid's and the water's splash, for each player; Sonic 1's level start makes Sonic's)
 	/* 09 ObjId_SpecialSonic        */ Obj_SpecialSonic,
-	/* 0A ObjId_DrownCount          */ Obj_DrownCount,
+	/* 0A ObjId_DrownCount          */ Obj_Countdown, // (the alpha's: the bubbles and the counting of the air, for Sonic and for Tails)
 	/* 0B ObjId_Pole               */ Obj_CPZPipeTipper, // (the prototype's section of pipe that tips you off)
 	/* 0C ObjId_FlapDoor           */ Obj_FloatingPlatform, // (the prototype's small floating platform: none in its levels)
 	/* 0D ObjId_Signpost            */ Obj_Signpost,
@@ -223,7 +224,7 @@ const ObjectFunc game_objects[] = {
 	/* 21 ObjId_HUD                 */ Obj_HUD,
 	/* 22 ObjId_BuzzBomber          */ Obj_ArrowShooter, // (the prototype's arrow shooter of Neo Green Hill)
 	/* 23 ObjId_BuzzMissile         */ Obj_Null, // (the prototype's object here is not ported yet)
-	/* 24 ObjId_BuzzExplode         */ Obj_BuzzExplode,
+	/* 24 ObjId_BuzzExplode         */ Obj_OxygenBubbles, // (the alpha's vents of bubbles, where the prototype has Sonic 1's Buzz Bomber explosion that nothing makes)
 	/* 25 ObjId_Ring                */ Obj_Ring,
 	/* 26 ObjId_Monitor             */ Obj_Monitor,
 	/* 27 ObjId_Explosion           */ Obj_Explosion,

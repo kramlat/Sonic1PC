@@ -4,11 +4,19 @@
 #include "Object.h"
 
 // Object 0A as the alpha has it (the breathing bubbles and the countdown of the air, for Sonic and for Tails). The alpha keeps each player's air in his own object (the byte at $28, Scratch_Sonic's air),
-// which is how Tails gets a countdown too. Not in the object table yet: the alpha's art for the bubbles (tile $55B) is in its zone art lists, which Sonic 2 does not have yet, so Sonic 1's DrownCount
-// still counts for Sonic, and this one waits for them.
+// which is how Tails gets a countdown too. Its bubbles' art is the alpha's (tile $55B, loaded by the water zones' art lists; Hidden Palace's list does not have it yet, as in the alpha), and the numbers'
+// is brought into the dust's windows as they show.
+// The slots of the counting objects of the two players
+#define COUNTDOWN_SONIC_SLOT 13
+#define COUNTDOWN_TAILS_SLOT 14
+
 #define COUNTDOWN_MASTER_BIT 0x80 // (the subtype of the one that counts: its low bits are the bubbles' pause)
 
 void Obj_Countdown(Object *obj);
+
+// The bubbles' frames and the table their wobble follows, which the vents' bubbles (OxygenBubbles.c) have too
+const uint8_t *Countdown_BubbleMappings(void);
+const uint8_t *Countdown_WobbleTable(void);
 
 // Makes the counting object for a player (slot `slot`), who is Tails if `tails`; he must be underwater for it to start counting
 void Countdown_Make(uint8_t slot, bool tails);

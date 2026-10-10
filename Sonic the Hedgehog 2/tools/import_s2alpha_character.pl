@@ -65,3 +65,9 @@ write_file('Animation/Countdown',        slice(0x012A5E, 0x012AF0));
 write_file('Animation/CountdownWobble',  slice(0x0126EC, 0x0127EC));
 write_file('Mappings/Countdown',         slice(0x014CFC, 0x014DC8));
 copy_file('Art/Uncompressed/OxygNumb.dat', 'Art/CountdownNumbers');
+
+# The bubbles' art (oxygen.nem: the bubbles of the counting object and the vents', at VRAM $AB60, tile $55B), as the alpha has it, still compressed; the numbers' art is above; and the animations of the vents' bubbles
+# (object 24, $014CD2 to $014CFC)
+copy_file('Art/Nemesis/Oxygen.nem', 'Art/OxygenBubbles');
+copy_file('Art/Nemesis/Bubbles.nem', 'Art/CountdownBubbles'); # (the small bubbles: bubbles.nem, at VRAM $BD00, tile $5E8, which frames 1 to 4 of the bubbles' mappings point at)
+write_file('Animation/OxygenBubbles', slice(0x014CD2, 0x014CFC));

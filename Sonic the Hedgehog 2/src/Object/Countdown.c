@@ -44,6 +44,14 @@ typedef struct {
     uint8_t tails;         // 0x3F (var 13): the player is Tails
 } Scratch_Countdown;
 
+const uint8_t *Countdown_BubbleMappings(void) {
+    return Mappings_Countdown;
+}
+
+const uint8_t *Countdown_WobbleTable(void) {
+    return Animation_CountdownWobble;
+}
+
 static inline Scratch_Sonic *PlayerScratch(Object *player) {
     return (Scratch_Sonic *)&player->scratch;
 }

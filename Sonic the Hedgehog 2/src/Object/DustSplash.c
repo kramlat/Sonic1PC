@@ -27,9 +27,9 @@ static Object *Owner(const Scratch_Dust *dust) {
     return &objects[dust->owner];
 }
 
-// The air the player has left (Sonic's is the level's, Tails' his own): the dust is only there while he is not about to drown
+// The air the player has left (each has his own, in his object): the dust is only there while he is not about to drown
 static uint16_t Air(const Object *owner) {
-    return owner == player ? air : ((const Scratch_Sonic *)&owner->scratch)->air;
+    return ((const Scratch_Sonic *)&owner->scratch)->air;
 }
 
 // Brings the tiles of the frame into VRAM (Load_Dust_Water_Splash_Dynamic_PLC): the DPLC's runs, one after the other from where this dust's window starts
