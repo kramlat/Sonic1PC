@@ -42,6 +42,7 @@ static int16_t tails_look_shift;
 #define TAILS_BALL_WIDTH   7
 #define TAILS_BALL_SHIFT   5
 
+extern uint8_t hud_lives_slot; // (HUD.c; its header holds the HUD's art too, which only HUD.c may define)
 #define ArtTile_Tails      0x7A0
 #define ArtTile_TailsTails 0x7B0
 #define TAILSTAILS_SLOT    0x1D
@@ -222,8 +223,10 @@ static void Tails_AnimateTable(Object *obj, const uint8_t *table, const Object *
             obj->frame_time.b = 0;
             return;
         }
-        if (obj->status.p.f.pushing)
-            goto Anim_Pushing;
+        // The prototype's Tails walks while he pushes: his push animation has no art (Tails_Animate_Push_NoArt), and his walking branch, unlike Sonic's, never goes to it. Re-enable this (and the Anim_Pushing label
+        // below) when he has push art:
+        // if (obj->status.p.f.pushing)
+        //     goto Anim_Pushing;
         angle = (angle >> 4) & 6;
         const uint8_t *s = TAILS_SCRIPT(SonAnimId_Walk);
         uint8_t offset = (uint8_t)(angle << 2);
@@ -249,7 +252,7 @@ static void Tails_AnimateTable(Object *obj, const uint8_t *table, const Object *
         obj->render.f.y_flip = false;
         Tails_AnimateReadFrame(obj, s);
     } else if (++wait == 0) { // $FD: pushing
-    Anim_Pushing:;
+    // Anim_Pushing:; // (the label the check above goes to)
         int16_t spd = 0x800 - abs_spd;
         if (spd < 0)
             spd = 0;
@@ -1699,6 +1702,7 @@ void Game_LevelObjects(void) {
     VDP_SetShadowHighlight((jpad1_hold1 & JPAD_C) != 0); // (the prototype enables the VDP's shadow/highlight mode, which darkens all but what is above the planes' priority, when C is held as a level loads)
     if (cli_start_level >= 0) // a level started from the command line skipped the title, which loads the main art (HUD, rings, ...)
         AddPLC(PlcId_Main);
+    hud_lives_slot = 20; // (the default, 29, is where Tails' tails are: the counter took the slot every frame and the tails never showed while he rolled or spin dashed)
     Object *tails = &objects[TAILS_SLOT];
     memset(tails, 0, sizeof(*tails));
     tails->type = ObjId_02;

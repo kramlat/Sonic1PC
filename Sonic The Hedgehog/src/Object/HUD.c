@@ -4,7 +4,8 @@
 
 // Where the lives counter goes in a widescreen picture: an object of its own in the top right corner. (The original has it in
 // the bottom left, as part of the HUD's own sprite; the widescreen frames of that sprite leave it out.)
-#define HUD_LIVES_SLOT 29 // a free one: slots 30 and 31 are LZ's water surfaces (WaterSurface.h)
+uint8_t hud_lives_slot = 29; // a free one: slots 30 and 31 are LZ's water surfaces (WaterSurface.h); Sonic 2 has Tails' tails in this one and uses another
+#define HUD_LIVES_SLOT hud_lives_slot
 #define HUD_WIDE_FRAMES 4 // the HUD frames without the lives counter come after the four with it
 
 // A split screen (Sonic 2's) puts the lives counter in the lower left of each view, where the original's picture has it, not in the corner of a wide picture

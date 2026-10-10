@@ -7,6 +7,10 @@
 #include "Object.h"
 #include "Object/DebugList.h"
 #include "Object/DebugMarkers.h"
+#include "Object/Tails.h"
+#include "Backend/VDP.h"
+
+void Obj_TailsTails(Object *obj);
 
 // The prototype's levels place objects by id; every id a built zone places has to run something (Obj_Null just deletes itself). The zones that are built are checked completely: the ids that are still not
 // ported are listed here, so a zone that gains an object (or one that loses it) makes the test say so (remove the id from the list when it is ported).
@@ -113,8 +117,37 @@ static void DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat(void) {
     debug_cheat = false;
 }
 
+
+// The tails (object 05) of a Tails who rolls or spin dashes: the prototype draws them (frames $49 to $58 for a roll, $81 to $84 for the dash) from their art window
+static bool TailsTailsShows(uint8_t tails_anim, int16_t xsp) {
+    memset(&objects[TAILS_SLOT], 0, sizeof(Object));
+    memset(&objects[0x1D], 0, sizeof(Object));
+    Object *tails = TAILS_OBJ;
+    tails->anim = tails_anim;
+    tails->xsp = xsp;
+    tails->inertia = xsp;
+    Object *tail = &objects[0x1D];
+    bool shown = false;
+    for (int i = 0; i < 12; i++) {
+        Obj_TailsTails(tail);
+        const uint8_t *tiles = VDP_TileSpace() + 0x7B0 * 0x20;
+        bool art = false;
+        for (int b = 0; b < 0x40; b++)
+            art |= tiles[b] != 0;
+        shown |= art && tail->frame >= 0x49;
+    }
+    return shown;
+}
+
+static void TailsTails_ShowWhileRollingAndDashing(void) {
+    CHECK(TailsTailsShows(2, 0x600));
+    CHECK(TailsTailsShows(3, 0x600));
+    CHECK(TailsTailsShows(9, 0));
+}
+
 void RegisterObjectCoverageTests(void) {
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
+    RUN_TEST(TailsTails_ShowWhileRollingAndDashing);
     RUN_TEST(DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects);
     RUN_TEST(ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace);
     RUN_TEST(ObjectCoverage_NoPlacedObjectIsFalselyPending);
