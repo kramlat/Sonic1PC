@@ -1,4 +1,5 @@
 #include "GM_Title.h"
+#include "Viewport.h"
 #include "Constants.h"
 
 #include "Sound.h"
@@ -41,7 +42,7 @@ uint8_t demo_num;
 #define LEVSEL_SS_ROW        (LEVSEL_LINE_COUNT - 2) // "SPECIAL STAGE"
 #define LEVSEL_START_ROW    4
 #define LEVSEL_START_COL    8
-#define LEVSEL_VRAM_MAIN    (VRAM_BG + (LEVSEL_START_ROW << 7) + (LEVSEL_START_COL << 1))
+#define LEVSEL_VRAM_MAIN    ((LEVSEL_START_ROW << 7) + (LEVSEL_START_COL << 1)) // (a byte offset in plane B)
 #define LEVSEL_FONT_VRAM    ART_VRAM(ArtTile_Level_Select_Font)
 #define LEVSEL_SNDTEST_COL  (LEVSEL_LINE_LENGTH - 8) // column offset for the 2-digit sound number
 // Highest registered sound/SFX ID, 0-based offset from bgm_GHZ (see
@@ -125,7 +126,7 @@ static void LevSelTextLoad(int selected) {
     char sndtest_line[LEVSEL_LINE_LENGTH];
 
     for (int row = 0; row < LEVSEL_LINE_COUNT; row++) {
-        VDP_SeekVRAM(LEVSEL_VRAM_MAIN + (row * PLANE_ROW_BYTES));
+        Plane_Seek(&screen1p.plane_b, LEVSEL_VRAM_MAIN + (row * PLANE_ROW_BYTES));
         uint8_t palette = (row == selected) ? 2 : 3; // yellow : white
         const char *text = levsel_text[row];
         size_t len = strlen(text);
@@ -149,7 +150,7 @@ static void LevSelTextLoad(int selected) {
             char c = (col < (int)len) ? text[col] : ' ';
             uint8_t tile = LevSelCharToTile(c);
             uint16_t word = (tile == 0xFF) ? 0 : TILE_MAP(1, palette, 0, 0, (0x680 + tile));
-            VDP_WriteVRAM((const uint8_t*)&word, 2);
+            Plane_Write(word);
         }
     }
 }
@@ -174,12 +175,12 @@ static int LevSelStepSound(int value, bool right) {
 
 // Draws one line of the level select's text area (blank-padded to its width).
 static void LevSelDrawLine(int row, const char *text, int palette) {
-    VDP_SeekVRAM(LEVSEL_VRAM_MAIN + (row * PLANE_ROW_BYTES));
+    Plane_Seek(&screen1p.plane_b, LEVSEL_VRAM_MAIN + (row * PLANE_ROW_BYTES));
     size_t len = strlen(text);
     for (int col = 0; col < LEVSEL_LINE_LENGTH; col++) {
         uint8_t tile = LevSelCharToTile(col < (int)len ? text[col] : ' ');
         uint16_t word = (tile == 0xFF) ? 0 : TILE_MAP(1, palette, 0, 0, (0x680 + tile));
-        VDP_WriteVRAM((const uint8_t *)&word, 2);
+        Plane_Write(word);
     }
 }
 
@@ -256,11 +257,9 @@ static void LevelSelect(void) {
     PalLoad2(PalId_LevelSel);
 
     memset(hscroll_buffer, 0, sizeof(hscroll_buffer));
-    VDP_SeekVRAM(VRAM_HSCROLL);
-    VDP_FillVRAM(0, sizeof(hscroll_buffer));
+    Viewport_UploadHScroll(&screen1p, hscroll_buffer, sizeof(hscroll_buffer));
 
-    VDP_SeekVRAM(VRAM_BG);
-    VDP_FillVRAM(0, (PLANE_WIDTH * PLANE_HEIGHT) << 1);
+    Plane_Fill(&screen1p.plane_b, 0, (PLANE_WIDTH * PLANE_HEIGHT) << 1, 0);
     VDP_SeekVRAM(LEVSEL_FONT_VRAM);
     // 41 tiles * 32 bytes/tile -- can't sizeof() an extern array with no
     // declared size, and Text.h itself is only ever #included once, from
@@ -467,8 +466,7 @@ void GM_Title(void) {
     PaletteFadeOut();
 
     // Set VDP state
-    VDP_SetPlaneALocation(VRAM_FG);
-    VDP_SetPlaneBLocation(VRAM_BG);
+    Viewport_UseOwnPlanes(&screen1p);
     VDP_SetBackgroundColour(0x20); // Line 2, entry 0
 
     VDPDisableWaterSplit();
@@ -485,7 +483,7 @@ void GM_Title(void) {
     VDP_SeekVRAM(0x14C0);
     NemDec(Art_CreditsFont);
 
-    CopyTilemap(Tilemap_JapaneseCredits, VRAM_FG + PLANE_WIDEADD + PLANE_TALLADD, 40, 24);
+    CopyTilemap(Tilemap_JapaneseCredits, &screen1p.plane_a, PLANE_WIDEADD + PLANE_TALLADD, 40, 24);
 
     // Clear palette
     memset(dry_palette_dup, 0, sizeof(dry_palette_dup));
@@ -528,10 +526,10 @@ void GM_Title(void) {
 
     // Draw background
     ClearScreen();
-    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), VRAM_BG);
+    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), &screen1p.plane_b);
 
     // Load title mappings
-    CopyTilemap(&Tilemap_TitleFG[0x0000], MAP_PLANE(VRAM_FG, 3, 4) + PLANE_WIDEADD + PLANE_TALLADD, 34, 22);
+    CopyTilemap(&Tilemap_TitleFG[0x0000], &screen1p.plane_a, MAP_PLANE(3, 4) + PLANE_WIDEADD + PLANE_TALLADD, 34, 22);
 
     // Load GHZ art and title palette
     VDP_SeekVRAM(0x0000);

@@ -29,7 +29,8 @@ uint16_t ss_bg_anim;
 
 // TilemapToVRAM: a width x height block of tilemap words (big-endian bytes) into a nametable at `vram`.
 static void SS_WriteTilemap(const uint8_t *tilemap, size_t vram, size_t width, size_t height) {
-    CopyTilemap(tilemap, vram, width, height);
+    plane_t canvas = { (uint16_t *)(VDP_TileSpace() + vram), vram < VRAM_SIZE ? VRAM_SIZE - vram : 0 }; // (a canvas is a nametable kept among the tiles)
+    CopyTilemap(tilemap, &canvas, 0, width, height);
 }
 
 void SS_BGLoad(void) {
@@ -89,9 +90,9 @@ void SS_BGSetMode(uint16_t anim, uint16_t bg_plane_tile) {
     uint16_t mode = anim >> 1;
     if (mode >= 7)
         mode = 0;
-    VDP_SetPlaneALocation((size_t)ss_bg_modes[mode].plane_tile * TILE_SIZE);
+    Plane_UseTiles(&screen1p.plane_a, ss_bg_modes[mode].plane_tile);
     vid_scrpos_y_dup = (int16_t)(ss_bg_modes[mode].yscroll << 8);
-    VDP_SetPlaneBLocation((size_t)bg_plane_tile * TILE_SIZE);
+    Plane_UseTiles(&screen1p.plane_b, bg_plane_tile);
 }
 
 // ---------------------------------------------------------------------------

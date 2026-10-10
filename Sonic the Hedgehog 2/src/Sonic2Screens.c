@@ -22,7 +22,7 @@ static void Screen_Level(void) {
     GM_Level();
     HTZQuake_Reset(); // (the sprites follow the camera again)
     VDP_SetShadowHighlight(false);
-    VDP_SetSplitScreen(VDP_SPLIT_NONE, NULL);
+    VDP_SetSplitScreen(VDP_SPLIT_NONE);
     VDP_SetSplitWater(NULL, NULL, 0, 0);
     camera_split = false;
     sprite_split_screen = SPRITE_SPLIT_NONE;

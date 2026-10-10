@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Backend/VDP.h"
+#include "Viewport.h"
 
 #include <stdbool.h>
 
@@ -43,12 +44,9 @@ extern uint16_t sprite_buffer[BUFFER_SPRITES][4];
 extern uint16_t sprite_buffer_p2[BUFFER_SPRITES][4]; //The split screen's second player's sprite table (Sonic 2's Sprite_Table_P2)
 extern int16_t hscroll_buffer[SCREEN_MAX_HEIGHT][2];
 
-//The split screen's second view (see VDP_SetSplitScreen): its horizontal scroll (a foreground and a background X for each line, as hscroll_buffer's), a
-//ready-made VDPView for it (its foreground plane at VRAM_FG_P2, its background plane at VRAM_BG_P2, its scroll table at VRAM_HSCROLL_P2, its sprite table in
-//sprite_buffer_p2, the first view's palette), and the copy of the scroll table to VRAM that goes with the first's. The game fills hscroll_buffer_p2 from the
-//second camera as it does the first's, calls Video_UploadHScrollP2 where it uploads hscroll_buffer, and sets video_second_view's scroll values each frame.
+//The split screen's second view (see VDP_SetSplitScreen) is screen2p (Viewport.h). Its horizontal scroll (a foreground and a background X for each line, as hscroll_buffer's) is built in hscroll_buffer_p2 and copied
+//to it by Video_UploadHScrollP2 where the game uploads hscroll_buffer; its vertical scroll is screen2p.vsram, set each frame.
 extern int16_t hscroll_buffer_p2[SCREEN_MAX_HEIGHT][2];
-extern VDPView video_second_view;
 void Video_UploadHScrollP2(void);
 
 //Picture size (Video > Resolution): the aspect ratio picks the width or the height of the picture
@@ -78,4 +76,5 @@ void VDPSetupGame(void);
 void VDPDisableWaterSplit(void);
 void WaitForVBla(void);
 void ClearScreen(void);
-void CopyTilemap(const uint8_t *tilemap, size_t offset, size_t width, size_t height);
+// Copies a tile map (rows of 16-bit entries, big-endian) into a plane: `offset` is the byte offset in the plane of its first entry
+void CopyTilemap(const uint8_t *tilemap, plane_t *plane, size_t offset, size_t width, size_t height);

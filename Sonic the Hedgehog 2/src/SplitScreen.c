@@ -42,7 +42,7 @@ static void SplitOff(void) {
     hud_lives_lower_left = false;
     camera_split = false;
     sprite_split_screen = SPRITE_SPLIT_NONE;
-    VDP_SetSplitScreen(VDP_SPLIT_NONE, NULL);
+    VDP_SetSplitScreen(VDP_SPLIT_NONE);
     VDP_SetSplitWater(NULL, NULL, 0, 0);
     DrawTileRemap_Clear();
 }
@@ -59,7 +59,8 @@ void SplitScreen_LoadLevel(void) {
     left_limit_p2 = limit_left1;
     hud_lives_lower_left = true;
     sprite_split_screen = side_by_side ? SPRITE_SPLIT_SIDE : SPRITE_SPLIT_STACKED;
-    VDP_SetSplitScreen(side_by_side ? VDP_SPLIT_SIDE : VDP_SPLIT_STACKED, &video_second_view);
+    screen2p.palette = NULL; // (the first view's palette)
+    VDP_SetSplitScreen(side_by_side ? VDP_SPLIT_SIDE : VDP_SPLIT_STACKED);
 
     // Both start from where Sonic is (Tails is put beside him), their cameras centred on them; the views are as wide as the narrower of the two
     Object *tails = TAILS_OBJ;
@@ -76,17 +77,17 @@ void SplitScreen_LoadLevel(void) {
     scrpos_x_p2 = scrpos_x;
     scrpos_y_p2 = scrpos_y;
     if (LEVEL_ZONE(level_id) == ZoneId_HTZ) // (the second view's background has mountains of its own: the tiles of the first's set are drawn as the second's)
-        DrawTileRemap_Set(VRAM_BG_P2, 0x2000, 0x500, 0x20, HTZ_P2_TILES);
-    LevelPlane_Init(&fg_plane, VRAM_FG, &scrpos_x, &scrpos_y, view_width);
-    LevelPlane_Init(&level_plane_p2, VRAM_FG_P2, &scrpos_x_p2, &scrpos_y_p2, view_width);
+        DrawTileRemap_Set(&screen2p.plane_b, 0x500, 0x20, HTZ_P2_TILES);
+    LevelPlane_Init(&fg_plane, &screen1p.plane_a, &scrpos_x, &scrpos_y, view_width);
+    LevelPlane_Init(&level_plane_p2, &screen2p.plane_a, &scrpos_x_p2, &scrpos_y_p2, view_width);
     level_plane_p2.xblock = fg_plane.xblock;
     level_plane_p2.yblock = fg_plane.yblock;
     LevelPlane_DrawAll(&fg_plane, LEVEL_LAYOUT_FG(0));
     LevelPlane_DrawAll(&level_plane_p2, LEVEL_LAYOUT_FG(0));
-    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), VRAM_BG_P2); // (its background starts where the first's is)
+    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), &screen2p.plane_b); // (its background starts where the first's is)
     DeformLayersP2_Init();
-    video_second_view.vscroll_a = scrpos_y.f.u;
-    video_second_view.vscroll_b = vid_bg_scrpos_y_dup;
+    screen2p.vsram.a = scrpos_y.f.u;
+    screen2p.vsram.b = vid_bg_scrpos_y_dup;
 }
 
 void SplitScreen_LockCameras(int16_t x, int16_t half_width) {
@@ -188,8 +189,8 @@ void SplitScreen_Scroll(void) {
         hscroll_buffer_p2[i][0] = lines[i][0];
         hscroll_buffer_p2[i][1] = lines[i][1];
     }
-    video_second_view.vscroll_a = (int16_t)(scrpos_y_p2.f.u + htz_p2_shake_y);
-    video_second_view.vscroll_b = bg_y2;
+    screen2p.vsram.a = (int16_t)(scrpos_y_p2.f.u + htz_p2_shake_y);
+    screen2p.vsram.b = bg_y2;
 
     // The sea: each view has its own water line against its own camera
     if (Level_HasWater())

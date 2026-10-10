@@ -1,4 +1,5 @@
 #include "GM_Continue.h"
+#include "Viewport.h"
 #include "Constants.h"
 
 #include <string.h>
@@ -34,10 +35,8 @@ void GM_Continue(void) {
 
     // Screen setup and patterns
     ClearPLC();
-    VDP_SetPlaneALocation(VRAM_FG);
-    VDP_SetPlaneBLocation(VRAM_BG);
-    VDP_SetSpriteLocation(VRAM_SPRITES);
-    VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+    Viewport_UseOwnPlanes(&screen1p);
+    Viewport_SetSize(SCREEN_WIDTH, SCREEN_HEIGHT, PLANE_WIDTH, PLANE_HEIGHT);
     VDP_SetBackgroundColour(0);
     VDPDisableWaterSplit();
     ClearScreen();

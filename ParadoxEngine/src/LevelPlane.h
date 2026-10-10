@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "Types.h"
+#include "Viewport.h"
 
 // A foreground plane that follows a camera: what keeps one view's foreground drawn as its camera moves. The game keeps one LevelPlane per view (two in a split
 // screen); each is plain data it may assign or reset, pointing at its own plane in VRAM and its own camera.
@@ -19,7 +20,7 @@
 #define LEVEL_SCROLL_RIGHT (1 << 3) // the column to the right
 
 typedef struct {
-    size_t plane;                       // the foreground plane's address in VRAM
+    plane_t *plane;                     // the foreground plane (a viewport's plane A)
     const dword_s *camera_x, *camera_y; // the camera it follows (live)
     dword_s snap_x, snap_y;             // the camera as of the last snapshot
     uint16_t flags;                     // rows and columns that became needed since the last snapshot
@@ -29,7 +30,7 @@ typedef struct {
 } LevelPlane;
 
 // Sets a plane up (everything cleared, the camera snapshot taken)
-void LevelPlane_Init(LevelPlane *p, size_t plane, const dword_s *camera_x, const dword_s *camera_y, int16_t width);
+void LevelPlane_Init(LevelPlane *p, plane_t *plane, const dword_s *camera_x, const dword_s *camera_y, int16_t width);
 
 // Draws the whole view at the camera: the rows of blocks that fill the plane, from one block above the view
 void LevelPlane_DrawAll(const LevelPlane *p, const uint8_t *layout);
@@ -49,6 +50,6 @@ void LevelPlane_Snapshot(LevelPlane *p);
 // Draws what the snapshot's flags ask for, against the snapshot's camera, and clears them
 void LevelPlane_DrawPending(LevelPlane *p, const uint8_t *layout);
 
-// The second view's foreground plane in a split screen, on VRAM_FG_P2 and the second camera (Camera.h). Set up with LevelPlane_Init when a split level starts;
+// The second view's foreground plane in a split screen, on screen2p's plane A and the second camera (Camera.h). Set up with LevelPlane_Init when a split level starts;
 // valid (and idle) before that.
 extern LevelPlane level_plane_p2;

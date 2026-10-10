@@ -34,22 +34,22 @@ static const uint16_t pal_ssrg[] = {
 };
 
 // SSRG planes
-static void CopyTilemap_Single(uint16_t v, size_t offset, size_t width, size_t height) {
+static void CopyTilemap_Single(uint16_t v, plane_t *plane, size_t offset, size_t width, size_t height) {
     while (height-- > 0) {
-        VDP_SeekVRAM(offset);
+        Plane_Seek(plane, offset);
         for (size_t x = 0; x < width; x++)
-            VDP_WriteVRAM((const uint8_t*)&v, 2);
+            Plane_Write(v);
         offset += PLANE_WIDTH * 2;
     }
 }
 
-static void CopyTilemap_Add(const uint8_t* tilemap, size_t offset, size_t width, size_t height, uint16_t add) {
+static void CopyTilemap_Add(const uint8_t* tilemap, plane_t *plane, size_t offset, size_t width, size_t height, uint16_t add) {
     while (height-- > 0) {
-        VDP_SeekVRAM(offset);
+        Plane_Seek(plane, offset);
         for (size_t x = 0; x < width; x++) {
             uint16_t v = ((tilemap[0] << 8) | (tilemap[1] << 0)) + add;
             tilemap += 2;
-            VDP_WriteVRAM((const uint8_t*)&v, 2);
+            Plane_Write(v);
         }
         offset += PLANE_WIDTH * 2;
     }
@@ -90,14 +90,13 @@ static void SRG_DrawFG(void) {
         uint16_t scroll_off = ((scroll_fg & 0x01F8) >> 2);
 
         // Get scroll offsets
-        size_t offset = MAP_PLANE(VRAM_FG, 2, 14) + PLANE_WIDEADD + PLANE_TALLADD + scroll_off;
+        size_t offset = MAP_PLANE(2, 14) + PLANE_WIDEADD + PLANE_TALLADD + scroll_off;
         const uint8_t* mapp = buffer0000 + scroll_off;
 
         // Write plane data
         for (int i = 0; i < 3; i++) {
             uint16_t v = ((mapp[0] << 8) | (mapp[1] << 0)) + 0x2000;
-            VDP_SeekVRAM(offset);
-            VDP_WriteVRAM((const uint8_t*)&v, 2);
+            Plane_Put(&screen1p.plane_a, offset, v);
             offset += PLANE_WIDTH << 1;
             mapp += 0x46;
         }
@@ -117,7 +116,10 @@ static void SRG_DrawFG(void) {
             add = 0x0000; // White
         else
             add = 0x2000; // Grey
-        CopyTilemap_Add(buffer0000, 0xC704 + PLANE_WIDEADD, 35, 3, add);
+        // (The original address of plane A's row 14 ($C000 on the Genesis), where this port wrote it into the tile space, as it still does: a name table kept among the tiles at that address)
+        plane_t tiles_at_c000;
+        Plane_UseTiles(&tiles_at_c000, 0xC000 / TILE_SIZE);
+        CopyTilemap_Add(buffer0000, &tiles_at_c000, 0x704 + PLANE_WIDEADD, 35, 3, add);
     }
 }
 
@@ -270,10 +272,10 @@ static void Obj_Square(Object* obj) {
         uint16_t width, height;
         uint32_t pad;
     } map_ram_data[] = {
-        { &buffer0000[0x4000], MAP_PLANE(VRAM_BG, 2, 2), 0x000B, 0x000B, 0 },
-        { &buffer0000[0x4120], MAP_PLANE(VRAM_BG, 0, 0), 0x000F, 0x000F, 0 },
-        { &buffer0000[0x4320], MAP_PLANE(VRAM_BG, 0, 0), 0x0010, 0x0010, 0 },
-        { &buffer0000[0x4562], MAP_PLANE(VRAM_BG, 0, 0), 0x000F, 0x000F, 0 },
+        { &buffer0000[0x4000], MAP_PLANE(2, 2), 0x000B, 0x000B, 0 },
+        { &buffer0000[0x4120], MAP_PLANE(0, 0), 0x000F, 0x000F, 0 },
+        { &buffer0000[0x4320], MAP_PLANE(0, 0), 0x0010, 0x0010, 0 },
+        { &buffer0000[0x4562], MAP_PLANE(0, 0), 0x000F, 0x000F, 0 },
     };
 
     switch (obj->routine) {
@@ -356,17 +358,17 @@ static void Obj_Square(Object* obj) {
     UpdateScrollPositions(obj);
 
     // Clear previous plane art
-    CopyTilemap_Single(0, VRAM_BG, 0x11, 0x11);
+    CopyTilemap_Single(0, &screen1p.plane_b, 0, 0x11, 0x11);
 
     // Copy new plane art
     const struct MapRamData* data = &map_ram_data[(scratch->timer & 0x18) >> 3];
-    CopyTilemap(data->map, data->offset, data->width + 1, data->height + 1);
+    CopyTilemap(data->map, &screen1p.plane_b, data->offset, data->width + 1, data->height + 1);
 
 #if (SCREEN_WIDTH > 320)
     // Clear unwanted tiles
     int16_t clip_tiles = -(obj->pos.s.x >> 3);
     if (clip_tiles > 0)
-        CopyTilemap_Single(0, VRAM_BG, clip_tiles, 0x11);
+        CopyTilemap_Single(0, &screen1p.plane_b, 0, clip_tiles, 0x11);
 #endif
 }
 
@@ -500,7 +502,7 @@ void GM_SSRG() {
 
     // Decompress mappings
     KosDec(SSRG_MapLink, buffer0000);
-    CopyTilemap(buffer0000, MAP_PLANE(VRAM_FG, 4, 24) + PLANE_WIDEADD + (PLANE_TALLADD * 2), 32, 1);
+    CopyTilemap(buffer0000, &screen1p.plane_a, MAP_PLANE(4, 24) + PLANE_WIDEADD + (PLANE_TALLADD * 2), 32, 1);
 
     KosDec(SSRG_MapMain, &buffer0000[0x0000]);
     KosDec(SSRG_MapSquare, &buffer0000[0x4000]);

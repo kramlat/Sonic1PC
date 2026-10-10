@@ -1,4 +1,5 @@
 #include "LZWaterFeatures.h"
+#include "Viewport.h"
 
 #include "Backend/Joypad.h"
 #include "Game.h"
@@ -344,5 +345,5 @@ void LZWaterFeatures(void) {
         line = SCREEN_HEIGHT - 1;
     }
     hbla_counter = line;
-    VDP_SetHIntCounter((uint8_t)hbla_counter);
+    screen1p.hint_counter = (int16_t)((uint8_t)hbla_counter);
 }

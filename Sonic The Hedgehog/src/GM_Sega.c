@@ -1,4 +1,5 @@
 #include "GM_Sega.h"
+#include "Viewport.h"
 
 #include "Game.h"
 #include "Level.h"
@@ -25,8 +26,7 @@ void GM_Sega(void) {
     PaletteFadeOut();
 
     // Set VDP state
-    VDP_SetPlaneALocation(VRAM_FG);
-    VDP_SetPlaneBLocation(VRAM_BG);
+    Viewport_UseOwnPlanes(&screen1p);
     VDP_SetBackgroundColour(0);
 
     wtr_state = 0;
@@ -36,10 +36,10 @@ void GM_Sega(void) {
 
     VDP_SeekVRAM(0x0000);
     NemDec(Art_SegaREV01);
-    CopyTilemap(&Tilemap_SegaREV01[0x0000], MAP_PLANE(VRAM_BG, 8, 10) + PLANE_WIDEADD + PLANE_TALLADD, 24, 8);
-    CopyTilemap(&Tilemap_SegaREV01[0x0180], MAP_PLANE(VRAM_FG, 0, 0) + PLANE_WIDEADD + PLANE_TALLADD, 40, 28);
+    CopyTilemap(&Tilemap_SegaREV01[0x0000], &screen1p.plane_b, MAP_PLANE(8, 10) + PLANE_WIDEADD + PLANE_TALLADD, 24, 8);
+    CopyTilemap(&Tilemap_SegaREV01[0x0180], &screen1p.plane_a, MAP_PLANE(0, 0) + PLANE_WIDEADD + PLANE_TALLADD, 40, 28);
 #ifdef SCP_JP
-    CopyTilemap(&Tilemap_SegaREV01[0x0A40], MAP_PLANE(VRAM_FG, 29, 10) + PLANE_WIDEADD + PLANE_TALLADD, 3, 2); // Hide trademark symbol
+    CopyTilemap(&Tilemap_SegaREV01[0x0A40], &screen1p.plane_a, MAP_PLANE(29, 10) + PLANE_WIDEADD + PLANE_TALLADD, 3, 2); // Hide trademark symbol
 #endif
 
     // Load palette and initialize cycle

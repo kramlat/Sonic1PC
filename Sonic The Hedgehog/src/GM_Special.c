@@ -1,4 +1,5 @@
 #include "GM_Special.h"
+#include "Viewport.h"
 
 #include "Game.h"
 #include "Console.h"
@@ -34,7 +35,7 @@ static void SS_RunStage(void) {
 	
 	//Load the background first, then the art: the block art sits in VRAM areas that overlap the background's
 	//canvases, and has to win (the original loads them in this order too)
-	VDP_SetPlaneSize(64, 64); //64x64 planes: the background switches between canvases by moving them around in VRAM
+	Viewport_SetSize(SCREEN_WIDTH, SCREEN_HEIGHT, 64, 64); //64x64 planes: the background switches between canvases by moving them around in VRAM
 	SS_BGLoad();
 	QuickPLC(PlcId_SpecialStage);
 	
@@ -75,7 +76,7 @@ static void SS_RunStage(void) {
 	bg3_xblock = 0;
 	bg3_yblock = 0;
 	
-	LevelPlane_Init(&fg_plane, VRAM_FG, &scrpos_x, &scrpos_y, 0);
+	LevelPlane_Init(&fg_plane, &screen1p.plane_a, &scrpos_x, &scrpos_y, 0);
 	bg1_scroll_flags = 0;
 	bg2_scroll_flags = 0;
 	bg3_scroll_flags = 0;
@@ -265,18 +266,16 @@ void GM_Special(void) {
 
 	//The stage runs the VDP with 64x64 planes that its background moves around; put the usual planes back for
 	//whatever comes next (the level, the Sega screen...)
-	VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
-	VDP_SetPlaneALocation(VRAM_FG);
-	VDP_SetPlaneBLocation(VRAM_BG);
+	Viewport_SetSize(SCREEN_WIDTH, SCREEN_HEIGHT, PLANE_WIDTH, PLANE_HEIGHT);
+	Viewport_UseOwnPlanes(&screen1p);
 	vid_scrpos_y_dup = vid_bg_scrpos_y_dup = 0;
 }
 
 //The special stage results screen: score tally, ring bonus, the emeralds collected so far
 void SS_Results(void) {
 	ClearScreen();
-	VDP_SetPlaneALocation(VRAM_FG);
-	VDP_SetPlaneBLocation(VRAM_BG);
-	VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+	Viewport_UseOwnPlanes(&screen1p);
+	Viewport_SetSize(SCREEN_WIDTH, SCREEN_HEIGHT, PLANE_WIDTH, PLANE_HEIGHT);
 	memset(hscroll_buffer, 0, sizeof(hscroll_buffer));
 	scrpos_x.v = scrpos_y.v = 0;
 	vid_scrpos_y_dup = vid_bg_scrpos_y_dup = 0;

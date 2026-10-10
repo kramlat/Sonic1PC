@@ -58,7 +58,7 @@ static void SetPictureSize(int mode) {
 	screen_width = resolutions[mode].width;
 	screen_height = resolutions[mode].height;
 	plane_height = screen_height > 224 ? 64 : 32;
-	VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+	Viewport_SetSize(screen_width, screen_height, PLANE_WIDTH, PLANE_HEIGHT);
 	hbla_counter = (int16_t)(screen_height - 1);
 }
 
@@ -97,19 +97,8 @@ uint16_t sprite_buffer[BUFFER_SPRITES][4]; //Apparently the last 16 entries of t
 int16_t hscroll_buffer[SCREEN_MAX_HEIGHT][2];
 uint16_t sprite_buffer_p2[BUFFER_SPRITES][4];
 int16_t hscroll_buffer_p2[SCREEN_MAX_HEIGHT][2];
-VDPView video_second_view = {
-	.plane_a_location = VRAM_FG_P2,
-	.plane_b_location = VRAM_BG_P2,
-	.hscroll_location = VRAM_HSCROLL_P2,
-	.vscroll_a = 0,
-	.vscroll_b = 0,
-	.sprite_buffer = &sprite_buffer_p2[0][0],
-	.palette = NULL,
-};
-
 void Video_UploadHScrollP2(void) {
-	VDP_SeekVRAM(VRAM_HSCROLL_P2);
-	VDP_WriteVRAM((const uint8_t*)hscroll_buffer_p2, sizeof(hscroll_buffer_p2));
+	Viewport_UploadHScroll(&screen2p, hscroll_buffer_p2, sizeof(hscroll_buffer_p2));
 }
 
 //Video interface
@@ -121,22 +110,21 @@ bool doupdatesinhblank;
 // HBlank, screen not "all underwater". Matches the original writing $8004 (8-colour mode, h-int disabled) when the title screen and
 // special stages set up the VDP -- leaving LZ with the split still armed made the title screen draw with the water palette.
 void VDPDisableWaterSplit(void) {
-	VDP_SetHIntEnable(false);
+	screen1p.hint_enable = false;
 	hbla_counter = SCREEN_HEIGHT - 1;
-	VDP_SetHIntCounter(SCREEN_HEIGHT - 1);
+	screen1p.hint_counter = SCREEN_HEIGHT - 1;
 	hblank_pal = false;
 	doupdatesinhblank = false;
 	wtr_state = 0;
 }
 
 void VDPSetupGame(void) {
-	//Initialize VDP state
-	VDP_SetPlaneALocation(VRAM_FG);
-	VDP_SetPlaneBLocation(VRAM_BG);
-	VDP_SetSpriteLocation(VRAM_SPRITES); // unused once VDP_SetSpriteBuffer is registered below, kept set for consistency/documentation
-	VDP_SetSpriteBuffer(&sprite_buffer[0][0]); // sprite table lives in its own buffer, not VRAM -- see VDP_SetSpriteBuffer's own comment
-	VDP_SetHScrollLocation(VRAM_HSCROLL);
-	VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+	//Initialize VDP state: both viewports have their own planes and tables; their sprite tables are buffers of their own
+	Viewport_UseOwnPlanes(&screen1p);
+	Viewport_UseOwnPlanes(&screen2p);
+	screen1p.sprites = &sprite_buffer[0][0];
+	screen2p.sprites = &sprite_buffer_p2[0][0];
+	Viewport_SetSize(SCREEN_WIDTH, SCREEN_HEIGHT, PLANE_WIDTH, PLANE_HEIGHT);
 	VDP_SetBackgroundColour(0);
 	
 	//Clear VRAM and CRAM
@@ -161,10 +149,8 @@ void WaitForVBla(void) {
 
 void ClearScreen(void) {
 	//Clear foreground and background planes
-	VDP_SeekVRAM(VRAM_FG);
-	VDP_FillVRAM(0x00, (PLANE_WIDTH * PLANE_HEIGHT) << 1);
-	VDP_SeekVRAM(VRAM_BG);
-	VDP_FillVRAM(0x00, (PLANE_WIDTH * PLANE_HEIGHT) << 1);
+	Plane_Fill(&screen1p.plane_a, 0, (PLANE_WIDTH * PLANE_HEIGHT) << 1, 0);
+	Plane_Fill(&screen1p.plane_b, 0, (PLANE_WIDTH * PLANE_HEIGHT) << 1, 0);
 	
 	//Reset screen position duplicates
 	vid_scrpos_y_dup = 0;
@@ -179,13 +165,12 @@ void ClearScreen(void) {
 	memset(hscroll_buffer_p2, 0, sizeof(hscroll_buffer_p2));
 }
 
-void CopyTilemap(const uint8_t *tilemap, size_t offset, size_t width, size_t height) {
+void CopyTilemap(const uint8_t *tilemap, plane_t *plane, size_t offset, size_t width, size_t height) {
 	while (height-- > 0) {
-		VDP_SeekVRAM(offset);
 		for (size_t x = 0; x < width; x++) {
 			uint16_t v = (tilemap[0] << 8) | (tilemap[1] << 0);
 			tilemap += 2;
-			VDP_WriteVRAM((const uint8_t*)&v, 2);
+			Plane_Put(plane, offset + x * 2, v);
 		}
 		offset += PLANE_WIDTH * 2;
 	}

@@ -2,6 +2,7 @@
 // (wtr_pos1); in the first act Tails' pad moves the target height (up and down, with limits) and the real height follows it a pixel a frame. The line where the water begins is where the underwater palette takes over
 // (and the whole screen is underwater when the water is above its top). Everything under the water ripples (the effect of Sonic 1's Labyrinth, kept in every zone with water, for the games to come).
 #include "LZWaterFeatures.h"
+#include "Viewport.h"
 
 #include "Backend/Joypad.h"
 #include "Game.h"
@@ -70,7 +71,7 @@ void LZWaterFeatures(void) {
     if (SplitScreen_Active()) {
         // A split screen has no H interrupt at all: each view is drawn with its own water line (SplitScreen_Scroll sets them against the cameras once they have moved)
         hbla_counter = SCREEN_HEIGHT - 1;
-        VDP_SetHIntCounter((uint8_t)hbla_counter);
+        screen1p.hint_counter = (int16_t)((uint8_t)hbla_counter);
         return;
     }
 
@@ -82,5 +83,5 @@ void LZWaterFeatures(void) {
         line = SCREEN_HEIGHT - 1;
     }
     hbla_counter = line;
-    VDP_SetHIntCounter((uint8_t)hbla_counter);
+    screen1p.hint_counter = (int16_t)((uint8_t)hbla_counter);
 }

@@ -27,7 +27,7 @@ uint8_t bg1_xblock, bg2_xblock, bg3_xblock;
 uint8_t bg1_yblock, bg2_yblock, bg3_yblock;
 
 // The foreground plane and what keeps it drawn as the camera moves (the engine's LevelPlane)
-LevelPlane fg_plane = { .plane = VRAM_FG, .camera_x = &scrpos_x, .camera_y = &scrpos_y }; // (valid before a level starts too)
+LevelPlane fg_plane = { .plane = &screen1p.plane_a, .camera_x = &scrpos_x, .camera_y = &scrpos_y }; // (valid before a level starts too)
 
 int16_t look_shift;
 
@@ -1017,7 +1017,7 @@ void DeformLayersP2_Draw(void) {
 	for (int i = 0; i < 3; i++) {
 		p2_flags_dup[i] = p2_flags[i];
 	}
-	DrawBG_Top(p2_dup[0][0].f.u, p2_dup[0][1].f.u, &p2_flags_dup[0], LEVEL_LAYOUT_BG(0), VRAM_BG_P2);
-	DrawBG_Bottom(p2_dup[1][0].f.u, p2_dup[1][1].f.u, &p2_flags_dup[1], LEVEL_LAYOUT_BG(0), VRAM_BG_P2);
-	DrawBG_Block3(p2_dup[2][0].f.u, p2_dup[2][1].f.u, &p2_flags_dup[2], LEVEL_LAYOUT_BG(0), VRAM_BG_P2);
+	DrawBG_Top(p2_dup[0][0].f.u, p2_dup[0][1].f.u, &p2_flags_dup[0], LEVEL_LAYOUT_BG(0), &screen2p.plane_b);
+	DrawBG_Bottom(p2_dup[1][0].f.u, p2_dup[1][1].f.u, &p2_flags_dup[1], LEVEL_LAYOUT_BG(0), &screen2p.plane_b);
+	DrawBG_Block3(p2_dup[2][0].f.u, p2_dup[2][1].f.u, &p2_flags_dup[2], LEVEL_LAYOUT_BG(0), &screen2p.plane_b);
 }

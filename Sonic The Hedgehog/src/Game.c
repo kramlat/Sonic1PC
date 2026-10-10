@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "Viewport.h"
 #include "DebugLog.h"
 
 #include "HUD.h"
@@ -182,7 +183,7 @@ void EntryPoint(void) {
 // line) does not run while paused, so without this the split was lost after
 // the first paused frame and the whole screen drew with the dry palette.
 static void WriteHBlankLine(void) {
-    VDP_SetHIntCounter(hbla_counter);
+    screen1p.hint_counter = (int16_t)(hbla_counter);
 }
 
 void WriteVRAMBuffers(void) {
@@ -198,8 +199,7 @@ void WriteVRAMBuffers(void) {
 
     // Copy buffers -- sprite_buffer no longer gets copied into VRAM; VDP_Render
     // reads it directly via VDP_SetSpriteBuffer (see Video.c's VDPSetupGame).
-    VDP_SeekVRAM(VRAM_HSCROLL);
-    VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
+    Viewport_UploadHScroll(&screen1p, hscroll_buffer, sizeof(hscroll_buffer));
 }
 
 // Matches VBlank_UpdateScreen in the original: level tile scrolling,
@@ -280,7 +280,7 @@ void VBlank(void) {
         // Set VDP state
         // The title screen's foreground is a fixed picture: its scroll value is the (clamped) camera's, which only happens to be a
         // multiple of the plane's height while the plane is 32 rows.
-        VDP_SetVScroll(routine == 0x04 && (gamemode & 0x7F) == GameMode_Title ? 0 : vid_scrpos_y_dup, vid_bg_scrpos_y_dup);
+        screen1p.vsram = (vsram_t){ routine == 0x04 && (gamemode & 0x7F) == GameMode_Title ? 0 : vid_scrpos_y_dup, vid_bg_scrpos_y_dup };
 
         // Set screen state
         vbla_routine = 0x00;
@@ -335,8 +335,7 @@ void VBlank(void) {
 
         // Copy buffers -- sprite_buffer no longer gets copied into VRAM; VDP_Render
         // reads it directly via VDP_SetSpriteBuffer (see Video.c's VDPSetupGame).
-        VDP_SeekVRAM(VRAM_HSCROLL);
-        VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
+        Viewport_UploadHScroll(&screen1p, hscroll_buffer, sizeof(hscroll_buffer));
 
         // Update Sonic's art
         if (sonframe_chg) {
@@ -395,8 +394,7 @@ void VBlank(void) {
 
         // Copy buffers -- sprite_buffer no longer gets copied into VRAM; VDP_Render
         // reads it directly via VDP_SetSpriteBuffer (see Video.c's VDPSetupGame).
-        VDP_SeekVRAM(VRAM_HSCROLL);
-        VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
+        Viewport_UploadHScroll(&screen1p, hscroll_buffer, sizeof(hscroll_buffer));
 
         // Run palette cycle
         PCycle_SS();
@@ -434,8 +432,7 @@ void VBlank(void) {
 
         // Copy buffers -- sprite_buffer no longer gets copied into VRAM; VDP_Render
         // reads it directly via VDP_SetSpriteBuffer (see Video.c's VDPSetupGame).
-        VDP_SeekVRAM(VRAM_HSCROLL);
-        VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
+        Viewport_UploadHScroll(&screen1p, hscroll_buffer, sizeof(hscroll_buffer));
 
         // Update Sonic's art
         if (sonframe_chg) {
@@ -480,8 +477,7 @@ void VBlank(void) {
         ReadJoypads();
         VDP_SeekCRAM(0);
         VDP_WriteCRAM(&dry_palette[0][0], 0x40);
-        VDP_SeekVRAM(VRAM_HSCROLL);
-        VDP_WriteVRAM((const uint8_t*)hscroll_buffer, sizeof(hscroll_buffer));
+        Viewport_UploadHScroll(&screen1p, hscroll_buffer, sizeof(hscroll_buffer));
         if (sonframe_chg) {
             VDP_SeekVRAM(0xF000);
             VDP_WriteVRAM(sgfx_buffer, SONIC_DPLC_SIZE);
@@ -522,7 +518,7 @@ void HBlank(void) {
     VDP_WriteCRAM(&wet_palette[0][0], 0x40);
 
     // Reset the h-int counter back to its dormant, once-per-frame position
-    VDP_SetHIntCounter(SCREEN_HEIGHT - 1);
+    screen1p.hint_counter = (int16_t)(SCREEN_HEIGHT - 1);
 
     if (doupdatesinhblank) {
         doupdatesinhblank = false;

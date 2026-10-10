@@ -1,4 +1,5 @@
 #include "VDP.h"
+#include "Viewport.h"
 
 #include "MegaDrive.h"
 #include "../Video.h"
@@ -29,53 +30,22 @@ void Audio_Update(void);
 #define VDP_MASK_SH_HIGHLIGHT (1 << 3) // ... its highlight operator (colour 14)
 
 //VDP internal state
-// The VDP's memory spaces, each its own symbol: the tile space (vdp_vram, patterns only) and, above it, a space for each plane's name table and each view's horizontal scroll table. The addresses the games use
-// (VRAM_FG ... VRAM_HSCROLL, EngineConstants.h) name them through VDP_Space; nothing written in one can run on into another.
+// The tile space: patterns only (a game may keep a plane in it: Plane_UseTiles). The planes, scroll tables, vertical scroll and sprite tables are the viewports' own (Viewport.h).
 static ALIGNED2 uint8_t vdp_vram[VRAM_SIZE];
-static ALIGNED2 uint8_t vdp_nametable_fg[VDP_REGION_SIZE];       // the first view's foreground (plane A)
-static ALIGNED2 uint8_t vdp_nametable_bg[VDP_REGION_SIZE];       // ... and background (plane B)
-static ALIGNED2 uint8_t vdp_nametable_fg_p2[VDP_REGION_SIZE];    // the second view's
-static ALIGNED2 uint8_t vdp_nametable_bg_p2[VDP_REGION_SIZE];
-static ALIGNED2 uint8_t vdp_hscroll_p2[VDP_REGION_SIZE];         // the second view's horizontal scroll table
-static ALIGNED2 uint8_t vdp_hscroll_p1[VDP_REGION_SIZE];         // the first view's
-static uint8_t *const vdp_regions[VDP_REGIONS] = { vdp_nametable_fg, vdp_nametable_bg, vdp_nametable_fg_p2, vdp_nametable_bg_p2, vdp_hscroll_p2, vdp_hscroll_p1 };
-
-// The memory at an address of the VDP's address space (the tile space, then the regions above it, VDP_REGION_SIZE each); `left` gets how many bytes are left in the space it is in. NULL if there is none.
-static inline uint8_t *VDP_Space(size_t addr, size_t *left) {
-	if (addr < VRAM_SIZE) {
-		if (left != NULL)
-			*left = VRAM_SIZE - addr;
-		return vdp_vram + addr;
-	}
-	const size_t r = (addr - VRAM_SIZE) / VDP_REGION_SIZE;
-	if (r >= VDP_REGIONS)
-		return NULL;
-	const size_t at = (addr - VRAM_SIZE) % VDP_REGION_SIZE;
-	if (left != NULL)
-		*left = VDP_REGION_SIZE - at;
-	return vdp_regions[r] + at;
-}
 static uint32_t vdp_cram[VDP_PALETTES][16]; // 0x00RRGGBB: the colour RAM holds true colour; the Mega Drive's 9 bit words are upscaled as they are written
 
 static uint8_t *vdp_vram_p;
-static size_t vdp_vram_left; // bytes left in the space vdp_vram_p is in
+static size_t vdp_vram_left; // bytes left in the tile space after vdp_vram_p
 static uint32_t *vdp_cram_p;
 
-static size_t vdp_plane_a_location, vdp_plane_b_location, vdp_sprite_location, vdp_hscroll_location;
-static const uint16_t *vdp_sprite_buffer_ext = NULL; // see VDP_SetSpriteBuffer
-static size_t vdp_plane_w, vdp_plane_h;
 static uint8_t vdp_background_colour;
 
-static int16_t vdp_vscroll_a, vdp_vscroll_b;
 
-static int16_t vdp_hint_counter; //H interrupt reload counter (VDP register $0A)
-static bool vdp_hint_enable;     //H interrupt enable (VDP register $00 bit 4, IE1)
 
 static MD_Vector vdp_hint, vdp_vint;
 
 //Split screen (see VDP_SetSplitScreen)
 static VDPSplitMode vdp_split_mode = VDP_SPLIT_NONE;
-static const VDPView *vdp_view2 = NULL;
 static uint32_t vdp_water_pal[2][VDP_PALETTES_ACTIVE][16]; // the split screen's water: [0] dry, [1] wet (VDP_SetSplitWater)
 static const uint16_t *vdp_water_dry = NULL, *vdp_water_wet = NULL;
 static int16_t vdp_water_line[2];
@@ -92,17 +62,10 @@ int VDP_Init(const MD_Header *header) {
 		return -1;
 	
 	//Initialize VDP state
-	vdp_plane_a_location = 0;
-	vdp_plane_b_location = 0;
-	vdp_sprite_location  = 0;
-	vdp_hscroll_location = 0;
-	vdp_plane_w = 32;
-	vdp_plane_h = 32;
 	vdp_background_colour = 0;
-	vdp_vscroll_a = 0;
-	vdp_vscroll_b = 0;
-	vdp_hint_counter = 0;
-	vdp_hint_enable = false;
+	screen1p.vsram = (vsram_t){ 0, 0 };
+	screen1p.hint_counter = 0;
+	screen1p.hint_enable = false;
 
 	vdp_hint = header->h_interrupt;
 	vdp_vint = header->v_interrupt;
@@ -117,19 +80,17 @@ void VDP_Quit(void) {
 }
 
 void VDP_SeekVRAM(size_t offset) {
-	size_t left = 0;
-	uint8_t *p = VDP_Space(offset, &left);
 	#ifdef VDP_SANITY
-	if (p == NULL)
+	if (offset >= VRAM_SIZE)
 		puts("VDP_SeekVRAM: Out-of-bounds");
 	#endif
-	if (p == NULL) { // (writes go nowhere until the next seek)
+	if (offset >= VRAM_SIZE) { // (writes go nowhere until the next seek)
 		vdp_vram_p = vdp_vram;
 		vdp_vram_left = 0;
 		return;
 	}
-	vdp_vram_p = p;
-	vdp_vram_left = left;
+	vdp_vram_p = vdp_vram + offset;
+	vdp_vram_left = VRAM_SIZE - offset;
 }
 
 void VDP_WriteVRAM(const uint8_t *data, size_t len) {
@@ -173,8 +134,10 @@ void VDP_FillVRAM(uint8_t data, size_t len) {
 
 void VDP_ClearVRAM(void) {
 	memset(vdp_vram, 0, sizeof(vdp_vram));
-	for (int r = 0; r < VDP_REGIONS; r++)
-		memset(vdp_regions[r], 0, VDP_REGION_SIZE);
+}
+
+uint8_t *VDP_TileSpace(void) {
+	return vdp_vram;
 }
 
 // The Mega Drive's colours: 3 bits a channel, 0000bbb0ggg0rrr0, which its DAC puts out at these levels of 255 (not evenly: the real thing's). True colour is what the colour RAM holds; these are the way in and out
@@ -241,65 +204,6 @@ void VDP_FillCRAM(uint16_t data, size_t len) {
 		*vdp_cram_p++ = rgb;
 }
 
-void VDP_SetPlaneALocation(size_t loc) {
-	loc &= ~0x3FF;
-	#ifdef VDP_SANITY
-	if (VDP_Space(loc, NULL) == NULL) {
-		puts("VDP_SetPlaneALocation: Out-of-bounds");
-		return;
-	}
-	#endif
-	vdp_plane_a_location = loc;
-}
-
-void VDP_SetPlaneBLocation(size_t loc) {
-	loc &= ~0x1FFF;
-	#ifdef VDP_SANITY
-	if (VDP_Space(loc, NULL) == NULL) {
-		puts("VDP_SetPlaneBLocation: Out-of-bounds");
-		return;
-	}
-	#endif
-	vdp_plane_b_location = loc;
-}
-
-void VDP_SetSpriteLocation(size_t loc) {
-	loc &= ~0x1FF;
-	#ifdef VDP_SANITY
-	if (loc > VRAM_SIZE - SPRITES_SIZE) {
-		puts("VDP_SetSpriteLocation: Out-of-bounds");
-		return;
-	}
-	#endif
-	vdp_sprite_location = loc;
-}
-
-void VDP_SetSpriteBuffer(const uint16_t *buffer) {
-	vdp_sprite_buffer_ext = buffer;
-}
-
-void VDP_SetHScrollLocation(size_t loc) {
-	loc &= ~0x3FF;
-	#ifdef VDP_SANITY
-	if (VDP_Space(loc, NULL) == NULL) {
-		puts("VDP_SetHScrollLocation: Out-of-bounds");
-		return;
-	}
-	#endif
-	vdp_hscroll_location = loc;
-}
-
-void VDP_SetPlaneSize(size_t w, size_t h) {
-	#ifdef VDP_SANITY
-	if (((w * h) << 1) > PLANE_SIZE) {
-		printf("VDP_SetPlaneSize: Requested plane size exceeds 0x%04X bytes\n", PLANE_SIZE);
-		return;
-	}
-	#endif
-	vdp_plane_w = w;
-	vdp_plane_h = h;
-}
-
 void VDP_SetBackgroundColour(uint8_t index) {
 	#ifdef VDP_SANITY
 	if (index >= COLOURS) {
@@ -308,19 +212,6 @@ void VDP_SetBackgroundColour(uint8_t index) {
 	}
 	#endif
 	vdp_background_colour = index;
-}
-
-void VDP_SetVScroll(int16_t scroll_a, int16_t scroll_b) {
-	vdp_vscroll_a = scroll_a;
-	vdp_vscroll_b = scroll_b;
-}
-
-void VDP_SetHIntCounter(int16_t counter) {
-	vdp_hint_counter = counter;
-}
-
-void VDP_SetHIntEnable(bool enable) {
-	vdp_hint_enable = enable;
 }
 
 int VDP_OutputRows(void) {
@@ -338,11 +229,8 @@ void VDP_SetSplitWater(const uint16_t *dry, const uint16_t *wet, int16_t line1, 
 	vdp_water_line[1] = line2;
 }
 
-void VDP_SetSplitScreen(VDPSplitMode mode, const VDPView *second_view) {
-	if (second_view == NULL)
-		mode = VDP_SPLIT_NONE;
-	vdp_split_mode = mode;
-	vdp_view2 = second_view;
+void VDP_SetSplitScreen(VDPSplitMode mode) {
+	vdp_split_mode = mode; // (the second view is screen2p)
 }
 
 //VDP rendering
@@ -466,11 +354,11 @@ void VDP_DrawTileRow8(uint32_t *to, uint8_t *tom, size_t pattern, int y, bool x_
 
 // Draws one row of a plane `view_w` pixels wide. With double_cells (the stacked split screen's double-height mode) a cell is 8x16: a name table entry names a pair
 // of patterns, one above the other, at twice its number.
-static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const uint16_t *plane, int16_t x, int16_t y, int view_w, bool double_cells) {
+static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const uint16_t *plane, size_t plane_w, size_t plane_h, int16_t x, int16_t y, int view_w, bool double_cells) {
 	//Get plane tile to use
-	size_t px = (x >> 3) % vdp_plane_w;
-	size_t py = (double_cells ? (y >> 4) : (y >> 3)) % vdp_plane_h;
-	const uint16_t *pb = plane + py * vdp_plane_w;
+	size_t px = (x >> 3) % plane_w;
+	size_t py = (double_cells ? (y >> 4) : (y >> 3)) % plane_h;
+	const uint16_t *pb = plane + py * plane_w;
 	
 	//Draw plane row
 	uint32_t *toend = to + view_w;
@@ -478,7 +366,7 @@ static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const uint16_t *
 	tom -= x & 7;
 	y &= double_cells ? 15 : 7;
 	
-	for (; to < toend; px = (px + 1) % vdp_plane_w, plane++) {
+	for (; to < toend; px = (px + 1) % plane_w, plane++) {
 		//Get tile information
 		const uint16_t tile = pb[px];
 		uint8_t or = (tile & TILE_PRIORITY_AND) ? VDP_MASK_PLANEPRI : 0;
@@ -649,11 +537,6 @@ static inline void VDP_DrawDebugText(uint32_t *to, const char *text, size_t x, s
 	}
 }
 
-// What a view draws from: its plane locations, scroll and scroll table. (The first view's are the VDP's own registers.)
-struct VDP_ViewState {
-	size_t plane_a, plane_b;
-	int16_t vscroll_a, vscroll_b;
-};
 
 // Shadow/highlight mode: a pixel is shadowed (halved) unless a high-priority plane or a sprite drew it, a sprite's highlight operator raises it a step (shadowed to normal, normal to highlighted: half
 // way to white), and its shadow operator shadows it
@@ -682,7 +565,7 @@ static inline void VDP_ApplyShadowHighlight(uint32_t *to, const uint8_t *tom, in
 
 // Draws one row of one view, `view_w` pixels wide, into `to`: the backdrop, plane B, plane A, then the row's sprites. `y` is the line from the view's top and
 // `ybase` the sprite Y coordinate of that top.
-static inline void VDP_DrawViewRow(size_t y, uint32_t *to, uint8_t *tom, int view_w, int ybase, bool double_cells, const struct VDP_ViewState *vs,
+static inline void VDP_DrawViewRow(size_t y, uint32_t *to, uint8_t *tom, int view_w, int ybase, bool double_cells, const viewport_t *vp,
                                    struct VDP_SpriteCache *scache, const int16_t *hscroll) {
 	//Clear scanline
 	for (int i = 0; i < view_w; i++)
@@ -690,8 +573,8 @@ static inline void VDP_DrawViewRow(size_t y, uint32_t *to, uint8_t *tom, int vie
 	memset(tom, 0, (size_t)view_w);
 	
 	//Draw planes
-	VDP_DrawPlaneRow(to, tom, (const uint16_t*)VDP_Space(vs->plane_b, NULL), -hscroll[1], y + vs->vscroll_b, view_w, double_cells);
-	VDP_DrawPlaneRow(to, tom, (const uint16_t*)VDP_Space(vs->plane_a, NULL), -hscroll[0], y + vs->vscroll_a, view_w, double_cells);
+	VDP_DrawPlaneRow(to, tom, vp->plane_b.entries, vp->plane_width, vp->plane_height, -hscroll[1], y + vp->vsram.b, view_w, double_cells);
+	VDP_DrawPlaneRow(to, tom, vp->plane_a.entries, vp->plane_width, vp->plane_height, -hscroll[0], y + vp->vsram.a, view_w, double_cells);
 	hbla_pos = (int16_t)y;
 
 	vdp_sh_sprites = vdp_sh_enabled;
@@ -704,8 +587,7 @@ static inline void VDP_DrawViewRow(size_t y, uint32_t *to, uint8_t *tom, int vie
 }
 
 static inline void VDP_DrawScanline(size_t y, uint32_t *to, uint8_t *tom, struct VDP_SpriteCache *scache, const int16_t *hscroll) {
-	struct VDP_ViewState vs = { vdp_plane_a_location, vdp_plane_b_location, vdp_vscroll_a, vdp_vscroll_b };
-	VDP_DrawViewRow(y, to, tom, SCREEN_WIDTH, 128, false, &vs, scache, hscroll);
+	VDP_DrawViewRow(y, to, tom, SCREEN_WIDTH, 128, false, &screen1p, scache, hscroll);
 	
 	// VRAM address + selected CRAM palette readout -- drawn in the 32px this
 	// display's own shift-down (below) vacated above it, using the same
@@ -799,10 +681,10 @@ static inline void VDP_RefreshPalette(void) {
 			vdp_water_pal[1][i >> 4][i & 15] = VDP_ConvertColour(vdp_water_wet[i]);
 		}
 	}
-	if (vdp_split_mode != VDP_SPLIT_NONE && vdp_view2 != NULL && vdp_view2->palette != NULL) {
+	if (vdp_split_mode != VDP_SPLIT_NONE && screen2p.palette != NULL) {
 		pal_to = &vdp_screen_pal2[0][0];
 		for (size_t i = 0; i < ACTIVE_COLOURS; i++)
-			*pal_to++ = VDP_ConvertColour(vdp_view2->palette[i]);
+			*pal_to++ = VDP_ConvertColour(screen2p.palette[i]);
 	}
 }
 
@@ -814,9 +696,9 @@ static void VDP_BuildSpriteCache(struct VDP_SpriteCache *cache, int rows, const 
 		//been registered (see VDP_SetSpriteBuffer), otherwise fall back to
 		//the real-hardware-accurate VRAM location for anything that doesn't
 		//use it.
-		const uint16_t *sprite = table != NULL
-			? (table + ((uint16_t)i << 2))
-			: (const uint16_t*)(vdp_vram + vdp_sprite_location + ((uint16_t)i << 3));
+		if (table == NULL)
+			return; // (no sprite table: no sprites)
+		const uint16_t *sprite = table + ((uint16_t)i << 2);
 		uint16_t sprite_y = sprite[0];
 		uint16_t sprite_sl = sprite[1];
 		uint8_t sprite_width = (sprite_sl & SPRITE_SL_W_AND) >> SPRITE_SL_W_SHIFT;
@@ -863,17 +745,17 @@ void VDP_DrawFrame(void) {
 	//Calculate sprite cache
 	memset(vdp_sprite_cache, 0, sizeof(vdp_sprite_cache));
 	const int H = SCREEN_HEIGHT;
-	const bool stacked = vdp_split_mode == VDP_SPLIT_STACKED && vdp_view2 != NULL;
-	const bool side = vdp_split_mode == VDP_SPLIT_SIDE && vdp_view2 != NULL;
+	const bool stacked = vdp_split_mode == VDP_SPLIT_STACKED;
+	const bool side = vdp_split_mode == VDP_SPLIT_SIDE;
 	if (!stacked && !side) {
-		VDP_BuildSpriteCache(vdp_sprite_cache, H, vdp_sprite_buffer_ext, 128, false);
+		VDP_BuildSpriteCache(vdp_sprite_cache, H, screen1p.sprites, 128, false);
 	} else if (stacked) {
 		//Two ordinary views, one above the other in the sprite caches as they are on the screen's rows (each is squashed when drawn)
-		VDP_BuildSpriteCache(vdp_sprite_cache, H, vdp_sprite_buffer_ext, 128, false);
-		VDP_BuildSpriteCache(vdp_sprite_cache + H, H, vdp_view2->sprite_buffer, 128, false);
+		VDP_BuildSpriteCache(vdp_sprite_cache, H, screen1p.sprites, 128, false);
+		VDP_BuildSpriteCache(vdp_sprite_cache + H, H, screen2p.sprites, 128, false);
 	} else {
-		VDP_BuildSpriteCache(vdp_sprite_cache, H, vdp_sprite_buffer_ext, 128, false);
-		VDP_BuildSpriteCache(vdp_sprite_cache + H, H, vdp_view2->sprite_buffer, 128, false);
+		VDP_BuildSpriteCache(vdp_sprite_cache, H, screen1p.sprites, 128, false);
+		VDP_BuildSpriteCache(vdp_sprite_cache + H, H, screen2p.sprites, 128, false);
 	}
 	
 	//Render VDP screen
@@ -881,7 +763,7 @@ void VDP_DrawFrame(void) {
 
 	uint32_t *to = vdp_screen;
 	uint8_t *tom = vdp_mask;
-	const int16_t *hscroll = (int16_t*)VDP_Space(vdp_hscroll_location, NULL);
+	const int16_t *hscroll = screen1p.hscroll;
 	const size_t rows = (size_t)VDP_OutputRows();
 	const bool water_split = (stacked || side) && vdp_water_dry != NULL;
 
@@ -889,7 +771,7 @@ void VDP_DrawFrame(void) {
 	//enabled -- not a single one-shot interrupt at a fixed position. This loop covers the entire picture itself; there is no "remainder" left to draw
 	//afterward (a leftover second pass here, from before this loop was unified, kept advancing scache/hscroll/to/tom another full screen's worth past
 	//the end of their buffers, reading/writing out of bounds -- that's what was crashing LZ, the only zone with H-ints actually enabled).
-	int32_t countdown = vdp_hint_counter;
+	int32_t countdown = screen1p.hint_counter;
 	for (size_t y = 0; y < rows; y++, to += SCREEN_PITCH, tom += SCREEN_PITCH) {
 		if (!stacked && !side) {
 			VDP_DrawScanline(y, to, tom, &vdp_sprite_cache[y], hscroll + 2 * y);
@@ -906,18 +788,16 @@ void VDP_DrawFrame(void) {
 				end_row = first_row + 1;
 			if (end_row > (size_t)H)
 				end_row = (size_t)H;
-			const struct VDP_ViewState vs = second
-				? (struct VDP_ViewState){ vdp_view2->plane_a_location, vdp_view2->plane_b_location, vdp_view2->vscroll_a, vdp_view2->vscroll_b }
-				: (struct VDP_ViewState){ vdp_plane_a_location, vdp_plane_b_location, vdp_vscroll_a, vdp_vscroll_b };
-			const int16_t *hs = (const int16_t*)VDP_Space(second ? vdp_view2->hscroll_location : vdp_hscroll_location, NULL);
-			uint32_t (*view_pal)[16] = (second && vdp_view2->palette != NULL) ? vdp_screen_pal2 : vdp_screen_pal;
+			const viewport_t *vp = second ? &screen2p : &screen1p;
+			const int16_t *hs = vp->hscroll;
+			uint32_t (*view_pal)[16] = (second && screen2p.palette != NULL) ? vdp_screen_pal2 : vdp_screen_pal;
 			uint32_t sum_r[SCREEN_MAX_WIDTH], sum_g[SCREEN_MAX_WIDTH], sum_b[SCREEN_MAX_WIDTH];
 			memset(sum_r, 0, sizeof(uint32_t) * SCREEN_WIDTH);
 			memset(sum_g, 0, sizeof(uint32_t) * SCREEN_WIDTH);
 			memset(sum_b, 0, sizeof(uint32_t) * SCREEN_WIDTH);
 			for (size_t src = first_row; src < end_row; src++) {
 				vdp_draw_pal = water_split ? vdp_water_pal[(int16_t)src > vdp_water_line[second ? 1 : 0]] : view_pal;
-				VDP_DrawViewRow(src, src_pixels + VDP_INTERNAL_PAD, src_mask + VDP_INTERNAL_PAD, SCREEN_WIDTH, 128, false, &vs, &vdp_sprite_cache[(second ? (size_t)H : 0) + src], hs + 2 * src);
+				VDP_DrawViewRow(src, src_pixels + VDP_INTERNAL_PAD, src_mask + VDP_INTERNAL_PAD, SCREEN_WIDTH, 128, false, vp, &vdp_sprite_cache[(second ? (size_t)H : 0) + src], hs + 2 * src);
 				for (int x = 0; x < SCREEN_WIDTH; x++) {
 					uint32_t c = src_pixels[VDP_INTERNAL_PAD + x];
 					sum_r[x] += (c >> 24) & 0xFF;
@@ -934,20 +814,18 @@ void VDP_DrawFrame(void) {
 			static uint32_t half_pixels[SCREEN_MAX_PITCH];
 			static uint8_t half_mask[SCREEN_MAX_PITCH];
 			const int w1 = SCREEN_WIDTH / 2, w2 = SCREEN_WIDTH - w1;
-			struct VDP_ViewState vs1 = { vdp_plane_a_location, vdp_plane_b_location, vdp_vscroll_a, vdp_vscroll_b };
-			struct VDP_ViewState vs2 = { vdp_view2->plane_a_location, vdp_view2->plane_b_location, vdp_view2->vscroll_a, vdp_view2->vscroll_b };
 			vdp_draw_pal = water_split ? vdp_water_pal[(int16_t)y > vdp_water_line[0]] : vdp_screen_pal;
-			VDP_DrawViewRow(y, half_pixels + VDP_INTERNAL_PAD, half_mask + VDP_INTERNAL_PAD, w1, 128, false, &vs1, &vdp_sprite_cache[y], hscroll + 2 * y);
+			VDP_DrawViewRow(y, half_pixels + VDP_INTERNAL_PAD, half_mask + VDP_INTERNAL_PAD, w1, 128, false, &screen1p, &vdp_sprite_cache[y], hscroll + 2 * y);
 			memcpy(to, half_pixels + VDP_INTERNAL_PAD, (size_t)w1 * sizeof(uint32_t));
-			vdp_draw_pal = water_split ? vdp_water_pal[(int16_t)y > vdp_water_line[1]] : (vdp_view2->palette != NULL ? vdp_screen_pal2 : vdp_screen_pal);
-			const int16_t *hs2 = (const int16_t*)VDP_Space(vdp_view2->hscroll_location, NULL) + 2 * y;
-			VDP_DrawViewRow(y, half_pixels + VDP_INTERNAL_PAD, half_mask + VDP_INTERNAL_PAD, w2, 128, false, &vs2, &vdp_sprite_cache[(size_t)H + y], hs2);
+			vdp_draw_pal = water_split ? vdp_water_pal[(int16_t)y > vdp_water_line[1]] : (screen2p.palette != NULL ? vdp_screen_pal2 : vdp_screen_pal);
+			const int16_t *hs2 = screen2p.hscroll + 2 * y;
+			VDP_DrawViewRow(y, half_pixels + VDP_INTERNAL_PAD, half_mask + VDP_INTERNAL_PAD, w2, 128, false, &screen2p, &vdp_sprite_cache[(size_t)H + y], hs2);
 			vdp_draw_pal = vdp_screen_pal;
 			memcpy(to + w1, half_pixels + VDP_INTERNAL_PAD, (size_t)w2 * sizeof(uint32_t));
 		}
 
-		if (vdp_hint_enable && !water_split && countdown-- <= 0) {
-			countdown = vdp_hint_counter;
+		if (screen1p.hint_enable && !water_split && countdown-- <= 0) {
+			countdown = screen1p.hint_counter;
 
 			//Send horizontal interrupt
 			vdp_hint();
@@ -1003,9 +881,9 @@ int VDP_PeekSprites(VdpSpritePeek *out, int max) {
 	int n = 0;
 	uint8_t i = 0;
 	while (n < max) {
-		const uint16_t *sprite = vdp_sprite_buffer_ext != NULL
-			? (vdp_sprite_buffer_ext + ((uint16_t)i << 2))
-			: (const uint16_t*)(vdp_vram + vdp_sprite_location + ((uint16_t)i << 3));
+		if (screen1p.sprites == NULL)
+			break;
+		const uint16_t *sprite = screen1p.sprites + ((uint16_t)i << 2);
 		uint16_t sl = sprite[1], tile = sprite[2];
 		VdpSpritePeek *e = &out[n++];
 		e->index = i;

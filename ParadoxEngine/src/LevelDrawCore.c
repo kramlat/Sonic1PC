@@ -3,6 +3,7 @@
 #include "LevelData.h"
 
 #include "Backend/VDP.h"
+#include "Viewport.h"
 
 size_t CalcVRAMPos_2(int16_t sx, int16_t x, int16_t y) {
 	uint16_t px = ((x + sx) >> 2) & ~3;
@@ -56,13 +57,12 @@ void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int
 }
 
 // A plane's tiles can be moved to other patterns as they are written (see LevelDrawCore.h)
-static size_t remap_plane, remap_bytes;
+static const uint16_t *remap_plane;
 static uint16_t remap_first, remap_count;
 static int16_t remap_add;
 
-void DrawTileRemap_Set(size_t plane_offset, size_t plane_bytes, uint16_t first, uint16_t count, int16_t add) {
-	remap_plane = plane_offset;
-	remap_bytes = plane_bytes;
+void DrawTileRemap_Set(const plane_t *plane, uint16_t first, uint16_t count, int16_t add) {
+	remap_plane = plane->entries;
 	remap_first = first;
 	remap_count = count;
 	remap_add = add;
@@ -72,43 +72,41 @@ void DrawTileRemap_Clear(void) {
 	remap_count = 0;
 }
 
-static inline uint16_t RemapTile(size_t where, uint16_t v) {
-	if (remap_count != 0 && where >= remap_plane && where < remap_plane + remap_bytes && (uint16_t)((v & 0x7FF) - remap_first) < remap_count)
+static inline uint16_t RemapTile(const plane_t *plane, uint16_t v) {
+	if (remap_count != 0 && plane->entries == remap_plane && (uint16_t)((v & 0x7FF) - remap_first) < remap_count)
 		v = (uint16_t)(v + remap_add);
 	return v;
 }
 
 #define WRITE_TILE(off, xor)                                    \
     {                                                           \
-        VDP_SeekVRAM(offset + (off));                           \
         uint16_t v = ((block[0] << 8) | (block[1] << 0)) ^ xor; \
-        v = RemapTile(offset, v);                               \
+        Plane_Put(plane, pos + (off), RemapTile(plane, v));     \
         block += 2;                                             \
-        VDP_WriteVRAM((const uint8_t*)&v, 2);                   \
     }
 
-void DrawFlipXY(const uint8_t* block, size_t offset) {
+void DrawFlipXY(const uint8_t* block, plane_t *plane, size_t pos) {
 	WRITE_TILE((PLANE_WIDTH << 1) + 2, 0x1800)
 	WRITE_TILE((PLANE_WIDTH << 1) + 0, 0x1800)
 	WRITE_TILE(                     2, 0x1800)
 	WRITE_TILE(                     0, 0x1800)
 }
 
-void DrawFlipX(const uint8_t* block, size_t offset) {
+void DrawFlipX(const uint8_t* block, plane_t *plane, size_t pos) {
 	WRITE_TILE(                     2, 0x0800)
 	WRITE_TILE(                     0, 0x0800)
 	WRITE_TILE((PLANE_WIDTH << 1) + 2, 0x0800)
 	WRITE_TILE((PLANE_WIDTH << 1) + 0, 0x0800)
 }
 
-void DrawFlipY(const uint8_t* block, size_t offset) {
+void DrawFlipY(const uint8_t* block, plane_t *plane, size_t pos) {
 	WRITE_TILE((PLANE_WIDTH << 1) + 0, 0x1000)
 	WRITE_TILE((PLANE_WIDTH << 1) + 2, 0x1000)
 	WRITE_TILE(                     0, 0x1000)
 	WRITE_TILE(                     2, 0x1000)
 }
 
-void DrawBlock(const uint8_t *meta, const uint8_t *block, size_t offset) {
+void DrawBlock(const uint8_t *meta, const uint8_t *block, plane_t *plane, size_t pos) {
 	uint8_t flag = meta[0];
 	// meta[0] is the word's high byte -- META_X_FLIP (bit10 of the word) is
 	// bit2 here (0x04), META_Y_FLIP (bit11) is bit3 (0x08). These used to be
@@ -117,11 +115,11 @@ void DrawBlock(const uint8_t *meta, const uint8_t *block, size_t offset) {
 	// this call site never got updated to match.
 	if (flag & 0x04) //X flip
 		if (flag & 0x08) //Y flip
-			DrawFlipXY(block, offset);
+			DrawFlipXY(block, plane, pos);
 		else
-			DrawFlipX(block, offset);
+			DrawFlipX(block, plane, pos);
 	else if (flag & 0x08) //Y flip
-			DrawFlipY(block, offset);
+			DrawFlipY(block, plane, pos);
 	else {
 		WRITE_TILE(                     0, 0x0000)
 		WRITE_TILE(                     2, 0x0000)
@@ -130,12 +128,12 @@ void DrawBlock(const uint8_t *meta, const uint8_t *block, size_t offset) {
 	}
 }
 
-void DrawBlocks_LR_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t width) {
+void DrawBlocks_LR_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t width) {
 	const uint8_t *meta;
 	const uint8_t *block;
 	while (width-- > 0) {
 		GetBlockData(&meta, &block, sx, sy, x, y, layout);
-		DrawBlock(meta, block, offset + pos);
+		DrawBlock(meta, block, plane, pos);
 		size_t tx = pos % (PLANE_WIDTH << 1);
 		size_t ty = pos / (PLANE_WIDTH << 1);
 		pos = (ty * (PLANE_WIDTH << 1)) + ((tx + 4) % (PLANE_WIDTH << 1));
@@ -143,12 +141,12 @@ void DrawBlocks_LR_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
 	}
 }
 
-void DrawBlocks_LR_3(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t width) {
+void DrawBlocks_LR_3(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t width) {
     const uint8_t* meta;
     const uint8_t* block;
     while (width-- > 0) {
         GetBlockData_2(&meta, &block, sy, sx + x, y, layout);
-        DrawBlock(meta, block, offset + pos);
+        DrawBlock(meta, block, plane, pos);
         size_t tx = pos & ~(PLANE_ROW_BYTES - 1);
         size_t ty = (pos + 4) & (PLANE_ROW_BYTES - 1);
         pos = tx | ty;
@@ -158,19 +156,19 @@ void DrawBlocks_LR_3(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
 
 // A row, as the original draws it: the width of the screen and two extra columns (22 blocks at 320, from one block left of the view), no more than the plane holds. One
 // block fewer leaves the block at the right edge of the view stale in every row drawn while the camera is not on a block line.
-void DrawBlocks_LR(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
+void DrawBlocks_LR(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
 	size_t width = (RIGHT_EDGE_X + 32) / 16;
 	if (width > PLANE_WIDTH / 2)
 		width = PLANE_WIDTH / 2;
-	DrawBlocks_LR_2(offset, pos, sx, sy, x, y, layout, width);
+	DrawBlocks_LR_2(plane, pos, sx, sy, x, y, layout, width);
 }
 
-void DrawBlocks_TB_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t height) {
+void DrawBlocks_TB_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t height) {
 	const uint8_t *meta;
 	const uint8_t *block;
 	while (height-- > 0) {
 		GetBlockData(&meta, &block, sx, sy, x, y, layout);
-		DrawBlock(meta, block, offset + pos);
+		DrawBlock(meta, block, plane, pos);
 		size_t tx = pos % (PLANE_WIDTH << 1);
 		size_t ty = pos / (PLANE_WIDTH << 1);
 		pos = (((ty + 2) % PLANE_HEIGHT) * (PLANE_WIDTH << 1)) + tx;
@@ -178,15 +176,15 @@ void DrawBlocks_TB_2(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t 
 	}
 }
 
-void DrawBlocks_TB(size_t offset, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
-	DrawBlocks_TB_2(offset, pos, sx, sy, x, y, layout, SCROLL_ROWS);
+void DrawBlocks_TB(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
+	DrawBlocks_TB_2(plane, pos, sx, sy, x, y, layout, SCROLL_ROWS);
 }
 
 // Draws the rows of blocks that fill a plane, from one block above the view, for the camera at (sx, sy)
-void DrawChunks(int16_t sx, int16_t sy, const uint8_t *layout, size_t offset) {
+void DrawChunks(int16_t sx, int16_t sy, const uint8_t *layout, plane_t *plane) {
     int16_t y = -16;
     for (size_t i = 0; i < SCROLL_ROWS; i++) {
-        DrawBlocks_LR_2(offset, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH / 2);
+        DrawBlocks_LR_2(plane, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH / 2);
         y += 16;
     }
 }

@@ -22,7 +22,7 @@ uint8_t bg1_xblock, bg2_xblock, bg3_xblock;
 uint8_t bg1_yblock, bg2_yblock, bg3_yblock;
 
 // The foreground plane and what keeps it drawn as the camera moves (the engine's LevelPlane)
-LevelPlane fg_plane = { .plane = VRAM_FG, .camera_x = &scrpos_x, .camera_y = &scrpos_y }; // (valid before a level starts too)
+LevelPlane fg_plane = { .plane = &screen1p.plane_a, .camera_x = &scrpos_x, .camera_y = &scrpos_y }; // (valid before a level starts too)
 
 int16_t look_shift;
 

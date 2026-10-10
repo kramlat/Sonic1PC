@@ -40,7 +40,7 @@ uint8_t demo_num;
 #define LEVSEL_LINE_LENGTH  27
 #define LEVSEL_START_ROW    1    // (the prototype draws its text at $E08C on the plane: row 1, column 6)
 #define LEVSEL_START_COL    6
-#define LEVSEL_VRAM_MAIN    (VRAM_FG + (LEVSEL_START_ROW << 7) + (LEVSEL_START_COL << 1))
+#define LEVSEL_VRAM_MAIN    ((LEVSEL_START_ROW << 7) + (LEVSEL_START_COL << 1)) // (a byte offset in plane A)
 #define LEVSEL_FONT_TILE    0x700 // (above the title's art, which the menu stands on: Sonic 1's tile $680 is among the wings')
 #define LEVSEL_FONT_VRAM    ART_VRAM(LEVSEL_FONT_TILE)
 #define LEVSEL_SNDTEST_COL  18   // where the sound number goes in the Sound Select line (the prototype's $EDB0)
@@ -125,8 +125,7 @@ static void LevSelWord(size_t address, uint8_t tile, int palette) {
     if (tile == 0xFF) // a space: the cell keeps what the title drew there
         return;
     uint16_t word = TILE_MAP(1, palette, 0, 0, (LEVSEL_FONT_TILE + tile));
-    VDP_SeekVRAM(address);
-    VDP_WriteVRAM((const uint8_t *)&word, 2);
+    Plane_Put(&screen1p.plane_a, address, word);
 }
 
 // Draws every line in the normal palette, the highlighted one in the yellow one, and the sound number
@@ -154,13 +153,11 @@ static void LevelSelect(void) {
 
     // The menu stands on the title screen as it is (its wings, emblem, Sonic and Tails on plane A and in the sprites), over an empty plane B (its landscape goes, the backdrop stays the title's: colour 0 of line 2, blue).
     // The text is drawn on plane A over the art, leaving the cells of its spaces as they are, in white (line 0, colour 15 of the level select palette) and, when highlighted, yellow (line 2)
-    VDP_SeekVRAM(VRAM_BG);
-    VDP_FillVRAM(0, (PLANE_WIDTH * PLANE_HEIGHT) << 1);
+    Plane_Fill(&screen1p.plane_b, 0, (PLANE_WIDTH * PLANE_HEIGHT) << 1, 0);
     PalLoad2(PalId_LevelSel); // (the whole picture in the level select's brown tones, as the prototype shows it)
 
     memset(hscroll_buffer, 0, sizeof(hscroll_buffer));
-    VDP_SeekVRAM(VRAM_HSCROLL);
-    VDP_FillVRAM(0, sizeof(hscroll_buffer));
+    Viewport_UploadHScroll(&screen1p, hscroll_buffer, sizeof(hscroll_buffer));
 
     VDP_SeekVRAM(LEVSEL_FONT_VRAM);
     // 41 tiles * 32 bytes/tile -- can't sizeof() an extern array with no declared size, and Text.h itself is only ever #included once, from Game.c (re-including it here would double-define
@@ -355,10 +352,9 @@ static void CopyTilemapWrapped(const uint8_t *map, int col, int width, int heigh
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int c = (PLANE_WIDEADD / 2 + col + x) % PLANE_WIDTH;
-            VDP_SeekVRAM(VRAM_BG + PLANE_TALLADD + ((y * PLANE_WIDTH + c) << 1));
             const uint8_t *m = map + ((y * width + x) << 1);
             uint16_t v = (m[0] << 8) | m[1];
-            VDP_WriteVRAM((const uint8_t *)&v, 2);
+            Plane_Put(&screen1p.plane_b, PLANE_TALLADD + ((y * PLANE_WIDTH + c) << 1), v);
         }
     }
 }
@@ -388,8 +384,6 @@ void GM_Title(void) {
     PaletteFadeOut();
 
     // Set VDP state
-    VDP_SetPlaneALocation(VRAM_FG);
-    VDP_SetPlaneBLocation(VRAM_BG);
     VDP_SetBackgroundColour(0x20); // Line 2, entry 0
 
     VDPDisableWaterSplit();
@@ -435,7 +429,7 @@ void GM_Title(void) {
     {
         static uint8_t map[40 * 28 * 2];
         EniDec(S2Title_MapWings, map, 0);
-        CopyTilemap(map, VRAM_FG + PLANE_WIDEADD + PLANE_TALLADD, 40, 28);
+        CopyTilemap(map, &screen1p.plane_a, PLANE_WIDEADD + PLANE_TALLADD, 40, 28);
     }
     DrawTitleBackground();
 

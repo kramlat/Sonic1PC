@@ -14,6 +14,8 @@ sources:
   - "src/NullServices.c"
   - "src/LevelPlane.c"
   - "src/LevelPlane.h"
+  - "src/Viewport.c"
+  - "src/Viewport.h"
   - "src/LevelDrawCore.c"
   - "src/LevelDrawCore.h"
   - "src/Sprites.c"

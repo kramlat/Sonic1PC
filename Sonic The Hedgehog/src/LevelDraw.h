@@ -13,9 +13,9 @@ extern const dword_s* bg_pos_table_y[];
 extern const dword_s* bg_pos_table_y_dup[];
 
 void LoadTilesFromStart(void);
-void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset);
-void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset);
-void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, size_t offset);
+void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, plane_t *plane);
+void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, plane_t *plane);
+void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, plane_t *plane);
 void LoadTilesAsYouMove(void);
 void LoadTilesAsYouMove_BGOnly(void);
 void AnimateLevelGfx(void);

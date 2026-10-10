@@ -10,10 +10,7 @@
 //VDP constants
 #define VDP_INTERNAL_PAD 32
 
-#define VRAM_SIZE    0x10000 // the 64 KB of tile space (patterns, and whatever a game keeps in it: the special stage's planes). Above it, from this address, the VDP has a separate space of its own for each of
-                             // the planes' name tables and the scroll tables (VDP_REGIONS of VDP_REGION_SIZE bytes: EngineConstants.h's VRAM_FG ... VRAM_HSCROLL), so that the tiles are all the tile space holds
-#define VDP_REGION_SIZE 0x2000
-#define VDP_REGIONS     6
+#define VRAM_SIZE    0x10000 // the 64 KB of tile space: patterns only. The planes, scroll tables, vertical scroll and sprite tables are each viewport's own (Viewport.h)
 #define PLANE_SIZE   0x2000
 #define SPRITES      80
 #define SPRITES_SIZE (SPRITES * 8)
@@ -69,7 +66,8 @@ void VDP_SeekVRAM(size_t offset);
 void VDP_WriteVRAM(const uint8_t *data, size_t len);
 void VDP_WriteLong(uint32_t val);
 void VDP_FillVRAM(uint8_t data, size_t len);
-void VDP_ClearVRAM(void); // the tile space and every space above it, to zero
+void VDP_ClearVRAM(void); // the tile space, to zero
+uint8_t *VDP_TileSpace(void); // the tile space itself (a plane can be pointed into it: Plane_UseTiles)
 
 // One row (y, 0 to 7) of an 8 bits a pixel tile (64 bytes: a byte a pixel, the colour RAM index; 0 transparent; patterns in 64 byte steps) into 8 pixels of `to` (0xRRGGBBAA) and their priority mask `tom`: a pixel
 // is not drawn if the mask already has a bit of `and`, and `or` is put into the mask of every pixel that is not transparent (as the 4bpp tiles' rows do). The planes and sprites do not use it yet.
@@ -83,25 +81,7 @@ uint32_t VDP_Genesis2RGB(uint16_t cv);
 uint16_t VDP_RGB2Genesis(uint32_t rgb);
 void VDP_FillCRAM(uint16_t data, size_t len);
 
-void VDP_SetPlaneALocation(size_t loc);
-void VDP_SetPlaneBLocation(size_t loc);
-void VDP_SetSpriteLocation(size_t loc);
-void VDP_SetHScrollLocation(size_t loc);
-
-// PC-only: registers a sprite table living in its own dedicated buffer,
-// entirely outside the emulated VRAM address space, instead of one copied
-// into vdp_vram at a VDP_SetSpriteLocation offset. Real hardware has no such
-// option (the sprite table always lives in VRAM, sharing address space with
-// everything else there) -- this exists so the sprite table's own size
-// isn't constrained by neighboring VRAM regions (the plane nametables,
-// HScroll table, or anything else placed nearby). Call once during setup;
-// VDP_Render reads from this buffer instead of vdp_vram when set.
-void VDP_SetSpriteBuffer(const uint16_t *buffer);
-void VDP_SetPlaneSize(size_t w, size_t h);
 void VDP_SetBackgroundColour(uint8_t index);
-void VDP_SetVScroll(int16_t scroll_a, int16_t scroll_b);
-void VDP_SetHIntCounter(int16_t counter);
-void VDP_SetHIntEnable(bool enable);
 
 void VDP_Render(void);
 
@@ -157,8 +137,7 @@ extern uint8_t CRAMPAL;
 // the render backend (Render_SetZ80Peek, Backend/VDP.h).
 extern bool Z80_PEEK_DISPLAY;
 
-//Split screen: two views of the game at once (two players). The first view is the VDP as it is set up (the planes, scroll, sprite table and palette set through the
-//functions above); the second view has its own, in a VDPView the game keeps and updates (it is read as the frame is drawn).
+//Split screen: two views of the game at once (two players): the first view is screen1p and the second screen2p, each with its own planes, scroll, sprite table and palette (it is read as the frame is drawn).
 //  VDP_SPLIT_STACKED: one view above the other, as Sonic 2's 2-player mode does with the real VDP's double-height (interlace mode 2) display: the picture is
 //    twice as many rows, the cells are 8x16 (a name table entry or sprite tile number names a pair of patterns, at twice its number), and sprite coordinates
 //    are doubled (the picture starts at Y 256, and the second view's sprites sit a view lower).
@@ -170,15 +149,8 @@ typedef enum {
 	VDP_SPLIT_SIDE,
 } VDPSplitMode;
 
-typedef struct {
-	size_t plane_a_location, plane_b_location; //where its name tables are in VRAM
-	size_t hscroll_location;                   //its horizontal scroll table
-	int16_t vscroll_a, vscroll_b;
-	const uint16_t *sprite_buffer;             //its sprite table, a buffer as VDP_SetSpriteBuffer takes (4 words a sprite)
-	const uint16_t *palette;                   //its palette (4 x 16 CRAM words), or NULL for the first view's
-} VDPView;
-
-void VDP_SetSplitScreen(VDPSplitMode mode, const VDPView *second_view);
+// The first view is screen1p (Viewport.h) and the second screen2p: its planes, scroll, sprites and palette are set through those.
+void VDP_SetSplitScreen(VDPSplitMode mode);
 
 //Water in a split screen: each view is its own screen with its own water line, as if it had a horizontal interrupt of its own. `dry` and `wet` are the palettes (4 lines of 16 CRAM words, read live
 //as each frame is drawn), `line1` and `line2` the row of the first and the second view (counted in the view's own rows) the surface is at: the rows after it are drawn with the wet palette

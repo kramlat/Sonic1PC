@@ -6,7 +6,7 @@
 #include "LevelDrawCore.h"
 #include "Camera.h"
 
-LevelPlane level_plane_p2 = { .plane = VRAM_FG_P2, .camera_x = &scrpos_x_p2, .camera_y = &scrpos_y_p2 };
+LevelPlane level_plane_p2 = { .plane = &screen2p.plane_a, .camera_x = &scrpos_x_p2, .camera_y = &scrpos_y_p2 };
 
 // The right edge of the view, for the column drawn on that side (see LevelDrawCore.h's RIGHT_EDGE_X, which is this for the picture's width)
 static int16_t RightEdge(const LevelPlane *p) {
@@ -15,7 +15,7 @@ static int16_t RightEdge(const LevelPlane *p) {
     return (int16_t)(rounded + (SCREEN_WIDTH > 320 ? 16 : 0));
 }
 
-void LevelPlane_Init(LevelPlane *p, size_t plane, const dword_s *camera_x, const dword_s *camera_y, int16_t width) {
+void LevelPlane_Init(LevelPlane *p, plane_t *plane, const dword_s *camera_x, const dword_s *camera_y, int16_t width) {
     memset(p, 0, sizeof(*p));
     p->plane = plane;
     p->camera_x = camera_x;

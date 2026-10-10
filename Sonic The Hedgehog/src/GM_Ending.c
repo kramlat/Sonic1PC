@@ -1,4 +1,5 @@
 #include "GM_Ending.h"
+#include "Viewport.h"
 #include "Constants.h"
 
 #include "Console.h"
@@ -91,10 +92,8 @@ void GM_Ending(void) {
     // Screen setup and patterns
     Level_ClearState();
     ClearScreen();
-    VDP_SetPlaneALocation(VRAM_FG);
-    VDP_SetPlaneBLocation(VRAM_BG);
-    VDP_SetSpriteLocation(VRAM_SPRITES);
-    VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+    Viewport_UseOwnPlanes(&screen1p);
+    Viewport_SetSize(SCREEN_WIDTH, SCREEN_HEIGHT, PLANE_WIDTH, PLANE_HEIGHT);
     VDP_SetBackgroundColour(0x20); // line 2, entry 0
     VDPDisableWaterSplit();
     air = 30;
@@ -191,7 +190,7 @@ void GM_Ending(void) {
         restart = 0;
         LEVEL_LAYOUT_FG(2)[0] = 0xAA; LEVEL_LAYOUT_FG(2)[1] = 0xAB; LEVEL_LAYOUT_FG(2)[2] = 0xAE; LEVEL_LAYOUT_FG(2)[3] = 0x9A;
         LEVEL_LAYOUT_FG(3)[0] = 0xAC; LEVEL_LAYOUT_FG(3)[1] = 0xAD; LEVEL_LAYOUT_FG(3)[2] = 0xAF; LEVEL_LAYOUT_FG(3)[3] = 0xB0;
-        DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_FG(0), VRAM_FG);
+        DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_FG(0), &screen1p.plane_a);
         PalLoad1(PalId_Ending);
         PaletteWhiteIn();
     }
@@ -256,9 +255,8 @@ static void EndingDemoLoad(void) {
 static void CreditsScreenSetup(void) {
     ClearPLC();
     PaletteFadeOut();
-    VDP_SetPlaneALocation(VRAM_FG);
-    VDP_SetPlaneBLocation(VRAM_BG);
-    VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+    Viewport_UseOwnPlanes(&screen1p);
+    Viewport_SetSize(SCREEN_WIDTH, SCREEN_HEIGHT, PLANE_WIDTH, PLANE_HEIGHT);
     VDP_SetBackgroundColour(0x20);
     VDPDisableWaterSplit();
     ClearScreen();

@@ -3,7 +3,8 @@
 #include "EngineConstants.h"
 
 //Planes
-#define MAP_PLANE(base, x, y) ((base) + (((y) * PLANE_WIDTH + (x)) << 1))
+// The byte offset in a plane of the entry at tile (x, y)
+#define MAP_PLANE(x, y) ((((y) * PLANE_WIDTH + (x)) << 1))
 
 //Assertion
 #define GLUE(a, b) a ## b

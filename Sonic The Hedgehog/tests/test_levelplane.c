@@ -7,16 +7,16 @@
 #include "LevelDrawCore.h"
 #include "LevelPlane.h"
 #include "Backend/VDP.h"
+#include "Viewport.h"
 
 // The foreground plane that follows a camera (engine/LevelPlane.c), on a made-up level: every chunk of row 0 is chunk 1, whose blocks are all block 5 (tiles
 // $101-$104); everything else is the empty chunk 0.
 
-#define PLANE 0x10000
+static uint16_t plane_memory[0x1000];
+static plane_t test_plane = { plane_memory, sizeof(plane_memory) };
 
-static uint16_t Word(size_t vram_offset) {
-    uint16_t v;
-    memcpy(&v, VDP_PeekVRAM() + vram_offset, 2);
-    return v;
+static uint16_t Word(size_t offset) {
+    return *Plane_At(&test_plane, offset);
 }
 
 static void MakeLevel(void) {
@@ -30,28 +30,27 @@ static void MakeLevel(void) {
     }
     static const uint8_t block5[8] = { 0x01, 0x01, 0x01, 0x02, 0x01, 0x03, 0x01, 0x04 };
     memcpy(level_map16 + 5 * 8, block5, 8);
-    VDP_SeekVRAM(PLANE);
-    VDP_FillVRAM(0, 0x2000);
-    VDP_SetPlaneSize(64, 32);
+    Plane_Clear(&test_plane);
+    Viewport_SetSize(320, 224, 64, 32);
 }
 
 static void LevelPlane_DrawAllWritesTheViewsBlocks(void) {
     MakeLevel();
     dword_s cx = { 0 }, cy = { 0 };
     LevelPlane p;
-    LevelPlane_Init(&p, PLANE, &cx, &cy, 0);
+    LevelPlane_Init(&p, &test_plane, &cx, &cy, 0);
     LevelPlane_DrawAll(&p, LEVEL_LAYOUT_FG(0));
     // The block at the camera's top-left corner: its four tiles, two to a row of the plane
-    CHECK_EQ(Word(PLANE + 0), 0x0101);
-    CHECK_EQ(Word(PLANE + 2), 0x0102);
-    CHECK_EQ(Word(PLANE + PLANE_WIDTH * 2 + 0), 0x0103);
-    CHECK_EQ(Word(PLANE + PLANE_WIDTH * 2 + 2), 0x0104);
+    CHECK_EQ(Word(0), 0x0101);
+    CHECK_EQ(Word(2), 0x0102);
+    CHECK_EQ(Word(PLANE_WIDTH * 2 + 0), 0x0103);
+    CHECK_EQ(Word(PLANE_WIDTH * 2 + 2), 0x0104);
 }
 
 static void LevelPlane_FlagsComeFromCrossingSixteenPixelLines(void) {
     dword_s cx = { 0 }, cy = { 0 };
     LevelPlane p;
-    LevelPlane_Init(&p, PLANE, &cx, &cy, 0);
+    LevelPlane_Init(&p, &test_plane, &cx, &cy, 0);
 
     cx.f.u = 1; // the first step flags a column (the block state starts so)
     LevelPlane_CameraMovedX(&p, 0);
@@ -85,7 +84,7 @@ static void LevelPlane_SnapshotThenDrawPending(void) {
     MakeLevel();
     dword_s cx = { 0 }, cy = { 0 };
     LevelPlane p;
-    LevelPlane_Init(&p, PLANE, &cx, &cy, 0);
+    LevelPlane_Init(&p, &test_plane, &cx, &cy, 0);
 
     cx.f.u = 0x20;
     p.flags |= LEVEL_SCROLL_RIGHT;
@@ -95,10 +94,10 @@ static void LevelPlane_SnapshotThenDrawPending(void) {
     cx.f.u = 0x40;                          // the camera moves on: the drawing still works for the snapshot's
 
     size_t pos = CalcVRAMPos(0x20, 0, SCREEN_WIDTH, 0);
-    CHECK_EQ(Word(PLANE + pos), 0);
+    CHECK_EQ(Word(pos), 0);
     LevelPlane_DrawPending(&p, LEVEL_LAYOUT_FG(0));
     CHECK_EQ(p.flags_snap, 0);
-    CHECK_EQ(Word(PLANE + pos), 0x0101); // the column on the right edge, for the camera as it was
+    CHECK_EQ(Word(pos), 0x0101); // the column on the right edge, for the camera as it was
 }
 
 
@@ -119,30 +118,28 @@ static void MakeRandomLevel(unsigned seed) {
         level_map16[i * 2] = w >> 8;
         level_map16[i * 2 + 1] = w & 0xFF;
     }
-    VDP_SeekVRAM(PLANE);
-    VDP_FillVRAM(0, 0x2000);
-    VDP_SetPlaneSize(64, 32);
+    Plane_Clear(&test_plane);
+    Viewport_SetSize(320, 224, 64, 32);
 }
 
 // The cells of the view (the camera's picture) that differ from a plane drawn afresh at that camera
 static int ViewMismatches(int16_t cam_x, int16_t cam_y) {
     static uint8_t scratch[0x2000];
-    memcpy(scratch, VDP_PeekVRAM() + PLANE, sizeof(scratch)); // the plane as scrolled
+    memcpy(scratch, plane_memory, sizeof(scratch)); // the plane as scrolled
     dword_s fx = { 0 }, fy = { 0 };
     fx.f.u = (uint16_t)cam_x;
     fy.f.u = (uint16_t)cam_y;
     LevelPlane fresh;
-    LevelPlane_Init(&fresh, PLANE, &fx, &fy, 0);
+    LevelPlane_Init(&fresh, &test_plane, &fx, &fy, 0);
     LevelPlane_DrawAll(&fresh, LEVEL_LAYOUT_FG(0));
     int bad = 0;
     for (int wy = 0; wy < SCREEN_HEIGHT; wy += 8)
         for (int wx = 0; wx < SCREEN_WIDTH; wx += 8) {
             size_t cell = (size_t)((((cam_y + wy) >> 3) & (PLANE_HEIGHT - 1)) * PLANE_WIDTH + (((cam_x + wx) >> 3) & (PLANE_WIDTH - 1))) * 2;
-            if (memcmp(VDP_PeekVRAM() + PLANE + cell, scratch + cell, 2))
+            if (memcmp((const uint8_t *)plane_memory + cell, scratch + cell, 2))
                 bad++;
         }
-    VDP_SeekVRAM(PLANE); // put the scrolled plane back, so the test goes on from it
-    VDP_WriteVRAM(scratch, sizeof(scratch));
+    memcpy(plane_memory, scratch, sizeof(scratch)); // put the scrolled plane back, so the test goes on from it
     return bad;
 }
 
@@ -154,7 +151,7 @@ static int ScrollStress(unsigned seed, int max_step, int frames_per_blank) {
     cx.f.u = 0x100;
     cy.f.u = 0x100;
     LevelPlane p;
-    LevelPlane_Init(&p, PLANE, &cx, &cy, 0);
+    LevelPlane_Init(&p, &test_plane, &cx, &cy, 0);
     LevelPlane_DrawAll(&p, LEVEL_LAYOUT_FG(0));
     int bad_frames = 0;
     for (int frame = 0; frame < 600; frame++) {

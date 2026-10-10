@@ -1,4 +1,5 @@
 #include "GM_Level.h"
+#include "Viewport.h"
 #include "GameInterface.h"
 #include "DebugLog.h"
 
@@ -131,7 +132,7 @@ void Level_ClearState(void) {
     bg3_xblock = 0;
     bg3_yblock = 0;
 
-    LevelPlane_Init(&fg_plane, VRAM_FG, &scrpos_x, &scrpos_y, 0);
+    LevelPlane_Init(&fg_plane, &screen1p.plane_a, &scrpos_x, &scrpos_y, 0);
     bg1_scroll_flags = 0;
     bg2_scroll_flags = 0;
     bg3_scroll_flags = 0;
@@ -229,8 +230,7 @@ static void Level_ApplyResolution(void) {
     limit_btm2 = (uint16_t)(limit_btm2 + tall);
     look_shift = (int16_t)(look_shift + tall / 2);
     ClearScreen();
-    VDP_SetPlaneALocation(VRAM_FG);
-    VDP_SetPlaneBLocation(VRAM_BG);
+    Viewport_UseOwnPlanes(&screen1p);
     DeformLayers();
     LoadTilesFromStart();
 }
@@ -267,18 +267,16 @@ GM_Level_Branch:;
     ClearScreen();
 
     // Initialize VDP state
-    VDP_SetPlaneALocation(VRAM_FG);
-    VDP_SetPlaneBLocation(VRAM_BG);
-    VDP_SetSpriteLocation(VRAM_SPRITES);
-    VDP_SetPlaneSize(PLANE_WIDTH, PLANE_HEIGHT);
+    Viewport_UseOwnPlanes(&screen1p);
+    Viewport_SetSize(SCREEN_WIDTH, SCREEN_HEIGHT, PLANE_WIDTH, PLANE_HEIGHT);
     VDP_SetBackgroundColour(0x20); // Line 2, entry 0
 
     // Load water
-    VDP_SetHIntCounter(SCREEN_HEIGHT - 1);
+    screen1p.hint_counter = (int16_t)(SCREEN_HEIGHT - 1);
     hbla_counter = SCREEN_HEIGHT - 1;
-    VDP_SetHIntEnable(false);
+    screen1p.hint_enable = false;
     if (Level_HasWater()) {
-        VDP_SetHIntEnable(true);
+        screen1p.hint_enable = true;
         // Matches the original: all three water heights start at the act's
         // WaterHeight entry, and the dynamic water routine and "screen is
         // all underwater" flag are cleared. A checkpoint restore
