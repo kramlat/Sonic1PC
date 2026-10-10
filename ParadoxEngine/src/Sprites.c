@@ -59,7 +59,7 @@ static const uint8_t sprite_sizes_2p[16] = { 0, 0, 1, 1, 4, 4, 5, 5, 8, 8, 9, 9,
 
 // Draws `count` consecutive sprite pieces (Mappings.h) with their origin at (x, y) in sprite coordinates. The flips mirror the whole sprite about that origin;
 // `base_tile` is added to every piece's tile; the 2-player form uses the pieces' second tile word and the half-height sizes.
-static void DrawPieces(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t base_tile, const tilebank_t *bank, bool x_flip, bool y_flip, bool two_p, const uint8_t *piece, unsigned count) {
+static void DrawPieces(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t base_tile, const tilebank_t *bank, uint8_t palette_group, bool x_flip, bool y_flip, bool two_p, const uint8_t *piece, unsigned count) {
 	while (count-- > 0) {
 		//Don't overflow the sprite buffer
 		if (*sprite_i >= BUFFER_SPRITES)
@@ -87,6 +87,7 @@ static void DrawPieces(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 			tile ^= TILE_Y_FLIP_AND;
 		out->tile = tile;
 		const tilebank_t *tile_bank = bank != NULL ? bank : TileBank_Main();
+		out->palette_group = palette_group;
 		out->bank = tile_bank->id;
 		out->generation = tile_bank->generation;
 		uint16_t px = x_flip ? (uint16_t)(x - map_x - piece_width) : (uint16_t)(x + map_x);
@@ -103,7 +104,7 @@ static void DrawPieces(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 }
 
 void BuildSpr_Normal(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces) {
-	DrawPieces(sprite, sprite_i, x, y, tile, NULL, false, false, false, mappings, (unsigned)pieces + 1);
+	DrawPieces(sprite, sprite_i, x, y, tile, NULL, 0, false, false, false, mappings, (unsigned)pieces + 1);
 }
 
 // One frame of an object's mappings, pieces and all, at a place on screen (Sonic 2's ChkDrawSprite)
@@ -111,7 +112,7 @@ static void DrawFrame(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t
 	const uint8_t *pieces;
 	uint16_t count = Mappings_FramePieces((const uint8_t *)obj->mappings, frame, &pieces);
 	if (count)
-		DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->bank, obj->render.f.x_flip, obj->render.f.y_flip, two_p, pieces, count);
+		DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->bank, obj->palette_group, obj->render.f.x_flip, obj->render.f.y_flip, two_p, pieces, count);
 }
 
 // BuildSprites_MultiDraw: an object that is a main sprite (frame, width_pixels, y_rad) and up to OBJECT_CHILDREN children placed in the level. Always against the
@@ -234,10 +235,10 @@ static void BuildPass(sprite_t **sprite, uint8_t *sprite_i, const SpriteView *vi
 				const uint8_t *pieces;
 				uint16_t count = Mappings_FramePieces((const uint8_t *)obj->mappings, obj->frame, &pieces);
 				if (count)
-					DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->bank, obj->render.f.x_flip, obj->render.f.y_flip, two_p, pieces, count);
+					DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->bank, obj->palette_group, obj->render.f.x_flip, obj->render.f.y_flip, two_p, pieces, count);
 			} else {
 				//Directly use object mappings pointer: one piece
-				DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->bank, obj->render.f.x_flip, obj->render.f.y_flip, two_p, (const uint8_t *)obj->mappings, 1);
+				DrawPieces(sprite, sprite_i, x, y, obj->tile, obj->bank, obj->palette_group, obj->render.f.x_flip, obj->render.f.y_flip, two_p, (const uint8_t *)obj->mappings, 1);
 			}
 			obj->render.f.on_screen = true;
 		}

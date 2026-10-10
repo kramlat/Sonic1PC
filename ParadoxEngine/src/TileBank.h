@@ -12,9 +12,16 @@
 
 #define TILEBANKS 16
 
+// What a slot of a bank is (the bank's `depth` table): a pattern number names a slot, and an 8bpp tile named by its head slot takes that and the next
+#define TILE_SLOT_4BPP      0
+#define TILE_SLOT_8BPP_HEAD 1
+#define TILE_SLOT_8BPP_TAIL 2
+
 typedef struct {
 	uint8_t *patterns;   // the tiles' art
-	size_t tiles;        // how many tiles
+	uint8_t *depth;      // the allocation table: a byte for each 32 byte slot, TILE_SLOT_4BPP (a 4 bits a pixel tile of its own, or free), TILE_SLOT_8BPP_HEAD (the first half of a 64 byte, 8 bits a pixel tile) or
+	                     // TILE_SLOT_8BPP_TAIL (its second half). It is the bank's own, so it goes when the bank does
+	size_t tiles;        // how many 32 byte slots (a 4bpp tile takes one, an 8bpp tile two)
 	uint8_t id;          // its place in the table: what an entry names it by
 	uint8_t generation;  // changes each time the bank is freed (the main bank's never does)
 	bool live;
@@ -24,8 +31,10 @@ typedef struct {
 typedef struct {
 	uint32_t pattern;
 	uint16_t attrs;
+	uint8_t palette_group; // the palette line is this times 4 plus the attributes' two bits: 16 lines (an 8bpp tile uses none: its pixels are colours of the whole palette)
 	uint8_t bank;
 	uint8_t generation;
+	uint8_t reserved[3]; // (no padding left to chance: entries are compared and copied as bytes)
 } tile_entry_t;
 
 // The main bank: the VDP's tile space, the one the tile art of the games is loaded into and the sprites draw from
@@ -35,11 +44,18 @@ tilebank_t *TileBank_Main(void);
 tilebank_t *TileBank_Create(size_t tiles);
 void TileBank_Free(tilebank_t *bank);
 
+// Marks `slots` slots of a bank from `first` as 8bpp tiles (two slots each: head and tail; `slots` rounded down to whole tiles), or back as 4bpp. This is how an allocator says what is where.
+void TileBank_SetDepth(tilebank_t *bank, size_t first, size_t slots, bool eight_bits);
+
+// Is the tile whose first slot is `pattern` an 8bpp one
+bool TileBank_IsDeep(const tilebank_t *bank, size_t pattern);
+
 // Writes art into a bank at a tile (bytes past its end are dropped)
 void TileBank_Write(tilebank_t *bank, size_t tile, const void *data, size_t bytes);
 
-// The art of a tile an entry names, or NULL if its bank is not there, has been freed since the entry was made, or is not that big
+// The art of a tile an entry names (and whether it is an 8bpp one, 64 bytes of colours of the whole palette: not for 4bpp), or NULL if its bank is not there, has been freed since the entry was made, or is not that big
 const uint8_t *TileBank_Pattern(const tile_entry_t *entry);
+const uint8_t *TileBank_PatternDepth(const tile_entry_t *entry, bool *deep);
 
 // The bank an id and generation name, or NULL if there is none live with that generation (a reference that has gone stale counts in tilebank_stale_count)
 const tilebank_t *TileBank_Get(uint8_t id, uint8_t generation);
@@ -50,7 +66,7 @@ extern bool tilebank_stale_fatal;
 
 // The entry for a tile word of the Genesis' format (the games' block and tile map data): its 11 bit pattern in a bank, its flips, palette and priority
 static inline tile_entry_t TileEntry_FromWord(uint16_t word, const tilebank_t *bank) {
-	tile_entry_t e = { (uint32_t)(word & 0x07FF), (uint16_t)(word & 0xF800), bank->id, bank->generation };
+	tile_entry_t e = { (uint32_t)(word & 0x07FF), (uint16_t)(word & 0xF800), 0, bank->id, bank->generation };
 	return e;
 }
 

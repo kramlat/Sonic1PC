@@ -74,6 +74,7 @@ void DrawTileRemap_Clear(void) {
 
 static inline tile_entry_t EntryFor(const plane_t *plane, uint16_t word) {
 	tile_entry_t e = TileEntry_FromWord(word, plane->bank != NULL ? plane->bank : TileBank_Main());
+	e.palette_group = plane->palette_group;
 	if (remap_count != 0 && plane->entries == remap_plane && (uint16_t)((word & 0x7FF) - remap_first) < remap_count) {
 		e.bank = remap_bank->id; // (a tile of the range comes from the other bank, from its first tile on)
 		e.generation = remap_bank->generation;

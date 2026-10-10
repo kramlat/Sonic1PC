@@ -85,6 +85,7 @@ typedef struct {
 	uint16_t tile;           //Object base tile
 	const void *mappings;    //Object mappings
 	const tilebank_t *bank;  //The tile bank its art is in (NULL: the main bank)
+	uint8_t palette_group;   //Its palette lines are those of its tile word plus 4 times this (16 lines in all)
 	union {
 		struct {
 			dword_s x, y;

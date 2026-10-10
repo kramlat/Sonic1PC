@@ -155,7 +155,7 @@ static void TileBank_ASpriteDrawsFromItsBankAndNothingFromAFreedOne(void) {
     screen1p.sprites = screen1p.sprite_table;
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
     // one 8x8 cell (width 0, height 0) at the picture's top left, pattern 2 of the bank
-    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, 2, 128, bank->id, bank->generation };
+    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, 2, 128, 0, bank->id, bank->generation };
     CHECK_EQ(TopLeft(), PIXEL_BLUE);
     screen1p.sprite_table[0].bank = 0; // as the main bank's
     screen1p.sprite_table[0].generation = 0;
@@ -167,7 +167,103 @@ static void TileBank_ASpriteDrawsFromItsBankAndNothingFromAFreedOne(void) {
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
 }
 
+// --- 16 palette lines, and 8 bits a pixel tiles ---
+
+static void SetLine(int line, uint32_t rgb) {
+    uint32_t colours[16];
+    for (int i = 0; i < 16; i++)
+        colours[i] = rgb;
+    VDP_SeekCRAM((size_t)line * 16);
+    VDP_WriteCRAM_RGB(colours, 16);
+}
+
+#define PIXEL_RGB(rrggbb) (((rrggbb) << 8) | 0xFF)
+
+static void TileBank_APaletteGroupReachesTheLinesBeyondTheFirstFour(void) {
+    Prepare();
+    SetLine(9, 0x123456);
+    Solid(TileBank_Main(), 1, 7); // colour 7 of whatever line
+    screen1p.plane_a.palette_group = 2; // the tile word's own two bits (1) plus 4 times this: line 9
+    Plane_Put(&screen1p.plane_a, 0, TILE_MAP(0, 1, 0, 0, 1));
+    CHECK_EQ(TopLeft(), PIXEL_RGB(0x123456u));
+    screen1p.plane_a.palette_group = 0;
+}
+
+static void TileBank_ASpritesPaletteGroupReachesThemToo(void) {
+    Prepare();
+    SetLine(13, 0xABCDEF);
+    Solid(TileBank_Main(), 2, 4);
+    screen1p.sprites = screen1p.sprite_table;
+    memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
+    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, (uint16_t)TILE_MAP(0, 1, 0, 0, 2), 128, 3, 0, 0 }; // line 1 + 4 * 3 = 13
+    CHECK_EQ(TopLeft(), PIXEL_RGB(0xABCDEFu));
+    memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
+}
+
+// An 8bpp tile: 64 bytes, a byte a pixel, every pixel the colour index 0x95 (line 9, colour 5)
+static void Deep(tilebank_t *bank, size_t slot, uint8_t index) {
+    uint8_t bytes[64];
+    memset(bytes, index, sizeof(bytes));
+    TileBank_Write(bank, slot, bytes, sizeof(bytes));
+}
+
+static void TileBank_TheDepthTableSaysWhichSlotsAreEightBitTiles(void) {
+    Prepare();
+    tilebank_t *bank = TileBank_Create(8);
+    CHECK(!TileBank_IsDeep(bank, 2));
+    TileBank_SetDepth(bank, 2, 4, true); // two 8bpp tiles: slots 2-3 and 4-5
+    CHECK(TileBank_IsDeep(bank, 2));
+    CHECK(!TileBank_IsDeep(bank, 3)); // (the tail is no tile of its own)
+    CHECK(TileBank_IsDeep(bank, 4));
+    CHECK(!TileBank_IsDeep(bank, 6));
+    CHECK(bank->depth[3] == TILE_SLOT_8BPP_TAIL);
+    TileBank_SetDepth(bank, 2, 4, false);
+    CHECK(!TileBank_IsDeep(bank, 2));
+    CHECK(!TileBank_IsDeep(TileBank_Main(), 5));
+    TileBank_Free(bank);
+    CHECK(!TileBank_IsDeep(bank, 2)); // (a freed bank has none)
+}
+
+static void TileBank_AnEightBitTileDrawsItsBytesAsColoursOfTheWholePalette(void) {
+    Prepare();
+    SetLine(9, 0x654321);
+    SetLine(1, 0x111111);
+    tilebank_t *bank = TileBank_Create(8);
+    Deep(bank, 2, 0x95);
+    TileBank_SetDepth(bank, 2, 2, true);
+    Plane_PutEntry(&screen1p.plane_a, 0, TileEntry_FromWord(2, bank)); // (its own palette bits do not matter: palette 0)
+    CHECK_EQ(TopLeft(), PIXEL_RGB(0x654321u));
+    TileBank_SetDepth(bank, 2, 2, false); // as a 4bpp tile the same bytes are two colours: index 9 and 5, in line 0
+    CHECK(TopLeft() != PIXEL_RGB(0x654321u));
+    TileBank_Free(bank);
+}
+
+static void TileBank_AnEightBitSpriteStepsTwoSlotsACell(void) {
+    Prepare();
+    SetLine(9, 0x654321);
+    SetLine(10, 0x0000FF);
+    tilebank_t *bank = TileBank_Create(8);
+    Deep(bank, 0, 0x95); // the first cell
+    Deep(bank, 2, 0xA3); // the second, of a sprite two cells high (height 1)
+    TileBank_SetDepth(bank, 0, 4, true);
+    screen1p.sprites = screen1p.sprite_table;
+    memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
+    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0100, 0, 128, 0, bank->id, bank->generation }; // height 1: two cells
+    VDP_DrawFrame();
+    int pitch, rows;
+    const uint32_t *f = VDP_GetFrame(&pitch, &rows);
+    CHECK_EQ(f[0], PIXEL_RGB(0x654321u));
+    CHECK_EQ(f[8 * pitch], PIXEL_RGB(0x0000FFu)); // the next cell down is the next tile (two slots on), colour 0xA3
+    memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
+    TileBank_Free(bank);
+}
+
 void RegisterTileBankTests(void) {
+    RUN_TEST(TileBank_APaletteGroupReachesTheLinesBeyondTheFirstFour);
+    RUN_TEST(TileBank_ASpritesPaletteGroupReachesThemToo);
+    RUN_TEST(TileBank_TheDepthTableSaysWhichSlotsAreEightBitTiles);
+    RUN_TEST(TileBank_AnEightBitTileDrawsItsBytesAsColoursOfTheWholePalette);
+    RUN_TEST(TileBank_AnEightBitSpriteStepsTwoSlotsACell);
     RUN_TEST(TileBank_ASpriteDrawsFromItsBankAndNothingFromAFreedOne);
     RUN_TEST(TileBank_TheMainBankIsTheTileSpaceAndNeverGoesStale);
     RUN_TEST(TileBank_AnEntryDrawsFromItsOwnBank);

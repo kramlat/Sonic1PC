@@ -10,13 +10,14 @@ unsigned tilebank_stale_count;
 bool tilebank_stale_fatal;
 
 static tilebank_t banks[TILEBANKS];
+static uint8_t main_depth[VRAM_SIZE / 32]; // the main bank's allocation table
 static bool banks_ready;
 
 static void Init(void) {
 	if (banks_ready)
 		return;
 	banks_ready = true;
-	banks[0] = (tilebank_t){ VDP_TileSpace(), VRAM_SIZE / 32, 0, 0, true }; // (generation 0 for good: a cleared entry names tile 0 of this bank)
+	banks[0] = (tilebank_t){ VDP_TileSpace(), main_depth, VRAM_SIZE / 32, 0, 0, true }; // (generation 0 for good: a cleared entry names tile 0 of this bank)
 }
 
 tilebank_t *TileBank_Main(void) {
@@ -31,9 +32,13 @@ tilebank_t *TileBank_Create(size_t tiles) {
 			continue;
 		uint8_t generation = banks[i].generation; // (what the last use of this slot left: never 0, and not the same as then)
 		uint8_t *patterns = calloc(tiles, 32);
-		if (patterns == NULL)
+		uint8_t *depth = calloc(tiles, 1);
+		if (patterns == NULL || depth == NULL) {
+			free(patterns);
+			free(depth);
 			return NULL;
-		banks[i] = (tilebank_t){ patterns, tiles, (uint8_t)i, generation == 0 ? 1 : generation, true };
+		}
+		banks[i] = (tilebank_t){ patterns, depth, tiles, (uint8_t)i, generation == 0 ? 1 : generation, true };
 		return &banks[i];
 	}
 	return NULL;
@@ -43,10 +48,31 @@ void TileBank_Free(tilebank_t *bank) {
 	if (bank == NULL || bank->id == 0 || !bank->live)
 		return;
 	free(bank->patterns);
+	free(bank->depth);
 	bank->patterns = NULL;
+	bank->depth = NULL;
 	bank->tiles = 0;
 	bank->live = false;
 	bank->generation = (uint8_t)(bank->generation + 1 == 0 ? 1 : bank->generation + 1); // (entries made before this no longer match)
+}
+
+void TileBank_SetDepth(tilebank_t *bank, size_t first, size_t slots, bool eight_bits) {
+	if (bank == NULL || !bank->live || first >= bank->tiles)
+		return;
+	if (first + slots > bank->tiles)
+		slots = bank->tiles - first;
+	if (!eight_bits) {
+		memset(bank->depth + first, TILE_SLOT_4BPP, slots);
+		return;
+	}
+	for (size_t s = 0; s + 2 <= slots; s += 2) {
+		bank->depth[first + s] = TILE_SLOT_8BPP_HEAD;
+		bank->depth[first + s + 1] = TILE_SLOT_8BPP_TAIL;
+	}
+}
+
+bool TileBank_IsDeep(const tilebank_t *bank, size_t pattern) {
+	return bank != NULL && bank->live && pattern + 1 < bank->tiles && bank->depth[pattern] == TILE_SLOT_8BPP_HEAD;
 }
 
 void TileBank_Write(tilebank_t *bank, size_t tile, const void *data, size_t bytes) {
@@ -72,10 +98,17 @@ const tilebank_t *TileBank_Get(uint8_t id, uint8_t generation) {
 }
 
 const uint8_t *TileBank_Pattern(const tile_entry_t *entry) {
+	bool deep;
+	return TileBank_PatternDepth(entry, &deep);
+}
+
+const uint8_t *TileBank_PatternDepth(const tile_entry_t *entry, bool *deep) {
 	Init();
 	const tilebank_t *bank = &banks[entry->bank % TILEBANKS];
-	if (bank->live && bank->generation == entry->generation && entry->pattern < bank->tiles)
+	if (bank->live && bank->generation == entry->generation && entry->pattern < bank->tiles) {
+		*deep = bank->depth[entry->pattern] == TILE_SLOT_8BPP_HEAD && entry->pattern + 1 < bank->tiles;
 		return bank->patterns + (size_t)entry->pattern * 32;
+	}
 	tilebank_stale_count++;
 	if (tilebank_stale_fatal) {
 		fprintf(stderr, "TileBank: an entry names a tile that is not there (bank %u, generation %u, pattern %u)\n", entry->bank, entry->generation, entry->pattern);

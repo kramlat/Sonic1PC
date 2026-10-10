@@ -285,9 +285,9 @@ static inline uint32_t VDP_GetColour(size_t index) {
 }
 
 // A sprite's pattern in its bank (a pattern past the bank's end is a blank tile)
-static const uint8_t vdp_blank_tile[32];
-static inline const uint8_t *VDP_SpritePattern(const tilebank_t *bank, size_t pattern) {
-	return pattern < bank->tiles ? bank->patterns + (pattern << 5) : vdp_blank_tile;
+static const uint8_t vdp_blank_tile[64];
+static inline const uint8_t *VDP_SpritePattern(const tilebank_t *bank, size_t pattern, size_t slots) {
+	return pattern + slots <= bank->tiles ? bank->patterns + (pattern << 5) : vdp_blank_tile;
 }
 
 static inline uint8_t *VDP_GetPatternAddress(size_t pattern) {
@@ -359,6 +359,18 @@ void VDP_DrawTileRow8(uint32_t *to, uint8_t *tom, size_t pattern, int y, bool x_
 	}
 }
 
+// Eight pixels of an 8 bits a pixel tile's row (bytes: colours of the whole palette, 0 clear) with the row's priority rules, through the palette the row is drawn with (the water's, in the split screen)
+static inline void VDP_WriteRow8(uint32_t *to, uint8_t *tom, const uint8_t *from, bool x_flip, uint8_t and, uint8_t or) {
+	for (int i = 0; i < 8; i++) {
+		const uint8_t v = from[x_flip ? (7 - i) : i];
+		if (v != 0) {
+			if (!(tom[i] & and))
+				to[i] = vdp_draw_pal[v >> 4][v & 15];
+			tom[i] |= or;
+		}
+	}
+}
+
 // Draws one row of a plane `view_w` pixels wide. With double_cells (the stacked split screen's double-height mode) a cell is 8x16: a name table entry names a pair
 // of patterns, one above the other, at twice its number.
 static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const tile_entry_t *plane, size_t plane_w, size_t plane_h, int16_t x, int16_t y, int view_w, bool double_cells) {
@@ -378,14 +390,21 @@ static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const tile_entry
 		const tile_entry_t *entry = &pb[px];
 		const uint16_t tile = entry->attrs;
 		uint8_t or = (tile & TILE_PRIORITY_AND) ? VDP_MASK_PLANEPRI : 0;
-		uint8_t palette = (tile & TILE_PALETTE_AND) >> TILE_PALETTE_SHIFT;
+		uint8_t palette = (uint8_t)((entry->palette_group << 2) | ((tile & TILE_PALETTE_AND) >> TILE_PALETTE_SHIFT));
 		uint8_t y_flip = (tile & TILE_Y_FLIP_AND) != 0;
 		uint8_t x_flip = (tile & TILE_X_FLIP_AND) != 0;
 		
 		//Write tile
-		const uint8_t *from;
+		bool deep = false;
+		const uint8_t *from = TileBank_PatternDepth(entry, &deep);
+		if (from != NULL && deep) { // an 8bpp tile: a byte a pixel, colours of the whole palette (not in the stacked split screen's pairs of patterns)
+			if (!double_cells)
+				VDP_WriteRow8(to, tom, from + (((y_flip ? (y ^ 7) : y) & 7) << 3), x_flip, VDP_MASK_PLANEPRI, or);
+			to += 8;
+			tom += 8;
+			continue;
+		}
 		if (!double_cells) {
-			from = TileBank_Pattern(entry);
 			if (from != NULL)
 				from += (y_flip ? (y ^ 7) : y) << 2;
 		} else {
@@ -434,7 +453,7 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const sprite_t 
 	uint8_t height = (sprite_sl & SPRITE_SL_H_AND) >> SPRITE_SL_H_SHIFT;
 	
 	uint8_t and = (sprite_tile & TILE_PRIORITY_AND) ? VDP_MASK_SPRITE : (VDP_MASK_PLANEPRI | VDP_MASK_SPRITE);
-	uint16_t palette = (sprite_tile & TILE_PALETTE_AND) >> TILE_PALETTE_SHIFT;
+	uint16_t palette = (uint16_t)((sprite->palette_group << 2) | ((sprite_tile & TILE_PALETTE_AND) >> TILE_PALETTE_SHIFT));
 	uint8_t y_flip = (sprite_tile & TILE_Y_FLIP_AND) != 0;
 	uint8_t x_flip = (sprite_tile & TILE_X_FLIP_AND) != 0;
 	uint16_t pattern = (sprite_tile & TILE_PATTERN_AND) >> TILE_PATTERN_SHIFT;
@@ -464,7 +483,7 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const sprite_t 
 		for (size_t col = 0; col < cols; col++, left += 8) {
 			size_t src_col = x_flip ? (cols - 1 - col) : col;
 			size_t cell = (size_t)pattern + ty + src_col * (height + 1);
-			const uint8_t *from = VDP_SpritePattern(bank, (cell << 1) + (row >> 3)) + ((row & 7) << 2);
+			const uint8_t *from = VDP_SpritePattern(bank, (cell << 1) + (row >> 3), 1) + ((row & 7) << 2);
 			if (x_flip) {
 				from += 3;
 				WRITE_BYTE_FLIP(from, to, tom, palette, and, VDP_MASK_SPRITE)
@@ -490,29 +509,31 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const sprite_t 
 	} else
 		y &= 7;
 
-	pattern += ty;
+	// A sprite of 8bpp tiles takes two slots of its bank for each cell
+	const bool deep = TileBank_IsDeep(bank, pattern);
+	const size_t step = deep ? 2 : 1;
 	
-	//Get X tile
-	if (x_flip) {
-		pattern += width * (height + 1);
-		for (; left < right; left += 8) {
-			//Write tile
-			const uint8_t *from = VDP_SpritePattern(bank, pattern) + (y << 2) + 3;
+	//Get X tile: the cells go down a column and then across (the columns in the other order when flipped)
+	for (size_t col = 0; left < right; left += 8, col++) {
+		const size_t src_col = x_flip ? ((size_t)width - col) : col;
+		const size_t cell = pattern + step * (ty + src_col * (height + 1));
+		const uint8_t *from = VDP_SpritePattern(bank, cell, step);
+		if (deep) {
+			VDP_WriteRow8(to, tom, from + (y << 3), x_flip, and, VDP_MASK_SPRITE);
+			to += 8;
+			tom += 8;
+		} else if (x_flip) {
+			from += (y << 2) + 3;
 			WRITE_BYTE_FLIP(from, to, tom, palette, and, VDP_MASK_SPRITE)
 			WRITE_BYTE_FLIP(from, to, tom, palette, and, VDP_MASK_SPRITE)
 			WRITE_BYTE_FLIP(from, to, tom, palette, and, VDP_MASK_SPRITE)
 			WRITE_BYTE_FLIP(from, to, tom, palette, and, VDP_MASK_SPRITE)
-			pattern -= height + 1;
-		}
-	} else {
-		for (; left < right; left += 8) {
-			//Write tile
-			const uint8_t *from = VDP_SpritePattern(bank, pattern) + (y << 2);
+		} else {
+			from += (y << 2);
 			WRITE_BYTE(from, to, tom, palette, and, VDP_MASK_SPRITE)
 			WRITE_BYTE(from, to, tom, palette, and, VDP_MASK_SPRITE)
 			WRITE_BYTE(from, to, tom, palette, and, VDP_MASK_SPRITE)
 			WRITE_BYTE(from, to, tom, palette, and, VDP_MASK_SPRITE)
-			pattern += height + 1;
 		}
 	}
 }
@@ -728,14 +749,19 @@ static inline void VDP_RefreshPalette(void) {
 		*pal_to++ = VDP_GetColour(i);
 	if (vdp_split_mode != VDP_SPLIT_NONE && vdp_water_dry != NULL) {
 		for (size_t i = 0; i < ACTIVE_COLOURS; i++) {
-			vdp_water_pal[0][i >> 4][i & 15] = VDP_ConvertColour(vdp_water_dry[i]);
-			vdp_water_pal[1][i >> 4][i & 15] = VDP_ConvertColour(vdp_water_wet[i]);
+			if (i < VDP_WATER_COLOURS) {
+				vdp_water_pal[0][i >> 4][i & 15] = VDP_ConvertColour(vdp_water_dry[i]);
+				vdp_water_pal[1][i >> 4][i & 15] = VDP_ConvertColour(vdp_water_wet[i]);
+			} else { // (the lines past the games' four are the same under water)
+				vdp_water_pal[0][i >> 4][i & 15] = vdp_screen_pal[i >> 4][i & 15];
+				vdp_water_pal[1][i >> 4][i & 15] = vdp_screen_pal[i >> 4][i & 15];
+			}
 		}
 	}
 	if (vdp_split_mode != VDP_SPLIT_NONE && screen2p.palette != NULL) {
 		pal_to = &vdp_screen_pal2[0][0];
 		for (size_t i = 0; i < ACTIVE_COLOURS; i++)
-			*pal_to++ = VDP_ConvertColour(screen2p.palette[i]);
+			*pal_to++ = i < VDP_WATER_COLOURS ? VDP_ConvertColour(screen2p.palette[i]) : vdp_screen_pal[i >> 4][i & 15];
 	}
 }
 

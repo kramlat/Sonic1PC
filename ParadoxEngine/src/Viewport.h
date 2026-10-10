@@ -17,6 +17,7 @@ typedef struct {
 	tile_entry_t *entries;
 	size_t count;
 	tilebank_t *bank;
+	uint8_t palette_group; // the palette group (0-3: lines 4 times this on) that the tile words a game writes are in
 } plane_t;
 
 // The vertical scroll memory: how far down each plane is scrolled
@@ -38,6 +39,7 @@ typedef struct {
 	uint16_t size_link;
 	uint16_t tile;       // the tile word: priority, palette line, flips and the first pattern
 	uint16_t x;
+	uint8_t palette_group; // the palette line is this times 4 plus the tile word's two bits
 	uint8_t bank;
 	uint8_t generation;
 } sprite_t;

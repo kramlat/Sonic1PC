@@ -93,10 +93,10 @@ static void PutBack(void) {
     palette_pointers[0] = saved_entry;
 }
 
-// The colour RAM has 16 lines of storage (a later game needs them), of which the first 4 are drawn with so far: the others can be written and read back, each its own, and the first four are untouched by them
+// The colour RAM has 16 lines, all drawn with (the entries and sprites carry a palette group of four lines each on top of the Genesis' two bits): each can be written and read back, its own, and the first four are untouched by the rest
 static void Palette_ColourRAMHasSixteenLines(void) {
     CHECK_EQ(VDP_PALETTES, 16);
-    CHECK_EQ(VDP_PALETTES_ACTIVE, 4);
+    CHECK_EQ(VDP_PALETTES_ACTIVE, 16);
     CHECK_EQ(COLOURS, 256);
     VDP_SeekCRAM(0);
     VDP_FillCRAM(0x0222, 64);
