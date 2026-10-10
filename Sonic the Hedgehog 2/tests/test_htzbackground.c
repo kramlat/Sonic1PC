@@ -46,15 +46,15 @@ static void HTZBackground_AnOddPixelShiftUsesTheSecondCopy(void) {
 static void HTZBackground_ScrollHasTheEighthThenBands(void) {
     HTZBackground_Reset();
     scrpos_x.v = 0x200 << 16;
-    HTZBackground_Deform();
+    HTZBackground_Deform(0);
     CHECK_EQ(hscroll_buffer[0][0], -0x200);
     CHECK_EQ(hscroll_buffer[0][1], -0x40);        // (the top $80 lines: an eighth of the camera)
     CHECK_EQ(hscroll_buffer[0x7F][1], -0x40);
     CHECK(hscroll_buffer[0x80][1] != -0x40);     // (then the bands move on)
     CHECK_EQ(hscroll_buffer[0xDF][0], -0x200);
-    CHECK_EQ(htz_layerdef[0x11], 4);              // (the drift of the layers, 4 a frame)
-    HTZBackground_Deform();
-    CHECK_EQ(htz_layerdef[0x11], 8);
+    CHECK_EQ(htz_layerdef[0][0x11], 4);              // (the drift of the layers, 4 a frame)
+    HTZBackground_Deform(0);
+    CHECK_EQ(htz_layerdef[0][0x11], 8);
 }
 
 // The title screen leaves its TM in VRAM at $A200, where Hill Top's background tiles go: the first frame has to put the chunks over it (no step is "current" yet), or the TM shows in the sky

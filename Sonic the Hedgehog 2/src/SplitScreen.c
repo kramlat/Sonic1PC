@@ -1,5 +1,6 @@
 #include "SplitScreen.h"
 #include "HTZQuake.h"
+#include "HTZBackground.h"
 
 #include <string.h>
 
@@ -43,6 +44,7 @@ static void SplitOff(void) {
     sprite_split_screen = SPRITE_SPLIT_NONE;
     VDP_SetSplitScreen(VDP_SPLIT_NONE, NULL);
     VDP_SetSplitWater(NULL, NULL, 0, 0);
+    DrawTileRemap_Clear();
 }
 
 void SplitScreen_LoadLevel(void) {
@@ -73,6 +75,8 @@ void SplitScreen_LoadLevel(void) {
     }
     scrpos_x_p2 = scrpos_x;
     scrpos_y_p2 = scrpos_y;
+    if (LEVEL_ZONE(level_id) == ZoneId_HTZ) // (the second view's background has mountains of its own: the tiles of the first's set are drawn as the second's)
+        DrawTileRemap_Set(VRAM_BG_P2, 0x2000, 0x500, 0x20, HTZ_P2_TILES);
     LevelPlane_Init(&fg_plane, VRAM_FG, &scrpos_x, &scrpos_y, view_width);
     LevelPlane_Init(&level_plane_p2, VRAM_FG_P2, &scrpos_x_p2, &scrpos_y_p2, view_width);
     level_plane_p2.xblock = fg_plane.xblock;

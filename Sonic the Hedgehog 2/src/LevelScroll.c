@@ -552,7 +552,7 @@ void Deform_HTZ(void) {
 	if (view == 0)
 		HTZQuake_SpritesNormal();
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-	HTZBackground_Deform(); // the usual branch (loc_6108), whose layers the mountains' animated art follows
+	HTZBackground_Deform(view); // the usual branch (loc_6108), whose layers the mountains' animated art follows
 	HTZQuake_ShakeView();   // (when the ground moves for the other view's quake, this one shakes too)
 }
 

@@ -55,10 +55,34 @@ void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int
 	*block = level_map16 + (tile << 3);
 }
 
+// A plane's tiles can be moved to other patterns as they are written (see LevelDrawCore.h)
+static size_t remap_plane, remap_bytes;
+static uint16_t remap_first, remap_count;
+static int16_t remap_add;
+
+void DrawTileRemap_Set(size_t plane_offset, size_t plane_bytes, uint16_t first, uint16_t count, int16_t add) {
+	remap_plane = plane_offset;
+	remap_bytes = plane_bytes;
+	remap_first = first;
+	remap_count = count;
+	remap_add = add;
+}
+
+void DrawTileRemap_Clear(void) {
+	remap_count = 0;
+}
+
+static inline uint16_t RemapTile(size_t where, uint16_t v) {
+	if (remap_count != 0 && where >= remap_plane && where < remap_plane + remap_bytes && (uint16_t)((v & 0x7FF) - remap_first) < remap_count)
+		v = (uint16_t)(v + remap_add);
+	return v;
+}
+
 #define WRITE_TILE(off, xor)                                    \
     {                                                           \
         VDP_SeekVRAM(offset + (off));                           \
         uint16_t v = ((block[0] << 8) | (block[1] << 0)) ^ xor; \
+        v = RemapTile(offset, v);                               \
         block += 2;                                             \
         VDP_WriteVRAM((const uint8_t*)&v, 2);                   \
     }

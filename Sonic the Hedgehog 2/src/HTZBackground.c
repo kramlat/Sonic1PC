@@ -5,6 +5,7 @@
 #include "Constants.h"
 
 #include "Level.h"
+#include "Camera.h"
 #include "LevelScroll.h"
 #include "Video.h"
 
@@ -16,7 +17,7 @@
 #include "Resource/Art/HTZBackground.h"
 #include "Resource/S2Art/HTZBgStrips.h"
 
-int16_t htz_layerdef[0x12]; // TempArray_LayerDef: the 16 layers' scroll (words 0-15) and the drift of the mountains (word $11, the byte offset $22)
+int16_t htz_layerdef[2][0x12]; // (a set for each view of a split screen) TempArray_LayerDef: the 16 layers' scroll (words 0-15) and the drift of the mountains (word $11, the byte offset $22)
 
 // loc_22D94: where in RAM the prototype puts each of the 48 chunks of the background's art (4 tiles each), by its place in the art; loc_224C4's words (the sets of chunks to show) name them by those places
 static const uint16_t chunk_places[48] = {
@@ -40,17 +41,17 @@ static const uint16_t chunk_sets[96] = {
 
 static uint8_t chunk_art[48 * 0x80]; // the art, decompressed (the prototype's $FFFFB800 buffer, spread to the places above)
 static bool chunk_art_loaded;
-static uint8_t last_step;            // the camera step the chunks were last chosen for (the byte after the first animation counter)
+static uint8_t last_step[2];         // the camera step the chunks were last chosen for (the byte after the first animation counter)
 
 void HTZBackground_Reset(void) {
     memset(htz_layerdef, 0, sizeof(htz_layerdef));
-    last_step = 0xFF; // (no step: the first frame puts the chunks in. The prototype starts with step 0 and so shows what the title left at $A200 -- its TM -- until the camera's step changes)
+    last_step[0] = last_step[1] = 0xFF; // (no step: the first frame puts the chunks in. The prototype starts with step 0 and so shows what the title left at $A200 -- its TM -- until the camera's step changes)
     chunk_art_loaded = false;
 }
 
 // For the tests: the step the chunks were last chosen for (0xFF: none yet)
 int HTZBackground_LastStep(void) {
-    return last_step;
+    return last_step[0];
 }
 
 // loc_22D62: the background's art, decompressed once for the level
@@ -101,30 +102,38 @@ void HTZBackground_BuildStrips(int16_t camera_x, const int16_t *layers, uint8_t 
     }
 }
 
-// The animated art routine's own part (loc_2244E, before the flowers): chunks when the camera's step has changed, the strip every frame
-void HTZBackground_Animate(bool two_player) {
-    if (two_player)
-        return;
-    LoadChunkArt();
-    const int step = HTZBackground_Step((int16_t)scrpos_x.f.u);
-    if (step != last_step) {
-        last_step = (uint8_t)step;
+// One view's mountains: the chunks when its camera's step has changed, the strip every frame; `vram` is where its set of 32 tiles starts (the first view's is where the prototype has it, $A000, and the second view's
+// is $800 on, its background plane's tiles moved to it as they are drawn: SplitScreen.c)
+static void AnimateView(int view, int16_t camera_x, uint32_t vram) {
+    const int step = HTZBackground_Step(camera_x);
+    if (step != last_step[view]) {
+        last_step[view] = (uint8_t)step;
         int chunks[6];
         HTZBackground_StepChunks(step, chunks);
         for (int k = 0; k < 6; k++) {
-            VDP_SeekVRAM(0xA000 + k * 0x80);
+            VDP_SeekVRAM(vram + k * 0x80);
             VDP_WriteVRAM(chunk_art + chunks[k] * 0x80, 0x80);
         }
     }
     uint8_t strips[0x100];
-    HTZBackground_BuildStrips((int16_t)scrpos_x.f.u, htz_layerdef, strips);
-    VDP_SeekVRAM(0xA300);
+    HTZBackground_BuildStrips(camera_x, htz_layerdef[view], strips);
+    VDP_SeekVRAM(vram + 0x300);
     VDP_WriteVRAM(strips, 0x100);
+}
+
+// The animated art routine's own part (loc_2244E, before the flowers). The prototype makes the mountains for one camera only (its two player scroll has no mountains); a split screen here gives each view
+// its own set.
+void HTZBackground_Animate(void) {
+    LoadChunkArt();
+    AnimateView(0, (int16_t)scrpos_x.f.u, 0xA000);
+    if (camera_split)
+        AnimateView(1, (int16_t)scrpos_x_p2.f.u, 0xA000 + HTZ_P2_TILES * 0x20);
 }
 
 // Bg_Scroll_HTz, the usual branch (loc_6108): the first $80 lines at an eighth of the camera, then bands that run on to a half of it, whose 16 layers' scroll (htz_layerdef) the strip above uses. The drift
 // (word $11) adds 4 every frame.
-void HTZBackground_Deform(void) {
+void HTZBackground_Deform(int view) {
+    int16_t *layers = htz_layerdef[view];
     const int16_t negx = (int16_t)-scrpos_x.f.u;
     int16_t *bufp = &hscroll_buffer[0][0];
     int left = SCREEN_HEIGHT;
@@ -132,8 +141,8 @@ void HTZBackground_Deform(void) {
     int16_t bg = (int16_t)(negx >> 3);
     LINES(0x80, bg);
 
-    const int16_t drift = htz_layerdef[0x11];
-    htz_layerdef[0x11] = (int16_t)(drift + 4);
+    const int16_t drift = layers[0x11];
+    layers[0x11] = (int16_t)(drift + 4);
     const int16_t d2 = (int16_t)(negx - drift);
     const int16_t d1 = (int16_t)(d2 >> 4);
     const int16_t d0w = (int16_t)((int16_t)(d2 >> 1) - d1);
@@ -143,11 +152,11 @@ void HTZBackground_Deform(void) {
     uint32_t acc = (uint32_t)(uint16_t)d1 << 16;
     #define VALUE(n) ((int16_t)((acc + (uint32_t)(n) * (uint32_t)step) >> 16))
     // The 16 layers: 1, 2 and 3 (twice) steps on, then 5, 8, 11 and 14 (three layers each)
-    htz_layerdef[0] = VALUE(1);
-    htz_layerdef[1] = VALUE(2);
-    htz_layerdef[2] = htz_layerdef[3] = VALUE(3);
+    layers[0] = VALUE(1);
+    layers[1] = VALUE(2);
+    layers[2] = layers[3] = VALUE(3);
     for (int g = 0; g < 4; g++)
-        htz_layerdef[4 + g * 3] = htz_layerdef[5 + g * 3] = htz_layerdef[6 + g * 3] = VALUE(5 + g * 3);
+        layers[4 + g * 3] = layers[5 + g * 3] = layers[6 + g * 3] = VALUE(5 + g * 3);
 
     // The rest of the lines, in bands of growing height, each four times the step further than the last: 17, 21, 25, then 33, 41 (two steps of four), 53, 65, 81 and 97
     const uint32_t step4 = (uint32_t)step * 4;

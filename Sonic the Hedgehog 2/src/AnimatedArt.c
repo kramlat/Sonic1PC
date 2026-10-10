@@ -148,7 +148,7 @@ static void Prime(const AnimScript *scripts, int count) {
 void S2_PrimeLevelArt(void) {
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_HTZ:
-        HTZBackground_Animate(two_player_mode != 0); // (the mountains' tiles: they are not in the level's art at all)
+        HTZBackground_Animate(); // (the mountains' tiles: they are not in the level's art at all)
         Prime(AnimCue_EHZ, (int)(sizeof(AnimCue_EHZ) / sizeof(AnimCue_EHZ[0])));
         break;
     case ZoneId_EHZ:
@@ -179,7 +179,7 @@ void S2_PrimeLevelArt(void) {
 void S2_AnimateLevelArt(void) {
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_HTZ: // (the prototype's loc_2244E: the mountains' tiles, then the flowers, whose script is Emerald Hill's, on counters of their own)
-        HTZBackground_Animate(two_player_mode != 0);
+        HTZBackground_Animate();
         Dynamic_Normal(AnimCue_EHZ, (int)(sizeof(AnimCue_EHZ) / sizeof(AnimCue_EHZ[0])));
         break;
     case ZoneId_EHZ:

@@ -20,6 +20,11 @@
 #define SCROLL_ROWS_WANTED ((SCROLL_HEIGHT + 16 + 16) / 16)
 #define SCROLL_ROWS (SCROLL_ROWS_WANTED > (PLANE_HEIGHT / 2) ? (PLANE_HEIGHT / 2) : SCROLL_ROWS_WANTED)
 
+// The tiles written to the plane at `plane_offset` (`plane_bytes` long) whose pattern is one of `count` from `first` are moved `add` patterns on, so that a plane can show a copy of some art of its own (the second
+// view of a split screen and a background made of tiles that change with the camera: each view needs its own set). Cleared with DrawTileRemap_Clear.
+void DrawTileRemap_Set(size_t plane_offset, size_t plane_bytes, uint16_t first, uint16_t count, int16_t add);
+void DrawTileRemap_Clear(void);
+
 size_t CalcVRAMPos(int16_t sx, int16_t sy, int16_t x, int16_t y);
 size_t CalcVRAMPos_2(int16_t sx, int16_t x, int16_t y);
 size_t CalcVRAMPos_Unknown(int16_t sx, int16_t sy, int16_t x, int16_t y);
