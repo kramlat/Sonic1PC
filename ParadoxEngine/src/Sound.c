@@ -1058,7 +1058,7 @@ static void LoadMusicJSON(SoundChipSet *cs, PJValue *song, uint8_t music_id, uin
     // The byte loader runs inside Sound_Frame after that frame's tempo tick; this one runs before the next frame's,
     // so start one tick later to land on the same tempo phase (otherwise every note boundary near a correction
     // lands a frame off the real driver).
-    cs->tempo_timeout = (cs->main_tempo != 0 && cs->main_tempo != 0xFF) ? (uint8_t)(cs->main_tempo + 1) : cs->main_tempo;
+    cs->tempo_timeout = (cs->driver_version == SOUND_DRIVER_VERSION_2_TEMPO || cs->main_tempo == 0 || cs->main_tempo == 0xFF) ? cs->main_tempo : (uint8_t)(cs->main_tempo + 1);
 
     const PJValue *playlist = cs->json_playlist;
     const PJValue *voices = cs->json_voices;
@@ -1568,14 +1568,16 @@ void SpeedUpMusic(void) {
     SoundChipSet *t = one_up_playing ? &saved_music : &sound_music;
     t->speedup = 0x80;
     t->main_tempo = SpeedUpTempo(t->current_music_id, t->main_tempo);
-    t->tempo_timeout = t->main_tempo; // the original resets the timeout too
+    if (t->driver_version != SOUND_DRIVER_VERSION_2_TEMPO)
+        t->tempo_timeout = t->main_tempo; // the original resets the timeout too (Sonic 2's driver only changes the tempo)
 }
 
 void SlowDownMusic(void) {
     SoundChipSet *t = one_up_playing ? &saved_music : &sound_music;
     t->speedup = 0;
     t->main_tempo = t->base_main_tempo;
-    t->tempo_timeout = t->main_tempo; // the original resets the timeout too
+    if (t->driver_version != SOUND_DRIVER_VERSION_2_TEMPO)
+        t->tempo_timeout = t->main_tempo; // the original resets the timeout too
 }
 
 // PauseMusic: the whole driver stops (music AND effects, and queued requests wait), FM output is cut by
@@ -2338,7 +2340,8 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
             uint8_t tempo = (uint8_t)JsonUnhexInt(v, 0);
             cs->main_tempo = tempo;
             cs->base_main_tempo = tempo;
-            cs->tempo_timeout = tempo;
+            if (cs->driver_version != SOUND_DRIVER_VERSION_2_TEMPO)
+                cs->tempo_timeout = tempo;
         } else if (strcmp(key, "smpsCall") == 0) {
             const PJValue *target = JsonResolveBlock(ch->json_playlist, pj_get_string(v, ""));
             if (target) {
@@ -2557,7 +2560,9 @@ static void TickChannel_FlagsV1(SoundChipSet *cs, SoundChannel *ch, int channel_
         case 0xEA: // smpsSetTempoMod / cfSetTempo -- main tempo AND its timeout ("and reset timeout (!)")
             cs->main_tempo = *ch->data_ptr;
             cs->base_main_tempo = *ch->data_ptr;
-            cs->tempo_timeout = *ch->data_ptr++;
+            if (cs->driver_version != SOUND_DRIVER_VERSION_2_TEMPO)
+                cs->tempo_timeout = *ch->data_ptr;
+            ch->data_ptr++;
             break;
         case 0xEB: { // smpsSetTempoDiv -- chip-set-wide duration multiplier, propagates to every track's own copy
             uint8_t v = *ch->data_ptr++;
@@ -2931,7 +2936,16 @@ static void TickChipSet(SoundChipSet *cs) {
     // an extra tempo correction depending purely on our call order, not on
     // anything the song data says -- a real source of startup-frame skew
     // for whichever song/SFX happens to get dispatched this tick.
-    if (cs->main_tempo != 0) {
+    if (cs->driver_version == SOUND_DRIVER_VERSION_2_TEMPO) {
+        // Sonic 2's governor (TempoWait): the tempo is added to an accumulator each frame, and a frame whose addition does not overflow delays every
+        // track by one tick, so a tempo of n plays n/256 of the ticks (tempo_timeout is the accumulator here)
+        unsigned sum = (unsigned)cs->tempo_timeout + cs->main_tempo;
+        cs->tempo_timeout = (uint8_t)sum;
+        if (!(sum & 0x100)) {
+            for (int i = 0; i < SOUND_CHANNELS; i++)
+                cs->channels[i].duration_timeout++; // uint8_t: wraps naturally, matching inc (hl)
+        }
+    } else if (cs->main_tempo != 0) {
         if (cs->tempo_timeout > 0)
             cs->tempo_timeout--;
         if (cs->tempo_timeout == 0) {

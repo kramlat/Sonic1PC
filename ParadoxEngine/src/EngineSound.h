@@ -54,6 +54,10 @@
 #define SOUND_CHANNEL_FM_BASE  SOUND_CHANNELS_PSG
 #define SOUND_CHANNEL_DAC      (SOUND_CHANNEL_FM_BASE + 6)
 
+// A song whose driver version is this plays with Sonic 2's tempo (an accumulator: tempo n plays n/256 of the ticks) and driver version 1's coordination flags. 0 is Sonic 1's tempo (of every n frames,
+// one is skipped); 3 and up are the Sonic 3 family's flags
+#define SOUND_DRIVER_VERSION_2_TEMPO 2
+
 typedef struct {
     uint8_t playback_control;
     uint8_t voice_control;
@@ -399,7 +403,7 @@ typedef struct {
 typedef struct {
     const uint8_t *const *songs;     // the compiled byte stream for each sound id (0x100 entries; NULL = nothing there)
     const char *const *songs_json;   // the same sounds as JSON source text, for the JSON engine (0x100 entries)
-    const uint8_t *driver_version;   // the coordination-flag table each id wants (0 = driver version 1; 0x100 entries)
+    const uint8_t *driver_version;   // the coordination-flag table each id wants (0 = driver version 1; SOUND_DRIVER_VERSION_2_TEMPO = driver version 1's flags with Sonic 2's tempo; 0x100 entries)
     uint8_t music_first, music_last; // the ids that are music
     uint8_t sfx_first, special_last; // the ids that are effects, up to and including the special (priority) ones
     uint8_t command_first, command_last; // the ids that are driver commands (fade, stop...), checked before anything else

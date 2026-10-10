@@ -378,6 +378,8 @@ static PJValue *args_to_json(char **args, size_t count) {
 
 // convert_instruction -- asm_to_json.py:289-305.
 static PJValue *convert_instruction(const char *mnemonic, char **args, size_t arg_count) {
+    // smpsPSGAlterVolS2 (Sonic 2's SMPS2ASM): on its driver (version 2) it is the FM volume command, which that driver lets the PSG channels use too
+    if (strcmp(mnemonic, "smpsPSGAlterVolS2") == 0) mnemonic = "smpsAlterVol";
     if (str_in(mnemonic, ZERO_ARG, ARR_N(ZERO_ARG))) return pj_new_string(mnemonic);
     if (str_in(mnemonic, SINGLE_ARG, ARR_N(SINGLE_ARG))) {
         PJValue *obj = pj_new_object();

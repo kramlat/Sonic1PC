@@ -63,6 +63,36 @@ static int PeriodChanges(int frames, int *at, int max) {
     return n;
 }
 
+// Sonic 2's tempo (driver version SOUND_DRIVER_VERSION_2_TEMPO): a tempo of n plays n/256 of the ticks, so $80 makes a note of 4 last 8 frames and $40 one of 16;
+// Sonic 1's own tempo byte cannot play anything slower than half speed
+static const uint8_t song_s2_tempo_half[] = {
+    0x00, 0x00,             // voice bank offset (unused)
+    0x00, 0x01, 0x01, 0x80, // 0 FM/DAC blocks, 1 PSG track, dividing timing 1, main tempo $80
+    0x00, 0x0C, 0x00, 0x00, 0x00, 0x00,
+    0xA0, 0x04, 0xA2, 0x04, 0xA0, 0x04, 0xA2, 0x04, 0xF2,
+};
+static const uint8_t song_s2_tempo_quarter[] = {
+    0x00, 0x00, 0x00, 0x01, 0x01, 0x40, // tempo $40: a quarter of the ticks
+    0x00, 0x0C, 0x00, 0x00, 0x00, 0x00,
+    0xA0, 0x04, 0xA2, 0x04, 0xA0, 0x04, 0xA2, 0x04, 0xF2,
+};
+
+static void Sound_Sonic2TempoPlaysNOver256OfTheTicks(void) {
+    int at[8];
+    ResetSound();
+    Sound_DebugPlayRawSong(song_s2_tempo_half, 0, SOUND_DRIVER_VERSION_2_TEMPO);
+    int n = PeriodChanges(60, at, 8);
+    CHECK(n >= 4);
+    for (int i = 2; i < 4 && i < n; i++)
+        CHECK_EQ(at[i] - at[i - 1], 8); // (the first note starts when the song loads)
+    ResetSound();
+    Sound_DebugPlayRawSong(song_s2_tempo_quarter, 0, SOUND_DRIVER_VERSION_2_TEMPO);
+    n = PeriodChanges(80, at, 8);
+    CHECK(n >= 4);
+    for (int i = 2; i < 4 && i < n; i++)
+        CHECK_EQ(at[i] - at[i - 1], 16); // a note of 4 at a quarter of the speed: 16 frames, which Sonic 1's tempo byte cannot do
+}
+
 // $E7 (no attack) before a note: the note changes pitch on time -- no extra frames are inserted.
 static const uint8_t song_e7[] = {
     0x00, 0x00, 0x00, 0x01, 0x01, 0x00,
@@ -471,6 +501,7 @@ void RegisterSoundDriverTests(void) {
     RUN_TEST(Sound_NoteDurationIsExact);
     RUN_TEST(Sound_NoAttackAddsNoTime);
     RUN_TEST(Sound_DacTempoDivideReachesPsgOnTheSameFrame);
+    RUN_TEST(Sound_Sonic2TempoPlaysNOver256OfTheTicks);
     RUN_TEST(Sound_AlterNoteIsFineDetune);
     RUN_TEST(Sound_RingAlternatesSpeakers);
     RUN_TEST(Sound_JumpDoesNotBlockRings);
