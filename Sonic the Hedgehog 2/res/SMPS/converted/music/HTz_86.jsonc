@@ -1,0 +1,2275 @@
+{
+  "header": [
+    {
+      "smpsHeaderStartSong": [
+        "0x2",
+        "0x1"
+      ]
+    },
+    {
+      "smpsHeaderVoice": [
+        "HTZ_Voices"
+      ]
+    },
+    {
+      "smpsHeaderChan": [
+        "0x6",
+        "0x3"
+      ]
+    },
+    {
+      "smpsHeaderTempo": [
+        "0x1",
+        "0xBE"
+      ]
+    },
+    {
+      "smpsHeaderDAC": [
+        "HTZ_DAC"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "HTZ_FM1",
+        "0xC",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "HTZ_FM2",
+        "0xC",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "HTZ_FM3",
+        "0xC",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "HTZ_FM4",
+        "0x0",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderFM": [
+        "HTZ_FM5",
+        "0x0",
+        "0x7"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "HTZ_PSG1",
+        "0x0",
+        "0x6",
+        "0x0",
+        "0x0"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "HTZ_PSG2",
+        "0x0",
+        "0x5",
+        "0x0",
+        "0x0"
+      ]
+    },
+    {
+      "smpsHeaderPSG": [
+        "HTZ_PSG3",
+        "0x0",
+        "0x0",
+        "0x0",
+        "0x0"
+      ]
+    }
+  ],
+  "voices": [
+    {
+      "smpsVcAlgorithm": "0x0",
+      "smpsVcFeedback": "0x1",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xA",
+          "smpsVcDecayRate2": "0x3",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x84"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xA",
+          "smpsVcDecayRate2": "0x4",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x13"
+        },
+        {
+          "smpsVcDetune": "0x7",
+          "smpsVcCoarseFreq": "0x0",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xE",
+          "smpsVcDecayRate2": "0x4",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x30"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x9",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x12",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x25"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x0",
+      "smpsVcFeedback": "0x7",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0xE",
+          "smpsVcAmpMod": "0x1",
+          "smpsVcDecayRate1": "0x8",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x1",
+          "smpsVcReleaseRate": "0xA",
+          "smpsVcTotalLevel": "0x86"
+        },
+        {
+          "smpsVcDetune": "0x1",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x10",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x2",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0x9",
+          "smpsVcTotalLevel": "0x19"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0xA",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x14",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x8",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0x9",
+          "smpsVcTotalLevel": "0x2C"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0xA",
+          "smpsVcRateScale": "0x3",
+          "smpsVcAttackRate": "0x14",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x9",
+          "smpsVcReleaseRate": "0x9",
+          "smpsVcTotalLevel": "0x2D"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x5",
+      "smpsVcFeedback": "0x1",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x19",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x93"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x19",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x8B"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x4",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x19",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x5",
+          "smpsVcDecayRate2": "0x2",
+          "smpsVcDecayLevel": "0x2",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x86"
+        },
+        {
+          "smpsVcDetune": "0x3",
+          "smpsVcCoarseFreq": "0x2",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xA",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x3",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x28"
+        }
+      ]
+    },
+    {
+      "smpsVcAlgorithm": "0x2",
+      "smpsVcFeedback": "0x7",
+      "smpsVcUnusedBits": "0x0",
+      "operators": [
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x1",
+          "smpsVcAttackRate": "0x13",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x3",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x86"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0xD",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xE",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x1",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x27"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x7",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0xE",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xE",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0xF",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x28"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x1",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0xE",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0xE",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x1",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x17"
+        }
+      ]
+    }
+  ],
+  "SMPSplaylist": {
+    "HTZ_PSG1": [],
+    "HTZ_PSG2": [],
+    "HTZ_PSG3": [
+      "smpsStop"
+    ],
+    "HTZ_FM1": [
+      {
+        "smpsJump": [
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsAlterNote": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "smpsModSet": [
+              "0x8",
+              "0x1",
+              "0x2",
+              "0x40"
+            ]
+          },
+          {
+            "note": "D4",
+            "duration": "0x30"
+          },
+          {
+            "smpsModSet": [
+              "0x8",
+              "0x1",
+              "0x3",
+              "0x20"
+            ]
+          },
+          "smpsNoAttack",
+          {
+            "note": "D4",
+            "duration": "0x18"
+          },
+          {
+            "smpsModSet": [
+              "0x8",
+              "0x1",
+              "0x3",
+              "0x20"
+            ]
+          },
+          "smpsNoAttack",
+          {
+            "note": "D4",
+            "duration": "0x18"
+          },
+          {
+            "smpsMod": false
+          },
+          {
+            "note": "C4",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x54"
+          },
+          {
+            "smpsCall": "HTZ_Call0C"
+          },
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsCall": "HTZ_Call0D"
+          },
+          {
+            "smpsAlterPitch": "0xF4"
+          },
+          {
+            "smpsCall": "HTZ_Call08"
+          },
+          {
+            "smpsAlterPitch": "0xC"
+          },
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsCall": "HTZ_Call0E"
+          },
+          {
+            "smpsAlterPitch": "0xF4"
+          },
+          {
+            "smpsCall": "HTZ_Call09"
+          },
+          {
+            "smpsAlterPitch": "0xC"
+          },
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsCall": "HTZ_Call0D"
+          },
+          {
+            "smpsAlterPitch": "0xF4"
+          },
+          {
+            "smpsCall": "HTZ_Call08"
+          },
+          {
+            "smpsAlterPitch": "0xC"
+          },
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsCall": "HTZ_Call0E"
+          },
+          {
+            "smpsAlterPitch": "0xF4"
+          },
+          {
+            "smpsCall": "HTZ_Call0A"
+          },
+          {
+            "smpsAlterPitch": "0xC"
+          },
+          {
+            "smpsAlterNote": "0xFE"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "smpsSetvoice": "0x3"
+          },
+          {
+            "note": "Bb2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Bb2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Bb2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Bb2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x24"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "G2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "F2",
+            "duration": "0x6"
+          },
+          {
+            "note": "E2"
+          },
+          {
+            "note": "F2"
+          },
+          {
+            "note": "G2"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "smpsCall": "HTZ_Call0F"
+          },
+          {
+            "note": "E3",
+            "duration": "0x3"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "E3",
+            "duration": "0x12"
+          },
+          {
+            "note": "F3",
+            "duration": "0x3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x9"
+          },
+          {
+            "note": "F3",
+            "duration": "0xC"
+          },
+          {
+            "note": "Fs3",
+            "duration": "0x3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x9"
+          },
+          {
+            "note": "Fs3",
+            "duration": "0xC"
+          },
+          {
+            "note": "G3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "note": "Bb2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Bb2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "Bb2",
+            "duration": "0x6"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "Bb2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x24"
+          },
+          {
+            "note": "A2",
+            "duration": "0x6"
+          },
+          {
+            "note": "G2"
+          },
+          {
+            "note": "A2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "F2",
+            "duration": "0x6"
+          },
+          {
+            "note": "E2"
+          },
+          {
+            "note": "F2"
+          },
+          {
+            "note": "G2"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x18"
+          },
+          {
+            "smpsCall": "HTZ_Call0F"
+          },
+          {
+            "note": "E3",
+            "duration": "0x3"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "E3",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x54"
+          }
+        ]
+      }
+    ],
+    "HTZ_Call0F": [
+      {
+        "note": "E3",
+        "duration": "0x3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x9"
+      },
+      {
+        "note": "E3",
+        "duration": "0xC"
+      },
+      {
+        "note": "F3",
+        "duration": "0x3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x9"
+      },
+      {
+        "note": "F3",
+        "duration": "0xC"
+      },
+      {
+        "note": "Fs3",
+        "duration": "0x3"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x9"
+      },
+      {
+        "note": "Fs3",
+        "duration": "0xC"
+      },
+      {
+        "note": "G3",
+        "duration": "0x18"
+      }
+    ],
+    "HTZ_Call0D": [
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "G3",
+        "duration": "0x6"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Eb4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      }
+    ],
+    "HTZ_Call0E": [
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "G4",
+        "duration": "0x12"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Eb4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      }
+    ],
+    "HTZ_FM3": [
+      {
+        "smpsJump": [
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "smpsCall": "HTZ_Call08"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "smpsCall": "HTZ_Call09"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "smpsCall": "HTZ_Call08"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "smpsCall": "HTZ_Call0A"
+          },
+          {
+            "smpsSetvoice": "0x1"
+          },
+          {
+            "smpsCall": "HTZ_Call0B"
+          },
+          {
+            "note": "C4",
+            "duration": "0x30"
+          },
+          "smpsNoAttack",
+          {
+            "note": "C4",
+            "duration": "0x30"
+          },
+          "smpsNoAttack",
+          {
+            "note": "C4",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "smpsCall": "HTZ_Call0B"
+          },
+          {
+            "note": "C4",
+            "duration": "0x30"
+          },
+          "smpsNoAttack",
+          {
+            "note": "C4",
+            "duration": "0x30"
+          },
+          "smpsNoAttack",
+          {
+            "note": "C4",
+            "duration": "0xC"
+          },
+          {
+            "note": "G4",
+            "duration": "0x3"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "G4",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x54"
+          }
+        ]
+      }
+    ],
+    "HTZ_Call0B": [
+      {
+        "note": "Rst",
+        "duration": "0xC"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x12"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D4",
+        "duration": "0x12"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "E4",
+        "duration": "0x12"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "F4",
+        "duration": "0x12"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "E4",
+        "duration": "0x12"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "note": "D4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x12"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      }
+    ],
+    "HTZ_Call0C": [
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "smpsAlterVol": "0x17"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x5"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x5"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x4"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x4"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x4"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x4"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x4"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x3"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x4"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x3"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x3"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x3"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x3"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x3"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x3"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x3"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x3"
+      },
+      {
+        "smpsAlterVol": "0xFE"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x3"
+      },
+      "smpsNoAttack",
+      {
+        "note": "D4",
+        "duration": "0x3"
+      },
+      {
+        "smpsAlterVol": "0xFF"
+      },
+      {
+        "note": "Eb4",
+        "duration": "0x3"
+      }
+    ],
+    "HTZ_Call08": [
+      {
+        "note": "Rst",
+        "duration": "0xC"
+      },
+      {
+        "smpsSetvoice": "0x3"
+      },
+      {
+        "note": "G3",
+        "duration": "0x6"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x12"
+      },
+      {
+        "note": "G3",
+        "duration": "0x6"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Eb4"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      }
+    ],
+    "HTZ_Call09": [
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "smpsSetvoice": "0x3"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x12"
+      },
+      {
+        "note": "A3",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x12"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb3"
+      },
+      {
+        "note": "C4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4"
+      }
+    ],
+    "HTZ_Call0A": [
+      {
+        "note": "Rst",
+        "duration": "0x6"
+      },
+      {
+        "smpsSetvoice": "0x3"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x12"
+      },
+      {
+        "note": "A3",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x12"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb3",
+        "duration": "0x3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C4",
+        "duration": "0x12"
+      }
+    ],
+    "HTZ_FM5": [
+      {
+        "smpsSetvoice": "0x2"
+      },
+      {
+        "smpsAlterNote": "0x4"
+      },
+      {
+        "smpsJump": [
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0x2",
+              {
+                "note": "G4",
+                "duration": "0x3"
+              },
+              "smpsNoAttack",
+              {
+                "note": "A4",
+                "duration": "0x5D"
+              },
+              {
+                "note": "F4",
+                "duration": "0x3"
+              },
+              "smpsNoAttack",
+              {
+                "note": "G4",
+                "duration": "0x5D"
+              },
+              {
+                "note": "Eb4",
+                "duration": "0x3"
+              },
+              "smpsNoAttack",
+              {
+                "note": "F4",
+                "duration": "0x5D"
+              },
+              {
+                "note": "F4",
+                "duration": "0x3"
+              },
+              "smpsNoAttack",
+              {
+                "note": "G4",
+                "duration": "0x5D"
+              }
+            ]
+          },
+          {
+            "smpsCall": "HTZ_Call07"
+          },
+          {
+            "smpsCall": "HTZ_Call07"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "HTZ_Call07"
+          },
+          {
+            "smpsCall": "HTZ_Call07"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0xF",
+              {
+                "note": "C5",
+                "duration": "0x6"
+              }
+            ]
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          }
+        ]
+      }
+    ],
+    "HTZ_Call07": [
+      {
+        "note": "A4",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "G4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x12"
+      },
+      {
+        "note": "A4",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "G4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x12"
+      }
+    ],
+    "HTZ_FM4": [
+      {
+        "smpsSetvoice": "0x2"
+      },
+      {
+        "smpsJump": [
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0x2",
+              {
+                "note": "Eb4",
+                "duration": "0x3"
+              },
+              "smpsNoAttack",
+              {
+                "note": "F4",
+                "duration": "0x5D"
+              },
+              {
+                "note": "D4",
+                "duration": "0x3"
+              },
+              "smpsNoAttack",
+              {
+                "note": "E4",
+                "duration": "0x5D"
+              },
+              {
+                "note": "C4",
+                "duration": "0x3"
+              },
+              "smpsNoAttack",
+              {
+                "note": "D4",
+                "duration": "0x5D"
+              },
+              {
+                "note": "D4",
+                "duration": "0x3"
+              },
+              "smpsNoAttack",
+              {
+                "note": "E4",
+                "duration": "0x5D"
+              }
+            ]
+          },
+          {
+            "smpsCall": "HTZ_Call06"
+          },
+          {
+            "smpsCall": "HTZ_Call06"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "HTZ_Call06"
+          },
+          {
+            "smpsCall": "HTZ_Call06"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0xF",
+              {
+                "note": "Bb4",
+                "duration": "0x6"
+              }
+            ]
+          },
+          {
+            "note": "Rst",
+            "duration": "0x6"
+          }
+        ]
+      }
+    ],
+    "HTZ_Call06": [
+      {
+        "note": "F4",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "F4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "E4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x12"
+      },
+      {
+        "note": "F4",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "F4"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "E4"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x12"
+      }
+    ],
+    "HTZ_FM2": [
+      {
+        "smpsSetvoice": "0x0"
+      },
+      {
+        "smpsJump": [
+          {
+            "smpsCall": "HTZ_Call02"
+          },
+          {
+            "note": "Eb3",
+            "duration": "0x6"
+          },
+          {
+            "note": "E3"
+          },
+          {
+            "note": "B2"
+          },
+          {
+            "note": "C3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x1E"
+          },
+          {
+            "note": "A1",
+            "duration": "0x6"
+          },
+          {
+            "note": "A1",
+            "duration": "0xC"
+          },
+          {
+            "note": "Bb1"
+          },
+          {
+            "note": "B1"
+          },
+          {
+            "smpsCall": "HTZ_Call02"
+          },
+          {
+            "note": "Eb3",
+            "duration": "0x6"
+          },
+          {
+            "note": "E3"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x54"
+          },
+          {
+            "smpsCall": "HTZ_Call03"
+          },
+          {
+            "smpsCall": "HTZ_Call04"
+          },
+          {
+            "note": "B1",
+            "duration": "0xC"
+          },
+          {
+            "note": "B2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "HTZ_Call03"
+          },
+          {
+            "smpsCall": "HTZ_Call04"
+          },
+          {
+            "note": "B1",
+            "duration": "0xC"
+          },
+          {
+            "note": "B2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "HTZ_Call03"
+          },
+          {
+            "smpsCall": "HTZ_Call04"
+          },
+          {
+            "note": "B1",
+            "duration": "0xC"
+          },
+          {
+            "note": "B2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "HTZ_Call03"
+          },
+          {
+            "smpsCall": "HTZ_Call04"
+          },
+          {
+            "note": "C2",
+            "duration": "0xC"
+          },
+          {
+            "note": "C3",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "smpsCall": "HTZ_Call05"
+          },
+          {
+            "note": "C2",
+            "duration": "0x6"
+          },
+          {
+            "note": "C2",
+            "duration": "0x12"
+          },
+          {
+            "note": "D2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "D2",
+            "duration": "0xC"
+          },
+          {
+            "note": "Eb2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "Eb2",
+            "duration": "0xC"
+          },
+          {
+            "note": "E2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "E2",
+            "duration": "0xC"
+          },
+          {
+            "smpsCall": "HTZ_Call05"
+          },
+          {
+            "note": "C2",
+            "duration": "0x6"
+          },
+          {
+            "note": "C2"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x54"
+          }
+        ]
+      }
+    ],
+    "HTZ_Call02": [
+      {
+        "note": "C2",
+        "duration": "0x6"
+      },
+      {
+        "note": "G2"
+      },
+      {
+        "note": "A2"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C3"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D3"
+      },
+      {
+        "note": "C3",
+        "duration": "0x12"
+      }
+    ],
+    "HTZ_Call03": [
+      {
+        "note": "C2",
+        "duration": "0xC"
+      },
+      {
+        "note": "C3",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "A1",
+        "duration": "0xC"
+      },
+      {
+        "note": "A2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb1",
+        "duration": "0xC"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "B1",
+        "duration": "0xC"
+      },
+      {
+        "note": "Eb3",
+        "duration": "0x6"
+      },
+      {
+        "note": "D3"
+      }
+    ],
+    "HTZ_Call04": [
+      {
+        "note": "C2",
+        "duration": "0x6"
+      },
+      {
+        "note": "C2",
+        "duration": "0x12"
+      },
+      {
+        "note": "A1",
+        "duration": "0xC"
+      },
+      {
+        "note": "A2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Bb1",
+        "duration": "0xC"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      }
+    ],
+    "HTZ_Call05": [
+      {
+        "note": "Bb1",
+        "duration": "0xC"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "Bb1",
+        "duration": "0xC"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "Bb1",
+        "duration": "0xC"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "Bb1",
+        "duration": "0xC"
+      },
+      {
+        "note": "Bb2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Bb2"
+      },
+      {
+        "note": "A1"
+      },
+      {
+        "note": "A1",
+        "duration": "0x12"
+      },
+      {
+        "note": "A1",
+        "duration": "0xC"
+      },
+      {
+        "note": "A2",
+        "duration": "0x6"
+      },
+      {
+        "note": "A2"
+      },
+      {
+        "note": "G1",
+        "duration": "0xC"
+      },
+      {
+        "note": "G2",
+        "duration": "0x6"
+      },
+      {
+        "note": "G2"
+      },
+      {
+        "note": "G1",
+        "duration": "0xC"
+      },
+      {
+        "note": "G2",
+        "duration": "0x6"
+      },
+      {
+        "note": "G2"
+      },
+      {
+        "note": "C2"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "C2",
+        "duration": "0xC"
+      },
+      {
+        "note": "D2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "D2",
+        "duration": "0xC"
+      },
+      {
+        "note": "Eb2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst"
+      },
+      {
+        "note": "Eb2",
+        "duration": "0xC"
+      },
+      {
+        "note": "E2"
+      },
+      {
+        "note": "G1",
+        "duration": "0x6"
+      },
+      {
+        "note": "A1"
+      }
+    ],
+    "HTZ_DAC": [
+      {
+        "smpsJump": [
+          {
+            "note": "Kick",
+            "duration": "0x24"
+          },
+          {
+            "note": "Kick",
+            "duration": "0xC"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x30"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x6"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x1E"
+          },
+          {
+            "note": "Kick",
+            "duration": "0xC"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x18"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x24"
+          },
+          {
+            "note": "Kick",
+            "duration": "0xC"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x30"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x6"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x1E"
+          },
+          {
+            "note": "Kick",
+            "duration": "0xC"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x18"
+          },
+          {
+            "note": "Snare",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "HTZ_Call00"
+          },
+          {
+            "smpsCall": "HTZ_Call01"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "HTZ_Call00"
+          },
+          {
+            "smpsCall": "HTZ_Call01"
+          },
+          {
+            "note": "Snare",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "HTZ_Call00"
+          },
+          {
+            "smpsCall": "HTZ_Call01"
+          },
+          {
+            "note": "Snare",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "HTZ_Call00"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x6"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x12"
+          },
+          {
+            "note": "Snare",
+            "duration": "0xC"
+          },
+          {
+            "note": "Kick"
+          },
+          {
+            "note": "Kick"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "HTZ_Call00"
+          },
+          {
+            "smpsCall": "HTZ_Call01"
+          },
+          {
+            "note": "Snare",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "HTZ_Call00"
+          },
+          {
+            "smpsCall": "HTZ_Call01"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "HTZ_Call00"
+          },
+          {
+            "smpsCall": "HTZ_Call01"
+          },
+          {
+            "note": "Snare",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare"
+          },
+          {
+            "smpsCall": "HTZ_Call00"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x6"
+          },
+          {
+            "note": "Kick",
+            "duration": "0xC"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x6"
+          },
+          {
+            "note": "Kick",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare",
+            "duration": "0xC"
+          },
+          {
+            "note": "Kick"
+          },
+          {
+            "note": "Kick",
+            "duration": "0x6"
+          },
+          {
+            "note": "Kick",
+            "duration": "0xC"
+          },
+          {
+            "note": "Snare",
+            "duration": "0x6"
+          },
+          {
+            "note": "Snare"
+          }
+        ]
+      }
+    ],
+    "HTZ_Call00": [
+      {
+        "note": "Kick",
+        "duration": "0x18"
+      },
+      {
+        "note": "Snare",
+        "duration": "0xC"
+      },
+      {
+        "note": "Kick"
+      },
+      {
+        "note": "Kick",
+        "duration": "0x18"
+      },
+      {
+        "note": "Snare"
+      }
+    ],
+    "HTZ_Call01": [
+      {
+        "note": "Kick",
+        "duration": "0x6"
+      },
+      {
+        "note": "Kick",
+        "duration": "0x12"
+      },
+      {
+        "note": "Snare",
+        "duration": "0xC"
+      },
+      {
+        "note": "Kick"
+      },
+      {
+        "note": "Kick",
+        "duration": "0x18"
+      }
+    ]
+  }
+}

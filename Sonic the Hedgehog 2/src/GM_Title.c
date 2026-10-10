@@ -102,11 +102,11 @@ static bool LevSelZoneBuilt(uint16_t level) {
 static int levsel_sound = 0;
 static int levsel_item = 0;
 
-// What the sound test plays for the prototype's id $80+value: its music ($81-$9F) and effects ($A0-$E1) are the sounds of this port's ids; the rest is silence
+// What the sound test plays for the id $80+value: the music ($81-$9D, the final game's) and effects ($A0-$E1, the prototype's) are the sounds of this port's ids; the rest is silence
 static uint8_t LevSelSoundId(int value) {
     int id = 0x80 + value;
-    if (id >= 0x81 && id <= 0x9F)
-        return (uint8_t)(mus_OOZ + (id - 0x81));
+    if (id >= 0x81 && id <= 0x9D)
+        return (uint8_t)(mus_VsResults + (id - 0x81));
     if (id >= 0xA0 && id <= 0xE1)
         return (uint8_t)(sfx_Jump + (id - 0xA0));
     return 0;
@@ -149,7 +149,7 @@ static void PlayLevel(bool new_game);
 // Up and Down move the highlight (with a repeat while held), Left and Right step the sound number on the Sound Select line (A adds $10), and B, C, A or Start picks (B starts the level in
 // the split screen, on the Sound Select line they all play the sound but A, which only changes the number)
 static void LevelSelect(void) {
-    PlayMusic(mus_LevelSel);
+    PlayMusic(mus_Menu);
 
     // The menu stands on the title screen as it is (its wings, emblem, Sonic and Tails on plane A and in the sprites), over an empty plane B (its landscape goes, the backdrop stays the title's: colour 0 of line 2, blue).
     // The text is drawn on plane A over the art, leaving the cells of its spaces as they are, in white (line 0, colour 15 of the level select palette) and, when highlighted, yellow (line 2)
@@ -210,7 +210,7 @@ static void LevelSelect(void) {
             if (jpad1_press1 & JPAD_A)
                 continue; // (A only changes the number)
             uint8_t id = LevSelSoundId(levsel_sound);
-            if (id >= mus_OOZ && id <= mus_EmeraldDup2)
+            if (id >= mus_VsResults && id <= mus_Emerald)
                 PlayMusic(id);
             else if (id != 0)
                 PlaySound(id);

@@ -552,34 +552,37 @@ assemble:
   - "Mappings/HTZSeesaw"
 cmake: paradoxmake.cmake
 
-# Sonic 2's own music: the Simon Wai prototype's (SMPS driver 2 sources, converted with asm2json), by the names its disassembly gives
+# Sonic 2's own music: the final game's 29 tracks (the alpha's sound test order; SMPS driver 2 sources, converted with asm2json, files named by the final game's names and ids: HPz_83 is the Mystic Cave 2P theme, OOz_88 the Casino Night 2P one), and the Simon Wai prototype's effects
 songs:
-  - {file: "music/BOZ.jsonc", name: S2Mus_BOZ}
-  - {file: "music/Boss.jsonc", name: S2Mus_Boss}
-  - {file: "music/CNZ.jsonc", name: S2Mus_CNZ}
-  - {file: "music/CPZ.jsonc", name: S2Mus_CPZ}
-  - {file: "music/Continue.jsonc", name: S2Mus_Continue}
-  - {file: "music/DEZ.jsonc", name: S2Mus_DEZ}
-  - {file: "music/DHZ.jsonc", name: S2Mus_DHZ}
-  - {file: "music/End of level.jsonc", name: S2Mus_End_of_level}
-  - {file: "music/Extra life.jsonc", name: S2Mus_Extra_life}
-  - {file: "music/Final boss.jsonc", name: S2Mus_Final_boss}
-  - {file: "music/GHZ.jsonc", name: S2Mus_GHZ}
-  - {file: "music/Game over.jsonc", name: S2Mus_Game_over}
-  - {file: "music/Got an emerald.jsonc", name: S2Mus_Got_an_emerald}
-  - {file: "music/HPZ.jsonc", name: S2Mus_HPZ}
-  - {file: "music/HTZ.jsonc", name: S2Mus_HTZ}
-  - {file: "music/Invincible.jsonc", name: S2Mus_Invincible}
-  - {file: "music/Level select.jsonc", name: S2Mus_Level_select}
-  - {file: "music/MTZ.jsonc", name: S2Mus_MTZ}
-  - {file: "music/NGHZ.jsonc", name: S2Mus_NGHZ}
-  - {file: "music/OOZ.jsonc", name: S2Mus_OOZ}
-  - {file: "music/RWZ.jsonc", name: S2Mus_RWZ}
-  - {file: "music/SSZ.jsonc", name: S2Mus_SSZ}
-  - {file: "music/Special Stage.jsonc", name: S2Mus_Special_Stage}
-  - {file: "music/Title screen.jsonc", name: S2Mus_Title_screen}
-  - {file: "music/Unused 1.jsonc", name: S2Mus_Unused_1}
-  - {file: "music/Unused 2.jsonc", name: S2Mus_Unused_2}
+  - {file: "music/VsRes_81.jsonc", name: S2Mus_VsRes_81}
+  - {file: "music/GHz_82.jsonc", name: S2Mus_GHz_82}
+  - {file: "music/HPz_83.jsonc", name: S2Mus_HPz_83}
+  - {file: "music/OOz_84.jsonc", name: S2Mus_OOz_84}
+  - {file: "music/Mz_85.jsonc", name: S2Mus_Mz_85}
+  - {file: "music/HTz_86.jsonc", name: S2Mus_HTz_86}
+  - {file: "music/NGHz_87.jsonc", name: S2Mus_NGHz_87}
+  - {file: "music/OOz_88.jsonc", name: S2Mus_OOz_88}
+  - {file: "music/CNz_89.jsonc", name: S2Mus_CNz_89}
+  - {file: "music/DEz_8A.jsonc", name: S2Mus_DEz_8A}
+  - {file: "music/DHz_8B.jsonc", name: S2Mus_DHz_8B}
+  - {file: "music/GHzVs_8C.jsonc", name: S2Mus_GHzVs_8C}
+  - {file: "music/SCz_8D.jsonc", name: S2Mus_SCz_8D}
+  - {file: "music/CPz_8E.jsonc", name: S2Mus_CPz_8E}
+  - {file: "music/SFz_8F.jsonc", name: S2Mus_SFz_8F}
+  - {file: "music/HPz_90.jsonc", name: S2Mus_HPz_90}
+  - {file: "music/Menu_91.jsonc", name: S2Mus_Menu_91}
+  - {file: "music/SS_92.jsonc", name: S2Mus_SS_92}
+  - {file: "music/Boss_93.jsonc", name: S2Mus_Boss_93}
+  - {file: "music/DEzFb_94.jsonc", name: S2Mus_DEzFb_94}
+  - {file: "music/EndSq_95.jsonc", name: S2Mus_EndSq_95}
+  - {file: "music/Super_96.jsonc", name: S2Mus_Super_96}
+  - {file: "music/Invcb_97.jsonc", name: S2Mus_Invcb_97}
+  - {file: "music/1Up_98.jsonc", name: S2Mus_1Up_98}
+  - {file: "music/TScr_99.jsonc", name: S2Mus_TScr_99}
+  - {file: "music/LRes_9A.jsonc", name: S2Mus_LRes_9A}
+  - {file: "music/TGOvr_9B.jsonc", name: S2Mus_TGOvr_9B}
+  - {file: "music/Cont_9C.jsonc", name: S2Mus_Cont_9C}
+  - {file: "music/Emrld_9D.jsonc", name: S2Mus_Emrld_9D}
   - {file: "sfx/D0 - CNZ Boss Zap.jsonc", name: S2Sfx_D0}
   - {file: "sfx/D1 - Unknown (Unused).jsonc", name: S2Sfx_D1}
   - {file: "sfx/D2 - Unknown (Unused).jsonc", name: S2Sfx_D2}

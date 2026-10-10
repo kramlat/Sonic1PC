@@ -1,41 +1,39 @@
 #ifndef _SOUNDIDS_H
 #define _SOUNDIDS_H
 
-// Sonic 2's sound ID space: the Simon Wai prototype's. Its music ids are $81-$9F (here 1-$1F, 0 being silence as everywhere in this port, so an id here is the prototype's minus $80) and its effects $A0-$E1
+// Sonic 2's sound ID space. Its music ids are the final game's $81-$9D (here 1-$1D, 0 being silence as everywhere in this port, so an id here is the driver's minus $80; the alpha's sound test order, which mostly matches the final game's) and its effects $A0-$E1 are the Simon Wai prototype's
 // (laid out one after the other from sfx_Jump: the prototype has one effect for each id from $A0 on, with Helicopter at both $DE and $DF). Sonic 1's sound names are kept for the code that is shared with it
 // (the zone music of Sonic 1's levels is not used: Sonic 2's Level_Music has its own table), each pointing at what plays for it in the prototype.
 enum SoundID {
-	mus_OOZ = 1, // the prototype's names, from its sound/music files, are not the final game's: this OOZ becomes the Casino Night 2P theme (Oil Ocean takes the SSZ track), its GHZ the Emerald Hill one...
-	mus_GHZ,
-	mus_MTZ,
-	mus_CNZ,
-	mus_DHZ,
-	mus_HPZ, // (becomes the Mystic Cave 2P theme in the final game; Hidden Palace plays it in the prototype)
-	mus_NGHZ,
-	mus_DEZ, // (the 100 rings jingle as well)
-	mus_SpecStg,
-	mus_LevelSel, // ($8A: where the code that handles drowning puts its music)
-	mus_LevelSelDup,
-	mus_FinalBoss,
-	mus_CPZ,
-	mus_Boss,
-	mus_RWZ, // (becomes Sky Chase Zone's theme in the final game)
-	mus_SSZ, // (ids $10 and $11: Sand Shower Zone's desert theme in the prototype, zone slot 3 plays it; becomes Oil Ocean's theme in the final game)
-	mus_SSZDup,
-	mus_Unused1, // (id $12: becomes Wing Fortress Zone's theme in the final game)
-	mus_BOZ, // (zone slot 6, "BLZ" in the prototype's list: becomes the Emerald Hill 2P theme in the final game)
-	mus_Unused2, // (id $14: becomes the two-player results theme in the final game)
-	mus_Invinc, // (id $15, "Invincible": becomes the Super Sonic theme in the final game)
-	mus_HTZ,
-	mus_HTZDup,
-	mus_ExtraLife,
-	mus_Title,
-	mus_ActClear,
-	mus_GameOver,
-	mus_Continue,
-	mus_Emerald,
-	mus_EmeraldDup,
-	mus_EmeraldDup2,
+	mus_VsResults = 1, // $81 (2P Results)
+	mus_EHZ, // $82 (Emerald Hill)
+	mus_MCZ2P, // $83 (Mystic Cave 2P)
+	mus_OOZ, // $84 (Oil Ocean)
+	mus_MTZ, // $85 (Metropolis)
+	mus_HTZ, // $86 (Hill Top)
+	mus_ARZ, // $87 (Neo Green Hill)
+	mus_CNZ2P, // $88 (Casino Night 2P)
+	mus_CNZ, // $89 (Casino Night)
+	mus_DEZ, // $8A (Death Egg)
+	mus_MCZ, // $8B (Mystic Cave (Dust Hill))
+	mus_EHZ2P, // $8C (Emerald Hill 2P)
+	mus_SCZ, // $8D (Sky Chase)
+	mus_CPZ, // $8E (Chemical Plant)
+	mus_WFZ, // $8F (Wing Fortress)
+	mus_HPZ, // $90 (Hidden Palace)
+	mus_Menu, // $91 (Options / Level Select)
+	mus_SpecStg, // $92 (Special Stage)
+	mus_Boss, // $93 (Boss)
+	mus_FinalBoss, // $94 (Death Egg Final Boss)
+	mus_Ending, // $95 (Ending)
+	mus_Super, // $96 (Super Sonic)
+	mus_Invinc, // $97 (Invincibility)
+	mus_ExtraLife, // $98 (Extra Life)
+	mus_Title, // $99 (Title Screen)
+	mus_ActClear, // $9A (Act Clear)
+	mus_GameOver, // $9B (Game Over)
+	mus_Continue, // $9C (Continue)
+	mus_Emerald, // $9D (Got an Emerald)
 
 	sfx_Jump, // $A0
 	sfx_Lamppost,
@@ -113,12 +111,12 @@ enum SoundID {
 	// The last sound the sound test can reach
 	SOUND_ID_LAST = sfx_SpindashRev,
 
-	// Sonic 1's names, for the code shared with it: what plays for each in the prototype
-	bgm_GHZ = mus_OOZ, // (the first music)
-	bgm_LZ = mus_GHZ,
+	// Sonic 1's names, for the code shared with it: what plays for each
+	bgm_GHZ = mus_VsResults, // (the first music)
+	bgm_LZ = mus_EHZ,
 	bgm_MZ = mus_MTZ,
 	bgm_SLZ = mus_CNZ,
-	bgm_SYZ = mus_DHZ,
+	bgm_SYZ = mus_MCZ,
 	bgm_SBZ = mus_HPZ,
 	bgm_Invincible = mus_Invinc,
 	bgm_ExtraLife = mus_ExtraLife,
@@ -131,9 +129,9 @@ enum SoundID {
 	bgm_GameOver = mus_GameOver,
 	bgm_Continue = mus_Continue,
 	bgm_Credits = mus_Title,
-	bgm_Drowning = mus_LevelSel,
+	bgm_Drowning = mus_Menu,
 	bgm_Emerald = mus_Emerald,
-	bgm_SSRG = mus_EmeraldDup2,
+	bgm_SSRG = mus_Emerald,
 	sfx_Waterfall = sfx_CNZBossZap, // (Sonic 1's waterfall is not in Sonic 2)
 };
 

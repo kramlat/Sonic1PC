@@ -8,6 +8,7 @@
 #include "Object/DebugList.h"
 #include "Object/DebugMarkers.h"
 #include "Object/Tails.h"
+#include "EngineSound.h"
 #include "Backend/VDP.h"
 
 void Obj_TailsTails(Object *obj);
@@ -145,9 +146,28 @@ static void TailsTails_ShowWhileRollingAndDashing(void) {
     CHECK(TailsTailsShows(9, 0));
 }
 
+
+// The music: the final game's 29 tracks at its ids ($81-$9D, here 1-$1D), each with its song, and the level playlist as the alpha's MusicList has it (its bytes less $80), but for Hidden Palace
+static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
+    for (int id = 1; id <= 0x1D; id++) {
+        CHECK(game_sound_bank.songs[id] != NULL);
+        CHECK(game_sound_bank.songs_json[id] != NULL);
+    }
+    CHECK_EQ(game_sound_bank.music_first, 1);
+    CHECK_EQ(game_sound_bank.music_last, 0x1D);
+    static const uint8_t alpha_music_list[16] = { 0x82, 0x82, 0x85, 0x84, 0x85, 0x85, 0x8C, 0x86, 0x83, 0x8D, 0x88, 0x8B, 0x89, 0x8E, 0x8E, 0x87 };
+    for (int zone = 0; zone < 16; zone++) {
+        if (zone == 8)
+            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), 0x10); // Hidden Palace stays, with its own track ($90), where the alpha has the Mystic Cave 2P theme
+        else
+            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), alpha_music_list[zone] - 0x80);
+    }
+}
+
 void RegisterObjectCoverageTests(void) {
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
     RUN_TEST(TailsTails_ShowWhileRollingAndDashing);
+    RUN_TEST(Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist);
     RUN_TEST(DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects);
     RUN_TEST(ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace);
     RUN_TEST(ObjectCoverage_NoPlacedObjectIsFalselyPending);

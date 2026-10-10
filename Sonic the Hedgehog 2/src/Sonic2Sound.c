@@ -3,58 +3,65 @@
 // Sonic 2's sound ID space and what plays for each id: the Simon Wai prototype's music and effects (SoundIds.h has the ids). The engine's driver knows none of it: it reads this bank.
 // (Its sources are SMPS driver 2 files, converted to res/SMPS/converted; the compiler knows their drum names.)
 
-#include "Resource/Music/S2Mus_OOZ.h"
-#include "Resource/Music/S2Mus_GHZ.h"
-#include "Resource/Music/S2Mus_MTZ.h"
-#include "Resource/Music/S2Mus_CNZ.h"
-#include "Resource/Music/S2Mus_DHZ.h"
-#include "Resource/Music/S2Mus_HPZ.h"
-#include "Resource/Music/S2Mus_NGHZ.h"
-#include "Resource/Music/S2Mus_DEZ.h"
-#include "Resource/Music/S2Mus_Special_Stage.h"
-#include "Resource/Music/S2Mus_Level_select.h"
-#include "Resource/Music/S2Mus_Final_boss.h"
-#include "Resource/Music/S2Mus_CPZ.h"
-#include "Resource/Music/S2Mus_Boss.h"
-#include "Resource/Music/S2Mus_RWZ.h"
-#include "Resource/Music/S2Mus_SSZ.h"
-#include "Resource/Music/S2Mus_Unused_1.h"
-#include "Resource/Music/S2Mus_BOZ.h"
-#include "Resource/Music/S2Mus_Unused_2.h"
-#include "Resource/Music/S2Mus_Invincible.h"
-#include "Resource/Music/S2Mus_HTZ.h"
-#include "Resource/Music/S2Mus_Extra_life.h"
-#include "Resource/Music/S2Mus_Title_screen.h"
-#include "Resource/Music/S2Mus_End_of_level.h"
-#include "Resource/Music/S2Mus_Game_over.h"
-#include "Resource/Music/S2Mus_Continue.h"
-#include "Resource/Music/S2Mus_Got_an_emerald.h"
-#include "Resource/Music/S2Mus_OOZ_json.h"
-#include "Resource/Music/S2Mus_GHZ_json.h"
-#include "Resource/Music/S2Mus_MTZ_json.h"
-#include "Resource/Music/S2Mus_CNZ_json.h"
-#include "Resource/Music/S2Mus_DHZ_json.h"
-#include "Resource/Music/S2Mus_HPZ_json.h"
-#include "Resource/Music/S2Mus_NGHZ_json.h"
-#include "Resource/Music/S2Mus_DEZ_json.h"
-#include "Resource/Music/S2Mus_Special_Stage_json.h"
-#include "Resource/Music/S2Mus_Level_select_json.h"
-#include "Resource/Music/S2Mus_Final_boss_json.h"
-#include "Resource/Music/S2Mus_CPZ_json.h"
-#include "Resource/Music/S2Mus_Boss_json.h"
-#include "Resource/Music/S2Mus_RWZ_json.h"
-#include "Resource/Music/S2Mus_SSZ_json.h"
-#include "Resource/Music/S2Mus_Unused_1_json.h"
-#include "Resource/Music/S2Mus_BOZ_json.h"
-#include "Resource/Music/S2Mus_Unused_2_json.h"
-#include "Resource/Music/S2Mus_Invincible_json.h"
-#include "Resource/Music/S2Mus_HTZ_json.h"
-#include "Resource/Music/S2Mus_Extra_life_json.h"
-#include "Resource/Music/S2Mus_Title_screen_json.h"
-#include "Resource/Music/S2Mus_End_of_level_json.h"
-#include "Resource/Music/S2Mus_Game_over_json.h"
-#include "Resource/Music/S2Mus_Continue_json.h"
-#include "Resource/Music/S2Mus_Got_an_emerald_json.h"
+
+#include "Resource/Music/S2Mus_VsRes_81.h"
+#include "Resource/Music/S2Mus_GHz_82.h"
+#include "Resource/Music/S2Mus_HPz_83.h"
+#include "Resource/Music/S2Mus_OOz_84.h"
+#include "Resource/Music/S2Mus_Mz_85.h"
+#include "Resource/Music/S2Mus_HTz_86.h"
+#include "Resource/Music/S2Mus_NGHz_87.h"
+#include "Resource/Music/S2Mus_OOz_88.h"
+#include "Resource/Music/S2Mus_CNz_89.h"
+#include "Resource/Music/S2Mus_DEz_8A.h"
+#include "Resource/Music/S2Mus_DHz_8B.h"
+#include "Resource/Music/S2Mus_GHzVs_8C.h"
+#include "Resource/Music/S2Mus_SCz_8D.h"
+#include "Resource/Music/S2Mus_CPz_8E.h"
+#include "Resource/Music/S2Mus_SFz_8F.h"
+#include "Resource/Music/S2Mus_HPz_90.h"
+#include "Resource/Music/S2Mus_Menu_91.h"
+#include "Resource/Music/S2Mus_SS_92.h"
+#include "Resource/Music/S2Mus_Boss_93.h"
+#include "Resource/Music/S2Mus_DEzFb_94.h"
+#include "Resource/Music/S2Mus_EndSq_95.h"
+#include "Resource/Music/S2Mus_Super_96.h"
+#include "Resource/Music/S2Mus_Invcb_97.h"
+#include "Resource/Music/S2Mus_1Up_98.h"
+#include "Resource/Music/S2Mus_TScr_99.h"
+#include "Resource/Music/S2Mus_LRes_9A.h"
+#include "Resource/Music/S2Mus_TGOvr_9B.h"
+#include "Resource/Music/S2Mus_Cont_9C.h"
+#include "Resource/Music/S2Mus_Emrld_9D.h"
+#include "Resource/Music/S2Mus_VsRes_81_json.h"
+#include "Resource/Music/S2Mus_GHz_82_json.h"
+#include "Resource/Music/S2Mus_HPz_83_json.h"
+#include "Resource/Music/S2Mus_OOz_84_json.h"
+#include "Resource/Music/S2Mus_Mz_85_json.h"
+#include "Resource/Music/S2Mus_HTz_86_json.h"
+#include "Resource/Music/S2Mus_NGHz_87_json.h"
+#include "Resource/Music/S2Mus_OOz_88_json.h"
+#include "Resource/Music/S2Mus_CNz_89_json.h"
+#include "Resource/Music/S2Mus_DEz_8A_json.h"
+#include "Resource/Music/S2Mus_DHz_8B_json.h"
+#include "Resource/Music/S2Mus_GHzVs_8C_json.h"
+#include "Resource/Music/S2Mus_SCz_8D_json.h"
+#include "Resource/Music/S2Mus_CPz_8E_json.h"
+#include "Resource/Music/S2Mus_SFz_8F_json.h"
+#include "Resource/Music/S2Mus_HPz_90_json.h"
+#include "Resource/Music/S2Mus_Menu_91_json.h"
+#include "Resource/Music/S2Mus_SS_92_json.h"
+#include "Resource/Music/S2Mus_Boss_93_json.h"
+#include "Resource/Music/S2Mus_DEzFb_94_json.h"
+#include "Resource/Music/S2Mus_EndSq_95_json.h"
+#include "Resource/Music/S2Mus_Super_96_json.h"
+#include "Resource/Music/S2Mus_Invcb_97_json.h"
+#include "Resource/Music/S2Mus_1Up_98_json.h"
+#include "Resource/Music/S2Mus_TScr_99_json.h"
+#include "Resource/Music/S2Mus_LRes_9A_json.h"
+#include "Resource/Music/S2Mus_TGOvr_9B_json.h"
+#include "Resource/Music/S2Mus_Cont_9C_json.h"
+#include "Resource/Music/S2Mus_Emrld_9D_json.h"
 
 #include "Resource/Music/S2Sfx_A0.h"
 #include "Resource/Music/S2Sfx_A0_json.h"
@@ -189,37 +196,35 @@
 #include "Resource/Music/S2Sfx_E0_json.h"
 
 static const uint8_t *const sound_table[0x100] = {
-    [mus_OOZ] = S2Mus_OOZ,
-    [mus_GHZ] = S2Mus_GHZ,
-    [mus_MTZ] = S2Mus_MTZ,
-    [mus_CNZ] = S2Mus_CNZ,
-    [mus_DHZ] = S2Mus_DHZ,
-    [mus_HPZ] = S2Mus_HPZ,
-    [mus_NGHZ] = S2Mus_NGHZ,
-    [mus_DEZ] = S2Mus_DEZ,
-    [mus_SpecStg] = S2Mus_Special_Stage,
-    [mus_LevelSel] = S2Mus_Level_select,
-    [mus_LevelSelDup] = S2Mus_Level_select,
-    [mus_FinalBoss] = S2Mus_Final_boss,
-    [mus_CPZ] = S2Mus_CPZ,
-    [mus_Boss] = S2Mus_Boss,
-    [mus_RWZ] = S2Mus_RWZ,
-    [mus_SSZ] = S2Mus_SSZ,
-    [mus_SSZDup] = S2Mus_SSZ,
-    [mus_Unused1] = S2Mus_Unused_1,
-    [mus_BOZ] = S2Mus_BOZ,
-    [mus_Unused2] = S2Mus_Unused_2,
-    [mus_Invinc] = S2Mus_Invincible,
-    [mus_HTZ] = S2Mus_HTZ,
-    [mus_HTZDup] = S2Mus_HTZ,
-    [mus_ExtraLife] = S2Mus_Extra_life,
-    [mus_Title] = S2Mus_Title_screen,
-    [mus_ActClear] = S2Mus_End_of_level,
-    [mus_GameOver] = S2Mus_Game_over,
-    [mus_Continue] = S2Mus_Continue,
-    [mus_Emerald] = S2Mus_Got_an_emerald,
-    [mus_EmeraldDup] = S2Mus_Got_an_emerald,
-    [mus_EmeraldDup2] = S2Mus_Got_an_emerald,
+    [mus_VsResults] = S2Mus_VsRes_81,
+    [mus_EHZ] = S2Mus_GHz_82,
+    [mus_MCZ2P] = S2Mus_HPz_83,
+    [mus_OOZ] = S2Mus_OOz_84,
+    [mus_MTZ] = S2Mus_Mz_85,
+    [mus_HTZ] = S2Mus_HTz_86,
+    [mus_ARZ] = S2Mus_NGHz_87,
+    [mus_CNZ2P] = S2Mus_OOz_88,
+    [mus_CNZ] = S2Mus_CNz_89,
+    [mus_DEZ] = S2Mus_DEz_8A,
+    [mus_MCZ] = S2Mus_DHz_8B,
+    [mus_EHZ2P] = S2Mus_GHzVs_8C,
+    [mus_SCZ] = S2Mus_SCz_8D,
+    [mus_CPZ] = S2Mus_CPz_8E,
+    [mus_WFZ] = S2Mus_SFz_8F,
+    [mus_HPZ] = S2Mus_HPz_90,
+    [mus_Menu] = S2Mus_Menu_91,
+    [mus_SpecStg] = S2Mus_SS_92,
+    [mus_Boss] = S2Mus_Boss_93,
+    [mus_FinalBoss] = S2Mus_DEzFb_94,
+    [mus_Ending] = S2Mus_EndSq_95,
+    [mus_Super] = S2Mus_Super_96,
+    [mus_Invinc] = S2Mus_Invcb_97,
+    [mus_ExtraLife] = S2Mus_1Up_98,
+    [mus_Title] = S2Mus_TScr_99,
+    [mus_ActClear] = S2Mus_LRes_9A,
+    [mus_GameOver] = S2Mus_TGOvr_9B,
+    [mus_Continue] = S2Mus_Cont_9C,
+    [mus_Emerald] = S2Mus_Emrld_9D,
 
     [sfx_Jump] = S2Sfx_A0,
     [sfx_Lamppost] = S2Sfx_A1,
@@ -290,37 +295,35 @@ static const uint8_t *const sound_table[0x100] = {
 };
 
 static const char *const sound_table_json[0x100] = {
-    [mus_OOZ] = S2Mus_OOZ_json,
-    [mus_GHZ] = S2Mus_GHZ_json,
-    [mus_MTZ] = S2Mus_MTZ_json,
-    [mus_CNZ] = S2Mus_CNZ_json,
-    [mus_DHZ] = S2Mus_DHZ_json,
-    [mus_HPZ] = S2Mus_HPZ_json,
-    [mus_NGHZ] = S2Mus_NGHZ_json,
-    [mus_DEZ] = S2Mus_DEZ_json,
-    [mus_SpecStg] = S2Mus_Special_Stage_json,
-    [mus_LevelSel] = S2Mus_Level_select_json,
-    [mus_LevelSelDup] = S2Mus_Level_select_json,
-    [mus_FinalBoss] = S2Mus_Final_boss_json,
-    [mus_CPZ] = S2Mus_CPZ_json,
-    [mus_Boss] = S2Mus_Boss_json,
-    [mus_RWZ] = S2Mus_RWZ_json,
-    [mus_SSZ] = S2Mus_SSZ_json,
-    [mus_SSZDup] = S2Mus_SSZ_json,
-    [mus_Unused1] = S2Mus_Unused_1_json,
-    [mus_BOZ] = S2Mus_BOZ_json,
-    [mus_Unused2] = S2Mus_Unused_2_json,
-    [mus_Invinc] = S2Mus_Invincible_json,
-    [mus_HTZ] = S2Mus_HTZ_json,
-    [mus_HTZDup] = S2Mus_HTZ_json,
-    [mus_ExtraLife] = S2Mus_Extra_life_json,
-    [mus_Title] = S2Mus_Title_screen_json,
-    [mus_ActClear] = S2Mus_End_of_level_json,
-    [mus_GameOver] = S2Mus_Game_over_json,
-    [mus_Continue] = S2Mus_Continue_json,
-    [mus_Emerald] = S2Mus_Got_an_emerald_json,
-    [mus_EmeraldDup] = S2Mus_Got_an_emerald_json,
-    [mus_EmeraldDup2] = S2Mus_Got_an_emerald_json,
+    [mus_VsResults] = S2Mus_VsRes_81_json,
+    [mus_EHZ] = S2Mus_GHz_82_json,
+    [mus_MCZ2P] = S2Mus_HPz_83_json,
+    [mus_OOZ] = S2Mus_OOz_84_json,
+    [mus_MTZ] = S2Mus_Mz_85_json,
+    [mus_HTZ] = S2Mus_HTz_86_json,
+    [mus_ARZ] = S2Mus_NGHz_87_json,
+    [mus_CNZ2P] = S2Mus_OOz_88_json,
+    [mus_CNZ] = S2Mus_CNz_89_json,
+    [mus_DEZ] = S2Mus_DEz_8A_json,
+    [mus_MCZ] = S2Mus_DHz_8B_json,
+    [mus_EHZ2P] = S2Mus_GHzVs_8C_json,
+    [mus_SCZ] = S2Mus_SCz_8D_json,
+    [mus_CPZ] = S2Mus_CPz_8E_json,
+    [mus_WFZ] = S2Mus_SFz_8F_json,
+    [mus_HPZ] = S2Mus_HPz_90_json,
+    [mus_Menu] = S2Mus_Menu_91_json,
+    [mus_SpecStg] = S2Mus_SS_92_json,
+    [mus_Boss] = S2Mus_Boss_93_json,
+    [mus_FinalBoss] = S2Mus_DEzFb_94_json,
+    [mus_Ending] = S2Mus_EndSq_95_json,
+    [mus_Super] = S2Mus_Super_96_json,
+    [mus_Invinc] = S2Mus_Invcb_97_json,
+    [mus_ExtraLife] = S2Mus_1Up_98_json,
+    [mus_Title] = S2Mus_TScr_99_json,
+    [mus_ActClear] = S2Mus_LRes_9A_json,
+    [mus_GameOver] = S2Mus_TGOvr_9B_json,
+    [mus_Continue] = S2Mus_Cont_9C_json,
+    [mus_Emerald] = S2Mus_Emrld_9D_json,
 
     [sfx_Jump] = S2Sfx_A0_json,
     [sfx_Lamppost] = S2Sfx_A1_json,
@@ -390,8 +393,36 @@ static const char *const sound_table_json[0x100] = {
     [sfx_SpindashRev] = S2Sfx_E0_json,
 };
 
-// Every sound runs on the same driver version (1) here: the prototype's sources are converted to its coordination flags, see the compiler
-static const uint8_t sound_table_driver_ver[0x100] = { [0] = 0 };
+// Every song runs on driver version 1's coordination flags, converted from the sources' own. The songs the final game keeps compressed (every one but the 1-up, game over and emerald jingles) have Sonic 2's tempo
+// (written for it; Sonic 1's tempo byte cannot play the slow ones); those three keep Sonic 1's (converted with tools/import_s2_music.pl --s1-tempo), and so do the effects (they have no tempo)
+static const uint8_t sound_table_driver_ver[0x100] = {
+    [mus_VsResults] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_EHZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_MCZ2P] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_OOZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_MTZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_HTZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_ARZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_CNZ2P] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_CNZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_DEZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_MCZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_EHZ2P] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_SCZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_CPZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_WFZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_HPZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_Menu] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_SpecStg] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_Boss] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_FinalBoss] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_Ending] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_Super] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_Invinc] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_Title] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_ActClear] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_Continue] = SOUND_DRIVER_VERSION_2_TEMPO,
+};
 
 // The prototype's SndPriorities, for each effect from $A0 on (higher wins)
 static const uint8_t sound_priorities[SOUND_ID_LAST - sfx_Jump + 1] = {
@@ -403,46 +434,46 @@ static const uint8_t sound_priorities[SOUND_ID_LAST - sfx_Jump + 1] = {
     0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, // $D7
 };
 
-// The tempo each song takes under speed shoes (the prototype's SpeedUpTempoLst): the first eight are Sonic 1's own values for its eight songs, the rest all $20
+// The tempo each song takes under speed shoes: the final game's zSpedUpTempoTable, by song (Sonic 2 tempos, as the songs' own; the 1-up, game over and emerald jingles' are converted to Sonic 1's: $05, $12, $06)
 static const uint8_t speedup_index[31] = {
-    0x07, 0x72, 0x73, 0x26, 0x15, 0x08, 0xFF, 0x05,
-    0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+    0x68, 0xBE, 0xFF, 0xF0, 0xFF, 0xDE, 0xFF, 0xDD,
+    0x68, 0x80, 0xD6, 0x7B, 0x7B, 0xFF, 0xA8, 0xFF,
+    0x87, 0xFF, 0xFF, 0xC9, 0x97, 0xFF, 0xFF, 0x05,
+    0xCD, 0xAA, 0x12, 0xDB, 0x06, 0xF0, 0x80,
 };
 
 // The SMPS Inspector's list of sounds (Tools menu): music first, then effects.
 #define INSPECT_ENTRY(id, is_music, name) {(uint8_t)(id), (is_music), (name)}
 static const SoundInspectEntry inspect_entries[] = {
+    INSPECT_ENTRY(mus_VsResults, 1, "2P Results"),
+    INSPECT_ENTRY(mus_EHZ, 1, "Emerald Hill"),
+    INSPECT_ENTRY(mus_MCZ2P, 1, "Mystic Cave 2P"),
     INSPECT_ENTRY(mus_OOZ, 1, "Oil Ocean"),
-    INSPECT_ENTRY(mus_GHZ, 1, "Green Hill"),
     INSPECT_ENTRY(mus_MTZ, 1, "Metropolis"),
-    INSPECT_ENTRY(mus_CNZ, 1, "Casino Night"),
-    INSPECT_ENTRY(mus_DHZ, 1, "Dust Hill"),
-    INSPECT_ENTRY(mus_HPZ, 1, "Hidden Palace"),
-    INSPECT_ENTRY(mus_NGHZ, 1, "Neo Green Hill"),
-    INSPECT_ENTRY(mus_DEZ, 1, "Death Egg / 100 rings"),
-    INSPECT_ENTRY(mus_SpecStg, 1, "Special Stage"),
-    INSPECT_ENTRY(mus_LevelSel, 1, "Level Select"),
-    INSPECT_ENTRY(mus_LevelSelDup, 1, "Level Select (2)"),
-    INSPECT_ENTRY(mus_FinalBoss, 1, "Final Boss"),
-    INSPECT_ENTRY(mus_CPZ, 1, "Chemical Plant"),
-    INSPECT_ENTRY(mus_Boss, 1, "Boss"),
-    INSPECT_ENTRY(mus_RWZ, 1, "Rock World"),
-    INSPECT_ENTRY(mus_SSZ, 1, "Sky Sanctuary"),
-    INSPECT_ENTRY(mus_SSZDup, 1, "Sky Sanctuary (2)"),
-    INSPECT_ENTRY(mus_Unused1, 1, "Unused 1"),
-    INSPECT_ENTRY(mus_BOZ, 1, "Blue Lake"),
-    INSPECT_ENTRY(mus_Unused2, 1, "Unused 2"),
-    INSPECT_ENTRY(mus_Invinc, 1, "Invincibility"),
     INSPECT_ENTRY(mus_HTZ, 1, "Hill Top"),
-    INSPECT_ENTRY(mus_HTZDup, 1, "Hill Top (2)"),
+    INSPECT_ENTRY(mus_ARZ, 1, "Neo Green Hill"),
+    INSPECT_ENTRY(mus_CNZ2P, 1, "Casino Night 2P"),
+    INSPECT_ENTRY(mus_CNZ, 1, "Casino Night"),
+    INSPECT_ENTRY(mus_DEZ, 1, "Death Egg"),
+    INSPECT_ENTRY(mus_MCZ, 1, "Mystic Cave (Dust Hill)"),
+    INSPECT_ENTRY(mus_EHZ2P, 1, "Emerald Hill 2P"),
+    INSPECT_ENTRY(mus_SCZ, 1, "Sky Chase"),
+    INSPECT_ENTRY(mus_CPZ, 1, "Chemical Plant"),
+    INSPECT_ENTRY(mus_WFZ, 1, "Wing Fortress"),
+    INSPECT_ENTRY(mus_HPZ, 1, "Hidden Palace"),
+    INSPECT_ENTRY(mus_Menu, 1, "Options / Level Select"),
+    INSPECT_ENTRY(mus_SpecStg, 1, "Special Stage"),
+    INSPECT_ENTRY(mus_Boss, 1, "Boss"),
+    INSPECT_ENTRY(mus_FinalBoss, 1, "Death Egg Final Boss"),
+    INSPECT_ENTRY(mus_Ending, 1, "Ending"),
+    INSPECT_ENTRY(mus_Super, 1, "Super Sonic"),
+    INSPECT_ENTRY(mus_Invinc, 1, "Invincibility"),
     INSPECT_ENTRY(mus_ExtraLife, 1, "Extra Life"),
     INSPECT_ENTRY(mus_Title, 1, "Title Screen"),
     INSPECT_ENTRY(mus_ActClear, 1, "Act Clear"),
     INSPECT_ENTRY(mus_GameOver, 1, "Game Over"),
     INSPECT_ENTRY(mus_Continue, 1, "Continue"),
     INSPECT_ENTRY(mus_Emerald, 1, "Got an Emerald"),
-    INSPECT_ENTRY(mus_EmeraldDup, 1, "Got an Emerald (2)"),
-    INSPECT_ENTRY(mus_EmeraldDup2, 1, "Got an Emerald (3)"),
     INSPECT_ENTRY(sfx_Jump, 0, "Jump"),
     INSPECT_ENTRY(sfx_Lamppost, 0, "Lamppost"),
     INSPECT_ENTRY(sfx_Unk_A2, 0, "Unused A2"),
@@ -515,8 +546,8 @@ const SoundBank game_sound_bank = {
     .songs = sound_table,
     .songs_json = sound_table_json,
     .driver_version = sound_table_driver_ver,
-    .music_first = mus_OOZ,
-    .music_last = mus_EmeraldDup2,
+    .music_first = mus_VsResults,
+    .music_last = mus_Emerald,
     .sfx_first = sfx_Jump,
     .special_last = sfx_SpindashRev,
     .command_first = bgm_Fade,
