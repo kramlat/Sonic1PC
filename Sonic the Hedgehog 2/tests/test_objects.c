@@ -11,6 +11,7 @@
 #include "Object/Sonic.h"
 #include "Object/SuperSonic.h"
 #include "Object/DustSplash.h"
+#include "Object/Countdown.h"
 #include "EngineSound.h"
 #include "Backend/VDP.h"
 
@@ -242,10 +243,56 @@ static void DustSplash_FollowsTheSpinDashAndSplashesAtTheWater(void) {
     CHECK_EQ(dust->pos.l.x.f.u, 0x123);
 }
 
+
+// The alpha's counting object: a player underwater loses a unit of air every 60 frames (starting with the first), bubbles come out of him, and at 0 he drowns (his animation, then the death routine 120 frames on)
+static int CountdownObjects(void) {
+    int n = 0;
+    for (int i = 1; i < 0x40; i++)
+        if (objects[i].type == ObjId_DrownCount)
+            n++;
+    return n;
+}
+
+static void Countdown_CountsAPlayersAirAndDrownsHim(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    Object *sonic = &objects[0];
+    sonic->type = ObjId_Sonic;
+    sonic->routine = 2;
+    sonic->status.p.f.underwater = true;
+    sonic->pos.l.x.f.u = 0x200;
+    sonic->pos.l.y.f.u = 0x400;
+    wtr_pos1 = 0x100;
+    ((Scratch_Sonic *)&sonic->scratch)->air = 30;
+    Countdown_Make(13, false);
+    Object *counter = &objects[13];
+
+    Obj_Countdown(counter); // the first frame counts at once
+    CHECK_EQ(((Scratch_Sonic *)&sonic->scratch)->air, 29);
+    for (int f = 0; f < 59; f++)
+        Obj_Countdown(counter);
+    CHECK_EQ(((Scratch_Sonic *)&sonic->scratch)->air, 29);
+    Obj_Countdown(counter);
+    CHECK_EQ(((Scratch_Sonic *)&sonic->scratch)->air, 28);
+    CHECK(CountdownObjects() > 1); // (bubbles)
+
+    // Out of air: he drowns
+    ((Scratch_Sonic *)&sonic->scratch)->air = 0;
+    for (int f = 0; f < 60; f++)
+        Obj_Countdown(counter);
+    CHECK_EQ(sonic->anim, SonAnimId_Drown);
+    CHECK_EQ(((Scratch_Sonic *)&sonic->scratch)->air, 30);
+    CHECK_EQ(sonic->routine, 2);
+    for (int f = 0; f < 0x80; f++)
+        Obj_Countdown(counter);
+    CHECK_EQ(sonic->routine, 6);
+}
+
 void RegisterObjectCoverageTests(void) {
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
     RUN_TEST(TailsTails_ShowWhileRollingAndDashing);
     RUN_TEST(TailsTails_WagWhileHePushes);
+    RUN_TEST(Countdown_CountsAPlayersAirAndDrownsHim);
     RUN_TEST(DustSplash_FollowsTheSpinDashAndSplashesAtTheWater);
     RUN_TEST(Sonic_SuperSonicHasHisOwnAnimations);
     RUN_TEST(Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist);

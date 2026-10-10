@@ -58,3 +58,10 @@ write_file('Mappings/DustSplashDPLC',  slice(0x0134D6, 0x013552));
 
 # Super Sonic's stars (object 7E): the mappings ($013620, 116 bytes); the alpha has no art for them
 write_file('Mappings/SuperSonicStars', slice(0x013620, 0x013694));
+
+# The counting object (object 0A, the bubbles and the countdown of the air): its animations ($012A5E to $012AF0), the table the bubbles wobble by ($0126EC, 256 bytes), the mappings of both players ($014CFC, 204 bytes:
+# Sonic's table, then Tails', which share their frames) and the art of the numbers (OxygNumb.dat, 6 frames of 6 tiles)
+write_file('Animation/Countdown',        slice(0x012A5E, 0x012AF0));
+write_file('Animation/CountdownWobble',  slice(0x0126EC, 0x0127EC));
+write_file('Mappings/Countdown',         slice(0x014CFC, 0x014DC8));
+copy_file('Art/Uncompressed/OxygNumb.dat', 'Art/CountdownNumbers');
