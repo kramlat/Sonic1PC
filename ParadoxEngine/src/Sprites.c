@@ -145,6 +145,14 @@ static void DrawMultiSprite(uint16_t **sprite, uint8_t *sprite_i, Object *obj, c
 	obj->render.f.on_screen = true;
 
 	for (int i = 0; i < obj->child_count && i < OBJECT_CHILDREN; i++) {
+		// A child far from the view is not drawn: the VDP's sprite positions are 9 bits, so one a few hundred pixels away (a wide object's far corner, as it comes into view) would come round the other side of the
+		// picture. (Sonic 2's own multi-draw has no such check: its children are close together.)
+		int16_t dx = obj->children[i].x - cam_x;
+		int16_t dy = obj->children[i].y - cam_y;
+		if (wrap)
+			dy = (int16_t)(((dy + 0x400) & 0x7FF) - 0x400);
+		if (dx < -64 || dx > view_w + 64 || dy < -64 || dy > SCREEN_HEIGHT + 64)
+			continue;
 		int16_t cx = obj->children[i].x - cam_x + 128;
 		int16_t cy = obj->children[i].y - cam_y + 128;
 		if (wrap)
