@@ -27,15 +27,38 @@ typedef struct {
 	bool live;
 } tilebank_t;
 
-// A name table entry: the tile it shows (bank, generation of that bank, and pattern in it) and how: the attributes are the Genesis' (priority bit 15, palette lines bits 13-14, flips bits 11 and 12; the other bits are not used)
+// A name table entry (or a sprite's tile) is two words. The first is the pattern: the number of the tile in its bank (the Genesis' 11 bits, in 16 here). The second has in its low half the flags and the palette line the
+// Genesis' tile word has (priority, flips, and the palette number in 4 bits, where the Genesis has 2), and in its high half what says which bank the pattern is in:
+//   attr bit 0: priority            bit 1: x flip           bit 2: y flip           bit 3-6: palette line (0-15)           bit 7: not used
+//   attr bits 8-11: the bank (TILEBANKS of them, 0 the main bank)       bits 12-15: the bank's generation (see below)
+// The compat reading of an entry is the Genesis': the palette line is the low two bits of the palette, the pattern its low 11 bits, in the main bank, whatever the high half says (and no 8bpp tiles). The real reading uses
+// it all. The games' data stays in the Genesis' tile words: TileEntry_FromWord makes an entry from one and TileEntry_Word a word from an entry.
 typedef struct {
-	uint32_t pattern;
-	uint16_t attrs;
-	uint8_t palette_group; // the palette line is this times 4 plus the attributes' two bits: 16 lines (an 8bpp tile uses none: its pixels are colours of the whole palette)
-	uint8_t bank;
-	uint8_t generation;
-	uint8_t reserved[3]; // (no padding left to chance: entries are compared and copied as bytes)
+	uint16_t pattern;
+	uint16_t attr;
 } tile_entry_t;
+
+#define TILE_ATTR_PRIORITY      0x0001
+#define TILE_ATTR_X_FLIP        0x0002
+#define TILE_ATTR_Y_FLIP        0x0004
+#define TILE_ATTR_PALETTE_SHIFT 3
+#define TILE_ATTR_PALETTE       0x0078
+#define TILE_ATTR_BANK_SHIFT    8
+#define TILE_ATTR_BANK          0x0F00
+#define TILE_ATTR_GEN_SHIFT     12
+#define TILE_ATTR_GENERATION    0xF000
+#define TILE_BANK_SLOTS         65536 // the most slots in a bank: a pattern is 16 bits
+
+static inline uint8_t TileAttr_Palette(uint16_t attr) { return (uint8_t)((attr & TILE_ATTR_PALETTE) >> TILE_ATTR_PALETTE_SHIFT); }
+static inline uint8_t TileAttr_Bank(uint16_t attr) { return (uint8_t)((attr & TILE_ATTR_BANK) >> TILE_ATTR_BANK_SHIFT); }
+static inline uint8_t TileAttr_Generation(uint16_t attr) { return (uint8_t)((attr & TILE_ATTR_GENERATION) >> TILE_ATTR_GEN_SHIFT); }
+
+// The attribute word for a Genesis tile word's flags and palette line (the palette group, 0-3, adds 4 lines a group) in a bank
+static inline uint16_t TileAttr_FromWord(uint16_t word, const tilebank_t *bank, uint8_t palette_group) {
+	const unsigned palette = (unsigned)(palette_group & 3) * 4 + ((word >> 13) & 3);
+	return (uint16_t)(((word & 0x8000) ? TILE_ATTR_PRIORITY : 0) | ((word & 0x0800) ? TILE_ATTR_X_FLIP : 0) | ((word & 0x1000) ? TILE_ATTR_Y_FLIP : 0) |
+	                  (palette << TILE_ATTR_PALETTE_SHIFT) | ((unsigned)(bank->id & 15) << TILE_ATTR_BANK_SHIFT) | ((unsigned)(bank->generation & 15) << TILE_ATTR_GEN_SHIFT));
+}
 
 // The main bank: the VDP's tile space, the one the tile art of the games is loaded into and the sprites draw from
 tilebank_t *TileBank_Main(void);
@@ -53,9 +76,8 @@ bool TileBank_IsDeep(const tilebank_t *bank, size_t pattern);
 // Writes art into a bank at a tile (bytes past its end are dropped)
 void TileBank_Write(tilebank_t *bank, size_t tile, const void *data, size_t bytes);
 
-// The art of a tile an entry names (and whether it is an 8bpp one, 64 bytes of colours of the whole palette: not for 4bpp), or NULL if its bank is not there, has been freed since the entry was made, or is not that big
-const uint8_t *TileBank_Pattern(const tile_entry_t *entry);
-const uint8_t *TileBank_PatternDepth(const tile_entry_t *entry, bool *deep);
+// The art of a pattern in the bank the attribute word `attr` names (and whether it is an 8bpp tile, 64 bytes of colours of the whole palette), or NULL if the bank is not there, has been freed since the entry was made, or is not that big
+const uint8_t *TileBank_PatternOf(uint16_t attr, size_t pattern, bool *deep);
 
 // The bank an id and generation name, or NULL if there is none live with that generation (a reference that has gone stale counts in tilebank_stale_count)
 const tilebank_t *TileBank_Get(uint8_t id, uint8_t generation);
@@ -64,13 +86,14 @@ const tilebank_t *TileBank_Get(uint8_t id, uint8_t generation);
 extern unsigned tilebank_stale_count;
 extern bool tilebank_stale_fatal;
 
-// The entry for a tile word of the Genesis' format (the games' block and tile map data): its 11 bit pattern in a bank, its flips, palette and priority
-static inline tile_entry_t TileEntry_FromWord(uint16_t word, const tilebank_t *bank) {
-	tile_entry_t e = { (uint32_t)(word & 0x07FF), (uint16_t)(word & 0xF800), 0, bank->id, bank->generation };
+// The entry for a tile word of the Genesis' format (the games' block and tile map data) whose pattern is in a bank, in a palette group
+static inline tile_entry_t TileEntry_FromWord(uint16_t word, const tilebank_t *bank, uint8_t palette_group) {
+	tile_entry_t e = { (uint16_t)(word & 0x07FF), TileAttr_FromWord(word, bank, palette_group) };
 	return e;
 }
 
-// ... and back (the pattern's low 11 bits)
+// ... and back: the Genesis' word (the palette's low two bits, the pattern's low 11)
 static inline uint16_t TileEntry_Word(const tile_entry_t *e) {
-	return (uint16_t)(e->attrs | (e->pattern & 0x07FF));
+	return (uint16_t)((e->pattern & 0x07FF) | ((e->attr & TILE_ATTR_PRIORITY) ? 0x8000 : 0) | ((e->attr & TILE_ATTR_X_FLIP) ? 0x0800 : 0) | ((e->attr & TILE_ATTR_Y_FLIP) ? 0x1000 : 0) |
+	                  ((TileAttr_Palette(e->attr) & 3) << 13));
 }

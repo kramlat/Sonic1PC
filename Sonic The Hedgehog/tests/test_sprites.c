@@ -44,14 +44,14 @@ static void Sprites_AnObjectsSpritesNameTheBankOfItsArt(void) {
     o.pos.l.y.f.u = 100;
     o.frame = 1;
     Build();
-    CHECK_EQ(screen1p.sprite_table[0].bank, 0); // (no bank given: the main bank)
-    CHECK_EQ(screen1p.sprite_table[0].generation, 0);
+    CHECK_EQ(TileAttr_Bank(screen1p.sprite_table[0].attr), 0); // (no bank given: the main bank)
+    CHECK_EQ(TileAttr_Generation(screen1p.sprite_table[0].attr), 0);
 
     tilebank_t *bank = TileBank_Create(0x200);
     o.bank = bank;
     Build();
-    CHECK_EQ(screen1p.sprite_table[0].bank, bank->id);
-    CHECK_EQ(screen1p.sprite_table[0].generation, bank->generation);
+    CHECK_EQ(TileAttr_Bank(screen1p.sprite_table[0].attr), bank->id);
+    CHECK_EQ(TileAttr_Generation(screen1p.sprite_table[0].attr), bank->generation);
     TileBank_Free(bank);
 }
 
@@ -71,16 +71,16 @@ static void Sprites_MultiSpriteDrawsMainAndChildren(void) {
     // The main sprite: its piece at (-8,-8) from (128 + 100, 128 + 100)
     CHECK_EQ(screen1p.sprite_table[0].y, 128 + 100 - 8);
     CHECK_EQ(screen1p.sprite_table[0].size_link, (0x05 << 8) | 1);
-    CHECK_EQ(screen1p.sprite_table[0].tile, 0x100 + 1);
+    CHECK_EQ(screen1p.sprite_table[0].pattern, 0x100 + 1);
     CHECK_EQ(screen1p.sprite_table[0].x, 128 + 100 - 8);
     // The first child, frame 2, at (120, 100)
     CHECK_EQ(screen1p.sprite_table[1].y, 128 + 100);
     CHECK_EQ(screen1p.sprite_table[1].size_link, (0x00 << 8) | 2);
-    CHECK_EQ(screen1p.sprite_table[1].tile, 0x100 + 2);
+    CHECK_EQ(screen1p.sprite_table[1].pattern, 0x100 + 2);
     CHECK_EQ(screen1p.sprite_table[1].x, 128 + 120);
     // The second child, frame 1, at (80, 110)
     CHECK_EQ(screen1p.sprite_table[2].y, 128 + 110 - 8);
-    CHECK_EQ(screen1p.sprite_table[2].tile, 0x100 + 1);
+    CHECK_EQ(screen1p.sprite_table[2].pattern, 0x100 + 1);
     CHECK_EQ(screen1p.sprite_table[2].x, 128 + 80 - 8);
 }
 
@@ -156,7 +156,7 @@ static void Sprites_SplitScreenBuildsTwoTables(void) {
     // Player 1's table: a's piece, an ordinary one (the stacked views are two whole pictures, squashed by the VDP)
     CHECK_EQ(screen1p.sprite_table[0].y, 128 + 100 - 8);
     CHECK_EQ(screen1p.sprite_table[0].size_link, (0x05 << 8) | 1);            // size 5 (2x2 cells); link 1
-    CHECK_EQ(screen1p.sprite_table[0].tile, 0x81);                          // (the object's tile and the piece's)
+    CHECK_EQ(screen1p.sprite_table[0].pattern, 0x81);                          // (the object's tile and the piece's)
     CHECK_EQ(screen1p.sprite_table[0].x, 128 + 100 - 8);
     CHECK_EQ(screen1p.sprite_table[1].y, 0);                          // the list ends
     CHECK_EQ(screen1p.sprite_table[1].size_link, 0);
@@ -214,7 +214,7 @@ static void Sprites_SideBySideUsesOrdinaryTilesAndHalfWidthViews(void) {
     // Player 1's table: no masking sprites, the ordinary tile word and size, the usual top
     CHECK_EQ(screen1p.sprite_table[0].y, 128 + 100 - 8);
     CHECK_EQ(screen1p.sprite_table[0].size_link, (0x05 << 8) | 1);
-    CHECK_EQ(screen1p.sprite_table[0].tile, 0x80 + 0x0001);
+    CHECK_EQ(screen1p.sprite_table[0].pattern, 0x80 + 0x0001);
     CHECK_EQ(screen1p.sprite_table[0].x, 128 + 100 - 8);
     CHECK_EQ(screen1p.sprite_table[1].y, 0);                   // d was out of the half-width view
     CHECK(a.render.f.on_screen);

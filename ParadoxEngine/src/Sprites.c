@@ -85,11 +85,9 @@ static void DrawPieces(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 			tile ^= TILE_X_FLIP_AND;
 		if (y_flip)
 			tile ^= TILE_Y_FLIP_AND;
-		out->tile = tile;
 		const tilebank_t *tile_bank = bank != NULL ? bank : TileBank_Main();
-		out->palette_group = palette_group;
-		out->bank = tile_bank->id;
-		out->generation = tile_bank->generation;
+		out->pattern = tile & TILE_PATTERN_AND;
+		out->attr = TileAttr_FromWord(tile, tile_bank, palette_group);
 		uint16_t px = x_flip ? (uint16_t)(x - map_x - piece_width) : (uint16_t)(x + map_x);
 		// The VDP's sprite x is 9 bits. SCREEN_WIDTH is a variable, not a constant: a preprocessor test of it was always true (an unknown name is 0), so every picture wrapped at 512, and a child sprite far
 		// out on one side (a wide object's far corner) came in at the other, even in a widescreen picture, which has no use for the wrap

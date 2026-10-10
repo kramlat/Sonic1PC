@@ -37,11 +37,9 @@ typedef struct {
 typedef struct {
 	uint16_t y;
 	uint16_t size_link;
-	uint16_t tile;       // the tile word: priority, palette line, flips and the first pattern
+	uint16_t pattern;    // the first pattern of its tile (TileBank.h)
 	uint16_t x;
-	uint8_t palette_group; // the palette line is this times 4 plus the tile word's two bits
-	uint8_t bank;
-	uint8_t generation;
+	uint16_t attr;       // its flags, palette line and bank (as a name table entry's second word)
 } sprite_t;
 
 #define VIEWPORT_SPRITES 0x78 // how many sprites a viewport's table holds (see Video.h's BUFFER_SPRITES for why this is more than the Genesis' 80)

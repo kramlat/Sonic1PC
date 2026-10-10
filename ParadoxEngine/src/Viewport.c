@@ -72,8 +72,7 @@ uint16_t Plane_Word(const plane_t *plane, size_t byte_offset) {
 void Plane_Put(plane_t *plane, size_t byte_offset, uint16_t word) {
 	tile_entry_t *at = Plane_At(plane, byte_offset);
 	if (at != NULL)
-		*at = TileEntry_FromWord(word, plane->bank != NULL ? plane->bank : TileBank_Main());
-		at->palette_group = plane->palette_group;
+		*at = TileEntry_FromWord(word, plane->bank != NULL ? plane->bank : TileBank_Main(), plane->palette_group);
 }
 
 void Plane_PutEntry(plane_t *plane, size_t byte_offset, tile_entry_t entry) {

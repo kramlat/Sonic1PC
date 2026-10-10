@@ -41,6 +41,7 @@ int16_t SplitScreen_FollowX(void) {
 static tilebank_t *htz_p2_bank; // the second view's own mountains in Hill Top
 
 static void SplitOff(void) {
+    VDP_SetReal(0); // (the Genesis' reading of tiles again: the second view's own tile bank was the one thing that needed the real one)
     HTZBackground_SetSecondBank(NULL);
     TileBank_Free(htz_p2_bank);
     htz_p2_bank = NULL;
@@ -83,6 +84,7 @@ void SplitScreen_LoadLevel(void) {
     scrpos_y_p2 = scrpos_y;
     if (LEVEL_ZONE(level_id) == ZoneId_HTZ) // (the second view's background has mountains of its own: the tiles of the first's set are drawn as the second's)
     {
+        VDP_SetReal(VDP_REAL_PLANES); // (the tiles of a plane name a bank)
         htz_p2_bank = TileBank_Create(0x20);
         HTZBackground_SetSecondBank(htz_p2_bank);
         DrawTileRemap_Set(&screen2p.plane_b, 0x500, 0x20, htz_p2_bank);

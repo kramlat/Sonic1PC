@@ -22,6 +22,16 @@
 #define COLOURS             (VDP_PALETTES * 16)
 #define ACTIVE_COLOURS      (VDP_PALETTES_ACTIVE * 16)
 
+// How a tile's attribute word (TileBank.h: the flags, the palette number in 4 bits, the bank and its generation) and pattern are read. There are two readings of each of three parts: the compat one, which is what the Genesis
+// does (the palette line is the palette's low two bits, the pattern its low 11 bits, in the main bank, no 8bpp tiles: the bank and the rest of the palette are not looked at), and the real one (16 palette lines, banks,
+// 16 bit patterns, 8bpp tiles, stale references caught). A game that remakes a Genesis game uses the compat ones; a part is made real with VDP_SetReal when a game wants what it gives.
+#define VDP_REAL_PALETTES (1 << 0) // the palette line of a plane's tile or a sprite
+#define VDP_REAL_PLANES   (1 << 1) // the tile of a plane: its bank, page and 8bpp
+#define VDP_REAL_SPRITES  (1 << 2) // the tile of a sprite
+#define VDP_REAL_ALL      (VDP_REAL_PALETTES | VDP_REAL_PLANES | VDP_REAL_SPRITES)
+void VDP_SetReal(unsigned parts);
+unsigned VDP_GetReal(void);
+
 //Tile structure
 #define TILE_PRIORITY_AND   0x8000
 #define TILE_PRIORITY_SHIFT 15

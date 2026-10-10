@@ -53,7 +53,7 @@ void TileBank_Free(tilebank_t *bank) {
 	bank->depth = NULL;
 	bank->tiles = 0;
 	bank->live = false;
-	bank->generation = (uint8_t)(bank->generation + 1 == 0 ? 1 : bank->generation + 1); // (entries made before this no longer match)
+	bank->generation = (uint8_t)(bank->generation + 1 > 15 ? 1 : bank->generation + 1); // (entries made before this no longer match: the generation is 4 bits, 1 to 15, so a slot freed fifteen times since would match again)
 }
 
 void TileBank_SetDepth(tilebank_t *bank, size_t first, size_t slots, bool eight_bits) {
@@ -87,7 +87,7 @@ void TileBank_Write(tilebank_t *bank, size_t tile, const void *data, size_t byte
 const tilebank_t *TileBank_Get(uint8_t id, uint8_t generation) {
 	Init();
 	const tilebank_t *bank = &banks[id % TILEBANKS];
-	if (bank->live && bank->generation == generation)
+	if (bank->live && bank->generation == (generation & 15))
 		return bank;
 	tilebank_stale_count++;
 	if (tilebank_stale_fatal) {
@@ -97,22 +97,15 @@ const tilebank_t *TileBank_Get(uint8_t id, uint8_t generation) {
 	return NULL;
 }
 
-const uint8_t *TileBank_Pattern(const tile_entry_t *entry) {
-	bool deep;
-	return TileBank_PatternDepth(entry, &deep);
-}
-
-const uint8_t *TileBank_PatternDepth(const tile_entry_t *entry, bool *deep) {
-	Init();
-	const tilebank_t *bank = &banks[entry->bank % TILEBANKS];
-	if (bank->live && bank->generation == entry->generation && entry->pattern < bank->tiles) {
-		*deep = bank->depth[entry->pattern] == TILE_SLOT_8BPP_HEAD && entry->pattern + 1 < bank->tiles;
-		return bank->patterns + (size_t)entry->pattern * 32;
+const uint8_t *TileBank_PatternOf(uint16_t attr, size_t pattern, bool *deep) {
+	*deep = false;
+	const tilebank_t *bank = TileBank_Get(TileAttr_Bank(attr), TileAttr_Generation(attr));
+	if (bank == NULL)
+		return NULL;
+	if (pattern >= bank->tiles) {
+		tilebank_stale_count++;
+		return NULL;
 	}
-	tilebank_stale_count++;
-	if (tilebank_stale_fatal) {
-		fprintf(stderr, "TileBank: an entry names a tile that is not there (bank %u, generation %u, pattern %u)\n", entry->bank, entry->generation, entry->pattern);
-		abort();
-	}
-	return NULL;
+	*deep = bank->depth[pattern] == TILE_SLOT_8BPP_HEAD && pattern + 1 < bank->tiles;
+	return bank->patterns + pattern * 32;
 }

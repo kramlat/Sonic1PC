@@ -33,6 +33,7 @@ static void Prepare(void) {
     screen1p.hint_enable = false;
     tilebank_stale_count = 0;
     tilebank_stale_fatal = false;
+    VDP_SetReal(VDP_REAL_ALL); // (banks, 16 palette lines and 8bpp tiles are the real readings)
 }
 
 static void Solid(tilebank_t *bank, size_t tile, uint8_t colour) {
@@ -66,7 +67,7 @@ static void TileBank_AnEntryDrawsFromItsOwnBank(void) {
     Solid(bank, 3, 3);
     Solid(TileBank_Main(), 3, 1); // the same pattern in the main bank is another colour
     plane_t *plane = &screen1p.plane_a;
-    Plane_PutEntry(plane, 0, TileEntry_FromWord(3, bank));
+    Plane_PutEntry(plane, 0, TileEntry_FromWord(3, bank, 0));
     CHECK_EQ(TopLeft(), PIXEL_BLUE);
     Plane_Put(plane, 0, 3); // as a tile word, it is the plane's bank's (the main one)
     CHECK_EQ(TopLeft(), PIXEL_RED);
@@ -77,7 +78,7 @@ static void TileBank_AFreedBanksEntriesDrawNothing(void) {
     Prepare();
     tilebank_t *bank = TileBank_Create(4);
     Solid(bank, 1, 3);
-    Plane_PutEntry(&screen1p.plane_a, 0, TileEntry_FromWord(1, bank));
+    Plane_PutEntry(&screen1p.plane_a, 0, TileEntry_FromWord(1, bank, 0));
     CHECK_EQ(TopLeft(), PIXEL_BLUE);
     TileBank_Free(bank);
     CHECK_EQ(TopLeft(), PIXEL_BACKDROP); // not read: the generation moved on
@@ -88,13 +89,13 @@ static void TileBank_ASlotMadeAgainIsNotTheOldBank(void) {
     Prepare();
     tilebank_t *first = TileBank_Create(4);
     Solid(first, 1, 3);
-    tile_entry_t old_entry = TileEntry_FromWord(1, first);
+    tile_entry_t old_entry = TileEntry_FromWord(1, first, 0);
     Plane_PutEntry(&screen1p.plane_a, 0, old_entry);
     TileBank_Free(first);
     tilebank_t *second = TileBank_Create(4); // (the same slot, other art)
     Solid(second, 1, 1);
-    CHECK_EQ(second->id, old_entry.bank);
-    CHECK(second->generation != old_entry.generation);
+    CHECK_EQ(second->id, TileAttr_Bank(old_entry.attr));
+    CHECK(second->generation != TileAttr_Generation(old_entry.attr));
     CHECK_EQ(TopLeft(), PIXEL_BACKDROP); // the old entry does not find the new bank's tile
     TileBank_Free(second);
 }
@@ -102,19 +103,20 @@ static void TileBank_ASlotMadeAgainIsNotTheOldBank(void) {
 static void TileBank_APatternPastTheBanksEndIsNotThere(void) {
     Prepare();
     tilebank_t *bank = TileBank_Create(2);
-    tile_entry_t e = TileEntry_FromWord(0, bank);
+    tile_entry_t e = TileEntry_FromWord(0, bank, 0);
     e.pattern = 5;
-    CHECK(TileBank_Pattern(&e) == NULL);
+    bool deep;
+    CHECK(TileBank_PatternOf(e.attr, e.pattern, &deep) == NULL);
     e.pattern = 1;
-    CHECK(TileBank_Pattern(&e) != NULL);
+    CHECK(TileBank_PatternOf(e.attr, e.pattern, &deep) != NULL);
     TileBank_Free(bank);
 }
 
 static void TileBank_APatternPastTheGenesisLimitIsReachable(void) {
     Prepare();
-    tilebank_t *bank = TileBank_Create(0x3000); // more tiles than an 11 bit entry could name
+    tilebank_t *bank = TileBank_Create(0x3000); // more tiles than an 11 bit entry could name (and its entries use all 16 bits)
     Solid(bank, 0x2800, 3);
-    tile_entry_t e = TileEntry_FromWord(0, bank);
+    tile_entry_t e = TileEntry_FromWord(0, bank, 0);
     e.pattern = 0x2800;
     Plane_PutEntry(&screen1p.plane_a, 0, e);
     CHECK_EQ(TopLeft(), PIXEL_BLUE);
@@ -155,13 +157,11 @@ static void TileBank_ASpriteDrawsFromItsBankAndNothingFromAFreedOne(void) {
     screen1p.sprites = screen1p.sprite_table;
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
     // one 8x8 cell (width 0, height 0) at the picture's top left, pattern 2 of the bank
-    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, 2, 128, 0, bank->id, bank->generation };
+    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, 2, 128, TileAttr_FromWord(0, bank, 0) };
     CHECK_EQ(TopLeft(), PIXEL_BLUE);
-    screen1p.sprite_table[0].bank = 0; // as the main bank's
-    screen1p.sprite_table[0].generation = 0;
+    screen1p.sprite_table[0].attr = TileAttr_FromWord(0, TileBank_Main(), 0); // as the main bank's
     CHECK_EQ(TopLeft(), PIXEL_RED);
-    screen1p.sprite_table[0].bank = bank->id;
-    screen1p.sprite_table[0].generation = bank->generation;
+    screen1p.sprite_table[0].attr = TileAttr_FromWord(0, bank, 0);
     TileBank_Free(bank);
     CHECK_EQ(TopLeft(), PIXEL_BACKDROP); // not read once the bank is gone
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
@@ -195,7 +195,7 @@ static void TileBank_ASpritesPaletteGroupReachesThemToo(void) {
     Solid(TileBank_Main(), 2, 4);
     screen1p.sprites = screen1p.sprite_table;
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
-    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, (uint16_t)TILE_MAP(0, 1, 0, 0, 2), 128, 3, 0, 0 }; // line 1 + 4 * 3 = 13
+    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, 2, 128, TileAttr_FromWord((uint16_t)TILE_MAP(0, 1, 0, 0, 2), TileBank_Main(), 3) }; // line 1 + 4 * 3 = 13
     CHECK_EQ(TopLeft(), PIXEL_RGB(0xABCDEFu));
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
 }
@@ -231,7 +231,7 @@ static void TileBank_AnEightBitTileDrawsItsBytesAsColoursOfTheWholePalette(void)
     tilebank_t *bank = TileBank_Create(8);
     Deep(bank, 2, 0x95);
     TileBank_SetDepth(bank, 2, 2, true);
-    Plane_PutEntry(&screen1p.plane_a, 0, TileEntry_FromWord(2, bank)); // (its own palette bits do not matter: palette 0)
+    Plane_PutEntry(&screen1p.plane_a, 0, TileEntry_FromWord(2, bank, 0)); // (its own palette bits do not matter: palette 0)
     CHECK_EQ(TopLeft(), PIXEL_RGB(0x654321u));
     TileBank_SetDepth(bank, 2, 2, false); // as a 4bpp tile the same bytes are two colours: index 9 and 5, in line 0
     CHECK(TopLeft() != PIXEL_RGB(0x654321u));
@@ -248,7 +248,7 @@ static void TileBank_AnEightBitSpriteStepsTwoSlotsACell(void) {
     TileBank_SetDepth(bank, 0, 4, true);
     screen1p.sprites = screen1p.sprite_table;
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
-    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0100, 0, 128, 0, bank->id, bank->generation }; // height 1: two cells
+    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0100, 0, 128, TileAttr_FromWord(0, bank, 0) }; // height 1: two cells
     VDP_DrawFrame();
     int pitch, rows;
     const uint32_t *f = VDP_GetFrame(&pitch, &rows);
@@ -258,7 +258,55 @@ static void TileBank_AnEightBitSpriteStepsTwoSlotsACell(void) {
     TileBank_Free(bank);
 }
 
+// --- the two words of an entry, and the compat and real readings ---
+
+static void TileBank_AGenesisWordBecomesAPatternAndAnAttributeWord(void) {
+    Prepare();
+    const uint16_t word = (uint16_t)TILE_MAP(1, 2, 1, 1, 0x123); // priority, palette 2, both flips, pattern $123
+    tile_entry_t e = TileEntry_FromWord(word, TileBank_Main(), 1); // palette group 1: line 4 + 2 = 6
+    CHECK_EQ(e.pattern, 0x123);
+    CHECK(e.attr & TILE_ATTR_PRIORITY);
+    CHECK(e.attr & TILE_ATTR_X_FLIP);
+    CHECK(e.attr & TILE_ATTR_Y_FLIP);
+    CHECK_EQ(TileAttr_Palette(e.attr), 6);
+    CHECK_EQ(TileAttr_Bank(e.attr), 0);
+    CHECK_EQ(TileEntry_Word(&e), (uint16_t)TILE_MAP(1, 2, 1, 1, 0x123)); // back to the Genesis' word: the group is not in it
+}
+
+static void TileBank_TheCompatReadingIgnoresTheBankAndTheHigherPalettes(void) {
+    Prepare();
+    SetLine(1, 0x00FF00);
+    SetLine(5, 0xFF0000);
+    tilebank_t *bank = TileBank_Create(8);
+    Solid(bank, 3, 7);
+    Solid(TileBank_Main(), 3, 7);
+    Plane_PutEntry(&screen1p.plane_a, 0, TileEntry_FromWord(TILE_MAP(0, 1, 0, 0, 3), bank, 1)); // line 5, in the bank
+    VDP_SetReal(VDP_REAL_ALL);
+    CHECK_EQ(TopLeft(), PIXEL_RGB(0xFF0000u)); // real: line 5 (its colour 7), from the bank
+    VDP_SetReal(0);
+    CHECK_EQ(TopLeft(), PIXEL_RGB(0x00FF00u)); // compat: line 5 is line 1 (the two low bits), and the pattern is the main bank's
+    VDP_SetReal(VDP_REAL_ALL);
+    TileBank_Free(bank);
+}
+
+static void TileBank_EachPartCanBeRealOnItsOwn(void) {
+    Prepare();
+    SetLine(5, 0xFF0000);
+    SetLine(1, 0x00FF00);
+    Solid(TileBank_Main(), 3, 7);
+    Plane_PutEntry(&screen1p.plane_a, 0, TileEntry_FromWord(TILE_MAP(0, 1, 0, 0, 3), TileBank_Main(), 1));
+    VDP_SetReal(VDP_REAL_PLANES); // real tiles, compat palettes
+    CHECK_EQ(TopLeft(), PIXEL_RGB(0x00FF00u));
+    VDP_SetReal(VDP_REAL_PALETTES);
+    CHECK_EQ(TopLeft(), PIXEL_RGB(0xFF0000u));
+    CHECK_EQ(VDP_GetReal(), VDP_REAL_PALETTES);
+    VDP_SetReal(VDP_REAL_ALL);
+}
+
 void RegisterTileBankTests(void) {
+    RUN_TEST(TileBank_AGenesisWordBecomesAPatternAndAnAttributeWord);
+    RUN_TEST(TileBank_TheCompatReadingIgnoresTheBankAndTheHigherPalettes);
+    RUN_TEST(TileBank_EachPartCanBeRealOnItsOwn);
     RUN_TEST(TileBank_APaletteGroupReachesTheLinesBeyondTheFirstFour);
     RUN_TEST(TileBank_ASpritesPaletteGroupReachesThemToo);
     RUN_TEST(TileBank_TheDepthTableSaysWhichSlotsAreEightBitTiles);

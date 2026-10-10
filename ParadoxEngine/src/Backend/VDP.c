@@ -284,6 +284,58 @@ static inline uint32_t VDP_GetColour(size_t index) {
 	return VDP_RGBAOf(vdp_cram[index >> 4][index & 0xF]);
 }
 
+// The tile reading hooks (see VDP_SetReal in VDP.h): the compat and the real version of each, and the ones in use
+static uint8_t Hook_PaletteCompat(uint16_t attr) {
+	return (uint8_t)(TileAttr_Palette(attr) & 3);
+}
+
+static uint8_t Hook_PaletteReal(uint16_t attr) {
+	return TileAttr_Palette(attr);
+}
+
+static const tilebank_t *Hook_BankCompat(uint16_t attr) {
+	(void)attr;
+	return TileBank_Main();
+}
+
+static const tilebank_t *Hook_BankReal(uint16_t attr) {
+	return TileBank_Get(TileAttr_Bank(attr), TileAttr_Generation(attr));
+}
+
+static size_t Hook_PatternCompat(uint16_t pattern) {
+	return pattern & TILE_PATTERN_AND;
+}
+
+static size_t Hook_PatternReal(uint16_t pattern) {
+	return pattern;
+}
+
+static struct {
+	unsigned real;
+	uint8_t (*palette)(uint16_t attr);
+	const tilebank_t *(*plane_bank)(uint16_t attr);
+	size_t (*plane_pattern)(uint16_t pattern);
+	bool plane_deep;
+	const tilebank_t *(*sprite_bank)(uint16_t attr);
+	size_t (*sprite_pattern)(uint16_t pattern);
+	bool sprite_deep;
+} vdp_hooks = { 0, Hook_PaletteCompat, Hook_BankCompat, Hook_PatternCompat, false, Hook_BankCompat, Hook_PatternCompat, false };
+
+void VDP_SetReal(unsigned parts) {
+	vdp_hooks.real = parts;
+	vdp_hooks.palette = (parts & VDP_REAL_PALETTES) ? Hook_PaletteReal : Hook_PaletteCompat;
+	vdp_hooks.plane_bank = (parts & VDP_REAL_PLANES) ? Hook_BankReal : Hook_BankCompat;
+	vdp_hooks.plane_pattern = (parts & VDP_REAL_PLANES) ? Hook_PatternReal : Hook_PatternCompat;
+	vdp_hooks.plane_deep = (parts & VDP_REAL_PLANES) != 0;
+	vdp_hooks.sprite_bank = (parts & VDP_REAL_SPRITES) ? Hook_BankReal : Hook_BankCompat;
+	vdp_hooks.sprite_pattern = (parts & VDP_REAL_SPRITES) ? Hook_PatternReal : Hook_PatternCompat;
+	vdp_hooks.sprite_deep = (parts & VDP_REAL_SPRITES) != 0;
+}
+
+unsigned VDP_GetReal(void) {
+	return vdp_hooks.real;
+}
+
 // A sprite's pattern in its bank (a pattern past the bank's end is a blank tile)
 static const uint8_t vdp_blank_tile[64];
 static inline const uint8_t *VDP_SpritePattern(const tilebank_t *bank, size_t pattern, size_t slots) {
@@ -386,35 +438,37 @@ static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const tile_entry
 	y &= double_cells ? 15 : 7;
 	
 	for (; to < toend; px = (px + 1) % plane_w) {
-		//Get tile information: the entry names its tile by bank, generation and pattern (a tile that is not there draws nothing)
+		//Get tile information: the entry's word is the Genesis' (the flips, priority), its second word what the hooks make of it (the palette line, the bank and pattern)
 		const tile_entry_t *entry = &pb[px];
-		const uint16_t tile = entry->attrs;
-		uint8_t or = (tile & TILE_PRIORITY_AND) ? VDP_MASK_PLANEPRI : 0;
-		uint8_t palette = (uint8_t)((entry->palette_group << 2) | ((tile & TILE_PALETTE_AND) >> TILE_PALETTE_SHIFT));
-		uint8_t y_flip = (tile & TILE_Y_FLIP_AND) != 0;
-		uint8_t x_flip = (tile & TILE_X_FLIP_AND) != 0;
+		const uint16_t attr = entry->attr;
+		uint8_t or = (attr & TILE_ATTR_PRIORITY) ? VDP_MASK_PLANEPRI : 0;
+		uint8_t palette = vdp_hooks.palette(attr);
+		uint8_t y_flip = (attr & TILE_ATTR_Y_FLIP) != 0;
+		uint8_t x_flip = (attr & TILE_ATTR_X_FLIP) != 0;
 		
-		//Write tile
+		//Write tile (a tile that is not there draws nothing)
+		const tilebank_t *bank = vdp_hooks.plane_bank(attr);
+		const size_t pattern = vdp_hooks.plane_pattern(entry->pattern);
+		const uint8_t *from = NULL;
 		bool deep = false;
-		const uint8_t *from = TileBank_PatternDepth(entry, &deep);
-		if (from != NULL && deep) { // an 8bpp tile: a byte a pixel, colours of the whole palette (not in the stacked split screen's pairs of patterns)
-			if (!double_cells)
-				VDP_WriteRow8(to, tom, from + (((y_flip ? (y ^ 7) : y) & 7) << 3), x_flip, VDP_MASK_PLANEPRI, or);
-			to += 8;
-			tom += 8;
-			continue;
-		}
-		if (!double_cells) {
-			if (from != NULL)
-				from += (y_flip ? (y ^ 7) : y) << 2;
-		} else {
-			// (the stacked split screen's cells are 8x16: an entry names a pair of patterns, the second at the next number)
-			int row = y_flip ? (y ^ 15) : y;
-			tile_entry_t half = *entry;
-			half.pattern = (entry->pattern << 1) + (row >> 3);
-			from = TileBank_Pattern(&half);
-			if (from != NULL)
-				from += (row & 7) << 2;
+		if (bank != NULL) {
+			deep = vdp_hooks.plane_deep && TileBank_IsDeep(bank, pattern);
+			if (deep && !double_cells) { // an 8bpp tile: a byte a pixel, colours of the whole palette
+				VDP_WriteRow8(to, tom, bank->patterns + pattern * 32 + (((y_flip ? (y ^ 7) : y) & 7) << 3), x_flip, VDP_MASK_PLANEPRI, or);
+				to += 8;
+				tom += 8;
+				continue;
+			}
+			if (!double_cells) {
+				if (pattern < bank->tiles)
+					from = bank->patterns + pattern * 32 + ((y_flip ? (y ^ 7) : y) << 2);
+			} else if (!deep) {
+				// (the stacked split screen's cells are 8x16: an entry names a pair of patterns, the second at the next number)
+				int row = y_flip ? (y ^ 15) : y;
+				const size_t pair = (pattern << 1) + (row >> 3);
+				if (pair < bank->tiles)
+					from = bank->patterns + pair * 32 + ((row & 7) << 2);
+			}
 		}
 		if (from == NULL) { // not there: the eight pixels are left as they are
 			to += 8;
@@ -442,21 +496,20 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const sprite_t 
 	//Get sprite information
 	uint16_t sprite_y = sprite->y;
 	uint16_t sprite_sl = sprite->size_link;
-	uint16_t sprite_tile = sprite->tile;
 	uint16_t sprite_x = sprite->x;
 	// The tile art comes from the bank the sprite names (a bank that is not there draws nothing)
-	const tilebank_t *bank = TileBank_Get(sprite->bank, sprite->generation);
+	const tilebank_t *bank = vdp_hooks.sprite_bank(sprite->attr);
 	if (bank == NULL)
 		return;
 	
 	uint8_t width = (sprite_sl & SPRITE_SL_W_AND) >> SPRITE_SL_W_SHIFT;
 	uint8_t height = (sprite_sl & SPRITE_SL_H_AND) >> SPRITE_SL_H_SHIFT;
 	
-	uint8_t and = (sprite_tile & TILE_PRIORITY_AND) ? VDP_MASK_SPRITE : (VDP_MASK_PLANEPRI | VDP_MASK_SPRITE);
-	uint16_t palette = (uint16_t)((sprite->palette_group << 2) | ((sprite_tile & TILE_PALETTE_AND) >> TILE_PALETTE_SHIFT));
-	uint8_t y_flip = (sprite_tile & TILE_Y_FLIP_AND) != 0;
-	uint8_t x_flip = (sprite_tile & TILE_X_FLIP_AND) != 0;
-	uint16_t pattern = (sprite_tile & TILE_PATTERN_AND) >> TILE_PATTERN_SHIFT;
+	uint8_t and = (sprite->attr & TILE_ATTR_PRIORITY) ? VDP_MASK_SPRITE : (VDP_MASK_PLANEPRI | VDP_MASK_SPRITE);
+	uint16_t palette = vdp_hooks.palette(sprite->attr);
+	uint8_t y_flip = (sprite->attr & TILE_ATTR_Y_FLIP) != 0;
+	uint8_t x_flip = (sprite->attr & TILE_ATTR_X_FLIP) != 0;
+	size_t pattern = vdp_hooks.sprite_pattern(sprite->pattern);
 	
 	//Get sprite left and right coordinates
 	int16_t width_pixels = (width + 1) << 3;
@@ -510,7 +563,7 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const sprite_t 
 		y &= 7;
 
 	// A sprite of 8bpp tiles takes two slots of its bank for each cell
-	const bool deep = TileBank_IsDeep(bank, pattern);
+	const bool deep = vdp_hooks.sprite_deep && TileBank_IsDeep(bank, pattern);
 	const size_t step = deep ? 2 : 1;
 	
 	//Get X tile: the cells go down a column and then across (the columns in the other order when flipped)
@@ -961,7 +1014,7 @@ int VDP_PeekSprites(VdpSpritePeek *out, int max) {
 		if (screen1p.sprites == NULL)
 			break;
 		const sprite_t *sprite = screen1p.sprites + i;
-		uint16_t sl = sprite->size_link, tile = sprite->tile;
+		uint16_t sl = sprite->size_link;
 		VdpSpritePeek *e = &out[n++];
 		e->index = i;
 		e->link = (sl & SPRITE_SL_L_AND) >> SPRITE_SL_L_SHIFT;
@@ -969,11 +1022,11 @@ int VDP_PeekSprites(VdpSpritePeek *out, int max) {
 		e->x = (int16_t)((sprite->x & SPRITE_X_AND) - 128);
 		e->width = ((sl & SPRITE_SL_W_AND) >> SPRITE_SL_W_SHIFT) + 1;
 		e->height = ((sl & SPRITE_SL_H_AND) >> SPRITE_SL_H_SHIFT) + 1;
-		e->pattern = (tile & TILE_PATTERN_AND) >> TILE_PATTERN_SHIFT;
-		e->palette = (tile & TILE_PALETTE_AND) >> TILE_PALETTE_SHIFT;
-		e->priority = (tile & TILE_PRIORITY_AND) != 0;
-		e->x_flip = (tile & TILE_X_FLIP_AND) != 0;
-		e->y_flip = (tile & TILE_Y_FLIP_AND) != 0;
+		e->pattern = sprite->pattern;
+		e->palette = vdp_hooks.palette(sprite->attr);
+		e->priority = (sprite->attr & TILE_ATTR_PRIORITY) != 0;
+		e->x_flip = (sprite->attr & TILE_ATTR_X_FLIP) != 0;
+		e->y_flip = (sprite->attr & TILE_ATTR_Y_FLIP) != 0;
 		if (e->link == 0)
 			break;
 		i = e->link;
