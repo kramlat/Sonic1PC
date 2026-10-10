@@ -293,13 +293,14 @@ static uint8_t Hook_PaletteReal(uint16_t attr) {
 	return TileAttr_Palette(attr);
 }
 
-static const tilebank_t *Hook_BankCompat(uint16_t attr) {
+static const tilebank_t *Hook_BankCompat(uint16_t attr, uint16_t generation) {
 	(void)attr;
+	(void)generation;
 	return TileBank_Main();
 }
 
-static const tilebank_t *Hook_BankReal(uint16_t attr) {
-	return TileBank_Get(TileAttr_Bank(attr), TileAttr_Generation(attr));
+static const tilebank_t *Hook_BankReal(uint16_t attr, uint16_t generation) {
+	return TileBank_Get(TileAttr_Bank(attr), generation);
 }
 
 static size_t Hook_PatternCompat(uint16_t pattern) {
@@ -313,10 +314,10 @@ static size_t Hook_PatternReal(uint16_t pattern) {
 static struct {
 	unsigned real;
 	uint8_t (*palette)(uint16_t attr);
-	const tilebank_t *(*plane_bank)(uint16_t attr);
+	const tilebank_t *(*plane_bank)(uint16_t attr, uint16_t generation);
 	size_t (*plane_pattern)(uint16_t pattern);
 	bool plane_deep;
-	const tilebank_t *(*sprite_bank)(uint16_t attr);
+	const tilebank_t *(*sprite_bank)(uint16_t attr, uint16_t generation);
 	size_t (*sprite_pattern)(uint16_t pattern);
 	bool sprite_deep;
 } vdp_hooks = { 0, Hook_PaletteCompat, Hook_BankCompat, Hook_PatternCompat, false, Hook_BankCompat, Hook_PatternCompat, false };
@@ -447,7 +448,7 @@ static inline void VDP_DrawPlaneRow(uint32_t *to, uint8_t *tom, const tile_entry
 		uint8_t x_flip = (attr & TILE_ATTR_X_FLIP) != 0;
 		
 		//Write tile (a tile that is not there draws nothing)
-		const tilebank_t *bank = vdp_hooks.plane_bank(attr);
+		const tilebank_t *bank = vdp_hooks.plane_bank(attr, entry->generation);
 		const size_t pattern = vdp_hooks.plane_pattern(entry->pattern);
 		const uint8_t *from = NULL;
 		bool deep = false;
@@ -498,7 +499,7 @@ static inline void VDP_DrawSpriteRow(uint32_t *to, uint8_t *tom, const sprite_t 
 	uint16_t sprite_sl = sprite->size_link;
 	uint16_t sprite_x = sprite->x;
 	// The tile art comes from the bank the sprite names (a bank that is not there draws nothing)
-	const tilebank_t *bank = vdp_hooks.sprite_bank(sprite->attr);
+	const tilebank_t *bank = vdp_hooks.sprite_bank(sprite->attr, sprite->generation);
 	if (bank == NULL)
 		return;
 	

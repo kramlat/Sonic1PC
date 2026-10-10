@@ -45,13 +45,13 @@ static void Sprites_AnObjectsSpritesNameTheBankOfItsArt(void) {
     o.frame = 1;
     Build();
     CHECK_EQ(TileAttr_Bank(screen1p.sprite_table[0].attr), 0); // (no bank given: the main bank)
-    CHECK_EQ(TileAttr_Generation(screen1p.sprite_table[0].attr), 0);
+    CHECK_EQ(screen1p.sprite_table[0].generation, 0);
 
     tilebank_t *bank = TileBank_Create(0x200);
     o.bank = bank;
     Build();
     CHECK_EQ(TileAttr_Bank(screen1p.sprite_table[0].attr), bank->id);
-    CHECK_EQ(TileAttr_Generation(screen1p.sprite_table[0].attr), bank->generation);
+    CHECK_EQ(screen1p.sprite_table[0].generation, bank->generation);
     TileBank_Free(bank);
 }
 

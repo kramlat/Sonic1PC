@@ -18,6 +18,24 @@ static tile_entry_t window_p1[PLANE_ENTRIES];
 static tile_entry_t window_p2[PLANE_ENTRIES];
 static tile_entry_t scratch_planes[0x8000]; // the scratch plane memory (Plane_UseScratchAt)
 
+// A bank was freed: what names it shows nothing now
+static void PurgeBank(uint8_t id) {
+	tile_entry_t *tables[] = { nametable_fg, nametable_bg, nametable_fg_p2, nametable_bg_p2, window_p1, window_p2 };
+	const tile_entry_t none = { 0, (uint16_t)(TILEBANK_NONE << TILE_ATTR_BANK_SHIFT), 0, 0 };
+	for (size_t t = 0; t < sizeof(tables) / sizeof(tables[0]); t++)
+		for (size_t i = 0; i < PLANE_ENTRIES; i++)
+			if (TileAttr_Bank(tables[t][i].attr) == id)
+				tables[t][i] = none;
+	for (size_t i = 0; i < sizeof(scratch_planes) / sizeof(scratch_planes[0]); i++)
+		if (TileAttr_Bank(scratch_planes[i].attr) == id)
+			scratch_planes[i] = none;
+	sprite_t *sprite_tables[] = { sprite_table_p1, sprite_table_p2 };
+	for (size_t t = 0; t < 2; t++)
+		for (size_t i = 0; i < VIEWPORT_SPRITES + 1; i++)
+			if (TileAttr_Bank(sprite_tables[t][i].attr) == id)
+				sprite_tables[t][i].attr = (uint16_t)((sprite_tables[t][i].attr & ~TILE_ATTR_BANK) | (TILEBANK_NONE << TILE_ATTR_BANK_SHIFT));
+}
+
 viewport_t screen1p = {
 	.plane_width = 64, .plane_height = 32,
 	.plane_a = { nametable_fg, PLANE_ENTRIES },
@@ -38,6 +56,7 @@ viewport_t screen2p = {
 
 void Viewport_UseOwnPlanes(viewport_t *v) {
 	tilebank_t *main_bank = TileBank_Main();
+	TileBank_OnFree(PurgeBank); // (the tables here are told when a bank is freed)
 	if (v == &screen2p) {
 		v->plane_a = (plane_t){ nametable_fg_p2, PLANE_ENTRIES, main_bank };
 		v->plane_b = (plane_t){ nametable_bg_p2, PLANE_ENTRIES, main_bank };

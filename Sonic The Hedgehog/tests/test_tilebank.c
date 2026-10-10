@@ -81,8 +81,19 @@ static void TileBank_AFreedBanksEntriesDrawNothing(void) {
     Plane_PutEntry(&screen1p.plane_a, 0, TileEntry_FromWord(1, bank, 0));
     CHECK_EQ(TopLeft(), PIXEL_BLUE);
     TileBank_Free(bank);
-    CHECK_EQ(TopLeft(), PIXEL_BACKDROP); // not read: the generation moved on
-    CHECK(tilebank_stale_count > 0);
+    CHECK_EQ(TopLeft(), PIXEL_BACKDROP); // not read: the entry was changed to show nothing when the bank was freed
+    CHECK_EQ(tilebank_stale_count, 0);   // (it is not a stale one: nothing names the bank any more)
+    CHECK_EQ(TileAttr_Bank(Plane_At(&screen1p.plane_a, 0)->attr), TILEBANK_NONE);
+}
+
+static void TileBank_AnEntryWrittenAfterTheFreeStillCarriesAStaleGeneration(void) {
+    Prepare();
+    tilebank_t *bank = TileBank_Create(4);
+    tile_entry_t late = TileEntry_FromWord(1, bank, 0); // made while it was there...
+    TileBank_Free(bank);
+    Plane_PutEntry(&screen1p.plane_a, 0, late);        // ... put in the plane after it was freed (nothing to purge then)
+    CHECK_EQ(TopLeft(), PIXEL_BACKDROP);
+    CHECK(tilebank_stale_count > 0);                   // the generation catches it
 }
 
 static void TileBank_ASlotMadeAgainIsNotTheOldBank(void) {
@@ -95,7 +106,7 @@ static void TileBank_ASlotMadeAgainIsNotTheOldBank(void) {
     tilebank_t *second = TileBank_Create(4); // (the same slot, other art)
     Solid(second, 1, 1);
     CHECK_EQ(second->id, TileAttr_Bank(old_entry.attr));
-    CHECK(second->generation != TileAttr_Generation(old_entry.attr));
+    CHECK(second->generation != old_entry.generation);
     CHECK_EQ(TopLeft(), PIXEL_BACKDROP); // the old entry does not find the new bank's tile
     TileBank_Free(second);
 }
@@ -106,9 +117,9 @@ static void TileBank_APatternPastTheBanksEndIsNotThere(void) {
     tile_entry_t e = TileEntry_FromWord(0, bank, 0);
     e.pattern = 5;
     bool deep;
-    CHECK(TileBank_PatternOf(e.attr, e.pattern, &deep) == NULL);
+    CHECK(TileBank_PatternOf(e.attr, e.generation, e.pattern, &deep) == NULL);
     e.pattern = 1;
-    CHECK(TileBank_PatternOf(e.attr, e.pattern, &deep) != NULL);
+    CHECK(TileBank_PatternOf(e.attr, e.generation, e.pattern, &deep) != NULL);
     TileBank_Free(bank);
 }
 
@@ -131,7 +142,7 @@ static void TileBank_TheTableRunsOutAndMakesRoomAgain(void) {
         if (held[made] == NULL)
             break;
     }
-    CHECK_EQ(made, TILEBANKS - 1); // (the main bank has a slot)
+    CHECK_EQ(made, TILEBANK_NONE - 1); // (the main bank has a slot, and the last id is the one of an entry that shows nothing)
     CHECK(TileBank_Create(1) == NULL);
     for (int i = 0; i < made; i++)
         TileBank_Free(held[i]);
@@ -157,11 +168,13 @@ static void TileBank_ASpriteDrawsFromItsBankAndNothingFromAFreedOne(void) {
     screen1p.sprites = screen1p.sprite_table;
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
     // one 8x8 cell (width 0, height 0) at the picture's top left, pattern 2 of the bank
-    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, 2, 128, TileAttr_FromWord(0, bank, 0) };
+    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, 2, 128, TileAttr_FromWord(0, bank, 0), bank->generation };
     CHECK_EQ(TopLeft(), PIXEL_BLUE);
     screen1p.sprite_table[0].attr = TileAttr_FromWord(0, TileBank_Main(), 0); // as the main bank's
+    screen1p.sprite_table[0].generation = 0;
     CHECK_EQ(TopLeft(), PIXEL_RED);
     screen1p.sprite_table[0].attr = TileAttr_FromWord(0, bank, 0);
+    screen1p.sprite_table[0].generation = bank->generation;
     TileBank_Free(bank);
     CHECK_EQ(TopLeft(), PIXEL_BACKDROP); // not read once the bank is gone
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
@@ -195,7 +208,7 @@ static void TileBank_ASpritesPaletteGroupReachesThemToo(void) {
     Solid(TileBank_Main(), 2, 4);
     screen1p.sprites = screen1p.sprite_table;
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
-    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, 2, 128, TileAttr_FromWord((uint16_t)TILE_MAP(0, 1, 0, 0, 2), TileBank_Main(), 3) }; // line 1 + 4 * 3 = 13
+    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0000, 2, 128, TileAttr_FromWord((uint16_t)TILE_MAP(0, 1, 0, 0, 2), TileBank_Main(), 3), 0 }; // line 1 + 4 * 3 = 13
     CHECK_EQ(TopLeft(), PIXEL_RGB(0xABCDEFu));
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
 }
@@ -248,7 +261,7 @@ static void TileBank_AnEightBitSpriteStepsTwoSlotsACell(void) {
     TileBank_SetDepth(bank, 0, 4, true);
     screen1p.sprites = screen1p.sprite_table;
     memset(screen1p.sprite_table, 0, (VIEWPORT_SPRITES + 1) * sizeof(sprite_t));
-    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0100, 0, 128, TileAttr_FromWord(0, bank, 0) }; // height 1: two cells
+    screen1p.sprite_table[0] = (sprite_t){ 128, 0x0100, 0, 128, TileAttr_FromWord(0, bank, 0), bank->generation }; // height 1: two cells
     VDP_DrawFrame();
     int pitch, rows;
     const uint32_t *f = VDP_GetFrame(&pitch, &rows);
@@ -304,6 +317,7 @@ static void TileBank_EachPartCanBeRealOnItsOwn(void) {
 }
 
 void RegisterTileBankTests(void) {
+    RUN_TEST(TileBank_AnEntryWrittenAfterTheFreeStillCarriesAStaleGeneration);
     RUN_TEST(TileBank_AGenesisWordBecomesAPatternAndAnAttributeWord);
     RUN_TEST(TileBank_TheCompatReadingIgnoresTheBankAndTheHigherPalettes);
     RUN_TEST(TileBank_EachPartCanBeRealOnItsOwn);

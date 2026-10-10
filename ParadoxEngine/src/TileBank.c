@@ -12,6 +12,17 @@ bool tilebank_stale_fatal;
 static tilebank_t banks[TILEBANKS];
 static uint8_t main_depth[VRAM_SIZE / 32]; // the main bank's allocation table
 static bool banks_ready;
+#define PURGERS 8
+static void (*purgers[PURGERS])(uint8_t id);
+static int purger_count;
+
+void TileBank_OnFree(void (*purge)(uint8_t id)) {
+	for (int i = 0; i < purger_count; i++)
+		if (purgers[i] == purge)
+			return;
+	if (purger_count < PURGERS)
+		purgers[purger_count++] = purge;
+}
 
 static void Init(void) {
 	if (banks_ready)
@@ -27,10 +38,10 @@ tilebank_t *TileBank_Main(void) {
 
 tilebank_t *TileBank_Create(size_t tiles) {
 	Init();
-	for (int i = 1; i < TILEBANKS; i++) {
+	for (int i = 1; i < TILEBANK_NONE; i++) {
 		if (banks[i].live)
 			continue;
-		uint8_t generation = banks[i].generation; // (what the last use of this slot left: never 0, and not the same as then)
+		uint16_t generation = banks[i].generation; // (what the last use of this slot left: never 0, and not the same as then)
 		uint8_t *patterns = calloc(tiles, 32);
 		uint8_t *depth = calloc(tiles, 1);
 		if (patterns == NULL || depth == NULL) {
@@ -47,13 +58,15 @@ tilebank_t *TileBank_Create(size_t tiles) {
 void TileBank_Free(tilebank_t *bank) {
 	if (bank == NULL || bank->id == 0 || !bank->live)
 		return;
+	for (int i = 0; i < purger_count; i++)
+		purgers[i](bank->id); // (before the bank goes: nothing names it after)
 	free(bank->patterns);
 	free(bank->depth);
 	bank->patterns = NULL;
 	bank->depth = NULL;
 	bank->tiles = 0;
 	bank->live = false;
-	bank->generation = (uint8_t)(bank->generation + 1 > 15 ? 1 : bank->generation + 1); // (entries made before this no longer match: the generation is 4 bits, 1 to 15, so a slot freed fifteen times since would match again)
+	bank->generation = (uint16_t)(bank->generation == 0xFFFF ? 1 : bank->generation + 1); // (entries made before this no longer match: it takes 65,535 frees of the slot to come round)
 }
 
 void TileBank_SetDepth(tilebank_t *bank, size_t first, size_t slots, bool eight_bits) {
@@ -84,10 +97,12 @@ void TileBank_Write(tilebank_t *bank, size_t tile, const void *data, size_t byte
 	memcpy(bank->patterns + tile * 32, data, bytes);
 }
 
-const tilebank_t *TileBank_Get(uint8_t id, uint8_t generation) {
+const tilebank_t *TileBank_Get(uint8_t id, uint16_t generation) {
 	Init();
+	if (id == TILEBANK_NONE)
+		return NULL; // (an entry that shows nothing: not a stale one)
 	const tilebank_t *bank = &banks[id % TILEBANKS];
-	if (bank->live && bank->generation == (generation & 15))
+	if (bank->live && bank->generation == generation)
 		return bank;
 	tilebank_stale_count++;
 	if (tilebank_stale_fatal) {
@@ -97,9 +112,9 @@ const tilebank_t *TileBank_Get(uint8_t id, uint8_t generation) {
 	return NULL;
 }
 
-const uint8_t *TileBank_PatternOf(uint16_t attr, size_t pattern, bool *deep) {
+const uint8_t *TileBank_PatternOf(uint16_t attr, uint16_t generation, size_t pattern, bool *deep) {
 	*deep = false;
-	const tilebank_t *bank = TileBank_Get(TileAttr_Bank(attr), TileAttr_Generation(attr));
+	const tilebank_t *bank = TileBank_Get(TileAttr_Bank(attr), generation);
 	if (bank == NULL)
 		return NULL;
 	if (pattern >= bank->tiles) {
