@@ -14,6 +14,8 @@
 #include "Resource/Art/SYZ.h"
 
 // Object art
+#include "Resource/Art/Coconuts.h"
+#include "Resource/Art/BossExplosion.h"
 #include "Resource/Art/AnimalRabbit.h"
 #include "Resource/Art/AnimalChicken.h"
 #include "Resource/Art/AnimalPenguin.h"
@@ -353,16 +355,15 @@ static const PLCList PLC_MZ2 = { // Chemical_Plant_Sprites_2: the air bubbles (t
 // ---------------------------------------------------------------------------
 // Pattern load cues - Star Light
 // ---------------------------------------------------------------------------
-static const PLCList PLC_SLZ = { // Emerald Hill
-    11,
+static const PLCList PLC_SLZ = { // Emerald Hill, as the alpha's Green_Hill_Art_List_0 has it ($73C0 on; its tileset the level header loads) and the spikes and springs of its list 1
+    10,
     (const PLC[]) {
-        { Art_Shield,        ART_VRAM(0x560) }, // (the barrier's place in Emerald Hill: see ShieldInvincibility.c)
-        { Art_EHZBridge,     ART_VRAM(0x3C6) },
-        { Art_EHZWaterfall,  ART_VRAM(0x3AE) },
-        { Art_Buzzer,        ART_VRAM(0x3E6) },
-        { Art_Snail,         ART_VRAM(0x402) },
-        { Art_Masher,        ART_VRAM(0x41C) },
-        { Art_HTZFireball,   ART_VRAM(0x79C0 >> 5) }, // (the prototype's FireBall, Fireball.nem, at $79C0: no Emerald Hill object uses it; Nick Arcade had another art, at $39E)
+        { Art_EHZWaterfall,  ART_VRAM(0x73C0 >> 5) },
+        { Art_EHZBridge,     ART_VRAM(0x76C0 >> 5) },
+        { Art_HTZFireball,   ART_VRAM(0x77C0 >> 5) },
+        { Art_Buzzer,        ART_VRAM(0x7A40 >> 5) },
+        { Art_Coconuts,      ART_VRAM(0x7DC0 >> 5) },
+        { Art_Masher,        ART_VRAM(0x8280 >> 5) },
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
@@ -453,12 +454,13 @@ static const PLCList PLC_TitleCard = {
 // ---------------------------------------------------------------------------
 // Pattern load cues - act 3 boss
 // ---------------------------------------------------------------------------
-static const PLCList PLC_Boss = { // Emerald Hill's boss: Eggman's ship, the drill car and its blades
-    3,
+static const PLCList PLC_Boss = { // Emerald Hill's boss, as the alpha's list $29 has it: Eggman's ship ($7400), the drill car ($8000), its blades ($BD00) and the explosions ($B000, over the animals' first art)
+    4,
     (const PLC[]) {
-        { Art_BossShip,      ART_VRAM(0x460) },
-        { Art_BossEHZ,       ART_VRAM(0x4C0) },
-        { Art_BossEHZBlades, ART_VRAM(0x540) },
+        { Art_BossShip,      ART_VRAM(0x7400 >> 5) },
+        { Art_BossEHZ,       ART_VRAM(0x8000 >> 5) },
+        { Art_BossEHZBlades, ART_VRAM(0xBD00 >> 5) },
+        { Art_BossExplosion, ART_VRAM(0xB000 >> 5) },
     }
 };
 // ---------------------------------------------------------------------------

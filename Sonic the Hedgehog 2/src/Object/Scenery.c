@@ -32,7 +32,7 @@ typedef struct {
 static const SceneryLook looks[] = {
     { Mappings_SceneryD, TILE_MAP(0, 2, 0, 0, 0x3FD), 0, 4, 6 },       // (a Metropolis thing)
     { Mappings_SceneryD, TILE_MAP(0, 2, 0, 0, 0x3FD), 1, 4, 6 },
-    { Mappings_BridgeEHZ, TILE_MAP(0, 2, 0, 0, 0x3C6), 1, 4, 1 },      // the stake of a bridge (Emerald Hill's: the same mapping as its logs)
+    { Mappings_BridgeEHZ, TILE_MAP(0, 2, 0, 0, 0x3B6), 1, 4, 1 },      // the stake of a bridge (Emerald Hill's: the same mapping as its logs)
     { Mappings_SceneryD, TILE_MAP(0, 1, 0, 0, 0x3FD), 2, 0x10, 6 },
     { Mappings_HTZLift, TILE_MAP(0, 2, 0, 0, 0x3E6), 3, 8, 4 },        // the poles of Hill Top's lifts
     { Mappings_HTZLift, TILE_MAP(0, 2, 0, 0, 0x3E6), 4, 8, 4 },

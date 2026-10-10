@@ -13,6 +13,8 @@
 #include "Object/DustSplash.h"
 #include "Object/Countdown.h"
 #include "Object/Animals.h"
+#include "Object/Coconuts.h"
+#include "Object/EHZBoss.h"
 #include "PLC.h"
 #include "EngineSound.h"
 #include "Backend/VDP.h"
@@ -335,11 +337,72 @@ static void Animals_ZonesHaveTheirPairAndEndAnimalsTheirOwnMovement(void) {
 }
 
 
+// The alpha's Coconuts: it sets itself up from its subtype's look, waits, throws a coconut at Sonic when he is within $60 pixels of it (turning to him), and the coconut falls from its hand
+static void Coconuts_ThrowACoconutWhenSonicIsNear(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    objects[0].type = ObjId_Sonic;
+    objects[0].pos.l.x.f.u = 0x400;
+    objects[0].pos.l.y.f.u = 0x300;
+    scrpos_x.f.u = 0x300;
+    scrpos_y.f.u = 0x200;
+    Object *monkey = &objects[0x20];
+    monkey->type = ObjId_Coconuts;
+    monkey->pos.l.x.f.u = 0x440;
+    monkey->pos.l.y.f.u = 0x300;
+    ((Scratch_Flicky *)&monkey->scratch)->subtype = 0x1E;
+    Obj_Coconuts(monkey);
+    CHECK_EQ(monkey->routine, 2);
+    CHECK_EQ(monkey->tile & 0x7FF, 0x3EE);
+    CHECK_EQ(monkey->col_type, 9);
+
+    Obj_Coconuts(monkey); // (Sonic is $40 pixels to its left: it faces him and throws)
+    CHECK_EQ(monkey->routine, 6);
+    CHECK_EQ(monkey->frame, 1);
+    CHECK(!monkey->render.f.x_flip);
+    for (int f = 0; f < 10; f++)
+        Obj_Coconuts(monkey);
+    CHECK_EQ(monkey->frame, 2);
+    Object *nut = NULL;
+    for (int i = 1; i < 0x40; i++)
+        if (objects[i].type == ObjId_EnemyWeapon)
+            nut = &objects[i];
+    CHECK(nut != NULL);
+    if (nut != NULL) {
+        CHECK_EQ(nut->xsp, -0x100);
+        CHECK_EQ(nut->pos.l.x.f.u, 0x440 + 11);
+        CHECK_EQ(nut->pos.l.y.f.u, 0x300 - 13);
+        Obj_EnemyWeapon(nut);
+        CHECK_EQ(nut->col_type, 0x8B);
+        Obj_EnemyWeapon(nut);
+        CHECK_EQ(nut->ysp, 0x20);
+    }
+}
+
+// The alpha's boss explosion: seven frames of seven ticks, then it is gone
+static void BossExplosion_RunsSevenFramesAndGoes(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    Object *exp = &objects[0x30];
+    exp->type = 0x58;
+    exp->pos.l.x.f.u = 0x100;
+    exp->pos.l.y.f.u = 0x100;
+    Obj_BossExplosion(exp);
+    CHECK_EQ(exp->routine, 2);
+    CHECK_EQ(exp->tile & 0x7FF, 0x580);
+    for (int f = 0; f < 7 * 8 + 2 && exp->type != 0; f++)
+        Obj_BossExplosion(exp);
+    CHECK_EQ(exp->type, 0);
+}
+
+
 void RegisterObjectCoverageTests(void) {
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
     RUN_TEST(TailsTails_ShowWhileRollingAndDashing);
     RUN_TEST(TailsTails_WagWhileHePushes);
     RUN_TEST(Countdown_CountsAPlayersAirAndDrownsHim);
+    RUN_TEST(Coconuts_ThrowACoconutWhenSonicIsNear);
+    RUN_TEST(BossExplosion_RunsSevenFramesAndGoes);
     RUN_TEST(Animals_ZonesHaveTheirPairAndEndAnimalsTheirOwnMovement);
     RUN_TEST(DustSplash_FollowsTheSpinDashAndSplashesAtTheWater);
     RUN_TEST(Sonic_SuperSonicHasHisOwnAnimations);

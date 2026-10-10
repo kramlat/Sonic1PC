@@ -77,3 +77,14 @@ write_file('Mappings/Animals', slice(0xA978, 0xAA2C));
 for my $animal (qw(Rabbit Chicken Penguin Seal Pig BlueBird Squirrel Pigeon Mouse Monkey Turtle Bear)) {
     copy_file("Art/Nemesis/$animal.nem", "Art/Animal$animal");
 }
+
+# Emerald Hill's own: the Coconuts badnik (object 9D): the mappings ($029374, 4 frames), animations ($029366) and art, and the Buzzer's older art (Buzzer.nem: the alpha's Buzzer is the prototype's
+# with other tiles)
+write_file('Mappings/Coconuts',  slice(0x029374, 0x0293F4));
+write_file('Animation/Coconuts', slice(0x029366, 0x029374));
+copy_file('Art/Nemesis/Coconuts.nem', 'Art/Coconuts');
+copy_file('Art/Nemesis/Buzzer.nem',   'Art/Buzzer');
+
+# Emerald Hill's boss (objects 56, 5B and 58): its explosions (GHz_Boss_Mappings_02, $020430, seven frames) and their art (explosns.nem, at VRAM $B000: tile $580). The ship, car and blades are the prototype's, as the alpha has them.
+write_file('Mappings/BossExplosion', slice(0x020430, 0x020484));
+copy_file('Art/Nemesis/Explosns.nem', 'Art/BossExplosion');

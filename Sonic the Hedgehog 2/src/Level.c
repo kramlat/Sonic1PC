@@ -346,17 +346,16 @@ void DynamicLevelEvents(void) {
         if (LEVEL_ACT(level_id) != 1)
             break; // (act 1 has none, and act 3 is a copy of it)
         switch (dle_routine) {
-        case 0: // the boss arena
+        case 0: // the boss arena (the alpha's DynResize_GHz_Act_2: only the lower limit's target moves, the limit itself follows)
             if ((uint16_t)scrpos_x.f.u < (0x26E0 - SCREEN_WIDEADD2))
                 break;
             limit_left2 = scrpos_x.f.u;
             limit_btm1 = 0x390 - SCREEN_TALLADD;
-            limit_btm2 = 0x390 - SCREEN_TALLADD;
             dle_routine += 2;
             {
                 Object *boss = FindFreeObj();
                 if (boss != NULL) {
-                    boss->type = 0x55; // the EHZ boss
+                    boss->type = 0x56; // the EHZ boss
                     boss->scratch.u8[0] = 0x81; // (the subtype)
                     boss->pos.l.x.f.u = 0x29D0;
                     boss->pos.l.y.f.u = 0x426;
@@ -372,9 +371,9 @@ void DynamicLevelEvents(void) {
             limit_left2 = 0x2880 - SCREEN_WIDEADD2;
             dle_routine += 2;
             break;
-        case 4: // when the boss is beaten, Nick Arcade goes back to the Sega screen
+        case 4: // when the boss is beaten, the results card (the alpha's; Nick Arcade went back to the Sega screen)
             if (boss_status)
-                gamemode = GameMode_Sega;
+                GotThroughAct();
             break;
         }
         break;

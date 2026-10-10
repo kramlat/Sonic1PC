@@ -7,8 +7,6 @@
 #include "Level.h"
 #include "Object/Sonic.h"
 
-#define ArtTile_ShieldEHZ 0x560 // (Emerald Hill's PLC loads the shield here, as the tiles at $4BE are taken there)
-
 void Obj_ShieldInvincibility(Object* obj) {
     switch (obj->routine) {
     case 0: // Initialiation
@@ -25,7 +23,7 @@ void Obj_ShieldInvincibility(Object* obj) {
         // Check if invincibility or shield
         if (!obj->anim) {
             // Shield
-            obj->tile = TILE_MAP(0, 0, 0, 0, LEVEL_ZONE(level_id) == ZoneId_EHZ ? ArtTile_ShieldEHZ : ArtTile_Shield);
+            obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Shield);
         } else {
             // Invincibility: Sonic's own mappings, with the stars' tiles
             obj->routine += 2;

@@ -1,4 +1,4 @@
-// The boss of Emerald Hill for Sonic 2 (Nick Arcade's objects 55 and 58, with 57's code): Eggman in a drill car. The ship (object 55, subtype $81, put there by the zone's dynamic level events) slides in, comes down, and
+// The boss of Emerald Hill for Sonic 2 (the alpha's objects 56 and 5B, with the ship's code of its 56 subtype $81; Nick Arcade's were 55 and 58, and 57 had the ship's code): Eggman in a drill car. The ship (object 56, subtype $81, put there by the zone's dynamic level events) slides in, comes down, and
 // drives to and fro over the arena on three wheels (object 58 parts that follow it and each other) with a spike on its front; Sonic spins into it (a hit counter of eight, with a flash and a moment of safety after
 // each), and when it is beaten it blows up, the wheels roll off, and Eggman's car drives away to the right. The parts find the ship by its slot (checked every frame: it has to be an object of the ship's own id).
 #include "Object/EHZBoss.h"
@@ -6,6 +6,7 @@
 
 #include "EnginePalette.h"
 #include "Level.h"
+#include "MathUtil.h"
 #include "LevelCollision.h"
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
@@ -19,14 +20,17 @@
 #include "Resource/Mappings/BossEHZ.h"
 #include "Resource/Mappings/BossEHZParts.h"
 #include "Resource/Mappings/BossEHZWheels.h"
+#include "Resource/Mappings/BossExplosion.h"
 
-#define ObjId_EHZBoss     0x55
-#define ObjId_EHZBossPart 0x58
+#define ObjId_EHZBoss     0x56
+#define ObjId_EHZBossPart 0x5B
+#define ObjId_BossExplosion 0x58
 
-// Where the art goes (the boss' PLC): the ship at $460, the car at $4C0, its blades at $540
-#define ArtTile_BossShipEHZ  0x460
-#define ArtTile_BossCarEHZ   0x4C0
-#define ArtTile_BossBladesEHZ 0x540
+// Where the art goes (the boss' PLC, the alpha's $29): the ship at $3A0, the car at $400, its blades at $5E8 (and the explosions' at $580)
+#define ArtTile_BossShipEHZ  0x3A0
+#define ArtTile_BossCarEHZ   0x400
+#define ArtTile_BossBladesEHZ 0x5E8
+#define ArtTile_BossExplosion 0x580
 
 typedef struct {
     uint8_t subtype;   // 0x28
@@ -88,6 +92,21 @@ static void Boss_Turn(Object *obj) {
     obj->status.o.f.x_flip ^= 1;
     obj->render.f.x_flip ^= 1;
     obj->xsp = -obj->xsp;
+}
+
+// The wreck blows up (Boss_Defeated): every eight frames an explosion, a random distance (up to $20 each way) from the boss
+static void Boss_Explode(Object *obj) {
+    if (frame_count & 7)
+        return;
+    Object *exp = FindFreeObj();
+    if (exp == NULL)
+        return;
+    exp->type = ObjId_BossExplosion;
+    exp->pos.l.x.f.u = obj->pos.l.x.f.u;
+    exp->pos.l.y.f.u = obj->pos.l.y.f.u;
+    const uint32_t rand = RandomNumber();
+    exp->pos.l.x.f.u += (int16_t)(((rand & 0xFF) >> 2) - 0x20);
+    exp->pos.l.y.f.u += (int16_t)((((rand >> 8) & 0xFF) >> 2) - 0x20);
 }
 
 // Hit by Sonic (sub_17A8C): flashes and is safe a while after each hit; beaten when the hits are out
@@ -153,7 +172,7 @@ static void Boss_Ship(Object *obj) {
         break;
     case 6: // beaten: blowing up
         if (--scratch->countdown >= 0) {
-            BossDefeated(obj);
+            Boss_Explode(obj);
             break;
         }
         obj->status.o.f.x_flip = true;
@@ -175,7 +194,7 @@ static void Boss_Ship(Object *obj) {
         switch (scratch->step) {
         case 0: {
             scratch->flags &= (uint8_t)~BossFlag_Landed;
-            Object *lift = MakePart(obj, ObjId_EHZBossPart, 8, Mappings_BossEHZParts, TILE_MAP(0, 1, 0, 0, 0x540), 0x20, 4);
+            Object *lift = MakePart(obj, ObjId_EHZBossPart, 8, Mappings_BossEHZParts, TILE_MAP(0, 1, 0, 0, ArtTile_BossBladesEHZ), 0x20, 4);
             if (lift != NULL) {
                 lift->pos.l.y.f.u += 0xC;
                 CopyLook(lift, obj);
@@ -251,7 +270,7 @@ static void Boss_Start(Object *obj) {
     scratch->home_y -= 8;
     obj->pos.l.x.f.u = 0x2A00;
     obj->pos.l.y.f.u = 0x2C0;
-    Object *cockpit = MakePart(obj, ObjId_EHZBossPart, 0, Mappings_BossEHZParts, TILE_MAP(0, 1, 0, 0, 0x540), 0x20, 4);
+    Object *cockpit = MakePart(obj, ObjId_EHZBossPart, 0, Mappings_BossEHZParts, TILE_MAP(0, 1, 0, 0, ArtTile_BossBladesEHZ), 0x20, 4);
     if (cockpit != NULL)
         ((Scratch_Boss *)&cockpit->scratch)->timer = 0x1E;
 }
@@ -263,7 +282,7 @@ static void Boss_Run(Object *obj) {
     switch (obj->routine) {
     case 0: { // Initialization
         obj->mappings = Mappings_BossEHZ;
-        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_BossShipEHZ); // (palette line 2; $2400 + $60 for the subtype $81)
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_BossShipEHZ); // (palette line 2: the alpha's $23A0)
         obj->render.b |= SPRITE_CAM_FIELD;
         obj->width_pixels = 0x20;
         obj->priority = 3;
@@ -472,6 +491,31 @@ static void Boss_Part(Object *obj) {
         DisplaySprite(obj);
         break;
     }
+}
+
+// An explosion of the wreck (the alpha's object 58): seven frames of seven ticks, with the explosion's sound as it starts
+void Obj_BossExplosion(Object *obj) {
+    if (obj->routine == 0) {
+        obj->routine += 2;
+        obj->mappings = Mappings_BossExplosion;
+        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_BossExplosion);
+        obj->render.b |= SPRITE_CAM_FIELD;
+        obj->priority = 1;
+        obj->col_type = 0;
+        obj->width_pixels = 0xC;
+        obj->frame_time.b = 7;
+        obj->frame = 0;
+        QueueSound2(sfx_Bomb);
+        return;
+    }
+    if (--obj->frame_time.b < 0) {
+        obj->frame_time.b = 7;
+        if (++obj->frame == 7) {
+            ObjectDelete(obj);
+            return;
+        }
+    }
+    DisplaySprite(obj);
 }
 
 void Obj_EHZBoss(Object *obj) {

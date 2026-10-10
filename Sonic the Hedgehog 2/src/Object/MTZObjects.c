@@ -83,7 +83,7 @@ static void SteamVent_Puff(Object *obj, Scratch_SteamVent *scratch, int16_t dx, 
 static void SteamVent_Throw(Object *obj, Scratch_SteamVent *scratch, Object *chr) {
     if (obj->routine_sec != SteamState_Rise)
         return;
-    chr->ysp = -0x600;
+    chr->ysp = -0xA00; // (Nick Arcade's was -$600: the alpha's vent throws harder)
     chr->status.p.f.in_air = true;
     chr->status.p.f.object_stand = false;
     chr->anim = SonAnimId_Spring;
@@ -97,7 +97,7 @@ static void SteamVent_Throw(Object *obj, Scratch_SteamVent *scratch, Object *chr
 void Obj_MTZSteamVent(Object *obj) {
     Scratch_SteamVent *scratch = (Scratch_SteamVent *)&obj->scratch;
 
-    if (obj->routine == SteamRoutine_Puff) { // a puff of steam: hurts from its third frame on, and goes after its seventh
+    if (obj->routine == SteamRoutine_Puff) { // a puff of steam: hurts from its fourth frame on (the alpha's: Nick Arcade's was the third, with a smaller hitbox), and goes after its seventh
         if (--obj->frame_time.b >= 0) {
             DisplaySprite(obj);
             return;
@@ -105,8 +105,8 @@ void Obj_MTZSteamVent(Object *obj) {
         obj->frame_time.b = 7;
         obj->col_type = 0;
         obj->frame++;
-        if (obj->frame == 2)
-            obj->col_type = 0x8B;
+        if (obj->frame == 3)
+            obj->col_type = 0xA6;
         if (obj->frame == 7) {
             ObjectDelete(obj);
             return;

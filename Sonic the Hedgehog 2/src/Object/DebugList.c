@@ -24,6 +24,7 @@ extern const uint8_t Mappings_Spring[];
 extern const uint8_t Mappings_DiagSpring[];
 extern const uint8_t Mappings_Buzzer[];
 extern const uint8_t Mappings_Snail[];
+extern const uint8_t Mappings_Coconuts[];
 extern const uint8_t Mappings_Masher[];
 extern const uint8_t Mappings_MTZSteamVent[];
 extern const uint8_t Mappings_MTZPiston[];
@@ -163,9 +164,9 @@ static const DebugListEntry DebugList_EHZ[] = {
     MONITOR_ENTRY(7),
     CHECKPOINT_ENTRY,
     PATHSWAPPER_ENTRY,
-    PLAIN(0x49, Mappings_WaterfallEHZ, 0x23AE, 0, 0),
-    PLAIN(0x49, Mappings_WaterfallEHZ, 0x23AE, 2, 3),
-    PLAIN(0x49, Mappings_WaterfallEHZ, 0x23AE, 4, 5),
+    PLAIN(0x49, Mappings_WaterfallEHZ, 0x239E, 0, 0),
+    PLAIN(0x49, Mappings_WaterfallEHZ, 0x239E, 2, 3),
+    PLAIN(0x49, Mappings_WaterfallEHZ, 0x239E, 4, 5),
     PLAIN(0x18, Mappings_PlatformEHZ, 0x4000, 1, 0),
     PLAIN(0x18, Mappings_PlatformEHZ, 0x4000, 0x9A, 1),
     SPIKES_ENTRY(0, 0),
@@ -174,9 +175,9 @@ static const DebugListEntry DebugList_EHZ[] = {
     SPRING_DOWN_RED,
     SPRING_DIAG_UP,
     SPRING_DIAG_DOWN,
-    PLAIN(0x4B, Mappings_Buzzer, 0x3E6, 0, 0),
-    PLAIN(0x54, Mappings_Snail, 0x402, 0, 0),
-    PLAIN(0x53, Mappings_Masher, 0x41C, 0, 0),
+    PLAIN(0x4B, Mappings_Buzzer, 0x3D2, 0, 0),
+    PLAIN(0x5C, Mappings_Masher, 0x414, 0, 0),
+    PLAIN(0x9D, Mappings_Coconuts, 0x3EE, 0x1E, 0),
 };
 
 // Debug_MTZ (Metropolis)

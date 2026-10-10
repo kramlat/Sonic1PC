@@ -1,5 +1,5 @@
-// The basic platforms for Sonic 2 (Nick Arcade's object 18, "shima"): Sonic 1's platform object with Nick Arcade's changes: it carries Sonic and Tails, has Emerald Hill's and Hill Top's own mappings (their
-// tiles are the level's) and sizes from a table, and lets go of Sonic only (not Tails) when it starts to fall. Subtype: bits 4-7 the size, bits 0-3 the movement (0 and 9 still, 1 right and left, 2 down and up,
+// The basic platforms for Sonic 2 (object 18, "shima"): Sonic 1's platform object with Sonic 2's changes: it carries Sonic and Tails, has Emerald Hill's and Hill Top's own mappings (their
+// tiles are the level's) and sizes from a table, and lets go of both when it starts to fall (Nick Arcade's let go of Sonic only; the alpha's does both, and drops further before it goes). Subtype: bits 4-7 the size, bits 0-3 the movement (0 and 9 still, 1 right and left, 2 down and up,
 // 3 falls half a second after being stood on, 4 falling, 5 left and right, 6 up and down, 7 rises when a button is pressed, 8 rising, $A and $B a gentle up and down, $C and $D a slow one).
 #include "Object/Platform.h"
 #include "Constants.h"
@@ -37,6 +37,14 @@ static void Platform_ChangeMotion(Object *obj) {
     obj->angle = (uint8_t)(oscillatory.state[6][0] >> 8);
 }
 
+// A player the falling platform lets go of (Offset_0x009492)
+static void Platform_Release(const Object *obj, Object *chr) {
+    chr->status.p.f.in_air = true;
+    chr->status.p.f.object_stand = false;
+    chr->routine = 2;
+    chr->ysp = obj->ysp;
+}
+
 // The movement of the subtype (sub_8926)
 static void Platform_Move(Object *obj, Scratch_Platform *scratch) {
     switch (scratch->subtype & 0xF) {
@@ -50,28 +58,28 @@ static void Platform_Move(Object *obj, Scratch_Platform *scratch) {
         break;
     case 3: // waits for someone to stand on it, then half a second, then falls
         if (scratch->timer == 0) {
-            if (obj->status.b & 8)
+            if (obj->status.b & 0x18)
                 scratch->timer = 0x1E;
         } else if (--scratch->timer == 0) {
             scratch->timer = 0x20;
             scratch->subtype++;
         }
         break;
-    case 4: // falling: Sonic is let go after a moment (only he is)
+    case 4: // falling: whoever stands on it is let go after a moment (the alpha's: both players)
         if (scratch->timer != 0 && --scratch->timer == 0) {
             if (obj->status.b & 8) {
-                player->status.p.f.in_air = true;
-                player->status.p.f.object_stand = false;
-                player->routine = 2;
                 obj->status.b &= (uint8_t)~8;
-                obj->routine_sec = 0;
-                player->ysp = obj->ysp;
+                Platform_Release(obj, player);
+            }
+            if (obj->status.b & 0x10) {
+                obj->status.b &= (uint8_t)~0x10;
+                Platform_Release(obj, TAILS_OBJ);
             }
             obj->routine = PlatRoutine_Falling;
         }
         scratch->base_y.v += (int32_t)obj->ysp << 8;
         obj->ysp += 0x38;
-        if ((uint16_t)(limit_btm2 + 0xE0) < (uint16_t)scratch->base_y.f.u)
+        if ((uint16_t)(limit_btm2 + 0x120) < (uint16_t)scratch->base_y.f.u)
             obj->routine = PlatRoutine_Delete;
         break;
     case 5:

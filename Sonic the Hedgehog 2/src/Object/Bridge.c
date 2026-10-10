@@ -263,7 +263,7 @@ void Obj_Bridge(Object *obj) {
         obj->priority = 3;
         if (LEVEL_ZONE(level_id) == ZoneId_EHZ) {
             obj->mappings = Mappings_BridgeEHZ;
-            obj->tile = TILE_MAP(0, 2, 0, 0, 0x3C6);
+            obj->tile = TILE_MAP(0, 2, 0, 0, 0x3B6);
         }
         if (LEVEL_ZONE(level_id) == ZoneId_HPZ) {
             obj->routine += 4;

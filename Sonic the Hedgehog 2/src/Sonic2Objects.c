@@ -34,6 +34,8 @@ void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
 void Obj_GotThroughCard(Object *obj);
 void Obj_FlickyAnimals(Object *obj);
+void Obj_Coconuts(Object *obj);
+void Obj_EnemyWeapon(Object *obj);
 void Obj_Points(Object *obj);
 void Obj_Spikes(Object *obj);
 void Obj_RingLoss(Object *obj);
@@ -70,6 +72,7 @@ void Obj_Snail(Object *obj);
 void Obj_Spiral(Object *obj);
 void Obj_EHZBoss(Object *obj);
 void Obj_EHZBossPart(Object *obj);
+void Obj_BossExplosion(Object *obj);
 void Obj_CPZPlatform(Object *obj);
 void Obj_CPZPlatform2(Object *obj);
 void Obj_HPZEmerald(Object *obj);
@@ -273,14 +276,14 @@ const ObjectFunc game_objects[] = {
 	/* 52 ObjId_MovingBlock        */ Obj_Null, // Nick Arcade's BFish: not ported yet
 	/* 53 ObjId_CollapseFloor      */ Obj_Masher,
 	/* 54 ObjId_LavaTag            */ Obj_Snail,
-	/* 55 ObjId_Basaran            */ Obj_EHZBoss,
-	/* 56 ObjId_FloatingBlock      */ Obj_Null, // Nick Arcade's EHZBoss2: not ported yet
+	/* 55 ObjId_55                 */ Obj_Null, // (the alpha's Metropolis boss: not ported yet)
+	/* 56 ObjId_56                 */ Obj_EHZBoss, // (the alpha's Emerald Hill boss, Nick Arcade's was 55)
 	/* 57 ObjId_SpikeBall          */ Obj_Null, // Nick Arcade's EHZBoss3: not ported yet
-	/* 58 ObjId_BigSpikeBall       */ Obj_EHZBossPart,
+	/* 58 ObjId_58                 */ Obj_BossExplosion,
 	/* 59 ObjId_Elevator           */ Obj_Null, // removed in Nick Arcade
 	/* 5A ObjId_CirclingPlatform   */ Obj_Null, // removed in Nick Arcade
-	/* 5B ObjId_Staircase          */ Obj_Null, // removed in Nick Arcade
-	/* 5C ObjId_Pylon              */ Obj_Null, // removed in Nick Arcade
+	/* 5B ObjId_5B                 */ Obj_EHZBossPart,
+	/* 5C ObjId_Pylon              */ Obj_Masher, // (the alpha's Masher: Nick Arcade's was 53)
 	/* 5D ObjId_Fan                */ Obj_Null, // removed in Nick Arcade
 	/* 5E ObjId_Seesaw             */ Obj_Null, // removed in Nick Arcade
 	/* 5F ObjId_Bomb               */ Obj_Null, // removed in Nick Arcade
@@ -330,5 +333,38 @@ const ObjectFunc game_objects[] = {
 	/* 8B ObjId_8B                 */ Obj_Null, // removed in Nick Arcade
 	/* 8C ObjId_8C                 */ Obj_Null, // removed in Nick Arcade
 	/* 8D ObjId_8D                 */ Obj_Null, // removed in Nick Arcade
+	/* 8E ObjId_8E                 */ Obj_Null, // (the alpha's Grounder: not ported yet)
+	/* 8F ObjId_8F                 */ Obj_Null, // (the alpha's Wall Grounder: not ported yet)
+	/* 90 ObjId_90                 */ Obj_Null, // (the alpha's Rock Grounder: not ported yet)
+	/* 91 ObjId_91                 */ Obj_Null, // (the alpha's Chop Chop: not ported yet)
+	/* 92 ObjId_92                 */ Obj_Null, // (the alpha's Spiker: not ported yet)
+	/* 93 ObjId_93                 */ Obj_Null, // (the alpha's Spiker drill: not ported yet)
+	/* 94 ObjId_94                 */ Obj_Null, // (the alpha's Rexon body: not ported yet)
+	/* 95 ObjId_95                 */ Obj_Null, // (the alpha's Sol: not ported yet)
+	/* 96 ObjId_96                 */ Obj_Null, // (the alpha's Rexon body: not ported yet)
+	/* 97 ObjId_97                 */ Obj_Null, // (the alpha's Rexon head: not ported yet)
+	/* 98 ObjId_98                 */ Obj_EnemyWeapon,
+	/* 99 ObjId_99                 */ Obj_Null, // (the alpha's Nebula: not ported yet)
+	/* 9A ObjId_9A                 */ Obj_Null, // (the alpha's Turtloid: not ported yet)
+	/* 9B ObjId_9B                 */ Obj_Null, // (the alpha's Turtloid rider: not ported yet)
+	/* 9C ObjId_9C                 */ Obj_Null, // (the alpha's enemy boost: not ported yet)
+	/* 9D ObjId_9D                 */ Obj_Coconuts,
+	/* 9E ObjId_9E                 */ Obj_Null, // (the alpha's Crawlton: not ported yet)
+	/* 9F ObjId_9F                 */ Obj_Null, // (the alpha's Shellcracker: not ported yet)
+	/* A0 ObjId_A0                 */ Obj_Null, // (the alpha's Shellcracker claw: not ported yet)
+	/* A1 ObjId_A1                 */ Obj_Null, // (the alpha's Slicer: not ported yet)
+	/* A2 ObjId_A2                 */ Obj_Null, // (the alpha's Slicer pincers: not ported yet)
+	/* A3 ObjId_A3                 */ Obj_Null, // (the alpha's Flasher: not ported yet)
+	/* A4 ObjId_A4                 */ Obj_Null, // (the alpha's Asteron: not ported yet)
+	/* A5 ObjId_A5                 */ Obj_Null, // (the alpha's horizontal Spiny: not ported yet)
+	/* A6 ObjId_A6                 */ Obj_Null, // (the alpha's vertical Spiny: not ported yet)
+	/* A7 ObjId_A7                 */ Obj_Null, // (the alpha's Grabber: not ported yet)
+	/* A8 ObjId_A8                 */ Obj_Null, // (the alpha's Grabber part: not ported yet)
+	/* A9 ObjId_A9                 */ Obj_Null, // (the alpha's Grabber part: not ported yet)
+	/* AA ObjId_AA                 */ Obj_Null, // (the alpha's Grabber part: not ported yet)
+	/* AB ObjId_AB                 */ Obj_Null, // (the alpha's Grabber part: not ported yet)
+	/* AC ObjId_AC                 */ Obj_Null, // (the alpha's Balkiry: not ported yet)
+	/* AD ObjId_AD                 */ Obj_Null, // (the alpha's Clucker platform: not ported yet)
+	/* AE ObjId_AE                 */ Obj_Null, // (the alpha's Clucker: not ported yet)
 };
 const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0]));

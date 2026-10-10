@@ -18,9 +18,9 @@
 #include "Resource/Mappings/Snail.h"
 
 // Tiles: where Emerald Hill's PLC puts their art
-#define ArtTile_Buzzer 0x3E6
-#define ArtTile_Snail  0x402
-#define ArtTile_Masher 0x41C
+#define ArtTile_Buzzer 0x3D2 // (the alpha's list: Buzzer.nem at $7A40)
+#define ArtTile_Snail  0x402 // (no Snail in the alpha: the prototype's place for it)
+#define ArtTile_Masher 0x414 // (masher.nem at $8280)
 
 // A part of another object: a new object of the same id (the slot after the parent's, as the original allocates), put to the routine given, at the parent's place and with its flips
 static Object *MakePart(Object *parent, uint8_t routine, const uint8_t *mappings, uint16_t tile, uint8_t priority) {

@@ -254,13 +254,13 @@ const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
     [0x0F] = { 0x800, 0x100, 0x100, 0 },
 };
 
-// Level headers (sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's
+// Level headers (sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's (and its chunks, which were Emerald Hill's until that came from the alpha)
 const LevelHeader level_header[ZoneId_Num] = {
     [0x00] = { PlcId_SLZ, S2Art_EHZ, 0, S2Map16_EHZ, PalId_EHZ, S2Map128_EHZ },
     [0x02] = { 0, S2Art_WZ, PlcId_SLZ2, S2Map16_WZ, PalId_WZ, S2Map128_WZ },
     [0x04] = { PlcId_MTZ, S2Art_MTZ, PlcId_MTZ2, S2Map16_MTZ, PalId_MTZ, S2Map128_MTZ },
     [0x05] = { PlcId_MTZ, S2Art_MTZ, PlcId_MTZ2, S2Map16_MTZ, PalId_MTZ, S2Map128_MTZ },
-    [0x07] = { PlcId_SBZ, S2Art_HTZ, PlcId_SBZ2, S2Map16_HTZ, PalId_HTZ, S2Map128_EHZ },
+    [0x07] = { PlcId_SBZ, S2Art_HTZ, PlcId_SBZ2, S2Map16_HTZ, PalId_HTZ, S2Map128_HTZ },
     [0x08] = { PlcId_SYZ, S2Art_HPZ, 0, S2Map16_HPZ, PalId_HPZ, S2Map128_HPZ },
     [0x0A] = { PlcId_OOZ, S2Art_OOZ, PlcId_OOZ2, S2Map16_OOZ, PalId_OOZ, S2Map128_OOZ },
     [0x0B] = { PlcId_DHZ, S2Art_DHZ, PlcId_DHZ2, S2Map16_DHZ, PalId_DHZ, S2Map128_DHZ },

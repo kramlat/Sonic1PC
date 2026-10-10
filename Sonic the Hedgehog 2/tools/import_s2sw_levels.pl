@@ -10,6 +10,8 @@
 #   rings, colind1/2, palette                                                                                                                               res/S2Rings, res/S2Collision/<ZONE>1,2, res/S2Palette/<ZONE>
 #
 # and the level size and start position tables (from s2b.asm and the start position files). The disassembly calls its first zone Green Hill, but it is Emerald Hill (EHZ here), the zone its data and objects are.
+# The zones the Sonic 2 alpha (Aug 21st 1992, ~/Projects/s2aug21-disasm, S2ALPHA to use another) has data for (%alpha below) take that data instead, as the project moves toward that build (M3): its level files, level size table and
+# start positions. Its objects are in the engine's format already (flips in bits 13-14 and remember state in bit 15 of the Y word, the whole id byte).
 # Needs the kosenc and nem2kos tools (KOSENC and NEM2KOS give their paths; they build from ParadoxEngine/tools). Run it in the Sonic 2 folder: import_s2sw_levels.pl
 use strict;
 use warnings;
@@ -18,6 +20,7 @@ use File::Path qw(make_path);
 my $sw = $ENV{S2SW} // "$ENV{HOME}/Projects/s2sw-disasm";
 my $kosenc = $ENV{KOSENC} // 'kosenc';
 my $nem2kos = $ENV{NEM2KOS} // 'nem2kos';
+my $alpha_dir = $ENV{S2ALPHA} // "$ENV{HOME}/Projects/s2aug21-disasm";
 my $ini_dir = "$sw/SonLVL INI Files";
 my $res = 'res';
 
@@ -27,11 +30,16 @@ my %zones = (
     'Hidden Palace'  => ['HPZ', 0x08], 'Oil Ocean'      => ['OOZ',  0x0A], 'Dust Hill'      => ['DHZ',  0x0B], 'Casino Night'   => ['CNZ',  0x0C],
     'Chemical Plant' => ['CPZ', 0x0D], 'Neo Green Hill' => ['NGHZ', 0x0F],
 );
+# The zones taken from the alpha: the folder of its level files, and the files' names. (Its shared chunk file, Level/Shared/Chunks.kos, is Emerald Hill's and Hill Top's together, as the prototype's was.)
+my %alpha = (
+    EHZ => { dir => 'Emerald Hill Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
+             blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => '../Shared/Chunks.kos', col => ['../Shared/Ghz_Col1.dat', '../Shared/Ghz_Col2.dat'], pal => '../../Palettes/GHz.pal' },
+);
 # What each zone's header names: its sprite art list (PlcId; the zones that are not built yet share Hill Top's, which has the common art) and its palette (PalId)
-my %plc = (EHZ => 'PlcId_SLZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ', CNZ => 'PlcId_LZ');
-my %plc2 = (HTZ => 'PlcId_SBZ2', CPZ => 'PlcId_MZ2', NGHZ => 'PlcId_GHZ2', CNZ => 'PlcId_LZ2'); # (the second list of a zone, loaded with the first: only the zones that have a second one)
+my %plc = (EHZ => 'PlcId_SLZ', WZ => '0', MTZ => 'PlcId_MTZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', OOZ => 'PlcId_OOZ', DHZ => 'PlcId_DHZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ', CNZ => 'PlcId_LZ');
+my %plc2 = (WZ => 'PlcId_SLZ2', MTZ => 'PlcId_MTZ2', HTZ => 'PlcId_SBZ2', OOZ => 'PlcId_OOZ2', DHZ => 'PlcId_DHZ2', CPZ => 'PlcId_MZ2', NGHZ => 'PlcId_GHZ2', CNZ => 'PlcId_LZ2'); # (the second list of a zone, loaded with the first: only the zones that have a second one)
 # The zones whose objects are ported: the others have the object layouts imported but none put in their level yet (their objects come with the zone)
-my %objects_built = map { $_ => 1 } qw(EHZ HTZ HPZ CPZ NGHZ);
+my %objects_built = map { $_ => 1 } qw(EHZ MTZ HTZ HPZ OOZ DHZ CPZ NGHZ);
 my %pal = (EHZ => 'PalId_EHZ', HTZ => 'PalId_HTZ', HPZ => 'PalId_HPZ', CPZ => 'PalId_CPZ', WZ => 'PalId_WZ', MTZ => 'PalId_MTZ', OOZ => 'PalId_OOZ', DHZ => 'PalId_DHZ', CNZ => 'PalId_CNZ', NGHZ => 'PalId_NGHZ');
 
 sub slurp { my $p = shift; open my $f, '<:raw', $p or die "$p: $!\n"; local $/; my $d = <$f>; close $f; $d }
@@ -66,33 +74,39 @@ for my $name (@order) {
 
     unless ($done{$zone}++) {
         # tilesets: "a|b:0x3F80" is b over a from that byte
+        my $al = $alpha{$zone};
+        my $alp = sub { "$alpha_dir/Level/$al->{dir}/" . shift };
         my @nem;
-        for my $t (split /\|/, $s->{tiles}) {
+        if ($al) { push @nem, $alp->($al->{tiles}) }
+        else { for my $t (split /\|/, $s->{tiles}) {
             my ($file, $off) = split /:/, $t;
             push @nem, path($file) . (defined $off ? '@' . (hex($off) / 32) : '');
-        }
+        } }
         system($nem2kos, "$res/S2Art/$zone", @nem) == 0 or die "nem2kos failed for $zone\n";
         # blocks
         my $blocks = '';
-        for my $t (split /\|/, $s->{blocks}) {
+        if ($al) { $blocks = slurp($alp->($al->{blocks})) }
+        else { for my $t (split /\|/, $s->{blocks}) {
             my ($file, $off) = split /:/, $t;
             my $d = slurp(path($file));
             if (defined $off) { $blocks = substr($blocks, 0, hex $off) . $d } else { $blocks .= $d }
-        }
+        } }
         kos("$res/S2Map16/$zone", $blocks);
-        spit("$res/S2Map128/$zone", slurp(path($s->{chunks})));      # (Kosinski already)
-        kos("$res/S2Collision/${zone}1", slurp(path($s->{colind1})));
-        kos("$res/S2Collision/${zone}2", slurp(path($s->{colind2})));
+        spit("$res/S2Map128/$zone", slurp($al ? $alp->($al->{chunks}) : path($s->{chunks})));      # (Kosinski already)
+        kos("$res/S2Collision/${zone}1", slurp($al ? $alp->($al->{col}[0]) : path($s->{colind1})));
+        kos("$res/S2Collision/${zone}2", slurp($al ? $alp->($al->{col}[1]) : path($s->{colind2})));
         # the level palette: the file after the first one (Sonic's), "x.bin:0:16:48" is lines 1-3 from file x
         my ($level_pal) = grep { !/Sonic and Tails/ } split /\|/, $s->{palette};
         $level_pal =~ s/:.*//;
-        spit("$res/S2Palette/$zone", slurp(path($level_pal)));
+        spit("$res/S2Palette/$zone", slurp($al ? $alp->($al->{pal}) : path($level_pal)));
         push @resources, "S2Art/$zone", "S2Map16/$zone", "S2Map128/$zone", "S2Collision/${zone}1", "S2Collision/${zone}2", "S2Palette/$zone";
     }
 
     # layouts, side by side
-    my $fg = slurp(path($s->{fglayout}));
-    my $bg = slurp(path($s->{bglayout}));
+    my $al = $alpha{$zone};
+    my $alp = sub { "$alpha_dir/Level/$al->{dir}/" . shift };
+    my $fg = slurp($al ? $alp->($al->{fg}[$act - 1]) : path($s->{fglayout}));
+    my $bg = slurp($al ? $alp->($al->{bg}[$act - 1]) : path($s->{bglayout}));
     my ($fw, $fh) = map { $_ + 1 } unpack('CC', $fg);
     my ($bw, $bh) = map { $_ + 1 } unpack('CC', $bg);
     die "$name: layout does not fit\n" if $fw > 0x80 || $fh > 16 || $bw > 0x80 || $bh > 16;
@@ -105,15 +119,18 @@ for my $name (@order) {
     # objects (an act without any has none), rings
     my $o = $s->{objects} ? slurp(path($s->{objects})) : '';
     my $out = '';
+    if ($al) { $o = ''; $out = slurp($alp->($al->{obj}[$act - 1])); $out =~ s/\0+$//; $out = substr($out, 0, rindex($out, pack('n', 0xFFFF)) ) if $out =~ /\xFF\xFF/; $out .= pack('nnCC', 0xFFFF, 0, 0, 0); }
     for (my $i = 0; $i + 6 <= length $o; $i += 6) {
         my ($x, $yw, $id, $sub) = unpack('nnCC', substr($o, $i, 6));
         my $nyw = ($yw & 0x0FFF) | (($yw & 0x4000) >> 1) | (($yw & 0x8000) >> 1);
         $nyw |= 0x8000 if $id & 0x80;
         $out .= pack('nnCC', $x, $nyw, $id & 0x7F, $sub);
     }
-    spit("$res/S2Objects/$key", $out . pack('nnCC', 0xFFFF, 0, 0, 0));
-    spit("$res/S2Rings/$key", $s->{rings} ? slurp(path($s->{rings})) : pack('n', 0xFFFF));
+    $out .= pack('nnCC', 0xFFFF, 0, 0, 0) unless $al;
+    spit("$res/S2Objects/$key", $out);
+    spit("$res/S2Rings/$key", $al ? slurp($alp->($al->{rng}[$act - 1])) : $s->{rings} ? slurp(path($s->{rings})) : pack('n', 0xFFFF));
     $info{$zone}{acts}{$act}{start} = [ unpack('nn', slurp(path((split /:/, $s->{startpos})[0]))) ];
+    $info{$zone}{acts}{$act}{alpha} = 1 if $al;
     push @resources, "S2Layout/$key", "S2Objects/$key", "S2Rings/$key";
 }
 
@@ -136,6 +153,20 @@ my @sizes;
     }
 }
 die "level size table not found\n" unless @sizes == 17;
+# the alpha's: Level_Size_Array (four longs for each zone slot: act 1's X and Y limits, act 2's) and Player_Start_Position_Array (four words: act 1's X, Y, act 2's)
+my (@alpha_sizes, @alpha_starts);
+{
+    open my $f, '<:raw', "$alpha_dir/sonic2alpha.asm" or die "alpha disassembly: $!\n";
+    my $in_size = 0; my $in_start = 0;
+    while (<$f>) {
+        s/\r//;
+        if (/^Level_Size_Array:/) { $in_size = 1; next }
+        if (/^Player_Start_Position_Array:/) { $in_start = 1; next }
+        if ($in_size) { if (/dc\.l\s+\$(\w+),\s*\$(\w+),\s*\$(\w+),\s*\$(\w+)/) { push @alpha_sizes, [ map { hex } $1, $2, $3, $4 ] } else { $in_size = 0 } }
+        if ($in_start) { if (/dc\.w\s+\$(\w+),\s*\$(\w+),\s*\$(\w+),\s*\$(\w+)/) { push @alpha_starts, [ map { hex } $1, $2, $3, $4 ] } else { $in_start = 0 } }
+    }
+}
+die "the alpha's level size or start tables not found\n" unless @alpha_sizes == 17 && @alpha_starts == 17;
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------
 # src/Sonic2LevelData.c
@@ -190,7 +221,7 @@ $c .= "const int16_t *LevelSizes(int zone, int act) {\n    const int16_t table[Z
 for my $s (@slots) {
     $c .= sprintf("        [%s] = { // $slot{$s}{0}{zone}\n", zid($s));
     for my $a (0 .. 3) {
-        my $e = $sizes[$s];
+        my $e = $info{ $slot{$s}{0}{zone} }{acts}{1}{alpha} ? $alpha_sizes[$s] : $sizes[$s];
         my ($xl, $yl) = $a % 2 ? ($e->[2], $e->[3]) : ($e->[0], $e->[1]);
         my ($xmin, $xmax, $ymin, $ymax) = ($xl >> 16, $xl & 0xFFFF, $yl >> 16, $yl & 0xFFFF);
         $c .= sprintf("            { 0x0004, 0x%04X, 0x%04X + SCREEN_WIDEADD2, 0x%04X, 0x%04X + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },\n", $xmin, $xmax, $ymin, $ymax);
@@ -201,15 +232,15 @@ $c .= "    };\n    static int16_t result[6];\n    memcpy(result, table[zone][act
 
 $c .= "// Player start positions\nconst int16_t StartLocArray[ZoneId_Num][4][2] = {\n";
 for my $s (@slots) {
-    my @row = map { my $e = $slot{$s}{$_} // $slot{$s}{0}; sprintf('{ 0x%04X, 0x%04X }', @{ $e->{start} }) } 0 .. 3;
+    my @row = map { my $a = exists $slot{$s}{$_} ? $_ : 0; my $e = $slot{$s}{$a}; $e->{alpha} ? sprintf('{ 0x%04X, 0x%04X }', @{ $alpha_starts[$s] }[ $a * 2, $a * 2 + 1 ]) : sprintf('{ 0x%04X, 0x%04X }', @{ $e->{start} }) } 0 .. 3;
     $c .= sprintf("    [%s] = { %s }, // $slot{$s}{0}{zone}\n", zid($s), join(', ', @row));
 }
 $c .= "};\n\n// Level scroll block sizes\nconst int16_t BGScrollBlockSizes[ZoneId_Num][4] = {\n";
 $c .= sprintf("    [%s] = { 0x800, 0x100, 0x100, 0 },\n", zid($_)) for @slots;
-$c .= "};\n\n// Level headers (sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's\nconst LevelHeader level_header[ZoneId_Num] = {\n";
+$c .= "};\n\n// Level headers (sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's (and its chunks, which were Emerald Hill's until that came from the alpha)\nconst LevelHeader level_header[ZoneId_Num] = {\n";
 for my $s (@slots) {
     my $z = $slot{$s}{0}{zone};
-    my $chunks = $z eq 'HTZ' ? 'EHZ' : $z;     # (the same file: Hill Top's chunks are Emerald Hill's)
+    my $chunks = $z;
     $c .= sprintf("    [%s] = { %s, S2Art_%s, %s, S2Map16_%s, %s, S2Map128_%s },\n", zid($s), $plc{$z} // 'PlcId_SBZ', $z, $plc2{$z} // '0', $z, $pal{$z}, $chunks);
 }
 $c .= "};\n\n// Level collision indices, one file per path\nconst uint8_t* level_coli[ZoneId_Num - 1][2] = {\n";

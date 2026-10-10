@@ -21,7 +21,7 @@ void Obj_EHZWaterfall(Object *obj) {
     if (obj->routine == 0) {
         obj->routine += 2;
         obj->mappings = Mappings_WaterfallEHZ;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x3AE);
+        obj->tile = TILE_MAP(0, 1, 0, 0, 0x39E);
         obj->render.b = 0;
         obj->render.f.level_fg = true;
         obj->width_pixels = 0x20;
