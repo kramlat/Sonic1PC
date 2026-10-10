@@ -92,7 +92,7 @@ void Obj_Monitor(Object *obj) {
             // it, since Mon_SolidSides' own push/stand handling only backed
             // off for the Roll animation, not the (still curled-up, about
             // to release) Spin Dash animation.
-            if (solid && (player->ysp < 0 || (player->anim != SonAnimId_Roll && player->anim != SonAnimId_SpinDash))) {
+            if (solid && (player->ysp < 0 || (player->anim != SonAnimId_Roll && player->anim != 9 /* the spin dash */))) {
                 if (solid < 0) {
                     // Stand on monitor
                     player->pos.l.y.f.u -= y_off;

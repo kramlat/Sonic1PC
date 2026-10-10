@@ -1,5 +1,5 @@
-// The water's own objects for Sonic 2 (Nick Arcade's 04 and 08): the surface (three strips across the screen, each as wide as the screen was, that follow the camera and bob through a table of frames)
-// and the splash when Sonic enters or leaves the water. The splash sits in the spin dash dust's slot (Sonic 1's level start makes that object), so it waits there, unseen, until it is asked for.
+// The water's own object for Sonic 2 (Nick Arcade's 04): the surface (three strips across the screen, each as wide as the screen was, that follow the camera and bob through a table of frames). The splash when
+// a player enters or leaves the water is DustSplash.c's.
 #include "Object/WaterObjects.h"
 #include "Constants.h"
 
@@ -9,10 +9,6 @@
 
 #include "Macros.h"
 
-#include "Resource/Animation/WaterSplash.h"
-#include "Resource/Animation/WaterSplashSW.h"
-#include "Resource/Mappings/WaterSplash.h"
-#include "Resource/Mappings/WaterSplashSW.h"
 #include "Resource/Mappings/NAWaterSurface.h"
 
 // The frame of the surface on each frame of its cycle (Ani_WaterSurface)
@@ -44,41 +40,4 @@ void Obj_NAWaterSurface(Object *obj) {
     obj->frame = surface_frames[obj->anim_frame & 0x3F];
     obj->anim_frame = (uint8_t)((obj->anim_frame + 1) & 0x3F);
     DisplaySprite(obj);
-}
-
-static bool splash_requested, splash_sw;
-
-// Sonic enters or leaves the water: the splash plays once, where he is, at the water's height
-void NAWaterSplash_Request(void) {
-    splash_requested = true;
-    objects[0x1B].routine = 0;
-}
-
-void Obj_NAWaterSplash(Object *obj) {
-    switch (obj->routine) {
-    case 0:
-        if (!splash_requested)
-            return; // (waiting: the object is made when the level starts)
-        splash_requested = false;
-        obj->routine += 2;
-        // The Simon Wai prototype's own splash (Obj_0x08_Water_Splash) has the art of the air bubbles' list ($A000: its tiles after $49C are the splash's); Hidden Palace keeps Nick Arcade's
-        splash_sw = LEVEL_ZONE(level_id) == ZoneId_CPZ || LEVEL_ZONE(level_id) == ZoneId_ARZ;
-        obj->mappings = splash_sw ? Mappings_WaterSplashSW : Mappings_WaterSplash;
-        obj->tile = splash_sw ? TILE_MAP(0, 2, 0, 0, 0x49C) : TILE_MAP(0, 2, 0, 0, 0x259);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 1;
-        obj->width_pixels = 0x10;
-        obj->anim = 0;
-        obj->prev_anim = 0xFF;
-        obj->pos.l.x.f.u = player->pos.l.x.f.u;
-        // Fallthrough
-    case 2:
-        obj->pos.l.y.f.u = wtr_pos1;
-        AnimateSprite(obj, splash_sw ? Animation_WaterSplashSW : Animation_WaterSplash);
-        DisplaySprite(obj);
-        break;
-    default: // the animation is over (its last command sent the object on): back to waiting
-        obj->routine = 0;
-        break;
-    }
 }

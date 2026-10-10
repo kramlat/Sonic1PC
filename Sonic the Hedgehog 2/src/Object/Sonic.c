@@ -1,5 +1,6 @@
 // Sonic for Sonic 2: a copy of Sonic 1's Sonic.c (Sonic 1 keeps its own), with Nick Arcade's animation code below; his art, mappings, DPLC, animations and palette are Nick Arcade's (res/).
 #include "Object/Sonic.h"
+#include "Object/SuperSonic.h"
 #include "Object/WaterObjects.h"
 #include "Constants.h"
 #include "DebugLog.h"
@@ -15,6 +16,7 @@
 #include "Object/DebugList.h"
 #include "Object/DrownCount.h"
 #include "Object/Splash.h"
+#include "Object/DustSplash.h"
 #include "PLC.h"
 #include "SpecialStage.h"
 #include "Sound.h"
@@ -77,6 +79,11 @@ static void Sonic_Display(Object *obj) {
             sonspeed_max = 0x600; // BUG: Water isn't checked
             sonspeed_acc = 0xC;
             sonspeed_dec = 0x80;
+            if (super_sonic_flag) {
+                sonspeed_max = 0xA00;
+                sonspeed_acc = 0x30;
+                sonspeed_dec = 0x100;
+            }
 
             // Clear flag and restore music
             shoes = false;
@@ -93,13 +100,37 @@ static void Sonic_RecordPosition(Object *obj) {
     track_pos.f.l += 4;
 }
 
-// Sonic's animation for Sonic 2 (a copy of Sonic 1's SonicAnimate.c, with Nick Arcade's changes: _incObj/01 - Sonic.asm, Sonic_Animate). Its frames go above $7F, so a command is a byte of $F0
-// or more; walking and running use the same twelve-frame sets for every angle, and run at half the delay.
+// Sonic's spin dash animation: 9 in the alpha's table (Nick Arcade's too), where Sonic 1's names have 31 for it (and the alpha's own 31 is another script)
+#define SONIC_ANIM_SPINDASH 9
+
+// Super Sonic, as the alpha has it: a flag (its RAM $FFFFFE19, cleared when Sonic starts) that the movement, the balancing, the spin dash and the animation look at. The alpha has no transformation, though: nothing sets it, so
+// SuperSonic_Set (SuperSonic.h) is how a debug build turns it on, with the speeds the alpha gives him.
+bool super_sonic_flag;
+
+void SuperSonic_Set(bool on) {
+    super_sonic_flag = on;
+    sonspeed_max = on ? 0xA00 : 0x600;
+    sonspeed_acc = on ? 0x30 : 0xC;
+    sonspeed_dec = on ? 0x100 : 0x80;
+}
+
+// Sonic's wait animations that get him up: the alpha plays 10 and 11 when he is moved after standing a long time
+#define SONIC_ANIM_GETUP1 0x0A
+#define SONIC_ANIM_GETUP2 0x0B
+// The balance animations: 6 and 12 face the edge (the second when more of him hangs over it), 29 and 30 are for facing away from it (30 turns him round)
+#define SONIC_ANIM_BALANCE2 0x0C
+#define SONIC_ANIM_BALANCE_BACK 0x1D
+#define SONIC_ANIM_BALANCE_TURN 0x1E
+#define SONIC_ANIM_FLIP 0x14
+
+// Sonic's animation for Sonic 2 (a copy of Sonic 1's SonicAnimate.c, with the alpha's changes: Obj_0x01.asm, Sonic_Animate). Its frames go above $7F, so a command is a byte of $F0 or more; walking
+// has sets of 8 frames for the angle and running sets of 4, as in the final game (Super Sonic's, with their own table, are not here yet).
 
 // Sonic animation
 #include "Resource/Animation/Sonic.h"
 
-#define GET_SONIC_ANISCR(x) (Animation_Sonic + ((Animation_Sonic[((x) << 1)] << 8) | (Animation_Sonic[((x) << 1) + 1] << 0)))
+// (the scripts of the table that is in use: Super Sonic's follows Sonic's in the data, at $1A2)
+#define GET_SONIC_ANISCR(x) (table + ((table[((x) << 1)] << 8) | (table[((x) << 1) + 1] << 0)))
 
 static void Sonic_AnimateReadFrame(Object *obj, const uint8_t *anim_script) {
     // Read current animation command
@@ -133,7 +164,8 @@ static void Sonic_AnimateReadFrame(Object *obj, const uint8_t *anim_script) {
 void Sonic_Animate(Object *obj) {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
     // Get animation script to use
-    const uint8_t* anim_script = Animation_Sonic;
+    const uint8_t *table = super_sonic_flag ? Animation_Sonic + 0x1A2 : Animation_Sonic;
+    const uint8_t* anim_script = table;
 
     // Check if animation changed
     uint8_t anim = obj->anim;
@@ -172,6 +204,8 @@ void Sonic_Animate(Object *obj) {
             // Walking or running
             // Get orienatation
             uint8_t angle = obj->angle;
+            if (angle != 0 && !(angle & 0x80))
+                angle--; // (the alpha: a slope that rises counts one step less)
             uint8_t flip = obj->status.p.f.x_flip;
             if (!flip)
                 angle ^= ~0;
@@ -188,11 +222,11 @@ void Sonic_Animate(Object *obj) {
                 if (!obj->status.p.f.x_flip) {
                     obj->render.f.x_flip = false;
                     obj->render.f.y_flip = false;
-                    obj->frame = (uint8_t)(((uint8_t)(fa + 0xB)) / 0x16 + 0x9B);
+                    obj->frame = (uint8_t)(((uint8_t)(fa + 0xB)) / 0x16 + 0x5F);
                 } else {
                     obj->render.f.x_flip = true;
                     obj->render.f.y_flip = true;
-                    obj->frame = (uint8_t)(((uint8_t)((uint8_t)-fa + 0x8F)) / 0x16 + 0x9B);
+                    obj->frame = (uint8_t)(((uint8_t)((uint8_t)-fa + 0x8F)) / 0x16 + 0x5F);
                 }
                 obj->frame_time.b = 0;
                 return;
@@ -202,28 +236,38 @@ void Sonic_Animate(Object *obj) {
             if (obj->status.p.f.pushing)
                 goto Anim_Pushing;
 
-            // Get rotation (the set of frames for the angle: 12 frames a step, for walking and running alike)
+            // Get rotation (the set of frames for the angle)
             angle = (angle >> 4) & 6;
 
             // Get absolute speed
             uint16_t abs_spd = (obj->inertia < 0) ? -obj->inertia : obj->inertia;
 
-            // Get script to use
+            // Get script to use: the walking sets are 8 frames apart, the running ones 4 (Super Sonic's: 16 and 2, and he runs from $800)
             anim_script = GET_SONIC_ANISCR(SonAnimId_Run);
-            if (abs_spd < 0x600)
+            if (!super_sonic_flag) {
+                angle <<= 1;
+                if (abs_spd < 0x600) {
+                    anim_script = GET_SONIC_ANISCR(SonAnimId_Walk);
+                    angle <<= 1;
+                }
+            } else if (abs_spd < 0x800) {
                 anim_script = GET_SONIC_ANISCR(SonAnimId_Walk);
-            angle += (angle >> 1);
-            angle <<= 2;
+                angle <<= 2;
+            } else {
+                angle >>= 1;
+            }
 
             // Get animation delay
             int16_t anim_spd = 0x800 - abs_spd;
             if (anim_spd < 0)
                 anim_spd = 0;
-            obj->frame_time.b = anim_spd >> 9;
+            obj->frame_time.b = anim_spd >> 8;
 
             // Read animation
             Sonic_AnimateReadFrame(obj, anim_script);
             obj->frame += angle;
+            if (super_sonic_flag && !(frame_count & 3) && obj->frame < 0xB5)
+                obj->frame += 0x20; // (Super Sonic glows every fourth frame)
         } else if (++anim_wait == 0) {
             // Rolling
             // Get absolute speed
@@ -334,6 +378,9 @@ void Sonic_ResetOnFloor(Object *obj) {
     scratch->flip_angle = 0;
     scratch->jumping = false;
     item_bonus = 0;
+    scratch->flips_remaining = 0;
+    if (obj->anim == SONIC_ANIM_FLIP)
+        obj->anim = SonAnimId_Walk; // (the alpha: a landing ends a flip's animation)
 }
 
 static int16_t Sonic_Angle(Object *obj, int16_t dist0, int16_t dist1) {
@@ -689,7 +736,7 @@ static signed int React_ChkHurt(Object *obj, Object *hit) {
 static signed int React_Enemy(Object *obj, Object *hit)
 {
     // Check if we can hurt the enemy
-    if (!(invincibility || obj->anim == SonAnimId_Roll || obj->anim == SonAnimId_SpinDash)) // (Nick Arcade: a charging spin dash hurts enemies too: its animation 9)
+    if (!(invincibility || obj->anim == SonAnimId_Roll || obj->anim == SONIC_ANIM_SPINDASH)) // (Nick Arcade: a charging spin dash hurts enemies too: its animation 9)
         return React_ChkHurt(obj, hit);
 
     // Check if enemy is a boss
@@ -1033,31 +1080,94 @@ static void Sonic_Move(Object *obj) {
                     // Balance on an object
                     Object* stand = &objects[scratch->standing_obj];
                     if (!stand->status.o.f.flag7) {
-                        int16_t left_dist = stand->width_pixels;
-                        int16_t right_dist = left_dist + left_dist - 4;
-                        left_dist += obj->pos.l.x.f.u - stand->pos.l.x.f.u;
+                        int16_t dist = stand->width_pixels;
+                        int16_t far_dist = dist + dist - 2;
+                        dist += obj->pos.l.x.f.u - stand->pos.l.x.f.u;
 
-                        if (left_dist < 4)
-                            obj->status.p.f.x_flip = true;
-                        else if (left_dist >= right_dist)
-                            obj->status.p.f.x_flip = false;
-                        else
-                            goto LookUpDown;
-                        obj->anim = SonAnimId_Balance;
+                        if (!super_sonic_flag) {
+                            if (dist < 2) { // at the left edge
+                                if (obj->status.p.f.x_flip) { // facing it
+                                    obj->anim = SonAnimId_Balance;
+                                    if (dist < -4)
+                                        obj->anim = SONIC_ANIM_BALANCE2;
+                                } else { // facing away: the balance of the other way round, then turning round
+                                    obj->anim = SONIC_ANIM_BALANCE_BACK;
+                                    if (dist < -4) {
+                                        obj->anim = SONIC_ANIM_BALANCE_TURN;
+                                        obj->status.p.f.x_flip = true;
+                                    }
+                                }
+                            } else if (dist >= far_dist) { // at the right edge
+                                far_dist += 6;
+                                if (!obj->status.p.f.x_flip) {
+                                    obj->anim = SonAnimId_Balance;
+                                    if (dist >= far_dist)
+                                        obj->anim = SONIC_ANIM_BALANCE2;
+                                } else {
+                                    obj->anim = SONIC_ANIM_BALANCE_BACK;
+                                    if (dist >= far_dist) {
+                                        obj->anim = SONIC_ANIM_BALANCE_TURN;
+                                        obj->status.p.f.x_flip = false;
+                                    }
+                                }
+                            } else {
+                                goto LookUpDown;
+                            }
+                        } else { // Super Sonic just turns to the edge
+                            if (dist < 2)
+                                obj->status.p.f.x_flip = true;
+                            else if (dist >= far_dist)
+                                obj->status.p.f.x_flip = false;
+                            else
+                                goto LookUpDown;
+                            obj->anim = SonAnimId_Balance;
+                        }
                         goto Sonic_ResetScr;
                     }
                 } else {
                     // Balance on level
                     if (ObjFloorDist(obj, obj->pos.l.x.f.u) >= 12) {
-                        if (scratch->front_angle == 3) {
-                            obj->status.p.f.x_flip = false;
-                            obj->anim = SonAnimId_Balance;
-                            goto Sonic_ResetScr;
-                        }
-                        if (scratch->back_angle == 3) {
-                            obj->status.p.f.x_flip = true;
-                            obj->anim = SonAnimId_Balance;
-                            goto Sonic_ResetScr;
+                        if (!super_sonic_flag) {
+                            // (the second sensor looks 6 pixels back from the edge: when that has no floor either, more of him is over it)
+                            if (scratch->front_angle == 3) {
+                                if (!obj->status.p.f.x_flip) {
+                                    obj->anim = SonAnimId_Balance;
+                                    if (ObjFloorDist(obj, (int16_t)(obj->pos.l.x.f.u - 6)) >= 12)
+                                        obj->anim = SONIC_ANIM_BALANCE2;
+                                } else {
+                                    obj->anim = SONIC_ANIM_BALANCE_BACK;
+                                    if (ObjFloorDist(obj, (int16_t)(obj->pos.l.x.f.u - 6)) >= 12) {
+                                        obj->anim = SONIC_ANIM_BALANCE_TURN;
+                                        obj->status.p.f.x_flip = false;
+                                    }
+                                }
+                                goto Sonic_ResetScr;
+                            }
+                            if (scratch->back_angle == 3) {
+                                if (obj->status.p.f.x_flip) {
+                                    obj->anim = SonAnimId_Balance;
+                                    if (ObjFloorDist(obj, (int16_t)(obj->pos.l.x.f.u + 6)) >= 12)
+                                        obj->anim = SONIC_ANIM_BALANCE2;
+                                } else {
+                                    obj->anim = SONIC_ANIM_BALANCE_BACK;
+                                    if (ObjFloorDist(obj, (int16_t)(obj->pos.l.x.f.u + 6)) >= 12) {
+                                        obj->anim = SONIC_ANIM_BALANCE_TURN;
+                                        obj->status.p.f.x_flip = true;
+                                    }
+                                }
+                                goto Sonic_ResetScr;
+                            }
+                        } else {
+                            if (scratch->front_angle == 3) {
+                                obj->status.p.f.x_flip = false;
+                                obj->anim = SonAnimId_Balance;
+                                goto Sonic_ResetScr;
+                            }
+                            if (scratch->back_angle == 3) {
+                                obj->status.p.f.x_flip = true;
+                                obj->anim = SonAnimId_Balance;
+                                goto Sonic_ResetScr;
+                            }
                         }
                     }
                 }
@@ -1105,11 +1215,12 @@ static void Sonic_Move(Object *obj) {
     // Friction
     DoFriction:;
         if (!(jpad1_hold2 & (JPAD_LEFT | JPAD_RIGHT))) {
+            const int16_t friction = super_sonic_flag ? 0xC : sonspeed_acc; // (Super Sonic stops as slowly as he starts out)
             if (obj->inertia > 0) {
-                if ((obj->inertia -= sonspeed_acc) < 0)
+                if ((obj->inertia -= friction) < 0)
                     obj->inertia = 0;
             } else if (obj->inertia < 0) {
-                if ((obj->inertia += sonspeed_acc) >= 0)
+                if ((obj->inertia += friction) >= 0)
                     obj->inertia = 0;
             }
         }
@@ -1479,7 +1590,7 @@ static void Sonic_Spindash_ResetScr(Object *obj) {
 }
 
 static void Sonic_ChargingSpindash(Object *obj) {
-    obj->anim = SonAnimId_SpinDash; // make sure Spin Dash animation stays
+    obj->anim = SONIC_ANIM_SPINDASH; // make sure Spin Dash animation stays
 
     // Charge decay
     spindash_count -= spindash_count >> 5;
@@ -1490,7 +1601,7 @@ static void Sonic_ChargingSpindash(Object *obj) {
     }
 
     // Restart Spin Dash animation
-    obj->anim = SonAnimId_SpinDash;
+    obj->anim = SONIC_ANIM_SPINDASH;
     obj->anim_frame = 0;
     obj->frame_time.b = 0;
     PlaySound(sfx_SpindashRev);
@@ -1512,20 +1623,16 @@ static void Sonic_ReleaseSpindash(Object *obj) {
     PlaySound(sfx_Teleport);
     objects[0x1B].anim = SplashAnim_Null;
 
-    // Get release speed from number of revs performed
-    int16_t rev = (int16_t)(spindash_count >> 1);
-    int16_t speed = rev + 0x800;
+    // Get release speed from the number of revs (the alpha's table: $80 for each step of the counter's high byte, Super Sonic's $300 more)
+    int16_t speed = (int16_t)(0x800 + (((spindash_count >> 8) & 0xFF) << 7));
+    if (super_sonic_flag)
+        speed += 0x300;
     if (obj->status.p.f.x_flip)
         speed = -speed;
     obj->inertia = speed;
 
-    // Camera delay (based on rev count, before the base speed was added)
-    uint16_t cam = (uint16_t)rev;
-    cam <<= 1;
-    cam &= 0x1F00;
-    cam = (uint16_t)(-(int16_t)cam);
-    cam += 0x2000;
-    cam_x_delay = cam;
+    // Camera delay (the alpha's is always $2000)
+    cam_x_delay = 0x2000;
 
     // Set new velocities immediately (same convention as Sonic_Move/Sonic_RollSpeed: cos->xsp, sin->ysp)
     int16_t sin, cos;
@@ -1542,7 +1649,7 @@ static void Sonic_UpdateSpindash(Object *obj) {
     // Monitor's own Mon_SolidSides push-vs-break check (which now also
     // exempts this animation, see Monitor.c) gets a chance to run this
     // same frame and see a stale Push animation instead.
-    obj->anim = SonAnimId_SpinDash;
+    obj->anim = SONIC_ANIM_SPINDASH;
     if (jpad1_hold2 & JPAD_DOWN) {
         Sonic_ChargingSpindash(obj);
         return;
@@ -1573,12 +1680,12 @@ static bool Sonic_SpinDash(Object *obj) {
     if (!(jpad1_press2 & (JPAD_A | JPAD_C | JPAD_B)))
         return false;
 
-    obj->anim = SonAnimId_SpinDash;
+    obj->anim = SONIC_ANIM_SPINDASH;
     PlaySound(sfx_SpindashRev);
     spindash_flag |= 1;
     spindash_count = 0;
     if (air >= 12)
-        objects[0x1B].anim = SplashAnim_Dash;
+        DustSplash_Show(&objects[0x1B], DUST_DASH);
 
     // Because we're skipping the rest of the normal-movement case
     Sonic_LevelBound(obj);
@@ -1608,6 +1715,11 @@ static void Sonic_Water(Object *obj) {
             sonspeed_max = 0xC00;
             sonspeed_acc = 0x18;
         }
+        if (super_sonic_flag) {
+            sonspeed_max = 0xA00;
+            sonspeed_acc = 0x30;
+            sonspeed_dec = 0x100;
+        }
 
         obj->ysp = (int16_t)(obj->ysp << 1); // double Y-speed while exiting water
         if (obj->ysp == 0)
@@ -1615,7 +1727,7 @@ static void Sonic_Water(Object *obj) {
         if (obj->ysp < -0x1000)
             obj->ysp = -0x1000; // cap max speed on leaving water
 
-        NAWaterSplash_Request();
+        DustSplash_Show(&objects[0x1B], DUST_SPLASH);
         PlaySound(sfx_Splash);
     } else {
         // Underwater
@@ -1636,13 +1748,18 @@ static void Sonic_Water(Object *obj) {
             sonspeed_acc = 0xC;
             sonspeed_dec = 0x80;
         }
+        if (super_sonic_flag) {
+            sonspeed_max = 0x500;
+            sonspeed_acc = 0x18;
+            sonspeed_dec = 0x80;
+        }
 
         obj->xsp >>= 1; // half X-speed when entering water
         obj->ysp >>= 2; // quarter Y-speed when entering water
         if (obj->ysp == 0)
             return;
 
-        NAWaterSplash_Request();
+        DustSplash_Show(&objects[0x1B], DUST_SPLASH);
         PlaySound(sfx_Splash);
     }
 }
@@ -2071,6 +2188,19 @@ void Obj_Sonic(Object* obj) {
         if (!(CharObjControl(obj) & 1)) {
             switch ((obj->status.p.f.in_ball << 2) | (obj->status.p.f.in_air << 1)) {
             case 0: // Not in ball, not in air
+                // The alpha's long wait: after standing for a while (animation 5 from its frame $1E) he does nothing until a button is held, and then gets up (animation 10, or 11 from frame $AC)
+                if (!(jpad1_press1 & (JPAD_A | JPAD_B | JPAD_C))) {
+                    if (obj->anim == SONIC_ANIM_GETUP1 || obj->anim == SONIC_ANIM_GETUP2)
+                        break;
+                    if (obj->anim == SonAnimId_Wait && obj->anim_frame >= 0x1E) {
+                        if (!(jpad1_hold1 & 0x7F))
+                            break;
+                        obj->anim = SONIC_ANIM_GETUP1;
+                        if (obj->anim_frame >= 0xAC)
+                            obj->anim = SONIC_ANIM_GETUP2;
+                        break;
+                    }
+                }
                 if (Sonic_SpinDash(obj))
                     break;
                 if (Sonic_Jump(obj))

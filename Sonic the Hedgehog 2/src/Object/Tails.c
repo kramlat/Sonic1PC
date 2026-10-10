@@ -2,6 +2,7 @@
 // which a stub of a "CPU" fills with Sonic's own pad from 16 frames ago; he has no water code, no debug mode and no flight yet; hurting him loses SONIC'S rings (the copy of the hurt
 // code works on the shared ring count); he does not die from enemies, only from falling below the level, and then he comes back above Sonic.
 #include "Object/Tails.h"
+#include "Object/DustSplash.h"
 #include "SplitScreen.h"
 #include "Backend/VDP.h"
 #include "Object/Sonic.h"
@@ -46,9 +47,14 @@ extern uint8_t hud_lives_slot; // (HUD.c; its header holds the HUD's art too, wh
 #define ArtTile_Tails      0x7A0
 #define ArtTile_TailsTails 0x7B0
 #define TAILSTAILS_SLOT    0x1D
+// His animations, as the alpha's table has them (ids 0-8 are Sonic 1's names; its 9 is the spin dash, where the port's Sonic has had 31, and its entry 31 the script of his fastest running)
+#define TAILS_ANIM_SPINDASH 9
+#define TAILS_ANIM_PEELOUT  31
 
 // Spin Dash state
 static uint8_t spindash_flag;
+// Tails' own top speed, acceleration and deceleration (the alpha's Miles_Max_Speed and the others at $FFFFFEC0): Sonic's are his own, so the water and the shoes of the one do not slow the other
+static int16_t tails_speed_max = 0x600, tails_speed_acc = 0xC, tails_speed_dec = 0x80;
 static uint16_t spindash_count;
 
 // Sonic's pad for the last 64 frames (Sonic_Stat_Record_Buf), and how long a real pad 2 has had Tails (Tails_control_counter)
@@ -62,6 +68,53 @@ static uint8_t last_frame_tails = 0xFF, last_frame_tail = 0xFF;
 static signed int HurtTails(Object *obj, Object *src);
 
 // General Sonic state stuff
+static inline uint8_t scratch_air(const Object *obj) {
+    return ((const Scratch_Sonic *)&obj->scratch)->air;
+}
+
+// Water (the alpha's Miles_Water): Tails slows in it as Sonic does, with the speeds of his own, and the water splashes where he goes in and out. (His air and his drowning are not here yet: the alpha's
+// breathing bubbles for him belong to the counting object.)
+static void Tails_Water(Object *obj) {
+    if (!Level_HasWater())
+        return;
+
+    if (obj->pos.l.y.f.u < wtr_pos1) {
+        // Above water
+        if (!obj->status.p.f.underwater)
+            return;
+        obj->status.p.f.underwater = false;
+
+        tails_speed_max = 0x600;
+        tails_speed_acc = 0xC;
+        tails_speed_dec = 0x80;
+
+        if (obj->routine != 4)
+            obj->ysp = (int16_t)(obj->ysp << 1); // double Y-speed while leaving the water (not when he is hurt)
+        if (obj->ysp == 0)
+            return;
+        DustSplash_Show(&objects[DUST_TAILS_SLOT], DUST_SPLASH);
+        if (obj->ysp < -0x1000)
+            obj->ysp = -0x1000;
+        PlaySound(sfx_Splash);
+    } else {
+        // Underwater
+        if (obj->status.p.f.underwater)
+            return;
+        obj->status.p.f.underwater = true;
+
+        tails_speed_max = 0x300;
+        tails_speed_acc = 0x6;
+        tails_speed_dec = 0x40;
+
+        obj->xsp >>= 1;
+        obj->ysp >>= 2;
+        if (obj->ysp == 0)
+            return;
+        DustSplash_Show(&objects[DUST_TAILS_SLOT], DUST_SPLASH);
+        PlaySound(sfx_Splash);
+    }
+}
+
 static void Tails_Display(Object *obj) {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
@@ -92,9 +145,9 @@ static void Tails_Display(Object *obj) {
     if (scratch->shoes_time) {
         if (--scratch->shoes_time == 0) {
             // Restore Sonic's speed
-            sonspeed_max = 0x600; // BUG: Water isn't checked
-            sonspeed_acc = 0xC;
-            sonspeed_dec = 0x80;
+            tails_speed_max = 0x600; // BUG: Water isn't checked
+            tails_speed_acc = 0xC;
+            tails_speed_dec = 0x80;
 
             // Clear flag and restore music
             shoes = false;
@@ -201,6 +254,8 @@ static void Tails_AnimateTable(Object *obj, const uint8_t *table, const Object *
     uint16_t abs_spd = (obj->inertia < 0) ? -obj->inertia : obj->inertia;
     if (++wait == 0) { // $FF: walking or running
         uint8_t angle = obj->angle;
+        if (angle != 0 && !(angle & 0x80))
+            angle--; // (the alpha: a slope that rises counts one step less)
         uint8_t flip = obj->status.p.f.x_flip;
         if (!flip)
             angle ^= ~0;
@@ -223,16 +278,16 @@ static void Tails_AnimateTable(Object *obj, const uint8_t *table, const Object *
             obj->frame_time.b = 0;
             return;
         }
-        // The prototype's Tails walks while he pushes: his push animation has no art (Tails_Animate_Push_NoArt), and his walking branch, unlike Sonic's, never goes to it. Re-enable this (and the Anim_Pushing label
-        // below) when he has push art:
-        // if (obj->status.p.f.pushing)
-        //     goto Anim_Pushing;
+        if (obj->status.p.f.pushing)
+            goto Anim_Pushing;
         angle = (angle >> 4) & 6;
         const uint8_t *s = TAILS_SCRIPT(SonAnimId_Walk);
         uint8_t offset = (uint8_t)(angle << 2);
         if (abs_spd >= 0x600) {
             s = TAILS_SCRIPT(SonAnimId_Run);
             offset = (uint8_t)((angle + (angle >> 1)) << 1);
+            if (abs_spd >= 0x700)
+                s = TAILS_SCRIPT(TAILS_ANIM_PEELOUT); // (the alpha: a third set for his fastest running)
         }
         int16_t spd = 0x800 - abs_spd;
         if (spd < 0)
@@ -252,7 +307,7 @@ static void Tails_AnimateTable(Object *obj, const uint8_t *table, const Object *
         obj->render.f.y_flip = false;
         Tails_AnimateReadFrame(obj, s);
     } else if (++wait == 0) { // $FD: pushing
-    // Anim_Pushing:; // (the label the check above goes to)
+    Anim_Pushing:;
         int16_t spd = 0x800 - abs_spd;
         if (spd < 0)
             spd = 0;
@@ -317,6 +372,9 @@ void Tails_ResetOnFloor(Object *obj) {
     scratch->flip_angle = 0;
     scratch->jumping = false;
     item_bonus = 0;
+    scratch->flips_remaining = 0;
+    if (obj->anim == 0x14)
+        obj->anim = SonAnimId_Walk; // (the alpha: a landing ends a flip's animation)
 }
 
 static int16_t Tails_Angle(Object *obj, int16_t dist0, int16_t dist1) {
@@ -834,6 +892,7 @@ static signed int HurtTails(Object *obj, Object *src)
     // Set Sonic state
     obj->routine = 4;
     spindash_flag &= ~1;
+    objects[DUST_TAILS_SLOT].anim = DUST_NULL;
     Tails_ResetOnFloor(obj);
     obj->status.p.f.in_air = true;
 
@@ -918,15 +977,15 @@ static void Tails_MoveLeft(Object *obj) {
         }
 
         // Accelerate
-        if ((inertia -= sonspeed_acc) <= -sonspeed_max)
-            inertia = -sonspeed_max;
+        if ((inertia -= tails_speed_acc) <= -tails_speed_max)
+            inertia = -tails_speed_max;
 
         // Set speed and animation
         obj->inertia = inertia;
         obj->anim = SonAnimId_Walk;
     } else {
         // Decelerate
-        if ((inertia -= sonspeed_dec) < 0)
+        if ((inertia -= tails_speed_dec) < 0)
             inertia = -0x80;
         obj->inertia = inertia;
 
@@ -945,15 +1004,15 @@ static void Tails_MoveRight(Object *obj) {
         }
 
         // Accelerate
-        if ((inertia += sonspeed_acc) >= sonspeed_max)
-            inertia = sonspeed_max;
+        if ((inertia += tails_speed_acc) >= tails_speed_max)
+            inertia = tails_speed_max;
 
         // Set speed and animation
         obj->inertia = inertia;
         obj->anim = SonAnimId_Walk;
     } else {
         // Decelerate
-        if ((inertia += sonspeed_dec) >= 0)
+        if ((inertia += tails_speed_dec) >= 0)
             inertia = 0x80;
         obj->inertia = inertia;
 
@@ -1058,10 +1117,10 @@ static void Tails_Move(Object *obj) {
     DoFriction:;
         if (!(jpad2_hold & (JPAD_LEFT | JPAD_RIGHT))) {
             if (obj->inertia > 0) {
-                if ((obj->inertia -= sonspeed_acc) < 0)
+                if ((obj->inertia -= tails_speed_acc) < 0)
                     obj->inertia = 0;
             } else if (obj->inertia < 0) {
-                if ((obj->inertia += sonspeed_acc) >= 0)
+                if ((obj->inertia += tails_speed_acc) >= 0)
                     obj->inertia = 0;
             }
         }
@@ -1210,7 +1269,7 @@ static void Tails_RollLeft(Object *obj) {
         obj->anim = SonAnimId_Roll;
     } else {
         // Decelerate
-        if ((inertia -= sonspeed_dec >> 2) < 0)
+        if ((inertia -= tails_speed_dec >> 2) < 0)
             inertia = -0x80;
         obj->inertia = inertia;
     }
@@ -1224,7 +1283,7 @@ static void Tails_RollRight(Object *obj) {
         obj->anim = SonAnimId_Roll;
     } else {
         // Decelerate
-        if ((inertia += sonspeed_dec >> 2) >= 0)
+        if ((inertia += tails_speed_dec >> 2) >= 0)
             inertia = 0x80;
         obj->inertia = inertia;
     }
@@ -1247,10 +1306,10 @@ static void Tails_RollSpeed(Object *obj) {
 
         // Friction
         if (obj->inertia > 0) {
-            if ((obj->inertia -= (sonspeed_acc >> 1)) < 0)
+            if ((obj->inertia -= (tails_speed_acc >> 1)) < 0)
                 obj->inertia = 0;
         } else {
-            if ((obj->inertia += (sonspeed_acc >> 1)) >= 0)
+            if ((obj->inertia += (tails_speed_acc >> 1)) >= 0)
                 obj->inertia = 0;
         }
 
@@ -1339,15 +1398,15 @@ static void Tails_JumpDirection(Object *obj) {
         // Accelerate left
         if (jpad2_hold & JPAD_LEFT) {
             obj->status.p.f.x_flip = true;
-            if ((xsp -= (sonspeed_acc << 1)) <= -sonspeed_max)
-                xsp = -sonspeed_max;
+            if ((xsp -= (tails_speed_acc << 1)) <= -tails_speed_max)
+                xsp = -tails_speed_max;
         }
 
         // Accelerate right
         if (jpad2_hold & JPAD_RIGHT) {
             obj->status.p.f.x_flip = false;
-            if ((xsp += (sonspeed_acc << 1)) >= sonspeed_max)
-                xsp = sonspeed_max;
+            if ((xsp += (tails_speed_acc << 1)) >= tails_speed_max)
+                xsp = tails_speed_max;
         }
 
         // Apply acceleration
@@ -1431,7 +1490,7 @@ static void Tails_Spindash_ResetScr(Object *obj) {
 }
 
 static void Tails_ChargingSpindash(Object *obj) {
-    obj->anim = SonAnimId_SpinDash; // make sure Spin Dash animation stays
+    obj->anim = TAILS_ANIM_SPINDASH; // make sure Spin Dash animation stays
 
     // Charge decay
     spindash_count -= spindash_count >> 5;
@@ -1442,7 +1501,7 @@ static void Tails_ChargingSpindash(Object *obj) {
     }
 
     // Restart Spin Dash animation
-    obj->anim = SonAnimId_SpinDash;
+    obj->anim = TAILS_ANIM_SPINDASH;
     obj->anim_frame = 0;
     obj->frame_time.b = 0;
     PlaySound(sfx_SpindashRev);
@@ -1462,21 +1521,16 @@ static void Tails_ReleaseSpindash(Object *obj) {
     obj->anim = SonAnimId_Roll;
     obj->status.p.f.in_ball = true;
     PlaySound(sfx_Teleport);
+    objects[DUST_TAILS_SLOT].anim = DUST_NULL;
 
-    // Get release speed from number of revs performed
-    int16_t rev = (int16_t)(spindash_count >> 1);
-    int16_t speed = rev + 0x800;
+    // Get release speed from the number of revs (the alpha's table: $80 for each step of the counter's high byte)
+    int16_t speed = (int16_t)(0x800 + (((spindash_count >> 8) & 0xFF) << 7));
     if (obj->status.p.f.x_flip)
         speed = -speed;
     obj->inertia = speed;
 
-    // Camera delay (based on rev count, before the base speed was added)
-    uint16_t cam = (uint16_t)rev;
-    cam <<= 1;
-    cam &= 0x1F00;
-    cam = (uint16_t)(-(int16_t)cam);
-    cam += 0x2000;
-    cam_x_delay = cam;
+    // Camera delay (the alpha's is always $2000)
+    cam_x_delay = 0x2000;
 
     // Set new velocities immediately (same convention as Tails_Move/Tails_RollSpeed: cos->xsp, sin->ysp)
     int16_t sin, cos;
@@ -1493,7 +1547,7 @@ static void Tails_UpdateSpindash(Object *obj) {
     // Monitor's own Mon_SolidSides push-vs-break check (which now also
     // exempts this animation, see Monitor.c) gets a chance to run this
     // same frame and see a stale Push animation instead.
-    obj->anim = SonAnimId_SpinDash;
+    obj->anim = TAILS_ANIM_SPINDASH;
     if (jpad2_hold & JPAD_DOWN) {
         Tails_ChargingSpindash(obj);
         return;
@@ -1509,6 +1563,8 @@ void Tails_CancelSpindash(void) {
         return;
     spindash_flag &= ~1;
     spindash_count = 0;
+    if (objects[DUST_TAILS_SLOT].anim == DUST_DASH)
+        objects[DUST_TAILS_SLOT].anim = DUST_NULL;
 }
 
 static bool Tails_SpinDash(Object *obj) {
@@ -1522,10 +1578,12 @@ static bool Tails_SpinDash(Object *obj) {
     if (!(jpad2_press & (JPAD_A | JPAD_C | JPAD_B)))
         return false;
 
-    obj->anim = SonAnimId_SpinDash;
+    obj->anim = TAILS_ANIM_SPINDASH;
     PlaySound(sfx_SpindashRev);
     spindash_flag |= 1;
     spindash_count = 0;
+    if (scratch_air(obj) >= 12)
+        DustSplash_Show(&objects[DUST_TAILS_SLOT], DUST_DASH);
 
     // Because we're skipping the rest of the normal-movement case
     Tails_LevelBound(obj);
@@ -1534,10 +1592,12 @@ static bool Tails_SpinDash(Object *obj) {
 }
 
 
-// The tails (object 05): follows Tails, turning with his animation. His own art window, and the animation of the tails for each of Tails' animations (Obj05_Animations).
-static const uint8_t TailsTails_Animations[32] = {
-    0, 0, 3, 3, 0, 1, 0, 2, 1, 7, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, // (animation 31: the port's spin dash)
+// The tails (object 05): follows Tails, turning with his animation. His own art window, and the animation of the tails for each of Tails' animations (the alpha's table at $0124CA; a Tails who pushes
+// has the tails of animation 4).
+static const uint8_t TailsTails_Animations[34] = {
+    0, 0, 3, 3, 9, 1, 0, 2, 1, 7, 0, 0, 0, 8, 0, 0,
+    0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0,
 };
 static uint8_t tails_tails_prev_anim = 0xFF;
 
@@ -1560,9 +1620,10 @@ void Obj_TailsTails(Object *obj) {
         obj->status = tails->status;
         obj->pos.l.x.f.u = tails->pos.l.x.f.u;
         obj->pos.l.y.f.u = tails->pos.l.y.f.u;
-        if (tails->anim != tails_tails_prev_anim) {
-            tails_tails_prev_anim = tails->anim;
-            obj->anim = TailsTails_Animations[tails->anim & 0x1F];
+        const uint8_t cue = tails->status.p.f.pushing ? 4 : (tails->anim < sizeof(TailsTails_Animations) ? tails->anim : 0);
+        if (cue != tails_tails_prev_anim) {
+            tails_tails_prev_anim = cue;
+            obj->anim = TailsTails_Animations[cue];
         }
         Tails_AnimateTable(obj, Animation_TailsTails, tails);
         Tails_LoadDPLC(obj->frame, &last_frame_tail, ArtTile_TailsTails);
@@ -1586,9 +1647,10 @@ void Obj_Tails(Object *obj) {
         obj->width_pixels = 0x18;
         obj->render.b = 0;
         obj->render.f.level_fg = true;
-        sonspeed_max = 0x600;
-        sonspeed_acc = 0xC;
-        sonspeed_dec = 0x80;
+        scratch->air = 30;
+        tails_speed_max = 0x600;
+        tails_speed_acc = 0xC;
+        tails_speed_dec = 0x80;
         scratch->top_solid_bit = 0xC;
         scratch->lrb_solid_bit = 0xD;
         scratch->flips_remaining = 0;
@@ -1656,6 +1718,7 @@ void Obj_Tails(Object *obj) {
         }
 
         Tails_Display(obj);
+        Tails_Water(obj);
         scratch->front_angle = angle_buffer0;
         scratch->back_angle = angle_buffer1;
         Tails_Animate(obj);
@@ -1711,5 +1774,6 @@ void Game_LevelObjects(void) {
     memset(&objects[TAILSTAILS_SLOT], 0, sizeof(Object));
     if (LEVEL_ZONE(level_id) == ZoneId_OOZ)
         objects[0x1E].type = 7; // (the oil, where Hidden Palace and the others have a water surface: Oil Ocean has no water)
+    DustSplash_MakeTails(); // (the alpha's dust and splash for Tails)
     SplitScreen_LoadLevel(); // (a level picked with B in the level select is a two-player one: Tails is its second player)
 }

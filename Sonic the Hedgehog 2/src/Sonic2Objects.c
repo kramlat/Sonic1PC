@@ -79,7 +79,8 @@ void Obj_CollapsingLedge(Object *obj);
 void Obj_CollapsingPlatform(Object *obj);
 void Obj_BBat(Object *obj);
 void Obj_NAWaterSurface(Object *obj);
-void Obj_NAWaterSplash(Object *obj);
+void Obj_DustSplash(Object *obj);
+void Obj_SuperSonicStars(Object *obj);
 void Obj_Redz(Object *obj);
 void Obj_CollapseLedge(Object *obj);
 void Obj_CollapseFloor(Object *obj);
@@ -194,7 +195,7 @@ const ObjectFunc game_objects[] = {
 	/* 05 ObjId_05                 */ Obj_TailsTails,
 	/* 06 ObjId_06                 */ Obj_Spiral,
 	/* 07 ObjId_07                 */ Obj_OilSurface, // (the prototype's oil of Oil Ocean: made by the level)
-	/* 08 ObjId_Splash              */ Obj_NAWaterSplash, // (Nick Arcade's water splash: waits in the slot Sonic 1 puts the spin dash dust in until it is asked for)
+	/* 08 ObjId_Splash              */ Obj_DustSplash, // (the alpha's: the spin dash's dust, the skid's and the water's splash, for each player; Sonic 1's level start makes Sonic's)
 	/* 09 ObjId_SpecialSonic        */ Obj_SpecialSonic,
 	/* 0A ObjId_DrownCount          */ Obj_DrownCount,
 	/* 0B ObjId_Pole               */ Obj_CPZPipeTipper, // (the prototype's section of pipe that tips you off)
@@ -312,7 +313,7 @@ const ObjectFunc game_objects[] = {
 	/* 7B ObjId_BossSpikeball      */ Obj_CPZTubeSpring, // (the prototype's spring tubes of Chemical Plant)
 	/* 7C ObjId_RingFlash          */ Obj_Null, // removed in Nick Arcade
 	/* 7D ObjId_HiddenBonus         */ Obj_HiddenBonus,
-	/* 7E ObjId_SSResult           */ Obj_Null, // removed in Nick Arcade
+	/* 7E ObjId_SSResult           */ Obj_SuperSonicStars, // (the alpha's Super Sonic stars: nothing makes them yet)
 	/* 7F ObjId_SSRChaos           */ Obj_Null, // removed in Nick Arcade
 	/* 80 ObjId_80                 */ Obj_Null, // removed in Nick Arcade
 	/* 81 ObjId_81                 */ Obj_Null, // removed in Nick Arcade

@@ -27,7 +27,7 @@ reuse:
       - "src/LevelDraw.c"       # -> its own LevelDraw.c: the background drawing those zones need
       - "src/PaletteCycle.c"    # -> its own PaletteCycle.c: Emerald Hill's cycle (the title's too)
       - "src/Object/Sonic.c"       # -> its own copy: Nick Arcade's animation code (frames, walking/running sets); Sonic 1's Sonic stays as it was
-      - "res/Art/Sonic"            # Sonic's art, mappings, DPLC and animations are Nick Arcade's (res/Art/Sonic, res/Mappings/SonicDPLC, res/Animation/Sonic, asm/Mappings/Sonic.asm)
+      - "res/Art/Sonic"            # Sonic's art, mappings, DPLC and animations are the alpha's (res/Art/Sonic, res/Mappings/Sonic and SonicDPLC, res/Animation/Sonic: tools/import_s2alpha_character.pl)
       - "res/Mappings/Sonic"
       - "res/Mappings/SonicDPLC"
       - "res/Animation/Sonic"
@@ -113,6 +113,11 @@ resources:
   - "Art/Tails"
   - "Animation/Tails"
   - "Animation/TailsTails"
+  - "Art/DustSplash"
+  - "Animation/DustSplash"
+  - "Mappings/DustSplash"
+  - "Mappings/DustSplashDPLC"
+  - "Mappings/SuperSonicStars"
   - "Mappings/Tails"
   - "Mappings/TailsDPLC"
   - "Animation/Sonic"
@@ -347,7 +352,6 @@ resources:
   - "Mappings/SceneryOOZ"
   - "Mappings/PlatformEHZ"
   - "Mappings/PlatformNGHZ"
-  - "Mappings/WaterSplashSW"
   - "Art/EHZWaterfall"
   - "Mappings/WaterfallEHZ"
   - "Art/Buzzer"
@@ -360,7 +364,6 @@ resources:
   - "Animation/Masher"
   - "Animation/ArrowShooter"
   - "Animation/HTZFireball"
-  - "Animation/WaterSplashSW"
   - "Animation/Snail"
   - "Art/Signpost"
   - "Demo/NACPZ"
@@ -456,8 +459,6 @@ resources:
   - "Mappings/Redz"
   - "Animation/BBat"
   - "Animation/Redz"
-  - "Mappings/WaterSplash"
-  - "Animation/WaterSplash"
   - "Mappings/NAWaterSurface"
   - "Art/HTZSeesaw"
   - "Art/HTZLift"
@@ -513,6 +514,8 @@ sources:
   - "src/Object/NGHZObjects.c"
   - "src/Object/HPZBadniks.c"
   - "src/Object/WaterObjects.c"
+  - "src/Object/DustSplash.c"
+  - "src/Object/SuperSonicStars.c"
   - "src/CollisionPath.c"
   - "src/Object/ShieldInvincibility.c"
   - "src/Object/Checkpoint.c"
@@ -524,7 +527,6 @@ sources:
   - "src/Object/TitleCharacters.c"
 assemble:
   - "Mappings/TitleCharacters"
-  - "Mappings/Sonic"
   - "Mappings/Points"
   - "Mappings/Checkpoint"
   - "Mappings/ShieldInvincibility"

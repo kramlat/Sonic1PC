@@ -8,6 +8,9 @@
 #include "Object/DebugList.h"
 #include "Object/DebugMarkers.h"
 #include "Object/Tails.h"
+#include "Object/Sonic.h"
+#include "Object/SuperSonic.h"
+#include "Object/DustSplash.h"
 #include "EngineSound.h"
 #include "Backend/VDP.h"
 
@@ -140,6 +143,22 @@ static bool TailsTailsShows(uint8_t tails_anim, int16_t xsp) {
     return shown;
 }
 
+// The alpha's tails of a Tails who pushes: animation 4's (the wag of frames $87-$8A), whatever his own animation says
+static void TailsTails_WagWhileHePushes(void) {
+    memset(&objects[TAILS_SLOT], 0, sizeof(Object));
+    memset(&objects[0x1D], 0, sizeof(Object));
+    Object *tails = TAILS_OBJ;
+    tails->anim = 0;
+    tails->status.p.f.pushing = true;
+    Object *tail = &objects[0x1D];
+    bool wagging = false;
+    for (int i = 0; i < 12; i++) {
+        Obj_TailsTails(tail);
+        wagging |= tail->frame >= 0x87 && tail->frame <= 0x8A;
+    }
+    CHECK(wagging);
+}
+
 static void TailsTails_ShowWhileRollingAndDashing(void) {
     CHECK(TailsTailsShows(2, 0x600));
     CHECK(TailsTailsShows(3, 0x600));
@@ -164,9 +183,71 @@ static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
     }
 }
 
+
+// Super Sonic runs on his own table of animations (the alpha's, which follows Sonic's in the data): his standing and walking frames are not Sonic's
+static uint8_t SonicWalkFrame(bool super) {
+    super_sonic_flag = super;
+    Object sonic;
+    memset(&sonic, 0, sizeof(sonic));
+    sonic.anim = SonAnimId_Walk;
+    sonic.prev_anim = 0xFF;
+    sonic.inertia = 0x100;
+    Sonic_Animate(&sonic);
+    super_sonic_flag = false;
+    return sonic.frame;
+}
+
+static void Sonic_SuperSonicHasHisOwnAnimations(void) {
+    CHECK(SonicWalkFrame(true) != SonicWalkFrame(false));
+    SuperSonic_Set(true);
+    CHECK_EQ(sonspeed_max, 0xA00);
+    SuperSonic_Set(false);
+    CHECK_EQ(sonspeed_max, 0x600);
+    CHECK(!super_sonic_flag);
+}
+
+
+// The alpha's dust and splash: the dust of a spin dash appears where the player is, with its tiles brought to the window ($49C for Sonic), the splash at the water's height, and neither while he has no air to spare
+static void DustSplash_FollowsTheSpinDashAndSplashesAtTheWater(void) {
+    memset(&objects[0], 0, sizeof(Object));
+    objects[0].pos.l.x.f.u = 0x123;
+    objects[0].pos.l.y.f.u = 0x234;
+    air = 30;
+    Object *dust = &objects[0x1B];
+    memset(dust, 0, sizeof(*dust));
+    dust->type = ObjId_Splash;
+    Obj_DustSplash(dust);
+    CHECK_EQ(dust->routine, 2);
+
+    DustSplash_Show(dust, DUST_DASH);
+    for (int i = 0; i < 6; i++)
+        Obj_DustSplash(dust);
+    CHECK_EQ(dust->pos.l.x.f.u, 0x123);
+    CHECK_EQ(dust->pos.l.y.f.u, 0x234);
+    const uint8_t *tiles = VDP_TileSpace() + 0x49C * 0x20;
+    bool art = false;
+    for (int b = 0; b < 0x80; b++)
+        art |= tiles[b] != 0;
+    CHECK(art);
+
+    air = 5; // (about to drown: no dust)
+    Obj_DustSplash(dust);
+    CHECK_EQ(dust->anim, DUST_NULL);
+    air = 30;
+
+    wtr_pos1 = 0x300;
+    DustSplash_Show(dust, DUST_SPLASH);
+    Obj_DustSplash(dust);
+    CHECK_EQ(dust->pos.l.y.f.u, 0x300);
+    CHECK_EQ(dust->pos.l.x.f.u, 0x123);
+}
+
 void RegisterObjectCoverageTests(void) {
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
     RUN_TEST(TailsTails_ShowWhileRollingAndDashing);
+    RUN_TEST(TailsTails_WagWhileHePushes);
+    RUN_TEST(DustSplash_FollowsTheSpinDashAndSplashesAtTheWater);
+    RUN_TEST(Sonic_SuperSonicHasHisOwnAnimations);
     RUN_TEST(Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist);
     RUN_TEST(DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects);
     RUN_TEST(ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace);
