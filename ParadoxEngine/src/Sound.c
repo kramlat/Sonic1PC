@@ -1893,6 +1893,7 @@ static void TickChannel_FlagsV3(SoundChipSet *cs, SoundChannel *ch, int channel_
                 } else if (psg_chan == 2 && cs->psg_count < 4) {
                     SN76489_Write(&cs->psg, v);
                     ch->psg_noise = 1;
+                    ch->psg_noise_ctl = v;
                 }
             }
             break;
@@ -2316,6 +2317,7 @@ static void TickChannelJSON(SoundChipSet *cs, SoundChannel *ch, int channel_inde
             if (psg_chan == 2 && cs->psg_count < 4) {
                 SN76489_Write(&cs->psg, (uint8_t)form);
                 ch->psg_noise = 1;
+                ch->psg_noise_ctl = (uint8_t)form;
             }
         } else if (strcmp(key, "smpsSetvoice") == 0 || strcmp(key, "smpsFMvoice") == 0) {
             uint8_t voice_index = (uint8_t)JsonUnhexInt(v, 0);
@@ -2629,6 +2631,7 @@ static void TickChannel_FlagsV1(SoundChipSet *cs, SoundChannel *ch, int channel_
             if (psg_chan == 2 && cs->psg_count < 4) {
                 SN76489_Write(&cs->psg, v); // v is already a valid $E0-$E7 noise-control byte
                 ch->psg_noise = 1;
+                ch->psg_noise_ctl = v;
             }
             break;
         }
@@ -2719,6 +2722,17 @@ static void FadeInToPrevious(SoundChipSet *cs) {
         ch->key_on = 0;
         SilenceIfPSG(&cs->psg, ch->psg_noise ? 3 : i, ch->psg_noise);
         ch->volume = (uint8_t)(ch->volume + add);
+    }
+    // The noise control register is the chip's, not the track's: the jingle (and LoadMusic's reset to periodic noise) left its own in it, and the song only sets
+    // its mode once, at the start, so it is given back here (the original keeps the track's noise byte for the same purpose)
+    {
+        uint8_t noise_ctl = 0xE0;
+        for (int i = 0; i < 4; i++) {
+            const SoundChannel *ch = &cs->channels[SOUND_CHANNEL_PSG_BASE + i];
+            if (ch->active && ch->psg_noise && ch->psg_noise_ctl)
+                noise_ctl = ch->psg_noise_ctl;
+        }
+        SN76489_Write(&cs->psg, noise_ctl);
     }
     cs->fadein_active = 1;
     cs->fadein_counter = 0x28;

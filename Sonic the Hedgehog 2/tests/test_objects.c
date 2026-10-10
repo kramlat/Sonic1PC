@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <stdio.h>
 #include "test.h"
 
 #include <string.h>
@@ -21,6 +23,10 @@
 #include "Object/HTZBadniks.h"
 #include "Object/MTZBoss.h"
 #include "Object/HTZBoss.h"
+#include "Object/HPZBadniks.h"
+#include "SoundIds.h"
+#include "Backend/YM2612.h"
+#include "Sound.h"
 #include "Object/BossCommon.h"
 #include "PLC.h"
 #include "EngineSound.h"
@@ -182,12 +188,13 @@ static void TailsTails_ShowWhileRollingAndDashing(void) {
 
 // The music: the final game's 29 tracks at its ids ($81-$9D, here 1-$1D), each with its song, and the level playlist as the alpha's MusicList has it (its bytes less $80), but for Hidden Palace
 static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
-    for (int id = 1; id <= 0x1D; id++) {
+    for (int id = 1; id <= 0x1F; id++) {
         CHECK(game_sound_bank.songs[id] != NULL);
         CHECK(game_sound_bank.songs_json[id] != NULL);
     }
     CHECK_EQ(game_sound_bank.music_first, 1);
-    CHECK_EQ(game_sound_bank.music_last, 0x1D);
+    CHECK_EQ(game_sound_bank.music_last, 0x1F);
+    CHECK(game_sound_bank.songs[0x1E] == game_sound_bank.songs[0x10]); // $9E is a copy of $90, $9F (the last) an empty song
     static const uint8_t alpha_music_list[16] = { 0x82, 0x82, 0x85, 0x84, 0x85, 0x85, 0x8C, 0x86, 0x83, 0x8D, 0x88, 0x8B, 0x89, 0x8E, 0x8E, 0x87 };
     for (int zone = 0; zone < 16; zone++) {
         if (zone == 8)
@@ -650,6 +657,169 @@ static void HTZBoss_FiresItsJetThenThrowsTwoLavaBalls(void) {
     CHECK_EQ(boss->type, 0);
 }
 
+// The alpha's Rhinobot (4D, unused there): its look from the art list ($3B2, palette line 1), and once it stands on the floor it waits, then walks off to the way it faces turned round
+static void Rhinobot_SetsItselfUpAndWalksOff(void) {
+    for (int i = 0; i < 0x40; i++)
+        memset(&objects[i], 0, sizeof(Object));
+    objects[0].type = ObjId_Sonic;
+    objects[0].pos.l.x.f.u = 0x400;
+    scrpos_x.f.u = 0x300;
+    scrpos_y.f.u = 0x280;
+    Object *rhino = &objects[0x20];
+    rhino->type = 0x4D;
+    rhino->pos.l.x.f.u = 0x400;
+    rhino->pos.l.y.f.u = 0x300;
+    Obj_Rhinobot(rhino);
+    CHECK_EQ(rhino->col_type, 0x0A);
+    CHECK_EQ(rhino->tile, TILE_MAP(0, 1, 0, 0, 0x3B2));
+    CHECK_EQ(rhino->width_pixels, 0x18);
+    rhino->routine = 2; // (standing: no floor in the test)
+    rhino->routine_sec = 0;
+    Obj_Rhinobot(rhino);
+    CHECK_EQ(rhino->routine_sec, 2);
+    CHECK_EQ(rhino->xsp, 0x80);
+    CHECK_EQ(rhino->status.o.f.x_flip, true);
+}
+
+// The 1-up jingle (the final's, $98) interrupts the level song and the song comes back, fading in
+static void Music_ExtraLifeJingleGivesTheLevelSongBack(void) {
+    Sound_Init();
+    memset(sound_music.queue, 0, sizeof(sound_music.queue));
+    memset(sound_sfx.queue, 0, sizeof(sound_sfx.queue));
+    StopAllSound();
+    PlayMusic(mus_EHZ);
+    for (int f = 0; f < 200; f++)
+        Sound_Frame();
+    PlayMusic(mus_ExtraLife);
+    Sound_Frame();
+    CHECK_EQ(sound_music.current_music_id, mus_ExtraLife);
+    int back = -1;
+    for (int f = 0; f < 1800 && back < 0; f++) {
+        Sound_Frame();
+        if (sound_music.current_music_id == mus_EHZ)
+            back = f;
+    }
+    CHECK(back > 0);
+    CHECK(sound_music.fadein_active);
+}
+
+// $9F, an empty song, silences what was playing, and $9E plays Hidden Palace's song as $90 does
+static void Music_BlankSongSilencesAndNineEIsHiddenPalace(void) {
+    Sound_Init();
+    memset(sound_music.queue, 0, sizeof(sound_music.queue));
+    memset(sound_sfx.queue, 0, sizeof(sound_sfx.queue));
+    StopAllSound();
+    PlayMusic(mus_EHZ);
+    for (int f = 0; f < 60; f++)
+        Sound_Frame();
+    PlayMusic(mus_Blank);
+    Sound_Frame();
+    Sound_Frame();
+    CHECK_EQ(sound_music.current_music_id, mus_Blank);
+    int active = 0;
+    for (int i = 0; i < SOUND_CHANNELS; i++)
+        active += sound_music.channels[i].active;
+    CHECK_EQ(active, 0);
+    PlayMusic(mus_HPZCopy);
+    Sound_Frame();
+    Sound_Frame();
+    CHECK_EQ(sound_music.current_music_id, mus_HPZCopy);
+}
+
+// The song that comes back after the 1-up jingle has the voices it had: the operator registers of every FM channel (the voices, not the levels) are what they were when the jingle cut in
+static void RestartSound(uint8_t song) {
+    Sound_Init();
+    memset(sound_music.queue, 0, sizeof(sound_music.queue));
+    memset(sound_sfx.queue, 0, sizeof(sound_sfx.queue));
+    StopAllSound();
+    PlayMusic(song);
+}
+
+// What the jingle leaves in the chip must not outlast it: the song brought back has the noise mode it set at its start (its smpsPSGform, which it never writes again), and its FM voices
+// A song change leaves nothing of the song before it in the chips: the noise mode and the FM voices are what a fresh start of the new song has
+static void Music_SongChangeLeavesNothingOfThePreviousSong(void) {
+    static const uint8_t after[] = { mus_EHZ, mus_OOZ, mus_MTZ, mus_HPZ, mus_CPZ, mus_Boss };
+    int bad = 0;
+    for (size_t k = 0; k < sizeof(after); k++) {
+        const uint8_t song = after[k];
+        RestartSound(song);
+        for (int f = 0; f < 400; f++)
+            Sound_Frame();
+        const uint8_t rate = sound_music.psg.noise_shift_rate, white = sound_music.psg.noise_fb_white;
+        uint8_t want[2][0xA0];
+        for (int port = 0; port < 2; port++)
+            for (int r = 0x30; r < 0xB8; r++)
+                want[port][r - 0x30] = YM2612_PeekReg(sound_music.fm, port, (uint8_t)r);
+        for (int before = 1; before <= 0x1D; before++) {
+            if (before == song || before == mus_ExtraLife)
+                continue;
+            RestartSound((uint8_t)before);
+            for (int f = 0; f < 400; f++)
+                Sound_Frame();
+            PlayMusic(song);
+            for (int f = 0; f < 400; f++)
+                Sound_Frame();
+            if (sound_music.psg.noise_shift_rate != rate || sound_music.psg.noise_fb_white != white) {
+                fprintf(stderr, "song %d after song %d: noise %d/%d, fresh %d/%d\n", song, before, sound_music.psg.noise_shift_rate, sound_music.psg.noise_fb_white, rate, white);
+                bad++;
+            }
+            for (int port = 0; port < 2; port++)
+                for (int r = 0x30; r < 0xB8; r++) {
+                    if ((r & 0xF0) == 0x40 || (r & 0xF0) == 0x90 || (r & 0xFC) == 0xA0 || (r & 0xFC) == 0xA4 || (r & 3) == 3 || want[port][r - 0x30] == 0)
+                        continue;
+                    if (YM2612_PeekReg(sound_music.fm, port, (uint8_t)r) != want[port][r - 0x30]) {
+                        fprintf(stderr, "song %d after song %d: port %d reg %02X is %02X, fresh %02X\n", song, before, port, r, YM2612_PeekReg(sound_music.fm, port, (uint8_t)r), want[port][r - 0x30]);
+                        bad++;
+                    }
+                }
+        }
+    }
+    CHECK_EQ(bad, 0);
+}
+
+static void Music_SongKeepsItsNoiseAndVoicesAfterTheExtraLifeJingle(void) {
+    int songs_with_noise = 0;
+    for (int song = 1; song <= 0x1D; song++) {
+        if (song == mus_ExtraLife || song == mus_ActClear || song == mus_GameOver || song == mus_Continue || song == mus_Emerald)
+            continue;
+        RestartSound((uint8_t)song);
+        for (int f = 0; f < 400; f++)
+            Sound_Frame();
+        const uint8_t rate = sound_music.psg.noise_shift_rate, white = sound_music.psg.noise_fb_white;
+        uint8_t voices[2][0xA0];
+        for (int port = 0; port < 2; port++)
+            for (int r = 0x30; r < 0xB8; r++)
+                voices[port][r - 0x30] = YM2612_PeekReg(sound_music.fm, port, (uint8_t)r);
+        int playing = 0;
+        for (int i = 0; i < SOUND_CHANNELS; i++)
+            playing += sound_music.channels[i].active;
+        if (!playing)
+            continue; // (a song that does not loop has ended by now)
+        if (rate != 0 || white != 0)
+            songs_with_noise++;
+        PlayMusic(mus_ExtraLife);
+        Sound_Frame();
+        CHECK_EQ(sound_music.current_music_id, mus_ExtraLife);
+        for (int f = 0; f < 3000 && sound_music.current_music_id != song; f++)
+            Sound_Frame();
+        CHECK_EQ(sound_music.current_music_id, song);
+        Sound_Frame();
+        CHECK_EQ(sound_music.psg.noise_shift_rate, rate);
+        CHECK_EQ(sound_music.psg.noise_fb_white, white);
+        for (int port = 0; port < 2; port++)
+            for (int r = 0x30; r < 0xB8; r++) {
+                if ((r & 0xF0) == 0x40 || (r & 0xF0) == 0x90 || (r & 0xFC) == 0xA0 || (r & 0xFC) == 0xA4 || (r & 3) == 3)
+                    continue; // (levels, SSG-EG and frequencies move on)
+                if (voices[port][r - 0x30] == 0)
+                    continue; // (a channel the song had not started yet)
+                if (YM2612_PeekReg(sound_music.fm, port, (uint8_t)r) != voices[port][r - 0x30])
+                    fprintf(stderr, "song %d port %d reg %02X: %02X was %02X\n", song, port, r, YM2612_PeekReg(sound_music.fm, port, (uint8_t)r), voices[port][r - 0x30]);
+                CHECK_EQ(YM2612_PeekReg(sound_music.fm, port, (uint8_t)r), voices[port][r - 0x30]);
+            }
+    }
+    CHECK(songs_with_noise > 0); // (some of the final's songs do use the noise channel)
+}
+
 // The Sol: it makes four fireballs that circle it, and with Sonic near and its frame 2 it throws them one by one
 static void Sol_MakesFourFireballs(void) {
     for (int i = 0; i < 0x40; i++)
@@ -713,6 +883,11 @@ void RegisterObjectCoverageTests(void) {
     RUN_TEST(EHZBoss_TheEventPutsTheAlphasShipInTheArena);
     RUN_TEST(Spiker_FiresItsDrillOnceWhenSonicIsAbove);
     RUN_TEST(HTZBoss_FiresItsJetThenThrowsTwoLavaBalls);
+    RUN_TEST(Rhinobot_SetsItselfUpAndWalksOff);
+    RUN_TEST(Music_ExtraLifeJingleGivesTheLevelSongBack);
+    RUN_TEST(Music_SongKeepsItsNoiseAndVoicesAfterTheExtraLifeJingle);
+    RUN_TEST(Music_SongChangeLeavesNothingOfThePreviousSong);
+    RUN_TEST(Music_BlankSongSilencesAndNineEIsHiddenPalace);
     RUN_TEST(Rexon_RearsUpIntoFiveHeads);
     RUN_TEST(Sol_MakesFourFireballs);
     RUN_TEST(Slicer_RaisesItsBladesAndSendsTwoPincers);

@@ -99,6 +99,7 @@ typedef struct {
     int note_index; // last real note-on's pitch (post-transpose), so modulation can recompute frequency each frame without a note retrigger
     int8_t detune;
     uint8_t psg_noise;    // PSG only
+    uint8_t psg_noise_ctl; // PSG only: the noise control byte ($E0-$E7) this track last set (its smpsPSGform), kept to give the chip back after the 1-up jingle
     uint8_t fm_base_tl[4]; // FM only -- each operator's TL as loaded from the
                             // voice bank, before ch->volume is added as an
                             // offset (see FM_LoadVoice/FM_ApplyVolume)

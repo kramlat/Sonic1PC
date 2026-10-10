@@ -1,0 +1,10 @@
+{
+  "header": [
+    { "smpsHeaderStartSong": ["0x2"] },
+    { "smpsHeaderVoice": ["Blank_Voices"] },
+    { "smpsHeaderChan": ["0x0", "0x0"] },
+    { "smpsHeaderTempo": ["0x2", "0x5"] }
+  ],
+  "voices": [],
+  "SMPSplaylist": {}
+}

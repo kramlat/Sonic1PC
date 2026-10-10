@@ -200,6 +200,7 @@
 #include "Resource/Art/LeverSpring.h"
 #include "Resource/Art/HPZBridge.h"
 #include "Resource/Art/Redz.h"
+#include "Resource/Art/Rhinobot.h"
 #include "Resource/Art/BBat.h"
 #include "Resource/Art/HPZWaterfall.h"
 #include "Resource/Art/HPZPlatform.h"
@@ -392,9 +393,10 @@ static const PLCList PLC_SLZ2 = { // Wood_Sprites_2 (Emerald Hill has no second 
 // Pattern load cues - Spring Yard
 // ---------------------------------------------------------------------------
 static const PLCList PLC_SYZ = { // Hidden Palace
-    15,
+    16,
     (const PLC[]) {
         { Art_Redz,          ART_VRAM(0x500) },
+        { Art_Rhinobot,      ART_VRAM(0x3B2) }, // ($7640)
         { Art_BBat,          ART_VRAM(0x5A8) }, // (the alpha has it at $530, over the bubbles' art at $55B: Hidden Palace has water too, so it is moved up past the animals' $580 to $5A7, see HPZBadniks.c)
         { Art_OxygenBubbles, ART_VRAM(0xAB60 >> 5) },
         { Art_CountdownBubbles, ART_VRAM(0xBD00 >> 5) },

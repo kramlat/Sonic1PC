@@ -506,10 +506,13 @@ resources:
   - "Mappings/LedgeGHZ"
   - "Art/BBat"
   - "Art/Redz"
+  - "Art/Rhinobot"
   - "Mappings/BBat"
   - "Mappings/Redz"
+  - "Mappings/Rhinobot"
   - "Animation/BBat"
   - "Animation/Redz"
+  - "Animation/Rhinobot"
   - "Mappings/NAWaterSurface"
   - "Art/HTZSeesaw"
   - "Art/HTZLift"
@@ -645,6 +648,7 @@ songs:
   - {file: "music/TGOvr_9B.jsonc", name: S2Mus_TGOvr_9B}
   - {file: "music/Cont_9C.jsonc", name: S2Mus_Cont_9C}
   - {file: "music/Emrld_9D.jsonc", name: S2Mus_Emrld_9D}
+  - {file: "music/Blank_9F.jsonc", name: S2Mus_Blank_9F}
   - {file: "sfx/D0 - CNZ Boss Zap.jsonc", name: S2Sfx_D0}
   - {file: "sfx/D1 - Unknown (Unused).jsonc", name: S2Sfx_D1}
   - {file: "sfx/D2 - Unknown (Unused).jsonc", name: S2Sfx_D2}

@@ -28,6 +28,7 @@
 #include "Resource/Music/S2Mus_Super_96.h"
 #include "Resource/Music/S2Mus_Invcb_97.h"
 #include "Resource/Music/S2Mus_1Up_98.h"
+#include "Resource/Music/S2Mus_Blank_9F.h"
 #include "Resource/Music/S2Mus_TScr_99.h"
 #include "Resource/Music/S2Mus_LRes_9A.h"
 #include "Resource/Music/S2Mus_TGOvr_9B.h"
@@ -57,6 +58,7 @@
 #include "Resource/Music/S2Mus_Super_96_json.h"
 #include "Resource/Music/S2Mus_Invcb_97_json.h"
 #include "Resource/Music/S2Mus_1Up_98_json.h"
+#include "Resource/Music/S2Mus_Blank_9F_json.h"
 #include "Resource/Music/S2Mus_TScr_99_json.h"
 #include "Resource/Music/S2Mus_LRes_9A_json.h"
 #include "Resource/Music/S2Mus_TGOvr_9B_json.h"
@@ -225,6 +227,8 @@ static const uint8_t *const sound_table[0x100] = {
     [mus_GameOver] = S2Mus_TGOvr_9B,
     [mus_Continue] = S2Mus_Cont_9C,
     [mus_Emerald] = S2Mus_Emrld_9D,
+    [mus_HPZCopy] = S2Mus_HPz_90,
+    [mus_Blank] = S2Mus_Blank_9F,
 
     [sfx_Jump] = S2Sfx_A0,
     [sfx_Lamppost] = S2Sfx_A1,
@@ -324,6 +328,8 @@ static const char *const sound_table_json[0x100] = {
     [mus_GameOver] = S2Mus_TGOvr_9B_json,
     [mus_Continue] = S2Mus_Cont_9C_json,
     [mus_Emerald] = S2Mus_Emrld_9D_json,
+    [mus_HPZCopy] = S2Mus_HPz_90_json,
+    [mus_Blank] = S2Mus_Blank_9F_json,
 
     [sfx_Jump] = S2Sfx_A0_json,
     [sfx_Lamppost] = S2Sfx_A1_json,
@@ -412,6 +418,8 @@ static const uint8_t sound_table_driver_ver[0x100] = {
     [mus_CPZ] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_WFZ] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_HPZ] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_HPZCopy] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_Blank] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_Menu] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_SpecStg] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_Boss] = SOUND_DRIVER_VERSION_2_TEMPO,
@@ -474,6 +482,8 @@ static const SoundInspectEntry inspect_entries[] = {
     INSPECT_ENTRY(mus_GameOver, 1, "Game Over"),
     INSPECT_ENTRY(mus_Continue, 1, "Continue"),
     INSPECT_ENTRY(mus_Emerald, 1, "Got an Emerald"),
+    INSPECT_ENTRY(mus_HPZCopy, 1, "Hidden Palace (copy)"),
+    INSPECT_ENTRY(mus_Blank, 1, "Empty"),
     INSPECT_ENTRY(sfx_Jump, 0, "Jump"),
     INSPECT_ENTRY(sfx_Lamppost, 0, "Lamppost"),
     INSPECT_ENTRY(sfx_Unk_A2, 0, "Unused A2"),
@@ -547,7 +557,7 @@ const SoundBank game_sound_bank = {
     .songs_json = sound_table_json,
     .driver_version = sound_table_driver_ver,
     .music_first = mus_VsResults,
-    .music_last = mus_Emerald,
+    .music_last = mus_Blank,
     .sfx_first = sfx_Jump,
     .special_last = sfx_SpindashRev,
     .command_first = bgm_Fade,

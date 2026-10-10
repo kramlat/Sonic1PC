@@ -37,6 +37,9 @@ my %alpha = (
     # (Hill Top: Emerald Hill's tiles and blocks with its own over them, the shared chunks)
     HTZ => { dir => 'Hill Top Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map1.dat', 'Bg_Map2.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
              blocks => ['../Emerald Hill Zone/Blocks.dat', 'Blocks.dat@0x980'], tiles => ['../Emerald Hill Zone/Tiles.nem', 'Tiles.nem@0x3F80'], chunks => '../Shared/Chunks.kos', col => ['../Shared/Ghz_Col1.dat', '../Shared/Ghz_Col2.dat'], pal => '../../Palettes/HTz.pal' },
+    # (Hidden Palace: one act, the alpha's own tiles, blocks, chunks and collision)
+    HPZ => { dir => 'Hidden Palace Zone', fg => ['Fg_Map.dat'], bg => ['Bg_Map.dat'], obj => ['Obj_Act.dat'], rng => ['Rng_Act.dat'],
+             blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['HPz_Col1.dat', 'HPz_Col2.dat'], pal => '../../Palettes/HPz.pal' },
     # (Metropolis: three acts, one background, rings in each, and one collision index for both paths)
     MTZ => { dir => 'Metropolis Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat', 'Fg_Map3.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat', 'Obj_Act3.dat'],
              rng => ['Rng_Act1.dat', 'Rng_Act2.dat', 'Rng_Act3.dat'], blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['Mz_Col.dat', 'Mz_Col.dat'], pal => '../../Palettes/Mz.pal' },
@@ -51,6 +54,18 @@ my %pal = (EHZ => 'PalId_EHZ', HTZ => 'PalId_HTZ', HPZ => 'PalId_HPZ', CPZ => 'P
 sub slurp { my $p = shift; open my $f, '<:raw', $p or die "$p: $!\n"; local $/; my $d = <$f>; close $f; $d }
 sub spit { my ($p, $d) = @_; open my $f, '>:raw', $p or die "$p: $!\n"; print $f $d; close $f }
 sub kos { my ($p, $d) = @_; spit("$p.raw", $d); system($kosenc, "$p.raw", $p) == 0 or die "kosenc failed\n"; unlink "$p.raw" }
+# The ring layouts of the prototypes and the alpha are in the order they were made in, and the games sort them by X in RAM when a level begins (the alpha's Load_Rings_Layout); the final's files, and the rings manager here, expect them sorted already
+# (it walks them as the camera goes), so they are put in order here: by X, entries with the same X as they were (the 2-byte end marker stays last)
+sub sort_rings {
+    my $d = shift;
+    my (@e, $i);
+    for ($i = 0; $i + 4 <= length $d; $i += 4) {
+        my $x = unpack('n', substr($d, $i, 2));
+        last if $x == 0xFFFF;
+        push @e, [ $x, substr($d, $i, 4), scalar @e ];
+    }
+    return join('', map { $_->[1] } sort { $a->[0] <=> $b->[0] or $a->[2] <=> $b->[2] } @e) . substr($d, $i);
+}
 sub path { my $p = shift; $p =~ s{^\.\./}{}; return "$sw/$p" }
 
 # SonLVL.ini
@@ -142,7 +157,7 @@ for my $name (@order) {
     }
     $out .= pack('nnCC', 0xFFFF, 0, 0, 0) unless $al;
     spit("$res/S2Objects/$key", $out);
-    spit("$res/S2Rings/$key", $al ? slurp($alp->($al->{rng}[$act - 1])) : $s->{rings} ? slurp(path($s->{rings})) : pack('n', 0xFFFF));
+    spit("$res/S2Rings/$key", sort_rings($al ? slurp($alp->($al->{rng}[$act - 1])) : $s->{rings} ? slurp(path($s->{rings})) : pack('n', 0xFFFF)));
     $info{$zone}{acts}{$act}{start} = [ unpack('nn', slurp(path((split /:/, $s->{startpos})[0]))) ];
     $info{$zone}{acts}{$act}{alpha} = 1 if $al;
     push @resources, "S2Layout/$key", "S2Objects/$key", "S2Rings/$key";
@@ -246,7 +261,8 @@ $c .= "    };\n    static int16_t result[6];\n    memcpy(result, table[zone][act
 
 $c .= "// Player start positions\nconst int16_t StartLocArray[ZoneId_Num][4][2] = {\n";
 for my $s (@slots) {
-    my @row = map { my $a = exists $slot{$s}{$_} ? $_ : 0; my $e = $slot{$s}{$a}; $e->{alpha} ? sprintf('{ 0x%04X, 0x%04X }', @{ $alpha_starts[$s] }[ $a * 2, $a * 2 + 1 ]) : sprintf('{ 0x%04X, 0x%04X }', @{ $e->{start} }) } 0 .. 3;
+    my @row = map { my $a = exists $slot{$s}{$_} ? $_ : 0; my $e = $slot{$s}{$a}; ($e->{alpha} && !exists $slot{$s}{$_} && $_ == 1 && $slot{$s}{0}{zone} eq 'HPZ') ? sprintf('{ 0x%04X, 0x%04X }', @{ $alpha_starts[$s] }[ 2, 3 ]) : # (an alpha zone with one act made here has its second act's start too: the same level)
+        $e->{alpha} ? sprintf('{ 0x%04X, 0x%04X }', @{ $alpha_starts[$s] }[ $a * 2, $a * 2 + 1 ]) : sprintf('{ 0x%04X, 0x%04X }', @{ $e->{start} }) } 0 .. 3;
     $c .= sprintf("    [%s] = { %s }, // $slot{$s}{0}{zone}\n", zid($s), join(', ', @row));
 }
 $c .= "};\n\n// Level scroll block sizes\nconst int16_t BGScrollBlockSizes[ZoneId_Num][4] = {\n";

@@ -105,7 +105,7 @@ static int levsel_item = 0;
 // What the sound test plays for the id $80+value: the music ($81-$9D, the final game's) and effects ($A0-$E1, the prototype's) are the sounds of this port's ids; the rest is silence
 static uint8_t LevSelSoundId(int value) {
     int id = 0x80 + value;
-    if (id >= 0x81 && id <= 0x9D)
+    if (id >= 0x81 && id <= 0x9F)
         return (uint8_t)(mus_VsResults + (id - 0x81));
     if (id >= 0xA0 && id <= 0xE1)
         return (uint8_t)(sfx_Jump + (id - 0xA0));
@@ -210,7 +210,7 @@ static void LevelSelect(void) {
             if (jpad1_press1 & JPAD_A)
                 continue; // (A only changes the number)
             uint8_t id = LevSelSoundId(levsel_sound);
-            if (id >= mus_VsResults && id <= mus_Emerald)
+            if (id >= mus_VsResults && id <= mus_Blank)
                 PlayMusic(id);
             else if (id != 0)
                 PlaySound(id);

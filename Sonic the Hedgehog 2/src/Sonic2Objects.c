@@ -99,6 +99,7 @@ void Obj_Countdown(Object *obj);
 void Obj_OxygenBubbles(Object *obj);
 void Obj_SuperSonicStars(Object *obj);
 void Obj_Redz(Object *obj);
+void Obj_Rhinobot(Object *obj);
 void Obj_CollapseLedge(Object *obj);
 void Obj_CollapseFloor(Object *obj);
 void Obj_VanishPlatform(Object *obj);
@@ -281,7 +282,7 @@ const ObjectFunc game_objects[] = {
 	/* 4A ObjId_VanishSonic        */ Obj_Null, // Nick Arcade's Octus: not ported yet
 	/* 4B ObjId_GiantRing          */ Obj_Buzzer,
 	/* 4C ObjId_GeyserMaker        */ Obj_BBat,
-	/* 4D ObjId_LavaGeyser         */ Obj_Null, // Nick Arcade's Stego: not ported yet
+	/* 4D ObjId_LavaGeyser         */ Obj_Rhinobot, // (the alpha's Rhinobot of Hidden Palace, which no layout uses; Nick Arcade's Stego was here)
 	/* 4E ObjId_LavaWall           */ Obj_Null, // Nick Arcade's Gator: not ported yet
 	/* 4F ObjId_4F                 */ Obj_Redz,
 	/* 50 ObjId_Yadrin             */ Obj_Null, // Nick Arcade's Seahorse: not ported yet

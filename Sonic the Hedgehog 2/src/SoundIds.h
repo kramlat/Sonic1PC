@@ -34,6 +34,8 @@ enum SoundID {
 	mus_GameOver, // $9B (Game Over)
 	mus_Continue, // $9C (Continue)
 	mus_Emerald, // $9D (Got an Emerald)
+	mus_HPZCopy, // $9E (a copy of $90 in the prototype and the alpha)
+	mus_Blank, // $9F (an empty song there)
 
 	sfx_Jump, // $A0
 	sfx_Lamppost,

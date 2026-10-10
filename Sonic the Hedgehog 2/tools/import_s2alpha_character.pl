@@ -119,6 +119,11 @@ write_file('Animation/Sol',     slice(0x0288CE, 0x0288DC));
 write_file('Animation/SolFire', slice(0x0288DC, 0x0288E2));
 copy_file('Art/Nemesis/Rexon.nem', 'Art/Rexon');
 
+# Hidden Palace's Rhinobot (4D: unused in the alpha's levels, art rhinobot.nem at $7640 in the zone's second list)
+copy_file('Art/Nemesis/Rhinobot.nem', 'Art/Rhinobot');
+write_file('Mappings/Rhinobot',  slice(0x022A56, 0x022BA6));
+write_file('Animation/Rhinobot', slice(0x022A3A, 0x022A56));
+
 # Hill Top's boss: the art its list $2A has besides the ship and the explosions (the fire and the cannon, bossfire.nem, at $8420; the smoke, boss_smk.nem, at $BC80)
 copy_file('Art/Nemesis/BossFire.nem', 'Art/HTZBossFire');
 copy_file('Art/Nemesis/Boss_Smk.nem', 'Art/BossSmoke');

@@ -61,8 +61,30 @@ static void LevelData_ArtListsAreThePrototypes(void) {
     CHECK_EQ(level_header[ZoneId_ARZ].plc2, PlcId_GHZ2);
 }
 
+// The rings manager walks a layout as the camera goes, so each must be in order of X (the prototypes and the alpha keep theirs in the order they were made in and sort them in RAM; the importer sorts ours)
+static void LevelData_RingLayoutsAreInOrderOfX(void) {
+    int layouts = 0, rings = 0;
+    for (int zone = 0; zone < ZoneId_Num; zone++) {
+        for (int act = 0; act < 4; act++) {
+            const uint8_t *r = level_ring[zone][act];
+            if (r == NULL)
+                continue;
+            layouts++;
+            int last = -1;
+            for (; r[0] != 0xFF || r[1] != 0xFF; r += 4, rings++) {
+                const int x = (r[0] << 8) | r[1];
+                CHECK(x >= last);
+                last = x;
+            }
+        }
+    }
+    CHECK(layouts > 10);
+    CHECK(rings > 500);
+}
+
 void RegisterLevelDataTests(void) {
     RUN_TEST(LevelData_StartPositionsMatchThePrototype);
     RUN_TEST(LevelData_LevelSizesMatchThePrototype);
     RUN_TEST(LevelData_ArtListsAreThePrototypes);
+    RUN_TEST(LevelData_RingLayoutsAreInOrderOfX);
 }

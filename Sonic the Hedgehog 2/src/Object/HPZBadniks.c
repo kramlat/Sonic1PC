@@ -12,10 +12,13 @@
 
 #include "Resource/Animation/BBat.h"
 #include "Resource/Animation/Redz.h"
+#include "Resource/Animation/Rhinobot.h"
 #include "Resource/Mappings/BBat.h"
 #include "Resource/Mappings/Redz.h"
+#include "Resource/Mappings/Rhinobot.h"
 
 #define ArtTile_Redz 0x500
+#define ArtTile_Rhinobot 0x3B2 // ($7640)
 #define ArtTile_BBat 0x5A8 // (the alpha's is $530: the bubbles' art of Hidden Palace's water has that now, and the animals' $580 to $5A7, see Sonic2PLC.c)
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -244,6 +247,99 @@ void Obj_Redz(Object *obj) {
         break;
     case RedzRoutine_Delete:
         ObjectDelete(obj);
+        break;
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// The Rhinobot (object 4D): a rhinoceros that walks to the edge of its floor and back, and charges at Sonic when he comes near in front of it (the alpha has it in Hidden Palace's art list and object table, and
+// no layout places it)
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype;     // 0x28
+    uint8_t pad0[7];     // 0x29-0x2F
+    int16_t wait_timer;  // 0x30
+} Scratch_Rhinobot;
+
+enum { RhinoAnim_Walk = 0, RhinoAnim_Still = 1, RhinoAnim_Charge = 2 };
+
+// It looks for Sonic: behind it, it walks on; within $60 pixels in front of it, it charges (Offset_0x0229DC)
+static void Rhinobot_Chase(Object *obj) {
+    const int16_t d0 = (int16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
+    const bool facing_right = obj->status.o.f.x_flip;
+    if (d0 < 0) { // Sonic is to its right
+        if (d0 < -0x60)
+            return;
+        if (facing_right) {
+            obj->anim = RhinoAnim_Charge;
+            obj->xsp = 0x200;
+        } else {
+            obj->anim = RhinoAnim_Walk;
+            obj->xsp = -0x80;
+        }
+    } else { // to its left
+        if (d0 > 0x60)
+            return;
+        if (facing_right) {
+            obj->anim = RhinoAnim_Walk;
+            obj->xsp = 0x80;
+        } else {
+            obj->anim = RhinoAnim_Charge;
+            obj->xsp = -0x200;
+        }
+    }
+}
+
+void Obj_Rhinobot(Object *obj) {
+    Scratch_Rhinobot *scratch = (Scratch_Rhinobot *)&obj->scratch;
+
+    switch (obj->routine) {
+    case 0: {
+        obj->mappings = Mappings_Rhinobot;
+        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Rhinobot);
+        obj->render.b |= SPRITE_CAM_FIELD;
+        obj->col_type = 0x0A;
+        obj->priority = 4;
+        obj->width_pixels = 0x18;
+        obj->y_rad = 0x10;
+        obj->x_rad = 0x18;
+        ObjectFall(obj);
+        const int16_t d1 = ObjFloorDist(obj, obj->pos.l.x.f.u);
+        if (d1 < 0) {
+            obj->pos.l.y.f.u += d1;
+            obj->ysp = 0;
+            obj->routine += 2;
+        }
+        break;
+    }
+    case 2:
+        if (obj->routine_sec == 0) { // waits, then walks off
+            if (--scratch->wait_timer < 0) {
+                obj->routine_sec += 2;
+                obj->xsp = -0x80;
+                obj->anim = RhinoAnim_Walk;
+                const bool was_set = obj->status.o.f.x_flip;
+                obj->status.o.f.x_flip ^= 1;
+                if (!was_set)
+                    obj->xsp = -obj->xsp;
+            }
+        } else { // walks or charges until the floor ends
+            Rhinobot_Chase(obj);
+            ObjectFall(obj);
+            const int16_t d1 = ObjFloorDist(obj, obj->pos.l.x.f.u);
+            if (d1 < -8) { // the floor ends: back a step, and stands a while
+                obj->routine_sec -= 2;
+                scratch->wait_timer = 0x3B;
+                obj->pos.l.x.v -= (int32_t)obj->xsp << 8;
+                obj->xsp = 0;
+                obj->anim = RhinoAnim_Still;
+            } else if (d1 < 0xC) {
+                obj->ysp = 0;
+                obj->pos.l.y.f.u += d1;
+            }
+        }
+        AnimateSprite(obj, Animation_Rhinobot);
+        RememberState(obj);
         break;
     }
 }
