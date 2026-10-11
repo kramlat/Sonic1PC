@@ -34,6 +34,8 @@ enum {
 	PalId_NGHZWater,
 	PalId_CPZWaterSonic,
 	PalId_NGHZWaterSonic,
+	PalId_CNZ2, // the alpha's Casino Night act 2 palette
+	PalId_GCZ,  // Cyber City's
 
 	PalId_EHZ = PalId_SLZ,
 	PalId_CPZ = PalId_MZ,

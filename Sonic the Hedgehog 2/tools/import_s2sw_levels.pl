@@ -37,6 +37,9 @@ my %alpha = (
     # (Hill Top: Emerald Hill's tiles and blocks with its own over them, the shared chunks)
     HTZ => { dir => 'Hill Top Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map1.dat', 'Bg_Map2.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
              blocks => ['../Emerald Hill Zone/Blocks.dat', 'Blocks.dat@0x980'], tiles => ['../Emerald Hill Zone/Tiles.nem', 'Tiles.nem@0x3F80'], chunks => '../Shared/Chunks.kos', col => ['../Shared/Ghz_Col1.dat', '../Shared/Ghz_Col2.dat'], pal => '../../Palettes/HTz.pal' },
+    # (Dust Hill: two acts, one background and one collision index for both paths)
+    DHZ => { dir => 'Dust Hill Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
+             blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['DHz_Col.dat', 'DHz_Col.dat'], pal => '../../Palettes/DHz.pal' },
     # (Oil Ocean: two acts, one background and one collision index for both paths)
     OOZ => { dir => 'Oil Ocean Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
              blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['OOz_Col.dat', 'OOz_Col.dat'], pal => '../../Palettes/OOz.pal' },
@@ -46,13 +49,16 @@ my %alpha = (
     # (Metropolis: three acts, one background, rings in each, and one collision index for both paths)
     MTZ => { dir => 'Metropolis Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat', 'Fg_Map3.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat', 'Obj_Act3.dat'],
              rng => ['Rng_Act1.dat', 'Rng_Act2.dat', 'Rng_Act3.dat'], blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['Mz_Col.dat', 'Mz_Col.dat'], pal => '../../Palettes/Mz.pal' },
+    # (Casino Night: two acts with a palette each, and neither has objects or rings: both acts' object index entries are the alpha's empty list, so the layouts are empty ones)
+    CNZ => { dir => 'Casino Night Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat'],
+             blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['CNz_Col1.dat', 'CNz_Col2.dat'], pal => '../../Palettes/CNz_1.pal', pal2 => '../../Palettes/CNz_2.pal' },
 );
 # What each zone's header names: its sprite art list (PlcId; the zones that are not built yet share Hill Top's, which has the common art) and its palette (PalId)
-my %plc = (EHZ => 'PlcId_SLZ', WZ => '0', MTZ => 'PlcId_MTZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', OOZ => 'PlcId_OOZ', DHZ => 'PlcId_DHZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ', CNZ => 'PlcId_LZ');
+my %plc = (EHZ => 'PlcId_SLZ', WZ => '0', MTZ => 'PlcId_MTZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', OOZ => 'PlcId_OOZ', DHZ => 'PlcId_DHZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ', CNZ => 'PlcId_LZ', GCZ => '0');
 my %plc2 = (WZ => 'PlcId_SLZ2', MTZ => 'PlcId_MTZ2', HTZ => 'PlcId_SBZ2', OOZ => 'PlcId_OOZ2', DHZ => 'PlcId_DHZ2', CPZ => 'PlcId_MZ2', NGHZ => 'PlcId_GHZ2', CNZ => 'PlcId_LZ2'); # (the second list of a zone, loaded with the first: only the zones that have a second one)
 # The zones whose objects are ported: the others have the object layouts imported but none put in their level yet (their objects come with the zone)
-my %objects_built = map { $_ => 1 } qw(EHZ MTZ HTZ HPZ OOZ DHZ CPZ NGHZ);
-my %pal = (EHZ => 'PalId_EHZ', HTZ => 'PalId_HTZ', HPZ => 'PalId_HPZ', CPZ => 'PalId_CPZ', WZ => 'PalId_WZ', MTZ => 'PalId_MTZ', OOZ => 'PalId_OOZ', DHZ => 'PalId_DHZ', CNZ => 'PalId_CNZ', NGHZ => 'PalId_NGHZ');
+my %objects_built = map { $_ => 1 } qw(EHZ MTZ HTZ HPZ OOZ DHZ CPZ NGHZ CNZ GCZ);
+my %pal = (EHZ => 'PalId_EHZ', HTZ => 'PalId_HTZ', HPZ => 'PalId_HPZ', CPZ => 'PalId_CPZ', WZ => 'PalId_WZ', MTZ => 'PalId_MTZ', OOZ => 'PalId_OOZ', DHZ => 'PalId_DHZ', CNZ => 'PalId_CNZ', NGHZ => 'PalId_NGHZ', GCZ => 'PalId_GCZ');
 
 sub slurp { my $p = shift; open my $f, '<:raw', $p or die "$p: $!\n"; local $/; my $d = <$f>; close $f; $d }
 sub spit { my ($p, $d) = @_; open my $f, '>:raw', $p or die "$p: $!\n"; print $f $d; close $f }
@@ -131,6 +137,7 @@ for my $name (@order) {
         my ($level_pal) = grep { !/Sonic and Tails/ } split /\|/, $s->{palette};
         $level_pal =~ s/:.*//;
         spit("$res/S2Palette/$zone", slurp($al ? $alp->($al->{pal}) : path($level_pal)));
+        if ($al && $al->{pal2}) { spit("$res/S2Palette/${zone}2", slurp($alp->($al->{pal2}))); push @resources, "S2Palette/${zone}2" }
         push @resources, "S2Art/$zone", "S2Map16/$zone", "S2Map128/$zone", "S2Collision/${zone}1", "S2Collision/${zone}2", "S2Palette/$zone";
     }
 
@@ -151,7 +158,7 @@ for my $name (@order) {
     # objects (an act without any has none), rings
     my $o = $s->{objects} ? slurp(path($s->{objects})) : '';
     my $out = '';
-    if ($al) { $o = ''; $out = slurp($alp->($al->{obj}[$act - 1])); $out =~ s/\0+$//; $out = substr($out, 0, rindex($out, pack('n', 0xFFFF)) ) if $out =~ /\xFF\xFF/; $out .= pack('nnCC', 0xFFFF, 0, 0, 0); }
+    if ($al) { $o = ''; $out = $al->{obj} ? slurp($alp->($al->{obj}[$act - 1])) : ''; $out =~ s/\0+$//; $out = substr($out, 0, rindex($out, pack('n', 0xFFFF)) ) if $out =~ /\xFF\xFF/; $out .= pack('nnCC', 0xFFFF, 0, 0, 0); }
     for (my $i = 0; $i + 6 <= length $o; $i += 6) {
         my ($x, $yw, $id, $sub) = unpack('nnCC', substr($o, $i, 6));
         my $nyw = ($yw & 0x0FFF) | (($yw & 0x4000) >> 1) | (($yw & 0x8000) >> 1);
@@ -160,10 +167,33 @@ for my $name (@order) {
     }
     $out .= pack('nnCC', 0xFFFF, 0, 0, 0) unless $al;
     spit("$res/S2Objects/$key", $out);
-    spit("$res/S2Rings/$key", sort_rings($al ? slurp($alp->($al->{rng}[$act - 1])) : $s->{rings} ? slurp(path($s->{rings})) : pack('n', 0xFFFF)));
+    spit("$res/S2Rings/$key", sort_rings($al ? ($al->{rng} ? slurp($alp->($al->{rng}[$act - 1])) : pack('n', 0xFFFF)) : $s->{rings} ? slurp(path($s->{rings})) : pack('n', 0xFFFF)));
     $info{$zone}{acts}{$act}{start} = [ unpack('nn', slurp(path((split /:/, $s->{startpos})[0]))) ];
     $info{$zone}{acts}{$act}{alpha} = 1 if $al;
     push @resources, "S2Layout/$key", "S2Objects/$key", "S2Rings/$key";
+}
+
+# Cyber City (the final game's CCZ, which takes the alpha's Genocide City slot ($0E): the alpha has no data for it, so its level size and start are the alpha's defaults for the slot). Its files are in the import folder
+# (S2IMPORT, default "import and toss"), in the final's formats: Kosinski tiles, blocks, chunks and collision indices, layouts already interleaved as the engine has them (FG row, BG row), the palette of lines 1-3 and
+# the three cycling palettes (the underwater one waits for the water). Its object and ring files are empty: the objects of its layout that this build does not have come later
+{
+    my $imp = $ENV{S2IMPORT} // 'import and toss';
+    if (-d $imp) {
+        my $z = 'GCZ';
+        my %copy = ("$imp/art/CCZ.kos" => "S2Art/$z", "$imp/blk/CCZ.kos" => "S2Map16/$z", "$imp/chnk/CCZ.kos" => "S2Map128/$z",
+                    "$imp/cols/CCZ primary 16x16 collision index.kos" => "S2Collision/${z}1", "$imp/cols/CCZ secondary 16x16 collision index.kos" => "S2Collision/${z}2",
+                    "$imp/pal/CCZ.bin" => "S2Palette/$z", "$imp/pal/CCZ Cycle 1.bin" => "S2Palette/${z}Cycle1", "$imp/pal/CCZ Cycle 2.bin" => "S2Palette/${z}Cycle2", "$imp/pal/CCZ Cycle 3.bin" => "S2Palette/${z}Cycle3");
+        for my $src (sort keys %copy) { spit("$res/$copy{$src}", slurp($src)); push @resources, $copy{$src} }
+        $info{$z}{slot} = 0x0E;
+        for my $act (1, 2) {
+            my $key = "$z$act";
+            spit("$res/S2Layout/$key", slurp("$imp/level/CCZ_" . (3 - $act) . ".kos")); # (the files' acts are swapped: the one with the boss area is the first act here)
+            spit("$res/S2Objects/$key", pack('nnCC', 0xFFFF, 0, 0, 0));
+            spit("$res/S2Rings/$key", pack('n', 0xFFFF));
+            $info{$z}{acts}{$act} = { slot => 0x0E, act => $act - 1, key => $key, alpha => 1, start_override => ($act == 1 ? [ 0x06F9, 0x05D4 ] : [ 0x00BE, 0x005E ]) }; # (the starts: where the user put Sonic in debug mode; the HUD there shows the camera's position, and the ring is the debug cursor on Sonic: camera plus the cursor's place on the screen)
+            push @resources, "S2Layout/$key", "S2Objects/$key", "S2Rings/$key";
+        }
+    }
 }
 
 # the collision arrays (height and width maps of the 16x16 collision blocks) and their angles, which every zone shares
@@ -264,7 +294,7 @@ $c .= "    };\n    static int16_t result[6];\n    memcpy(result, table[zone][act
 
 $c .= "// Player start positions\nconst int16_t StartLocArray[ZoneId_Num][4][2] = {\n";
 for my $s (@slots) {
-    my @row = map { my $a = exists $slot{$s}{$_} ? $_ : 0; my $e = $slot{$s}{$a}; ($e->{alpha} && !exists $slot{$s}{$_} && $_ == 1 && $slot{$s}{0}{zone} eq 'HPZ') ? sprintf('{ 0x%04X, 0x%04X }', @{ $alpha_starts[$s] }[ 2, 3 ]) : # (an alpha zone with one act made here has its second act's start too: the same level)
+    my @row = map { my $a = exists $slot{$s}{$_} ? $_ : 0; my $e = $slot{$s}{$a}; $e->{start_override} ? sprintf('{ 0x%04X, 0x%04X }', @{ $e->{start_override} }) : ($e->{alpha} && !exists $slot{$s}{$_} && $_ == 1 && $slot{$s}{0}{zone} eq 'HPZ') ? sprintf('{ 0x%04X, 0x%04X }', @{ $alpha_starts[$s] }[ 2, 3 ]) : # (an alpha zone with one act made here has its second act's start too: the same level)
         $e->{alpha} ? sprintf('{ 0x%04X, 0x%04X }', @{ $alpha_starts[$s] }[ $a * 2, $a * 2 + 1 ]) : sprintf('{ 0x%04X, 0x%04X }', @{ $e->{start} }) } 0 .. 3;
     $c .= sprintf("    [%s] = { %s }, // $slot{$s}{0}{zone}\n", zid($s), join(', ', @row));
 }

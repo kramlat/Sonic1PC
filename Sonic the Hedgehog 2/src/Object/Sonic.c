@@ -884,9 +884,15 @@ static signed int ReactToItem(Object *obj) {
                     }
                     return React_Enemy(obj, hit);
                 }
-                if ((hit->col_type & 0x3F) == 0x17 || (hit->col_type & 0x3F) == 0x21) { // SYZ bumper / LZ pole -- own routine reads/clears col_property each frame
+                switch (hit->col_type & 0x3F) { // the alpha's Touch_Special (the final's too): the object's own routine reads and clears col_property each frame, a bit for each character
+                case 6: case 0x14: case 0x15: case 0x16: case 0x17: // (the round bumper, the auto spin: bit 0 is Sonic's, bit 1 Tails')
+                    hit->col_property += 1;
+                    return 0;
+                case 0x21: // (a pole of Labyrinth's: counts the touches)
                     hit->col_property++;
                     return 0;
+                default:
+                    break;
                 }
                 break;
             case 0x80: // Hurt

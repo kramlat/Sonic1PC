@@ -13,7 +13,7 @@ typedef struct {
 static void LevelData_StartPositionsMatchThePrototype(void) {
     static const Start starts[] = {
         { ZoneId_EHZ, 0, 0x60, 0x28F }, { ZoneId_EHZ, 1, 0x40, 0x2AF }, { ZoneId_HTZ, 0, 0x60, 0x3EF }, { ZoneId_HTZ, 1, 0x60, 0x6AF }, // (Hill Top's are the alpha's)
-        { ZoneId_CNZ, 0, 0x60, 0x28F }, { ZoneId_CNZ, 1, 0x40, 0x2AF }, { ZoneId_CPZ, 0, 0x30, 0x1EC }, { ZoneId_CPZ, 1, 0x30, 0x12C },
+        { ZoneId_CNZ, 0, 0x60, 0x2AC }, { ZoneId_CNZ, 1, 0x60, 0x58C }, { ZoneId_CPZ, 0, 0x30, 0x1EC }, { ZoneId_CPZ, 1, 0x30, 0x12C },
         { ZoneId_ARZ, 0, 0x50, 0x37C }, { ZoneId_ARZ, 1, 0x50, 0x37C }, { ZoneId_WZ, 0, 0x60, 0x1AC },
     };
     for (size_t i = 0; i < sizeof(starts) / sizeof(starts[0]); i++) {
@@ -48,7 +48,7 @@ static void LevelData_ArtListsAreThePrototypes(void) {
     CHECK_EQ(level_header[ZoneId_WZ].plc2, PlcId_SLZ2);
     CHECK_EQ(level_header[ZoneId_MCZ].plc1, PlcId_DHZ); // (Dust Hill: Dust_Hill_Sprites_1 and 2: the crate, collapsing platform, pull switch and vine; the spikes, gate log and springs)
     CHECK_EQ(level_header[ZoneId_MCZ].plc2, PlcId_DHZ2);
-    CHECK_EQ(plcs[PlcId_DHZ]->plcs, 4);
+    CHECK_EQ(plcs[PlcId_DHZ]->plcs, 6);
     CHECK_EQ(plcs[PlcId_DHZ2]->plcs, 6);
     CHECK_EQ(plcs[PlcId_SLZ2]->plcs, 3); // Wood_Sprites_2: spikes, diagonal and up springs
     CHECK_EQ(level_header[ZoneId_HTZ].plc1, PlcId_SBZ);

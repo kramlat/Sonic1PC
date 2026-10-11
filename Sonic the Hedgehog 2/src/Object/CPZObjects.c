@@ -763,10 +763,20 @@ typedef struct {
 #define ARTTILE_CPZ_SLIDER ARTTILE_CPZ_BLOCK
 
 // loc_1D5A8: for each kind, how many platforms there are less one, how far the row reaches each side of its place, and where each platform starts in it
-static const struct {
+typedef struct {
     uint8_t count, reach;
     int16_t start0, start1;
-} slider_rows[3] = { { 0, 0x70, -0x70, 0 }, { 1, 0xB0, -0xB0, 0x40 }, { 1, 0xF0, -0x80, 0x80 } };
+} SliderRow;
+static const SliderRow slider_rows[3] = { { 0, 0x70, -0x70, 0 }, { 1, 0xB0, -0xB0, 0x40 }, { 1, 0xF0, -0x80, 0x80 } };
+
+// Dust Hill's (the alpha's: its platforms are 48 pixels wide, 8 more than Chemical Plant's, so the rows are 8 shorter, and it has a fourth row)
+static const SliderRow slider_rows_alpha[4] = { { 0, 0x68, -0x68, 0 }, { 1, 0xA8, -0xB0, 0x40 }, { 1, 0xE8, -0x80, 0x80 }, { 0, 0x68, 0x67, 0 } };
+
+const void *DHZSwingMappings(void); // (NGHZObjects.c holds the resource)
+
+static bool SliderIsDustHill(void) {
+    return LEVEL_ZONE(level_id) == ZoneId_MCZ;
+}
 
 static void Slider_Move(Object *obj, Scratch_CPZSlider *scratch) {
     const int16_t old_x = obj->pos.l.x.f.u;
@@ -790,9 +800,11 @@ void Obj_CPZSlider(Object *obj) {
 
     if (obj->routine == 0) {
         obj->routine += 2;
-        const int row = scratch->subtype / 6 > 2 ? 2 : scratch->subtype / 6;
+        const bool dust_hill = SliderIsDustHill();
+        const int row = dust_hill ? (scratch->subtype / 6 > 3 ? 3 : scratch->subtype / 6) : (scratch->subtype / 6 > 2 ? 2 : scratch->subtype / 6);
+        const SliderRow *conf = dust_hill ? &slider_rows_alpha[row] : &slider_rows[row];
         Object *other = obj;
-        for (int i = 0; i <= slider_rows[row].count; i++) {
+        for (int i = 0; i <= conf->count; i++) {
             if (i > 0) {
                 other = FindNextFreeObj(obj + 1);
                 if (other == NULL)
@@ -802,24 +814,24 @@ void Obj_CPZSlider(Object *obj) {
                 other->pos.l.x.f.u = obj->pos.l.x.f.u;
                 other->pos.l.y.f.u = obj->pos.l.y.f.u;
             }
-            other->mappings = Mappings_CPZSlider;
-            other->tile = TILE_MAP(1, 3, 0, 0, ARTTILE_CPZ_SLIDER);
+            other->mappings = dust_hill ? DHZSwingMappings() : Mappings_CPZSlider;
+            other->tile = dust_hill ? TILE_MAP(0, 0, 0, 0, 0) : TILE_MAP(1, 3, 0, 0, ARTTILE_CPZ_SLIDER);
             other->render.b = 4;
             other->priority = 4;
-            other->width_pixels = 0x10;
+            other->width_pixels = dust_hill ? 0x18 : 0x10;
             ((Scratch_CPZSlider *)&other->scratch)->base_x = obj->pos.l.x.f.u;
         }
         ((Scratch_CPZSlider *)&other->scratch)->partner = (uint8_t)(obj - objects);
         scratch->partner = (uint8_t)(other - objects);
         if (scratch->subtype == 0xC)
             scratch->going_left = 1;
-        const int16_t reach = slider_rows[row].reach;
+        const int16_t reach = conf->reach;
         const int16_t left = (int16_t)(scratch->base_x - reach), right = (int16_t)(left + reach * 2);
         Scratch_CPZSlider *os = (Scratch_CPZSlider *)&other->scratch;
         scratch->left = os->left = left;
         scratch->right = os->right = right;
-        obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + slider_rows[row].start0);
-        other->pos.l.x.f.u = (int16_t)(other->pos.l.x.f.u + slider_rows[row].start1);
+        obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + conf->start0);
+        other->pos.l.x.f.u = (int16_t)(other->pos.l.x.f.u + conf->start1);
     }
 
     if (obj->routine == 2) { // the first: it is the one that goes when the row is out of range
@@ -836,7 +848,7 @@ void Obj_CPZSlider(Object *obj) {
     } else { // the second: it turns the first round when they meet
         Slider_Move(obj, scratch);
         Object *other = &objects[scratch->partner];
-        if (other->type == obj->type && (int16_t)(obj->pos.l.x.f.u - 0x10) == (int16_t)(other->pos.l.x.f.u + 0x10)) {
+        if (other->type == obj->type && (int16_t)(obj->pos.l.x.f.u - obj->width_pixels) == (int16_t)(other->pos.l.x.f.u + obj->width_pixels)) {
             scratch->going_left ^= 1;
             ((Scratch_CPZSlider *)&other->scratch)->going_left ^= 1;
         }

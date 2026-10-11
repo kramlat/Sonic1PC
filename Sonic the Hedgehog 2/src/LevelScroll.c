@@ -637,6 +637,7 @@ static void Deform_MCZ(void) {
 		0x20, 0x13, 0x0D, 0x30, 0x02, 0x02, 0x07, 0x07, 0x20, 0x12, 0x17, 0x25,
 	};
 	Deform_Bands(heights, 24, layer, (uint16_t)bg_scrpos_y.f.u, (int16_t)-scrpos_x.f.u);
+	HTZQuake_ShakeDustHill(); // (the boss of act 2 digs: the alpha's Bg_Scroll_DHz shakes the screen then)
 }
 
 // Neo Green Hill (Bg_Scroll_NGHz): 12 bands, the upper and lower ones on a background that crawls (a 233rd of the camera's move), those between at multiples of a tenth of the camera's X
@@ -666,6 +667,7 @@ static void (*deform_routines[ZoneId_Num])(void) = {
 	[ZoneId_OOZ] = Deform_OOZ,
 	[ZoneId_MCZ] = Deform_MCZ,
 	[ZoneId_CNZ] = Deform_CNZ,
+	[ZoneId_GCZ] = Deform_WZ, // (Cyber City: Wood's)
 	[ZoneId_ARZ] = Deform_ARZ,
 	[ZoneId_CPZ] = Deform_CPZ,
 	[ZoneId_EHZ] = Deform_EHZ,
@@ -718,6 +720,7 @@ void BgScrollSpeed(int16_t x, int16_t y) {
 
         case ZoneId_MTZ:
         case ZoneId_MTZ3: /* Metropolis: a quarter of the height, an eighth of the width */
+        case ZoneId_GCZ: /* Cyber City: InitCam_Std (the camera's Y shifted right twice and its X three times, arithmetically) */
             bg_scrpos_y.f.u = (int16_t)(y >> 2);
             bg_scrpos_x.f.u = (int16_t)(x >> 3);
             break;

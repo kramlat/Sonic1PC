@@ -119,6 +119,55 @@ write_file('Animation/Sol',     slice(0x0288CE, 0x0288DC));
 write_file('Animation/SolFire', slice(0x0288DC, 0x0288E2));
 copy_file('Art/Nemesis/Rexon.nem', 'Art/Rexon');
 
+# Dust Hill: the drawbridge (77) has five frames and its own animation in the alpha (mappings $01E140), the roots that are switches (7F: $01E9EC) and that carry (80: $01EC14), the bridge that swings (81: $01EFD6),
+# the Crawlton ($029598, crawlton.nem at $7800) and the Flasher ($029DB4, its animations $029D80, $029DA4 and $029DAA, flasher.nem at $7500)
+write_file('Mappings/DHZGate', slice(0x01E140, 0x01E294));
+write_file('Mappings/DHZVinesSwitch', slice(0x01E9EC, 0x01EA24));
+write_file('Mappings/DHZVines', slice(0x01EC14, 0x01ED80));
+write_file('Mappings/DHZVerticalBridge', slice(0x01EFD6, 0x01EFE6));
+write_file('Mappings/Crawlton', slice(0x029598, 0x0295B2));
+write_file('Mappings/Flasher', slice(0x029DB4, 0x029E94));
+write_file('Animation/Flasher', slice(0x029D80, 0x029DA4));
+write_file('Animation/FlasherAlert', slice(0x029DA4, 0x029DAA));
+write_file('Animation/FlasherFade', slice(0x029DAA, 0x029DB4));
+copy_file('Art/Nemesis/Crawlton.nem', 'Art/Crawlton');
+copy_file('Art/Nemesis/Flasher.nem', 'Art/Flasher');
+
+# Dust Hill's boss (object 57: mappings $027016, animations $026F34, dhzboss.nem at $7800 beside the ship at $A000) and the four tiles of the rocks it shakes loose (bossrock.dat, uncompressed, at tile $360)
+write_file('Mappings/DHZBoss', slice(0x027016, 0x0271AC));
+write_file('Animation/DHZBoss', slice(0x026F34, 0x027016));
+copy_file('Art/Nemesis/DHZBoss.nem', 'Art/DHZBoss');
+copy_file('Art/Uncompressed/BossRock.dat', 'Art/DHZBossRock');
+
+# Casino Night: the art of its two lists (the first at $6F00 on: green platforms, spikeball/slot machine, box, elevator, slot machine starter ($7100: the cards of the prototype, which had them at $7A00), blue bumper,
+# bumpers, the diagonal and vertical launchers; the second: green bumpers at $7C80 and the flippers at $8000, then the usual spikes and springs)
+copy_file('Art/Nemesis/GreenPtf.nem', 'Art/CNZGreenPlatform');
+copy_file('Art/Nemesis/Spikball.nem', 'Art/CNZSpikeball');
+copy_file('Art/Nemesis/Box.nem', 'Art/CNZBox');
+copy_file('Art/Nemesis/Elevator.nem', 'Art/CNZElevator');
+copy_file('Art/Nemesis/BBumpers.nem', 'Art/CNZBlueBumper');
+copy_file('Art/Nemesis/Bumpers.nem', 'Art/CNZBumpers');
+copy_file('Art/Nemesis/D_Launch.nem', 'Art/CNZDiagLauncher');
+copy_file('Art/Nemesis/V_Launch.nem', 'Art/CNZVertLauncher');
+copy_file('Art/Nemesis/GBumpers.nem', 'Art/CNZGreenBumpers');
+copy_file('Art/Nemesis/Flippers.nem', 'Art/CNZFlippers');
+
+# Casino Night's round bumper (object 44: mappings $014994, animations $014986; the bumpers' art is in the zone's list at $7340)
+write_file('Mappings/CNZBumper', slice(0x014994, 0x0149CC));
+write_file('Animation/CNZBumper', slice(0x014986, 0x014994));
+
+# The Auto Spin (object 84: mappings $016324; for Hill Top, Hidden Palace and Casino Night) and the slot machine's cards (uncompressed art: the blue and pink cards and the checkered floor of its window: loaded by
+# objects that are not in the alpha, kept as the art)
+write_file('Mappings/AutoSpin', slice(0x016324, 0x016390));
+copy_file('Art/Uncompressed/BlueCard.dat', 'Art/CNZBlueCard');
+copy_file('Art/Uncompressed/PinkCard.dat', 'Art/CNZPinkCard');
+copy_file('Art/Uncompressed/SM_Check.dat', 'Art/CNZSlotCheck');
+
+# Casino Night's boss (object 51: mappings $02792C, animations $0278EA, boss.nem at $80E0 beside the ship at $74E0)
+write_file('Mappings/CNZBoss', slice(0x02792C, 0x027A76));
+write_file('Animation/CNZBoss', slice(0x0278EA, 0x02792C));
+copy_file('Art/Nemesis/Boss.nem', 'Art/CNZBoss');
+
 # Oil Ocean: the elevator's art is bigger in the alpha (its platform has a longer third frame: mappings $0170AE), the fire under the burner lid (object 33's child: mappings $018C20, animation $018C00,
 # fire_bst.nem at $5C40), and the art of two objects that no layout places (brkbst_v.nem at $7FE0 and the fans of object 3F, fans.nem at $8060)
 copy_file('Art/Nemesis/OOZElevator.nem', 'Art/OOZElevator');

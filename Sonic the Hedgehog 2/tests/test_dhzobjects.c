@@ -4,9 +4,15 @@
 
 #include "Level.h"
 #include "Object.h"
+#include "Object/DHZBadniks.h"
+#include "Object/DHZBoss.h"
+#include "Object/CNZBoss.h"
+#include "Object/CNZObjects.h"
+#include "Object/BossCommon.h"
 #include "Object/DHZObjects.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
+#include "EnginePLC.h"
 #include "Oscillatory Routines.h"
 
 // Dust Hill's objects (and the collapsing platform it shares with Oil Ocean): the platform that breaks, the stomper, the switch and the drawbridge it lowers, the boxes on their path, the chain of spiked balls and
@@ -194,11 +200,11 @@ static void DHZ_TheDrawbridgeLowersAtStartAndRaisesOnceItsSwitchIsDown(void) {
     for (int i = 0; i < 20; i++)
         Obj_DHZGate(obj);
     CHECK_EQ(obj->anim, 1);
-    CHECK_EQ(obj->frame, 2); // (up)
+    CHECK_EQ(obj->frame, 4); // (up: the alpha has five frames)
     f_switch[5] = 0;
     for (int i = 0; i < 20; i++)
         Obj_DHZGate(obj);
-    CHECK_EQ(obj->frame, 2); // (only once)
+    CHECK_EQ(obj->frame, 4); // (only once)
 }
 
 static void DHZ_ARaisedDrawbridgeLetsGoOfWhoeverStandsOnIt(void) {
@@ -395,6 +401,226 @@ static void DHZ_TheCradleSwingsOutOnOneSideOnlyAndTheMiddleHangsStill(void) {
     CHECK(rx0 >= 0x160 - 1);   // (and not to the left)
 }
 
+// --- 9E, A3 and 57 (the alpha's) ---
+
+static void DHZ_TheCrawltonWaitsUntilSonicIsNearThenTurnsToHimAndCrawls(void) {
+    Reset(ZoneId_MCZ);
+    Object *head = Spawn(0x9E, 0x22, 200, 400);
+    player->pos.l.x.f.u = 200 + 0x100; // (far)
+    player->pos.l.y.f.u = 400;
+    Obj_Crawlton(head); // the set up: its body is made
+    CHECK_EQ(objects[0x21].type, 0x9E);
+    CHECK_EQ(objects[0x21].child_count, 7);
+    CHECK(objects[0x21].render.f.multi_sprite);
+    for (int i = 0; i < 5; i++)
+        Obj_Crawlton(head);
+    CHECK_EQ(head->xsp, 0);
+    player->pos.l.x.f.u = 250;
+    Obj_Crawlton(head); // he is near: it turns
+    CHECK(head->render.f.x_flip);
+    CHECK_EQ(head->xsp, 0x100); // (50 pixels away: 50 * 8 = $190, less its low byte)
+    for (int i = 0; i < 0x11 + 0x1C; i++)
+        Obj_Crawlton(head);
+    CHECK(head->pos.l.x.f.u > 200); // it has crawled towards him
+}
+
+static void DHZ_TheCrawltonBodyFollowsTheHeadWhileItCrawls(void) {
+    Reset(ZoneId_MCZ);
+    Object *head = Spawn(0x9E, 0x22, 200, 400);
+    player->pos.l.x.f.u = 250;
+    player->pos.l.y.f.u = 400;
+    Obj_Crawlton(head);
+    Object *body = &objects[0x21];
+    for (int i = 0; i < 3; i++) {
+        Obj_Crawlton(head);
+        Obj_Crawlton(body);
+    }
+    // gathering, then crawling
+    for (int i = 0; i < 0x11 + 0x1C; i++) {
+        Obj_Crawlton(head);
+        Obj_Crawlton(body);
+    }
+    CHECK(body->children[0].x > 200); // the first piece has moved on first
+    CHECK(body->children[0].x >= body->children[6].x);
+}
+
+static void DHZ_TheFlasherDriftsFlashesAndGlowsDangerously(void) {
+    Reset(ZoneId_MCZ);
+    Object *obj = Spawn(0xA3, 0x2C, 300, 300);
+    Obj_Flasher(obj);
+    CHECK_EQ(obj->col_type, 0x06);
+    for (int i = 0; i < 0x41; i++)
+        Obj_Flasher(obj);
+    CHECK_EQ(obj->routine, 4); // drifting
+    for (int i = 0; i < 0x81; i++)
+        Obj_Flasher(obj);
+    CHECK_EQ(obj->routine, 6);       // it stops to flash
+    CHECK_EQ(obj->col_type, 0x86);   // and hurts
+    for (int i = 0; i < 0x100 && obj->routine != 8; i++)
+        Obj_Flasher(obj);
+    CHECK_EQ(obj->routine, 8);       // the glow
+    for (int i = 0; i < 0x200 && obj->routine != 4; i++)
+        Obj_Flasher(obj);
+    CHECK_EQ(obj->routine, 4);       // and it drifts again
+    CHECK_EQ(obj->col_type, 0x06);
+}
+
+static void DHZ_TheBossRisesDropsRocksAndMovesToWhereSonicIs(void) {
+    Reset(ZoneId_MCZ);
+    level_id = LEVEL_ID(ZoneId_MCZ, 1);
+    Object *boss = Spawn(0x57, 0, 0, 0);
+    boss->pos.l.x.f.u = 0;
+    Obj_DHZBoss(boss);
+    CHECK_EQ(boss->child_count, 4);
+    CHECK(boss->render.f.multi_sprite);
+    CHECK_EQ(boss->pos.l.x.f.u, 0x21A0);
+    CHECK_EQ(boss->pos.l.y.f.u, 0x678);
+    player->pos.l.x.f.u = 0x2180;
+    for (int i = 0; i < 0x28 + 0x200 && boss->pos.l.y.f.u > 0x560 + 4; i++) {
+        scrpos_x.f.u = 0x20F0;
+        scrpos_y.f.u = 0x5C0;
+        frame_count++;
+        Obj_DHZBoss(boss);
+    }
+    CHECK(boss->pos.l.y.f.u <= 0x564);
+    int rocks = 0;
+    for (int i = 0x21; i < 0x60; i++)
+        rocks += objects[i].type == 0x57;
+    CHECK(rocks > 0); // (they come loose while it digs)
+}
+
+static void DHZ_TheBossArenaLocksTheCameraAndLoadsTheBossOnce(void) {
+    Reset(ZoneId_MCZ);
+    level_id = LEVEL_ID(ZoneId_MCZ, 1);
+    dle_routine = 0;
+    scrpos_x.f.u = 0x1C00 - SCREEN_WIDEADD2 - 1;
+    scrpos_y.f.u = 0x600;
+    DHZBoss_Events();
+    CHECK_EQ(dle_routine, 0); // (too far left)
+    scrpos_x.f.u = 0x1C00 - SCREEN_WIDEADD2;
+    DHZBoss_Events();
+    CHECK_EQ(dle_routine, 2);
+    CHECK_EQ(boss_flag, 5);
+    CHECK_EQ(limit_btm1, 0x600 - SCREEN_TALLADD);
+    scrpos_x.f.u = 0x20F0 - SCREEN_WIDEADD2;
+    DHZBoss_Events();
+    CHECK_EQ(dle_routine, 4);
+    CHECK_EQ(limit_left2, 0x20F0 - SCREEN_WIDEADD2);
+    CHECK_EQ(limit_btm1, 0x5FF - SCREEN_TALLADD);
+    ClearPLC(); // (the boss's art is queued)
+    boss_flag = 0;
+    dle_routine = 0;
+}
+
+// --- Casino Night (the alpha's) ---
+
+static void CNZ_TheRoundBumperThrowsWhoeverTouchesIt(void) {
+    Reset(ZoneId_CNZ);
+    Object *bumper = Spawn(0x44, 0, 300, 300);
+    player->pos.l.x.f.u = 300;
+    player->pos.l.y.f.u = 330; // below it
+    Obj_CNZBumper(bumper); // set up
+    CHECK_EQ(bumper->col_type, 0xD7);
+    CHECK_EQ(player->ysp, 0);
+    bumper->col_property = 1; // (the touch response counts it)
+    Obj_CNZBumper(bumper);
+    CHECK(player->ysp > 0x500);                   // thrown away from it: straight down, at $700 or so
+    CHECK(player->status.p.f.in_air);
+    CHECK_EQ(bumper->col_property, 0);
+    CHECK_EQ(bumper->anim, 1);
+}
+
+static void CNZ_TheBossGoesRoundTheArenaAndLetsTheBallFall(void) {
+    Reset(ZoneId_CNZ);
+    level_id = LEVEL_ID(ZoneId_CNZ, 1);
+    Object *boss = Spawn(0x51, 0, 0, 0);
+    Obj_CNZBoss(boss);
+    CHECK_EQ(boss->child_count, 4);
+    CHECK_EQ(boss->pos.l.x.f.u, 0x2850);
+    CHECK_EQ(boss->pos.l.y.f.u, 0x600);
+    player->pos.l.x.f.u = 0x2800;
+    int balls = 0;
+    int16_t min_x = 0x7FFF;
+    for (int i = 0; i < 1500; i++) {
+        scrpos_x.f.u = 0x2700;
+        scrpos_y.f.u = 0x500;
+        frame_count++;
+        Obj_CNZBoss(boss);
+        if (boss->pos.l.x.f.u < min_x)
+            min_x = boss->pos.l.x.f.u;
+        for (int j = 0x21; j < 0x60; j++) {
+            if (objects[j].type == 0x51 && ((uint8_t *)&objects[j].scratch)[0] == 4) {
+                balls++;
+                Obj_CNZBoss(&objects[j]);
+            }
+        }
+    }
+    CHECK(balls > 0);                // (it lets a ball fall)
+    CHECK(min_x <= 0x2730 + 4);      // (it goes to the left corner of the arena)
+    CHECK(boss->pos.l.y.f.u <= 0x600 && boss->pos.l.y.f.u >= 0x59C);
+    ClearPLC();
+}
+
+static void CNZ_TheBossArenaLocksTheCameraAtTheEndOfActTwoOnly(void) {
+    Reset(ZoneId_CNZ);
+    dle_routine = 0;
+    level_id = LEVEL_ID(ZoneId_CNZ, 1);
+    scrpos_x.f.u = 0x2400 - SCREEN_WIDEADD2 - 1;
+    CNZBoss_Events();
+    CHECK_EQ(dle_routine, 0);
+    scrpos_x.f.u = 0x2400 - SCREEN_WIDEADD2;
+    CNZBoss_Events();
+    CHECK_EQ(dle_routine, 2);
+    CHECK_EQ(boss_flag, 6);
+    CHECK_EQ(limit_btm1, 0x5C0 - SCREEN_TALLADD);
+    scrpos_x.f.u = 0x2700 - SCREEN_WIDEADD2;
+    CNZBoss_Events();
+    CHECK_EQ(dle_routine, 4);
+    CHECK_EQ(limit_left2, 0x2700 - SCREEN_WIDEADD2);
+    ClearPLC();
+    boss_flag = 0;
+    dle_routine = 0;
+}
+
+static void CNZ_TheAutoSpinRollsWhoeverTouchesItIntoABall(void) {
+    Reset(ZoneId_CNZ);
+    Object *box = Spawn(0x84, 0, 300, 300);
+    Obj_AutoSpin(box);
+    CHECK_EQ(box->col_type, 0xC6);
+    CHECK_EQ(box->frame, 0);
+    player->status.p.f.in_ball = false;
+    player->inertia = 0;
+    player->pos.l.y.f.u = 300;
+    box->col_property = 1; // (the touch response sets a bit for each character: Sonic's is the first)
+    Obj_AutoSpin(box);
+    CHECK(player->status.p.f.in_ball);
+    CHECK_EQ(player->anim, SonAnimId_Roll);
+    CHECK_EQ(player->inertia, 0x200);
+    CHECK_EQ(player->pos.l.y.f.u, 305);
+    CHECK_EQ(box->col_property, 0);
+    box->col_property = 1; // (already a ball: nothing)
+    Obj_AutoSpin(box);
+    CHECK_EQ(player->pos.l.y.f.u, 305);
+}
+
+static void CNZ_TheBumperKnowsWhichCharacterTouchedIt(void) {
+    Reset(ZoneId_CNZ);
+    Object *bumper = Spawn(0x44, 0, 300, 300);
+    Obj_CNZBumper(bumper);
+    player->pos.l.x.f.u = 300;
+    player->pos.l.y.f.u = 330;
+    TAILS_OBJ->type = 0x02;
+    TAILS_OBJ->pos.l.x.f.u = 300;
+    TAILS_OBJ->pos.l.y.f.u = 270;
+    TAILS_OBJ->ysp = 0;
+    player->ysp = 0;
+    bumper->col_property = 2; // Tails' bit only
+    Obj_CNZBumper(bumper);
+    CHECK_EQ(player->ysp, 0);
+    CHECK(TAILS_OBJ->ysp < -0x500); // (thrown up: he is above it)
+    TAILS_OBJ->type = 0;
+}
+
 void RegisterDHZObjectTests(void) {
     RUN_TEST(DHZ_TheCradleSwingsOutOnOneSideOnlyAndTheMiddleHangsStill);
     RUN_TEST(DHZ_TheCollapsingPlatformBreaksIntoSixPiecesOnceStoodOn);
@@ -415,4 +641,14 @@ void RegisterDHZObjectTests(void) {
     RUN_TEST(DHZ_ThePlatformWithSpikesSlidesAwayWhenSomeoneComesNear);
     RUN_TEST(DHZ_ACharacterInTheAirDoesNotSetItOff);
     RUN_TEST(DHZ_AFlippedPlatformWithSpikesSlidesRight);
+    RUN_TEST(DHZ_TheCrawltonWaitsUntilSonicIsNearThenTurnsToHimAndCrawls);
+    RUN_TEST(DHZ_TheCrawltonBodyFollowsTheHeadWhileItCrawls);
+    RUN_TEST(DHZ_TheFlasherDriftsFlashesAndGlowsDangerously);
+    RUN_TEST(DHZ_TheBossRisesDropsRocksAndMovesToWhereSonicIs);
+    RUN_TEST(DHZ_TheBossArenaLocksTheCameraAndLoadsTheBossOnce);
+    RUN_TEST(CNZ_TheRoundBumperThrowsWhoeverTouchesIt);
+    RUN_TEST(CNZ_TheBossGoesRoundTheArenaAndLetsTheBallFall);
+    RUN_TEST(CNZ_TheBossArenaLocksTheCameraAtTheEndOfActTwoOnly);
+    RUN_TEST(CNZ_TheAutoSpinRollsWhoeverTouchesItIntoABall);
+    RUN_TEST(CNZ_TheBumperKnowsWhichCharacterTouchedIt);
 }

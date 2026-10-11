@@ -11,7 +11,7 @@
 
 // The boss objects' shared buffers (Boss_Move_Buffer at $FFFFF750 and Boss_Animate_Buffer at $FFFFF740)
 BossMoveBuffer boss_move;
-uint8_t boss_anim[8];
+uint8_t boss_anim[16];
 uint8_t boss_flag;
 
 // Boss_Move

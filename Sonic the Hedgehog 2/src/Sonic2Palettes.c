@@ -11,6 +11,8 @@
 #include "Resource/S2Palette/OOZ.h"
 #include "Resource/S2Palette/DHZ.h"
 #include "Resource/S2Palette/CNZ.h"
+#include "Resource/S2Palette/CNZ2.h"
+#include "Resource/S2Palette/GCZ.h"
 #include "Resource/S2Palette/NGHZ.h"
 #include "Resource/S2Palette/LevelSel.h" // the prototypes' level select palette
 #include "Resource/S2Palette/HPZWater.h"
@@ -71,5 +73,7 @@ PalettePointer palette_pointers[] = {
     /* PalId_NGHZWater */ { (const uint16_t*)S2Palette_NGHZWater, &dry_palette[0][0], 0x40, PAL_FORMAT_GENESIS },
     /* PalId_CPZWaterSonic  */ { (const uint16_t*)S2Palette_CPZWater, &dry_palette[0][0], 0x10, PAL_FORMAT_GENESIS }, // (the first line of the above: Sonic's, which is the live one: see Level_LoadWaterPalettes)
     /* PalId_NGHZWaterSonic */ { (const uint16_t*)S2Palette_NGHZWater, &dry_palette[0][0], 0x10, PAL_FORMAT_GENESIS },
+    /* PalId_CNZ2      */ { (const uint16_t*)S2Palette_CNZ2, &dry_palette[1][0], 0x30, PAL_FORMAT_GENESIS },
+    /* PalId_GCZ       */ { (const uint16_t*)S2Palette_GCZ, &dry_palette[1][0], 0x30, PAL_FORMAT_GENESIS },
 };
 

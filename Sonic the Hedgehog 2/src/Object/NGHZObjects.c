@@ -237,9 +237,12 @@ void Obj_NGHZLeaves(Object *obj) {
 #include "Oscillatory Routines.h"
 
 #include "Resource/Mappings/DHZSwing.h"
-#include "Resource/Mappings/DHZSwingSpiked.h"
 #include "Resource/Mappings/NGHZSwing.h"
 #include "Resource/Mappings/OOZSwing.h"
+
+const void *DHZSwingMappings(void) {
+    return Mappings_DHZSwing;
+}
 
 extern Oscillatory oscillatory;
 
@@ -424,10 +427,6 @@ void Obj_NGHZSwing(Object *obj) {
         obj->pos.l.y.f.u = (int16_t)(y + 8);
         obj->angle = 0x80;
         scratch->subtype &= 0x70;
-        if (scratch->subtype == 0x40) { // the spiked platform (it hurts)
-            obj->mappings = Mappings_DHZSwingSpiked;
-            obj->col_type = 0xA7;
-        }
     }
         // Fallthrough
     case SwingRoutine_Swing: {

@@ -27,6 +27,7 @@ void UpdateBGScroll(dword_s *pos, int32_t delta, uint8_t *block, uint16_t *flags
 void BGScroll_YRelative(int32_t y_off);
 
 uint8_t htz_quake, htz_shaking;
+uint8_t dhz_shake;
 int16_t htz_bg_y_offset;
 static int16_t htz_bg_x_offset;
 static int16_t htz_bg_x_diff, htz_bg_y_diff; // (Camera_BG_X_pos_diff and _Y_: a movement in 1/256 pixels, as the camera's own diffs are)
@@ -71,6 +72,7 @@ void HTZQuake_Reset(void) {
     quake_owner = 0;
     cur_view = 0;
     htz_quake = htz_shaking = 0;
+    dhz_shake = 0;
     htz_direction = 0;
     htz_delay = 0;
     htz_bg_x_offset = htz_bg_y_offset = 0;
@@ -375,6 +377,24 @@ void HTZQuake_Deform(void) {
         *bufp++ = (int16_t)-(scrpos_x.f.u + shake_x);
         *bufp++ = (int16_t)-(bg_scrpos_x.f.u + shake_x);
     }
+}
+
+// Dust Hill's boss shakes the screen as it digs (Bg_Scroll_DHz of the alpha): by the same table as the quake, the foreground, the background and the sprites move down by its first byte and the sprites across by its
+// second (the lines of the background do not)
+void HTZQuake_ShakeDustHill(void) {
+    if (!dhz_shake) {
+        htz_camera_shake_x = htz_camera_shake_y = 0;
+        SpritesFollow(0, false);
+        return;
+    }
+    const uint8_t *shake = &shake_table[frame_count & 0x3F];
+    vid_scrpos_y_dup = (int16_t)(vid_scrpos_y_dup + shake[0]);
+    vid_bg_scrpos_y_dup = (int16_t)(vid_bg_scrpos_y_dup + shake[0]);
+    htz_camera_shake_x = shake[1];
+    htz_camera_shake_y = shake[0];
+    sprite_cam_x[0] = (int16_t)(scrpos_x.f.u + shake[1]);
+    sprite_cam_y[0] = (int16_t)(scrpos_y.f.u + shake[0]);
+    SpritesFollow(0, true);
 }
 
 // The view that does not own the quake (or has none to own: the other view's quake is the same ground) shakes with the ground by the same table and frame: its background, scroll lines, foreground (the first

@@ -100,6 +100,15 @@ void Obj_OxygenBubbles(Object *obj);
 void Obj_SuperSonicStars(Object *obj);
 void Obj_Redz(Object *obj);
 void Obj_Rhinobot(Object *obj);
+void Obj_DHZVinesSwitch(Object *obj);
+void Obj_DHZVines(Object *obj);
+void Obj_Crawlton(Object *obj);
+void Obj_DHZBoss(Object *obj);
+void Obj_CNZBoss(Object *obj);
+void Obj_CNZBumper(Object *obj);
+void Obj_AutoSpin(Object *obj);
+void Obj_Flasher(Object *obj);
+void Obj_DHZVerticalBridge(Object *obj);
 void Obj_CollapseLedge(Object *obj);
 void Obj_CollapseFloor(Object *obj);
 void Obj_VanishPlatform(Object *obj);
@@ -273,7 +282,7 @@ const ObjectFunc game_objects[] = {
 	/* 41 ObjId_Spring              */ Obj_Spring,
 	/* 42 ObjId_Newtron             */ Obj_MTZSteamVent, // (the prototype's steam vent of Metropolis)
 	/* 43 ObjId_Roller             */ Obj_OOZSpikeball, // (the prototype's rolling spiked balls of Oil Ocean)
-	/* 44 ObjId_GHZEdge             */ Obj_Null, // (the prototype's object here is not ported yet)
+	/* 44 ObjId_GHZEdge             */ Obj_CNZBumper, // (the alpha's round bumper of Casino Night: no layout places it)
 	/* 45 ObjId_SidewaysStomper    */ Obj_OOZPushSpring, // (the prototype's spring and pusher of Oil Ocean)
 	/* 46 ObjId_MarbleBrick        */ Obj_OOZSpringBall, // (the prototype's ball on a spring of Oil Ocean)
 	/* 47 ObjId_Bumper             */ Obj_Switch, // (the prototype's switch)
@@ -286,13 +295,13 @@ const ObjectFunc game_objects[] = {
 	/* 4E ObjId_LavaWall           */ Obj_Null, // Nick Arcade's Gator: not ported yet
 	/* 4F ObjId_4F                 */ Obj_Redz,
 	/* 50 ObjId_Yadrin             */ Obj_Null, // Nick Arcade's Seahorse: not ported yet
-	/* 51 ObjId_SmashBlock         */ Obj_Null, // Nick Arcade's Skyhorse: not ported yet
+	/* 51 ObjId_SmashBlock         */ Obj_CNZBoss, // (the alpha's boss of Casino Night: Nick Arcade's Skyhorse slot)
 	/* 52 ObjId_MovingBlock        */ Obj_HTZBoss, // (the alpha's Hill Top boss; Nick Arcade's BFish was here)
 	/* 53 ObjId_53                 */ Obj_MTZBossBall, // (the alpha's: Nick Arcade's Masher was here, it is 5C now)
 	/* 54 ObjId_54                 */ Obj_MTZBoss, // (the alpha's Metropolis boss: Nick Arcade's Snail was here)
 	/* 55 ObjId_55                 */ Obj_MTZBoss, // (the same code as 54, as in the alpha)
 	/* 56 ObjId_56                 */ Obj_EHZBoss, // (the alpha's Emerald Hill boss, Nick Arcade's was 55)
-	/* 57 ObjId_SpikeBall          */ Obj_Null, // Nick Arcade's EHZBoss3: not ported yet
+	/* 57 ObjId_SpikeBall          */ Obj_DHZBoss, // (the alpha's boss of Dust Hill: Nick Arcade's EHZBoss3 slot)
 	/* 58 ObjId_58                 */ Obj_BossExplosion,
 	/* 59 ObjId_59                 */ Obj_Null, // (the alpha's Motobug, which is Nick Arcade's Snail: unlinked, as the alpha's Emerald Hill has none; its code is still in EHZBadniks.c)
 	/* 5A ObjId_CirclingPlatform   */ Obj_Null, // removed in Nick Arcade
@@ -332,12 +341,12 @@ const ObjectFunc game_objects[] = {
 	/* 7C ObjId_RingFlash          */ Obj_Null, // removed in Nick Arcade
 	/* 7D ObjId_HiddenBonus         */ Obj_HiddenBonus,
 	/* 7E ObjId_SSResult           */ Obj_SuperSonicStars, // (the alpha's Super Sonic stars: nothing makes them yet)
-	/* 7F ObjId_SSRChaos           */ Obj_Null, // removed in Nick Arcade
-	/* 80 ObjId_80                 */ Obj_Null, // removed in Nick Arcade
-	/* 81 ObjId_81                 */ Obj_Null, // removed in Nick Arcade
+	/* 7F ObjId_SSRChaos           */ Obj_DHZVinesSwitch, // (the alpha's roots that are switches, in Dust Hill: Nick Arcade removed it)
+	/* 80 ObjId_80                 */ Obj_DHZVines, // (the alpha's roots that carry: Nick Arcade removed it)
+	/* 81 ObjId_81                 */ Obj_DHZVerticalBridge, // (the alpha's bridge that swings: Nick Arcade removed it)
 	/* 82 ObjId_ScrapEggman        */ Obj_Null, // removed in Nick Arcade
 	/* 83 ObjId_FalseFloor         */ Obj_Null, // removed in Nick Arcade
-	/* 84 ObjId_EggmanCylinder     */ Obj_Null, // removed in Nick Arcade
+	/* 84 ObjId_EggmanCylinder     */ Obj_AutoSpin, // (the alpha's: Hill Top's, Hidden Palace's and Casino Night's rolling box; no layout places it)
 	/* 85 ObjId_BossFinal          */ Obj_Null, // removed in Nick Arcade
 	/* 86 ObjId_BossPlasma         */ Obj_Null, // removed in Nick Arcade
 	/* 87 ObjId_87                 */ Obj_Null, // removed in Nick Arcade
@@ -363,12 +372,12 @@ const ObjectFunc game_objects[] = {
 	/* 9B ObjId_9B                 */ Obj_Null, // (the alpha's Turtloid rider: not ported yet)
 	/* 9C ObjId_9C                 */ Obj_Null, // (the alpha's enemy boost: not ported yet)
 	/* 9D ObjId_9D                 */ Obj_Coconuts,
-	/* 9E ObjId_9E                 */ Obj_Null, // (the alpha's Crawlton: not ported yet)
+	/* 9E ObjId_9E                 */ Obj_Crawlton, // (the alpha's caterpillar, in Dust Hill)
 	/* 9F ObjId_9F                 */ Obj_Shellcracker,
 	/* A0 ObjId_A0                 */ Obj_ShellcrackerClaw,
 	/* A1 ObjId_A1                 */ Obj_Slicer,
 	/* A2 ObjId_A2                 */ Obj_SlicerPincers,
-	/* A3 ObjId_A3                 */ Obj_Null, // (the alpha's Flasher: not ported yet)
+	/* A3 ObjId_A3                 */ Obj_Flasher, // (the alpha's firefly, in Dust Hill)
 	/* A4 ObjId_A4                 */ Obj_Asteron,
 	/* A5 ObjId_A5                 */ Obj_Null, // (the alpha's horizontal Spiny: not ported yet)
 	/* A6 ObjId_A6                 */ Obj_Null, // (the alpha's vertical Spiny: not ported yet)

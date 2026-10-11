@@ -70,7 +70,7 @@ static void ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace(void) {
         const Pending *p = &pending[z];
         for (int act = 0; act < 3; act++) {
             for (const uint8_t *e = level_obj[p->zone][act]; e != NULL && !(e[0] == 0xFF && e[1] == 0xFF); e += 6) {
-                const uint8_t id = e[4] & 0x7F;
+                const uint8_t id = e[4];
                 const bool ported = id < game_object_count && game_objects[id] != NULL && game_objects[id] != Obj_Null;
                 if (!ported && !IsPending(p, id)) {
                     printf("\n    zone %d act %d places object %02X, which is not ported", p->zone, act, id);
@@ -199,6 +199,8 @@ static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
     for (int zone = 0; zone < 16; zone++) {
         if (zone == 8)
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), 0x10); // Hidden Palace stays, with its own track ($90), where the alpha has the Mystic Cave 2P theme
+        else if (zone == 14)
+            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), 0x0F); // Cyber City (in the alpha's Genocide City slot) has Wing Fortress's track for now, where the alpha has Chemical Plant's
         else
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), alpha_music_list[zone] - 0x80);
     }
@@ -681,6 +683,28 @@ static void Rhinobot_SetsItselfUpAndWalksOff(void) {
     CHECK_EQ(rhino->status.o.f.x_flip, true);
 }
 
+// The alpha's new effects ($E1-$E9) are effects like the rest: they play on the effects' channels (they once played into the music's, over its notes)
+static void Music_AlphaEffectsPlayOnTheEffectChannelsNotTheMusics(void) {
+    Sound_Init();
+    memset(sound_music.queue, 0, sizeof(sound_music.queue));
+    memset(sound_sfx.queue, 0, sizeof(sound_sfx.queue));
+    StopAllSound();
+    PlayMusic(mus_EHZ);
+    for (int f = 0; f < 20; f++)
+        Sound_Frame();
+    int music_channels = 0;
+    for (int i = 0; i < SOUND_CHANNELS; i++)
+        music_channels += sound_music.channels[i].active;
+    PlaySound(sfx_DHZRoots2);
+    Sound_Frame();
+    CHECK(sound_sfx.channels[2].active);      // its noise track (PSG3)
+    CHECK(sound_sfx.channels[2].psg_noise);
+    int after = 0;
+    for (int i = 0; i < SOUND_CHANNELS; i++)
+        after += sound_music.channels[i].active;
+    CHECK_EQ(after, music_channels);          // and the song's own tracks are all still there
+}
+
 // The 1-up jingle (the final's, $98) interrupts the level song and the song comes back, fading in
 static void Music_ExtraLifeJingleGivesTheLevelSongBack(void) {
     Sound_Init();
@@ -884,6 +908,7 @@ void RegisterObjectCoverageTests(void) {
     RUN_TEST(Spiker_FiresItsDrillOnceWhenSonicIsAbove);
     RUN_TEST(HTZBoss_FiresItsJetThenThrowsTwoLavaBalls);
     RUN_TEST(Rhinobot_SetsItselfUpAndWalksOff);
+    RUN_TEST(Music_AlphaEffectsPlayOnTheEffectChannelsNotTheMusics);
     RUN_TEST(Music_ExtraLifeJingleGivesTheLevelSongBack);
     RUN_TEST(Music_SongKeepsItsNoiseAndVoicesAfterTheExtraLifeJingle);
     RUN_TEST(Music_SongChangeLeavesNothingOfThePreviousSong);

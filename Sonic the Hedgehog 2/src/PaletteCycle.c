@@ -22,6 +22,8 @@ bool f_conveyrev = false;
 #include "Resource/S2Palette/EHZCycle.h"
 // Chemical Plant's, Hidden Palace's and Hill Top's cycles (Nick Arcade's art/palettes/CPZ Cycle 1-3, HPZ Water Cycle, HPZ Underwater Cycle, Hill Top Lava and its delays)
 #include "Resource/S2Palette/CPZCycle1.h"
+#include "Resource/S2Palette/GCZCycle1.h"
+#include "Resource/S2Palette/GCZCycle2.h"
 #include "Resource/S2Palette/CPZCycle2.h"
 #include "Resource/S2Palette/CPZCycle3.h"
 #include "Resource/S2Palette/HPZCycle.h"
@@ -220,15 +222,15 @@ static const uint16_t PCyc_Mz2[6] = { 0x0422, 0x0866, 0x0ECC, 0x0422, 0x0866, 0x
 static const uint16_t PCyc_Mz3[10] = { 0x00A0, 0x0000, 0x00EE, 0x0000, 0x002E, 0x0000, 0x0E2E, 0x0000, 0x0E80, 0x0000 };
 static const uint16_t PCyc_Ooz[8] = { 0x0400, 0x0602, 0x0804, 0x0806, 0x0400, 0x0602, 0x0804, 0x0806 };
 static const uint16_t PCyc_Mcz[4] = { 0x000C, 0x006E, 0x00CE, 0x08EE };
+// (the alpha's: the lights of lines 3 and 4 have other colours than the prototype's, and the third group is a ring of 20 colours that is stepped round, three at a time, in the other direction)
 static const uint16_t PCyc_Cnz1[18] = {
-    0x000C, 0x00CC, 0x004C, 0x004C, 0x000C, 0x00CC, 0x00CC, 0x004C, 0x000C,
+    0x000E, 0x00EE, 0x006E, 0x006E, 0x000E, 0x00EE, 0x00EE, 0x006E, 0x000E,
     0x00EC, 0x0080, 0x00C4, 0x00C4, 0x00EC, 0x0080, 0x0080, 0x00C4, 0x00EC,
 };
 static const uint16_t PCyc_Cnz2[9] = { 0x0044, 0x0088, 0x00EE, 0x0088, 0x00EE, 0x0044, 0x00EE, 0x0044, 0x0088 };
-static const uint16_t PCyc_Cnz3[42] = {
-    0x00EC, 0x0EEE, 0x00EA, 0x00E4, 0x06C0, 0x0CC4, 0x0E80, 0x0E40, 0x0E04, 0x0C08, 0x0C2E, 0x000E, 0x006E, 0x00AE,
-    0x00AE, 0x00EC, 0x0EEE, 0x00EA, 0x00E4, 0x06C0, 0x0CC4, 0x0E80, 0x0E40, 0x0E04, 0x0C08, 0x0C2E, 0x000E, 0x006E,
-    0x00EE, 0x00AE, 0x00EC, 0x0EEE, 0x00EA, 0x00E4, 0x06C0, 0x0CC4, 0x0E80, 0x0E40, 0x0E04, 0x0C08, 0x0C2E, 0x000E,
+static const uint16_t PCyc_Cnz3[20] = {
+    0x008E, 0x00AE, 0x00EC, 0x0EEE, 0x00EA, 0x00E4, 0x06C0, 0x0CC4, 0x0E80, 0x0E40,
+    0x0E04, 0x0C08, 0x0C2E, 0x080E, 0x040E, 0x000E, 0x004E, 0x006E, 0x008E, 0x00AE,
 };
 static const uint16_t PCyc_Ghz[16] = {
     0x0A86, 0x0E86, 0x0EA8, 0x0ECA, 0x0ECA, 0x0A86, 0x0E86, 0x0EA8, 0x0EA8, 0x0ECA, 0x0A86, 0x0E86, 0x0E86, 0x0EA8, 0x0ECA, 0x0A86,
@@ -297,6 +299,36 @@ static void PCycle_MCZ(void) {
     frame = (uint16_t)((frame + 2) & 6);
 }
 
+// Cyber City (PalCycle_CCZ of the final game's Cyber City; its third palette is for objects that come later): two cycles with a timer each. Every 3 ticks, colours 1-4 of the third line take four words of the second
+// palette (8 words), the start going 0, 6, 4, 2 (in bytes) and round; and with a wait of its own (a table of 16, $B ticks mostly, 8 at the shortest and $F at the longest) colours 3 and 4 of the second line and
+// colours 14 and 15 of it take two words each from the first palette (16 steps of 4 words): the lava
+static uint16_t PCycleWord(const uint8_t *table, int index) {
+    return (uint16_t)((table[index * 2] << 8) | table[index * 2 + 1]);
+}
+
+static void PCycle_GCZ(void) {
+    static int16_t frame, frame2, timer2;
+    static const uint8_t lava_delay[16] = { 0xB, 0xB, 0xB, 0xA, 8, 0xA, 0xB, 0xB, 0xB, 0xB, 0xD, 0xF, 0xD, 0xB, 0xB, 0xB };
+    if (--pcyc_time < 0) {
+        pcyc_time = 2;
+        const int at = frame / 2;
+        frame -= 2;
+        if (frame < 0)
+            frame = 6;
+        for (int i = 0; i < 4; i++)
+            dry_palette[2][1 + i] = PCycleWord(S2Palette_GCZCycle2, at + i);
+    }
+    if (--timer2 >= 0)
+        return;
+    timer2 = lava_delay[frame2 & 0xF];
+    const int at = (frame2 & 0xF) * 4;
+    frame2++;
+    dry_palette[1][3] = PCycleWord(S2Palette_GCZCycle1, at);
+    dry_palette[1][4] = PCycleWord(S2Palette_GCZCycle1, at + 1);
+    dry_palette[1][14] = PCycleWord(S2Palette_GCZCycle1, at + 2);
+    dry_palette[1][15] = PCycleWord(S2Palette_GCZCycle1, at + 3);
+}
+
 // Casino Night (PalCycle_CNz): every 8 ticks the lights of lines 3 and 4 (three colours of each of two groups of line 3 and three of line 4, each frame a step along their tables of 3 frames) and
 // three colours of line 4 from 14 steps of three tables
 static void PCycle_CNZ(void) {
@@ -315,10 +347,10 @@ static void PCycle_CNZ(void) {
     }
     int at3 = frame2 / 2;
     frame2 += 2;
-    if (frame2 >= 0x1C)
+    if (frame2 >= 0x24)
         frame2 = 0;
     for (int i = 0; i < 3; i++)
-        dry_palette[3][9 + i] = PCyc_Cnz3[at3 + i * 14];
+        dry_palette[3][9 + i] = PCyc_Cnz3[at3 + 2 - i];
 }
 
 // Neo Green Hill (PalCycle_NGHz): Green Hill's cycle table, every 6 ticks, to colours 3-6 of line 3
@@ -621,6 +653,9 @@ void PaletteCycle(void) {
         break;
     case ZoneId_ARZ:
         PCycle_ARZ();
+        break;
+    case ZoneId_GCZ:
+        PCycle_GCZ();
         break;
     }
 }

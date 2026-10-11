@@ -25,7 +25,7 @@ typedef struct {
 } BossMoveBuffer;
 
 extern BossMoveBuffer boss_move;
-extern uint8_t boss_anim[8];
+extern uint8_t boss_anim[16];
 extern uint8_t boss_flag; // the alpha's Boss_Flag: which boss is there (3: Hill Top's)
 
 void Boss_Move(void);

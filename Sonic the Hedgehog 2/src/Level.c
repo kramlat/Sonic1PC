@@ -1,5 +1,7 @@
 #include "Level.h"
 #include "HTZQuake.h"
+#include "Object/DHZBoss.h"
+#include "Object/CNZBoss.h"
 #include "HTZBackground.h"
 
 void S2_PrimeLevelArt(void); // AnimatedArt.c
@@ -324,6 +326,8 @@ void LevelDataLoad(void) {
 
     // Load level palette
     PaletteId pal = header->pal;
+    if (LEVEL_ZONE(level_id) == ZoneId_CNZ && LEVEL_ACT(level_id) == 1)
+        pal = PalId_CNZ2; // (the alpha's Casino Night has a palette for each act)
     PalLoad1(pal);
 
     // Load level art
@@ -402,6 +406,14 @@ void DynamicLevelEvents(void) {
             limit_btm1 = 0x520 - SCREEN_TALLADD;
             break;
         }
+        break;
+    case ZoneId_CNZ:
+        if (LEVEL_ACT(level_id) == 1)
+            CNZBoss_Events(); // (the alpha's: Casino Night's boss at the end of act 2; act 1 has none)
+        break;
+    case ZoneId_MCZ:
+        if (LEVEL_ACT(level_id) == 1)
+            DHZBoss_Events(); // (the alpha's: Dust Hill's boss at the end of act 2; act 1 has none)
         break;
     case ZoneId_HTZ:
         HTZQuake_Events(); // (the prototype's: Hill Top's earthquake; Nick Arcade's boss arenas are not in it)
@@ -546,7 +558,7 @@ void Level_MakeWaterSurfaces(void) {
 uint8_t Level_Music(uint16_t level) {
     static const uint8_t zone_music[ZoneId_Num] = {
         [0x00] = mus_EHZ, [0x01] = mus_EHZ, [0x02] = mus_MTZ, [0x03] = mus_OOZ, [0x04] = mus_MTZ, [0x05] = mus_MTZ, [0x06] = mus_EHZ2P, [0x07] = mus_HTZ,
-        [0x08] = mus_HPZ, [0x09] = mus_SCZ, [0x0A] = mus_CNZ2P, [0x0B] = mus_MCZ, [0x0C] = mus_CNZ, [0x0D] = mus_CPZ, [0x0E] = mus_CPZ, [0x0F] = mus_ARZ,
+        [0x08] = mus_HPZ, [0x09] = mus_SCZ, [0x0A] = mus_CNZ2P, [0x0B] = mus_MCZ, [0x0C] = mus_CNZ, [0x0D] = mus_CPZ, [0x0E] = mus_WFZ, [0x0F] = mus_ARZ,
     };
     unsigned zone = LEVEL_ZONE(level);
     return zone < ZoneId_Num ? zone_music[zone] : 0;

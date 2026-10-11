@@ -18,7 +18,7 @@ typedef enum {
 	ZoneId_MCZ = 0x0B,
 	ZoneId_CNZ = 0x0C,
 	ZoneId_CPZ = 0x0D,
-	ZoneId_Empty0E,
+	ZoneId_GCZ = 0x0E, // the alpha's Genocide City slot: Cyber City here (the final game's data: see the importer)
 	ZoneId_ARZ = 0x0F,
 	ZoneId_Empty10,
 	ZoneId_Num, // 17
@@ -28,7 +28,7 @@ typedef enum {
 	ZoneId_LZ = ZoneId_Empty03,
 	ZoneId_MZ = ZoneId_Empty06,
 	ZoneId_SLZ = ZoneId_Empty09,
-	ZoneId_SYZ = ZoneId_Empty0E,
+	ZoneId_SYZ = ZoneId_Empty10,
 	ZoneId_SBZ = ZoneId_Empty10,
 	ZoneId_EndZ = ZoneId_Empty10,
 	ZoneId_SS = ZoneId_Empty10,

@@ -20,6 +20,18 @@
 #include "Resource/Art/Slicer.h"
 #include "Resource/Art/Rexon.h"
 #include "Resource/Art/HTZBossFire.h"
+#include "Resource/Art/DHZBoss.h"
+#include "Resource/Art/CNZBoss.h"
+#include "Resource/Art/CNZGreenPlatform.h"
+#include "Resource/Art/CNZSpikeball.h"
+#include "Resource/Art/CNZBox.h"
+#include "Resource/Art/CNZElevator.h"
+#include "Resource/Art/CNZBlueBumper.h"
+#include "Resource/Art/CNZBumpers.h"
+#include "Resource/Art/CNZDiagLauncher.h"
+#include "Resource/Art/CNZVertLauncher.h"
+#include "Resource/Art/CNZGreenBumpers.h"
+#include "Resource/Art/CNZFlippers.h"
 #include "Resource/Art/BossSmoke.h"
 #include "Resource/Art/SpikerBadnik.h"
 #include "Resource/Art/MTZBossBalls.h"
@@ -201,6 +213,8 @@
 #include "Resource/Art/HPZBridge.h"
 #include "Resource/Art/Redz.h"
 #include "Resource/Art/Rhinobot.h"
+#include "Resource/Art/Crawlton.h"
+#include "Resource/Art/Flasher.h"
 #include "Resource/Art/OOZFireBooster.h"
 #include "Resource/Art/OOZBreakVertical.h"
 #include "Resource/Art/OOZFans.h"
@@ -319,20 +333,30 @@ static const PLCList PLC_GHZ2 = { // Neo_Green_Hill_Sprites_2: the air bubbles (
 // ---------------------------------------------------------------------------
 // Pattern load cues - Labyrinth
 // ---------------------------------------------------------------------------
-static const PLCList PLC_LZ = { // Casino Night (the prototype's Casino_Night_Sprites_1; its addresses in VRAM are bytes, here in tiles): the turning cards
-    1,
+static const PLCList PLC_LZ = { // Casino Night (the alpha's list $1C; its addresses in VRAM are bytes, here in tiles)
+    9,
     (const PLC[]) {
-        { Art_CNZCards,      ART_VRAM(0x7A00 >> 5) },
+        { Art_CNZGreenPlatform, ART_VRAM(0x6F00 >> 5) },
+        { Art_CNZSpikeball,     ART_VRAM(0x6F80 >> 5) },
+        { Art_CNZBox,           ART_VRAM(0x7000 >> 5) },
+        { Art_CNZElevator,      ART_VRAM(0x7080 >> 5) },
+        { Art_CNZCards,         ART_VRAM(0x7100 >> 5) }, // (the slot machine's starter)
+        { Art_CNZBlueBumper,    ART_VRAM(0x7280 >> 5) },
+        { Art_CNZBumpers,       ART_VRAM(0x7340 >> 5) },
+        { Art_CNZDiagLauncher,  ART_VRAM(0x7640 >> 5) },
+        { Art_CNZVertLauncher,  ART_VRAM(0x7A40 >> 5) },
     }
 };
 
-static const PLCList PLC_LZ2 = { // Casino_Night_Sprites_2: the spikes, the diagonal spring and the straight springs
-    4,
+static const PLCList PLC_LZ2 = { // the alpha's list $1D: the green bumpers, the flippers, the spikes, the diagonal spring and the straight springs
+    6,
     (const PLC[]) {
-        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
-        { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
-        { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
-        { Art_SpringSide,    ART_VRAM(ArtTile_SpringSide) },
+        { Art_CNZGreenBumpers, ART_VRAM(0x7C80 >> 5) },
+        { Art_CNZFlippers,     ART_VRAM(0x8000 >> 5) },
+        { Art_Spikes,          ART_VRAM(ArtTile_Spikes) },
+        { Art_SpringDiag,      ART_VRAM(ArtTile_SpringDiag) },
+        { Art_SpringUp,        ART_VRAM(ArtTile_SpringUp) },
+        { Art_SpringSide,      ART_VRAM(ArtTile_SpringSide) },
     }
 };
 // ---------------------------------------------------------------------------
@@ -642,13 +666,15 @@ static const PLCList PLC_EggmanSBZ2 = {
 // ---------------------------------------------------------------------------
 // Pattern load cues - Dust Hill (Dust_Hill_Sprites_1 and 2)
 // ---------------------------------------------------------------------------
-static const PLCList PLC_DHZ = { // (the zone's own art is the level header's)
-    4,
+static const PLCList PLC_DHZ = { // (the zone's own art is the level header's) the alpha's list 1A
+    6,
     (const PLC[]) {
         { Art_DHZCrate,        ART_VRAM(0x7A80 >> 5) },
         { Art_DHZCollapsePlat, ART_VRAM(0x7E80 >> 5) },
         { Art_DHZVineSwitch,   ART_VRAM(0x81C0 >> 5) },
         { Art_DHZVinePulley,   ART_VRAM(0x83C0 >> 5) },
+        { Art_Flasher,         ART_VRAM(0x7500 >> 5) },
+        { Art_Crawlton,        ART_VRAM(0x7800 >> 5) },
     }
 };
 
@@ -841,6 +867,24 @@ static const PLCList PLC_HTZBoss = { // the alpha's list $2A: Hill Top's boss: t
     }
 };
 
+static const PLCList PLC_DHZBoss = { // the alpha's list $2C: Dust Hill's boss: the ship's art (Robotnik, over the level's own blank tiles), the boss itself and the explosions
+    3,
+    (const PLC[]) {
+        { Art_BossShip,      ART_VRAM(0xA000 >> 5) },
+        { Art_DHZBoss,       ART_VRAM(0x7800 >> 5) },
+        { Art_BossExplosion, ART_VRAM(0xB000 >> 5) },
+    }
+};
+
+static const PLCList PLC_CNZBoss = { // the alpha's list $2D: Casino Night's boss: the ship's art (Robotnik), the boss and the explosions
+    3,
+    (const PLC[]) {
+        { Art_BossShip,      ART_VRAM(0x74E0 >> 5) },
+        { Art_CNZBoss,       ART_VRAM(0x80E0 >> 5) },
+        { Art_BossExplosion, ART_VRAM(0xB000 >> 5) },
+    }
+};
+
 // PLC list
 const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Main        */ &PLC_Main,
@@ -893,5 +937,7 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Flicky3B    */ &PLC_Flicky3B,
     /* PlcId_MTZBoss     */ &PLC_MTZBoss,
     /* PlcId_HTZBoss     */ &PLC_HTZBoss,
+    /* PlcId_CNZBoss     */ &PLC_CNZBoss,
+    /* PlcId_DHZBoss     */ &PLC_DHZBoss,
 };
 
