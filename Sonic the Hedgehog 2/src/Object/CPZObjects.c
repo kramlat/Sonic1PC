@@ -24,6 +24,7 @@
 #include "Resource/Mappings/CPZWorm.h"
 #include "Resource/Mappings/FloatingPlatform.h"
 #include "Resource/Mappings/CPZElevator.h"
+#include "Resource/Mappings/OOZElevator.h"
 #include "Resource/Mappings/PipeTipper.h"
 #include "Resource/Mappings/TubeCover.h"
 #include "Resource/Mappings/HTZRock.h"
@@ -58,6 +59,8 @@ typedef struct {
 
 // loc_1622E: the width and the mapping frame of each size
 static const uint8_t elevator_sizes[5][2] = { { 0x20, 0 }, { 0x18, 1 }, { 0x20, 2 }, { 0x40, 3 }, { 0x30, 4 } };
+// the alpha's (Oil Ocean's: its third frame is a platform twice as long)
+static const uint8_t elevator_sizes_alpha[5][2] = { { 0x20, 0 }, { 0x18, 1 }, { 0x40, 2 }, { 0x40, 3 }, { 0x30, 4 } };
 
 // The oscillators of the prototype's Oscillating_Data, by their offset (4 bytes each): the high byte of the value
 static int16_t Osc(int offset) {
@@ -127,14 +130,16 @@ void Obj_CPZElevator(Object *obj) {
 
     if (obj->routine == 0) {
         obj->routine += 2;
-        obj->mappings = Mappings_CPZElevator;
-        obj->tile = TILE_MAP(0, 3, 0, 0, LEVEL_ZONE(level_id) == ZoneId_OOZ ? 0x300 : 0x3A0);
+        const bool oil = LEVEL_ZONE(level_id) == ZoneId_OOZ;
+        obj->mappings = oil ? Mappings_OOZElevator : Mappings_CPZElevator;
+        obj->tile = TILE_MAP(0, 3, 0, 0, oil ? 0x2F4 : 0x3A0); // (the alpha's art list puts Oil Ocean's at $5E80)
         obj->render.b = SPRITE_CAM_FIELD;
         int size = (scratch->subtype >> 4) & 0xF;
         if (size > 4)
             size = 4;
-        obj->width_pixels = elevator_sizes[size][0];
-        obj->frame = elevator_sizes[size][1] > 2 ? 2 : elevator_sizes[size][1]; // (the mappings have three frames)
+        const uint8_t(*sizes)[2] = oil ? elevator_sizes_alpha : elevator_sizes;
+        obj->width_pixels = sizes[size][0];
+        obj->frame = sizes[size][1] > 2 ? 2 : sizes[size][1]; // (the mappings have three frames)
         obj->priority = 4;
         scratch->base_x = obj->pos.l.x.f.u;
         scratch->base_y = obj->pos.l.y.f.u;

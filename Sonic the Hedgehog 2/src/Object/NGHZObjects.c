@@ -304,12 +304,16 @@ static void Swing_Move(Object *obj, Scratch_NGHZSwing *scratch) {
     uint8_t d0 = SWING_OSC(6); // (Oscillating_Data+$18)
     switch (scratch->subtype & 0x70) {
     case 0x10: // swings to one side only
+        if (d0 == 0x3F)
+            PlaySound(sfx_PlatformKnock); // (the alpha's $D7: the knock of a cradle's end when it comes to rest)
         if (d0 < 0x40)
             d0 = 0x40;
         break;
     case 0x20: // hangs straight down, and is not moved
         return;
     case 0x30:
+        if (d0 == 0x41)
+            PlaySound(sfx_PlatformKnock);
         if (d0 >= 0x40)
             d0 = 0x40;
         break;

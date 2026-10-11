@@ -3,6 +3,7 @@
 # notes and coordination flags, and the FM voices.
 #
 #   sw_sfx2asm.pl [--src s2b.asm] [--out DIR] ID...      ID is A0 ... CF (hex)
+#   sw_sfx2asm.pl --alpha [DIR] [--out DIR] ID...        the Sonic 2 alpha's effects instead (its disassembly's Sound/SFX_ID.snd, in the same Z80 format, with the places from sonic2alpha.asm's Sfx_ID labels)
 #
 # Writes DIR/sndID.asm (default DIR = the current directory). The bytes are those of the Z80 driver's format (SonicDriverVer 2), where a pointer is the address in the driver's bank window
 # ($8000 + the ROM address mod $8000), which is turned back into a label by the offset from the effect's own start (the "loc_FFxxx" in the label's comment).
@@ -11,18 +12,35 @@ use warnings;
 
 my $src = "$ENV{HOME}/Projects/s2sw-disasm/s2b.asm";
 my $out = '.';
+my $alpha;
 my @ids;
 while (@ARGV) {
     my $a = shift @ARGV;
     if ($a eq '--src') { $src = shift @ARGV }
     elsif ($a eq '--out') { $out = shift @ARGV }
+    elsif ($a eq '--alpha') { $alpha = (@ARGV && -d $ARGV[0]) ? shift @ARGV : "$ENV{HOME}/Projects/s2aug21-disasm" }
     else { push @ids, map { uc } split /\s+/, $a }
 }
 die "usage: sw_sfx2asm.pl [--src s2b.asm] [--out DIR] ID...\n" unless @ids;
 
 # the effects' bytes and where each is in the Z80 window
-open my $h, '<', $src or die "$src: $!";
 my (%bytes, %base);
+if ($alpha) { # (a .snd file for each, and the label's offset in the ROM in the disassembly's comment)
+    open my $ah, '<:encoding(latin1)', "$alpha/sonic2alpha.asm" or die "$alpha/sonic2alpha.asm: $!";
+    while (my $l = <$ah>) {
+        next unless $l =~ /^Sfx_([0-9A-F]{2}):\s*;\s*Offset_0x([0-9A-F]+)/i;
+        my ($id, $off) = (uc $1, hex $2);
+        my $file = "$alpha/Sound/SFX_$id.snd";
+        next unless -e $file;
+        open my $sf, '<:raw', $file or die "$file: $!";
+        local $/;
+        $bytes{$id} = [ unpack 'C*', scalar <$sf> ];
+        $base{$id} = ($off & 0x7FFF) | 0x8000;
+    }
+    close $ah;
+    $src = '/dev/null';
+}
+open my $h, '<', $src or die "$src: $!";
 my $cur;
 while (my $l = <$h>) {
     $l =~ s/\r//;
@@ -55,6 +73,7 @@ sub hx { sprintf '$%02X', $_[0] }
 # The FM voices (25 bytes each) as smpsVc macros. The bytes of each group are in the order op4, op2, op3, op1.
 sub voice_lines {
     my ($label, @bytes) = @_;
+    pop @bytes while @bytes % 25 && @bytes % 25 < 5 && !$bytes[-1]; # (the zeros a ROM pads an effect with)
     die "$label: voice data is not a whole number of voices\n" if @bytes % 25;
     my @L = ("$label:");
     for my $vi (0 .. @bytes / 25 - 1) {
@@ -119,6 +138,8 @@ for my $id (@ids) {
         my $o = 4 + 6 * $i;
         push @ch, { ctl => $bb->[$o], id => $bb->[$o + 1], ptr => ($bb->[$o + 2] | ($bb->[$o + 3] << 8)) - $base, pitch => $bb->[$o + 4], vol => $bb->[$o + 5] };
     }
+    my $has_fm = grep { $_->{id} < 0x80 } @ch;
+    $voice = 0 unless $has_fm; # (an effect of PSG tracks only has no voices, whatever its voice pointer says: the alpha's E5 points at the next effect)
     my $voice_off = $voice ? $voice - $base : undef;
     my @foreign_voice;   # (the voice is in another effect: its bytes are copied here, after the tracks)
     if (defined $voice_off && ($voice_off < 0 || $voice_off >= $len)) {

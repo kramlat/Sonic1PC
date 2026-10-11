@@ -2,13 +2,12 @@
   "header": [
     {
       "smpsHeaderStartSong": [
-        "0x2",
-        "0x1"
+        "0x2"
       ]
     },
     {
       "smpsHeaderVoice": [
-        "sndDE_Voices"
+        "sndD3_Voices"
       ]
     },
     {
@@ -24,71 +23,71 @@
     {
       "smpsHeaderSFXChannel": [
         "cFM5",
-        "sndDE_FM5",
-        "0x0",
-        "0x0"
+        "sndD3_FM5",
+        "0xF5",
+        "0x3"
       ]
     }
   ],
   "voices": [
     {
-      "smpsVcAlgorithm": "0x4",
-      "smpsVcFeedback": "0x7",
+      "smpsVcAlgorithm": "0x7",
+      "smpsVcFeedback": "0x0",
       "smpsVcUnusedBits": "0x0",
       "operators": [
         {
           "smpsVcDetune": "0x0",
-          "smpsVcCoarseFreq": "0x2",
+          "smpsVcCoarseFreq": "0xC",
           "smpsVcRateScale": "0x0",
-          "smpsVcAttackRate": "0x15",
+          "smpsVcAttackRate": "0x1F",
           "smpsVcAmpMod": "0x0",
           "smpsVcDecayRate1": "0x0",
           "smpsVcDecayRate2": "0x0",
-          "smpsVcDecayLevel": "0x0",
+          "smpsVcDecayLevel": "0xF",
           "smpsVcReleaseRate": "0xF",
           "smpsVcTotalLevel": "0x0"
         },
         {
           "smpsVcDetune": "0x0",
-          "smpsVcCoarseFreq": "0x2",
+          "smpsVcCoarseFreq": "0xC",
           "smpsVcRateScale": "0x0",
           "smpsVcAttackRate": "0x1F",
           "smpsVcAmpMod": "0x0",
           "smpsVcDecayRate1": "0x0",
           "smpsVcDecayRate2": "0x0",
-          "smpsVcDecayLevel": "0x0",
+          "smpsVcDecayLevel": "0xF",
           "smpsVcReleaseRate": "0xF",
-          "smpsVcTotalLevel": "0x28"
-        },
-        {
-          "smpsVcDetune": "0x4",
-          "smpsVcCoarseFreq": "0x0",
-          "smpsVcRateScale": "0x0",
-          "smpsVcAttackRate": "0x1F",
-          "smpsVcAmpMod": "0x0",
-          "smpsVcDecayRate1": "0x1F",
-          "smpsVcDecayRate2": "0x0",
-          "smpsVcDecayLevel": "0x0",
-          "smpsVcReleaseRate": "0xF",
-          "smpsVcTotalLevel": "0x0"
+          "smpsVcTotalLevel": "0xF"
         },
         {
           "smpsVcDetune": "0x0",
-          "smpsVcCoarseFreq": "0x0",
+          "smpsVcCoarseFreq": "0xC",
           "smpsVcRateScale": "0x0",
           "smpsVcAttackRate": "0x1F",
           "smpsVcAmpMod": "0x0",
           "smpsVcDecayRate1": "0x0",
           "smpsVcDecayRate2": "0x0",
-          "smpsVcDecayLevel": "0x0",
+          "smpsVcDecayLevel": "0xF",
           "smpsVcReleaseRate": "0xF",
-          "smpsVcTotalLevel": "0xD"
+          "smpsVcTotalLevel": "0xF"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0xA",
+          "smpsVcRateScale": "0x0",
+          "smpsVcAttackRate": "0x1F",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0xF",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x2A"
         }
       ]
     }
   ],
   "SMPSplaylist": {
-    "sndDE_FM5": [
+    "sndD3_FM5": [
       {
         "smpsSetvoice": "0x0"
       },
@@ -96,39 +95,54 @@
         "smpsModSet": [
           "0x1",
           "0x1",
-          "0xF",
-          "0xFE"
+          "0x46",
+          "0x9"
         ]
       },
       {
-        "note": "Fs1",
-        "duration": "0x43"
+        "inheritedNote": true,
+        "duration": "0xA7"
       },
       {
-        "smpsModSet": [
-          "0x1",
-          "0x1",
-          "0x3",
-          "0x3"
-        ]
+        "inheritedNote": true,
+        "duration": "0x14"
+      },
+      "smpsNoAttack",
+      {
+        "tie": true,
+        "duration": "0x14"
+      },
+      "smpsNoAttack",
+      {
+        "smpsAlterVol": "0x4"
       },
       {
-        "note": "Fs2",
-        "duration": "0xF"
+        "inheritedNote": true,
+        "duration": "0x14"
+      },
+      "smpsNoAttack",
+      {
+        "smpsAlterVol": "0x4"
       },
       {
-        "smpsLoop": [
-          "0x0",
-          "0x23",
-          "smpsNoAttack",
-          {
-            "tie": true,
-            "duration": "0x3"
-          },
-          {
-            "smpsAlterVol": "0x1"
-          }
-        ]
+        "inheritedNote": true,
+        "duration": "0x14"
+      },
+      "smpsNoAttack",
+      {
+        "smpsAlterVol": "0x4"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0xA"
+      },
+      "smpsNoAttack",
+      {
+        "smpsAlterVol": "0x4"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0xA"
       },
       "smpsStop"
     ]

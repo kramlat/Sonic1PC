@@ -102,12 +102,12 @@ static bool LevSelZoneBuilt(uint16_t level) {
 static int levsel_sound = 0;
 static int levsel_item = 0;
 
-// What the sound test plays for the id $80+value: the music ($81-$9D, the final game's) and effects ($A0-$E1, the prototype's) are the sounds of this port's ids; the rest is silence
+// What the sound test plays for the id $80+value: the music ($81-$9D, the final game's) and effects ($A0-$E9, the alpha's) are the sounds of this port's ids; the rest is silence
 static uint8_t LevSelSoundId(int value) {
     int id = 0x80 + value;
     if (id >= 0x81 && id <= 0x9F)
         return (uint8_t)(mus_VsResults + (id - 0x81));
-    if (id >= 0xA0 && id <= 0xE1)
+    if (id >= 0xA0 && id <= 0xE9)
         return (uint8_t)(sfx_Jump + (id - 0xA0));
     return 0;
 }
@@ -240,22 +240,16 @@ static void LevelSelect(void) {
     }
 }
 
-// Matches LevSelCode_US (Up, Down, Left, Right) for level select. The debug
-// mode cheat (C, C, C, C, Up, Down, Left, Right) is this project's own
-// entry gesture, not the original game's (which instead counts total C
-// presses during the level select cheat -- see Tit_ActivateCheat in the
-// disassembly -- to layer slow motion/debug mode on top of it; slow motion
-// isn't implemented in this port, so that scheme wasn't worth replicating).
-//
-// In both cases, presses of unrelated buttons in between are allowed/
-// ignored, and entering the sequence's first button again after a mismatch
-// restarts the count from there rather than requiring a clean restart.
-static const uint8_t levsel_cheat_sequence[4] = {JPAD_UP, JPAD_DOWN, JPAD_LEFT, JPAD_RIGHT};
+// The alpha's level select code (its Level_Select_Code_US and _J: Up, Down, Down, Down, Down, Up) for the level select. The debug mode cheat (C, C, C, C, then that code) is this project's own entry
+// gesture, built on it: the alpha instead counts the C presses whenever they are pressed (in $FFFFFFD6) and what the count is decides what the code switches on, which this port does not replicate (its
+// slow motion is not implemented). In both cases, presses of unrelated buttons in between are allowed/ignored, and entering the sequence's first button again after a mismatch restarts the count from
+// there rather than requiring a clean restart.
+static const uint8_t levsel_cheat_sequence[6] = {JPAD_UP, JPAD_DOWN, JPAD_DOWN, JPAD_DOWN, JPAD_DOWN, JPAD_UP};
 #ifdef NDEBUG
 // Only used in release builds -- debug builds skip entry entirely (see
 // GM_Title() below).
-static const uint8_t debug_cheat_sequence[8] = {
-    JPAD_C, JPAD_C, JPAD_C, JPAD_C, JPAD_UP, JPAD_DOWN, JPAD_LEFT, JPAD_RIGHT,
+static const uint8_t debug_cheat_sequence[10] = {
+    JPAD_C, JPAD_C, JPAD_C, JPAD_C, JPAD_UP, JPAD_DOWN, JPAD_DOWN, JPAD_DOWN, JPAD_DOWN, JPAD_UP,
 };
 #endif
 
@@ -499,14 +493,14 @@ void GM_Title(void) {
             return;
         }
 
-        // Check for level select cheat entry (Up, Down, Left, Right)
-        if (TitleCheatStep(&cheat_progress, levsel_cheat_sequence, 4)) {
+        // Check for level select cheat entry (Up, Down, Down, Down, Down, Up)
+        if (TitleCheatStep(&cheat_progress, levsel_cheat_sequence, 6)) {
             level_select_cheat = true;
             PlaySound(sfx_Ring);
         }
 #ifdef NDEBUG
-        // Check for debug mode cheat entry (C, C, C, C, Up, Down, Left, Right)
-        if (TitleCheatStep(&debug_progress, debug_cheat_sequence, 8)) {
+        // Check for debug mode cheat entry (C, C, C, C, Up, Down, Down, Down, Down, Up)
+        if (TitleCheatStep(&debug_progress, debug_cheat_sequence, 10)) {
             debug_cheat = true;
             credits_cheat = true;
             PlaySound(sfx_Ring);
@@ -534,14 +528,14 @@ void GM_Title(void) {
                     return;
                 }
 
-                // Check for level select cheat entry (Up, Down, Left, Right)
-                if (TitleCheatStep(&cheat_progress, levsel_cheat_sequence, 4)) {
+                // Check for level select cheat entry (Up, Down, Down, Down, Down, Up)
+                if (TitleCheatStep(&cheat_progress, levsel_cheat_sequence, 6)) {
                     level_select_cheat = true;
                     PlaySound(sfx_Ring);
                 }
 #ifdef NDEBUG
-                // Check for debug mode cheat entry (C, C, C, C, Up, Down, Left, Right)
-                if (TitleCheatStep(&debug_progress, debug_cheat_sequence, 8)) {
+                // Check for debug mode cheat entry (C, C, C, C, Up, Down, Down, Down, Down, Up)
+                if (TitleCheatStep(&debug_progress, debug_cheat_sequence, 10)) {
                     debug_cheat = true;
                     credits_cheat = true;
                     PlaySound(sfx_Ring);

@@ -7,11 +7,21 @@ project(ParadoxOffice LANGUAGES CXX)
 #   cmake -S . -B build && cmake --build build                  builds ParadoxMake and the game
 #   cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr && cmake --install build
 #
-# Choose another project with -DPARADOX_PROJECT=<folder>; the game's own options (SPLASH, FIX_BUGS, JAPANESE, SANITIZE, LTO, BUILD_TESTS) are
+# Choose another project with -DPARADOX_PROJECT=<folder> (Sonic 1 builds as Release and Sonic 2 as Debug unless -DCMAKE_BUILD_TYPE says otherwise); the game's own options (SPLASH, FIX_BUGS, JAPANESE, SANITIZE, LTO, BUILD_TESTS) are
 # passed through when given.
 add_subdirectory(ParadoxMake)
 
 set(PARADOX_PROJECT "Sonic The Hedgehog" CACHE STRING "The project folder ParadoxMake builds")
+# The build profile when none is given (-DCMAKE_BUILD_TYPE=...): Sonic 1 builds as Release, the way it is played, with its cheats (a debug build has the debug mode on already, and only a release build takes the
+# code for it). Sonic 2 builds as Debug for now: its debug cheat is not Sonic 2's own method yet (the final game's is on the sound test), so a release build would have no way into the debug mode.
+if(NOT CMAKE_BUILD_TYPE)
+  if(PARADOX_PROJECT STREQUAL "Sonic the Hedgehog 2")
+    set(CMAKE_BUILD_TYPE Debug)
+  elseif(PARADOX_PROJECT STREQUAL "Sonic The Hedgehog")
+    set(CMAKE_BUILD_TYPE Release)
+  endif()
+endif()
+
 set(PM_ARGS -B "${CMAKE_BINARY_DIR}/projects")
 if(CMAKE_BUILD_TYPE)
   list(APPEND PM_ARGS "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")

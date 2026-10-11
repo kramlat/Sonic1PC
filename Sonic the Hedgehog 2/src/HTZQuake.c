@@ -14,6 +14,7 @@
 #include "Object/Tails.h"
 #include "PLC.h"
 #include "Solid.h"
+#include "Sound.h"
 #include "Video.h"
 
 #include "Backend/VDP.h"
@@ -122,10 +123,11 @@ static void Start(int16_t y_offset) {
     htz_delay = 0;
 }
 
-// The alpha's quake has sounds that the prototype's does not: $E1 (the ground rumbling as it moves, every 64th frame) and $F8 (as the stretch is left). They are sound effects of the alpha's own driver ($E0 to $E9 are
-// new in it, and $F8 is a command of it), which this port has not imported yet: until it has, they are silent
+// The alpha's quake has sounds that the prototype's does not: $E1 (the ground rumbling as it moves, every 64th frame: an effect of the alpha's, which has them from $E0 to $E9) and $F8 (as the stretch is left: a command
+// of its sound driver, which is not known; the rumble is a short effect that stops by itself, so nothing is done for it)
 static void QuakeSound(uint8_t alpha_id) {
-    (void)alpha_id;
+    if (alpha_id == 0xE1)
+        PlaySound(sfx_AlphaE1);
 }
 
 // The quake's stretch is left: the background goes back to its own resting place

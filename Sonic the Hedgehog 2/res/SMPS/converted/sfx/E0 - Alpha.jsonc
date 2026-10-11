@@ -2,13 +2,12 @@
   "header": [
     {
       "smpsHeaderStartSong": [
-        "0x2",
-        "0x1"
+        "0x2"
       ]
     },
     {
       "smpsHeaderVoice": [
-        "sndD6_Voices"
+        "sndE0_Voices"
       ]
     },
     {
@@ -18,23 +17,15 @@
     },
     {
       "smpsHeaderChanSFX": [
-        "0x2"
-      ]
-    },
-    {
-      "smpsHeaderSFXChannel": [
-        "cFM4",
-        "sndD6_FM4",
-        "0x0",
-        "0x8"
+        "0x1"
       ]
     },
     {
       "smpsHeaderSFXChannel": [
         "cFM5",
-        "sndD6_FM5",
-        "0xC",
-        "0x8"
+        "sndE0_FM5",
+        "0xFE",
+        "0x0"
       ]
     }
   ],
@@ -47,99 +38,99 @@
         {
           "smpsVcDetune": "0x0",
           "smpsVcCoarseFreq": "0x9",
-          "smpsVcRateScale": "0x3",
-          "smpsVcAttackRate": "0xF",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0x15",
           "smpsVcAmpMod": "0x0",
           "smpsVcDecayRate1": "0x0",
-          "smpsVcDecayRate2": "0x5",
-          "smpsVcDecayLevel": "0xB",
-          "smpsVcReleaseRate": "0xF",
-          "smpsVcTotalLevel": "0x80"
-        },
-        {
-          "smpsVcDetune": "0x0",
-          "smpsVcCoarseFreq": "0xB",
-          "smpsVcRateScale": "0x2",
-          "smpsVcAttackRate": "0x2F",
-          "smpsVcAmpMod": "0x0",
-          "smpsVcDecayRate1": "0x0",
-          "smpsVcDecayRate2": "0xA",
-          "smpsVcDecayLevel": "0xB",
-          "smpsVcReleaseRate": "0xF",
-          "smpsVcTotalLevel": "0x1C"
-        },
-        {
-          "smpsVcDetune": "0x0",
-          "smpsVcCoarseFreq": "0xE",
-          "smpsVcRateScale": "0x2",
-          "smpsVcAttackRate": "0x2F",
-          "smpsVcAmpMod": "0x0",
-          "smpsVcDecayRate1": "0x2",
-          "smpsVcDecayRate2": "0x4",
-          "smpsVcDecayLevel": "0xB",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
           "smpsVcReleaseRate": "0xF",
           "smpsVcTotalLevel": "0x0"
         },
         {
           "smpsVcDetune": "0x0",
-          "smpsVcCoarseFreq": "0x1",
+          "smpsVcCoarseFreq": "0x3",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0xC",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x1D"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0xC",
+          "smpsVcRateScale": "0x2",
+          "smpsVcAttackRate": "0xF",
+          "smpsVcAmpMod": "0x0",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
+          "smpsVcReleaseRate": "0xF",
+          "smpsVcTotalLevel": "0x0"
+        },
+        {
+          "smpsVcDetune": "0x0",
+          "smpsVcCoarseFreq": "0x0",
           "smpsVcRateScale": "0x2",
           "smpsVcAttackRate": "0x1F",
           "smpsVcAmpMod": "0x0",
-          "smpsVcDecayRate1": "0x2",
-          "smpsVcDecayRate2": "0x7",
-          "smpsVcDecayLevel": "0xB",
+          "smpsVcDecayRate1": "0x0",
+          "smpsVcDecayRate2": "0x0",
+          "smpsVcDecayLevel": "0x0",
           "smpsVcReleaseRate": "0xF",
-          "smpsVcTotalLevel": "0x50"
+          "smpsVcTotalLevel": "0x0"
         }
       ]
     }
   ],
   "SMPSplaylist": {
-    "sndD6_FM4": [],
-    "sndD6_FM5": [
+    "sndE0_FM5": [
       {
         "smpsSetvoice": "0x0"
       },
       {
         "smpsModSet": [
+          "0x0",
           "0x1",
-          "0x1",
-          "0x12",
-          "0xFF"
+          "0x20",
+          "0xF6"
         ]
       },
       {
-        "note": "D1",
-        "duration": "0x45"
+        "inheritedNote": true,
+        "duration": "0xC4"
       },
       {
-        "smpsModSet": [
-          "0x0",
-          "0x0",
-          "0x0",
-          "0x0"
-        ]
+        "inheritedNote": true,
+        "duration": "0x16"
       },
       "smpsNoAttack",
       {
-        "smpsAlterVol": "0x3"
+        "smpsMod": false
       },
       {
-        "note": "G2",
-        "duration": "0x1"
+        "inheritedNote": true,
+        "duration": "0xD0"
       },
+      {
+        "inheritedNote": true,
+        "duration": "0x18"
+      },
+      "smpsNoAttack",
       {
         "smpsLoop": [
           "0x0",
-          "0x7",
+          "0x10",
           {
-            "smpsAlterVol": "0x2"
+            "inheritedNote": true,
+            "duration": "0x4"
           },
           "smpsNoAttack",
           {
-            "tie": true,
-            "duration": "0xA"
+            "smpsAlterVol": "0x3"
           }
         ]
       },

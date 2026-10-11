@@ -201,6 +201,9 @@
 #include "Resource/Art/HPZBridge.h"
 #include "Resource/Art/Redz.h"
 #include "Resource/Art/Rhinobot.h"
+#include "Resource/Art/OOZFireBooster.h"
+#include "Resource/Art/OOZBreakVertical.h"
+#include "Resource/Art/OOZFans.h"
 #include "Resource/Art/BBat.h"
 #include "Resource/Art/HPZWaterfall.h"
 #include "Resource/Art/HPZPlatform.h"
@@ -664,10 +667,11 @@ static const PLCList PLC_DHZ2 = {
 // ---------------------------------------------------------------------------
 // Pattern load cues - Oil Ocean (Oil_Ocean_Sprites_1 and 2)
 // ---------------------------------------------------------------------------
-static const PLCList PLC_OOZ = { // (the zone's own art is the level header's)
+static const PLCList PLC_OOZ = { // (the zone's own art is the level header's) the alpha's list 18, but for the cannon's art, which is in the second list here
     7,
     (const PLC[]) {
-        { Art_OOZElevator,      ART_VRAM(0x6000 >> 5) },
+        { Art_OOZFireBooster,   ART_VRAM(0x5C40 >> 5) },
+        { Art_OOZElevator,      ART_VRAM(0x5E80 >> 5) },
         { Art_OOZSpikyBall,     ART_VRAM(0x6180 >> 5) },
         { Art_OOZBurnerLid,     ART_VRAM(0x6580 >> 5) },
         { Art_OOZStripedBlocks, ART_VRAM(0x6640 >> 5) },
@@ -677,13 +681,15 @@ static const PLCList PLC_OOZ = { // (the zone's own art is the level header's)
 };
 
 static const PLCList PLC_OOZ2 = {
-    10,
+    12,
     (const PLC[]) {
         { Art_OOZBall,          ART_VRAM(0x6A80 >> 5) },
         { Art_OOZLaunchBall,    ART_VRAM(0x6D00 >> 5) },
         { Art_OOZCollapsePlat,  ART_VRAM(0x73A0 >> 5) },
         { Art_OOZPushSpring,    ART_VRAM(0x78A0 >> 5) },
         { Art_OOZSwingPlat,     ART_VRAM(0x7C60 >> 5) },
+        { Art_OOZBreakVertical, ART_VRAM(0x7FE0 >> 5) },
+        { Art_OOZFans,          ART_VRAM(0x8060 >> 5) },
         { Art_Button,           ART_VRAM(0x8480 >> 5) },
         { Art_Spikes,           ART_VRAM(0x8680 >> 5) },
         { Art_SpringDiag,       ART_VRAM(0x8780 >> 5) },

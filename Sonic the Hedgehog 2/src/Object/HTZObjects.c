@@ -340,6 +340,8 @@ void Obj_HTZLift(Object *obj) {
         }
         break;
     case LiftState_Slide:
+        if ((frame_count & 0xF) == 0)
+            PlaySound(sfx_HTZLift); // (the alpha's $E4, every 16 frames)
         SpeedToPos(obj);
         if (--scratch->timer == 0) {
             obj->routine_sec += 2;

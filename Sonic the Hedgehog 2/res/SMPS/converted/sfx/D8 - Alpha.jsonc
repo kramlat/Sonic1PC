@@ -25,7 +25,7 @@
         "cFM5",
         "sndD8_FM5",
         "0x0",
-        "0x0"
+        "0x7"
       ]
     }
   ],
@@ -92,33 +92,20 @@
         "smpsSetvoice": "0x0"
       },
       {
-        "note": "Fs4",
-        "duration": "0x3"
+        "inheritedNote": true,
+        "duration": "0xB3"
       },
       {
-        "note": "Bb4",
-        "duration": "0x3"
+        "inheritedNote": true,
+        "duration": "0x6"
       },
       {
-        "note": "Bb5",
-        "duration": "0xA"
+        "inheritedNote": true,
+        "duration": "0xB3"
       },
       {
-        "smpsLoop": [
-          "0x0",
-          "0x3",
-          {
-            "smpsAlterVol": "0x8"
-          },
-          {
-            "note": "Bb5",
-            "duration": "0x5"
-          },
-          {
-            "note": "Rst",
-            "duration": "0x5"
-          }
-        ]
+        "inheritedNote": true,
+        "duration": "0x15"
       },
       "smpsStop"
     ]

@@ -507,12 +507,18 @@ resources:
   - "Art/BBat"
   - "Art/Redz"
   - "Art/Rhinobot"
+  - "Art/OOZFireBooster"
+  - "Art/OOZBreakVertical"
+  - "Art/OOZFans"
   - "Mappings/BBat"
   - "Mappings/Redz"
   - "Mappings/Rhinobot"
+  - "Mappings/OOZElevator"
+  - "Mappings/OOZFire"
   - "Animation/BBat"
   - "Animation/Redz"
   - "Animation/Rhinobot"
+  - "Animation/OOZFire"
   - "Mappings/NAWaterSurface"
   - "Art/HTZSeesaw"
   - "Art/HTZLift"
@@ -649,23 +655,32 @@ songs:
   - {file: "music/Cont_9C.jsonc", name: S2Mus_Cont_9C}
   - {file: "music/Emrld_9D.jsonc", name: S2Mus_Emrld_9D}
   - {file: "music/Blank_9F.jsonc", name: S2Mus_Blank_9F}
-  - {file: "sfx/D0 - CNZ Boss Zap.jsonc", name: S2Sfx_D0}
-  - {file: "sfx/D1 - Unknown (Unused).jsonc", name: S2Sfx_D1}
-  - {file: "sfx/D2 - Unknown (Unused).jsonc", name: S2Sfx_D2}
-  - {file: "sfx/D3 - Signpost 2P.jsonc", name: S2Sfx_D3}
-  - {file: "sfx/D4 - OOZ Lid Pop.jsonc", name: S2Sfx_D4}
-  - {file: "sfx/D5 - Sliding Spike.jsonc", name: S2Sfx_D5}
-  - {file: "sfx/D6 - CNZ Elevator.jsonc", name: S2Sfx_D6}
-  - {file: "sfx/D7 - Platform Knock.jsonc", name: S2Sfx_D7}
-  - {file: "sfx/D8 - Bonus Bumper.jsonc", name: S2Sfx_D8}
-  - {file: "sfx/D9 - Large Bumper.jsonc", name: S2Sfx_D9}
-  - {file: "sfx/DA - Gloop.jsonc", name: S2Sfx_DA}
-  - {file: "sfx/DB - Pre-Arrow Firing.jsonc", name: S2Sfx_DB}
-  - {file: "sfx/DC - Fire.jsonc", name: S2Sfx_DC}
-  - {file: "sfx/DD - Arrow Stick.jsonc", name: S2Sfx_DD}
-  - {file: "sfx/DE - Helicopter.jsonc", name: S2Sfx_DE}
-  - {file: "sfx/DF - Super Transform.jsonc", name: S2Sfx_DF}
-  - {file: "sfx/E0 - Spin Dash Rev.jsonc", name: S2Sfx_E0}
+  - {file: "sfx/D0 - Alpha.jsonc", name: S2Sfx_D0}
+  - {file: "sfx/D1 - Alpha.jsonc", name: S2Sfx_D1}
+  - {file: "sfx/D2 - Alpha.jsonc", name: S2Sfx_D2}
+  - {file: "sfx/D3 - Alpha.jsonc", name: S2Sfx_D3}
+  - {file: "sfx/D4 - Alpha.jsonc", name: S2Sfx_D4}
+  - {file: "sfx/D5 - Alpha.jsonc", name: S2Sfx_D5}
+  - {file: "sfx/D6 - Alpha.jsonc", name: S2Sfx_D6}
+  - {file: "sfx/D7 - Alpha.jsonc", name: S2Sfx_D7}
+  - {file: "sfx/D8 - Alpha.jsonc", name: S2Sfx_D8}
+  - {file: "sfx/D9 - Alpha.jsonc", name: S2Sfx_D9}
+  - {file: "sfx/DA - Alpha.jsonc", name: S2Sfx_DA}
+  - {file: "sfx/DB - Alpha.jsonc", name: S2Sfx_DB}
+  - {file: "sfx/DC - Alpha.jsonc", name: S2Sfx_DC}
+  - {file: "sfx/DD - Alpha.jsonc", name: S2Sfx_DD}
+  - {file: "sfx/DE - Alpha.jsonc", name: S2Sfx_DE}
+  - {file: "sfx/DF - Alpha.jsonc", name: S2Sfx_DF}
+  - {file: "sfx/E0 - Alpha.jsonc", name: S2Sfx_E0}
+  - {file: "sfx/E1 - Alpha.jsonc", name: S2Sfx_E1}
+  - {file: "sfx/E2 - Alpha.jsonc", name: S2Sfx_E2}
+  - {file: "sfx/E3 - Alpha.jsonc", name: S2Sfx_E3}
+  - {file: "sfx/E4 - Alpha.jsonc", name: S2Sfx_E4}
+  - {file: "sfx/E5 - Alpha.jsonc", name: S2Sfx_E5}
+  - {file: "sfx/E6 - Alpha.jsonc", name: S2Sfx_E6}
+  - {file: "sfx/E7 - Alpha.jsonc", name: S2Sfx_E7}
+  - {file: "sfx/E8 - Alpha.jsonc", name: S2Sfx_E8}
+  - {file: "sfx/E9 - Alpha.jsonc", name: S2Sfx_E9}
   - {file: "sfx/A0 - SW.jsonc", name: S2Sfx_A0}
   - {file: "sfx/A1 - SW.jsonc", name: S2Sfx_A1}
   - {file: "sfx/A2 - SW.jsonc", name: S2Sfx_A2}

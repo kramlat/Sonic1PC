@@ -119,6 +119,16 @@ write_file('Animation/Sol',     slice(0x0288CE, 0x0288DC));
 write_file('Animation/SolFire', slice(0x0288DC, 0x0288E2));
 copy_file('Art/Nemesis/Rexon.nem', 'Art/Rexon');
 
+# Oil Ocean: the elevator's art is bigger in the alpha (its platform has a longer third frame: mappings $0170AE), the fire under the burner lid (object 33's child: mappings $018C20, animation $018C00,
+# fire_bst.nem at $5C40), and the art of two objects that no layout places (brkbst_v.nem at $7FE0 and the fans of object 3F, fans.nem at $8060)
+copy_file('Art/Nemesis/OOZElevator.nem', 'Art/OOZElevator');
+copy_file('Art/Nemesis/Fire_Bst.nem', 'Art/OOZFireBooster');
+copy_file('Art/Nemesis/BrkBst_V.nem', 'Art/OOZBreakVertical');
+copy_file('Art/Nemesis/Fans.nem', 'Art/OOZFans');
+write_file('Mappings/OOZElevator', slice(0x0170AE, 0x0170FC));
+write_file('Mappings/OOZFire', slice(0x018C20, 0x018C5C));
+write_file('Animation/OOZFire', slice(0x018C00, 0x018C0C));
+
 # Hidden Palace's Rhinobot (4D: unused in the alpha's levels, art rhinobot.nem at $7640 in the zone's second list)
 copy_file('Art/Nemesis/Rhinobot.nem', 'Art/Rhinobot');
 write_file('Mappings/Rhinobot',  slice(0x022A56, 0x022BA6));

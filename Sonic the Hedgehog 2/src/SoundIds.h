@@ -100,9 +100,17 @@ enum SoundID {
 	sfx_Fire,
 	sfx_ArrowStick, // $DD
 	sfx_Helicopter, // $DE
-	sfx_HelicopterDup, // $DF
-	sfx_SuperTransform, // $E0
-	sfx_SpindashRev, // $E1
+	sfx_SuperTransform, // $DF (the monitor's)
+	sfx_SpindashRev, // $E0
+	sfx_AlphaE1, // $E1 (the alpha's own from here: this one is played by its level select)
+	sfx_AlphaE2, // $E2
+	sfx_AlphaE3, // $E3
+	sfx_HTZLift, // $E4 (the cable car of Hill Top)
+	sfx_NGHZLeaves, // $E5 (the loose leaves of Neo Green Hill)
+	sfx_AlphaE6, // $E6
+	sfx_DHZRoots, // $E7 (the bridge of Dust Hill that opens when its roots are pulled)
+	sfx_AlphaE8, // $E8
+	sfx_DHZRoots2, // $E9 (the same bridge's)
 
 	bgm_Fade = 0xF0,
 	sfx_Sega,
@@ -111,7 +119,7 @@ enum SoundID {
 	bgm_Stop,
 
 	// The last sound the sound test can reach
-	SOUND_ID_LAST = sfx_SpindashRev,
+	SOUND_ID_LAST = sfx_DHZRoots2,
 
 	// Sonic 1's names, for the code shared with it: what plays for each
 	bgm_GHZ = mus_VsResults, // (the first music)

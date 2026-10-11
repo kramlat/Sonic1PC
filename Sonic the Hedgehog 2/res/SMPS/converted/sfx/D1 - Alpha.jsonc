@@ -2,8 +2,7 @@
   "header": [
     {
       "smpsHeaderStartSong": [
-        "0x2",
-        "0x1"
+        "0x2"
       ]
     },
     {
@@ -18,6 +17,14 @@
     },
     {
       "smpsHeaderChanSFX": [
+        "0x2"
+      ]
+    },
+    {
+      "smpsHeaderSFXChannel": [
+        "cPSG3",
+        "sndD1_PSG3",
+        "0x0",
         "0x1"
       ]
     },
@@ -26,27 +33,27 @@
         "cFM5",
         "sndD1_FM5",
         "0x0",
-        "0x1"
+        "0xB"
       ]
     }
   ],
   "voices": [
     {
-      "smpsVcAlgorithm": "0x5",
-      "smpsVcFeedback": "0x6",
+      "smpsVcAlgorithm": "0x4",
+      "smpsVcFeedback": "0x7",
       "smpsVcUnusedBits": "0x0",
       "operators": [
         {
           "smpsVcDetune": "0x0",
-          "smpsVcCoarseFreq": "0x4",
+          "smpsVcCoarseFreq": "0x1",
           "smpsVcRateScale": "0x0",
           "smpsVcAttackRate": "0x1F",
           "smpsVcAmpMod": "0x0",
-          "smpsVcDecayRate1": "0x14",
+          "smpsVcDecayRate1": "0x10",
           "smpsVcDecayRate2": "0xF",
           "smpsVcDecayLevel": "0xF",
           "smpsVcReleaseRate": "0xF",
-          "smpsVcTotalLevel": "0x80"
+          "smpsVcTotalLevel": "0x0"
         },
         {
           "smpsVcDetune": "0x0",
@@ -66,7 +73,7 @@
           "smpsVcRateScale": "0x0",
           "smpsVcAttackRate": "0x1F",
           "smpsVcAmpMod": "0x0",
-          "smpsVcDecayRate1": "0x12",
+          "smpsVcDecayRate1": "0xE",
           "smpsVcDecayRate2": "0xC",
           "smpsVcDecayLevel": "0xE",
           "smpsVcReleaseRate": "0xF",
@@ -82,19 +89,51 @@
           "smpsVcDecayRate2": "0x0",
           "smpsVcDecayLevel": "0x0",
           "smpsVcReleaseRate": "0xF",
-          "smpsVcTotalLevel": "0x0"
+          "smpsVcTotalLevel": "0x5"
         }
       ]
     }
   ],
   "SMPSplaylist": {
+    "sndD1_PSG3": [
+      {
+        "smpsPSGvoice": "0x2"
+      },
+      {
+        "smpsPSGform": "0xE4"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0xB0"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x4"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x85"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x2"
+      },
+      "smpsStop"
+    ],
     "sndD1_FM5": [
       {
         "smpsSetvoice": "0x0"
       },
       {
-        "note": "C0",
-        "duration": "0x5"
+        "smpsNoteFill": "0x4"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0xA5"
+      },
+      {
+        "inheritedNote": true,
+        "duration": "0x6"
       },
       "smpsStop"
     ]

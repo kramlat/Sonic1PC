@@ -37,6 +37,9 @@ my %alpha = (
     # (Hill Top: Emerald Hill's tiles and blocks with its own over them, the shared chunks)
     HTZ => { dir => 'Hill Top Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map1.dat', 'Bg_Map2.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
              blocks => ['../Emerald Hill Zone/Blocks.dat', 'Blocks.dat@0x980'], tiles => ['../Emerald Hill Zone/Tiles.nem', 'Tiles.nem@0x3F80'], chunks => '../Shared/Chunks.kos', col => ['../Shared/Ghz_Col1.dat', '../Shared/Ghz_Col2.dat'], pal => '../../Palettes/HTz.pal' },
+    # (Oil Ocean: two acts, one background and one collision index for both paths)
+    OOZ => { dir => 'Oil Ocean Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
+             blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['OOz_Col.dat', 'OOz_Col.dat'], pal => '../../Palettes/OOz.pal' },
     # (Hidden Palace: one act, the alpha's own tiles, blocks, chunks and collision)
     HPZ => { dir => 'Hidden Palace Zone', fg => ['Fg_Map.dat'], bg => ['Bg_Map.dat'], obj => ['Obj_Act.dat'], rng => ['Rng_Act.dat'],
              blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['HPz_Col1.dat', 'HPz_Col2.dat'], pal => '../../Palettes/HPz.pal' },

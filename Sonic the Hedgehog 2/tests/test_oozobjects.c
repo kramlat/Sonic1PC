@@ -109,6 +109,26 @@ static void OOZ_TheLauncherHopsEverySecondOrSo(void) {
     CHECK_EQ(obj->pos.l.y.f.u, 400);
 }
 
+// The alpha's platform has fire under it: an object of its own, $10 above the lid's middle, that is not there (no harm, nothing drawn) until the lid is $14 or more above the fire (it starts $10 below)
+static void OOZ_TheLauncherHasFireThatShowsOnlyWhileItIsUp(void) {
+    Reset();
+    Object *obj = Spawn(SLOT(0x20), 0x33, 0, 200, 150);
+    Obj_OOZLauncher(obj);
+    Object *fire = SLOT(0x21);
+    CHECK_EQ(fire->type, 0x33);
+    CHECK_EQ(fire->routine, 4);
+    CHECK_EQ(fire->pos.l.y.f.u, 134);
+    CHECK_EQ(fire->pos.l.x.f.u, 200);
+    Obj_OOZLauncher(fire);
+    CHECK_EQ(fire->col_type, 0);
+    obj->pos.l.y.f.u = 150 - 0x30; // (the lid has hopped up: the fire shows once it is $24 above its place)
+    Obj_OOZLauncher(fire);
+    CHECK_EQ(fire->col_type, 0x9B);
+    obj->pos.l.y.f.u = 150;
+    Obj_OOZLauncher(fire);
+    CHECK_EQ(fire->col_type, 0);
+}
+
 static void OOZ_TheLauncherCarriesWhoStandsInTheMiddleUpAndThrowsThem(void) {
     Reset();
     Object *obj = Spawn(SLOT(0x20), 0x33, 1, 200, 400);
@@ -316,6 +336,7 @@ void RegisterOOZObjectTests(void) {
     RUN_TEST(OOZ_TheOilKillsWhoeverStaysInIt);
     RUN_TEST(OOZ_TheOilReleasesSonicWhenHeLeaves);
     RUN_TEST(OOZ_TheLauncherHopsEverySecondOrSo);
+    RUN_TEST(OOZ_TheLauncherHasFireThatShowsOnlyWhileItIsUp);
     RUN_TEST(OOZ_TheLauncherCarriesWhoStandsInTheMiddleUpAndThrowsThem);
     RUN_TEST(OOZ_TheLauncherIgnoresSomeoneAtItsEdge);
     RUN_TEST(OOZ_ASingleSpikedBallRollsToAndFro);

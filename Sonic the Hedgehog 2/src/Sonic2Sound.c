@@ -179,6 +179,15 @@
 #include "Resource/Music/S2Sfx_DE.h"
 #include "Resource/Music/S2Sfx_DF.h"
 #include "Resource/Music/S2Sfx_E0.h"
+#include "Resource/Music/S2Sfx_E1.h"
+#include "Resource/Music/S2Sfx_E2.h"
+#include "Resource/Music/S2Sfx_E3.h"
+#include "Resource/Music/S2Sfx_E4.h"
+#include "Resource/Music/S2Sfx_E5.h"
+#include "Resource/Music/S2Sfx_E6.h"
+#include "Resource/Music/S2Sfx_E7.h"
+#include "Resource/Music/S2Sfx_E8.h"
+#include "Resource/Music/S2Sfx_E9.h"
 #include "Resource/Music/S2Sfx_D0_json.h"
 #include "Resource/Music/S2Sfx_D1_json.h"
 #include "Resource/Music/S2Sfx_D2_json.h"
@@ -196,6 +205,15 @@
 #include "Resource/Music/S2Sfx_DE_json.h"
 #include "Resource/Music/S2Sfx_DF_json.h"
 #include "Resource/Music/S2Sfx_E0_json.h"
+#include "Resource/Music/S2Sfx_E1_json.h"
+#include "Resource/Music/S2Sfx_E2_json.h"
+#include "Resource/Music/S2Sfx_E3_json.h"
+#include "Resource/Music/S2Sfx_E4_json.h"
+#include "Resource/Music/S2Sfx_E5_json.h"
+#include "Resource/Music/S2Sfx_E6_json.h"
+#include "Resource/Music/S2Sfx_E7_json.h"
+#include "Resource/Music/S2Sfx_E8_json.h"
+#include "Resource/Music/S2Sfx_E9_json.h"
 
 static const uint8_t *const sound_table[0x100] = {
     [mus_VsResults] = S2Mus_VsRes_81,
@@ -293,9 +311,17 @@ static const uint8_t *const sound_table[0x100] = {
     [sfx_Fire] = S2Sfx_DC,
     [sfx_ArrowStick] = S2Sfx_DD,
     [sfx_Helicopter] = S2Sfx_DE,
-    [sfx_HelicopterDup] = S2Sfx_DE,
     [sfx_SuperTransform] = S2Sfx_DF,
     [sfx_SpindashRev] = S2Sfx_E0,
+    [sfx_AlphaE1] = S2Sfx_E1,
+    [sfx_AlphaE2] = S2Sfx_E2,
+    [sfx_AlphaE3] = S2Sfx_E3,
+    [sfx_HTZLift] = S2Sfx_E4,
+    [sfx_NGHZLeaves] = S2Sfx_E5,
+    [sfx_AlphaE6] = S2Sfx_E6,
+    [sfx_DHZRoots] = S2Sfx_E7,
+    [sfx_AlphaE8] = S2Sfx_E8,
+    [sfx_DHZRoots2] = S2Sfx_E9,
 };
 
 static const char *const sound_table_json[0x100] = {
@@ -394,9 +420,17 @@ static const char *const sound_table_json[0x100] = {
     [sfx_Fire] = S2Sfx_DC_json,
     [sfx_ArrowStick] = S2Sfx_DD_json,
     [sfx_Helicopter] = S2Sfx_DE_json,
-    [sfx_HelicopterDup] = S2Sfx_DE_json,
     [sfx_SuperTransform] = S2Sfx_DF_json,
     [sfx_SpindashRev] = S2Sfx_E0_json,
+    [sfx_AlphaE1] = S2Sfx_E1_json,
+    [sfx_AlphaE2] = S2Sfx_E2_json,
+    [sfx_AlphaE3] = S2Sfx_E3_json,
+    [sfx_HTZLift] = S2Sfx_E4_json,
+    [sfx_NGHZLeaves] = S2Sfx_E5_json,
+    [sfx_AlphaE6] = S2Sfx_E6_json,
+    [sfx_DHZRoots] = S2Sfx_E7_json,
+    [sfx_AlphaE8] = S2Sfx_E8_json,
+    [sfx_DHZRoots2] = S2Sfx_E9_json,
 };
 
 // Every song runs on driver version 1's coordination flags, converted from the sources' own. The songs the final game keeps compressed (every one but the 1-up, game over and emerald jingles) have Sonic 2's tempo
@@ -432,14 +466,16 @@ static const uint8_t sound_table_driver_ver[0x100] = {
     [mus_Continue] = SOUND_DRIVER_VERSION_2_TEMPO,
 };
 
-// The prototype's SndPriorities, for each effect from $A0 on (higher wins)
+// The alpha's sound priorities, for each effect from $A0 on (higher wins; the table in its sound driver: the first $30 are the prototype's too)
 static const uint8_t sound_priorities[SOUND_ID_LAST - sfx_Jump + 1] = {
     0x80, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x68, // $A0
     0x70, 0x70, 0x70, 0x60, 0x70, 0x70, 0x60, 0x70, 0x60, 0x70, 0x70, // $AB
     0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x7F, 0x60, // $B6
     0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, // $C1
-    0x70, 0x70, 0x70, 0x70, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, // $CC
-    0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x90, 0x90, // $D7
+    0x70, 0x70, 0x70, 0x70,                                           // $CC
+    0x70, 0x60, 0x60, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x60, // $D0
+    0x62, 0x60, 0x60, 0x60, 0x70, 0x70, 0x70, 0x70, 0x70, 0x60, 0x60, // $DB
+    0x60, 0x60, 0x62, 0x62,                                           // $E6
 };
 
 // The tempo each song takes under speed shoes: the final game's zSpedUpTempoTable, by song (Sonic 2 tempos, as the songs' own; the 1-up, game over and emerald jingles' are converted to Sonic 1's: $05, $12, $06)
@@ -547,9 +583,17 @@ static const SoundInspectEntry inspect_entries[] = {
     INSPECT_ENTRY(sfx_Fire, 0, "Fire"),
     INSPECT_ENTRY(sfx_ArrowStick, 0, "Arrow Stick"),
     INSPECT_ENTRY(sfx_Helicopter, 0, "Helicopter"),
-    INSPECT_ENTRY(sfx_HelicopterDup, 0, "Helicopter"),
     INSPECT_ENTRY(sfx_SuperTransform, 0, "Super Transform"),
     INSPECT_ENTRY(sfx_SpindashRev, 0, "Spin Dash Rev"),
+    INSPECT_ENTRY(sfx_AlphaE1, 0, "Alpha E1"),
+    INSPECT_ENTRY(sfx_AlphaE2, 0, "Alpha E2"),
+    INSPECT_ENTRY(sfx_AlphaE3, 0, "Alpha E3"),
+    INSPECT_ENTRY(sfx_HTZLift, 0, "Alpha E4"),
+    INSPECT_ENTRY(sfx_NGHZLeaves, 0, "Alpha E5"),
+    INSPECT_ENTRY(sfx_AlphaE6, 0, "Alpha E6"),
+    INSPECT_ENTRY(sfx_DHZRoots, 0, "Alpha E7"),
+    INSPECT_ENTRY(sfx_AlphaE8, 0, "Alpha E8"),
+    INSPECT_ENTRY(sfx_DHZRoots2, 0, "Alpha E9"),
 };
 
 const SoundBank game_sound_bank = {

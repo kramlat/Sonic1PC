@@ -17,7 +17,9 @@
 
 #include "Macros.h"
 
+#include "Resource/Animation/OOZFire.h"
 #include "Resource/Mappings/OOZCannon.h"
+#include "Resource/Mappings/OOZFire.h"
 #include "Resource/Mappings/OOZLauncher.h"
 #include "Resource/Mappings/OOZPushSpring.h"
 #include "Resource/Mappings/OOZSpikeball.h"
@@ -97,9 +99,25 @@ typedef struct {
     uint8_t pad1[2];   // 0x32-0x33
     int32_t speed;     // 0x34 (the prototype's long is at 0x32; nothing else of this object is at 0x34)
     int16_t wait;      // 0x38 (the prototype's is at 0x36)
+    uint8_t link;      // 0x3C: (the fire's) the slot of the platform
 } Scratch_Launcher;
 
 enum { Launcher_Wait = 0, Launcher_Bounce = 2, Launcher_Ready = 4, Launcher_Rise = 6, Launcher_Done = 8 };
+enum { LauncherRoutine_Init = 0, LauncherRoutine_Main = 2, LauncherRoutine_Fire = 4 };
+
+// The alpha's platform has fire under it (an object of its own: the platform makes it, in the place the lid was at, $10 up from its middle): it is seen and hurts while the lid is $14 or more above it
+// (Offset_0x018BCA)
+static void Launcher_Fire(Object *obj, Scratch_Launcher *scratch) {
+    const Object *lid = &objects[scratch->link];
+    if ((int16_t)(obj->pos.l.y.f.u - lid->pos.l.y.f.u) < 0x14) {
+        obj->col_type = 0;
+        obj->anim_frame = 0;
+        return;
+    }
+    obj->col_type = 0x9B;
+    AnimateSprite(obj, Animation_OOZFire);
+    RememberState(obj);
+}
 
 static void Launcher_Hold(Object *chr) {
     OBJ_CONTROL(chr) = 1;
@@ -126,7 +144,11 @@ static void Launcher_Launch(Object *obj, Object *chr, int who) {
 void Obj_OOZLauncher(Object *obj) {
     Scratch_Launcher *scratch = (Scratch_Launcher *)&obj->scratch;
 
-    if (obj->routine == 0) {
+    if (obj->routine == LauncherRoutine_Fire) {
+        Launcher_Fire(obj, scratch);
+        return;
+    }
+    if (obj->routine == LauncherRoutine_Init) {
         obj->routine += 2;
         obj->mappings = Mappings_OOZLauncher;
         obj->tile = TILE_MAP(0, 3, 0, 0, 0x32C);
@@ -139,6 +161,19 @@ void Obj_OOZLauncher(Object *obj) {
         scratch->wait = 0x78;
         if (scratch->subtype)
             obj->routine_sec = Launcher_Ready;
+        Object *fire = FindNextFreeObj(obj + 1);
+        if (fire != NULL) {
+            fire->type = obj->type;
+            fire->routine = LauncherRoutine_Fire;
+            fire->pos.l.x.f.u = obj->pos.l.x.f.u;
+            fire->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u - 0x10);
+            fire->mappings = Mappings_OOZFire;
+            fire->tile = TILE_MAP(0, 3, 0, 0, 0x2E2); // ($5C40)
+            fire->render.b = SPRITE_CAM_FIELD;
+            fire->priority = 4;
+            fire->width_pixels = 0x10;
+            ((Scratch_Launcher *)&fire->scratch)->link = (uint8_t)(obj - objects);
+        }
     }
 
     const int16_t old_x = obj->pos.l.x.f.u;
@@ -148,6 +183,7 @@ void Obj_OOZLauncher(Object *obj) {
             scratch->wait = 0x78;
             scratch->speed = (int32_t)0xFFF69800;
             obj->routine_sec += 2;
+            PlaySound(sfx_OOZLidPop);
         }
         break;
     case Launcher_Bounce: {
@@ -183,6 +219,7 @@ void Obj_OOZLauncher(Object *obj) {
         }
         scratch->speed = (int32_t)0xFFF69800;
         obj->routine_sec += 2;
+        PlaySound(sfx_OOZLidPop);
         break;
     }
     case Launcher_Rise: {
@@ -243,12 +280,16 @@ static void Spikeball_Move(Object *ball) {
     Scratch_Spikeball *scratch = (Scratch_Spikeball *)&ball->scratch;
     if (!scratch->right_going) {
         ball->pos.l.x.f.u--;
-        if (ball->pos.l.x.f.u == scratch->left)
+        if (ball->pos.l.x.f.u == scratch->left) {
             scratch->right_going = 1;
+            PlaySound(sfx_SlidingSpike);
+        }
     } else {
         ball->pos.l.x.f.u++;
-        if (ball->pos.l.x.f.u == scratch->right)
+        if (ball->pos.l.x.f.u == scratch->right) {
             scratch->right_going = 0;
+            PlaySound(sfx_SlidingSpike);
+        }
     }
 }
 
@@ -304,6 +345,7 @@ void Obj_OOZSpikeball(Object *obj) {
             if ((int16_t)(other->pos.l.x.f.u + 0x18) == (int16_t)(obj->pos.l.x.f.u - 0x18)) {
                 scratch->right_going ^= 1;
                 ((Scratch_Spikeball *)&other->scratch)->right_going ^= 1;
+                PlaySound(sfx_SlidingSpike);
             }
         }
         DisplaySprite(obj);
