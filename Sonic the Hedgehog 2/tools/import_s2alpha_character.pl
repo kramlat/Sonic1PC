@@ -152,6 +152,19 @@ copy_file('Art/Nemesis/V_Launch.nem', 'Art/CNZVertLauncher');
 copy_file('Art/Nemesis/GBumpers.nem', 'Art/CNZGreenBumpers');
 copy_file('Art/Nemesis/Flippers.nem', 'Art/CNZFlippers');
 
+# Chemical Plant's two badniks of the alpha that no layout places: the Spiny (its art is "Lander": lander.nem at $A5A0; objects A5 horizontal and A6 vertical, mappings $02A1E4, the animations $02A1D2, $02A1D8 and the shot's $02A1DE)
+# and the Grabber (grabber.nem at $A000; A7 to AB: objects that only set themselves up and stay, mappings $02A374)
+write_file('Mappings/Spiny', slice(0x02A1E4, 0x02A2D4));
+write_file('Animation/SpinyHorizontal', slice(0x02A1D2, 0x02A1D8));
+write_file('Animation/SpinyVertical', slice(0x02A1D8, 0x02A1DE));
+write_file('Animation/SpinyShot', slice(0x02A1DE, 0x02A1E4));
+copy_file('Art/Nemesis/Lander.nem', 'Art/Spiny');
+write_file('Mappings/Grabber', slice(0x02A374, 0x02A3F4));
+copy_file('Art/Nemesis/Grabber.nem', 'Art/Grabber');
+
+# The sliding platforms of Chemical Plant (object 7A: the alpha's mapping at $01E640 is 48 pixels wide: Dust Hill has its own)
+write_file('Mappings/CPZSlider', slice(0x01E640, 0x01E654));
+
 # Casino Night's round bumper (object 44: mappings $014994, animations $014986; the bumpers' art is in the zone's list at $7340)
 write_file('Mappings/CNZBumper', slice(0x014994, 0x0149CC));
 write_file('Animation/CNZBumper', slice(0x014986, 0x014994));

@@ -49,6 +49,9 @@ my %alpha = (
     # (Metropolis: three acts, one background, rings in each, and one collision index for both paths)
     MTZ => { dir => 'Metropolis Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat', 'Fg_Map3.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat', 'Obj_Act3.dat'],
              rng => ['Rng_Act1.dat', 'Rng_Act2.dat', 'Rng_Act3.dat'], blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['Mz_Col.dat', 'Mz_Col.dat'], pal => '../../Palettes/Mz.pal' },
+    # (Chemical Plant: two acts, one background, the alpha's own tiles, blocks, chunks and collision; its water palette is the alpha's CPz_UW.pal)
+    CPZ => { dir => 'Chemical Plant Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat'], obj => ['Obj_Act1.dat', 'Obj_Act2.dat'], rng => ['Rng_Act1.dat', 'Rng_Act2.dat'],
+             blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['CPz_Col1.dat', 'CPz_Col2.dat'], pal => '../../Palettes/CPz.pal' },
     # (Casino Night: two acts with a palette each, and neither has objects or rings: both acts' object index entries are the alpha's empty list, so the layouts are empty ones)
     CNZ => { dir => 'Casino Night Zone', fg => ['Fg_Map1.dat', 'Fg_Map2.dat'], bg => ['Bg_Map.dat', 'Bg_Map.dat'],
              blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['CNz_Col1.dat', 'CNz_Col2.dat'], pal => '../../Palettes/CNz_1.pal', pal2 => '../../Palettes/CNz_2.pal' },

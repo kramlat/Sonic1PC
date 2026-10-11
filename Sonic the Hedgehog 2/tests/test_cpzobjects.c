@@ -4,7 +4,9 @@
 
 #include "Level.h"
 #include "Object.h"
+#include "Object/CPZBadniks.h"
 #include "Object/CPZObjects.h"
+#include "Object/Coconuts.h"
 #include "Object/Sonic.h"
 
 // Chemical Plant's objects: the one way barrier (2D), the speed booster (1B) and the staircase blocks (6B), as the prototype's routines have them.
@@ -79,11 +81,17 @@ static void CPZObjects_ABoosterGivesTheSpeedItsSubtypeSays(void) {
     CHECK_EQ(player->xsp, 0xA00);
 
     Object *back = Spawn(0x1B, 0, 200, 300);
-    Obj_CPZBooster(back); // (its first call sets it up)
+    player->xsp = 0;
+    Obj_CPZBooster(back); // (its first call sets it up, and gives the speed)
     back->status.o.f.x_flip = true;
+    player->xsp = 0;
     Obj_CPZBooster(back);
     CHECK_EQ(player->xsp, -0x1000);
     CHECK(player->status.p.f.x_flip);
+
+    player->xsp = 0x1200; // (the alpha's: a character already that fast is left as he is)
+    Obj_CPZBooster(slow);
+    CHECK_EQ(player->xsp, 0x1200);
 }
 
 static void CPZObjects_ABoosterLeavesWhoIsInTheAirAlone(void) {
@@ -113,10 +121,61 @@ static void CPZObjects_ABlockFallsOnceItIsStoodOn(void) {
     CHECK(obj->pos.l.y.f.u > y0);
 }
 
+// --- the alpha's Spiny (A5, A6) and Grabber (A7) ---
+
+static void CPZObjects_TheSpinyWalksToAndFroAndThrowsAShotWhenSonicIsNear(void) {
+    Reset();
+    Object *spiny = Spawn(0xA5, 0x32, 400, 300);
+    player->pos.l.x.f.u = 0x1000; // (far)
+    Obj_Spiny(spiny);
+    CHECK_EQ(spiny->xsp, -0x40);
+    CHECK_EQ(spiny->col_type, 0x0B);
+    for (int i = 0; i < 0x40; i++)
+        Obj_Spiny(spiny);
+    CHECK(spiny->pos.l.x.f.u < 400);               // (it walks to the left)
+    CHECK_EQ(spiny->routine, 2);                   // (and does not look for Sonic for the first $80 frames)
+    player->pos.l.x.f.u = (int16_t)(spiny->pos.l.x.f.u + 0x20);
+    for (int i = 0; i < 0x50; i++)
+        Obj_Spiny(spiny);
+    CHECK_EQ(spiny->routine, 4);                   // (it has stopped to throw)
+    CHECK_EQ(spiny->frame, 2);
+    Object *shot = NULL;
+    for (int j = 0x21; j < 0x60; j++) {
+        if (objects[j].type == 0x98)
+            shot = &objects[j];
+    }
+    for (int i = 0; i < 0x30 && shot == NULL; i++) {
+        Obj_Spiny(spiny);
+        for (int j = 0x21; j < 0x60; j++) {
+            if (objects[j].type == 0x98)
+                shot = &objects[j];
+        }
+    }
+    CHECK(shot != NULL);
+    if (shot != NULL) {
+        CHECK_EQ(shot->xsp, 0x100);                // (towards Sonic, who is to its right)
+        CHECK_EQ(shot->ysp, -0x300);               // (and up)
+        CHECK_EQ(shot->frame, 6);
+    }
+}
+
+static void CPZObjects_TheGrabberOnlyStays(void) {
+    Reset();
+    Object *grabber = Spawn(0xA7, 0x36, 300, 300);
+    Obj_Grabber(grabber);
+    CHECK_EQ(grabber->col_type, 0x0B);
+    for (int i = 0; i < 20; i++)
+        Obj_Grabber(grabber);
+    CHECK_EQ(grabber->pos.l.x.f.u, 300);
+    CHECK_EQ(grabber->xsp, 0);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
     RUN_TEST(CPZObjects_ABoosterGivesTheSpeedItsSubtypeSays);
     RUN_TEST(CPZObjects_ABoosterLeavesWhoIsInTheAirAlone);
     RUN_TEST(CPZObjects_ABlockFallsOnceItIsStoodOn);
+    RUN_TEST(CPZObjects_TheSpinyWalksToAndFroAndThrowsAShotWhenSonicIsNear);
+    RUN_TEST(CPZObjects_TheGrabberOnlyStays);
 }

@@ -58,7 +58,7 @@ extern const uint8_t Mappings_Redz[];
 extern const uint8_t Mappings_BBat[];
 extern const uint8_t Mappings_OOZLauncher[];
 extern const uint8_t Mappings_OOZSpikeball[];
-extern const uint8_t Mappings_CPZElevator[];
+extern const uint8_t Mappings_OOZElevator[]; // (the alpha's elevator mappings, Chemical Plant's and Oil Ocean's)
 extern const uint8_t Mappings_OOZPushSpring[];
 extern const uint8_t Mappings_OOZSpringBall[];
 extern const uint8_t Mappings_OOZSwing[];
@@ -271,7 +271,7 @@ static const DebugListEntry DebugList_OOZ[] = {
     MONITOR_ENTRY(7),
     PLAIN(0x33, Mappings_OOZLauncher, 0x632C, 1, 0),
     PLAIN(0x43, Mappings_OOZSpikeball, 0xC30C, 0, 0),
-    PLAIN(0x19, Mappings_CPZElevator, 0x6300, 0x23, 2),
+    PLAIN(0x19, Mappings_OOZElevator, 0x62F4, 0x23, 2),
     PLAIN(0x45, Mappings_OOZPushSpring, 0x43C5, 2, 0),
     PLAIN(0x45, Mappings_OOZPushSpring, 0x43C5, 0x12, 0xA),
     PLAIN(0x46, Mappings_OOZSpringBall, 0x6354, 0, 1),
@@ -317,8 +317,8 @@ static const DebugListEntry DebugList_CPZ[] = {
     MONITOR_ENTRY(7),
     PLAIN(0x0B, Mappings_PipeTipper, 0xE3B0, 0x70, 0),
     PLAIN(0x1B, Mappings_Booster, 0xE39C, 0, 0),
-    PLAIN(0x1D, Mappings_CPZWorm, 0xE43C, 0x15, 0),
-    PLAIN(0x19, Mappings_CPZElevator, 0x63A0, 6, 0),
+    PLAIN(0x1D, Mappings_CPZWorm, 0xE43C, 5, 0),
+    PLAIN(0x19, Mappings_OOZElevator, 0x63A0, 6, 0),
     PLAIN(0x2D, Mappings_CPZBarrier, 0x2394, 2, 2),
     PLAIN(0x32, Mappings_TubeCover, 0x6430, 0, 0),
     PLAIN(0x6B, Mappings_CPZBlock, 0x6418, 0x10, 0),

@@ -22,6 +22,8 @@
 #include "Resource/Art/HTZBossFire.h"
 #include "Resource/Art/DHZBoss.h"
 #include "Resource/Art/CNZBoss.h"
+#include "Resource/Art/Spiny.h"
+#include "Resource/Art/Grabber.h"
 #include "Resource/Art/CNZGreenPlatform.h"
 #include "Resource/Art/CNZSpikeball.h"
 #include "Resource/Art/CNZBox.h"
@@ -363,7 +365,7 @@ static const PLCList PLC_LZ2 = { // the alpha's list $1D: the green bumpers, the
 // Pattern load cues - Marble
 // ---------------------------------------------------------------------------
 static const PLCList PLC_MZ = { // Chemical Plant (the prototype's Chemical_Plant_Sprites_1: its addresses in VRAM are bytes, here in tiles)
-    9,
+    11,
     (const PLC[]) {
         { Art_CPZMetalStructure, ART_VRAM(0x6E60 >> 5) },
         { Art_CPZStripes,        ART_VRAM(0x7280 >> 5) },
@@ -374,6 +376,8 @@ static const PLCList PLC_MZ = { // Chemical Plant (the prototype's Chemical_Plan
         { Art_WaterSurface,      ART_VRAM(0x8000 >> 5) },
         { Art_CPZStairBlock,     ART_VRAM(0x8300 >> 5) },
         { Art_CPZMetalBlock,     ART_VRAM(0x8600 >> 5) },
+        { Art_Grabber,           ART_VRAM(0xA000 >> 5) }, // (the alpha's last two: the Grabber's and the Spiny's, whose objects no layout places)
+        { Art_Spiny,             ART_VRAM(0xA5A0 >> 5) },
     }
 };
 

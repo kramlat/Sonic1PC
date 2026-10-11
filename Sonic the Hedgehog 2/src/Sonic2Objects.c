@@ -106,6 +106,9 @@ void Obj_Crawlton(Object *obj);
 void Obj_DHZBoss(Object *obj);
 void Obj_CNZBoss(Object *obj);
 void Obj_CNZBumper(Object *obj);
+void Obj_Spiny(Object *obj);
+void Obj_SpinyVertical(Object *obj);
+void Obj_Grabber(Object *obj);
 void Obj_AutoSpin(Object *obj);
 void Obj_Flasher(Object *obj);
 void Obj_DHZVerticalBridge(Object *obj);
@@ -379,13 +382,13 @@ const ObjectFunc game_objects[] = {
 	/* A2 ObjId_A2                 */ Obj_SlicerPincers,
 	/* A3 ObjId_A3                 */ Obj_Flasher, // (the alpha's firefly, in Dust Hill)
 	/* A4 ObjId_A4                 */ Obj_Asteron,
-	/* A5 ObjId_A5                 */ Obj_Null, // (the alpha's horizontal Spiny: not ported yet)
-	/* A6 ObjId_A6                 */ Obj_Null, // (the alpha's vertical Spiny: not ported yet)
-	/* A7 ObjId_A7                 */ Obj_Null, // (the alpha's Grabber: not ported yet)
-	/* A8 ObjId_A8                 */ Obj_Null, // (the alpha's Grabber part: not ported yet)
-	/* A9 ObjId_A9                 */ Obj_Null, // (the alpha's Grabber part: not ported yet)
-	/* AA ObjId_AA                 */ Obj_Null, // (the alpha's Grabber part: not ported yet)
-	/* AB ObjId_AB                 */ Obj_Null, // (the alpha's Grabber part: not ported yet)
+	/* A5 ObjId_A5                 */ Obj_Spiny, // (the alpha's horizontal Spiny: no layout places it)
+	/* A6 ObjId_A6                 */ Obj_SpinyVertical, // (the alpha's vertical Spiny)
+	/* A7 ObjId_A7                 */ Obj_Grabber, // (the alpha's Grabber and its parts: they only stay)
+	/* A8 ObjId_A8                 */ Obj_Grabber, // (the alpha's Grabber and its parts: they only stay)
+	/* A9 ObjId_A9                 */ Obj_Grabber, // (the alpha's Grabber and its parts: they only stay)
+	/* AA ObjId_AA                 */ Obj_Grabber, // (the alpha's Grabber and its parts: they only stay)
+	/* AB ObjId_AB                 */ Obj_Grabber, // (the alpha's Grabber and its parts: they only stay)
 	/* AC ObjId_AC                 */ Obj_Null, // (the alpha's Balkiry: not ported yet)
 	/* AD ObjId_AD                 */ Obj_Null, // (the alpha's Clucker platform: not ported yet)
 	/* AE ObjId_AE                 */ Obj_Null, // (the alpha's Clucker: not ported yet)

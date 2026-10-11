@@ -23,7 +23,6 @@
 #include "Resource/Mappings/CPZSlider.h"
 #include "Resource/Mappings/CPZWorm.h"
 #include "Resource/Mappings/FloatingPlatform.h"
-#include "Resource/Mappings/CPZElevator.h"
 #include "Resource/Mappings/OOZElevator.h"
 #include "Resource/Mappings/PipeTipper.h"
 #include "Resource/Mappings/TubeCover.h"
@@ -58,8 +57,7 @@ typedef struct {
 } Scratch_Elevator;
 
 // loc_1622E: the width and the mapping frame of each size
-static const uint8_t elevator_sizes[5][2] = { { 0x20, 0 }, { 0x18, 1 }, { 0x20, 2 }, { 0x40, 3 }, { 0x30, 4 } };
-// the alpha's (Oil Ocean's: its third frame is a platform twice as long)
+// (the alpha's, for Chemical Plant and Oil Ocean: the third frame is a platform of $80 pixels; the prototype's was $40)
 static const uint8_t elevator_sizes_alpha[5][2] = { { 0x20, 0 }, { 0x18, 1 }, { 0x40, 2 }, { 0x40, 3 }, { 0x30, 4 } };
 
 // The oscillators of the prototype's Oscillating_Data, by their offset (4 bytes each): the high byte of the value
@@ -131,15 +129,14 @@ void Obj_CPZElevator(Object *obj) {
     if (obj->routine == 0) {
         obj->routine += 2;
         const bool oil = LEVEL_ZONE(level_id) == ZoneId_OOZ;
-        obj->mappings = oil ? Mappings_OOZElevator : Mappings_CPZElevator;
+        obj->mappings = Mappings_OOZElevator; // (the alpha's, for both zones: five frames)
         obj->tile = TILE_MAP(0, 3, 0, 0, oil ? 0x2F4 : 0x3A0); // (the alpha's art list puts Oil Ocean's at $5E80)
         obj->render.b = SPRITE_CAM_FIELD;
         int size = (scratch->subtype >> 4) & 0xF;
         if (size > 4)
             size = 4;
-        const uint8_t(*sizes)[2] = oil ? elevator_sizes_alpha : elevator_sizes;
-        obj->width_pixels = sizes[size][0];
-        obj->frame = sizes[size][1] > 2 ? 2 : sizes[size][1]; // (the mappings have three frames)
+        obj->width_pixels = elevator_sizes_alpha[size][0];
+        obj->frame = elevator_sizes_alpha[size][1];
         obj->priority = 4;
         scratch->base_x = obj->pos.l.x.f.u;
         scratch->base_y = obj->pos.l.y.f.u;
@@ -172,6 +169,10 @@ typedef struct {
 #define ARTTILE_BOOSTER 0x39C // ($7380 in the zone's art list)
 
 static void Booster_Give(Object *obj, Object *chr, int16_t speed) {
+    if ((uint16_t)(chr->xsp < 0 ? -chr->xsp : chr->xsp) >= 0x1000) { // (the alpha's: a character who is going that fast already is left as he is, and the booster only sounds)
+        PlaySound(sfx_Spring);
+        return;
+    }
     chr->xsp = speed; // (goes super fast)
     chr->status.p.f.x_flip = false;
     if (obj->status.o.f.x_flip) {
@@ -767,16 +768,14 @@ typedef struct {
     uint8_t count, reach;
     int16_t start0, start1;
 } SliderRow;
-static const SliderRow slider_rows[3] = { { 0, 0x70, -0x70, 0 }, { 1, 0xB0, -0xB0, 0x40 }, { 1, 0xF0, -0x80, 0x80 } };
-
-// Dust Hill's (the alpha's: its platforms are 48 pixels wide, 8 more than Chemical Plant's, so the rows are 8 shorter, and it has a fourth row)
+// The alpha's rows (its platforms are 48 pixels wide, 8 more than the prototype's, so its rows are 8 shorter, and there is a fourth one): Chemical Plant's and Dust Hill's alike
 static const SliderRow slider_rows_alpha[4] = { { 0, 0x68, -0x68, 0 }, { 1, 0xA8, -0xB0, 0x40 }, { 1, 0xE8, -0x80, 0x80 }, { 0, 0x68, 0x67, 0 } };
-
-const void *DHZSwingMappings(void); // (NGHZObjects.c holds the resource)
 
 static bool SliderIsDustHill(void) {
     return LEVEL_ZONE(level_id) == ZoneId_MCZ;
 }
+
+const void *DHZSwingMappings(void); // (NGHZObjects.c holds the resource)
 
 static void Slider_Move(Object *obj, Scratch_CPZSlider *scratch) {
     const int16_t old_x = obj->pos.l.x.f.u;
@@ -801,8 +800,8 @@ void Obj_CPZSlider(Object *obj) {
     if (obj->routine == 0) {
         obj->routine += 2;
         const bool dust_hill = SliderIsDustHill();
-        const int row = dust_hill ? (scratch->subtype / 6 > 3 ? 3 : scratch->subtype / 6) : (scratch->subtype / 6 > 2 ? 2 : scratch->subtype / 6);
-        const SliderRow *conf = dust_hill ? &slider_rows_alpha[row] : &slider_rows[row];
+        const int row = scratch->subtype / 6 > 3 ? 3 : scratch->subtype / 6;
+        const SliderRow *conf = &slider_rows_alpha[row];
         Object *other = obj;
         for (int i = 0; i <= conf->count; i++) {
             if (i > 0) {
@@ -818,7 +817,7 @@ void Obj_CPZSlider(Object *obj) {
             other->tile = dust_hill ? TILE_MAP(0, 0, 0, 0, 0) : TILE_MAP(1, 3, 0, 0, ARTTILE_CPZ_SLIDER);
             other->render.b = 4;
             other->priority = 4;
-            other->width_pixels = dust_hill ? 0x18 : 0x10;
+            other->width_pixels = 0x18;
             ((Scratch_CPZSlider *)&other->scratch)->base_x = obj->pos.l.x.f.u;
         }
         ((Scratch_CPZSlider *)&other->scratch)->partner = (uint8_t)(obj - objects);
@@ -941,7 +940,7 @@ void Obj_CPZWorm(Object *obj) {
         if (--scratch->wait < 0) {
             obj->routine += 2;
             scratch->wait = 0x3B;
-            PlaySound(sfx_Fireball);
+            PlaySound(sfx_Gloop); // (the alpha's $DA: the prototype's was the fireball's $AE)
         }
         break;
     case 4: // jumping, and drifting to one side and then to the other
