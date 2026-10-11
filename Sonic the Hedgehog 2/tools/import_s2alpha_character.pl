@@ -152,6 +152,31 @@ copy_file('Art/Nemesis/V_Launch.nem', 'Art/CNZVertLauncher');
 copy_file('Art/Nemesis/GBumpers.nem', 'Art/CNZGreenBumpers');
 copy_file('Art/Nemesis/Flippers.nem', 'Art/CNZFlippers');
 
+# Neo Green Hill's boss (object 89: ship mappings $026824, the pillars' and arrow launcher's $026752, the animations $0267E6, the pillars' $026716; nghzboss.nem at $7C00 beside the ship at $A000), the art of its
+# automatic door ($7F00) and of the badniks of its list: the Chop Chop ($A760), the Whisp ($A000) and the Grounder ($A120)
+write_file('Mappings/NGHZBoss', slice(0x026824, 0x02696C));
+write_file('Mappings/NGHZBossLauncher', slice(0x026752, 0x0267E6));
+write_file('Animation/NGHZBoss', slice(0x0267E6, 0x026824));
+write_file('Animation/NGHZBossPillars', slice(0x026716, 0x026752));
+copy_file('Art/Nemesis/NGHZBoss.nem', 'Art/NGHZBoss');
+copy_file('Art/Nemesis/NGHZAutoDoor.nem', 'Art/NGHZAutoDoor');
+copy_file('Art/Nemesis/ChopChop.nem', 'Art/ChopChop');
+copy_file('Art/Nemesis/Whisp.nem', 'Art/Whisp');
+copy_file('Art/Nemesis/Grounder.nem', 'Art/Grounder');
+# their mappings and animations (Whisp 8C $028078/$028072, Grounder 8D/8E $028300 with the rocks' $02830A and the wall's $028310, animations $0282F2 and $0282FA, Chop Chop 91 $028506/$028500)
+write_file('Mappings/Whisp', slice(0x028078, 0x0280A0));
+write_file('Animation/Whisp', slice(0x028072, 0x028078));
+write_file('Mappings/Grounder', slice(0x028300, 0x0283BC));
+write_file('Mappings/GrounderRock', slice(0x02830A, 0x0283BC));
+write_file('Mappings/GrounderWall', slice(0x028310, 0x0283BC));
+write_file('Animation/GrounderWalk', slice(0x0282F2, 0x0282FA));
+write_file('Animation/GrounderEmerge', slice(0x0282FA, 0x028300));
+write_file('Mappings/ChopChop', slice(0x028506, 0x028518));
+write_file('Animation/ChopChop', slice(0x028500, 0x028506));
+
+# Neo Green Hill's collapsing platform (object 1F: mappings $009E7E, two frames; its pieces' delays are in the object)
+write_file('Mappings/CollapsePlatformNGHZ', slice(0x009E7E, 0x009EE6));
+
 # Chemical Plant's two badniks of the alpha that no layout places: the Spiny (its art is "Lander": lander.nem at $A5A0; objects A5 horizontal and A6 vertical, mappings $02A1E4, the animations $02A1D2, $02A1D8 and the shot's $02A1DE)
 # and the Grabber (grabber.nem at $A000; A7 to AB: objects that only set themselves up and stay, mappings $02A374)
 write_file('Mappings/Spiny', slice(0x02A1E4, 0x02A2D4));

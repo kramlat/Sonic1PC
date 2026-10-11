@@ -106,6 +106,13 @@ void Obj_Crawlton(Object *obj);
 void Obj_DHZBoss(Object *obj);
 void Obj_CNZBoss(Object *obj);
 void Obj_CNZBumper(Object *obj);
+void Obj_NGHZBoss(Object *obj);
+void Obj_Whisp(Object *obj);
+void Obj_Grounder(Object *obj);
+void Obj_GrounderWall(Object *obj);
+void Obj_GrounderRock(Object *obj);
+void Obj_ChopChop(Object *obj);
+void Obj_NGHZRotator(Object *obj);
 void Obj_Spiny(Object *obj);
 void Obj_SpinyVertical(Object *obj);
 void Obj_Grabber(Object *obj);
@@ -348,21 +355,21 @@ const ObjectFunc game_objects[] = {
 	/* 80 ObjId_80                 */ Obj_DHZVines, // (the alpha's roots that carry: Nick Arcade removed it)
 	/* 81 ObjId_81                 */ Obj_DHZVerticalBridge, // (the alpha's bridge that swings: Nick Arcade removed it)
 	/* 82 ObjId_ScrapEggman        */ Obj_Null, // removed in Nick Arcade
-	/* 83 ObjId_FalseFloor         */ Obj_Null, // removed in Nick Arcade
+	/* 83 ObjId_FalseFloor         */ Obj_NGHZRotator, // (the alpha's three turning platforms of Neo Green Hill: Nick Arcade removed it)
 	/* 84 ObjId_EggmanCylinder     */ Obj_AutoSpin, // (the alpha's: Hill Top's, Hidden Palace's and Casino Night's rolling box; no layout places it)
 	/* 85 ObjId_BossFinal          */ Obj_Null, // removed in Nick Arcade
 	/* 86 ObjId_BossPlasma         */ Obj_Null, // removed in Nick Arcade
 	/* 87 ObjId_87                 */ Obj_Null, // removed in Nick Arcade
 	/* 88 ObjId_88                 */ Obj_Null, // removed in Nick Arcade
-	/* 89 ObjId_89                 */ Obj_Null, // removed in Nick Arcade
+	/* 89 ObjId_89                 */ Obj_NGHZBoss, // (the alpha's boss of Neo Green Hill)
 	/* 8A ObjId_Credits             */ Obj_Credits,
 	/* 8B ObjId_8B                 */ Obj_Null, // removed in Nick Arcade
-	/* 8C ObjId_8C                 */ Obj_Null, // removed in Nick Arcade
-	/* 8D ObjId_8D                 */ Obj_Null, // removed in Nick Arcade
-	/* 8E ObjId_8E                 */ Obj_Null, // (the alpha's Grounder: not ported yet)
-	/* 8F ObjId_8F                 */ Obj_Null, // (the alpha's Wall Grounder: not ported yet)
-	/* 90 ObjId_90                 */ Obj_Null, // (the alpha's Rock Grounder: not ported yet)
-	/* 91 ObjId_91                 */ Obj_Null, // (the alpha's Chop Chop: not ported yet)
+	/* 8C ObjId_8C                 */ Obj_Whisp, // (the alpha's Whisp: unplaced)
+	/* 8D ObjId_8D                 */ Obj_Grounder, // (the alpha's Grounder inside its wall)
+	/* 8E ObjId_8E                 */ Obj_Grounder, // (the alpha's Grounder in the open)
+	/* 8F ObjId_8F                 */ Obj_GrounderWall, // (its wall's bricks)
+	/* 90 ObjId_90                 */ Obj_GrounderRock, // (the rocks it throws)
+	/* 91 ObjId_91                 */ Obj_ChopChop, // (the alpha's Chop Chop)
 	/* 92 ObjId_92                 */ Obj_Spiker,
 	/* 93 ObjId_93                 */ Obj_SpikerDrill,
 	/* 94 ObjId_94                 */ Obj_RexonBody,

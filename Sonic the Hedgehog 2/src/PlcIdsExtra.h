@@ -18,5 +18,6 @@ PlcId_Flicky3A, // Rabbit+Pigeon
 PlcId_Flicky3B, // Penguin+BlueBird
 PlcId_MTZBoss, // the alpha's list $2E: Metropolis's boss (unreachable in the alpha)
 PlcId_HTZBoss, // the alpha's list $2A: Hill Top's boss
+PlcId_NGHZBoss, // the alpha's list $2B: Neo Green Hill's boss
 PlcId_CNZBoss, // the alpha's list $2D: Casino Night's boss
 PlcId_DHZBoss, // the alpha's list $2C: Dust Hill's boss (the ship, the boss, the explosions)

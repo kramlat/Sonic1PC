@@ -2,6 +2,7 @@
 #include "HTZQuake.h"
 #include "Object/DHZBoss.h"
 #include "Object/CNZBoss.h"
+#include "Object/NGHZBoss.h"
 #include "HTZBackground.h"
 
 void S2_PrimeLevelArt(void); // AnimatedArt.c
@@ -406,6 +407,10 @@ void DynamicLevelEvents(void) {
             limit_btm1 = 0x520 - SCREEN_TALLADD;
             break;
         }
+        break;
+    case ZoneId_ARZ:
+        if (LEVEL_ACT(level_id) == 1)
+            NGHZBoss_Events(); // (the alpha's: Neo Green Hill's boss at the end of act 2; act 1 has none)
         break;
     case ZoneId_CNZ:
         if (LEVEL_ACT(level_id) == 1)

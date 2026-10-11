@@ -250,6 +250,7 @@ static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
             Boss_Defeated(obj);
         } else {
             obj->children[Part_Robotnik].frame = 0x13;
+            obj->frame = 7; // (and the main sprite's frame the wreck has)
             obj->render.f.x_flip = true;
             boss_move.xsp = 0;
             boss_move.ysp = 0;
@@ -316,7 +317,7 @@ void Obj_DHZBoss(Object *obj) {
         boss_move.ysp = (int16_t)0xFF40;
         boss_move.xsp = 0;
         boss_move.timer = 0x28;
-        obj->frame = 0;
+        obj->frame = 5; // (the alpha's Obj_Boss_Ani_Map, the main sprite's frame: the ship's flames, animated by the first pair of the animation buffer)
         for (int i = 0; i < 4; i++) {
             obj->children[i].x = obj->pos.l.x.f.u;
             obj->children[i].y = obj->pos.l.y.f.u;

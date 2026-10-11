@@ -19,7 +19,6 @@
 #include "Resource/Mappings/CNZBoss.h"
 
 #define ArtTile_CNZBoss 0x3A7 // ($74E0: the alpha's list $2D)
-#define CNZ_MAPPING_FRAMES 0x13
 
 enum { Boss_Start = 0, Boss_Run = 2, Boss_Ball = 4 };
 // What the boss is doing (Obj_Ani_Boss_Routine; the animations of its parts move it on too)
@@ -119,16 +118,13 @@ static void SetPartAnim(int part, uint8_t anim) {
     boss_anim[(part + 1) * 2] = (uint8_t)((boss_anim[(part + 1) * 2] & 0xF0) | anim);
 }
 
-// Offset_0x024580: the bob, which the alpha does with the object's own frame (the byte that is the main sprite's) as its angle, and the animation writes the frame as well (so it is $C to $E once the flame's
-// animation has run, and the bob is a pixel or none), and then the hit
+// Offset_0x024580: the bob (the sine of its angle, a byte that goes on by 2 a frame, about the ship's place) and then the hit
 static void Boss_Bob(Object *obj, Scratch_CNZBoss *scratch) {
     int16_t sin, cos;
-    CalcSine(obj->frame, &sin, &cos);
+    CalcSine(scratch->boss.angle, &sin, &cos);
     obj->pos.l.y.f.u = (int16_t)((sin >> 6) + boss_move.y.f.u);
     obj->pos.l.x.f.u = boss_move.x.f.u;
-    obj->frame = (uint8_t)(obj->frame + 2);
-    if (obj->frame >= CNZ_MAPPING_FRAMES)
-        obj->frame = 0; // (the alpha's goes on, and for a frame in a while draws what follows the table)
+    scratch->boss.angle = (uint8_t)(scratch->boss.angle + 2);
     Boss_Hit(obj, &scratch->boss);
 }
 
@@ -260,10 +256,12 @@ static void Boss_Dig(Object *obj, Scratch_CNZBoss *scratch) {
     case Run_Choose: // on one side it lets the ball fall, on the other it only opens its catchers
         if (!(boss->count & 1)) {
             boss->count++;
+            obj->frame = 0x0C; // (the main sprite shows while the catchers wait)
             boss->anim_routine += 2;
             boss_move.timer = 0xC8;
         } else {
             boss->count--;
+            obj->frame = 0;
             boss->anim_routine += 4;
             Boss_DropBall(obj);
             boss_move.timer = 0xDC;
@@ -308,6 +306,7 @@ static void Boss_Dig(Object *obj, Scratch_CNZBoss *scratch) {
             Boss_Defeated(obj);
         } else {
             obj->children[Part_Robotnik].frame = 0x0B;
+            obj->frame = 0;
             obj->render.f.x_flip = true;
             boss_move.xsp = 0;
             boss_move.ysp = 0;

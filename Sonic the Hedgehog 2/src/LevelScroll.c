@@ -658,6 +658,7 @@ static void Deform_ARZ(void) {
 	layer[11] = bgx;
 	static const uint8_t heights[12] = { 0xB0, 0x70, 0x30, 0x60, 0x15, 0x0C, 0x0E, 0x06, 0x0C, 0x1F, 0x30, 0xC0 };
 	Deform_Bands(heights, 12, layer, (uint16_t)bg_scrpos_y.f.u, (int16_t)-scrpos_x.f.u);
+	HTZQuake_ShakeDustHill(); // (the boss of act 2 shakes the screen as its walls rise: the alpha's Bg_Scroll_NGHz)
 }
 
 static void (*deform_routines[ZoneId_Num])(void) = {

@@ -22,6 +22,11 @@
 #include "Resource/Art/HTZBossFire.h"
 #include "Resource/Art/DHZBoss.h"
 #include "Resource/Art/CNZBoss.h"
+#include "Resource/Art/NGHZBoss.h"
+#include "Resource/Art/NGHZAutoDoor.h"
+#include "Resource/Art/ChopChop.h"
+#include "Resource/Art/Whisp.h"
+#include "Resource/Art/Grounder.h"
 #include "Resource/Art/Spiny.h"
 #include "Resource/Art/Grabber.h"
 #include "Resource/Art/CNZGreenPlatform.h"
@@ -311,19 +316,22 @@ static const PLCList PLC_GameOver = {
 // ---------------------------------------------------------------------------
 // Pattern load cues - Green Hill
 // ---------------------------------------------------------------------------
-static const PLCList PLC_GHZ = { // Neo Green Hill (the prototype's Neo_Green_Hill_Sprites_1; its addresses in VRAM are bytes, here in tiles): the water's surface, the leaves, the arrow shooter and its arrows, the splash
+static const PLCList PLC_GHZ = { // Neo Green Hill (the alpha's list $20; its addresses in VRAM are bytes, here in tiles): the auto door, the water's surface, the leaves, the arrow shooter and its arrows
     4,
     (const PLC[]) {
+        { Art_NGHZAutoDoor,     ART_VRAM(0x7F00 >> 5) },
         { Art_NGHZWaterSurface, ART_VRAM(0x8000 >> 5) },
         { Art_NGHZLeaves,       ART_VRAM(0x8200 >> 5) },
         { Art_NGHZArrowShooter, ART_VRAM(0x82E0 >> 5) },
-        { Art_NGHZWaterSplash,  ART_VRAM(0x8500 >> 5) },
     }
 };
 
-static const PLCList PLC_GHZ2 = { // Neo_Green_Hill_Sprites_2: the air bubbles (the alpha's), the spikes, the lever spring and the straight springs
-    6,
+static const PLCList PLC_GHZ2 = { // the alpha's list $23: Chop Chop, Whisp, Grounder, the air bubbles, the spikes, the lever spring and the straight springs
+    9,
     (const PLC[]) {
+        { Art_ChopChop,      ART_VRAM(0xA760 >> 5) },
+        { Art_Whisp,         ART_VRAM(0xA000 >> 5) },
+        { Art_Grounder,      ART_VRAM(0xA120 >> 5) },
         { Art_OxygenBubbles, ART_VRAM(0xAB60 >> 5) }, // (the alpha's bubbles: the counting object's and the vents'; the splash and the numbers have art windows of their own)
         { Art_CountdownBubbles, ART_VRAM(0xBD00 >> 5) }, // (and its small ones)
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
@@ -889,6 +897,15 @@ static const PLCList PLC_CNZBoss = { // the alpha's list $2D: Casino Night's bos
     }
 };
 
+static const PLCList PLC_NGHZBoss = { // the alpha's list $2B: Neo Green Hill's boss: the ship's art, the boss and the explosions
+    3,
+    (const PLC[]) {
+        { Art_BossShip,      ART_VRAM(0xA000 >> 5) },
+        { Art_NGHZBoss,      ART_VRAM(0x7C00 >> 5) },
+        { Art_BossExplosion, ART_VRAM(0xB000 >> 5) },
+    }
+};
+
 // PLC list
 const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Main        */ &PLC_Main,
@@ -941,6 +958,7 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_Flicky3B    */ &PLC_Flicky3B,
     /* PlcId_MTZBoss     */ &PLC_MTZBoss,
     /* PlcId_HTZBoss     */ &PLC_HTZBoss,
+    /* PlcId_NGHZBoss    */ &PLC_NGHZBoss,
     /* PlcId_CNZBoss     */ &PLC_CNZBoss,
     /* PlcId_DHZBoss     */ &PLC_DHZBoss,
 };

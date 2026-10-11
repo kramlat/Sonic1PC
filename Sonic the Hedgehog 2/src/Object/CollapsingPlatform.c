@@ -12,6 +12,7 @@
 #include "Macros.h"
 
 #include "Resource/Mappings/CollapsePlatformDHZ.h"
+#include "Resource/Mappings/CollapsePlatformNGHZ.h"
 #include "Resource/Mappings/CollapsePlatformOOZ.h"
 
 typedef struct {
@@ -27,6 +28,7 @@ enum { CollapseRoutine_Init = 0, CollapseRoutine_Main = 2, CollapseRoutine_Piece
 // When each piece begins to fall (loc_946B for Oil Ocean's 7 pieces, loc_9472 for Dust Hill's 6)
 static const uint8_t delays_ooz[7] = { 0x1A, 0x12, 0x0A, 0x02, 0x16, 0x0E, 0x06 };
 static const uint8_t delays_dhz[6] = { 0x1A, 0x16, 0x12, 0x0E, 0x0A, 0x02 };
+static const uint8_t delays_nghz[8] = { 0x16, 0x1A, 0x18, 0x12, 0x06, 0x0E, 0x0A, 0x02 }; // (the alpha's data for Neo Green Hill's 8 pieces)
 
 static Object *Character(int who) {
     return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
@@ -34,6 +36,10 @@ static Object *Character(int who) {
 
 static bool IsOilOcean(void) {
     return LEVEL_ZONE(level_id) == ZoneId_OOZ;
+}
+
+static bool IsNeoGreenHill(void) {
+    return LEVEL_ZONE(level_id) == ZoneId_ARZ;
 }
 
 static void Platform(Object *obj) {
@@ -57,6 +63,10 @@ void Obj_CollapsingPlatform(Object *obj) {
             obj->mappings = Mappings_CollapsePlatformOOZ;
             obj->tile = TILE_MAP(0, 3, 0, 0, 0x39D);
             obj->width_pixels = 0x40;
+        } else if (IsNeoGreenHill()) {
+            obj->mappings = Mappings_CollapsePlatformNGHZ;
+            obj->tile = TILE_MAP(0, 2, 0, 0, 0);
+            obj->width_pixels = 0x20;
         } else {
             obj->mappings = Mappings_CollapsePlatformDHZ;
             obj->tile = TILE_MAP(0, 3, 0, 0, 0x3F4);
@@ -67,7 +77,7 @@ void Obj_CollapsingPlatform(Object *obj) {
         if (scratch->touched) {
             if (scratch->timer == 0) { // it collapses
                 obj->frame += 1;
-                FragmentatePlatform(obj, IsOilOcean() ? 7 : 6, IsOilOcean() ? delays_ooz : delays_dhz);
+                FragmentatePlatform(obj, IsOilOcean() ? 7 : IsNeoGreenHill() ? 8 : 6, IsOilOcean() ? delays_ooz : IsNeoGreenHill() ? delays_nghz : delays_dhz);
                 return;
             }
             scratch->timer--;

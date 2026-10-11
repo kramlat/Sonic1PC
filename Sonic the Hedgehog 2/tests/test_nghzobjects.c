@@ -4,6 +4,9 @@
 
 #include "Level.h"
 #include "Object.h"
+#include "Object/NGHZBadniks.h"
+#include "Object/NGHZBoss.h"
+#include "Object/BossCommon.h"
 #include "Object/NGHZObjects.h"
 #include "Object/Sonic.h"
 
@@ -31,7 +34,7 @@ static Object *Spawn(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
 
 static int Count(uint8_t type, uint8_t routine) {
     int n = 0;
-    for (int i = 0x21; i < 0x60; i++)
+    for (int i = 1; i < 0x60; i++)
         n += objects[i].type == type && objects[i].routine == routine;
     return n;
 }
@@ -113,10 +116,119 @@ static void NGHZObjects_SlowSonicMakesNoLeaves(void) {
     CHECK_EQ(Count(0x2C, 4), 0);
 }
 
+// --- the alpha's boss and badniks ---
+
+static void NGHZObjects_TheBossArenaLocksTheCameraAndLoadsTheBossOnce(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_ARZ, 1);
+    dle_routine = 0;
+    scrpos_x.f.u = 0x28A0 - SCREEN_WIDEADD2 - 1;
+    NGHZBoss_Events();
+    CHECK_EQ(dle_routine, 0);
+    scrpos_x.f.u = 0x28A0 - SCREEN_WIDEADD2;
+    NGHZBoss_Events();
+    CHECK_EQ(dle_routine, 2);
+    CHECK_EQ(boss_flag, 4);
+    CHECK_EQ(limit_btm1, 0x400 - SCREEN_TALLADD);
+    CHECK_EQ(Count(0x89, 0), 1);
+    scrpos_x.f.u = 0x2A40 - SCREEN_WIDEADD2;
+    NGHZBoss_Events();
+    CHECK_EQ(dle_routine, 4);
+    CHECK_EQ(limit_right2, 0x2A40 + SCREEN_WIDEADD2);
+    ClearPLC();
+    boss_flag = 0;
+    dle_routine = 0;
+}
+
+static void NGHZObjects_TheBossWaitsForSonicInTheArenaThenDescendsWithItsLauncher(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_ARZ, 1);
+    Object *boss = Spawn(0x89, 0, 0, 0);
+    limit_left2 = 0x2A40 - SCREEN_WIDEADD2;
+    player->pos.l.x.f.u = 0x2A00; // (not yet in)
+    Obj_NGHZBoss(boss);
+    CHECK_EQ(boss->routine, 0);
+    player->pos.l.x.f.u = 0x2AD8;
+    Obj_NGHZBoss(boss);
+    CHECK_EQ(boss->child_count, 3);
+    CHECK_EQ(boss->col_type, 0x0F);
+    CHECK_EQ(boss->pos.l.x.f.u, 0x2AD8);
+    CHECK_EQ(boss->pos.l.y.f.u, 0x388);
+    int launchers = 0;
+    for (int i = 1; i < 0x60; i++)
+        launchers += objects[i].type == 0x89 && objects[i].child_count == 2;
+    CHECK_EQ(launchers, 1);
+}
+
+static void NGHZObjects_TheWhispFollowsSonicWithinItsSpeedLimit(void) {
+    Reset();
+    Object *whisp = Spawn(0x8C, 0, 400, 300);
+    player->pos.l.x.f.u = 600;
+    player->pos.l.y.f.u = 200;
+    Obj_Whisp(whisp);
+    CHECK_EQ(whisp->col_type, 0x0B);
+    for (int i = 0; i < 0x11; i++)
+        Obj_Whisp(whisp);
+    CHECK_EQ(whisp->routine, 4); // (it has set off)
+    for (int i = 0; i < 0x30; i++)
+        Obj_Whisp(whisp);
+    CHECK(whisp->xsp > 0 && whisp->xsp <= 0x200); // (towards Sonic, on the right)
+    CHECK(whisp->ysp < 0 && whisp->ysp >= -0x200); // (and up)
+    CHECK(whisp->pos.l.x.f.u > 400);
+}
+
+static void NGHZObjects_TheGrounderBreaksItsWallAndWalksToSonic(void) {
+    Reset();
+    Object *grounder = Spawn(0x8D, 0, 500, 300);
+    player->pos.l.x.f.u = 700; // (far)
+    Obj_Grounder(grounder);
+    CHECK_EQ(grounder->col_type, 0x02);
+    CHECK_EQ(Count(0x8F, 0), 4); // (four bricks)
+    player->pos.l.x.f.u = 540; // (near)
+    Obj_Grounder(grounder);
+    CHECK_EQ(grounder->routine, 4);
+    CHECK_EQ(Count(0x90, 0), 5); // (five rocks)
+    for (int pass = 0; pass < 2; pass++) { // (set up, then see the Grounder awake)
+        for (int i = 1; i < 0x60; i++) {
+            if (objects[i].type == 0x8F)
+                Obj_GrounderWall(&objects[i]);
+        }
+    }
+    int moving = 0;
+    for (int i = 0x21; i < 0x60; i++)
+        moving += objects[i].type == 0x8F && objects[i].routine == 4;
+    CHECK_EQ(moving, 4);
+}
+
+static void NGHZObjects_TheChopChopSwimsAndSpitsBubblesAndDashesAtSonic(void) {
+    Reset();
+    Object *fish = Spawn(0x91, 0, 400, 300);
+    player->pos.l.x.f.u = 1000;
+    player->pos.l.y.f.u = 300;
+    Obj_ChopChop(fish);
+    CHECK_EQ(fish->xsp, -0x40);
+    CHECK_EQ(fish->col_type, 0x02);
+    for (int i = 0; i < 20; i++)
+        Obj_ChopChop(fish);
+    CHECK(fish->pos.l.x.f.u < 400);
+    player->pos.l.x.f.u = (int16_t)(fish->pos.l.x.f.u - 0x60); // ahead of it, near
+    Obj_ChopChop(fish);
+    CHECK_EQ(fish->routine, 4); // (it stops)
+    for (int i = 0; i < 0x12; i++)
+        Obj_ChopChop(fish);
+    CHECK_EQ(fish->routine, 6);
+    CHECK_EQ(fish->xsp, -0x200);
+}
+
 void RegisterNGHZObjectTests(void) {
     RUN_TEST(NGHZObjects_TheShooterFiresWhenSonicHasBeenNearAndGoes);
     RUN_TEST(NGHZObjects_AnArrowFliesTheWayTheShooterFaces);
     RUN_TEST(NGHZObjects_TheLeavesBoxHurtsNothingAndIsKeyedBySubtype);
     RUN_TEST(NGHZObjects_FastSonicInTheBoxMakesFourLeaves);
     RUN_TEST(NGHZObjects_SlowSonicMakesNoLeaves);
+    RUN_TEST(NGHZObjects_TheBossArenaLocksTheCameraAndLoadsTheBossOnce);
+    RUN_TEST(NGHZObjects_TheBossWaitsForSonicInTheArenaThenDescendsWithItsLauncher);
+    RUN_TEST(NGHZObjects_TheWhispFollowsSonicWithinItsSpeedLimit);
+    RUN_TEST(NGHZObjects_TheGrounderBreaksItsWallAndWalksToSonic);
+    RUN_TEST(NGHZObjects_TheChopChopSwimsAndSpitsBubblesAndDashesAtSonic);
 }

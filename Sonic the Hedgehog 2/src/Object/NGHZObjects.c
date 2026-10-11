@@ -78,6 +78,7 @@ void Obj_ArrowShooter(Object *obj) {
             arrow->pos.l.y.f.u = obj->pos.l.y.f.u;
             arrow->render.b = obj->render.b;
             arrow->status.b = obj->status.b;
+            PlaySound(sfx_PreArrowFiring); // (the alpha's $DB, as the arrow is made; the arrow has its own sound as well)
         }
         obj->routine -= 2;
         AnimateSprite(obj, Animation_ArrowShooter);
@@ -117,7 +118,8 @@ void Obj_ArrowShooter(Object *obj) {
 // ---------------------------------------------------------------------------------------------------------------------------------------
 typedef struct {
     uint8_t subtype;  // 0x28: which box
-    uint8_t pad0[7];
+    uint8_t pad0[5];
+    uint16_t touched; // 0x2E: (a box's) when it was first touched: the characters take their turns, 16 frames apart, from then on
     int32_t x;        // 0x30: the position of a leaf, 16.16
     int32_t y;        // 0x34
     uint8_t spin;     // 0x38: how fast a leaf turns round its centre
@@ -129,17 +131,18 @@ static const uint8_t leaves_collision[3] = { 0xD6, 0xD4, 0xD5 };
 // word_1A224: x and y speed of each leaf
 static const int16_t leaves_speeds[4][2] = { { -0x80, -0x80 }, { 0xC0, -0x40 }, { -0xC0, 0x40 }, { 0x80, 0x80 } };
 
-static void Leaves_Create(Object *obj, const Object *chr) {
+// (false when the character is too slow: the box then forgets when it was touched)
+static bool Leaves_Create(Object *obj, const Object *chr) {
     int16_t d0 = chr->xsp < 0 ? (int16_t)-chr->xsp : chr->xsp;
     if (d0 < 0x200) {
         d0 = chr->ysp < 0 ? (int16_t)-chr->ysp : chr->ysp;
         if (d0 < 0x200)
-            return;
+            return false;
     }
     for (int i = 0; i < 4; i++) {
         Object *leaf = FindFreeObj();
         if (leaf == NULL)
-            return;
+            break;
         Scratch_Leaves *ls = (Scratch_Leaves *)&leaf->scratch;
         leaf->type = obj->type;
         leaf->routine = 4;
@@ -161,6 +164,8 @@ static void Leaves_Create(Object *obj, const Object *chr) {
         leaf->priority = 1;
         ls->spin = 4;
     }
+    PlaySound(sfx_NGHZLeaves);
+    return true;
 }
 
 void Obj_NGHZLeaves(Object *obj) {
@@ -185,18 +190,35 @@ void Obj_NGHZLeaves(Object *obj) {
             if (DebugMarkers_TouchBox(obj->col_type, &box_w, &box_h))
                 DebugMarkers_Show(obj, box_w, box_h); // (the debug cheat shows its corners)
         }
-        if (obj->col_property == 0)
+        if (obj->col_property == 0) {
+            scratch->touched = 0;
             return;
-        if ((frame_count & 0xF) == 0) {
-            const bool sonic = obj->col_property & 1;
-            obj->col_property &= (uint8_t)~1;
-            if (sonic)
-                Leaves_Create(obj, player);
-        } else if (((frame_count + 8) & 0xF) == 0) {
-            const bool tails = obj->col_property & 2;
-            obj->col_property &= (uint8_t)~2;
-            if (tails && TAILS_OBJ->type != 0)
-                Leaves_Create(obj, TAILS_OBJ);
+        }
+        {
+            // Sonic's turn comes on the first touch and then every 16 frames from it, Tails's 8 frames after (the alpha's Timer_frames word is kept at $2E)
+            uint16_t phase = 0;
+            bool sonic_turn = true;
+            if (scratch->touched != 0) {
+                phase = (uint16_t)((scratch->touched + (uint8_t)frame_count) & 0xF);
+                sonic_turn = phase == 0;
+            }
+            if (sonic_turn) {
+                if (obj->col_property & 1) {
+                    obj->col_property &= (uint8_t)~1;
+                    if (!Leaves_Create(obj, player))
+                        scratch->touched = 0;
+                    if (scratch->touched == 0)
+                        scratch->touched = (uint16_t)frame_count;
+                }
+            } else if (((phase + 8) & 0xF) == 0) {
+                if (obj->col_property & 2) {
+                    obj->col_property &= (uint8_t)~2;
+                    if (TAILS_OBJ->type != 0 && !Leaves_Create(obj, TAILS_OBJ))
+                        scratch->touched = 0;
+                    if (scratch->touched == 0)
+                        scratch->touched = (uint16_t)frame_count;
+                }
+            }
         }
         obj->col_property = 0;
         break;
@@ -522,4 +544,144 @@ void Obj_SwingDispatch(Object *obj) {
         Obj_NGHZSwing(obj);
     else
         Obj_SwingingPlatform(obj);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object 83 (the alpha's): three platforms that turn round a middle, on arms of chain (Neo Green Hill's second act). The first object is the middle's leader and one of the platforms; it makes an object for the chain
+// (the links of all three arms, eight of them, as the object's child sprites) and two more for the other platforms (routine 4), and moves all of them each frame by the sine of its angle: a platform is 4 steps of the
+// angle's sine/cosine ($10 pixels at most) from the middle, the arms' links at steps 1-3, the second arm turned $55 (120 degrees) on from the first and the third as much back. The subtype's high nibble is
+// how fast it turns (signed, times 8 in 1/256 of a turn a frame), and the object's flips are where it starts (0, a quarter, a half, three quarters).
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype;   // 0x28
+    uint8_t pad0;      // 0x29
+    int16_t old_x;     // 0x2C: (a follower's) where it was
+    int16_t speed;     // 0x2E: how fast it turns
+    int16_t centre_x;  // 0x30
+    int16_t centre_y;  // 0x32
+    uint8_t chain;     // 0x34: the slot of the chain's object
+    uint8_t second;    // 0x38: the slot of the second platform
+    uint8_t third;     // 0x3C: the slot of the third
+    uint8_t pad1;
+    uint16_t angle;    // (the angle, in 1/256 of 1/256 of a turn: the leader's own 0x26 and 0x27)
+} Scratch_Rotator;
+
+enum { RotatorRoutine_Init = 0, RotatorRoutine_Leader = 2, RotatorRoutine_Follower = 4 };
+
+static void Rotator_Platform(Object *obj, int16_t old_x) {
+    FOR_EACH_CHARACTER(chr, who)
+        Solid_Platform(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), 9, old_x);
+}
+
+// The alpha's loop of positions (Offset_0x01F4B6): `count` steps of the arm from `first`, stored as child sprites from `*child`
+static void Rotator_Links(Object *chain, int *child, int16_t centre_x, int16_t centre_y, int16_t sin, int16_t cos, int first, int count) {
+    for (int k = first; k < first + count; k++, (*child)++) {
+        chain->children[*child].x = (int16_t)(centre_x + ((k * cos) >> 4));
+        chain->children[*child].y = (int16_t)(centre_y + ((k * sin) >> 4));
+    }
+}
+
+void Obj_NGHZRotator(Object *obj) {
+    Scratch_Rotator *scratch = (Scratch_Rotator *)&obj->scratch;
+
+    if (obj->render.f.multi_sprite) { // the chain
+        DisplaySprite(obj);
+        return;
+    }
+
+    switch (obj->routine) {
+    case RotatorRoutine_Init: {
+        obj->routine += 2;
+        obj->mappings = Mappings_NGHZSwing;
+        obj->tile = TILE_MAP(0, 0, 0, 0, 0);
+        obj->render.b = SPRITE_CAM_FIELD;
+        obj->priority = 4;
+        obj->width_pixels = 0x20;
+        scratch->centre_x = obj->pos.l.x.f.u;
+        scratch->centre_y = obj->pos.l.y.f.u;
+        scratch->speed = (int16_t)((int16_t)(int8_t)(scratch->subtype & 0xF0) << 3);
+        scratch->angle = (uint16_t)((((obj->status.b >> 2) | (obj->status.b << 6)) & 0xC0) << 8); // (ror.b #2, and #$C0)
+        Object *chain = FindNextFreeObj(obj + 1);
+        if (chain != NULL) {
+            chain->type = obj->type;
+            chain->mappings = obj->mappings;
+            chain->tile = obj->tile;
+            chain->render.b = SPRITE_CAM_FIELD;
+            chain->render.f.multi_sprite = true;
+            chain->render.f.explicit_height = true;
+            chain->y_rad = 0x40;
+            chain->width_pixels = 0xFF;
+            chain->child_count = 8;
+            for (int i = 0; i < 8; i++)
+                chain->children[i].frame = 1;
+            chain->pos.l.x.f.u = obj->pos.l.x.f.u;
+            chain->pos.l.y.f.u = obj->pos.l.y.f.u;
+            scratch->chain = (uint8_t)(chain - objects);
+            uint8_t *slots[2] = { &scratch->second, &scratch->third };
+            for (int i = 0; i < 2; i++) {
+                Object *follower = FindNextFreeObj(obj + 1);
+                if (follower == NULL)
+                    break;
+                follower->type = obj->type;
+                follower->routine = RotatorRoutine_Follower;
+                follower->mappings = obj->mappings;
+                follower->tile = obj->tile;
+                follower->render.b = SPRITE_CAM_FIELD;
+                follower->priority = 4;
+                follower->width_pixels = 0x20;
+                Scratch_Rotator *fs = (Scratch_Rotator *)&follower->scratch;
+                fs->centre_x = obj->pos.l.x.f.u;
+                fs->centre_y = obj->pos.l.y.f.u;
+                fs->old_x = obj->pos.l.x.f.u;
+                *slots[i] = (uint8_t)(follower - objects);
+            }
+        }
+    }
+        // Fallthrough
+    case RotatorRoutine_Leader: {
+        const int16_t old_x = obj->pos.l.x.f.u;
+        scratch->angle = (uint16_t)(scratch->angle + scratch->speed);
+        Object *chain = &objects[scratch->chain];
+        int child = 0;
+        int16_t sin, cos;
+
+        // the first arm: the chain's own place is its first step, two links at steps 2 and 3, and the platform at 4
+        CalcSine((uint8_t)(scratch->angle >> 8), &sin, &cos);
+        chain->pos.l.x.f.u = (int16_t)(scratch->centre_x + (cos >> 4));
+        chain->pos.l.y.f.u = (int16_t)(scratch->centre_y + (sin >> 4));
+        Rotator_Links(chain, &child, scratch->centre_x, scratch->centre_y, sin, cos, 2, 2);
+        obj->pos.l.x.f.u = (int16_t)(scratch->centre_x + ((4 * cos) >> 4));
+        obj->pos.l.y.f.u = (int16_t)(scratch->centre_y + ((4 * sin) >> 4));
+
+        // the second arm, $55 on, and the third, $55 back: three links at steps 1-3 each and a platform at 4
+        const int8_t turns[2] = { 0x55, -0x55 };
+        const uint8_t followers[2] = { scratch->second, scratch->third };
+        for (int arm = 0; arm < 2; arm++) {
+            CalcSine((uint8_t)((scratch->angle >> 8) + turns[arm]), &sin, &cos);
+            Rotator_Links(chain, &child, scratch->centre_x, scratch->centre_y, sin, cos, 1, 3);
+            Object *follower = &objects[followers[arm]];
+            follower->pos.l.x.f.u = (int16_t)(scratch->centre_x + ((4 * cos) >> 4));
+            follower->pos.l.y.f.u = (int16_t)(scratch->centre_y + ((4 * sin) >> 4));
+        }
+
+        Rotator_Platform(obj, old_x);
+        if (IS_OFFSCREEN(scratch->centre_x)) {
+            ObjectDelete(chain);
+            ObjectDelete(obj);
+            return;
+        }
+        DisplaySprite(obj);
+        break;
+    }
+
+    case RotatorRoutine_Follower:
+        Rotator_Platform(obj, scratch->old_x);
+        scratch->old_x = obj->pos.l.x.f.u;
+        if (IS_OFFSCREEN(scratch->centre_x)) {
+            ObjectDelete(obj);
+            return;
+        }
+        DisplaySprite(obj);
+        break;
+    }
 }

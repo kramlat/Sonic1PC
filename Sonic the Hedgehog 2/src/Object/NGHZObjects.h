@@ -6,6 +6,7 @@
 void Obj_ArrowShooter(Object *obj);
 void Obj_NGHZLeaves(Object *obj);
 void Obj_NGHZSwing(Object *obj);
+void Obj_NGHZRotator(Object *obj);
 void Obj_SwingDispatch(Object *obj);
 
 #endif //_NGHZOBJECTS_H
