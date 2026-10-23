@@ -38,6 +38,28 @@ void Peek_GetVar(int i, VarPeek *out);
 int64_t Peek_VarRead(int i, int element);
 void Peek_VarWrite(int i, int element, int64_t value);
 
+// The level editor's view of the game (EditorLive.h has the editing itself). `in_level` is nonzero while a level is running; zone and act are the game's own numbers (the zone slot and the act, from 0); the
+// camera is the picture's top left corner in the level; `objects` and `rings` are the level's layouts in the game's tables (NULL for none).
+typedef struct {
+	int in_level;
+	int zone, act;
+	int zone_count;
+	int camera_x, camera_y;
+	int player_x, player_y; // where the first player is (the editor's cursor starts there)
+	const uint8_t *objects;
+	const uint8_t *rings;
+} EditorPeek;
+void Peek_EditorState(EditorPeek *out);
+
+// The name of an object id for the editor's list (NULL: the game does not name it), and the names of the resource files a level's layouts are kept in: the folder of each kind ("S2Objects") and the
+// level's name in it ("SSZ1"), so that a saved file can be copied back over the one in the game's res/ folder. NULL when the game does not say; the editor then names its files by zone, act and kind.
+const char *Peek_ObjectName(int id);
+const char *Peek_LevelObjectsFolder(void);
+const char *Peek_LevelRingsFolder(void);
+const char *Peek_LevelName(int zone, int act);
+// The zone's own name for the editor's title ("Sand Shower Zone"), or NULL
+const char *Peek_ZoneName(int zone);
+
 #ifdef __cplusplus
 }
 #endif

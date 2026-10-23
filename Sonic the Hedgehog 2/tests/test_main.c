@@ -33,6 +33,7 @@ void RegisterMTZObjectTests(void);
 void RegisterScrollBlockTests(void);
 void RegisterOscillationTests(void);
 void RegisterMathTests(void);
+void RegisterEditorTests(void);
 
 int main(void) {
     printf("Compression tests:\n");
@@ -57,6 +58,8 @@ int main(void) {
     RegisterHTZFireballTests();
     printf("Hill Top background tests:\n");
     RegisterHTZBackgroundTests();
+    printf("Level editor model tests:\n");
+    RegisterEditorTests();
     printf("Water tests:\n");
     RegisterWaterTests();
     printf("Signpost tests:\n");

@@ -1,3 +1,4 @@
+#include "EditorLive.h"
 #include "Level.h"
 #include "HTZQuake.h"
 #include "Object/DHZBoss.h"
@@ -475,6 +476,10 @@ ObjectsManager objects_manager;
 static ObjectsManager2P objects_manager_2p; // (a split screen: one manager for each camera, on the same layout and marks)
 
 void ObjPosLoad(void) {
+    if (Editor_TakeReload()) { // (the level editor changed the layouts: the level's objects are made again from them)
+        Editor_ClearLevelObjects();
+        opl_routine = 0;
+    }
     if (opl_routine == 0) {
         opl_routine = 2;
 
@@ -484,12 +489,12 @@ void ObjPosLoad(void) {
 
         static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
         if (camera_split) {
-            ObjectsManager2P_Init(&objects_manager_2p, &config, objstate, sizeof(objstate), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)], scrpos_x.f.u, scrpos_x_p2.f.u);
+            ObjectsManager2P_Init(&objects_manager_2p, &config, objstate, sizeof(objstate), Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u, scrpos_x_p2.f.u);
             objects_manager = objects_manager_2p.view[0];
         } else {
-            ObjectsManager_Init(&objects_manager, &config, objstate, sizeof(objstate), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)], scrpos_x.f.u);
+            ObjectsManager_Init(&objects_manager, &config, objstate, sizeof(objstate), Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
         }
-        Rings_Init(level_ring[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)], scrpos_x.f.u);
+        Rings_Init(Editor_RingLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_ring[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
     } else {
         if (camera_split) {
             ObjectsManager2P_Update(&objects_manager_2p, scrpos_x.f.u, scrpos_x_p2.f.u);

@@ -7,7 +7,7 @@ typedef enum {
 	ZoneId_EHZ = 0x00,
 	ZoneId_Empty01,
 	ZoneId_WZ = 0x02,
-	ZoneId_Empty03,
+	ZoneId_SSZ = 0x03, // Sand Shower (the final game's data: see the importer)
 	ZoneId_MTZ = 0x04,
 	ZoneId_MTZ3 = 0x05,
 	ZoneId_Empty06,
@@ -25,7 +25,7 @@ typedef enum {
 
 	// Sonic 1's names, for the Sonic 1 code that Sonic 2 still shares (its zone checks): none of them is a zone here, so they are empty slots and what they test for never happens
 	ZoneId_GHZ = ZoneId_Empty01,
-	ZoneId_LZ = ZoneId_Empty03,
+	ZoneId_LZ = ZoneId_Empty10,
 	ZoneId_MZ = ZoneId_Empty06,
 	ZoneId_SLZ = ZoneId_Empty09,
 	ZoneId_SYZ = ZoneId_Empty10,

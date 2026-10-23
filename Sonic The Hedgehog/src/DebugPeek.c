@@ -51,3 +51,16 @@ const uint8_t *Peek_ObjectBytes(int slot, int *size) {
 	*size = (int)sizeof(Object);
 	return (const uint8_t *)&objects[slot];
 }
+
+void Peek_EditorState(EditorPeek *out) {
+	out->in_level = (gamemode & 0x7F) == GameMode_Level || (gamemode & 0x7F) == GameMode_Demo; // (a demo is a level that plays itself)
+	out->zone = LEVEL_ZONE(level_id);
+	out->act = LEVEL_ACT(level_id);
+	out->zone_count = ZoneId_Num;
+	out->camera_x = scrpos_x.f.u;
+	out->camera_y = scrpos_y.f.u;
+	out->player_x = player->pos.l.x.f.u;
+	out->player_y = player->pos.l.y.f.u;
+	out->objects = out->zone < ZoneId_Num && out->act < 4 ? level_obj[out->zone][out->act] : NULL;
+	out->rings = out->zone < ZoneId_Num && out->act < 4 ? level_ring[out->zone][out->act] : NULL;
+}

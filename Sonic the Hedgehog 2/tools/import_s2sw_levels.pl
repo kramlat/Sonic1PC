@@ -60,11 +60,11 @@ my %alpha = (
              blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['CNz_Col1.dat', 'CNz_Col2.dat'], pal => '../../Palettes/CNz_1.pal', pal2 => '../../Palettes/CNz_2.pal' },
 );
 # What each zone's header names: its sprite art list (PlcId; the zones that are not built yet share Hill Top's, which has the common art) and its palette (PalId)
-my %plc = (EHZ => 'PlcId_SLZ', WZ => '0', MTZ => 'PlcId_MTZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', OOZ => 'PlcId_OOZ', DHZ => 'PlcId_DHZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ', CNZ => 'PlcId_LZ', GCZ => '0');
+my %plc = (EHZ => 'PlcId_SLZ', WZ => '0', MTZ => 'PlcId_MTZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', OOZ => 'PlcId_OOZ', DHZ => 'PlcId_DHZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ', CNZ => 'PlcId_LZ', GCZ => '0', SSZ => '0');
 my %plc2 = (WZ => 'PlcId_SLZ2', MTZ => 'PlcId_MTZ2', HTZ => 'PlcId_SBZ2', OOZ => 'PlcId_OOZ2', DHZ => 'PlcId_DHZ2', CPZ => 'PlcId_MZ2', NGHZ => 'PlcId_GHZ2', CNZ => 'PlcId_LZ2'); # (the second list of a zone, loaded with the first: only the zones that have a second one)
 # The zones whose objects are ported: the others have the object layouts imported but none put in their level yet (their objects come with the zone)
-my %objects_built = map { $_ => 1 } qw(EHZ MTZ HTZ HPZ OOZ DHZ CPZ NGHZ CNZ GCZ);
-my %pal = (EHZ => 'PalId_EHZ', HTZ => 'PalId_HTZ', HPZ => 'PalId_HPZ', CPZ => 'PalId_CPZ', WZ => 'PalId_WZ', MTZ => 'PalId_MTZ', OOZ => 'PalId_OOZ', DHZ => 'PalId_DHZ', CNZ => 'PalId_CNZ', NGHZ => 'PalId_NGHZ', GCZ => 'PalId_GCZ');
+my %objects_built = map { $_ => 1 } qw(EHZ MTZ HTZ HPZ OOZ DHZ CPZ NGHZ CNZ GCZ SSZ);
+my %pal = (EHZ => 'PalId_EHZ', HTZ => 'PalId_HTZ', HPZ => 'PalId_HPZ', CPZ => 'PalId_CPZ', WZ => 'PalId_WZ', MTZ => 'PalId_MTZ', OOZ => 'PalId_OOZ', DHZ => 'PalId_DHZ', CNZ => 'PalId_CNZ', NGHZ => 'PalId_NGHZ', GCZ => 'PalId_GCZ', SSZ => 'PalId_SSZ');
 
 sub slurp { my $p = shift; open my $f, '<:raw', $p or die "$p: $!\n"; local $/; my $d = <$f>; close $f; $d }
 sub spit { my ($p, $d) = @_; open my $f, '>:raw', $p or die "$p: $!\n"; print $f $d; close $f }
@@ -189,16 +189,42 @@ for my $name (@order) {
         my %copy = ("$imp/art/CCZ.kos" => "S2Art/$z", "$imp/blk/CCZ.kos" => "S2Map16/$z", "$imp/chnk/CCZ.kos" => "S2Map128/$z",
                     "$imp/cols/CCZ primary 16x16 collision index.kos" => "S2Collision/${z}1", "$imp/cols/CCZ secondary 16x16 collision index.kos" => "S2Collision/${z}2",
                     "$imp/pal/CCZ.bin" => "S2Palette/$z", "$imp/pal/CCZ Cycle 1.bin" => "S2Palette/${z}Cycle1", "$imp/pal/CCZ Cycle 2.bin" => "S2Palette/${z}Cycle2", "$imp/pal/CCZ Cycle 3.bin" => "S2Palette/${z}Cycle3");
-        for my $src (sort keys %copy) { spit("$res/$copy{$src}", slurp($src)); push @resources, $copy{$src} }
+        for my $src (sort keys %copy) { spit("$res/$copy{$src}", slurp($src)) if -e $src; push @resources, $copy{$src} } # (the staging folder moves on: what was imported stays in res)
         $info{$z}{slot} = 0x0E;
         for my $act (1, 2) {
             my $key = "$z$act";
-            spit("$res/S2Layout/$key", slurp("$imp/level/CCZ_" . (3 - $act) . ".kos")); # (the files' acts are swapped: the one with the boss area is the first act here)
-            spit("$res/S2Objects/$key", pack('nnCC', 0xFFFF, 0, 0, 0));
-            spit("$res/S2Rings/$key", pack('n', 0xFFFF));
+            my $lay = "$imp/level/CCZ_" . (3 - $act) . ".kos"; # (the files' acts are swapped: the one with the boss area is the first act here)
+            if (-e $lay) {
+                spit("$res/S2Layout/$key", slurp($lay));
+                spit("$res/S2Objects/$key", pack('nnCC', 0xFFFF, 0, 0, 0));
+                spit("$res/S2Rings/$key", pack('n', 0xFFFF));
+            }
             $info{$z}{acts}{$act} = { slot => 0x0E, act => $act - 1, key => $key, alpha => 1, start_override => ($act == 1 ? [ 0x06F9, 0x05D4 ] : [ 0x00BE, 0x005E ]) }; # (the starts: where the user put Sonic in debug mode; the HUD there shows the camera's position, and the ring is the debug cursor on Sonic: camera plus the cursor's place on the screen)
             push @resources, "S2Layout/$key", "S2Objects/$key", "S2Rings/$key";
         }
+    }
+}
+
+# Sand Shower (zone slot $03, from the import folder, in the final's formats like Cyber City's): Kosinski tiles, blocks, chunks, collision indices and layouts (FG row, BG row), the palette of lines 1-3, and the
+# objects and rings as the prototype's SonLVL project has them (the ids this build does not have run as nothing). Its level size and starts are ours: the size is the extent of the layout, the starts are set by hand
+{
+    my $imp = $ENV{S2IMPORT} // 'import and toss';
+    my $z = 'SSZ';
+    my %copy = ("$imp/art/SSZ.kos" => "S2Art/$z", "$imp/blk/SSZ.kos" => "S2Map16/$z", "$imp/chnk/SSZ.kos" => "S2Map128/$z",
+                "$imp/cols/SSZ primary 16x16 collision index.kos" => "S2Collision/${z}1", "$imp/cols/SSZ secondary 16x16 collision index.kos" => "S2Collision/${z}2",
+                "$imp/pal/SSZ.bin" => "S2Palette/$z");
+    for my $src (sort keys %copy) { spit("$res/$copy{$src}", slurp($src)) if -e $src; push @resources, $copy{$src} }
+    $info{$z}{slot} = 0x03;
+    my @size = ([ 0x00002C80, 0x00000800 ], [ 0x00002B00, 0x00000800 ]);
+    my @start = ([ 0x0060, 0x0480 ], [ 0x0060, 0x0480 ]);
+    for my $act (1, 2) {
+        my $key = "$z$act";
+        for my $kind (['level', 'kos', 'S2Layout'], ['obj', 'bin', 'S2Objects'], ['rng', 'bin', 'S2Rings']) {
+            my $src = "$imp/$kind->[0]/SSZ_$act.$kind->[1]";
+            spit("$res/$kind->[2]/$key", slurp($src)) if -e $src;
+            push @resources, "$kind->[2]/$key";
+        }
+        $info{$z}{acts}{$act} = { slot => 0x03, act => $act - 1, key => $key, alpha => 1, start_override => $start[$act - 1], size_override => $size[$act - 1] };
     }
 }
 
@@ -291,6 +317,7 @@ for my $s (@slots) {
     for my $a (0 .. 3) {
         my $e = $info{ $slot{$s}{0}{zone} }{acts}{1}{alpha} ? $alpha_sizes[$s] : $sizes[$s];
         my ($xl, $yl) = $a % 2 ? ($e->[2], $e->[3]) : ($e->[0], $e->[1]);
+        if (my $ov = ($slot{$s}{$a % 2} // {})->{size_override}) { ($xl, $yl) = @$ov }
         my ($xmin, $xmax, $ymin, $ymax) = ($xl >> 16, $xl & 0xFFFF, $yl >> 16, $yl & 0xFFFF);
         $c .= sprintf("            { 0x0004, 0x%04X, 0x%04X + SCREEN_WIDEADD2, 0x%04X, 0x%04X + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },\n", $xmin, $xmax, $ymin, $ymax);
     }
@@ -324,6 +351,12 @@ for my $kind (['Objects', 'level_obj'], ['Rings', 'level_ring']) {
     }
     $c .= "};\n\n";
 }
+# the names of the level resources, for the built-in level editor's saved files: the name of a zone slot's act in the res/ folders (S2Layout/SSZ1 ...), act 1 where an act has none of its own
+$c .= "// The name of a level's files in res/ (the layouts' names: S2Objects/<name>), for the level editor's saved files\nconst char *Peek_LevelName(int zone, int act) {\n    static const char *const names[ZoneId_Num][4] = {\n";
+for my $s (@slots) {
+    $c .= sprintf("        [%s] = { %s },\n", zid($s), join(', ', map { my $e = $slot{$s}{$_} // $slot{$s}{0}; "\"$e->{key}\"" } 0 .. 3));
+}
+$c .= "    };\n    return zone >= 0 && zone < ZoneId_Num && act >= 0 && act < 4 ? names[zone][act] : (const char *)0;\n}\n\n";
 spit('src/Sonic2LevelData.c', $c);
 
 # the resource list of the project file, between its markers

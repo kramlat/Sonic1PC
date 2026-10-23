@@ -6,10 +6,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "Console.h"
 #include "Demo.h"
 #include "DebugPeek.h"
+#include "EngineObject.h"
 #include "GameInterface.h"
 #include "LevelData.h"
 #include "Oscillator.h"
@@ -25,6 +27,8 @@ WEAK const OscillatorData oscillator_data = { 0 }; // (the oscillators' table: n
 
 WEAK void Game_LevelObjects(void) {}
 
+WEAK bool Game_EditorSkipObject(const void *obj) { return obj == (const void *)player; }
+
 WEAK uint8_t Game_CollisionPath(const void *obj) { (void)obj; return collision_path; }
 
 WEAK uint16_t Peek_GamePalette(int which, int pal, int index) { (void)which; (void)pal; (void)index; return 0; }
@@ -32,6 +36,12 @@ WEAK int Peek_DebugToolsAvailable(void) { return 0; }
 WEAK int Peek_ObjectCount(void) { return 0; }
 WEAK void Peek_GetObject(int slot, ObjectPeek *out) { (void)slot; (void)out; }
 WEAK const uint8_t *Peek_ObjectBytes(int slot, int *size) { (void)slot; if (size) *size = 0; return NULL; }
+WEAK void Peek_EditorState(EditorPeek *out) { memset(out, 0, sizeof(*out)); }
+WEAK const char *Peek_ObjectName(int id) { (void)id; return NULL; }
+WEAK const char *Peek_LevelObjectsFolder(void) { return NULL; }
+WEAK const char *Peek_LevelRingsFolder(void) { return NULL; }
+WEAK const char *Peek_LevelName(int zone, int act) { (void)zone; (void)act; return NULL; }
+WEAK const char *Peek_ZoneName(int zone) { (void)zone; return NULL; }
 WEAK int Peek_VarCount(void) { return 0; }
 WEAK void Peek_GetVar(int i, VarPeek *out) { (void)i; (void)out; }
 WEAK int64_t Peek_VarRead(int i, int element) { (void)i; (void)element; return 0; }

@@ -3,6 +3,7 @@
 #include "DebugViewers.h"
 #include "QtAudio.h"
 #include "DemoTools.h"
+#include "LevelEditor.h"
 #include "SmpsInspector.h"
 #include "HelpWindow.h"
 #include "ControlsDialog.h"
@@ -45,6 +46,7 @@ extern "C" {
 #include <KAboutData>
 #endif
 
+#include <cmath>
 #include <deque>
 #include <functional>
 #include <vector>
@@ -129,6 +131,8 @@ public:
 	bool saveFrame(const QString &path) const { return frame.save(path); }
 
 	std::function<void()> on_console_key; // the backtick key: opens/closes the console drawer
+	std::function<bool(int, int, int, int)> on_mouse; // (kind 0 press, 1 move, 2 release; Qt's button; the picture's pixel): true when it took the click
+	std::function<void(QPainter *, const QRectF &, double)> on_overlay; // drawn over the picture
 	std::function<void()> on_resized;
 
 	QSize sizeHint() const override { return frame.size(); }
@@ -144,6 +148,39 @@ protected:
 		QRectF dest((width() - w) / 2, (height() - h) / 2, w, h);
 		p.setRenderHint(QPainter::SmoothPixmapTransform, false); // crisp pixels, like the SDL window
 		p.drawImage(dest, frame);
+		if (on_overlay)
+			on_overlay(&p, dest, scale);
+	}
+
+	// The picture's pixel under a point of the widget (the picture is centred and scaled, with bars round it)
+	bool toPicture(const QPoint &at, int &x, int &y) const {
+		if (frame.isNull())
+			return false;
+		const double scale = qMin(double(width()) / frame.width(), double(height()) / frame.height());
+		x = int(std::floor((at.x() - (width() - frame.width() * scale) / 2) / scale));
+		y = int(std::floor((at.y() - (height() - frame.height() * scale) / 2) / scale));
+		return true;
+	}
+
+	void mousePressEvent(QMouseEvent *e) override {
+		int x, y;
+		if (on_mouse && toPicture(e->pos(), x, y) && on_mouse(0, e->button(), x, y))
+			return;
+		QOpenGLWidget::mousePressEvent(e);
+	}
+
+	void mouseMoveEvent(QMouseEvent *e) override {
+		int x, y;
+		if (on_mouse && e->buttons() != Qt::NoButton && toPicture(e->pos(), x, y) && on_mouse(1, e->buttons() & Qt::LeftButton ? Qt::LeftButton : Qt::RightButton, x, y))
+			return;
+		QOpenGLWidget::mouseMoveEvent(e);
+	}
+
+	void mouseReleaseEvent(QMouseEvent *e) override {
+		int x, y;
+		if (on_mouse && toPicture(e->pos(), x, y) && on_mouse(2, e->button(), x, y))
+			return;
+		QOpenGLWidget::mouseReleaseEvent(e);
 	}
 
 	void keyPressEvent(QKeyEvent *e) override {
@@ -195,6 +232,8 @@ public:
 		statusBar()->setSizeGripEnabled(false); // messages from the Tools menu (demo recording) appear here
 		console = new ConsoleDrawer(view);
 		view->on_console_key = [this] { console->Toggle(); };
+		view->on_mouse = [](int kind, int button, int x, int y) { return LevelEditor::Mouse(kind, button, x, y); };
+		view->on_overlay = [](QPainter *p, const QRectF &dest, double scale) { LevelEditor::DrawOverlay(p, dest, scale); };
 		view->on_resized = [this] { console->Reposition(); };
 		tool_label = new QLabel(this); // right-hand side: which tools are running
 		statusBar()->addPermanentWidget(tool_label);
@@ -224,6 +263,8 @@ public:
 			in_use << "Console";
 		if (SmpsInspector::IsOpen())
 			in_use << "SMPS Inspector";
+		if (LevelEditor::Editing())
+			in_use << "Level Editor";
 		if (launch_injected)
 			in_use << "Level injection";
 		QString text = in_use.isEmpty() ? QString() : "Tools in use: " + in_use.join(" · ");
@@ -481,6 +522,7 @@ private:
 		countdown_action = tools->addAction("Countdown...");
 		connect(countdown_action, &QAction::triggered, this, [this] { DemoTools::CountdownDialog(this); });
 		tools->addSeparator();
+		connect(tools->addAction("Level Editor"), &QAction::triggered, this, [this] { LevelEditor::Show(this); });
 		connect(tools->addAction("SMPS Inspector"), &QAction::triggered, this, [this] { SmpsInspector::Show(this); });
 
 		BuildAudioMenu();
@@ -629,6 +671,23 @@ void QtHost_PumpEvents(void) {
 		g_window->SyncDebugMenu();
 		g_window->UpdateToolStatus();
 		DemoTools::Poll(g_window);
+		LevelEditor::Poll();
+		// SONIC_QT_EDITOR=<pixel x>,<pixel y>[,<frame>]: opens the level editor at frame 200 (or <frame>), clicks the picture there to place an object and saves (for the automated checks)
+		static const char *editor_hook = getenv("SONIC_QT_EDITOR");
+		static int editor_frame = 0;
+		if (editor_hook != nullptr) {
+			QStringList a = QString(editor_hook).split(',');
+			const int start = a.size() >= 3 ? a[2].toInt() : 200;
+			editor_frame++;
+			if (editor_frame == start)
+				LevelEditor::Show(g_window);
+			if (editor_frame == start + 10 && a.size() >= 2) {
+				LevelEditor::Mouse(0, Qt::LeftButton, a[0].toInt(), a[1].toInt());
+				LevelEditor::Mouse(2, Qt::LeftButton, a[0].toInt(), a[1].toInt());
+			}
+			if (editor_frame == start + 20)
+				LevelEditor::SaveNow();
+		}
 		g_app->processEvents();
 
 		static int frames = 0;

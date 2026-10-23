@@ -1,4 +1,6 @@
 #include "EngineObject.h"
+#include "EditorLive.h"
+#include "GameInterface.h"
 
 #include "Camera.h"
 #include "EngineConstants.h"
@@ -65,12 +67,14 @@ int ExecuteObjects_i;
 void ExecuteObjects(void) {
 	Object *obj;
 	
+	Editor_Hold(); // (the level editor's cursor is where the first player is: see EditorLive.h)
+	
 	if (player->routine < 6) {
 		//Run all objects
 		obj = objects;
 		ExecuteObjects_i = OBJECTS - 1;
 		do {
-			if (obj->type)
+			if (obj->type && !(editor_open && Game_EditorSkipObject(obj)))
 				RunObject(obj);
 			obj++;
 		} while (ExecuteObjects_i-- > 0);
@@ -79,7 +83,7 @@ void ExecuteObjects(void) {
 		obj = objects;
 		ExecuteObjects_i = RESERVED_OBJECTS - 1;
 		do {
-			if (obj->type)
+			if (obj->type && !(editor_open && Game_EditorSkipObject(obj)))
 				RunObject(obj);
 			obj++;
 		} while (ExecuteObjects_i-- > 0);

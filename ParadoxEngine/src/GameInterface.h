@@ -72,6 +72,9 @@ extern const GameZoneList *game_zone_list;
 // The objects a game makes when a level starts, beyond the player, the HUD and the splash the level start makes itself (Sonic 2: Tails). A weak null where the game has none.
 void Game_LevelObjects(void);
 
+// While the built-in level editor has the level, the objects this says yes to do not run or show: the players (EditorLive.h). A weak default holds back only the first player.
+bool Game_EditorSkipObject(const void *obj); // (an Object *)
+
 // Which of the two collision paths (the primary or the secondary 16x16 collision index, and the solid bits that go with it) an object collides with: 0 or 1. A weak default gives them all the one global path
 // `collision_path` (what Sonic 1's path swapper sets); Sonic 2 gives Sonic and Tails each their own and everything else the primary.
 uint8_t Game_CollisionPath(const void *obj); // (an Object *)

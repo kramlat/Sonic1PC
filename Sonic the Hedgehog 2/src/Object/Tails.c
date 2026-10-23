@@ -1816,3 +1816,8 @@ void Game_LevelObjects(void) {
     DustSplash_MakeTails(); // (the alpha's dust and splash for Tails)
     SplitScreen_LoadLevel(); // (a level picked with B in the level select is a two-player one: Tails is its second player)
 }
+
+// While the level editor has the level, neither player runs or shows (the editor's cursor is where Sonic is: EditorLive.h)
+bool Game_EditorSkipObject(const void *obj) {
+    return obj == (const void *)player || obj == (const void *)TAILS_OBJ;
+}

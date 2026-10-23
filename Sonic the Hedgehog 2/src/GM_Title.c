@@ -34,9 +34,10 @@ uint8_t demo_num;
 // Level select: the Simon Wai prototype's (LevelSelect, LevelSelect_Controls and LevelSelect_TextLoad in its disassembly). It plays its own music while it is open, lists every stage of
 // the zones it has and a sound test of every id from $80 to $FF, and starts a level in the split screen when B is the button that picks it. Hold A and press Start on the title screen to get here.
 // ===========================================================================
-#define LEVSEL_ROWS         27   // 25 stages, Special Stage and Sound Select
-#define LEVSEL_SS_ROW       25
-#define LEVSEL_SNDTEST_ROW  26
+#define LEVSEL_ROWS         29   // 27 stages, Special Stage and Sound Select (the prototype's 25 and Sand Shower's two)
+#define LEVSEL_SS_ROW       27
+#define LEVSEL_SNDTEST_ROW  28
+#define LEVSEL_VISIBLE      27   // lines that fit the screen (rows 1 to 27 of its 28): the list scrolls when the highlight leaves them
 #define LEVSEL_LINE_LENGTH  27
 #define LEVSEL_START_ROW    1    // (the prototype draws its text at $E08C on the plane: row 1, column 6)
 #define LEVSEL_START_COL    6
@@ -51,6 +52,8 @@ static const char *const levsel_text[LEVSEL_ROWS] = {
     "GREEN HILL ZONE     STAGE 0",
     "                    STAGE 1",
     "WOOD ZONE           STAGE 0",
+    "                    STAGE 1",
+    "SAND SHOWER ZONE    STAGE 0",
     "                    STAGE 1",
     "METROPOLIS ZONE     STAGE 0",
     "                    STAGE 1",
@@ -77,11 +80,12 @@ static const char *const levsel_text[LEVSEL_ROWS] = {
     "SOUND SELECT",
 };
 
-// The level each of the first 25 lines starts (LevelSelect_Order), in the prototype's zone ids, which are the zone slots (ZoneIds.h). A zone that has not been built yet (it has no header in the level
+// The level each of the first 27 lines starts (LevelSelect_Order), in the prototype's zone ids, which are the zone slots (ZoneIds.h). A zone that has not been built yet (it has no header in the level
 // tables) does nothing when picked, as an unused entry of the prototype's order does
 static const uint16_t levsel_levels[LEVSEL_SS_ROW] = {
     LEVEL_ID(0x00, 0), LEVEL_ID(0x00, 1),
     LEVEL_ID(0x02, 0), LEVEL_ID(0x02, 1),
+    LEVEL_ID(0x03, 0), LEVEL_ID(0x03, 1),
     LEVEL_ID(0x04, 0), LEVEL_ID(0x04, 1), LEVEL_ID(0x05, 0),
     LEVEL_ID(0x07, 0), LEVEL_ID(0x07, 1),
     LEVEL_ID(0x08, 0), LEVEL_ID(0x08, 1),
@@ -130,19 +134,42 @@ static void LevSelWord(size_t address, uint8_t tile, int palette) {
     Plane_Put(&screen1p.plane_a, address, word);
 }
 
-// Draws every line in the normal palette, the highlighted one in the yellow one, and the sound number
+// What the title drew under the text (the cells of a line's spaces keep it), kept to put back when the list scrolls, and the first line shown
+static uint16_t levsel_backdrop[LEVSEL_VISIBLE][LEVSEL_LINE_LENGTH];
+static int levsel_top = 0;
+
+static void LevSelBackdropSave(void) {
+    for (int row = 0; row < LEVSEL_VISIBLE; row++)
+        for (int col = 0; col < LEVSEL_LINE_LENGTH; col++)
+            levsel_backdrop[row][col] = Plane_Word(&screen1p.plane_a, LEVSEL_VRAM_MAIN + (row * PLANE_ROW_BYTES) + (col << 1));
+}
+
+// Draws the lines that fit in the normal palette, the highlighted one in the yellow one, and the sound number; the list scrolls to keep the highlight in view
 static void LevSelTextLoad(int selected) {
-    for (int row = 0; row < LEVSEL_ROWS; row++) {
+    if (selected < levsel_top)
+        levsel_top = selected;
+    if (selected >= levsel_top + LEVSEL_VISIBLE)
+        levsel_top = selected - LEVSEL_VISIBLE + 1;
+    if (levsel_top > LEVSEL_ROWS - LEVSEL_VISIBLE)
+        levsel_top = LEVSEL_ROWS - LEVSEL_VISIBLE;
+    for (int line = 0; line < LEVSEL_VISIBLE; line++) {
+        const int row = levsel_top + line;
         const char *text = levsel_text[row];
         size_t len = strlen(text);
-        for (int col = 0; col < LEVSEL_LINE_LENGTH; col++)
-            LevSelWord(LEVSEL_VRAM_MAIN + (row * PLANE_ROW_BYTES) + (col << 1), LevSelCharToTile(col < (int)len ? text[col] : ' '), row == selected ? 2 : 0);
+        for (int col = 0; col < LEVSEL_LINE_LENGTH; col++) {
+            const size_t at = LEVSEL_VRAM_MAIN + (line * PLANE_ROW_BYTES) + (col << 1);
+            Plane_Put(&screen1p.plane_a, at, levsel_backdrop[line][col]);
+            LevSelWord(at, LevSelCharToTile(col < (int)len ? text[col] : ' '), row == selected ? 2 : 0);
+        }
     }
-    int shown = 0x80 + levsel_sound;
-    int palette = selected == LEVSEL_SNDTEST_ROW ? 2 : 0;
-    for (int nibble = 1; nibble >= 0; nibble--) {
-        int d = (shown >> (nibble * 4)) & 0xF;
-        LevSelWord(LEVSEL_VRAM_MAIN + (LEVSEL_SNDTEST_ROW * PLANE_ROW_BYTES) + ((LEVSEL_SNDTEST_COL + 1 - nibble) << 1), (uint8_t)(d < 10 ? d : d + 7), palette);
+    const int sound_line = LEVSEL_SNDTEST_ROW - levsel_top;
+    if (sound_line >= 0 && sound_line < LEVSEL_VISIBLE) {
+        int shown = 0x80 + levsel_sound;
+        int palette = selected == LEVSEL_SNDTEST_ROW ? 2 : 0;
+        for (int nibble = 1; nibble >= 0; nibble--) {
+            int d = (shown >> (nibble * 4)) & 0xF;
+            LevSelWord(LEVSEL_VRAM_MAIN + (sound_line * PLANE_ROW_BYTES) + ((LEVSEL_SNDTEST_COL + 1 - nibble) << 1), (uint8_t)(d < 10 ? d : d + 7), palette);
+        }
     }
 }
 
@@ -166,6 +193,8 @@ static void LevelSelect(void) {
     // Art_Text at link time). The resource pipeline appends 8 bytes of padding after the real data, which is harmless to also write here.
     VDP_WriteVRAM(Art_Text, 41 * 32);
 
+    LevSelBackdropSave();
+    levsel_top = 0;
     int item = levsel_item;
     int hold_timer = 0;
     LevSelTextLoad(item);

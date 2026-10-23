@@ -22,6 +22,12 @@
 #include "Resource/S2Map128/WZ.h"
 #include "Resource/S2Collision/WZ1.h"
 #include "Resource/S2Collision/WZ2.h"
+// SSZ
+#include "Resource/S2Art/SSZ.h"
+#include "Resource/S2Map16/SSZ.h"
+#include "Resource/S2Map128/SSZ.h"
+#include "Resource/S2Collision/SSZ1.h"
+#include "Resource/S2Collision/SSZ2.h"
 // MTZ
 #include "Resource/S2Art/MTZ.h"
 #include "Resource/S2Map16/MTZ.h"
@@ -88,6 +94,12 @@
 #include "Resource/S2Layout/WZ2.h"
 #include "Resource/S2Objects/WZ2.h"
 #include "Resource/S2Rings/WZ2.h"
+#include "Resource/S2Layout/SSZ1.h"
+#include "Resource/S2Objects/SSZ1.h"
+#include "Resource/S2Rings/SSZ1.h"
+#include "Resource/S2Layout/SSZ2.h"
+#include "Resource/S2Objects/SSZ2.h"
+#include "Resource/S2Rings/SSZ2.h"
 #include "Resource/S2Layout/MTZ1.h"
 #include "Resource/S2Objects/MTZ1.h"
 #include "Resource/S2Rings/MTZ1.h"
@@ -150,6 +162,7 @@ static const uint8_t obj_null[] = { 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00 };
 const struct LevelLayout level_layouts[ZoneId_Num][4] = {
     [0x00] = {{ S2Layout_EHZ1 }, { S2Layout_EHZ2 }, { S2Layout_EHZ1 }, { S2Layout_EHZ1 } }, // EHZ
     [0x02] = {{ S2Layout_WZ1 }, { S2Layout_WZ2 }, { S2Layout_WZ1 }, { S2Layout_WZ1 } }, // WZ
+    [0x03] = {{ S2Layout_SSZ1 }, { S2Layout_SSZ2 }, { S2Layout_SSZ1 }, { S2Layout_SSZ1 } }, // SSZ
     [0x04] = {{ S2Layout_MTZ1 }, { S2Layout_MTZ2 }, { S2Layout_MTZ1 }, { S2Layout_MTZ1 } }, // MTZ
     [0x05] = {{ S2Layout_MTZ3 }, { S2Layout_MTZ3 }, { S2Layout_MTZ3 }, { S2Layout_MTZ3 } }, // MTZ
     [0x07] = {{ S2Layout_HTZ1 }, { S2Layout_HTZ2 }, { S2Layout_HTZ1 }, { S2Layout_HTZ1 } }, // HTZ
@@ -176,6 +189,12 @@ const int16_t *LevelSizes(int zone, int act) {
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+        },
+        [0x03] = { // SSZ
+            { 0x0004, 0x0000, 0x2C80 + SCREEN_WIDEADD2, 0x0000, 0x0800 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x2B00 + SCREEN_WIDEADD2, 0x0000, 0x0800 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x2C80 + SCREEN_WIDEADD2, 0x0000, 0x0800 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x2B00 + SCREEN_WIDEADD2, 0x0000, 0x0800 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
         },
         [0x04] = { // MTZ
             { 0x0004, 0x0000, 0x2280 + SCREEN_WIDEADD2, 0xFF00, 0x0800 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
@@ -247,6 +266,7 @@ const int16_t *LevelSizes(int zone, int act) {
 const int16_t StartLocArray[ZoneId_Num][4][2] = {
     [0x00] = { { 0x0060, 0x028F }, { 0x0040, 0x02AF }, { 0x0060, 0x028F }, { 0x0060, 0x028F } }, // EHZ
     [0x02] = { { 0x0060, 0x01AC }, { 0x0040, 0x01AC }, { 0x0060, 0x01AC }, { 0x0060, 0x01AC } }, // WZ
+    [0x03] = { { 0x0060, 0x0480 }, { 0x0060, 0x0480 }, { 0x0060, 0x0480 }, { 0x0060, 0x0480 } }, // SSZ
     [0x04] = { { 0x0060, 0x028C }, { 0x0060, 0x05EC }, { 0x0060, 0x028C }, { 0x0060, 0x028C } }, // MTZ
     [0x05] = { { 0x0060, 0x020C }, { 0x0060, 0x020C }, { 0x0060, 0x020C }, { 0x0060, 0x020C } }, // MTZ
     [0x07] = { { 0x0060, 0x03EF }, { 0x0060, 0x06AF }, { 0x0060, 0x03EF }, { 0x0060, 0x03EF } }, // HTZ
@@ -263,6 +283,7 @@ const int16_t StartLocArray[ZoneId_Num][4][2] = {
 const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
     [0x00] = { 0x800, 0x100, 0x100, 0 },
     [0x02] = { 0x800, 0x100, 0x100, 0 },
+    [0x03] = { 0x800, 0x100, 0x100, 0 },
     [0x04] = { 0x800, 0x100, 0x100, 0 },
     [0x05] = { 0x800, 0x100, 0x100, 0 },
     [0x07] = { 0x800, 0x100, 0x100, 0 },
@@ -279,6 +300,7 @@ const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
 const LevelHeader level_header[ZoneId_Num] = {
     [0x00] = { PlcId_SLZ, S2Art_EHZ, 0, S2Map16_EHZ, PalId_EHZ, S2Map128_EHZ },
     [0x02] = { 0, S2Art_WZ, PlcId_SLZ2, S2Map16_WZ, PalId_WZ, S2Map128_WZ },
+    [0x03] = { 0, S2Art_SSZ, 0, S2Map16_SSZ, PalId_SSZ, S2Map128_SSZ },
     [0x04] = { PlcId_MTZ, S2Art_MTZ, PlcId_MTZ2, S2Map16_MTZ, PalId_MTZ, S2Map128_MTZ },
     [0x05] = { PlcId_MTZ, S2Art_MTZ, PlcId_MTZ2, S2Map16_MTZ, PalId_MTZ, S2Map128_MTZ },
     [0x07] = { PlcId_SBZ, S2Art_HTZ, PlcId_SBZ2, S2Map16_HTZ, PalId_HTZ, S2Map128_HTZ },
@@ -295,6 +317,7 @@ const LevelHeader level_header[ZoneId_Num] = {
 const uint8_t* level_coli[ZoneId_Num - 1][2] = {
     [0x00] = { S2Collision_EHZ1, S2Collision_EHZ2 },
     [0x02] = { S2Collision_WZ1, S2Collision_WZ2 },
+    [0x03] = { S2Collision_SSZ1, S2Collision_SSZ2 },
     [0x04] = { S2Collision_MTZ1, S2Collision_MTZ2 },
     [0x05] = { S2Collision_MTZ1, S2Collision_MTZ2 },
     [0x07] = { S2Collision_HTZ1, S2Collision_HTZ2 },
@@ -311,6 +334,7 @@ const uint8_t* level_coli[ZoneId_Num - 1][2] = {
 const uint8_t* level_obj[ZoneId_Num][4] = {
     [0x00] = { S2Objects_EHZ1, S2Objects_EHZ2, S2Objects_EHZ1, S2Objects_EHZ1 }, // EHZ
     [0x02] = { obj_null, obj_null, obj_null, obj_null }, // WZ
+    [0x03] = { S2Objects_SSZ1, S2Objects_SSZ2, S2Objects_SSZ1, S2Objects_SSZ1 }, // SSZ
     [0x04] = { S2Objects_MTZ1, S2Objects_MTZ2, S2Objects_MTZ1, S2Objects_MTZ1 }, // MTZ
     [0x05] = { S2Objects_MTZ3, S2Objects_MTZ3, S2Objects_MTZ3, S2Objects_MTZ3 }, // MTZ
     [0x07] = { S2Objects_HTZ1, S2Objects_HTZ2, S2Objects_HTZ1, S2Objects_HTZ1 }, // HTZ
@@ -326,6 +350,7 @@ const uint8_t* level_obj[ZoneId_Num][4] = {
 const uint8_t* level_ring[ZoneId_Num][4] = {
     [0x00] = { S2Rings_EHZ1, S2Rings_EHZ2, S2Rings_EHZ1, S2Rings_EHZ1 }, // EHZ
     [0x02] = { S2Rings_WZ1, S2Rings_WZ2, S2Rings_WZ1, S2Rings_WZ1 }, // WZ
+    [0x03] = { S2Rings_SSZ1, S2Rings_SSZ2, S2Rings_SSZ1, S2Rings_SSZ1 }, // SSZ
     [0x04] = { S2Rings_MTZ1, S2Rings_MTZ2, S2Rings_MTZ1, S2Rings_MTZ1 }, // MTZ
     [0x05] = { S2Rings_MTZ3, S2Rings_MTZ3, S2Rings_MTZ3, S2Rings_MTZ3 }, // MTZ
     [0x07] = { S2Rings_HTZ1, S2Rings_HTZ2, S2Rings_HTZ1, S2Rings_HTZ1 }, // HTZ
@@ -337,4 +362,24 @@ const uint8_t* level_ring[ZoneId_Num][4] = {
     [0x0E] = { S2Rings_GCZ1, S2Rings_GCZ2, S2Rings_GCZ1, S2Rings_GCZ1 }, // GCZ
     [0x0F] = { S2Rings_NGHZ1, S2Rings_NGHZ2, S2Rings_NGHZ1, S2Rings_NGHZ1 }, // NGHZ
 };
+
+// The name of a level's files in res/ (the layouts' names: S2Objects/<name>), for the level editor's saved files
+const char *Peek_LevelName(int zone, int act) {
+    static const char *const names[ZoneId_Num][4] = {
+        [0x00] = { "EHZ1", "EHZ2", "EHZ1", "EHZ1" },
+        [0x02] = { "WZ1", "WZ2", "WZ1", "WZ1" },
+        [0x03] = { "SSZ1", "SSZ2", "SSZ1", "SSZ1" },
+        [0x04] = { "MTZ1", "MTZ2", "MTZ1", "MTZ1" },
+        [0x05] = { "MTZ3", "MTZ3", "MTZ3", "MTZ3" },
+        [0x07] = { "HTZ1", "HTZ2", "HTZ1", "HTZ1" },
+        [0x08] = { "HPZ1", "HPZ1", "HPZ1", "HPZ1" },
+        [0x0A] = { "OOZ1", "OOZ2", "OOZ1", "OOZ1" },
+        [0x0B] = { "DHZ1", "DHZ2", "DHZ1", "DHZ1" },
+        [0x0C] = { "CNZ1", "CNZ2", "CNZ1", "CNZ1" },
+        [0x0D] = { "CPZ1", "CPZ2", "CPZ1", "CPZ1" },
+        [0x0E] = { "GCZ1", "GCZ2", "GCZ1", "GCZ1" },
+        [0x0F] = { "NGHZ1", "NGHZ2", "NGHZ1", "NGHZ1" },
+    };
+    return zone >= 0 && zone < ZoneId_Num && act >= 0 && act < 4 ? names[zone][act] : (const char *)0;
+}
 

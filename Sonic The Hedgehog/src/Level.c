@@ -1,3 +1,4 @@
+#include "EditorLive.h"
 #include "Level.h"
 
 #include "Constants.h"
@@ -824,6 +825,10 @@ void SignpostArtLoad(void) {
 ObjectsManager objects_manager;
 
 void ObjPosLoad(void) {
+    if (Editor_TakeReload()) { // (the level editor changed the layouts: the level's objects are made again from them)
+        Editor_ClearLevelObjects();
+        opl_routine = 0;
+    }
     if (opl_routine == 0) {
         opl_routine = 2;
 
@@ -832,8 +837,8 @@ void ObjPosLoad(void) {
         f_lz1tunnel_open = false; // doors respawn shut along with the remembered object state
 
         static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
-        ObjectsManager_Init(&objects_manager, &config, objstate, sizeof(objstate), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)], scrpos_x.f.u);
-        Rings_Init(level_ring[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)], scrpos_x.f.u);
+        ObjectsManager_Init(&objects_manager, &config, objstate, sizeof(objstate), Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
+        Rings_Init(Editor_RingLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_ring[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
     } else {
         ObjectsManager_Update(&objects_manager, scrpos_x.f.u);
         Rings_Update(scrpos_x.f.u);

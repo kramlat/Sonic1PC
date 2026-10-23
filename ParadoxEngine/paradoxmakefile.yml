@@ -10,6 +10,10 @@ resource_out: src/Resource  # ... generated here
 cmake: paradoxmake.cmake  # parts not yet declarative (backends, SMPS tools, install)
 sources:
   - "src/RingsManager.c"
+  - "src/EditorModel.c"
+  - "src/EditorModel.h"
+  - "src/EditorLive.c"
+  - "src/EditorLive.h"
   - "src/RingsManager.h"
   - "src/NullServices.c"
   - "src/LevelPlane.c"

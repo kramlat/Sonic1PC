@@ -595,6 +595,22 @@ static void Deform_Bands(const uint8_t *heights, int count, const int16_t *value
 	}
 }
 
+// Sand Shower: the background (night sky, a horizon about 240 lines down, sand below) moves an eighth of the way across and an eighth down, like Oil Ocean's, in five bands. The clouds drift as Green Hill's do (Sonic
+// 1's Deform_GHZ: three layers that move on their own by 1, 3/4 and 1/2 of a pixel a frame, over the rocks' own scroll), the rocks on the horizon move with the background (an eighth of the camera's X) and the sand, the
+// nearest, a quarter. The bands are in lines of the background: its X and Y are the plain ones, so the redraw is Oil Ocean's.
+static void Deform_SSZ(void) {
+	BGScroll_XY((int32_t)scrshift_x << 5, (int32_t)scrshift_y << 5);
+	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
+	int32_t *drift = (int32_t *)bgscroll_buffer; // (cleared where the level starts)
+	drift[0] += 0x10000;
+	drift[1] += 0xC000;
+	drift[2] += 0x8000;
+	static const uint8_t heights[5] = { 0x58, 0x30, 0x30, 0x38, 0xFF };
+	const int16_t layer[5] = { (int16_t)(bg_scrpos_x.f.u + (drift[0] >> 16)), (int16_t)(bg_scrpos_x.f.u + (drift[1] >> 16)), (int16_t)(bg_scrpos_x.f.u + (drift[2] >> 16)),
+	                           bg_scrpos_x.f.u, (int16_t)(scrpos_x.f.u >> 2) };
+	Deform_Bands(heights, 5, layer, (uint16_t)bg_scrpos_y.f.u, (int16_t)-scrpos_x.f.u);
+}
+
 // Dust Hill (Bg_Scroll_DHz): the background is a third (act 1) or a sixth (act 2) of the way down, moved as a whole (its redraw flags are 6 and 7); 24 bands of it scroll at nine speeds, tenths of the
 // camera's X, mirrored about the middle band
 static void Deform_MCZ(void) {
@@ -669,6 +685,7 @@ static void (*deform_routines[ZoneId_Num])(void) = {
 	[ZoneId_MCZ] = Deform_MCZ,
 	[ZoneId_CNZ] = Deform_CNZ,
 	[ZoneId_GCZ] = Deform_WZ, // (Cyber City: Wood's)
+	[ZoneId_SSZ] = Deform_SSZ,
 	[ZoneId_ARZ] = Deform_ARZ,
 	[ZoneId_CPZ] = Deform_CPZ,
 	[ZoneId_EHZ] = Deform_EHZ,
@@ -724,6 +741,12 @@ void BgScrollSpeed(int16_t x, int16_t y) {
         case ZoneId_GCZ: /* Cyber City: InitCam_Std (the camera's Y shifted right twice and its X three times, arithmetically) */
             bg_scrpos_y.f.u = (int16_t)(y >> 2);
             bg_scrpos_x.f.u = (int16_t)(x >> 3);
+            break;
+
+        case ZoneId_SSZ: /* Sand Shower: an eighth of the height and of the width */
+            bg_scrpos_y.f.u = (int16_t)((uint16_t)y >> 3);
+            bg_scrpos_x.f.u = (int16_t)(x >> 3);
+            memset(bgscroll_buffer, 0, 12); // (the clouds' drift starts over)
             break;
 
         case ZoneId_OOZ: /* Oil Ocean: an eighth of the height and $50, no width */
