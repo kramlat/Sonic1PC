@@ -23,6 +23,7 @@ typedef struct {
 
 extern EditorSession editor_session; // the level being edited (valid while editor_open)
 extern bool editor_open;
+extern bool editor_present; // ... and its level is the one running (the editor's window keeps this up to date): only then do the players hold still and the layouts apply
 
 // Takes the level a game is in: copies its layouts (either may be NULL) into the model and the live buffers, and starts using them
 void Editor_Open(int zone, int act, const uint8_t *objects, const uint8_t *rings);

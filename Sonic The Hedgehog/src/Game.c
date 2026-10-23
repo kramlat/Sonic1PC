@@ -1,3 +1,4 @@
+#include "EditorLive.h"
 #include "Game.h"
 #include "Viewport.h"
 #include "DebugLog.h"
@@ -221,7 +222,7 @@ static void VBlank_UpdateScreen(void) {
     ProcessDPLC2();
 
     // Decrement demo timer
-    if (demo_length)
+    if (demo_length && !editor_open) // (the level editor keeps a demo from ending: no fade out)
         demo_length--;
 }
 

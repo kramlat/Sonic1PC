@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <QCloseEvent>
 #include <QCheckBox>
 #include <QDesktopServices>
 #include <QDialog>
@@ -57,6 +58,7 @@ struct Window {
 	int drag_object = -1, drag_ring = -1;
 	int drag_dx = 0, drag_dy = 0;
 	bool moved = false;
+	int pointer_x = -1, pointer_y = -1; // where the pointer is in the picture (-1: not over it)
 } w;
 
 QString HexText(int value, int digits) {
@@ -211,13 +213,10 @@ void StartEditing() {
 	SetMessage("Editing. Left click places, drag moves, right click deletes.");
 }
 
+// Closes the editor: asks about what was not saved, hands the level back to the game's own data (Editor_Close) and starts the game over at the Sega screen. False when the user cancels.
+bool CloseEditor();
 void StopEditing() {
-	if (editor_open && editor_session.level.dirty &&
-	    QMessageBox::question(w.dialog, "Level Editor", "The changes have not been saved. Stop editing and drop them?") != QMessageBox::Yes)
-		return;
-	Editor_Close();
-	RebuildTables();
-	SetMessage("Not editing.");
+	CloseEditor();
 }
 
 // The files of the level being edited, in the output folder: <folder>/slotNN/<S2Objects>/<SSZ1> (as they are in res/), or objects_aN.bin when the game gives no names
@@ -257,8 +256,42 @@ bool Save() {
 	return ok;
 }
 
+bool CloseEditor() {
+	if (!editor_open)
+		return true;
+	if (editor_session.level.dirty) {
+		const auto answer = QMessageBox::question(w.dialog, "Level Editor", "The changes have not been saved.", QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+		if (answer == QMessageBox::Cancel)
+			return false;
+		if (answer == QMessageBox::Save && !Save())
+			return false;
+	}
+	Editor_Close(); // (the level's own data is used from here on)
+	RebuildTables();
+	SetMessage("Not editing.");
+	Game_ResetToSega();
+	return true;
+}
+
+// The editor's window: closing it closes the editor
+class EditorDialog : public QDialog {
+public:
+	using QDialog::QDialog;
+
+public:
+	void reject() override { close(); } // (Esc closes it like the window's button)
+
+protected:
+	void closeEvent(QCloseEvent *e) override {
+		if (CloseEditor())
+			QDialog::closeEvent(e);
+		else
+			e->ignore();
+	}
+};
+
 void Build(QMainWindow *parent) {
-	w.dialog = new QDialog(parent, Qt::Tool);
+	w.dialog = new EditorDialog(parent, Qt::Tool);
 	w.dialog->setWindowTitle("Level Editor");
 	w.dialog->resize(560, 700);
 	auto *layout = new QVBoxLayout(w.dialog);
@@ -267,7 +300,7 @@ void Build(QMainWindow *parent) {
 	layout->addWidget(w.level_label);
 	w.edit_button = new QPushButton("Start editing", w.dialog);
 	layout->addWidget(w.edit_button);
-	QObject::connect(w.edit_button, &QPushButton::clicked, w.dialog, [] { editor_open ? StopEditing() : StartEditing(); });
+	QObject::connect(w.edit_button, &QPushButton::clicked, w.dialog, [] { editor_open ? StopEditing() : StartEditing(); }); // (stopping closes the editor and restarts the game)
 
 	auto *tabs = w.tabs = new QTabWidget(w.dialog);
 	layout->addWidget(tabs, 3);
@@ -388,12 +421,6 @@ void Build(QMainWindow *parent) {
 		QDir().mkpath(OutputFolder());
 		QDesktopServices::openUrl(QUrl::fromLocalFile(OutputFolder()));
 	});
-	QObject::connect(w.dialog, &QDialog::finished, w.dialog, [](int) {
-		if (editor_open) { // closing the window ends the editing (what was not saved is dropped)
-			Editor_Close();
-			RebuildTables();
-		}
-	});
 }
 
 EditorObject NewObject(int x, int y) {
@@ -420,6 +447,15 @@ void Show(QMainWindow *window) {
 		StartEditing();
 }
 
+bool CloseNow() {
+	return CloseEditor();
+}
+
+void SelectObjectRow(int row) {
+	if (w.objects != nullptr)
+		w.objects->selectRow(row);
+}
+
 bool SaveNow() {
 	return Save();
 }
@@ -429,10 +465,15 @@ bool IsOpen() {
 }
 
 bool Editing() {
-	return editor_open && IsOpen();
+	return editor_present;
 }
 
 bool Mouse(int kind, int button, int x, int y) {
+	if (kind == 3) { // the pointer moved over the picture
+		w.pointer_x = x;
+		w.pointer_y = y;
+		return false;
+	}
 	if (!Editing())
 		return false;
 	EditorPeek peek;
@@ -548,6 +589,45 @@ void DrawOverlay(QPainter *p, const QRectF &dest, double scale) {
 				p->drawEllipse(at, half * 0.8, half * 0.8);
 		}
 	}
+
+	// The editor's own HUD, in place of the game's: where it is looking, the pointer, what there is and what a click will place
+	QStringList lines;
+	lines << QString("EDIT  %1%2").arg(LevelTitle(peek), level.dirty ? "   * unsaved" : "");
+	lines << QString("Cursor  X %1  Y %2").arg(HexText(cx, 4), HexText(cy, 3));
+	lines << QString("Camera  X %1  Y %2").arg(HexText(peek.camera_x, 4), HexText(peek.camera_y, 3));
+	if (w.pointer_x >= 0)
+		lines << QString("Pointer X %1  Y %2").arg(HexText(peek.camera_x + w.pointer_x, 4), HexText(peek.camera_y + w.pointer_y, 3));
+	lines << QString("Objects %1  Rings %2  Remembered %3/255").arg(level.object_count).arg(level.ring_count).arg(EditorLevel_RememberCount(&level));
+	if (w.tabs->currentIndex() == 0 && selected >= 0 && selected < level.object_count) {
+		const EditorObject &o = level.objects[selected];
+		lines << QString("Selected #%1  $%2 %3  sub $%4").arg(selected).arg(HexText(o.id, 2), ObjectLabel(o.id), HexText(o.subtype, 2));
+	} else if (w.tabs->currentIndex() == 1 && w.rings->currentRow() >= 0 && w.rings->currentRow() < level.ring_count) {
+		const EditorRing &r = level.rings[w.rings->currentRow()];
+		lines << QString("Selected #%1  %2 rings %3").arg(w.rings->currentRow()).arg(r.count).arg(r.vertical ? "down" : "across");
+	}
+	if (w.place_rings->isChecked())
+		lines << QString("Click places %1 rings %2").arg(w.ring_count->value()).arg(w.vertical->isChecked() ? "down" : "across");
+	else
+		lines << QString("Click places $%1 %2  sub $%3").arg(HexText(PickedId(), 2), ObjectLabel(PickedId()), HexText(w.subtype->value(), 2));
+	QFont mono("monospace");
+	mono.setStyleHint(QFont::Monospace);
+	mono.setPixelSize(qMax(10, int(6 * scale)));
+	p->setFont(mono);
+	const QFontMetrics fm(mono);
+	int width = 0;
+	for (const QString &line : lines)
+		width = qMax(width, fm.horizontalAdvance(line));
+	const QRectF panel(dest.left() + 4, dest.top() + 4, width + 12, fm.lineSpacing() * lines.size() + 8);
+	p->setPen(Qt::NoPen);
+	p->setBrush(QColor(0, 0, 0, 175));
+	p->drawRect(panel);
+	p->setPen(QColor(255, 255, 255));
+	for (int i = 0; i < lines.size(); i++) {
+		if (i == 0 && level.dirty)
+			p->setPen(QColor(255, 190, 80));
+		p->drawText(QPointF(panel.left() + 6, panel.top() + 4 + fm.ascent() + i * fm.lineSpacing()), lines[i]);
+		p->setPen(QColor(255, 255, 255));
+	}
 }
 
 void Poll() {
@@ -555,18 +635,15 @@ void Poll() {
 		return;
 	EditorPeek peek;
 	Peek_EditorState(&peek);
-	if (editor_open && (!peek.in_level || peek.zone != editor_session.zone || peek.act != editor_session.act)) {
-		Editor_Close(); // another level started: the editing of the last one ends
-		RebuildTables();
-		SetMessage("The level changed; editing stopped.");
-	}
+	// The editing goes on until it is stopped: another level (or none) only pauses it, and it takes the level up again when its own level runs
+	editor_present = editor_open && peek.in_level && peek.zone == editor_session.zone && peek.act == editor_session.act;
 	if (peek.in_level != w.shown_in_level || peek.zone != w.shown_zone || peek.act != w.shown_act || w.edit_button->text().isEmpty()) {
 		w.shown_in_level = peek.in_level;
 		w.shown_zone = peek.zone;
 		w.shown_act = peek.act;
 		w.level_label->setText(peek.in_level ? "Level: " + LevelTitle(peek) : "No level is running.");
 	}
-	const QString button = editor_open ? "Stop editing" : "Start editing";
+	const QString button = editor_open ? "Close editor" : "Start editing";
 	if (w.edit_button->text() != button)
 		w.edit_button->setText(button);
 	w.edit_button->setEnabled(editor_open || peek.in_level);

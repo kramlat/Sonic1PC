@@ -1,5 +1,6 @@
 #include "DebugPeek.h"
 
+#include "Demo.h"
 #include "Game.h"
 #include "Level.h"
 #include "Object.h"
@@ -63,4 +64,18 @@ void Peek_EditorState(EditorPeek *out) {
 	out->player_y = player->pos.l.y.f.u;
 	out->objects = out->zone < ZoneId_Num && out->act < 4 ? level_obj[out->zone][out->act] : NULL;
 	out->rings = out->zone < ZoneId_Num && out->act < 4 ? level_ring[out->zone][out->act] : NULL;
+}
+
+#ifndef ZONE_SLOTS // (Sonic 2 has its own: Tails is a player too)
+// While the level editor has the level the player and the HUD do not run or show (the editor draws its own)
+bool Game_EditorSkipObject(const void *obj) {
+	return obj == (const void *)player || ((const Object *)obj)->type == ObjId_HUD;
+}
+#endif
+
+// The level editor was closed: back to the Sega screen (the level loops leave on a game mode change), with no demo left running
+void Game_ResetToSega(void) {
+	demo = 0;
+	cli_demo_override = NULL;
+	gamemode = GameMode_Sega;
 }

@@ -45,6 +45,7 @@ static const char *const s2_act_mtz3[] = { "Act 3" };
 static const GameZone s2_zones[] = {
     { 0x00, "Emerald Hill", 2, NULL },
     { 0x02, "Wood", 2, NULL },
+    { 0x03, "Sand Shower", 2, NULL },
     { 0x04, "Metropolis", 2, NULL },
     { 0x05, "Metropolis (third act)", 1, s2_act_mtz3 },
     { 0x07, "Hill Top", 2, NULL },
@@ -53,6 +54,7 @@ static const GameZone s2_zones[] = {
     { 0x0B, "Dust Hill", 2, NULL },
     { 0x0C, "Casino Night", 2, NULL },
     { 0x0D, "Chemical Plant", 2, NULL },
+    { 0x0E, "Cyber City", 2, NULL },
     { 0x0F, "Neo Green Hill", 2, NULL },
 };
 static const GameZoneList s2_zone_list = { (int)(sizeof(s2_zones) / sizeof(s2_zones[0])), s2_zones };

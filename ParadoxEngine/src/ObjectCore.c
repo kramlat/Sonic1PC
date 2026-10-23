@@ -74,7 +74,7 @@ void ExecuteObjects(void) {
 		obj = objects;
 		ExecuteObjects_i = OBJECTS - 1;
 		do {
-			if (obj->type && !(editor_open && Game_EditorSkipObject(obj)))
+			if (obj->type && !(editor_present && Game_EditorSkipObject(obj)))
 				RunObject(obj);
 			obj++;
 		} while (ExecuteObjects_i-- > 0);

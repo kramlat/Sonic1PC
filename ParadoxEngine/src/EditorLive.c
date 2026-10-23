@@ -7,6 +7,7 @@
 
 EditorSession editor_session;
 bool editor_open;
+bool editor_present;
 
 static uint8_t live_objects[EDITOR_MAX_OBJECTS * 6 + 6];
 static uint8_t live_rings[EDITOR_MAX_RINGS * 4 + 4];
@@ -30,7 +31,7 @@ void Editor_GetCursor(int *x, int *y) {
 }
 
 void Editor_Hold(void) {
-    if (!editor_open)
+    if (!editor_present)
         return;
     player->pos.l.x.f.u = (int16_t)cursor_x;
     player->pos.l.y.f.u = (int16_t)cursor_y;
@@ -52,6 +53,7 @@ void Editor_Close(void) {
     if (!editor_open)
         return;
     editor_open = false;
+    editor_present = false;
     reload_pending = true;
 }
 

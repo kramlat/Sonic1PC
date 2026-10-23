@@ -1819,5 +1819,5 @@ void Game_LevelObjects(void) {
 
 // While the level editor has the level, neither player runs or shows (the editor's cursor is where Sonic is: EditorLive.h)
 bool Game_EditorSkipObject(const void *obj) {
-    return obj == (const void *)player || obj == (const void *)TAILS_OBJ;
+    return obj == (const void *)player || obj == (const void *)TAILS_OBJ || ((const Object *)obj)->type == ObjId_HUD; // (and the HUD: the editor draws its own)
 }

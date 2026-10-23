@@ -27,6 +27,8 @@ WEAK const OscillatorData oscillator_data = { 0 }; // (the oscillators' table: n
 
 WEAK void Game_LevelObjects(void) {}
 
+WEAK void Game_ResetToSega(void) {}
+
 WEAK bool Game_EditorSkipObject(const void *obj) { return obj == (const void *)player; }
 
 WEAK uint8_t Game_CollisionPath(const void *obj) { (void)obj; return collision_path; }

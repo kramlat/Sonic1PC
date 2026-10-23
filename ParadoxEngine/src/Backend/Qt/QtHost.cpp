@@ -122,6 +122,7 @@ class GameView : public QOpenGLWidget {
 public:
 	explicit GameView(QWidget *parent = nullptr) : QOpenGLWidget(parent) {
 		setFocusPolicy(Qt::StrongFocus);
+		setMouseTracking(true); // (the level editor shows where the pointer is in the level)
 		QSurfaceFormat fmt;
 		fmt.setSwapInterval(0); // the game paces itself (Render.c's frame clock)
 		setFormat(fmt);
@@ -171,8 +172,11 @@ protected:
 
 	void mouseMoveEvent(QMouseEvent *e) override {
 		int x, y;
-		if (on_mouse && e->buttons() != Qt::NoButton && toPicture(e->pos(), x, y) && on_mouse(1, e->buttons() & Qt::LeftButton ? Qt::LeftButton : Qt::RightButton, x, y))
+		if (on_mouse && e->buttons() == Qt::NoButton && toPicture(e->pos(), x, y)) {
+			on_mouse(3, 0, x, y); // (only follows the pointer)
+		} else if (on_mouse && e->buttons() != Qt::NoButton && toPicture(e->pos(), x, y) && on_mouse(1, e->buttons() & Qt::LeftButton ? Qt::LeftButton : Qt::RightButton, x, y)) {
 			return;
+		}
 		QOpenGLWidget::mouseMoveEvent(e);
 	}
 
@@ -687,6 +691,10 @@ void QtHost_PumpEvents(void) {
 			}
 			if (editor_frame == start + 20)
 				LevelEditor::SaveNow();
+			if (editor_frame == start + 30 && a.size() >= 4)
+				LevelEditor::SelectObjectRow(a[3].toInt());
+			if (a.size() >= 5 && editor_frame == start + a[4].toInt())
+				LevelEditor::CloseNow();
 		}
 		g_app->processEvents();
 
