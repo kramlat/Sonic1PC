@@ -563,7 +563,7 @@ void Level_MakeWaterSurfaces(void) {
 uint8_t Level_Music(uint16_t level) {
     static const uint8_t zone_music[ZoneId_Num] = {
         [0x00] = mus_EHZ, [0x01] = mus_EHZ, [0x02] = mus_MTZ, [0x03] = mus_OOZ, [0x04] = mus_MTZ, [0x05] = mus_MTZ, [0x06] = mus_EHZ2P, [0x07] = mus_HTZ,
-        [0x08] = mus_HPZ, [0x09] = mus_SCZ, [0x0A] = mus_CNZ2P, [0x0B] = mus_MCZ, [0x0C] = mus_CNZ, [0x0D] = mus_CPZ, [0x0E] = mus_WFZ, [0x0F] = mus_ARZ,
+        [0x08] = mus_HPZ, [0x09] = mus_SCZ, [0x0A] = mus_CNZ2P, [0x0B] = mus_MCZ, [0x0C] = mus_CNZ, [0x0D] = mus_CPZ, [0x0E] = mus_MzSwap, [0x0F] = mus_ARZ,
     };
     unsigned zone = LEVEL_ZONE(level);
     return zone < ZoneId_Num ? zone_music[zone] : 0;

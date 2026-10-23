@@ -109,6 +109,8 @@ static uint8_t LevSelSoundId(int value) {
         return (uint8_t)(mus_VsResults + (id - 0x81));
     if (id >= 0xA0 && id <= 0xE9)
         return (uint8_t)(sfx_Jump + (id - 0xA0));
+    if (id == 0xEA)
+        return mus_MzSwap; // (the port's own song, after the effects)
     return 0;
 }
 
@@ -210,7 +212,7 @@ static void LevelSelect(void) {
             if (jpad1_press1 & JPAD_A)
                 continue; // (A only changes the number)
             uint8_t id = LevSelSoundId(levsel_sound);
-            if (id >= mus_VsResults && id <= mus_Blank)
+            if (id >= mus_VsResults && id <= mus_Blank || id == mus_MzSwap)
                 PlayMusic(id);
             else if (id != 0)
                 PlaySound(id);

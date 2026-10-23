@@ -1,7 +1,7 @@
 #ifndef _SOUNDIDS_H
 #define _SOUNDIDS_H
 
-// Sonic 2's sound ID space. Its music ids are the final game's $81-$9D (here 1-$1D, 0 being silence as everywhere in this port, so an id here is the driver's minus $80; the alpha's sound test order, which mostly matches the final game's) and its effects $A0-$E1 are the Simon Wai prototype's
+// Sonic 2's sound ID space. Its music ids are the final game's $81-$9F (and one of its own after them) (here 1-$1D, 0 being silence as everywhere in this port, so an id here is the driver's minus $80; the alpha's sound test order, which mostly matches the final game's) and its effects $A0-$E1 are the Simon Wai prototype's
 // (laid out one after the other from sfx_Jump: the prototype has one effect for each id from $A0 on, with Helicopter at both $DE and $DF). Sonic 1's sound names are kept for the code that is shared with it
 // (the zone music of Sonic 1's levels is not used: Sonic 2's Level_Music has its own table), each pointing at what plays for it in the prototype.
 enum SoundID {
@@ -36,6 +36,7 @@ enum SoundID {
 	mus_Emerald, // $9D (Got an Emerald)
 	mus_HPZCopy, // $9E (a copy of $90 in the prototype and the alpha)
 	mus_Blank, // $9F (an empty song there)
+	mus_MzSwap, // $20 here, past the final game's music ids: Metropolis with major and minor swapped (Cyber City's)
 
 	sfx_Jump, // $A0
 	sfx_Lamppost,

@@ -711,6 +711,7 @@ songs:
   - {file: "music/HPz_83.jsonc", name: S2Mus_HPz_83}
   - {file: "music/OOz_84.jsonc", name: S2Mus_OOz_84}
   - {file: "music/Mz_85.jsonc", name: S2Mus_Mz_85}
+  - {file: "music/MzSwap.jsonc", name: S2Mus_MzSwap}
   - {file: "music/HTz_86.jsonc", name: S2Mus_HTz_86}
   - {file: "music/NGHz_87.jsonc", name: S2Mus_NGHz_87}
   - {file: "music/OOz_88.jsonc", name: S2Mus_OOz_88}

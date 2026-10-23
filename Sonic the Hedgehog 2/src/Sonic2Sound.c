@@ -9,6 +9,7 @@
 #include "Resource/Music/S2Mus_HPz_83.h"
 #include "Resource/Music/S2Mus_OOz_84.h"
 #include "Resource/Music/S2Mus_Mz_85.h"
+#include "Resource/Music/S2Mus_MzSwap.h"
 #include "Resource/Music/S2Mus_HTz_86.h"
 #include "Resource/Music/S2Mus_NGHz_87.h"
 #include "Resource/Music/S2Mus_OOz_88.h"
@@ -39,6 +40,7 @@
 #include "Resource/Music/S2Mus_HPz_83_json.h"
 #include "Resource/Music/S2Mus_OOz_84_json.h"
 #include "Resource/Music/S2Mus_Mz_85_json.h"
+#include "Resource/Music/S2Mus_MzSwap_json.h"
 #include "Resource/Music/S2Mus_HTz_86_json.h"
 #include "Resource/Music/S2Mus_NGHz_87_json.h"
 #include "Resource/Music/S2Mus_OOz_88_json.h"
@@ -247,6 +249,7 @@ static const uint8_t *const sound_table[0x100] = {
     [mus_Emerald] = S2Mus_Emrld_9D,
     [mus_HPZCopy] = S2Mus_HPz_90,
     [mus_Blank] = S2Mus_Blank_9F,
+    [mus_MzSwap] = S2Mus_MzSwap,
 
     [sfx_Jump] = S2Sfx_A0,
     [sfx_Lamppost] = S2Sfx_A1,
@@ -356,6 +359,7 @@ static const char *const sound_table_json[0x100] = {
     [mus_Emerald] = S2Mus_Emrld_9D_json,
     [mus_HPZCopy] = S2Mus_HPz_90_json,
     [mus_Blank] = S2Mus_Blank_9F_json,
+    [mus_MzSwap] = S2Mus_MzSwap_json,
 
     [sfx_Jump] = S2Sfx_A0_json,
     [sfx_Lamppost] = S2Sfx_A1_json,
@@ -454,6 +458,7 @@ static const uint8_t sound_table_driver_ver[0x100] = {
     [mus_HPZ] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_HPZCopy] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_Blank] = SOUND_DRIVER_VERSION_2_TEMPO,
+    [mus_MzSwap] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_Menu] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_SpecStg] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_Boss] = SOUND_DRIVER_VERSION_2_TEMPO,
@@ -520,6 +525,7 @@ static const SoundInspectEntry inspect_entries[] = {
     INSPECT_ENTRY(mus_Emerald, 1, "Got an Emerald"),
     INSPECT_ENTRY(mus_HPZCopy, 1, "Hidden Palace (copy)"),
     INSPECT_ENTRY(mus_Blank, 1, "Empty"),
+    INSPECT_ENTRY(mus_MzSwap, 1, "Metropolis (major/minor swapped)"),
     INSPECT_ENTRY(sfx_Jump, 0, "Jump"),
     INSPECT_ENTRY(sfx_Lamppost, 0, "Lamppost"),
     INSPECT_ENTRY(sfx_Unk_A2, 0, "Unused A2"),
@@ -601,7 +607,7 @@ const SoundBank game_sound_bank = {
     .songs_json = sound_table_json,
     .driver_version = sound_table_driver_ver,
     .music_first = mus_VsResults,
-    .music_last = mus_Blank,
+    .music_last = mus_MzSwap,
     .sfx_first = sfx_Jump,
     .special_last = SOUND_ID_LAST, // (every effect up to the alpha's $E9: they were left out when $E1-$E9 came in, so they played into the music's own channels, with no priority)
     .command_first = bgm_Fade,

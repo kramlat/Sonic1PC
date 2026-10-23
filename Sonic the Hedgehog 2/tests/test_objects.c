@@ -193,14 +193,14 @@ static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
         CHECK(game_sound_bank.songs_json[id] != NULL);
     }
     CHECK_EQ(game_sound_bank.music_first, 1);
-    CHECK_EQ(game_sound_bank.music_last, 0x1F);
+    CHECK_EQ(game_sound_bank.music_last, 0x20);
     CHECK(game_sound_bank.songs[0x1E] == game_sound_bank.songs[0x10]); // $9E is a copy of $90, $9F (the last) an empty song
     static const uint8_t alpha_music_list[16] = { 0x82, 0x82, 0x85, 0x84, 0x85, 0x85, 0x8C, 0x86, 0x83, 0x8D, 0x88, 0x8B, 0x89, 0x8E, 0x8E, 0x87 };
     for (int zone = 0; zone < 16; zone++) {
         if (zone == 8)
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), 0x10); // Hidden Palace stays, with its own track ($90), where the alpha has the Mystic Cave 2P theme
         else if (zone == 14)
-            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), 0x0F); // Cyber City (in the alpha's Genocide City slot) has Wing Fortress's track for now, where the alpha has Chemical Plant's
+            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), mus_MzSwap); // Cyber City (in the alpha's Genocide City slot) has the Metropolis theme with major and minor swapped (id $20), where the alpha has Chemical Plant's
         else
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), alpha_music_list[zone] - 0x80);
     }
