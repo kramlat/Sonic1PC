@@ -363,6 +363,26 @@ const uint8_t* level_ring[ZoneId_Num][4] = {
     [0x0F] = { S2Rings_NGHZ1, S2Rings_NGHZ2, S2Rings_NGHZ1, S2Rings_NGHZ1 }, // NGHZ
 };
 
+// The name of a zone's terrain files in res/ (S2Art/<name>, S2Map16/<name> ...), for the level editor's saved files
+const char *Peek_ZoneCode(int zone) {
+    static const char *const names[ZoneId_Num] = {
+        [0x00] = "EHZ",
+        [0x02] = "WZ",
+        [0x03] = "SSZ",
+        [0x04] = "MTZ",
+        [0x05] = "MTZ",
+        [0x07] = "HTZ",
+        [0x08] = "HPZ",
+        [0x0A] = "OOZ",
+        [0x0B] = "DHZ",
+        [0x0C] = "CNZ",
+        [0x0D] = "CPZ",
+        [0x0E] = "GCZ",
+        [0x0F] = "NGHZ",
+    };
+    return zone >= 0 && zone < ZoneId_Num ? names[zone] : (const char *)0;
+}
+
 // The name of a level's files in res/ (the layouts' names: S2Objects/<name>), for the level editor's saved files
 const char *Peek_LevelName(int zone, int act) {
     static const char *const names[ZoneId_Num][4] = {

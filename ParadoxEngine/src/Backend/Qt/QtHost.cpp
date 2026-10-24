@@ -4,6 +4,8 @@
 #include "QtAudio.h"
 #include "DemoTools.h"
 #include "LevelEditor.h"
+#include "TerrainEditor.h"
+#include "../../EditorLive.h"
 #include "SmpsInspector.h"
 #include "HelpWindow.h"
 #include "ControlsDialog.h"
@@ -695,6 +697,21 @@ void QtHost_PumpEvents(void) {
 				LevelEditor::SelectObjectRow(a[3].toInt());
 			if (a.size() >= 5 && editor_frame == start + a[4].toInt())
 				LevelEditor::CloseNow();
+			if (getenv("SONIC_QT_TERRAIN") && editor_frame == start + 40) { // opens the terrain window and changes a colour, a tile, a block and a chunk (for the automated checks)
+				Editor_SetColour(2, 1, 0x00E);
+				size_t n;
+				uint8_t *art = Editor_Art(&n);
+				if (art)
+					memset(art + 1 * 32, 0x11, 32);
+				Editor_CommitArt(1);
+				uint8_t *layout = Editor_Layout(&n);
+				layout[8 * 256 + 1] = 0; // (the foreground's chunk under the first player)
+				Editor_RedrawLevel();
+			}
+			if (getenv("SONIC_QT_PLAYTEST") && (editor_frame == start + atoi(getenv("SONIC_QT_PLAYTEST")) || editor_frame == start + atoi(getenv("SONIC_QT_PLAYTEST")) + 90))
+				LevelEditor::TogglePlaytest();
+			if (getenv("SONIC_QT_TERRAIN") && editor_frame == start + 60)
+				LevelEditor::SaveNow();
 		}
 		g_app->processEvents();
 

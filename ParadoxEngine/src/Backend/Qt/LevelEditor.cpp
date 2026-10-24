@@ -1,4 +1,5 @@
 #include "LevelEditor.h"
+#include "TerrainEditor.h"
 
 #include "GameInterface.h"
 #include "../../DebugPeek.h"
@@ -44,7 +45,8 @@ constexpr int kPickRadius = 12;
 struct Window {
 	QDialog *dialog = nullptr;
 	QLabel *level_label = nullptr, *message = nullptr, *folder_label = nullptr;
-	QPushButton *edit_button = nullptr;
+	QPushButton *edit_button = nullptr, *playtest_button = nullptr;
+	QMainWindow *main = nullptr;
 	QTableWidget *objects = nullptr, *rings = nullptr;
 	QTabWidget *tabs = nullptr;
 	QLineEdit *filter = nullptr;
@@ -208,6 +210,7 @@ void StartEditing() {
 	}
 	Editor_Open(peek.zone, peek.act, peek.objects, peek.rings);
 	Editor_SetCursor(peek.player_x, peek.player_y); // (the cursor starts where the player was)
+	TerrainEditor::Reset();
 	Editor_Apply();
 	RebuildTables();
 	SetMessage("Editing. Left click places, drag moves, right click deletes.");
@@ -245,6 +248,8 @@ bool Save() {
 		QFile file(kinds[i].path);
 		ok = ok && file.open(QIODevice::WriteOnly) && file.write(*data[i]) == data[i]->size();
 	}
+	QString terrain_message;
+	ok = TerrainEditor::Save(slot, editor_session.zone, editor_session.act, &terrain_message) && ok;
 	if (ok) {
 		editor_session.level.dirty = false;
 		SetMessage(QString("Saved to %1 (copy its files into res/ to keep them).").arg(slot));
@@ -259,7 +264,7 @@ bool Save() {
 bool CloseEditor() {
 	if (!editor_open)
 		return true;
-	if (editor_session.level.dirty) {
+	if (editor_session.level.dirty || TerrainEditor::Dirty()) {
 		const auto answer = QMessageBox::question(w.dialog, "Level Editor", "The changes have not been saved.", QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
 		if (answer == QMessageBox::Cancel)
 			return false;
@@ -267,6 +272,7 @@ bool CloseEditor() {
 			return false;
 	}
 	Editor_Close(); // (the level's own data is used from here on)
+	TerrainEditor::Reset();
 	RebuildTables();
 	SetMessage("Not editing.");
 	Game_ResetToSega();
@@ -292,17 +298,37 @@ protected:
 
 void Build(QMainWindow *parent) {
 	w.dialog = new EditorDialog(parent, Qt::Tool);
+	w.main = parent;
 	w.dialog->setWindowTitle("Level Editor");
-	w.dialog->resize(560, 700);
-	auto *layout = new QVBoxLayout(w.dialog);
+	w.dialog->resize(600, 760); // (half as wide as the tools' own sizes want: the tabs scroll)
+	auto *outer = new QVBoxLayout(w.dialog);
 
 	w.level_label = new QLabel(w.dialog);
-	layout->addWidget(w.level_label);
+	outer->addWidget(w.level_label);
 	w.edit_button = new QPushButton("Start editing", w.dialog);
-	layout->addWidget(w.edit_button);
+	outer->addWidget(w.edit_button);
+	// Playtest: Sonic (and Tails) are in the level again, where the cursor is, and the level is played as edited; again to go back to editing
+	w.playtest_button = new QPushButton("Playtest (show Sonic)", w.dialog);
+	w.playtest_button->setCheckable(true);
+	w.playtest_button->setEnabled(false);
+	outer->addWidget(w.playtest_button);
+	QObject::connect(w.playtest_button, &QPushButton::toggled, w.dialog, [](bool on) {
+		Editor_SetPlaytest(on);
+		SetMessage(on ? "Playtest: the level is playable as edited. Press again to go back to editing." : "Editing.");
+		if (on && w.main != nullptr) { // (the keys go to the game)
+			w.main->activateWindow();
+			w.main->centralWidget()->setFocus();
+		}
+	});
 	QObject::connect(w.edit_button, &QPushButton::clicked, w.dialog, [] { editor_open ? StopEditing() : StartEditing(); }); // (stopping closes the editor and restarts the game)
 
-	auto *tabs = w.tabs = new QTabWidget(w.dialog);
+	// One window: the placement of objects and rings, and the terrain tools, as tabs
+	auto *main_tabs = new QTabWidget(w.dialog);
+	outer->addWidget(main_tabs, 1);
+	auto *place_page = new QWidget();
+	auto *layout = new QVBoxLayout(place_page);
+	main_tabs->addTab(place_page, "Objects and rings");
+	auto *tabs = w.tabs = new QTabWidget(place_page);
 	layout->addWidget(tabs, 3);
 	w.objects = new QTableWidget(0, ObjectColumnCount, tabs);
 	w.objects->setHorizontalHeaderLabels({ "X", "Y", "Id", "Object", "Subtype", "X flip", "Y flip", "Remember" });
@@ -393,6 +419,9 @@ void Build(QMainWindow *parent) {
 		options->addWidget(widget);
 	layout->addLayout(options);
 
+	TerrainEditor::AddTabs(main_tabs);
+	QObject::connect(main_tabs, &QTabWidget::currentChanged, w.dialog, [](int) { TerrainEditor::Refresh(); });
+
 	auto *save_row = new QHBoxLayout();
 	auto *save = new QPushButton("Save", w.dialog);
 	auto *choose = new QPushButton("Output folder...", w.dialog);
@@ -400,13 +429,13 @@ void Build(QMainWindow *parent) {
 	save_row->addWidget(save);
 	save_row->addWidget(choose);
 	save_row->addWidget(open);
-	layout->addLayout(save_row);
+	outer->addLayout(save_row);
 	w.folder_label = new QLabel(w.dialog);
 	w.folder_label->setWordWrap(true);
-	layout->addWidget(w.folder_label);
+	outer->addWidget(w.folder_label);
 	w.message = new QLabel("Not editing.", w.dialog);
 	w.message->setWordWrap(true);
-	layout->addWidget(w.message);
+	outer->addWidget(w.message);
 	w.folder_label->setText("Saves go to: " + OutputFolder());
 
 	QObject::connect(save, &QPushButton::clicked, w.dialog, [] { Save(); });
@@ -447,6 +476,11 @@ void Show(QMainWindow *window) {
 		StartEditing();
 }
 
+void TogglePlaytest() {
+	if (w.playtest_button != nullptr && w.playtest_button->isEnabled())
+		w.playtest_button->toggle();
+}
+
 bool CloseNow() {
 	return CloseEditor();
 }
@@ -465,7 +499,7 @@ bool IsOpen() {
 }
 
 bool Editing() {
-	return editor_present;
+	return editor_present && !editor_playtest;
 }
 
 bool Mouse(int kind, int button, int x, int y) {
@@ -647,6 +681,13 @@ void Poll() {
 	if (w.edit_button->text() != button)
 		w.edit_button->setText(button);
 	w.edit_button->setEnabled(editor_open || peek.in_level);
+	w.playtest_button->setEnabled(editor_present);
+	if (!editor_present && w.playtest_button->isChecked()) { // (the editing ended or paused: the playtest with it)
+		w.playtest_button->blockSignals(true);
+		w.playtest_button->setChecked(false);
+		w.playtest_button->blockSignals(false);
+	}
+	w.playtest_button->setText(editor_playtest ? "Back to editing" : "Playtest (show Sonic)");
 }
 
 } // namespace LevelEditor

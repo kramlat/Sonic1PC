@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <stddef.h>
+
 #include "EditorModel.h"
 
 #ifdef __cplusplus
@@ -23,6 +25,7 @@ typedef struct {
 
 extern EditorSession editor_session; // the level being edited (valid while editor_open)
 extern bool editor_open;
+extern bool editor_playtest; // the players are in the level again (the editor's cursor is where the first player was left): the level is played as edited
 extern bool editor_present; // ... and its level is the one running (the editor's window keeps this up to date): only then do the players hold still and the layouts apply
 
 // Takes the level a game is in: copies its layouts (either may be NULL) into the model and the live buffers, and starts using them
@@ -37,6 +40,7 @@ void Editor_Apply(void);
 void Editor_SetCursor(int x, int y);
 void Editor_GetCursor(int *x, int *y);
 void Editor_Hold(void);
+void Editor_SetPlaytest(bool on); // on: the players run and show from the cursor; off: the cursor is where the first player is, and they hold still again
 
 // What a game passes its managers: the live layout when the editor is open on this zone and act, else `original`
 const uint8_t *Editor_ObjectLayout(int zone, int act, const uint8_t *original);
@@ -45,6 +49,29 @@ const uint8_t *Editor_RingLayout(int zone, int act, const uint8_t *original);
 // True once after Editor_Apply / Editor_Close: the game clears the level's objects (Editor_ClearLevelObjects) and restarts its managers
 bool Editor_TakeReload(void);
 void Editor_ClearLevelObjects(void);
+
+// ---- The terrain: the level's tiles, blocks, chunks, collision indices and palette, as they are loaded (the editor changes them in place and the level shows it) ----
+// The game's level loaders say how much they loaded (the data is what was decompressed: its size is where the original ends), for the editor's lists and its saved files.
+void Editor_NoteArt(uint8_t *art, size_t bytes);  // the level's tiles, 32 bytes each, in the game's own buffer (the level's art is also in the video memory from tile 0)
+void Editor_NoteBlocks(size_t bytes);             // level_map16: 8 bytes a block (four tile words)
+void Editor_NoteChunks(size_t bytes);             // level_map128: 128 bytes a chunk (8 x 8 words: block, flips, solidity)
+void Editor_NoteSolids(int path, size_t bytes);   // coll_index[path]: a collision curve for each block
+
+uint8_t *Editor_Art(size_t *bytes);
+uint8_t *Editor_Blocks(size_t *bytes);
+uint8_t *Editor_Chunks(size_t *bytes);
+uint8_t *Editor_Solids(int path, size_t *bytes);
+uint8_t *Editor_Layout(size_t *bytes);            // level_layout: 16 rows of 256 bytes, the foreground's 128 chunks and then the background's, each a chunk number (0: empty)
+const uint8_t *Editor_HeightMap(void);            // 16 heights for each of the 256 collision curves, and the angle of each
+const uint8_t *Editor_CurveAngles(void);
+
+// After changing tile `tile` of the art, its picture in the video memory; after changing blocks or chunks, the level's planes drawn again from them
+void Editor_CommitArt(int tile);
+void Editor_RedrawLevel(void);
+
+// The palette: a colour as the Mega Drive has it ($0BGR, 3 bits each, the low bit of each unused). A colour the editor sets is kept as set (the game's cycles and fades do not take it back) until the editor closes.
+uint16_t Editor_GetColour(int line, int index);
+void Editor_SetColour(int line, int index, uint16_t colour);
 
 #ifdef __cplusplus
 }

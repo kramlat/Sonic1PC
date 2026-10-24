@@ -46,6 +46,7 @@ if(TRUE)
                                 "${PM_DIR}/src/Backend/Qt/Settings.cpp" "${PM_DIR}/src/Backend/Qt/Settings.h"
                                 "${PM_DIR}/src/Backend/Qt/DemoTools.cpp" "${PM_DIR}/src/Backend/Qt/DemoTools.h"
                                 "${PM_DIR}/src/Backend/Qt/LevelEditor.cpp" "${PM_DIR}/src/Backend/Qt/LevelEditor.h"
+                                "${PM_DIR}/src/Backend/Qt/TerrainEditor.cpp" "${PM_DIR}/src/Backend/Qt/TerrainEditor.h"
                                 "${PM_DIR}/src/Backend/Qt/DebugViewers.cpp" "${PM_DIR}/src/Backend/Qt/DebugViewers.h"
                                 "${PM_DIR}/src/Backend/Qt/SmpsInspector.cpp" "${PM_DIR}/src/Backend/Qt/SmpsInspector.h"
                                 "${PM_DIR}/src/Backend/Qt/HelpWindow.cpp" "${PM_DIR}/src/Backend/Qt/HelpWindow.h"

@@ -351,6 +351,11 @@ for my $kind (['Objects', 'level_obj'], ['Rings', 'level_ring']) {
     }
     $c .= "};\n\n";
 }
+# a zone slot's name in the terrain resources (S2Art/<name> ...), for the built-in level editor's saved files
+$c .= "// The name of a zone's terrain files in res/ (S2Art/<name>, S2Map16/<name> ...), for the level editor's saved files\nconst char *Peek_ZoneCode(int zone) {\n    static const char *const names[ZoneId_Num] = {\n";
+for my $s (@slots) { $c .= sprintf("        [%s] = \"%s\",\n", zid($s), $slot{$s}{0}{zone}) }
+$c .= "    };\n    return zone >= 0 && zone < ZoneId_Num ? names[zone] : (const char *)0;\n}\n\n";
+
 # the names of the level resources, for the built-in level editor's saved files: the name of a zone slot's act in the res/ folders (S2Layout/SSZ1 ...), act 1 where an act has none of its own
 $c .= "// The name of a level's files in res/ (the layouts' names: S2Objects/<name>), for the level editor's saved files\nconst char *Peek_LevelName(int zone, int act) {\n    static const char *const names[ZoneId_Num][4] = {\n";
 for my $s (@slots) {

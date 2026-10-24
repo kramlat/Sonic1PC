@@ -2,6 +2,7 @@
 
 #include "Demo.h"
 #include "Game.h"
+#include "LevelDraw.h"
 #include "Level.h"
 #include "Object.h"
 #include "Palette.h"
@@ -78,4 +79,9 @@ void Game_ResetToSega(void) {
 	demo = 0;
 	cli_demo_override = NULL;
 	gamemode = GameMode_Sega;
+}
+
+// The level editor changed blocks or chunks: both planes are drawn from the tables again
+void Game_EditorRedraw(void) {
+	LoadTilesFromStart();
 }

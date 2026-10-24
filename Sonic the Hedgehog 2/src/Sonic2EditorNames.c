@@ -152,3 +152,10 @@ const char *Peek_ObjectName(int id) {
 // The folders of res/ the layouts are kept in (a level's name in them comes with the level data: Peek_LevelName)
 const char *Peek_LevelObjectsFolder(void) { return "S2Objects"; }
 const char *Peek_LevelRingsFolder(void) { return "S2Rings"; }
+const char *Peek_LevelLayoutFolder(void) { return "S2Layout"; }
+
+// ... and the terrain's: tiles, blocks, chunks, collision indices, palette (a zone's name in them: Peek_ZoneCode)
+const char *Peek_TerrainFolder(int kind) {
+    static const char *const folders[5] = { "S2Art", "S2Map16", "S2Map128", "S2Collision", "S2Palette" };
+    return kind >= 0 && kind < 5 ? folders[kind] : (const char *)0;
+}

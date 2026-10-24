@@ -298,8 +298,8 @@ void LevelDataLoad(void) {
     const LevelHeader* header = &level_header[LEVEL_ZONE(level_id)];
 
     // Load chunk maps and tile map
-    KosDec(header->map128, level_map128);
-    KosDec(header->map16, level_map16);
+    Editor_NoteChunks((size_t)(KosDec(header->map128, level_map128) - level_map128));
+    Editor_NoteBlocks((size_t)(KosDec(header->map16, level_map16) - level_map16));
 
     // Load the main terrain tileset at VRAM tile 0 -- the block/chunk tile
     // indices read directly from here. Each zone's PLC decoration list
@@ -307,6 +307,7 @@ void LevelDataLoad(void) {
     // SonLVL's real per-zone tile limits when this was wired up), so this
     // never collides with PLC_GHZ/PLC_LZ/etc's own art.
     uint8_t *art_end = KosDec(header->art, level_art_scratch);
+    Editor_NoteArt(level_art_scratch, (size_t)(art_end - level_art_scratch));
     VDP_SeekVRAM(0x0000);
     VDP_WriteVRAM(level_art_scratch, (size_t)(art_end - level_art_scratch));
 
@@ -347,8 +348,8 @@ void ColIndexLoad(void) {
     // content path-swaps exist yet -- Obj03 isn't ported to C), but they're
     // separate resources, not a single blob decoded twice.
     int zone = LEVEL_ZONE(level_id);
-    KosDec(level_coli[zone][0], coll_index[0]);
-    KosDec(level_coli[zone][1], coll_index[1]);
+    Editor_NoteSolids(0, (size_t)(KosDec(level_coli[zone][0], coll_index[0]) - coll_index[0]));
+    Editor_NoteSolids(1, (size_t)(KosDec(level_coli[zone][1], coll_index[1]) - coll_index[1]));
     collision_path = 0;
 }
 

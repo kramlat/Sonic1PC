@@ -57,6 +57,11 @@ const char *Peek_ObjectName(int id);
 const char *Peek_LevelObjectsFolder(void);
 const char *Peek_LevelRingsFolder(void);
 const char *Peek_LevelName(int zone, int act);
+// The folders the terrain files are kept in (0 tiles, 1 blocks, 2 chunks, 3 collision indices, 4 palette: "S2Art", "S2Map16", "S2Map128", "S2Collision", "S2Palette") and a zone's name in them ("SSZ"; the collision
+// indices add the path, "SSZ1" and "SSZ2"). NULL when the game does not say; the editor then names its files by zone and kind.
+const char *Peek_TerrainFolder(int kind);
+const char *Peek_LevelLayoutFolder(void); // the folder of a level's layout file ("S2Layout"), named in it by Peek_LevelName
+const char *Peek_ZoneCode(int zone);
 // The zone's own name for the editor's title ("Sand Shower Zone"), or NULL
 const char *Peek_ZoneName(int zone);
 

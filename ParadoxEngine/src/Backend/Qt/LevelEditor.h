@@ -20,6 +20,7 @@ bool Mouse(int kind, int button, int x, int y);
 // Draws the markers over the picture: `dest` is where the picture is drawn in the widget, `scale` its size over the picture's.
 void DrawOverlay(QPainter *p, const QRectF &dest, double scale);
 
+void TogglePlaytest();               // what the Playtest button does (the automated check's)
 bool CloseNow();                     // closes the editor as its window's button does (the automated check's)
 void SelectObjectRow(int row);       // selects a row of the objects' table (the automated check's)
 bool SaveNow();                      // writes the level's files to the output folder (what the Save button does)
