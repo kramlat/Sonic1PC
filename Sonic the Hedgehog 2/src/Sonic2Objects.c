@@ -108,6 +108,7 @@ void Obj_CNZBoss(Object *obj);
 void Obj_CNZBumper(Object *obj);
 void Obj_NGHZBoss(Object *obj);
 void Obj_Whisp(Object *obj);
+void Obj_Crocobot(Object *obj);
 void Obj_Grounder(Object *obj);
 void Obj_GrounderWall(Object *obj);
 void Obj_GrounderRock(Object *obj);
@@ -302,7 +303,7 @@ const ObjectFunc game_objects[] = {
 	/* 4B ObjId_GiantRing          */ Obj_Buzzer,
 	/* 4C ObjId_GeyserMaker        */ Obj_BBat,
 	/* 4D ObjId_LavaGeyser         */ Obj_Rhinobot, // (the alpha's Rhinobot of Hidden Palace, which no layout uses; Nick Arcade's Stego was here)
-	/* 4E ObjId_LavaWall           */ Obj_Null, // Nick Arcade's Gator: not ported yet
+	/* 4E ObjId_LavaWall           */ Obj_Crocobot, // (Sand Shower's walking badnik, from the staged objgator.asm: Nick Arcade's Gator is not ported)
 	/* 4F ObjId_4F                 */ Obj_Redz,
 	/* 50 ObjId_Yadrin             */ Obj_Null, // Nick Arcade's Seahorse: not ported yet
 	/* 51 ObjId_SmashBlock         */ Obj_CNZBoss, // (the alpha's boss of Casino Night: Nick Arcade's Skyhorse slot)

@@ -329,6 +329,18 @@ static void PCycle_GCZ(void) {
     dry_palette[1][15] = PCycleWord(S2Palette_GCZCycle1, at + 3);
 }
 
+// Sand Shower: four colours (the user's: $0048, $046A, $048C, $08CE) go round in colours 8 to 11 of the fourth line (indexes $38 to $3B of the palette), a step every 8 ticks
+static void PCycle_SSZ(void) {
+    static const uint16_t colours[4] = { 0x0048, 0x046A, 0x048C, 0x08CE };
+    static int frame;
+    if (--pcyc_time >= 0)
+        return;
+    pcyc_time = 7;
+    for (int i = 0; i < 4; i++)
+        dry_palette[3][8 + i] = colours[(frame + i) & 3];
+    frame = (frame + 1) & 3;
+}
+
 // Casino Night (PalCycle_CNz): every 8 ticks the lights of lines 3 and 4 (three colours of each of two groups of line 3 and three of line 4, each frame a step along their tables of 3 frames) and
 // three colours of line 4 from 14 steps of three tables
 static void PCycle_CNZ(void) {
@@ -656,6 +668,9 @@ void PaletteCycle(void) {
         break;
     case ZoneId_GCZ:
         PCycle_GCZ();
+        break;
+    case ZoneId_SSZ:
+        PCycle_SSZ();
         break;
     }
 }

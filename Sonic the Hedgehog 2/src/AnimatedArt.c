@@ -29,6 +29,7 @@
 #include "Resource/S2Art/NGHZWaterfall2.h"
 #include "Resource/S2Art/NGHZWaterfall3.h"
 #include "Resource/S2Art/CPZAnimBack.h"
+#include "Resource/S2Art/SSZCactusTop.h"
 
 #include "Resource/Art/CNZBlueCard.h"
 #include "Resource/Art/CNZPinkCard.h"
@@ -128,6 +129,12 @@ static const AnimScript AnimCue_ARZ[] = {
     { S2Art_NGHZWaterfall3, 0x8500, 2, 4, 5, ARZ1_Frames },
 };
 
+// Sand Shower (the staged ani.asm: zoneanimdecl 6, ArtUnc_SSZcactustop, tile $2E8, 5 frames of 5 tiles): the cactus tops, which sway through three drawings and back: 0, 5, 10, 5, 0
+static const uint8_t SSZ1_Frames[] = { 0, 5, 10, 5, 0 };
+static const AnimScript AnimCue_SSZ[] = {
+    { S2Art_SSZCactusTop, 0x2E8 * 0x20, 5, 5, 6, SSZ1_Frames },
+};
+
 static struct {
     uint8_t time; // (the alpha counts it down with a subtract that stops at a borrow: a byte of $C7 is 200 ticks, not a negative number)
     uint8_t frame;
@@ -195,6 +202,9 @@ void S2_PrimeLevelArt(void) {
     case ZoneId_ARZ:
         Prime(AnimCue_ARZ, (int)(sizeof(AnimCue_ARZ) / sizeof(AnimCue_ARZ[0])));
         break;
+    case ZoneId_SSZ:
+        Prime(AnimCue_SSZ, (int)(sizeof(AnimCue_SSZ) / sizeof(AnimCue_SSZ[0])));
+        break;
     default:
         break;
     }
@@ -228,6 +238,9 @@ void S2_AnimateLevelArt(void) {
         break;
     case ZoneId_ARZ:
         Dynamic_Normal(AnimCue_ARZ, (int)(sizeof(AnimCue_ARZ) / sizeof(AnimCue_ARZ[0])));
+        break;
+    case ZoneId_SSZ:
+        Dynamic_Normal(AnimCue_SSZ, (int)(sizeof(AnimCue_SSZ) / sizeof(AnimCue_SSZ[0])));
         break;
     default:
         break;

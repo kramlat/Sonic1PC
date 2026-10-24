@@ -1,3 +1,4 @@
+#include "EditorLive.h"
 #include "LevelScroll.h"
 
 #include "Video.h"
@@ -659,9 +660,29 @@ void DeformLayers(void)
 	bg3_scroll_flags = 0;
 	
 	//Scroll camera
+	// While the level is edited the camera follows the editor's cursor and is free of the level's own locks (the end of level's, a boss arena's: the limits the level's size gives are the only ones)
+	int16_t kept[5] = { limit_left2, limit_right2, limit_top2, limit_btm2, limit_btm1 };
+	const bool editing = Editor_Editing();
+	if (editing) {
+		const int16_t *size = LevelSizes(LEVEL_ZONE(level_id), LEVEL_ACT(level_id));
+		limit_left2 = size[1];
+		limit_right2 = size[2];
+		limit_top2 = size[3];
+		limit_btm2 = limit_btm1 = size[4];
+	}
+	Editor_CameraBegin();
 	ScrollHoriz();
 	ScrollVertical();
-	DynamicLevelEvents();
+	Editor_CameraEnd();
+	if (editing) { // (the level's own limits stay as they were: they come back with a playtest)
+		limit_left2 = kept[0];
+		limit_right2 = kept[1];
+		limit_top2 = kept[2];
+		limit_btm2 = kept[3];
+		limit_btm1 = kept[4];
+	}
+	if (!Editor_Editing()) // (the level's events are for the player: the editor does not trigger them)
+		DynamicLevelEvents();
 	
 	//Copy screen Y position
 	vid_scrpos_y_dup = scrpos_y.f.u;

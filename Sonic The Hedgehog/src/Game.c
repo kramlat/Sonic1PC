@@ -1,4 +1,3 @@
-#include "EditorLive.h"
 #include "Game.h"
 #include "Viewport.h"
 #include "DebugLog.h"
@@ -222,7 +221,7 @@ static void VBlank_UpdateScreen(void) {
     ProcessDPLC2();
 
     // Decrement demo timer
-    if (demo_length && !editor_open) // (the level editor keeps a demo from ending: no fade out)
+    if (demo_length)
         demo_length--;
 }
 
@@ -298,7 +297,7 @@ void VBlank(void) {
         // Lag frame. Only LZ does anything here in the original: rewrite
         // the palette and the water palette-swap line so a lag frame keeps
         // the split intact.
-        if (((gamemode & 0x7F) == GameMode_Level) && Level_HasWater()) {
+        if ((((gamemode & 0x7F) == GameMode_Level) || ((gamemode & 0x7F) == GameMode_Editor)) && Level_HasWater()) {
             VDP_SeekCRAM(0);
             if (wtr_state)
                 VDP_WriteCRAM(&wet_palette[0][0], 0x40);

@@ -32,6 +32,7 @@ extern bool editor_present; // ... and its level is the one running (the editor'
 void Editor_Open(int zone, int act, const uint8_t *objects, const uint8_t *rings);
 // Hands the game's own layouts back (the live ones are dropped); asks for a reload so the level is as the tables have it
 void Editor_Close(void);
+void Editor_Left(void);   // the level being edited is not the one running any more (another level, a game over...): the checkpoints the playtest left are put back
 // The model has changed: writes it to the live buffers and asks the game to reload
 void Editor_Apply(void);
 
@@ -40,6 +41,11 @@ void Editor_Apply(void);
 void Editor_SetCursor(int x, int y);
 void Editor_GetCursor(int *x, int *y);
 void Editor_Hold(void);
+// The camera follows the cursor, not the player: around the game's camera scroll the cursor stands in for the first player (so nothing else sees it: the signpost, the checkpoints and the other things that wait for
+// the player to come near are triggered by the player alone). Editor_Editing: the level is being edited, not played (the game's dynamic level events do not run then).
+void Editor_CameraBegin(void);
+void Editor_CameraEnd(void);
+bool Editor_Editing(void);
 void Editor_SetPlaytest(bool on); // on: the players run and show from the cursor; off: the cursor is where the first player is, and they hold still again
 
 // What a game passes its managers: the live layout when the editor is open on this zone and act, else `original`
@@ -72,6 +78,8 @@ void Editor_RedrawLevel(void);
 // The palette: a colour as the Mega Drive has it ($0BGR, 3 bits each, the low bit of each unused). A colour the editor sets is kept as set (the game's cycles and fades do not take it back) until the editor closes.
 uint16_t Editor_GetColour(int line, int index);
 void Editor_SetColour(int line, int index, uint16_t colour);
+// A colour as the level's palette has it, for the saved file: the editor's own if it set one, else the palette as it was loaded (the target of fades), not what a palette cycle has put on the screen
+uint16_t Editor_GetBaseColour(int line, int index);
 
 #ifdef __cplusplus
 }

@@ -275,7 +275,6 @@ bool CloseEditor() {
 	TerrainEditor::Reset();
 	RebuildTables();
 	SetMessage("Not editing.");
-	Game_ResetToSega();
 	return true;
 }
 
@@ -305,7 +304,8 @@ void Build(QMainWindow *parent) {
 
 	w.level_label = new QLabel(w.dialog);
 	outer->addWidget(w.level_label);
-	w.edit_button = new QPushButton("Start editing", w.dialog);
+	w.edit_button = new QPushButton("Editing: off", w.dialog);
+	w.edit_button->setCheckable(true); // (one switch: on takes the level, off gives it back to play)
 	outer->addWidget(w.edit_button);
 	// Playtest: Sonic (and Tails) are in the level again, where the cursor is, and the level is played as edited; again to go back to editing
 	w.playtest_button = new QPushButton("Playtest (show Sonic)", w.dialog);
@@ -320,7 +320,12 @@ void Build(QMainWindow *parent) {
 			w.main->centralWidget()->setFocus();
 		}
 	});
-	QObject::connect(w.edit_button, &QPushButton::clicked, w.dialog, [] { editor_open ? StopEditing() : StartEditing(); }); // (stopping closes the editor and restarts the game)
+	QObject::connect(w.edit_button, &QPushButton::clicked, w.dialog, [](bool on) {
+		if (on)
+			StartEditing();
+		else
+			StopEditing(); // (back to play from the level's own data: asks about changes that were not saved)
+	});
 
 	// One window: the placement of objects and rings, and the terrain tools, as tabs
 	auto *main_tabs = new QTabWidget(w.dialog);
@@ -670,16 +675,21 @@ void Poll() {
 	EditorPeek peek;
 	Peek_EditorState(&peek);
 	// The editing goes on until it is stopped: another level (or none) only pauses it, and it takes the level up again when its own level runs
+	const bool was_present = editor_present;
 	editor_present = editor_open && peek.in_level && peek.zone == editor_session.zone && peek.act == editor_session.act;
+	if (was_present && !editor_present && editor_open)
+		Editor_Left(); // (another level: the playtest's checkpoints must not follow it)
 	if (peek.in_level != w.shown_in_level || peek.zone != w.shown_zone || peek.act != w.shown_act || w.edit_button->text().isEmpty()) {
 		w.shown_in_level = peek.in_level;
 		w.shown_zone = peek.zone;
 		w.shown_act = peek.act;
 		w.level_label->setText(peek.in_level ? "Level: " + LevelTitle(peek) : "No level is running.");
 	}
-	const QString button = editor_open ? "Close editor" : "Start editing";
+	const QString button = editor_open ? "Editing: on" : "Editing: off";
 	if (w.edit_button->text() != button)
 		w.edit_button->setText(button);
+	if (w.edit_button->isChecked() != editor_open) // (the switch shows whether the editor has the level)
+		w.edit_button->setChecked(editor_open);
 	w.edit_button->setEnabled(editor_open || peek.in_level);
 	w.playtest_button->setEnabled(editor_present);
 	if (!editor_present && w.playtest_button->isChecked()) { // (the editing ended or paused: the playtest with it)

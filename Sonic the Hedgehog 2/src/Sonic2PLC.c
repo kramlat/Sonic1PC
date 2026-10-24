@@ -26,6 +26,8 @@
 #include "Resource/Art/NGHZAutoDoor.h"
 #include "Resource/Art/ChopChop.h"
 #include "Resource/Art/Whisp.h"
+#include "Resource/Art/SSZRock.h"
+#include "Resource/Art/SSZPlatform.h"
 #include "Resource/Art/Grounder.h"
 #include "Resource/Art/Spiny.h"
 #include "Resource/Art/Grabber.h"
@@ -897,6 +899,19 @@ static const PLCList PLC_CNZBoss = { // the alpha's list $2D: Casino Night's bos
     }
 };
 
+// Sand Shower's secondary list (the staged plc.asm's PlrList_Ssz2: the rock, the platform, the spikes and the three springs; its primary list is empty, with the Crocobot's line commented out)
+static const PLCList PLC_SSZ2 = {
+    6,
+    (const PLC[]) {
+        { Art_SSZRock,       ART_VRAM(0x3B2) },
+        { Art_SSZPlatform,   ART_VRAM(0x49F) },
+        { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
+        { Art_LeverSpring,   ART_VRAM(0x8800 >> 5) },
+        { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },
+        { Art_SpringSide,    ART_VRAM(ArtTile_SpringSide) },
+    }
+};
+
 static const PLCList PLC_NGHZBoss = { // the alpha's list $2B: Neo Green Hill's boss: the ship's art, the boss and the explosions
     3,
     (const PLC[]) {
@@ -959,6 +974,7 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_MTZBoss     */ &PLC_MTZBoss,
     /* PlcId_HTZBoss     */ &PLC_HTZBoss,
     /* PlcId_NGHZBoss    */ &PLC_NGHZBoss,
+    /* PlcId_SSZ2        */ &PLC_SSZ2,
     /* PlcId_CNZBoss     */ &PLC_CNZBoss,
     /* PlcId_DHZBoss     */ &PLC_DHZBoss,
 };

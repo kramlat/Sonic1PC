@@ -22,6 +22,8 @@ extern "C" {
 #include <QScrollArea>
 #include <QSpinBox>
 #include <QTabWidget>
+#include <QTimer>
+#include <QVector>
 #include <QVBoxLayout>
 
 #include <cstdlib>
@@ -244,7 +246,7 @@ public:
 	}
 
 	void Load() {
-		const uint16_t w = Editor_GetColour(s.sel_line, s.sel_index);
+		const uint16_t w = Editor_GetBaseColour(s.sel_line, s.sel_index); // (the palette as it is: the placeholders of a palette cycle show as they are)
 		loading = true;
 		spin[0]->setValue((w >> 1) & 7);
 		spin[1]->setValue((w >> 5) & 7);
@@ -263,7 +265,7 @@ protected:
 			for (int line = 0; line < 4; line++)
 				for (int i = 0; i < 16; i++) {
 					const QRect at(i * 26, line * 26, 26, 26);
-					p.fillRect(at.adjusted(1, 1, -1, -1), Colour(Editor_GetColour(line, i)));
+					p.fillRect(at.adjusted(1, 1, -1, -1), Colour(Editor_GetBaseColour(line, i)));
 					if (line == s.sel_line && i == s.sel_index) {
 						p.setPen(QPen(Qt::white, 2));
 						p.drawRect(at.adjusted(2, 2, -2, -2));
@@ -726,6 +728,7 @@ void Reset() {
 
 void AddTabs(QTabWidget *tabs) {
 	if (s.refresh_all == nullptr) {
+		static QVector<QWidget *> animated; // what shows the palette's colours: redrawn as a palette cycle moves them
 		auto *parent = tabs;
 		(void)parent;
 		// Palette
@@ -737,6 +740,7 @@ void AddTabs(QTabWidget *tabs) {
 		auto *tile_layout = new QHBoxLayout(tile_page);
 		auto *tile_grid = new Grid(16, 8 * kTileZoom + 1, [] { return TileCount(); },
 		                           [](QPainter *p, int i, const QRect &at) { p->drawImage(at.adjusted(0, 0, -1, -1), TileImage(i, s.palette_line, false, false)); }, &s.tile, [] { if (s.refresh_all) s.refresh_all(); });
+		animated << tile_grid;
 		tile_layout->addWidget(Scroll(tile_grid, tile_page), 1);
 		auto *tile_side = new QVBoxLayout();
 		auto *tile_label = new QLabel(tile_page);
@@ -745,7 +749,9 @@ void AddTabs(QTabWidget *tabs) {
 			line_box->addItem(QString("Palette line %1").arg(i));
 		line_box->setCurrentIndex(s.palette_line);
 		auto *tile_canvas = new TileCanvas();
+		animated << tile_canvas;
 		auto *strip = new Strip();
+		animated << strip;
 		auto *flip_row = new QHBoxLayout();
 		auto *flip_h = new QPushButton("Flip left-right", tile_page);
 		auto *flip_v = new QPushButton("Flip up-down", tile_page);
@@ -784,10 +790,12 @@ void AddTabs(QTabWidget *tabs) {
 			                            }
 		                            },
 		                            &s.block, [] { if (s.refresh_all) s.refresh_all(); });
+		animated << block_grid;
 		block_layout->addWidget(Scroll(block_grid, block_page), 1);
 		auto *block_side = new QVBoxLayout();
 		auto *block_label = new QLabel(block_page);
 		auto *block_canvas = new BlockCanvas();
+		animated << block_canvas;
 		block_side->addWidget(block_label);
 		block_side->addWidget(block_canvas);
 		auto *tile_spin = new QSpinBox(block_page);
@@ -811,10 +819,12 @@ void AddTabs(QTabWidget *tabs) {
 		auto *chunk_layout = new QHBoxLayout(chunk_page);
 		auto *chunk_grid = new Grid(4, kChunkThumb + 1, [] { return ChunkCount(); },
 		                            [](QPainter *p, int i, const QRect &at) { DrawChunk(p, i, QRect(at.x(), at.y(), kChunkThumb, kChunkThumb)); }, &s.chunk, [] { if (s.refresh_all) s.refresh_all(); });
+		animated << chunk_grid;
 		chunk_layout->addWidget(Scroll(chunk_grid, chunk_page), 0);
 		auto *chunk_side = new QVBoxLayout();
 		auto *chunk_label = new QLabel(chunk_page);
 		auto *chunk_canvas = new ChunkCanvas();
+		animated << chunk_canvas;
 		auto *cx = new QCheckBox("X flip", chunk_page);
 		auto *cy = new QCheckBox("Y flip", chunk_page);
 		auto *s1t = new QCheckBox("Path A top solid", chunk_page);
@@ -843,6 +853,7 @@ void AddTabs(QTabWidget *tabs) {
 
 		// Solids
 		auto *solids = new SolidPane();
+		animated << solids;
 		tabs->addTab(Page(solids), "Solids");
 
 		// The planes: the foreground (A) and the background (B), the same tool on the two halves of the layout
@@ -866,6 +877,7 @@ void AddTabs(QTabWidget *tabs) {
 			zoom->setCurrentIndex(5); // (the chunks at their own size: 128 pixels)
 			box->addWidget(zoom);
 			canvases[plane] = new LayerCanvas(plane, where);
+			animated << canvases[plane] << picker;
 			auto *canvas_area = Scroll(canvases[plane], page);
 			box->addWidget(canvas_area, 1);
 			QObject::connect(zoom, qOverload<int>(&QComboBox::currentIndexChanged), page, [=](int) {
@@ -901,6 +913,26 @@ void AddTabs(QTabWidget *tabs) {
 		for (QCheckBox *box : { x_flip, y_flip, priority })
 			QObject::connect(box, &QCheckBox::toggled, block_page, [=](bool) { if (!loading_cell) write_cell(); });
 		QObject::connect(use_tile, &QPushButton::clicked, block_page, [=] { tile_spin->setValue(s.tile); });
+
+		// The palette cycles on the screen: the pictures follow it, redrawn when the colours they show have moved (the Palette tab shows the palette itself, with its placeholders as they are)
+		auto *timer = new QTimer(tabs);
+		QObject::connect(timer, &QTimer::timeout, tabs, [tabs] {
+			if (!tabs->isVisible())
+				return;
+			quint64 signature = 1469598103934665603ull;
+			for (int line = 0; line < 4; line++)
+				for (int i = 0; i < 16; i++)
+					signature = (signature ^ Editor_GetColour(line, i)) * 1099511628211ull;
+			static quint64 last = 0;
+			if (signature == last)
+				return;
+			last = signature;
+			InvalidateThumbs();
+			for (QWidget *widget : animated)
+				if (widget->isVisible())
+					widget->update();
+		});
+		timer->start(40);
 
 		s.refresh_all = [=] {
 			tile_grid->Resize();
@@ -998,7 +1030,7 @@ bool Save(const QString &slot, int zone, int act, QString *message) {
 		QByteArray palette;
 		for (int line = 1; line < 4; line++)
 			for (int i = 0; i < 16; i++) {
-				const uint16_t w = Editor_GetColour(line, i);
+				const uint16_t w = Editor_GetBaseColour(line, i); // (the palette as loaded: a cycle's colours on the screen are not the file's)
 				palette.append(char(w >> 8));
 				palette.append(char(w & 0xFF));
 			}

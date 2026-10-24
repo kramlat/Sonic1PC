@@ -72,11 +72,14 @@ extern const GameZoneList *game_zone_list;
 // The objects a game makes when a level starts, beyond the player, the HUD and the splash the level start makes itself (Sonic 2: Tails). A weak null where the game has none.
 void Game_LevelObjects(void);
 
+// The level editor takes the level into its own game mode (editing: the level screen without play) and gives it back to play (a playtest). A weak default does nothing.
+void Game_EditorSetMode(bool editing);
+
 // The built-in level editor changed the level's blocks or chunks: draws its planes again from them. A weak default does nothing.
 void Game_EditorRedraw(void);
 
-// Closing the built-in level editor starts the game over at its first screen (the Sega screen), so the next level starts from the game's own data. A weak default does nothing.
-void Game_ResetToSega(void);
+// The editor keeps the checkpoint state (last_lamp) the game had when it opened and puts it back when it takes the level, gives it back, or is left behind by another level: 0 saves it, 1 restores it. A weak default does nothing.
+void Game_EditorLamp(int action);
 
 // While the built-in level editor has the level, the objects this says yes to do not run or show: the players (EditorLive.h). A weak default holds back only the first player.
 bool Game_EditorSkipObject(const void *obj); // (an Object *)

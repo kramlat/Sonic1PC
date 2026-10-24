@@ -1,4 +1,3 @@
-#include "EditorLive.h"
 #include "Demo.h"
 
 #include "Game.h"
@@ -267,7 +266,7 @@ void MoveSonicInDemo(void) {
         return;
 
     // Return to title screen if start is pressed
-    if (demo >= 0 && (jpad1_hold1 & JPAD_START) && !editor_open)
+    if (demo >= 0 && (jpad1_hold1 & JPAD_START))
         gamemode = GameMode_Title;
 
     // Get demo data

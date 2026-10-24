@@ -435,8 +435,9 @@ GM_Level_Branch:;
     // Enter level loop
     gamemode &= 0x7F;
     while (1) {
-        // Handle pausing the game when pressing Start
-        PauseGame();
+        // Handle pausing the game when pressing Start (not in the level editor's mode: Start does nothing there)
+        if (gamemode != GameMode_Editor)
+            PauseGame();
 
         // Debug console (SonicSmoke only -- see Console.c's own comment).
         // No-ops immediately unless console_enabled AND currently open.
@@ -477,7 +478,7 @@ GM_Level_Branch:;
         if (gamemode != GameMode_Demo) {
 
             // Break if exited the level gamemode
-            if (gamemode != GameMode_Level)
+            if (gamemode != GameMode_Level && gamemode != GameMode_Editor)
                 break;
         } else {
             // Begin to fade if restart flag set or demo ended

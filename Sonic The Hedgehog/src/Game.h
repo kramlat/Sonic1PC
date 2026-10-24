@@ -22,6 +22,7 @@ typedef enum {
 #ifdef SCP_COUNTDOWN
 	GameMode_Countdown,
 #endif
+	GameMode_Editor, // the built-in level editor has the level: the level screen without play (no demo, no pause, no fades or deaths: EditorLive.h)
 } GameMode;
 
 //Game state

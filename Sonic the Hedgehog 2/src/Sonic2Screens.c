@@ -36,6 +36,7 @@ const ScreenFunc game_screens[] = {
     [GameMode_Title] = GM_Title,
     [GameMode_Demo] = Screen_Level,
     [GameMode_Level] = Screen_Level,
+    [GameMode_Editor] = Screen_Level,
     [GameMode_Special] = GM_Special,
     [GameMode_Continue] = GM_Continue,
     [GameMode_Ending] = GM_Ending,

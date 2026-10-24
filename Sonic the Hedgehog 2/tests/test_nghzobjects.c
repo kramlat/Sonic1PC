@@ -4,6 +4,7 @@
 
 #include "Level.h"
 #include "Object.h"
+#include "Object/Crocobot.h"
 #include "Object/NGHZBadniks.h"
 #include "Object/NGHZBoss.h"
 #include "Object/BossCommon.h"
@@ -220,6 +221,20 @@ static void NGHZObjects_TheChopChopSwimsAndSpitsBubblesAndDashesAtSonic(void) {
     CHECK_EQ(fish->xsp, -0x200);
 }
 
+static void SSZObjects_TheCrocobotIsSetUpAndFallsUntilItMeetsTheFloor(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_SSZ, 0);
+    Object *croc = Spawn(0x4E, 0, 400, 300);
+    Obj_Crocobot(croc);
+    CHECK_EQ(croc->col_type, 0x0A);
+    CHECK_EQ(croc->width_pixels, 0x10);
+    CHECK_EQ(croc->y_rad, 0x10);
+    CHECK_EQ(croc->tile & 0x7FF, 0x411);
+    CHECK(croc->mappings != NULL);
+    CHECK_EQ(croc->routine, 0); // (no floor under it here: it keeps falling)
+    CHECK(croc->ysp > 0);
+}
+
 void RegisterNGHZObjectTests(void) {
     RUN_TEST(NGHZObjects_TheShooterFiresWhenSonicHasBeenNearAndGoes);
     RUN_TEST(NGHZObjects_AnArrowFliesTheWayTheShooterFaces);
@@ -231,4 +246,5 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(NGHZObjects_TheWhispFollowsSonicWithinItsSpeedLimit);
     RUN_TEST(NGHZObjects_TheGrounderBreaksItsWallAndWalksToSonic);
     RUN_TEST(NGHZObjects_TheChopChopSwimsAndSpitsBubblesAndDashesAtSonic);
+    RUN_TEST(SSZObjects_TheCrocobotIsSetUpAndFallsUntilItMeetsTheFloor);
 }

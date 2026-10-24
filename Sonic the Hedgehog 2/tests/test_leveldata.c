@@ -1,6 +1,9 @@
 #include "test.h"
 
 #include "Level.h"
+#include "Palette.h"
+#include "Backend/VDP.h"
+#include <string.h>
 #include "Constants.h"
 
 // The Simon Wai prototype's level tables (Emerald Hill's, Metropolis's and Hill Top's are the alpha's since it was imported: these are the zones' rows that are still the prototype's, and Hill Top's), as its disassembly has them (s2b.asm: StartLocations, LevelSize, levartptrs): the port's own tables must say the same, zone by zone.
@@ -82,8 +85,74 @@ static void LevelData_RingLayoutsAreInOrderOfX(void) {
     CHECK(rings > 500);
 }
 
+// Sand Shower's palette cycle: four colours go round in colours 8 to 11 of the fourth line, a step every 8 ticks
+void PaletteCycle(void);
+extern int16_t pcyc_time;
+static void LevelData_SandShowerCyclesFourColoursOfTheFourthLine(void) {
+    static const uint16_t colours[4] = { 0x0048, 0x046A, 0x048C, 0x08CE };
+    level_id = LEVEL_ID(ZoneId_SSZ, 0);
+    restart = 0;
+    pcyc_time = 0;
+    PaletteCycle();
+    int first = -1;
+    for (int c = 0; c < 4; c++) {
+        if (dry_palette[3][8] == colours[c])
+            first = c;
+    }
+    CHECK(first >= 0);
+    for (int i = 0; i < 4; i++)
+        CHECK_EQ(dry_palette[3][8 + i], colours[(first + i) & 3]);
+    for (int tick = 0; tick < 7; tick++) { // (nothing changes until the 8th tick)
+        PaletteCycle();
+        CHECK_EQ(dry_palette[3][8], colours[first]);
+    }
+    PaletteCycle(); // (the step)
+    for (int i = 0; i < 4; i++)
+        CHECK_EQ(dry_palette[3][8 + i], colours[(first + 1 + i) & 3]);
+}
+
+// Sand Shower's cactus tops (tile $2E8, 5 tiles, five frames 0, 5, 10, 5, 0 of 7 ticks each): each step shows the next drawing, then back
+void S2_PrimeLevelArt(void);
+void S2_AnimateLevelArt(void);
+static void LevelData_SandShowerCactusTopsSwayThroughThreeDrawings(void) {
+    level_id = LEVEL_ID(ZoneId_SSZ, 0);
+    const uint8_t *tiles = (const uint8_t *)VDP_TileSpace() + 0x2E8 * 0x20;
+    S2_PrimeLevelArt();
+    // (the counters are not started at the load: tick until the picture changes, and the steps follow every 7 ticks)
+    uint8_t first[160];
+    memcpy(first, tiles, 160);
+    int ticks = 0;
+    while (ticks < 40) {
+        S2_AnimateLevelArt();
+        ticks++;
+        if (memcmp(first, tiles, 160) != 0)
+            break;
+    }
+    CHECK(ticks < 40);
+    uint8_t shown[10][160];
+    memcpy(shown[0], tiles, 160);
+    for (int step = 1; step < 10; step++) {
+        for (int tick = 0; tick < 7; tick++)
+            S2_AnimateLevelArt();
+        memcpy(shown[step], tiles, 160);
+    }
+    // (the script is 0, 5, 10, 5, 0 and round again: a round of five steps in which the first drawing is shown twice)
+    for (int i = 0; i < 5; i++)
+        CHECK(memcmp(shown[i], shown[i + 5], 160) == 0);
+    int distinct = 0;
+    for (int i = 0; i < 5; i++) {
+        bool seen = false;
+        for (int j = 0; j < i; j++)
+            seen = seen || memcmp(shown[i], shown[j], 160) == 0;
+        distinct += !seen;
+    }
+    CHECK_EQ(distinct, 3);
+}
+
 void RegisterLevelDataTests(void) {
     RUN_TEST(LevelData_StartPositionsMatchThePrototype);
+    RUN_TEST(LevelData_SandShowerCactusTopsSwayThroughThreeDrawings);
+    RUN_TEST(LevelData_SandShowerCyclesFourColoursOfTheFourthLine);
     RUN_TEST(LevelData_LevelSizesMatchThePrototype);
     RUN_TEST(LevelData_ArtListsAreThePrototypes);
     RUN_TEST(LevelData_RingLayoutsAreInOrderOfX);

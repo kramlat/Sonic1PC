@@ -19,6 +19,7 @@ const ScreenFunc game_screens[] = {
     [GameMode_Title] = GM_Title,
     [GameMode_Demo] = GM_Level, // a demo is the level screen playing a recording back
     [GameMode_Level] = GM_Level,
+    [GameMode_Editor] = GM_Level, // (the level screen, edited)
     [GameMode_Special] = GM_Special,
     [GameMode_Continue] = GM_Continue,
     [GameMode_Ending] = GM_Ending,

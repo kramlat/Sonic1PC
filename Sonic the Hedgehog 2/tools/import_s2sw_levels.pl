@@ -61,7 +61,7 @@ my %alpha = (
 );
 # What each zone's header names: its sprite art list (PlcId; the zones that are not built yet share Hill Top's, which has the common art) and its palette (PalId)
 my %plc = (EHZ => 'PlcId_SLZ', WZ => '0', MTZ => 'PlcId_MTZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', OOZ => 'PlcId_OOZ', DHZ => 'PlcId_DHZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ', CNZ => 'PlcId_LZ', GCZ => '0', SSZ => '0');
-my %plc2 = (WZ => 'PlcId_SLZ2', MTZ => 'PlcId_MTZ2', HTZ => 'PlcId_SBZ2', OOZ => 'PlcId_OOZ2', DHZ => 'PlcId_DHZ2', CPZ => 'PlcId_MZ2', NGHZ => 'PlcId_GHZ2', CNZ => 'PlcId_LZ2'); # (the second list of a zone, loaded with the first: only the zones that have a second one)
+my %plc2 = (SSZ => 'PlcId_SSZ2', WZ => 'PlcId_SLZ2', MTZ => 'PlcId_MTZ2', HTZ => 'PlcId_SBZ2', OOZ => 'PlcId_OOZ2', DHZ => 'PlcId_DHZ2', CPZ => 'PlcId_MZ2', NGHZ => 'PlcId_GHZ2', CNZ => 'PlcId_LZ2'); # (the second list of a zone, loaded with the first: only the zones that have a second one)
 # The zones whose objects are ported: the others have the object layouts imported but none put in their level yet (their objects come with the zone)
 my %objects_built = map { $_ => 1 } qw(EHZ MTZ HTZ HPZ OOZ DHZ CPZ NGHZ CNZ GCZ SSZ);
 my %pal = (EHZ => 'PalId_EHZ', HTZ => 'PalId_HTZ', HPZ => 'PalId_HPZ', CPZ => 'PalId_CPZ', WZ => 'PalId_WZ', MTZ => 'PalId_MTZ', OOZ => 'PalId_OOZ', DHZ => 'PalId_DHZ', CNZ => 'PalId_CNZ', NGHZ => 'PalId_NGHZ', GCZ => 'PalId_GCZ', SSZ => 'PalId_SSZ');
@@ -212,8 +212,33 @@ for my $name (@order) {
     my $z = 'SSZ';
     my %copy = ("$imp/art/SSZ.kos" => "S2Art/$z", "$imp/blk/SSZ.kos" => "S2Map16/$z", "$imp/chnk/SSZ.kos" => "S2Map128/$z",
                 "$imp/cols/SSZ primary 16x16 collision index.kos" => "S2Collision/${z}1", "$imp/cols/SSZ secondary 16x16 collision index.kos" => "S2Collision/${z}2",
-                "$imp/pal/SSZ.bin" => "S2Palette/$z");
+                "$imp/pal/SSZ.bin" => "S2Palette/$z", "$imp/art/Cactus Top (SSZ).bin" => "S2Art/SSZCactusTop"); # (the last: uncompressed frames of an animated tile group, see AnimatedArt.c)
     for my $src (sort keys %copy) { spit("$res/$copy{$src}", slurp($src)) if -e $src; push @resources, $copy{$src} }
+    # the zone's object art (Nemesis, as the art lists load it) and mappings (the final game's format) from the staging folder's patches: its rock, platform, swinging platform and collapsing platform, the mappings of the
+    # swinging platform (15), the platform (19), the rock (32) and object 83, and the Crocobot (4E: its mappings are cut out of the object's source, objgator.asm)
+    my %art = ("Rock from SSZ.nem" => "Art/SSZRock", "Large moving platform from SSZ.nem" => "Art/SSZPlatform", "Swinging platform from SSZ.nem" => "Art/SSZSwingPlatform",
+               "SSZ collapsing platform.nem" => "Art/SSZCollapsingPlatform", "obj15_SSZ.bin" => "Mappings/SSZSwingPlatform", "obj19_SSZ.bin" => "Mappings/SSZPlatform",
+               "obj32_SSZ.bin" => "Mappings/SSZRock", "obj83_SSZ.bin" => "Mappings/SSZRotator");
+    for my $file (sort keys %art) {
+        spit("$res/$art{$file}", slurp("$imp/art/$file")) if -e "$imp/art/$file";
+    }
+    if (-e "$imp/art/objgator.asm") {
+        my $asm = slurp("$imp/art/objgator.asm");
+        my ($body) = $asm =~ /^loc_1F420:\s*\n(.*?)^\s*;\s*-{10}/ms or die "Crocobot's mappings not found in objgator.asm\n";
+        my @frames = $body =~ /dc\.w\s+(loc_\w+)-loc_1F420/g;
+        my ($data) = $body =~ /\n(\s*loc_\w+:\s*\n.*)/s or die;
+        my $out = '';
+        my @offsets; my $at = 2 * @frames;
+        for my $block (split /^\s*loc_\w+:\s*\n/m, $data) {
+            next unless $block =~ /\S/;
+            my @words = $block =~ /dc\.[wl]\s+([^\n;]+)/g;
+            my $bytes = '';
+            for my $w (@words) { for my $v (split /\s*,\s*/, $w) { $v =~ s/^\s+|\s+$//g; $v =~ s/^\$//; my $n = hex($v); $bytes .= length($v) > 4 ? pack('N', $n) : pack('n', $n) } }
+            push @offsets, $at; $at += length $bytes; $out .= $bytes;
+        }
+        die "Crocobot's frames: " . scalar(@offsets) . " of " . scalar(@frames) . "\n" unless @offsets == @frames;
+        spit("$res/Mappings/Crocobot", pack('n*', @offsets) . $out);
+    }
     $info{$z}{slot} = 0x03;
     my @size = ([ 0x00002C80, 0x00000800 ], [ 0x00002B00, 0x00000800 ]);
     my @start = ([ 0x0060, 0x0480 ], [ 0x0060, 0x0480 ]);
