@@ -17,6 +17,7 @@ extern "C" {
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSpinBox>
@@ -60,6 +61,8 @@ struct State {
 	int palette_line = 1, colour = 1;         // the line the tiles are shown in and the colour the pencil paints
 	int block_cell = 0;                       // which of a block's four tiles is being edited
 	int sel_line = 1, sel_index = 1;          // the palette's selection
+	quint64 change_count = 0;                 // counts the changes (what caches go by)
+	int solid_view = 1;                       // the solids drawn over the chunk's blocks: 0 none, 1 path 1, 2 path 2
 	QWidget *palette_pane = nullptr, *tile_grid = nullptr, *tile_canvas = nullptr, *block_grid = nullptr, *block_canvas = nullptr, *chunk_grid = nullptr, *chunk_canvas = nullptr, *solid_pane = nullptr;
 	std::function<void()> refresh_all;
 } s;
@@ -77,6 +80,7 @@ int ChunkCount() { size_t n; Editor_Chunks(&n); return int(n / 128); }
 
 void Changed(bool redraw) {
 	InvalidateThumbs();
+	s.change_count++;
 	s.dirty = true;
 	if (redraw)
 		Editor_RedrawLevel();
@@ -138,6 +142,30 @@ void DrawChunk(QPainter *p, int chunk, const QRect &at) {
 			const uint16_t word = Be16(chunks + chunk * 128 + (by * 8 + bx) * 2);
 			DrawBlock(p, word & 0x3FF, QRect(at.x() + bx * cell, at.y() + by * cell, cell, cell), word & 0x0400, word & 0x0800);
 		}
+}
+
+// Blocks that some chunk marks solid on a path while the block has no collision curve there (the level walks through them): what the Blocks tab outlines in orange, to be given a curve in the Solids tab
+bool NeedsCurve(int block, int path) {
+	static QVector<uint8_t> need[2];
+	static quint64 stamp = ~0ull;
+	size_t bytes;
+	const uint8_t *chunks = Editor_Chunks(&bytes);
+	const quint64 now = quint64(s.change_count);
+	if (now != stamp) {
+		stamp = now;
+		for (int path_i = 0; path_i < 2; path_i++) {
+			need[path_i].fill(0, 0x400);
+			size_t sb;
+			const uint8_t *solids = Editor_Solids(path_i, &sb);
+			for (size_t i = 0; chunks != nullptr && solids != nullptr && i + 1 < bytes; i += 2) {
+				const uint16_t w = Be16(chunks + i);
+				const int b = w & 0x3FF;
+				if (((w >> (12 + path_i * 2)) & 3) != 0 && b != 0 && size_t(b) < sb && solids[b] == 0)
+					need[path_i][b] = 1;
+			}
+		}
+	}
+	return block >= 0 && block < 0x400 && need[path & 1][block];
 }
 
 // A grid of things in a scroll area: `count` cells of `cell` pixels, `columns` to a row; a click selects
@@ -387,6 +415,46 @@ protected:
 	}
 };
 
+// The solidity of a chunk's block over its picture, for the path being shown (1 or 2): the colour follows the shape of the block's collision curve on that path (its flips as the chunk has them), semi-transparent:
+// top solid is clear white, left and right solid yellow with the bottom edge in red, all solid black. A block whose curve is empty has no shape, so nothing is drawn.
+void DrawSolidOverlay(QPainter *p, uint16_t word, int path, const QRect &at) {
+	const int bits = path == 2 ? (word >> 14) & 3 : (word >> 12) & 3;
+	if (bits == 0)
+		return;
+	size_t bytes;
+	const uint8_t *solids = Editor_Solids(path == 2 ? 1 : 0, &bytes);
+	const uint8_t *heights = Editor_HeightMap();
+	const int block = word & 0x3FF;
+	if (solids == nullptr || heights == nullptr || size_t(block) >= bytes)
+		return;
+	const int curve = solids[block];
+	if (curve == 0)
+		return;
+	const bool x_flip = word & 0x0400, y_flip = word & 0x0800;
+	const double cw = at.width() / 16.0, ch = at.height() / 16.0;
+	QPainterPath shape;
+	for (int x = 0; x < 16; x++) {
+		int h = heights[curve * 16 + (x_flip ? 15 - x : x)];
+		h = h <= 16 ? h : (h >= 0xF0 ? -(256 - h) : 16); // (a negative height hangs from the top)
+		if (h == 0)
+			continue;
+		const bool from_bottom = (h > 0) != y_flip;
+		const int rows = h > 0 ? h : -h;
+		shape.addRect(QRectF(at.x() + x * cw, from_bottom ? at.y() + at.height() - rows * ch : at.y(), cw, rows * ch));
+	}
+	p->setPen(Qt::NoPen);
+	if (bits == 1) { // top only
+		p->fillPath(shape, QColor(255, 255, 255, 130));
+	} else if (bits == 2) { // left, right and bottom
+		p->fillPath(shape, QColor(255, 230, 0, 130));
+		QPainterPath bottom;
+		bottom.addRect(QRectF(at.x(), y_flip ? at.y() : at.y() + at.height() * 0.75, at.width(), at.height() * 0.25));
+		p->fillPath(shape.intersected(bottom), QColor(255, 40, 40, 170));
+	} else { // all
+		p->fillPath(shape, QColor(0, 0, 0, 150));
+	}
+}
+
 // The chunk: eight by eight blocks. Left click places the selected block, right click picks the one under it
 class ChunkCanvas : public QWidget {
 public:
@@ -404,23 +472,13 @@ protected:
 			p.drawLine(i * 40, 0, i * 40, height());
 			p.drawLine(0, i * 40, width(), i * 40);
 		}
-		// the solid blocks (path 1) outlined in red
+		// the solids of the path being shown, over the blocks
 		size_t bytes;
 		const uint8_t *chunks = Editor_Chunks(&bytes);
-		if (chunks == nullptr || size_t(s.chunk + 1) * 128 > bytes)
+		if (s.solid_view == 0 || chunks == nullptr || size_t(s.chunk + 1) * 128 > bytes)
 			return;
-		p.setBrush(Qt::NoBrush);
-		for (int i = 0; i < 64; i++) {
-			const uint16_t w = Be16(chunks + s.chunk * 128 + i * 2);
-			if (w & 0x3000) {
-				p.setPen(QPen(QColor(255, 60, 60, 200), 1));
-				p.drawRect(QRect((i % 8) * 40 + 2, (i / 8) * 40 + 2, 36, 36));
-			}
-			if (w & 0xC000) {
-				p.setPen(QPen(QColor(80, 160, 255, 200), 1));
-				p.drawRect(QRect((i % 8) * 40 + 5, (i / 8) * 40 + 5, 30, 30));
-			}
-		}
+		for (int i = 0; i < 64; i++)
+			DrawSolidOverlay(&p, Be16(chunks + s.chunk * 128 + i * 2), s.solid_view, QRect((i % 8) * 40, (i / 8) * 40, 40, 40));
 	}
 	void mousePressEvent(QMouseEvent *e) override { Use(e); }
 	void mouseMoveEvent(QMouseEvent *e) override { Use(e); }
@@ -465,7 +523,7 @@ public:
 		for (int path = 0; path < 2; path++) {
 			spin[path] = new QSpinBox(this);
 			spin[path]->setRange(0, 255);
-			spin[path]->setPrefix(path == 0 ? "Path 1 curve " : "Path 2 curve ");
+			spin[path]->setPrefix(path == 0 ? "Path A curve " : "Path B curve ");
 			row->addWidget(spin[path]);
 			connect(spin[path], qOverload<int>(&QSpinBox::valueChanged), this, [this, path](int v) {
 				if (loading)
@@ -478,7 +536,7 @@ public:
 				}
 			});
 		}
-		same = new QPushButton("Copy path 1 to path 2", this);
+		same = new QPushButton("Copy path A to path B", this);
 		connect(same, &QPushButton::clicked, this, [this] {
 			size_t b0, b1;
 			uint8_t *p0 = Editor_Solids(0, &b0), *p1 = Editor_Solids(1, &b1);
@@ -491,10 +549,10 @@ public:
 		row->addStretch();
 		layout->addLayout(row);
 		view = new QWidget(this);
-		view->setFixedSize(2 * 16 * 14 + 40, 16 * 8 + 20);
+		view->setFixedSize(2 * (16 * 8 + 24), 16 * 8 + 20);
 		view->installEventFilter(this);
 		layout->addWidget(view);
-		layout->addWidget(Note("Pick a block in the Blocks tab. The bars are the curve's 16 heights (up from the bottom of the block; a curve of 0 is empty); red outlines in the Blocks and Chunks tabs mark blocks that are solid.", this));
+		layout->addWidget(Note("Pick a block in the Blocks tab. The block is drawn at 8 times its size with its collision curve over it, a pixel of the block for each 8 here: the curve's heights are how many pixels of each column are solid (from the bottom up; a curve of 0 is empty). Red outlines in the Blocks tab mark blocks that have a curve, orange ones blocks that a chunk marks solid but that have none (the level walks through them).", this));
 		layout->addStretch();
 	}
 
@@ -520,16 +578,23 @@ protected:
 		const uint8_t *angles = Editor_CurveAngles();
 		for (int path = 0; path < 2; path++) {
 			const int curve = spin[path]->value();
-			const int x0 = path * (16 * 14 + 40);
-			p.fillRect(QRect(x0, 0, 16 * 14, 16 * 8), QColor(24, 24, 28));
+			const int x0 = path * (16 * 8 + 24);
+			// the block as it is, a pixel of it for each 8 on the screen, and the curve laid over it (path 1 red, path 2 blue): the curve's height in a column is how many pixels of the block it fills
+			p.fillRect(QRect(x0, 0, 16 * 8, 16 * 8), QColor(24, 24, 28));
+			DrawBlock(&p, s.block, QRect(x0, 0, 16 * 8, 16 * 8));
 			if (heights != nullptr)
 				for (int x = 0; x < 16; x++) {
 					int h = heights[curve * 16 + x];
-					h = h < 16 ? h : (h >= 0xF0 ? -(256 - h) : 16); // (a negative height hangs from the top)
-					p.fillRect(QRect(x0 + x * 14, h >= 0 ? 16 * 8 - h * 8 : 0, 13, h >= 0 ? h * 8 : -h * 8), path == 0 ? QColor(255, 80, 80) : QColor(90, 160, 255));
+					h = h <= 16 ? h : (h >= 0xF0 ? -(256 - h) : 16); // (a negative height hangs from the top)
+					p.fillRect(QRect(x0 + x * 8, h >= 0 ? (16 - h) * 8 : 0, 8, h >= 0 ? h * 8 : -h * 8), path == 0 ? QColor(255, 40, 40, 130) : QColor(60, 120, 255, 130));
 				}
+			p.setPen(QColor(0, 0, 0, 60));
+			for (int i = 0; i <= 16; i++) {
+				p.drawLine(x0 + i * 8, 0, x0 + i * 8, 16 * 8);
+				p.drawLine(x0, i * 8, x0 + 16 * 8, i * 8);
+			}
 			p.setPen(view->palette().color(QPalette::WindowText));
-			p.drawText(QPoint(x0, 16 * 8 + 14), QString("curve %1  angle $%2").arg(curve).arg(angles ? angles[curve] : 0, 2, 16, QChar('0')).toUpper());
+			p.drawText(QPoint(x0, 16 * 8 + 14), QString("%1: curve %2, angle $%3").arg(path == 0 ? "A" : "B").arg(curve).arg(QString::number(angles ? angles[curve] : 0, 16).toUpper(), 2, QChar('0')));
 		}
 		return true;
 	}
@@ -712,6 +777,10 @@ void AddTabs(QTabWidget *tabs) {
 				                            p->setPen(QPen(QColor(255, 60, 60), 1));
 				                            p->setBrush(Qt::NoBrush);
 				                            p->drawRect(at.adjusted(1, 1, -2, -2));
+			                            } else if (NeedsCurve(i, 0) || NeedsCurve(i, 1)) { // (marked solid by a chunk but with no curve)
+				                            p->setPen(QPen(QColor(255, 150, 0), 2));
+				                            p->setBrush(Qt::NoBrush);
+				                            p->drawRect(at.adjusted(1, 1, -2, -2));
 			                            }
 		                            },
 		                            &s.block, [] { if (s.refresh_all) s.refresh_all(); });
@@ -748,15 +817,20 @@ void AddTabs(QTabWidget *tabs) {
 		auto *chunk_canvas = new ChunkCanvas();
 		auto *cx = new QCheckBox("X flip", chunk_page);
 		auto *cy = new QCheckBox("Y flip", chunk_page);
-		auto *s1t = new QCheckBox("Path 1 top solid", chunk_page);
-		auto *s1l = new QCheckBox("Path 1 sides and bottom solid", chunk_page);
-		auto *s2t = new QCheckBox("Path 2 top solid", chunk_page);
-		auto *s2l = new QCheckBox("Path 2 sides and bottom solid", chunk_page);
+		auto *s1t = new QCheckBox("Path A top solid", chunk_page);
+		auto *s1l = new QCheckBox("Path A sides and bottom solid", chunk_page);
+		auto *s2t = new QCheckBox("Path B top solid", chunk_page);
+		auto *s2l = new QCheckBox("Path B sides and bottom solid", chunk_page);
+		auto *solid_box = new QComboBox(chunk_page);
+		solid_box->addItems({ "Solids shown: none", "Solids shown: path A (primary)", "Solids shown: path B (secondary)" });
+		solid_box->setCurrentIndex(s.solid_view);
+		QObject::connect(solid_box, qOverload<int>(&QComboBox::currentIndexChanged), chunk_page, [](int v) { s.solid_view = v; if (s.refresh_all) s.refresh_all(); });
 		chunk_side->addWidget(chunk_label);
+		chunk_side->addWidget(solid_box);
 		chunk_side->addWidget(chunk_canvas);
 		for (QCheckBox *box : { cx, cy, s1t, s1l, s2t, s2l })
 			chunk_side->addWidget(box);
-		chunk_side->addWidget(Note("Left click places the block selected in Blocks (with these flags), right click picks the block and flags under the pointer. Red outlines are path 1 solids, blue path 2.", chunk_page));
+		chunk_side->addWidget(Note("Left click places the block selected in Blocks (with these flags), right click picks the block and flags under the pointer. The solids of the path shown are laid over the blocks: top solid is clear white, left and right solid yellow (with the bottom in red), all solid black.", chunk_page));
 		chunk_side->addStretch();
 		chunk_layout->addLayout(chunk_side, 1);
 		tabs->addTab(Page(chunk_page), "Chunks");
@@ -863,6 +937,13 @@ void AddTabs(QTabWidget *tabs) {
 		};
 	}
 	s.refresh_all();
+}
+
+void SelectForTest(int block, int chunk) {
+	s.block = block;
+	s.chunk = chunk;
+	if (s.refresh_all)
+		s.refresh_all();
 }
 
 void Refresh() {

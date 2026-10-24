@@ -10,6 +10,7 @@ class QTabWidget;
 namespace TerrainEditor {
 
 void AddTabs(QTabWidget *tabs); // adds the terrain tools' tabs to the level editor's window
+void SelectForTest(int block, int chunk); // selects a block and a chunk (the automated check's)
 void Refresh();                 // shows the level's data again (it was loaded, or changed elsewhere)
 bool Dirty();                   // something has been changed and not saved
 void Reset();                   // a level (or none) is being edited anew: nothing is changed

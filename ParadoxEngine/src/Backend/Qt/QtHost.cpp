@@ -707,6 +707,7 @@ void QtHost_PumpEvents(void) {
 				uint8_t *layout = Editor_Layout(&n);
 				layout[8 * 256 + 1] = 0; // (the foreground's chunk under the first player)
 				Editor_RedrawLevel();
+				TerrainEditor::SelectForTest(0x20, 2);
 			}
 			if (getenv("SONIC_QT_PLAYTEST") && (editor_frame == start + atoi(getenv("SONIC_QT_PLAYTEST")) || editor_frame == start + atoi(getenv("SONIC_QT_PLAYTEST")) + 90))
 				LevelEditor::TogglePlaytest();
