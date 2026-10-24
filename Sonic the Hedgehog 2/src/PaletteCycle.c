@@ -2,6 +2,7 @@
 #include "Constants.h"
 
 #include "Level.h"
+#include "MathUtil.h"
 #include "Palette.h"
 #include "SpecialStage.h"
 #include "Video.h"
@@ -306,8 +307,21 @@ static uint16_t PCycleWord(const uint8_t *table, int index) {
     return (uint16_t)((table[index * 2] << 8) | table[index * 2 + 1]);
 }
 
+// Cyber City's last colour of the fourth line ($3F): a slow pulse by a sine between $0004 (a very dark red: it starts there so that the colour does not jump in big steps) and $000E (the brightest red the palette has, like a LED: with no green in it, so it does not turn orange), a round in about three
+// seconds, for the red lights of the floor. Only the red channel moves (2 to 7) and each step takes its share of the sine
+static void PCycle_GCZ_Lights(void) {
+    static uint16_t angle; // (a 256th of a round is 256 here: 8.8)
+    angle = (uint16_t)(angle + 0x0170);
+    int16_t sin, cos;
+    CalcSine((uint8_t)(angle >> 8), &sin, &cos);
+    const int t = (0x100 - cos); // 0 (the dark end) to $1FF (the bright one) and back: the cosine's own turn
+    const int red = 2 + (5 * t + 0x100) / 0x200;
+    dry_palette[3][15] = (uint16_t)(red << 1);
+}
+
 static void PCycle_GCZ(void) {
     static int16_t frame, frame2, timer2;
+    PCycle_GCZ_Lights();
     static const uint8_t lava_delay[16] = { 0xB, 0xB, 0xB, 0xA, 8, 0xA, 0xB, 0xB, 0xB, 0xB, 0xD, 0xF, 0xD, 0xB, 0xB, 0xB };
     if (--pcyc_time < 0) {
         pcyc_time = 2;

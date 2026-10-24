@@ -149,8 +149,31 @@ static void LevelData_SandShowerCactusTopsSwayThroughThreeDrawings(void) {
     CHECK_EQ(distinct, 3);
 }
 
+// Cyber City's lights: the last colour of the fourth line pulses slowly between $0004 and $000E
+static void LevelData_CyberCityLightsPulseBetweenTheirTwoColours(void) {
+    level_id = LEVEL_ID(ZoneId_GCZ, 0);
+    restart = 0;
+    uint16_t low = 0xFFFF, high = 0;
+    uint16_t last = 0;
+    int changes = 0;
+    for (int tick = 0; tick < 400; tick++) {
+        PaletteCycle();
+        const uint16_t c = dry_palette[3][15];
+        if (c < low)
+            low = c;
+        if (c > high)
+            high = c;
+        changes += c != last;
+        last = c;
+    }
+    CHECK_EQ(low, 0x0004);
+    CHECK_EQ(high, 0x000E);
+    CHECK(changes > 10 && changes < 400); // (a slow pulse: it is not a change every tick)
+}
+
 void RegisterLevelDataTests(void) {
     RUN_TEST(LevelData_StartPositionsMatchThePrototype);
+    RUN_TEST(LevelData_CyberCityLightsPulseBetweenTheirTwoColours);
     RUN_TEST(LevelData_SandShowerCactusTopsSwayThroughThreeDrawings);
     RUN_TEST(LevelData_SandShowerCyclesFourColoursOfTheFourthLine);
     RUN_TEST(LevelData_LevelSizesMatchThePrototype);
