@@ -229,10 +229,25 @@ static void SSZObjects_TheCrocobotIsSetUpAndFallsUntilItMeetsTheFloor(void) {
     CHECK_EQ(croc->col_type, 0x0A);
     CHECK_EQ(croc->width_pixels, 0x10);
     CHECK_EQ(croc->y_rad, 0x10);
-    CHECK_EQ(croc->tile & 0x7FF, 0x411);
+    CHECK_EQ(croc->tile & 0x7FF, 0x408); // (its art slot, moved from $411 to clear the rock)
     CHECK(croc->mappings != NULL);
     CHECK_EQ(croc->routine, 0); // (no floor under it here: it keeps falling)
     CHECK(croc->ysp > 0);
+}
+
+static void SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_SSZ, 0);
+    Object *swing = Spawn(0x15, 0x06, 600, 400);
+    Obj_SwingDispatch(swing);
+    CHECK_EQ(swing->width_pixels, 0x20);
+    CHECK_EQ(swing->y_rad, 8);
+    CHECK_EQ(swing->tile & 0x7FF, 0); // (the level's own tiles: the platform is made of them)
+    CHECK(swing->mappings != NULL);
+    int chains = 0;
+    for (int i = 1; i < 0x60; i++)
+        chains += objects[i].type == 0x15 && objects[i].render.f.multi_sprite;
+    CHECK_EQ(chains, 1);
 }
 
 void RegisterNGHZObjectTests(void) {
@@ -247,4 +262,5 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(NGHZObjects_TheGrounderBreaksItsWallAndWalksToSonic);
     RUN_TEST(NGHZObjects_TheChopChopSwimsAndSpitsBubblesAndDashesAtSonic);
     RUN_TEST(SSZObjects_TheCrocobotIsSetUpAndFallsUntilItMeetsTheFloor);
+    RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
 }

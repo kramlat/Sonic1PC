@@ -19,6 +19,7 @@
 #include "Resource/Animation/ArrowShooter.h"
 #include "Resource/Mappings/ArrowShooter.h"
 #include "Resource/Mappings/NGHZLeaf.h"
+#include "Resource/Mappings/SSZSwing.h"
 
 // What the object does for each of the two characters: `chr` is NULL for a Tails who is not there
 #define FOR_EACH_CHARACTER(chr, who) \
@@ -405,6 +406,11 @@ void Obj_NGHZSwing(Object *obj) {
             obj->tile = TILE_MAP(0, 0, 0, 0, 0);
             obj->width_pixels = 0x20;
             obj->y_rad = 8;
+        } else if (LEVEL_ZONE(level_id) == ZoneId_SSZ) { // Sand Shower (the staged objpatch-swing.asm: drawn from the level's own tiles, $20 wide, $8 high: the platform is tile $264, the links $260 and the fulcrum $25C, see the importer)
+            obj->mappings = Mappings_SSZSwing;
+            obj->tile = TILE_MAP(0, 0, 0, 0, 0);
+            obj->width_pixels = 0x20;
+            obj->y_rad = 8;
         } else if (LEVEL_ZONE(level_id) == ZoneId_MCZ) { // Dust Hill
             obj->mappings = Mappings_DHZSwing;
             obj->tile = TILE_MAP(0, 0, 0, 0, 0);
@@ -540,7 +546,7 @@ void Obj_NGHZSwing(Object *obj) {
 
 void Obj_SwingDispatch(Object *obj) {
     const int zone = LEVEL_ZONE(level_id);
-    if (zone == ZoneId_ARZ || zone == ZoneId_MCZ || zone == ZoneId_OOZ)
+    if (zone == ZoneId_ARZ || zone == ZoneId_MCZ || zone == ZoneId_OOZ || zone == ZoneId_SSZ)
         Obj_NGHZSwing(obj);
     else
         Obj_SwingingPlatform(obj);

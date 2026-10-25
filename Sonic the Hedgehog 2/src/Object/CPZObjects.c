@@ -568,7 +568,7 @@ void Obj_TubeCover(Object *obj) {
         const bool rock = LEVEL_ZONE(level_id) != ZoneId_CPZ; // (Hill Top's rock: Obj_0x32 is the same object there, with its own art, width and pieces)
         const bool sand = LEVEL_ZONE(level_id) == ZoneId_SSZ; // (Sand Shower's rock: its own mappings, art at $3B2, 16 pixels wide, six pieces like Hill Top's; the third row of the palette (line 2 counting from 0): the mapping's words already say line 2 and high priority ($C0xx) and the engine adds the object's tile word to them, so the object adds no line of its own (a line on top of the mapping's 2 made it the wrong row))
         obj->mappings = sand ? Mappings_SSZRock : rock ? Mappings_HTZRock : Mappings_TubeCover;
-        obj->tile = sand ? TILE_MAP(0, 0, 0, 0, 0x3B2) : rock ? TILE_MAP(0, 2, 0, 0, ARTTILE_HTZ_ROCK) : TILE_MAP(0, 3, 0, 0, ARTTILE_TUBE_COVER);
+        obj->tile = sand ? TILE_MAP(0, 0, 0, 0, 0x3BA) : rock ? TILE_MAP(0, 2, 0, 0, ARTTILE_HTZ_ROCK) : TILE_MAP(0, 3, 0, 0, ARTTILE_TUBE_COVER);
         obj->width_pixels = rock && !sand ? 0x18 : 0x10;
         obj->render.b = SPRITE_CAM_FIELD;
         obj->priority = 4;

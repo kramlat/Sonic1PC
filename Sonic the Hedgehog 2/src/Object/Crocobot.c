@@ -9,7 +9,7 @@
 
 #include "Resource/Mappings/Crocobot.h"
 
-#define ARTTILE_CROCOBOT 0x411 // (the staged ani.asm's, art tile $2411: palette line 1)
+#define ARTTILE_CROCOBOT 0x408 // (the staged ani.asm's, art tile $2411: palette line 1)
 
 typedef struct {
     uint8_t subtype;   // 0x28

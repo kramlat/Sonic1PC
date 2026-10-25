@@ -60,7 +60,7 @@ my %alpha = (
              blocks => 'Blocks.dat', tiles => 'Tiles.nem', chunks => 'Chunks.kos', col => ['CNz_Col1.dat', 'CNz_Col2.dat'], pal => '../../Palettes/CNz_1.pal', pal2 => '../../Palettes/CNz_2.pal' },
 );
 # What each zone's header names: its sprite art list (PlcId; the zones that are not built yet share Hill Top's, which has the common art) and its palette (PalId)
-my %plc = (EHZ => 'PlcId_SLZ', WZ => '0', MTZ => 'PlcId_MTZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', OOZ => 'PlcId_OOZ', DHZ => 'PlcId_DHZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ', CNZ => 'PlcId_LZ', GCZ => '0', SSZ => '0');
+my %plc = (EHZ => 'PlcId_SLZ', WZ => '0', MTZ => 'PlcId_MTZ', HTZ => 'PlcId_SBZ', HPZ => 'PlcId_SYZ', OOZ => 'PlcId_OOZ', DHZ => 'PlcId_DHZ', CPZ => 'PlcId_MZ', NGHZ => 'PlcId_GHZ', CNZ => 'PlcId_LZ', GCZ => '0', SSZ => 'PlcId_SSZ');
 my %plc2 = (SSZ => 'PlcId_SSZ2', WZ => 'PlcId_SLZ2', MTZ => 'PlcId_MTZ2', HTZ => 'PlcId_SBZ2', OOZ => 'PlcId_OOZ2', DHZ => 'PlcId_DHZ2', CPZ => 'PlcId_MZ2', NGHZ => 'PlcId_GHZ2', CNZ => 'PlcId_LZ2'); # (the second list of a zone, loaded with the first: only the zones that have a second one)
 # The zones whose objects are ported: the others have the object layouts imported but none put in their level yet (their objects come with the zone)
 my %objects_built = map { $_ => 1 } qw(EHZ MTZ HTZ HPZ OOZ DHZ CPZ NGHZ CNZ GCZ SSZ);
@@ -218,9 +218,27 @@ for my $name (@order) {
     # swinging platform (15), the platform (19), the rock (32) and object 83, and the Crocobot (4E: its mappings are cut out of the object's source, objgator.asm)
     my %art = ("Rock from SSZ.nem" => "Art/SSZRock", "Large moving platform from SSZ.nem" => "Art/SSZPlatform", "Swinging platform from SSZ.nem" => "Art/SSZSwingPlatform",
                "SSZ collapsing platform.nem" => "Art/SSZCollapsingPlatform", "obj15_SSZ.bin" => "Mappings/SSZSwingPlatform", "obj19_SSZ.bin" => "Mappings/SSZPlatform",
-               "obj32_SSZ.bin" => "Mappings/SSZRock", "obj83_SSZ.bin" => "Mappings/SSZRotator");
+               "obj32_SSZ.bin" => "Mappings/SSZRock", "obj83_SSZ.bin" => "Mappings/SSZRotator", "Crocobot.bin" => "Art/Crocobot");
     for my $file (sort keys %art) {
         spit("$res/$art{$file}", slurp("$imp/art/$file")) if -e "$imp/art/$file";
+    }
+    # the swinging platform's mappings (object 15 in Sand Shower), from the user's tile numbers in the level's own tiles: frame 0 the platform (tile $264, 4x2 tiles, palette 2: its left end, two middle tiles and its right end, the middle ones used three times over for 64 pixels), frame 1 a chain link
+    # (tile $260, 2x2, palette 0), frame 2 the fulcrum (tile $25C, 2x2, palette 2), frame 3 nothing. The art is laid out a row of tiles after a row (the way a picture is), not in the order a sprite piece reads its tiles
+    # (a column after a column), so each is made of pieces one row high. A piece is y, size, tile word, the 2 player tile word (half the tile) and x.
+    {
+        my $piece = sub { my ($y, $size, $tile, $pal, $x) = @_; my $flags = $pal << 13; pack('CCnnn', $y & 0xFF, $size, $flags | $tile, $flags | ($tile >> 1), $x & 0xFFFF) };
+        my @frames = (
+            # the platform: a row of eight tiles, the left end, then the two middle tiles three times over, then the right end (tiles $264 to $267 on the top row, $268 to $26B on the bottom one)
+            pack('n', 10) . join('', map { my ($y, $first) = @$_;
+                $piece->($y, 0x00, $first, 2, -0x20) . join('', map { $piece->($y, 0x04, $first + 1, 2, -0x18 + 16 * $_) } 0 .. 2) . $piece->($y, 0x00, $first + 3, 2, 0x18)
+            } ([-8, 0x264], [0, 0x268])),
+            pack('n', 2) . $piece->(-8, 0x04, 0x260, 0, -8) . $piece->(0, 0x04, 0x262, 0, -8),
+            pack('n', 2) . $piece->(-8, 0x04, 0x25C, 2, -8) . $piece->(0, 0x04, 0x25E, 2, -8),
+            pack('n', 0),
+        );
+        my @offsets; my $at = 2 * @frames;
+        for my $f (@frames) { push @offsets, $at; $at += length $f }
+        spit("$res/Mappings/SSZSwing", pack('n*', @offsets) . join('', @frames));
     }
     if (-e "$imp/art/objgator.asm") {
         my $asm = slurp("$imp/art/objgator.asm");
