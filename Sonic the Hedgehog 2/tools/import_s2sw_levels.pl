@@ -218,7 +218,7 @@ for my $name (@order) {
     # swinging platform (15), the platform (19), the rock (32) and object 83, and the Crocobot (4E: its mappings are cut out of the object's source, objgator.asm)
     my %art = ("Rock from SSZ.nem" => "Art/SSZRock", "Large moving platform from SSZ.nem" => "Art/SSZPlatform", "Swinging platform from SSZ.nem" => "Art/SSZSwingPlatform",
                "SSZ collapsing platform.nem" => "Art/SSZCollapsingPlatform", "obj15_SSZ.bin" => "Mappings/SSZSwingPlatform", "obj19_SSZ.bin" => "Mappings/SSZPlatform",
-               "obj32_SSZ.bin" => "Mappings/SSZRock", "obj83_SSZ.bin" => "Mappings/SSZRotator", "Crocobot.bin" => "Art/Crocobot");
+               "obj32_SSZ.bin" => "Mappings/SSZRock", "obj83_SSZ.bin" => "Mappings/SSZRotator", "Crocobot.bin" => "Art/Crocobot", "obj1F_SSZ.bin" => "Mappings/SSZCollapsingPlatform");
     for my $file (sort keys %art) {
         spit("$res/$art{$file}", slurp("$imp/art/$file")) if -e "$imp/art/$file";
     }
@@ -239,6 +239,49 @@ for my $name (@order) {
         my @offsets; my $at = 2 * @frames;
         for my $f (@frames) { push @offsets, $at; $at += length $f }
         spit("$res/Mappings/SSZSwing", pack('n*', @offsets) . join('', @frames));
+    }
+    # the moving platform's mappings (object 19 in Sand Shower): the staged obj19_SSZ.bin, but for its first frame, the 64 by 32 pixel platform, which is the user's grid of tiles of the level's own art (palette 2): the top two rows
+    # of tiles of the platform art, then the two rocky rows below with their left sides flipped to the right. Runs of tiles that follow each other are one piece; the art is laid out row by row, so a piece is one row high.
+    if (-e "$imp/art/obj19_SSZ.bin") {
+        my $staged = slurp("$imp/art/obj19_SSZ.bin");
+        my $first = unpack('n', $staged);
+        my @frames;
+        for my $i (0 .. $first / 2 - 1) {
+            my $at = unpack('n', substr($staged, $i * 2, 2));
+            my $count = unpack('n', substr($staged, $at, 2));
+            push @frames, substr($staged, $at, 2 + 8 * $count);
+        }
+        my $piece = sub { my ($y, $width, $tile, $xflip, $x) = @_; my $flags = (2 << 13) | ($xflip ? 0x0800 : 0); pack('CCnnn', $y & 0xFF, ($width - 1) << 2, $flags | $tile, $flags | ($tile >> 1), $x & 0xFFFF) };
+        # each row: (tile, how many in a row that follow it, flipped), from the left, 8 tiles of 8 pixels
+        my @rows = (
+            [ [0x264, 1], [0x265, 2], [0x265, 2], [0x265, 2], [0x267, 1] ],
+            [ map { [0x269, 1] } 1 .. 8 ],
+            [ [0x0E3, 1], [0x023, 1], [0x003, 4], [0x023, 1, 1], [0x0E3, 1, 1] ],
+            [ [undef, 1], [0x0E4, 1], [0x007, 4], [0x0E4, 1, 1], [undef, 1] ],
+        );
+        my ($body, $count) = ('', 0);
+        for my $r (0 .. 3) {
+            my $x = -32;
+            for my $run (@{ $rows[$r] }) {
+                my ($tile, $width, $flip) = @$run;
+                if (defined $tile) { $body .= $piece->(-16 + 8 * $r, $width, $tile, $flip, $x); $count++ }
+                $x += 8 * $width;
+            }
+        }
+        $frames[0] = pack('n', $count) . $body;
+        my @offsets; my $at = 2 * @frames;
+        for my $f (@frames) { push @offsets, $at; $at += length $f }
+        spit("$res/Mappings/SSZPlatform", pack('n*', @offsets) . join('', @frames));
+    }
+    # the switch's mappings (object 47 in Sand Shower): the user's source in the final game's macros, tile numbers of the level's own tiles (the object puts them on palette row 2)
+    if (-e "$imp/art/obj47_SSZ.asm") {
+        require './tools/asm2map.pl';
+        spit("$res/Mappings/SSZSwitch", asm_to_mappings(slurp("$imp/art/obj47_SSZ.asm")));
+    }
+    # the door's (object 2D in Sand Shower): one frame, the same way
+    if (-e "$imp/art/obj2D_SSZ.asm") {
+        require './tools/asm2map.pl';
+        spit("$res/Mappings/SSZBarrier", asm_to_mappings(slurp("$imp/art/obj2D_SSZ.asm")));
     }
     if (-e "$imp/art/objgator.asm") {
         my $asm = slurp("$imp/art/objgator.asm");

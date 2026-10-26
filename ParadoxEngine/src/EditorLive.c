@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "EngineObject.h"
+#include "Backend/Joypad.h"
 #include "Backend/VDP.h"
 #include "EnginePalette.h"
 #include "GameInterface.h"
@@ -61,6 +62,15 @@ void Editor_Hold(void) {
     HoldColours();
     if (editor_playtest)
         return; // (the player is playing)
+    // The pad (or the keys that stand for it) moves the cursor, and the camera with it: 4 pixels a frame, 16 with a button (A, B or C) held
+    const uint8_t pad = Joypad_GetState1();
+    const int step = (pad & (JPAD_A | JPAD_B | JPAD_C)) ? 16 : 4;
+    int nx = cursor_x + ((pad & JPAD_RIGHT) ? step : 0) - ((pad & JPAD_LEFT) ? step : 0);
+    int ny = cursor_y + ((pad & JPAD_DOWN) ? step : 0) - ((pad & JPAD_UP) ? step : 0);
+    nx = nx < 0 ? 0 : (nx > 0x3FFF ? 0x3FFF : nx);
+    ny = ny < 0 ? 0 : (ny > 0x7FF ? 0x7FF : ny);
+    cursor_x = nx;
+    cursor_y = ny;
     // While the level is edited the player is parked far outside it, so nothing that waits for him to come near (the signpost, the checkpoints, the path swappers, the badniks that go for him...) can be triggered;
     // the cursor is where the editor looks, and a playtest starts from it
     player->pos.l.x.f.u = EDITOR_PARK;

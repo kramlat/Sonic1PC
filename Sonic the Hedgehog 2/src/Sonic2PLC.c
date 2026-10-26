@@ -29,6 +29,7 @@
 #include "Resource/Art/SSZRock.h"
 #include "Resource/Art/Crocobot.h"
 #include "Resource/Art/SSZPlatform.h"
+#include "Resource/Art/SSZCollapsingPlatform.h"
 #include "Resource/Art/Grounder.h"
 #include "Resource/Art/Spiny.h"
 #include "Resource/Art/Grabber.h"
@@ -904,7 +905,7 @@ static const PLCList PLC_CNZBoss = { // the alpha's list $2D: Casino Night's bos
 static const PLCList PLC_SSZ = {
     1,
     (const PLC[]) {
-        { Art_Crocobot, ART_VRAM(0x408) },
+        { Art_Crocobot, ART_VRAM(0x400) },
     }
 };
 
@@ -913,7 +914,8 @@ static const PLCList PLC_SSZ2 = {
     6,
     (const PLC[]) {
         { Art_SSZRock,       ART_VRAM(0x3BA) },
-        { Art_SSZPlatform,   ART_VRAM(0x49F) },
+        { Art_SSZCollapsingPlatform, ART_VRAM(0x500) }, // (the collapsing platform's 64 tiles: the staged obj1F mappings read exactly these; the 16-tile "large moving platform" is not used)
+        { Art_HorizSpike,    ART_VRAM(0x8580 >> 5) },
         { Art_Spikes,        ART_VRAM(ArtTile_Spikes) },
         { Art_SpringDiag,    ART_VRAM(ArtTile_SpringDiag) },
         { Art_SpringUp,      ART_VRAM(ArtTile_SpringUp) },

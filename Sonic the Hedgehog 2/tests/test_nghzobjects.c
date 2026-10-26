@@ -5,6 +5,7 @@
 #include "Level.h"
 #include "Object.h"
 #include "Object/Crocobot.h"
+#include "Object/DHZObjects.h"
 #include "Object/NGHZBadniks.h"
 #include "Object/NGHZBoss.h"
 #include "Object/BossCommon.h"
@@ -229,7 +230,7 @@ static void SSZObjects_TheCrocobotIsSetUpAndFallsUntilItMeetsTheFloor(void) {
     CHECK_EQ(croc->col_type, 0x0A);
     CHECK_EQ(croc->width_pixels, 0x10);
     CHECK_EQ(croc->y_rad, 0x10);
-    CHECK_EQ(croc->tile & 0x7FF, 0x408); // (its art slot, moved from $411 to clear the rock)
+    CHECK_EQ(croc->tile & 0x7FF, 0x400); // (its art slot, moved to $400 to leave room for the horizontal spikes)
     CHECK(croc->mappings != NULL);
     CHECK_EQ(croc->routine, 0); // (no floor under it here: it keeps falling)
     CHECK(croc->ysp > 0);
@@ -250,6 +251,19 @@ static void SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain(vo
     CHECK_EQ(chains, 1);
 }
 
+static void SSZObjects_TheSwitchIsAButtonAndABaseFromTheLevelsTiles(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_SSZ, 0);
+    Object *sw = Spawn(0x47, 0x00, 400, 300);
+    Obj_Switch(sw);
+    CHECK(sw->render.f.multi_sprite);
+    CHECK_EQ(sw->child_count, 2);
+    CHECK_EQ(sw->children[0].frame, 1); // (the base: first in the list, so in front)
+    CHECK_EQ(sw->children[1].frame, 0); // (the button, up)
+    CHECK_EQ(sw->tile >> 13 & 3, 2);    // (palette row 2)
+    CHECK_EQ(sw->tile & 0x7FF, 0);      // (the level's own tiles: the pieces carry the tile numbers)
+}
+
 void RegisterNGHZObjectTests(void) {
     RUN_TEST(NGHZObjects_TheShooterFiresWhenSonicHasBeenNearAndGoes);
     RUN_TEST(NGHZObjects_AnArrowFliesTheWayTheShooterFaces);
@@ -262,5 +276,6 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(NGHZObjects_TheGrounderBreaksItsWallAndWalksToSonic);
     RUN_TEST(NGHZObjects_TheChopChopSwimsAndSpitsBubblesAndDashesAtSonic);
     RUN_TEST(SSZObjects_TheCrocobotIsSetUpAndFallsUntilItMeetsTheFloor);
+    RUN_TEST(SSZObjects_TheSwitchIsAButtonAndABaseFromTheLevelsTiles);
     RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
 }

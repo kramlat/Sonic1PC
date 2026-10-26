@@ -18,6 +18,7 @@
 
 #include "Resource/Mappings/Booster.h"
 #include "Resource/Mappings/CPZBarrier.h"
+#include "Resource/Mappings/SSZBarrier.h"
 #include "Resource/Mappings/CPZBlock.h"
 #include "Resource/Mappings/CPZInvisibleBlock.h"
 #include "Resource/Mappings/CPZSlider.h"
@@ -28,6 +29,7 @@
 #include "Resource/Mappings/TubeCover.h"
 #include "Resource/Mappings/HTZRock.h"
 #include "Resource/Mappings/SSZRock.h"
+#include "Resource/Mappings/SSZPlatform.h"
 
 extern const uint8_t Mappings_MTZPlatformA[]; // (defined with MTZObjects.c, whose platforms they are)
 
@@ -59,6 +61,8 @@ typedef struct {
 
 // loc_1622E: the width and the mapping frame of each size
 // (the alpha's, for Chemical Plant and Oil Ocean: the third frame is a platform of $80 pixels; the prototype's was $40)
+// Sand Shower's: its four frames of the staged mappings, 64, 48, 128 and 64 pixels wide ($20, $18, $40 and $20 either side)
+static const uint8_t elevator_sizes_ssz[4][2] = { { 0x20, 0 }, { 0x18, 1 }, { 0x40, 2 }, { 0x20, 3 } };
 static const uint8_t elevator_sizes_alpha[5][2] = { { 0x20, 0 }, { 0x18, 1 }, { 0x40, 2 }, { 0x40, 3 }, { 0x30, 4 } };
 
 // The oscillators of the prototype's Oscillating_Data, by their offset (4 bytes each): the high byte of the value
@@ -130,14 +134,15 @@ void Obj_CPZElevator(Object *obj) {
     if (obj->routine == 0) {
         obj->routine += 2;
         const bool oil = LEVEL_ZONE(level_id) == ZoneId_OOZ;
-        obj->mappings = Mappings_OOZElevator; // (the alpha's, for both zones: five frames)
-        obj->tile = TILE_MAP(0, 3, 0, 0, oil ? 0x2F4 : 0x3A0); // (the alpha's art list puts Oil Ocean's at $5E80)
+        const bool sand = LEVEL_ZONE(level_id) == ZoneId_SSZ; // (Sand Shower's, the staged objpatch-19.asm: its own mappings, drawn from the level's tiles)
+        obj->mappings = sand ? Mappings_SSZPlatform : Mappings_OOZElevator; // (the alpha's, for both zones: five frames)
+        obj->tile = sand ? TILE_MAP(0, 0, 0, 0, 0) : TILE_MAP(0, 3, 0, 0, oil ? 0x2F4 : 0x3A0); // (the alpha's art list puts Oil Ocean's at $5E80)
         obj->render.b = SPRITE_CAM_FIELD;
         int size = (scratch->subtype >> 4) & 0xF;
-        if (size > 4)
-            size = 4;
-        obj->width_pixels = elevator_sizes_alpha[size][0];
-        obj->frame = elevator_sizes_alpha[size][1];
+        if (size > (sand ? 3 : 4))
+            size = sand ? 3 : 4;
+        obj->width_pixels = sand ? elevator_sizes_ssz[size][0] : elevator_sizes_alpha[size][0];
+        obj->frame = sand ? elevator_sizes_ssz[size][1] : elevator_sizes_alpha[size][1];
         obj->priority = 4;
         scratch->base_x = obj->pos.l.x.f.u;
         scratch->base_y = obj->pos.l.y.f.u;
@@ -433,16 +438,17 @@ void Obj_CPZBarrier(Object *obj) {
 
     if (obj->routine == 0) {
         obj->routine += 2;
-        obj->mappings = Mappings_CPZBarrier;
+        const bool ssz = LEVEL_ZONE(level_id) == ZoneId_SSZ; // (Sand Shower's door: its own mappings, one frame, drawn from the level's tiles on palette row 2)
+        obj->mappings = ssz ? Mappings_SSZBarrier : Mappings_CPZBarrier;
         // (Hill Top's valve barrier has art and a width of its own: the default of Obj2D_Init; Chemical Plant's is the stripes)
         const bool cpz = LEVEL_ZONE(level_id) == ZoneId_CPZ;
         const bool mtz = LEVEL_ZONE(level_id) == ZoneId_MTZ || LEVEL_ZONE(level_id) == ZoneId_MTZ3; // (Metropolis's is the first tile of its art, and as wide as Chemical Plant's)
-        obj->tile = mtz ? TILE_MAP(0, 3, 0, 0, 0) : TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
-        obj->width_pixels = (cpz || mtz) ? 0xC : 8;
+        obj->tile = ssz ? TILE_MAP(0, 2, 0, 0, 0) : mtz ? TILE_MAP(0, 3, 0, 0, 0) : TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
+        obj->width_pixels = ssz ? 0x10 : (cpz || mtz) ? 0xC : 8; // (Sand Shower's runs from x to x+32: its solid box is centred 16 to the right)
         obj->render.b |= SPRITE_CAM_FIELD;
         obj->priority = 4;
         scratch->base_y = obj->pos.l.y.f.u;
-        obj->frame = scratch->subtype;
+        obj->frame = ssz ? 0 : scratch->subtype;
         int16_t d2 = (int16_t)(obj->pos.l.x.f.u - 0x200), d3 = (int16_t)(obj->pos.l.x.f.u + 0x18);
         if (obj->status.o.f.x_flip) {
             d2 = (int16_t)(d2 + 0x1E8);
@@ -478,8 +484,12 @@ void Obj_CPZBarrier(Object *obj) {
     }
 
     if (obj->render.f.on_screen) {
+        // (Sand Shower's door is drawn from its x to x+32: the solid test measures from the object's own x, so it is moved to the door's centre for it and back)
+        const int16_t shift = (LEVEL_ZONE(level_id) == ZoneId_SSZ) ? 0x10 : 0;
+        obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + shift);
         FOR_EACH_CHARACTER(chr, who)
-            Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), 0x20, 0x21, x, NULL);
+            Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), 0x20, 0x21, (int16_t)(x + shift), NULL);
+        obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u - shift);
     }
     RememberState(obj);
 }
@@ -571,7 +581,7 @@ void Obj_TubeCover(Object *obj) {
         obj->tile = sand ? TILE_MAP(0, 0, 0, 0, 0x3BA) : rock ? TILE_MAP(0, 2, 0, 0, ARTTILE_HTZ_ROCK) : TILE_MAP(0, 3, 0, 0, ARTTILE_TUBE_COVER);
         obj->width_pixels = rock && !sand ? 0x18 : 0x10;
         obj->render.b = SPRITE_CAM_FIELD;
-        obj->priority = 4;
+        obj->priority = sand ? 2 : 4; // (Sand Shower: in front of monitors, which are 3, and so of the switch, 4: a monitor can be hidden under a rock and a switch under a monitor. Sonic and Tails are 2 too, but come first in the queue, so they stay in front)
     }
 
     if (obj->routine == 4) { // a piece

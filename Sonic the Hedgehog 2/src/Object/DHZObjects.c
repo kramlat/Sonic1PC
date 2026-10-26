@@ -19,6 +19,7 @@
 #include "Resource/Mappings/RotatingBoxes.h"
 #include "Resource/Mappings/SpikeballChain.h"
 #include "Resource/Mappings/Switch.h"
+#include "Resource/Mappings/SSZSwitch.h"
 
 extern const uint8_t Mappings_MTZPlatformA[]; // (defined with MTZObjects.c, whose platforms they are)
 
@@ -96,19 +97,33 @@ void Obj_Switch(Object *obj) {
 
     if (obj->routine == 0) {
         obj->routine += 2;
-        obj->mappings = Mappings_Switch;
-        obj->tile = TILE_MAP(0, 0, 0, 0, 0x424);
+        const bool sand = LEVEL_ZONE(level_id) == ZoneId_SSZ; // (Sand Shower's: the user's mappings of the level's own tiles, on palette row 2)
+        obj->mappings = sand ? Mappings_SSZSwitch : Mappings_Switch;
+        obj->tile = sand ? TILE_MAP(0, 2, 0, 0, 0) : TILE_MAP(0, 0, 0, 0, 0x424);
         obj->render.b = 0;
         obj->render.f.level_fg = true;
         obj->width_pixels = 0x10;
         obj->priority = 4;
         obj->pos.l.y.f.u += 4;
+        if (sand) { // (two sprites: the button, and the base that it sits in, which is drawn in front: the first child is the VDP-front one)
+            obj->render.f.multi_sprite = true;
+            obj->child_count = 2;
+            for (int i = 0; i < 2; i++) {
+                obj->children[i].x = obj->pos.l.x.f.u;
+                obj->children[i].y = obj->pos.l.y.f.u;
+            }
+            obj->children[0].frame = 1;
+            obj->children[1].frame = 0;
+        }
     }
 
+    const bool sand_shower = LEVEL_ZONE(level_id) == ZoneId_SSZ;
     if (obj->render.f.on_screen) {
         FOR_EACH_CHARACTER(chr, who)
             Solid_Character(obj, chr, who, 0x1B, 4, 5, obj->pos.l.x.f.u, NULL);
         obj->frame = 0;
+        if (sand_shower)
+            obj->children[1].frame = 0;
         uint8_t *flag = &f_switch[subtype & 0xF];
         const uint8_t bit = (subtype & 0x40) ? 0x80 : 0x01;
         if (!(obj->status.b & 0x18)) {
@@ -117,7 +132,10 @@ void Obj_Switch(Object *obj) {
             if (*flag == 0)
                 PlaySound(sfx_Switch);
             *flag |= bit;
-            obj->frame = 1;
+            if (sand_shower)
+                obj->children[1].frame = 2; // (Sand Shower's pressed look is its third frame: the top row lowered; the base, frame 1, is drawn too)
+            else
+                obj->frame = 1;
         }
     }
     if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {

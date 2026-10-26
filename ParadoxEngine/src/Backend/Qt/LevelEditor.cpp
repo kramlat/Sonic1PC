@@ -521,8 +521,15 @@ bool Mouse(int kind, int button, int x, int y) {
 	EditorLevel &level = editor_session.level;
 	const bool objects = w.place_objects->isChecked();
 	if (kind == 0 && button == Qt::LeftButton) {
-		w.drag_object = objects ? EditorLevel_FindObject(&level, wx, wy, kPickRadius) : -1;
-		w.drag_ring = objects ? -1 : EditorLevel_FindRing(&level, wx, wy, kPickRadius);
+		// whatever is under the pointer is picked up, whichever is being placed (the one being placed first)
+		w.drag_object = EditorLevel_FindObject(&level, wx, wy, kPickRadius);
+		w.drag_ring = EditorLevel_FindRing(&level, wx, wy, kPickRadius);
+		if (w.drag_object >= 0 && w.drag_ring >= 0) {
+			if (objects)
+				w.drag_ring = -1;
+			else
+				w.drag_object = -1;
+		}
 		w.moved = false;
 		if (w.drag_object >= 0) {
 			w.drag_dx = level.objects[w.drag_object].x - wx;

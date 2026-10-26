@@ -598,7 +598,7 @@ void Obj_NGHZRotator(Object *obj) {
     switch (obj->routine) {
     case RotatorRoutine_Init: {
         obj->routine += 2;
-        obj->mappings = Mappings_NGHZSwing;
+        obj->mappings = LEVEL_ZONE(level_id) == ZoneId_SSZ ? Mappings_SSZSwing : Mappings_NGHZSwing; // (Sand Shower's: the staged objpatch83.asm, the same mapping as its swing, from the level's own tiles)
         obj->tile = TILE_MAP(0, 0, 0, 0, 0);
         obj->render.b = SPRITE_CAM_FIELD;
         obj->priority = 4;

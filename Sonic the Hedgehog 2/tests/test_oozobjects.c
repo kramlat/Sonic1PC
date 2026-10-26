@@ -9,6 +9,7 @@
 #include "Object/OOZObjects.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
+#include "SandShower.h"
 
 // Oil Ocean's objects: the oil, the launching platform, the spiked balls, the spring and pusher, the ball on a spring and the cannon.
 
@@ -85,6 +86,72 @@ static void OOZ_TheOilReleasesSonicWhenHeLeaves(void) {
         Obj_OilSurface(oil);
     CHECK_EQ(oil->scratch.u8[0x10], 0x30); // (it comes back up: Sonic is not standing and the depth recovers)
     CHECK_EQ(player->routine, 2);
+}
+
+// --- Sand Shower's quicksand: blocks 168 to 181, in a chunk of the test's own (put back after) ---
+
+static uint8_t sand_saved_chunk[128];
+static uint8_t sand_saved_cell;
+
+static void SandOn(void) {
+    memcpy(sand_saved_chunk, level_map128 + 0x80 * 0xFE, 128);
+    sand_saved_cell = LEVEL_LAYOUT_FG(1)[2];
+    for (int i = 0; i < 64; i++) { // (a chunk of sand: blocks 168 to 175, all in the range)
+        level_map128[0x80 * 0xFE + i * 2] = 0;
+        level_map128[0x80 * 0xFE + i * 2 + 1] = (uint8_t)(168 + (i & 7));
+    }
+    LEVEL_LAYOUT_FG(1)[2] = 0xFE; // (x $100 to $17F, y $80 to $FF: its top is at $80)
+    Reset();
+    player->status.p.f.in_air = true;
+    player->pos.l.x.f.u = 0x140;
+}
+
+static void SandOff(void) {
+    memcpy(level_map128 + 0x80 * 0xFE, sand_saved_chunk, 128);
+    LEVEL_LAYOUT_FG(1)[2] = sand_saved_cell;
+}
+
+static void SSZ_SandSinksACharacterSlowlyAndHoldsItBack(void) {
+    SandOn();
+    player->pos.l.y.f.u = (int16_t)(0x84 - player->y_rad); // (feet in the first row)
+    player->ysp = 0x400;
+    player->xsp = 0x300;
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, 0x40); // (a quarter of a pixel a frame at most)
+    CHECK(player->xsp < 0x300 && player->xsp > 0x200); // (and slowed in the way he goes)
+    SandOff();
+}
+
+static void SSZ_SandIsIgnoredOutsideIt(void) {
+    SandOn();
+    player->pos.l.y.f.u = (int16_t)(0x60 - player->y_rad); // (above the sand)
+    player->ysp = 0x400;
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, 0x400);
+    SandOff();
+}
+
+static void SSZ_AJumpInTheSandTakesHimUpWeakly(void) {
+    SandOn();
+    player->pos.l.y.f.u = (int16_t)(0xA0 - player->y_rad);
+    player->ysp = 0x40;
+    jpad1_press2 = JPAD_A;
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, -0x410); // (5/8 of a jump's $680)
+    CHECK(player->status.p.f.in_ball);
+    jpad1_press2 = 0;
+    SandOff();
+}
+
+static void SSZ_SandKillsAtThirtyTwoPixelsOfDepthAndNotBefore(void) {
+    SandOn();
+    player->pos.l.y.f.u = (int16_t)(0x80 + 0x2F - player->y_rad);
+    SandShower_LevelMisc();
+    CHECK_EQ(player->routine, 2);
+    player->pos.l.y.f.u = (int16_t)(0x80 + 0x30 - player->y_rad);
+    SandShower_LevelMisc();
+    CHECK_EQ(player->routine, 6);
+    SandOff();
 }
 
 // --- 33 ---
@@ -345,6 +412,10 @@ void RegisterOOZObjectTests(void) {
     RUN_TEST(OOZ_TheWeakerPushSpringThrowsLessHigh);
     RUN_TEST(OOZ_ThePusherReturnsToWhereItRests);
     RUN_TEST(OOZ_TheBallSpringsOffWhenItsSwitchIsDown);
+    RUN_TEST(SSZ_SandSinksACharacterSlowlyAndHoldsItBack);
+    RUN_TEST(SSZ_SandIsIgnoredOutsideIt);
+    RUN_TEST(SSZ_AJumpInTheSandTakesHimUpWeakly);
+    RUN_TEST(SSZ_SandKillsAtThirtyTwoPixelsOfDepthAndNotBefore);
     RUN_TEST(OOZ_TheBallSpringsOffWhenPlayerTwoPressesA);
     RUN_TEST(OOZ_AFlippedBallGoesTheOtherWay);
     RUN_TEST(OOZ_TheCannonCatchesACharacterAndFiresItOff);

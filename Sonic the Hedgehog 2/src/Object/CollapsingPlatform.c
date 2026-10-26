@@ -14,6 +14,7 @@
 #include "Resource/Mappings/CollapsePlatformDHZ.h"
 #include "Resource/Mappings/CollapsePlatformNGHZ.h"
 #include "Resource/Mappings/CollapsePlatformOOZ.h"
+#include "Resource/Mappings/SSZCollapsingPlatform.h"
 
 typedef struct {
     uint8_t subtype;   // 0x28 (not used)
@@ -36,6 +37,10 @@ static Object *Character(int who) {
 
 static bool IsOilOcean(void) {
     return LEVEL_ZONE(level_id) == ZoneId_OOZ;
+}
+
+static bool IsSandShower(void) {
+    return LEVEL_ZONE(level_id) == ZoneId_SSZ;
 }
 
 static bool IsNeoGreenHill(void) {
@@ -63,6 +68,10 @@ void Obj_CollapsingPlatform(Object *obj) {
             obj->mappings = Mappings_CollapsePlatformOOZ;
             obj->tile = TILE_MAP(0, 3, 0, 0, 0x39D);
             obj->width_pixels = 0x40;
+        } else if (IsSandShower()) { // (the staged objpatch-1F.asm: its mappings, the art at $500 on palette 0 (the mapping says line 2), 128 pixels wide, and Oil Ocean's delays)
+            obj->mappings = Mappings_SSZCollapsingPlatform;
+            obj->tile = TILE_MAP(0, 0, 0, 0, 0x500);
+            obj->width_pixels = 0x40;
         } else if (IsNeoGreenHill()) {
             obj->mappings = Mappings_CollapsePlatformNGHZ;
             obj->tile = TILE_MAP(0, 2, 0, 0, 0);
@@ -77,7 +86,7 @@ void Obj_CollapsingPlatform(Object *obj) {
         if (scratch->touched) {
             if (scratch->timer == 0) { // it collapses
                 obj->frame += 1;
-                FragmentatePlatform(obj, IsOilOcean() ? 7 : IsNeoGreenHill() ? 8 : 6, IsOilOcean() ? delays_ooz : IsNeoGreenHill() ? delays_nghz : delays_dhz);
+                FragmentatePlatform(obj, IsOilOcean() ? 7 : IsSandShower() ? 4 : IsNeoGreenHill() ? 8 : 6, IsOilOcean() || IsSandShower() ? delays_ooz : IsNeoGreenHill() ? delays_nghz : delays_dhz);
                 return;
             }
             scratch->timer--;

@@ -691,6 +691,16 @@ void QtHost_PumpEvents(void) {
 				LevelEditor::Mouse(0, Qt::LeftButton, a[0].toInt(), a[1].toInt());
 				LevelEditor::Mouse(2, Qt::LeftButton, a[0].toInt(), a[1].toInt());
 			}
+			if (const char *drag = getenv("SONIC_QT_EDITOR_DRAG")) { // "dx,dy": drags the object just placed (a press on it, a move, a release)
+				int dx = 0, dy = 0;
+				sscanf(drag, "%d,%d", &dx, &dy);
+				if (editor_frame == start + 12 && a.size() >= 2)
+					LevelEditor::Mouse(0, Qt::LeftButton, a[0].toInt(), a[1].toInt());
+				if (editor_frame == start + 14 && a.size() >= 2)
+					LevelEditor::Mouse(1, Qt::LeftButton, a[0].toInt() + dx, a[1].toInt() + dy);
+				if (editor_frame == start + 16 && a.size() >= 2)
+					LevelEditor::Mouse(2, Qt::LeftButton, a[0].toInt() + dx, a[1].toInt() + dy);
+			}
 			if (editor_frame == start + 20)
 				LevelEditor::SaveNow();
 			if (editor_frame == start + 30 && a.size() >= 4)

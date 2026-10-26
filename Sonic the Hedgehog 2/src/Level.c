@@ -5,6 +5,7 @@
 #include "Object/CNZBoss.h"
 #include "Object/NGHZBoss.h"
 #include "HTZBackground.h"
+#include "SandShower.h"
 
 void S2_PrimeLevelArt(void); // AnimatedArt.c
 
@@ -362,6 +363,9 @@ void DynamicLevelEvents(void) {
     if (camera_split && LEVEL_ZONE(level_id) == ZoneId_EHZ)
         return;
     switch (LEVEL_ZONE(level_id)) {
+    case ZoneId_SSZ:
+        SandShower_LevelMisc(); // (the quicksand of its blocks)
+        break;
     case ZoneId_EHZ:
         if (LEVEL_ACT(level_id) != 1)
             break; // (act 1 has none, and act 3 is a copy of it)

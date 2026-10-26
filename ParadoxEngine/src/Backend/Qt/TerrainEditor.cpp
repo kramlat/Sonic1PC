@@ -31,6 +31,7 @@ extern "C" {
 
 extern "C" {
 extern int screen_width, screen_height; // the picture's size (Video.c)
+uint8_t *VDP_TileSpace(void); // (VDP.h: not included, it has C++ keywords in it) the tile space, VRAM_SIZE bytes
 }
 
 namespace TerrainEditor {
@@ -55,6 +56,7 @@ QLabel *Note(const QString &text, QWidget *parent) {
 
 void InvalidateThumbs();
 
+constexpr int VRAM_SIZE = 0x10000; // the tile space (VDP.h)
 constexpr int kTileZoom = 2, kBlockZoom = 2, kChunkThumb = 64;
 
 struct State {
@@ -80,6 +82,11 @@ int TileCount() { size_t n; Editor_Art(&n); return int(n / 32); }
 int BlockCount() { size_t n; Editor_Blocks(&n); return int(n / 8); }
 int ChunkCount() { size_t n; Editor_Chunks(&n); return int(n / 128); }
 
+// An index as the tools show it: 16 ($10) of 255 (the last one there is)
+QString IndexText(int i, int count) {
+	return QString("%1 ($%2) of %3").arg(i).arg(QString::number(i, 16).toUpper()).arg(qMax(0, count - 1));
+}
+
 void Changed(bool redraw) {
 	InvalidateThumbs();
 	s.change_count++;
@@ -90,11 +97,22 @@ void Changed(bool redraw) {
 		s.refresh_all();
 }
 
+// The chunk and plane pictures draw their tiles from the video memory, where the level's animated art (the cactus tops, waterfalls, ...) moves, not from the art as loaded
+bool live_tiles = false;
+struct LiveTiles {
+	LiveTiles() { live_tiles = true; }
+	~LiveTiles() { live_tiles = false; }
+};
+
 // A tile as a picture: palette line, flips and the transparent colour 0 shown as a check
 QImage TileImage(int tile, int line, bool x_flip, bool y_flip) {
 	QImage image(8, 8, QImage::Format_ARGB32);
 	size_t bytes;
 	const uint8_t *art = Editor_Art(&bytes);
+	if (live_tiles && tile >= 0 && tile < VRAM_SIZE / 32) {
+		art = VDP_TileSpace();
+		bytes = VRAM_SIZE;
+	}
 	for (int y = 0; y < 8; y++) {
 		for (int x = 0; x < 8; x++) {
 			int px = x_flip ? 7 - x : x, py = y_flip ? 7 - y : y;
@@ -134,6 +152,7 @@ void DrawBlock(QPainter *p, int block, const QRect &at, bool x_flip = false, boo
 }
 
 void DrawChunk(QPainter *p, int chunk, const QRect &at) {
+	LiveTiles live;
 	size_t bytes;
 	const uint8_t *chunks = Editor_Chunks(&bytes);
 	if (chunks == nullptr || size_t(chunk + 1) * 128 > bytes)
@@ -634,6 +653,8 @@ const QImage &ChunkThumb(int chunk, int size) {
 	return found.value();
 }
 
+QCheckBox *guides_box = nullptr; // Plane A's "Objects and rings": what is drawn over the chunks to place them by
+
 class LayerCanvas : public QWidget {
 public:
 	LayerCanvas(int plane, QLabel *where) : plane_(plane), where_(where) {
@@ -662,6 +683,8 @@ protected:
 			p.drawLine(c * zoom_, 0, c * zoom_, height());
 		for (int r = 0; r <= 16; r++)
 			p.drawLine(0, r * zoom_, width(), r * zoom_);
+		if (plane_ == 0 && guides_box != nullptr && guides_box->isChecked())
+			DrawGuides(&p);
 		// the camera (plane A) and the cursor
 		EditorPeek peek;
 		Peek_EditorState(&peek);
@@ -681,6 +704,30 @@ protected:
 	void mouseMoveEvent(QMouseEvent *e) override { Use(e); }
 
 private:
+	// The level's objects (a box and their id) and rings, where they are, so that chunks can be placed by them
+	void DrawGuides(QPainter *p) {
+		const EditorLevel &level = editor_session.level;
+		const double k = zoom_ / 128.0;
+		const double half = qMax(3.0, 8 * k);
+		QFont font = p->font();
+		font.setPixelSize(qMax(8, int(12 * k)));
+		p->setFont(font);
+		for (int i = 0; i < level.object_count; i++) {
+			const EditorObject &o = level.objects[i];
+			const QPointF at(o.x * k, o.y * k);
+			p->setPen(QPen(QColor(0, 255, 255), 1));
+			p->setBrush(QColor(0, 255, 255, 50));
+			p->drawRect(QRectF(at.x() - half, at.y() - half, half * 2, half * 2));
+			p->drawText(QPointF(at.x() - half, at.y() - half - 2), QString::number(o.id, 16).toUpper().rightJustified(2, '0'));
+		}
+		p->setBrush(QColor(255, 220, 0, 70));
+		p->setPen(QPen(QColor(255, 220, 0), 1));
+		for (int i = 0; i < level.ring_count; i++) {
+			const EditorRing &r = level.rings[i];
+			for (int n = 0; n < r.count; n++)
+				p->drawEllipse(QPointF((r.vertical ? r.x : r.x + n * 0x18) * k, (r.vertical ? r.y + n * 0x18 : r.y) * k), half * 0.8, half * 0.8);
+		}
+	}
 	void Use(QMouseEvent *e) {
 		const int col = e->position().toPoint().x() / zoom_, row = e->position().toPoint().y() / zoom_;
 		if (col < 0 || col > 127 || row < 0 || row > 15)
@@ -688,7 +735,7 @@ private:
 		size_t bytes;
 		uint8_t *layout = Editor_Layout(&bytes);
 		uint8_t &at = layout[row * 256 + plane_ * 128 + col];
-		where_->setText(QString("Plane %1  column %2  row %3  x $%4  y $%5  chunk $%6").arg(plane_ == 0 ? "A" : "B").arg(col).arg(row).arg(col * 128, 4, 16, QChar('0')).arg(row * 128, 3, 16, QChar('0')).arg(at, 2, 16, QChar('0')).toUpper());
+		where_->setText(QString("Plane %1  column %2  row %3  x $%4  y $%5  chunk %6").arg(plane_ == 0 ? "A" : "B").arg(col).arg(row).arg(QString::number(col * 128, 16).toUpper().rightJustified(4, '0')).arg(QString::number(row * 128, 16).toUpper().rightJustified(3, '0')).arg(IndexText(at, ChunkCount())));
 		if (e->buttons() & Qt::RightButton) { // picks the chunk
 			s.chunk = at;
 			if (s.refresh_all)
@@ -876,6 +923,11 @@ void AddTabs(QTabWidget *tabs) {
 				zoom->addItem(QString("%1 pixels a chunk").arg(z), z);
 			zoom->setCurrentIndex(5); // (the chunks at their own size: 128 pixels)
 			box->addWidget(zoom);
+			if (plane == 0) {
+				guides_box = new QCheckBox("Show objects and rings (as guides to place chunks by)", page);
+				QObject::connect(guides_box, &QCheckBox::toggled, page, [] { if (s.refresh_all) s.refresh_all(); });
+				box->addWidget(guides_box);
+			}
 			canvases[plane] = new LayerCanvas(plane, where);
 			animated << canvases[plane] << picker;
 			auto *canvas_area = Scroll(canvases[plane], page);
@@ -923,6 +975,17 @@ void AddTabs(QTabWidget *tabs) {
 			for (int line = 0; line < 4; line++)
 				for (int i = 0; i < 16; i++)
 					signature = (signature ^ Editor_GetColour(line, i)) * 1099511628211ull;
+			// the level's animated art moves in the tile space: the first $800 tiles (the level's art and what animates over it)
+			const quint64 *tiles = reinterpret_cast<const quint64 *>(VDP_TileSpace());
+			for (int i = 0; i < 0x800 * 32 / 8; i++)
+				signature = (signature ^ tiles[i]) * 1099511628211ull;
+			if (guides_box != nullptr && guides_box->isChecked()) { // the objects and rings drawn over Plane A follow the editor's lists
+				const EditorLevel &lv = editor_session.level;
+				for (int i = 0; i < lv.object_count; i++)
+					signature = (signature ^ (quint64(lv.objects[i].x) << 16 ^ lv.objects[i].y ^ quint64(lv.objects[i].id) << 32)) * 1099511628211ull;
+				for (int i = 0; i < lv.ring_count; i++)
+					signature = (signature ^ (quint64(lv.rings[i].x) << 16 ^ lv.rings[i].y ^ quint64(lv.rings[i].count) << 32 ^ lv.rings[i].vertical)) * 1099511628211ull;
+			}
 			static quint64 last = 0;
 			if (signature == last)
 				return;
@@ -946,11 +1009,11 @@ void AddTabs(QTabWidget *tabs) {
 			solids->Load();
 			for (int plane = 0; plane < 2; plane++) {
 				canvases[plane]->update();
-				chunk_picks[plane]->setText(QString("Painting with chunk $%1 of %2").arg(s.chunk, 2, 16, QChar('0')).toUpper().arg(ChunkCount()));
+				chunk_picks[plane]->setText("Painting with chunk " + IndexText(s.chunk, ChunkCount()));
 			}
-			tile_label->setText(QString("Tile %1 of %2").arg(s.tile).arg(TileCount()));
-			block_label->setText(QString("Block %1 of %2, tile %3").arg(s.block).arg(BlockCount()).arg(s.block_cell));
-			chunk_label->setText(QString("Chunk %1 of %2 (drawn with block %3)").arg(s.chunk).arg(ChunkCount()).arg(s.block));
+			tile_label->setText("Tile " + IndexText(s.tile, TileCount()));
+			block_label->setText(QString("Block %1, tile %2 of 4").arg(IndexText(s.block, BlockCount())).arg(s.block_cell + 1));
+			chunk_label->setText(QString("Chunk %1 (drawn with block %2)").arg(IndexText(s.chunk, ChunkCount())).arg(IndexText(s.block, BlockCount())));
 			line_box->blockSignals(true);
 			line_box->setCurrentIndex(s.palette_line);
 			line_box->blockSignals(false);
