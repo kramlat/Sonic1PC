@@ -143,6 +143,50 @@ static void SSZ_AJumpInTheSandTakesHimUpWeakly(void) {
     SandOff();
 }
 
+static void SandPut(uint16_t word) { // the whole test chunk is that cell word
+    for (int i = 0; i < 64; i++) {
+        level_map128[0x80 * 0xFE + i * 2] = (uint8_t)(word >> 8);
+        level_map128[0x80 * 0xFE + i * 2 + 1] = (uint8_t)word;
+    }
+}
+
+static void SSZ_ASandFallCarriesACharacterDownOrUpWithItsFlipAndDoesNotKill(void) {
+    SandOn();
+    SandPut(0x0051);
+    player->pos.l.y.f.u = (int16_t)(0xC0 - player->y_rad);
+    player->ysp = 0;
+    for (int i = 0; i < 30; i++)
+        SandShower_LevelMisc();
+    CHECK(player->ysp > 0x100); // (carried down)
+    CHECK_EQ(player->routine, 2);
+    SandPut(0x0851); // (Y flip)
+    player->ysp = 0;
+    for (int i = 0; i < 30; i++)
+        SandShower_LevelMisc();
+    CHECK(player->ysp < -0x100); // (carried up)
+    SandOff();
+}
+
+static void SSZ_SandThatHoldsSticksACharacterAndCarriesItSidewaysUntilAJump(void) {
+    SandOn();
+    SandPut(0x0098);
+    player->pos.l.y.f.u = (int16_t)(0xC0 - player->y_rad);
+    player->ysp = 0x300;
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, 0);
+    CHECK_EQ(player->xsp, 0x200); // (to the right)
+    SandPut(0x0498); // (X flip)
+    SandShower_LevelMisc();
+    CHECK_EQ(player->xsp, -0x200);
+    jpad1_press2 = JPAD_A;
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, -0x680); // (a full jump out of it)
+    jpad1_press2 = 0;
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, -0x680); // (rising: it does not hold him again)
+    SandOff();
+}
+
 static void SSZ_SandKillsAtThirtyTwoPixelsOfDepthAndNotBefore(void) {
     SandOn();
     player->pos.l.y.f.u = (int16_t)(0x80 + 0x2F - player->y_rad);
@@ -416,6 +460,8 @@ void RegisterOOZObjectTests(void) {
     RUN_TEST(SSZ_SandIsIgnoredOutsideIt);
     RUN_TEST(SSZ_AJumpInTheSandTakesHimUpWeakly);
     RUN_TEST(SSZ_SandKillsAtThirtyTwoPixelsOfDepthAndNotBefore);
+    RUN_TEST(SSZ_ASandFallCarriesACharacterDownOrUpWithItsFlipAndDoesNotKill);
+    RUN_TEST(SSZ_SandThatHoldsSticksACharacterAndCarriesItSidewaysUntilAJump);
     RUN_TEST(OOZ_TheBallSpringsOffWhenPlayerTwoPressesA);
     RUN_TEST(OOZ_AFlippedBallGoesTheOtherWay);
     RUN_TEST(OOZ_TheCannonCatchesACharacterAndFiresItOff);
