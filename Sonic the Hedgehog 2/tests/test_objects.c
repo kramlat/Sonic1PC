@@ -55,7 +55,6 @@ static const Pending pending[] = {
     { ZoneId_MCZ, 0, { 0 } }, // (Dust Hill)
     { ZoneId_OOZ, 0, { 0 } }, // (Oil Ocean)
     { ZoneId_MTZ, 0, { 0 } }, // (Metropolis)
-    { ZoneId_MTZ3, 0, { 0 } },
 };
 
 static bool IsPending(const Pending *p, uint8_t id) {
@@ -82,6 +81,20 @@ static void ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace(void) {
     }
 }
 
+// The acts that a zone does not have are the null level (no objects, no rings), so that it is clear they are empty; Metropolis' third act is a level of its own
+static void Levels_ActsAZoneDoesNotHaveAreEmpty(void) {
+    for (int zone = 0; zone < ZoneId_Num; zone++) {
+        if (level_obj[zone][0] == NULL)
+            continue; // (a slot that is not a zone)
+        for (int act = 2; act < 4; act++) {
+            const bool own = zone == ZoneId_MTZ && act == 2;
+            const uint8_t *objects = level_obj[zone][act], *rings = level_ring[zone][act];
+            CHECK(own != (objects[0] == 0xFF && objects[1] == 0xFF));
+            CHECK(own != (rings[0] == 0xFF && rings[1] == 0xFF));
+        }
+    }
+}
+
 static void ObjectCoverage_NoPlacedObjectIsFalselyPending(void) {
     for (size_t z = 0; z < sizeof(pending) / sizeof(pending[0]); z++) {
         const Pending *p = &pending[z];
@@ -95,7 +108,7 @@ static void ObjectCoverage_NoPlacedObjectIsFalselyPending(void) {
 // The debug lists (Debug_* in the disassemblies: the prototype's, and the alpha's for the zones taken from it): how many entries each has, and that what each one places is an object this port runs (the ones that are not built are placeholders of type null)
 static void DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects(void) {
     static const struct { int zone, count; } expect[] = {
-        { ZoneId_EHZ, 18 }, { ZoneId_MTZ, 31 }, { ZoneId_MTZ3, 31 }, { ZoneId_HTZ, 28 }, { ZoneId_HPZ, 8 }, { ZoneId_OOZ, 16 },
+        { ZoneId_EHZ, 18 }, { ZoneId_MTZ, 31 }, { ZoneId_HTZ, 28 }, { ZoneId_HPZ, 8 }, { ZoneId_OOZ, 16 },
         { ZoneId_MCZ, 16 }, { ZoneId_CNZ, 2 }, { ZoneId_CPZ, 19 }, { ZoneId_ARZ, 17 }, { ZoneId_WZ, 2 },
     };
     for (size_t i = 0; i < sizeof(expect) / sizeof(expect[0]); i++) {
@@ -923,5 +936,6 @@ void RegisterObjectCoverageTests(void) {
     RUN_TEST(Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist);
     RUN_TEST(DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects);
     RUN_TEST(ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace);
+    RUN_TEST(Levels_ActsAZoneDoesNotHaveAreEmpty);
     RUN_TEST(ObjectCoverage_NoPlacedObjectIsFalselyPending);
 }

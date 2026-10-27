@@ -40,14 +40,12 @@ const GameInfo game_info = {
 };
 
 // The zones and acts of the demo recorder's pickers: the zone slots that are built (ZoneIds.h), under their final names where the prototype's differ (Emerald Hill is the prototype's Green Hill), with the number of
-// acts each has in the prototype's files (Metropolis' third act is a zone slot of its own, and Hidden Palace has one act)
-static const char *const s2_act_mtz3[] = { "Act 3" };
+// acts each has in the prototype's files (Metropolis' third act is the third act of its slot, and Hidden Palace has one act)
 static const GameZone s2_zones[] = {
     { 0x00, "Emerald Hill", 2, NULL },
     { 0x02, "Wood", 2, NULL },
     { 0x03, "Sand Shower", 2, NULL },
-    { 0x04, "Metropolis", 2, NULL },
-    { 0x05, "Metropolis (third act)", 1, s2_act_mtz3 },
+    { 0x04, "Metropolis", 3, NULL },
     { 0x07, "Hill Top", 2, NULL },
     { 0x08, "Hidden Palace", 1, NULL },
     { 0x0A, "Oil Ocean", 2, NULL },

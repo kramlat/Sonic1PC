@@ -453,7 +453,7 @@ void Obj_MTZPlatform(Object *obj) {
     case 5: // goes to and fro (the alpha's: out to $1BC0 and back to $1880; in the third act it goes right to $2940 and stays)
         if (!scratch->out) {
             obj->pos.l.x.f.u += 2;
-            if (LEVEL_ZONE(level_id) == ZoneId_MTZ3) {
+            if (LEVEL_ZONE(level_id) == ZoneId_MTZ && LEVEL_ACT(level_id) == 2) { // (the third act of Metropolis)
                 if (obj->pos.l.x.f.u == 0x2940)
                     scratch->subtype = 0;
             } else if (obj->pos.l.x.f.u == 0x1BC0) {

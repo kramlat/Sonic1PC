@@ -61,9 +61,9 @@ static int16_t SandTop(int16_t x, int16_t y) {
     return row;
 }
 
-// A jump from inside sand, started by hand (the character is in the air, where his own jump does not run): `speed` up, rolled up
-static void SandJump(Object *chr, bool sonic, int16_t speed) {
-    chr->ysp = (int16_t)-speed;
+// A jump from inside sand, started by hand (the character is in the air, where his own jump does not run): `velocity` is the vertical speed it gives (negative up), rolled up
+static void SandJump(Object *chr, bool sonic, int16_t velocity) {
+    chr->ysp = velocity;
     PlaySound(sfx_Jump);
     if (!chr->status.p.f.in_ball) {
         chr->y_rad = sonic ? SONIC_BALL_HEIGHT : 0xE;
@@ -74,12 +74,20 @@ static void SandJump(Object *chr, bool sonic, int16_t speed) {
     }
 }
 
+enum { KindNone, KindSand, KindFall, KindHold };
+static uint8_t last_kind[2];   // what each character was in last frame: coming from a fall into sand that holds (or back), the new one takes over at once
+static bool leaving_hold[2];   // he has jumped out of sand that holds and is not to be taken by it again until he is out of it
+
 static void SandCharacter(Object *chr, uint8_t pressed, bool sonic) {
-    if (chr->routine != 2 || OBJ_CONTROL(chr) != 0 || debug_use)
+    const int who = sonic ? 0 : 1;
+    if (chr->routine != 2 || OBJ_CONTROL(chr) != 0 || debug_use) {
+        last_kind[who] = KindNone;
         return;
+    }
     const bool jump = (pressed & (JPAD_A | JPAD_B | JPAD_C)) != 0;
     const int16_t feet = (int16_t)(chr->pos.l.y.f.u + chr->y_rad);
     if (IsSand(chr->pos.l.x.f.u, feet)) {
+        last_kind[who] = KindSand;
         if (feet - SandTop(chr->pos.l.x.f.u, feet) >= SAND_DEPTH) {
             if (sonic)
                 KillSonic(chr, chr);
@@ -96,28 +104,58 @@ static void SandCharacter(Object *chr, uint8_t pressed, bool sonic) {
             chr->ysp = (int16_t)(chr->ysp - (chr->ysp >> 5)); // (the sand slows him as he rises)
         chr->xsp = (int16_t)(chr->xsp - (chr->xsp >> 4));
         if (jump)
-            SandJump(chr, sonic, SAND_JUMP_SPEED);
+            SandJump(chr, sonic, (int16_t)-SAND_JUMP_SPEED);
         return;
     }
 
-    if (!chr->status.p.f.in_air)
-        return;
     const uint16_t word = SandWord(chr->pos.l.x.f.u, chr->pos.l.y.f.u);
     const int block = word & META_TILE;
-    const bool x_flip = (word & META_X_FLIP) != 0, y_flip = (word & META_Y_FLIP) != 0;
-    if (IsFall(block)) { // a fall: carried down (up if the block is flipped), with the sand's drag, and not fatal
+    bool x_flip = (word & META_X_FLIP) != 0, y_flip = (word & META_Y_FLIP) != 0;
+    int kind = IsFall(block) ? KindFall : IsHold(block) ? KindHold : KindNone;
+    if (kind == KindFall) {
+        // The bend: at the end of a fall (nothing of it ahead of him) with sand that holds beside it, flowing away from it, the fall turns into that flow: he is carried round the corner, not dropped
+        const int16_t probe = y_flip ? (int16_t)(chr->pos.l.y.f.u - chr->y_rad - 2) : (int16_t)(feet + 2);
+        if (!IsFall(SandWord(chr->pos.l.x.f.u, probe) & META_TILE)) {
+            const uint16_t right = SandWord((int16_t)(chr->pos.l.x.f.u + 16), chr->pos.l.y.f.u);
+            const uint16_t left = SandWord((int16_t)(chr->pos.l.x.f.u - 16), chr->pos.l.y.f.u);
+            if (IsHold(right & META_TILE) && !(right & META_X_FLIP)) {
+                kind = KindHold;
+                x_flip = false;
+                y_flip = (right & META_Y_FLIP) != 0;
+            } else if (IsHold(left & META_TILE) && (left & META_X_FLIP)) {
+                kind = KindHold;
+                x_flip = true;
+                y_flip = (left & META_Y_FLIP) != 0;
+            }
+        }
+    }
+    if (kind != KindHold)
+        leaving_hold[who] = false;
+    const int before = last_kind[who];
+    last_kind[who] = (uint8_t)kind;
+    if (!chr->status.p.f.in_air || kind == KindNone)
+        return;
+
+    if (kind == KindFall) { // a fall: carried down (up if the block is flipped), with the sand's drag, and not fatal
+        if (before == KindHold)
+            chr->xsp = 0; // (the sand that held him lets go of him at once)
         const int16_t target = y_flip ? -FLOW_SPEED : FLOW_SPEED;
         chr->ysp = (int16_t)(chr->ysp + ((target - chr->ysp) >> 3));
         chr->xsp = (int16_t)(chr->xsp - (chr->xsp >> 4));
-        if (jump)
-            SandJump(chr, sonic, SAND_JUMP_SPEED);
-    } else if (IsHold(block)) { // sand that holds: he sticks to it and is carried sideways, until he jumps out
+        if (jump) { // at the end of the fall (nothing of it ahead of him) the jump is a high one
+            const int16_t probe = y_flip ? (int16_t)(chr->pos.l.y.f.u - chr->y_rad - 2) : (int16_t)(feet + 2);
+            SandJump(chr, sonic, IsFall(SandWord(chr->pos.l.x.f.u, probe) & META_TILE) ? (int16_t)-SAND_JUMP_SPEED : (int16_t)-JUMP_SPEED);
+        }
+    } else { // sand that holds: he sticks to it and is carried sideways, until he jumps out of it: down, or up if the block is flipped in Y
+        if (leaving_hold[who])
+            return;
         if (jump) {
-            SandJump(chr, sonic, JUMP_SPEED);
+            SandJump(chr, sonic, y_flip ? (int16_t)-JUMP_SPEED : (int16_t)JUMP_SPEED);
+            leaving_hold[who] = true;
             return;
         }
-        if (chr->ysp < 0)
-            return; // (on his way out of it)
+        if (before == KindFall)
+            chr->ysp = 0; // (the fall that carried him lets go of him at once)
         chr->ysp = 0;
         chr->xsp = x_flip ? -HOLD_SPEED : HOLD_SPEED;
     }

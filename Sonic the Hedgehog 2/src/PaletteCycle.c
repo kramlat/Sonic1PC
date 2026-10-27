@@ -665,7 +665,6 @@ void PaletteCycle(void) {
         PCycle_WZ();
         break;
     case ZoneId_MTZ:
-    case ZoneId_MTZ3:
         PCycle_MTZ();
         break;
     case ZoneId_OOZ:

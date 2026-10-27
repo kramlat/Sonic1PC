@@ -9,7 +9,7 @@ typedef enum {
 	ZoneId_WZ = 0x02,
 	ZoneId_SSZ = 0x03, // Sand Shower (the final game's data: see the importer)
 	ZoneId_MTZ = 0x04,
-	ZoneId_MTZ3 = 0x05,
+	ZoneId_Empty05, // (the prototype's Metropolis third act: it is the third act of Metropolis' slot now)
 	ZoneId_Empty06,
 	ZoneId_HTZ = 0x07,
 	ZoneId_HPZ = 0x08,

@@ -187,7 +187,6 @@ void S2_PrimeLevelArt(void) {
         Prime(AnimCue_HPZ, (int)(sizeof(AnimCue_HPZ) / sizeof(AnimCue_HPZ[0])));
         break;
     case ZoneId_MTZ:
-    case ZoneId_MTZ3:
         Prime(AnimCue_MTZ, (int)(sizeof(AnimCue_MTZ) / sizeof(AnimCue_MTZ[0])));
         break;
     case ZoneId_CPZ:
@@ -224,7 +223,6 @@ void S2_AnimateLevelArt(void) {
         Dynamic_Normal(AnimCue_HPZ, (int)(sizeof(AnimCue_HPZ) / sizeof(AnimCue_HPZ[0])));
         break;
     case ZoneId_MTZ:
-    case ZoneId_MTZ3:
         Dynamic_Normal(AnimCue_MTZ, (int)(sizeof(AnimCue_MTZ) / sizeof(AnimCue_MTZ[0])));
         break;
     case ZoneId_CPZ:
@@ -345,7 +343,6 @@ void S2_LoadAnimatedBlocks(void) {
         b = &ABK_Green;
         break;
     case ZoneId_MTZ:
-    case ZoneId_MTZ3:
         b = &ABK_Metropolis;
         break;
     case ZoneId_HPZ:

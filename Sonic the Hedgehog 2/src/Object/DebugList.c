@@ -365,8 +365,7 @@ const DebugListEntry *DebugList_Get(int *count_out) {
 
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_EHZ: LIST(DebugList_EHZ); break;
-    case ZoneId_MTZ:
-    case ZoneId_MTZ3: LIST(DebugList_MTZ); break;
+    case ZoneId_MTZ: LIST(DebugList_MTZ); break;
     case ZoneId_HTZ: LIST(DebugList_HTZ); break;
     case ZoneId_HPZ: LIST(DebugList_HPZ); break;
     case ZoneId_OOZ: LIST(DebugList_OOZ); break;

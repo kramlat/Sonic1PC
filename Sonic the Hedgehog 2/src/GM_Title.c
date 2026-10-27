@@ -86,7 +86,7 @@ static const uint16_t levsel_levels[LEVSEL_SS_ROW] = {
     LEVEL_ID(0x00, 0), LEVEL_ID(0x00, 1),
     LEVEL_ID(0x02, 0), LEVEL_ID(0x02, 1),
     LEVEL_ID(0x03, 0), LEVEL_ID(0x03, 1),
-    LEVEL_ID(0x04, 0), LEVEL_ID(0x04, 1), LEVEL_ID(0x05, 0),
+    LEVEL_ID(0x04, 0), LEVEL_ID(0x04, 1), LEVEL_ID(0x04, 2),
     LEVEL_ID(0x07, 0), LEVEL_ID(0x07, 1),
     LEVEL_ID(0x08, 0), LEVEL_ID(0x08, 1),
     LEVEL_ID(0x0A, 0), LEVEL_ID(0x0A, 1),

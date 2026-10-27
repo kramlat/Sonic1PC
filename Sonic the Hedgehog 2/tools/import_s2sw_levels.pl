@@ -101,9 +101,9 @@ for my $name (@order) {
     my ($zone, $slot) = @{ $zones{$1} };
     my $act = $2;
     my $s = $sec{$name};
-    # Metropolis's third act is the prototype's zone $05 (MTZ2), act 1
+    # Metropolis's third act is the prototype's zone $05 (MTZ3): the third act (act 2) of Metropolis' own slot here
     my ($zslot, $zact) = ($slot, $act - 1);
-    ($zslot, $zact) = (0x05, 0) if $zone eq 'MTZ' && $act == 3;
+    ($zslot, $zact) = (0x04, 2) if $zone eq 'MTZ' && $act == 3;
     my $key = "$zone$act";
     $info{$zone}{slot} //= $slot;
     $info{$zone}{acts}{$act} = { slot => $zslot, act => $zact, key => $key };

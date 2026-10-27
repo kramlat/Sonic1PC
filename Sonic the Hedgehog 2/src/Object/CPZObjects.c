@@ -425,7 +425,9 @@ typedef struct {
     uint8_t pad0[7];
     int16_t height;   // 0x30: how far it has risen
     int16_t base_y;   // 0x32
-    uint8_t pad1[4];
+    int16_t wait;     // 0x34: (Sand Shower's) how long it stays open after the button it answers is let go
+    uint8_t latched;  // 0x36: (the switch door) its switch has been pressed and nobody has gone through since
+    uint8_t passing;  // 0x37: and someone is going through
     int16_t left;     // 0x38: the strip in which it opens
     int16_t right;    // 0x3A
 } Scratch_CPZBarrier;
@@ -442,7 +444,7 @@ void Obj_CPZBarrier(Object *obj) {
         obj->mappings = ssz ? Mappings_SSZBarrier : Mappings_CPZBarrier;
         // (Hill Top's valve barrier has art and a width of its own: the default of Obj2D_Init; Chemical Plant's is the stripes)
         const bool cpz = LEVEL_ZONE(level_id) == ZoneId_CPZ;
-        const bool mtz = LEVEL_ZONE(level_id) == ZoneId_MTZ || LEVEL_ZONE(level_id) == ZoneId_MTZ3; // (Metropolis's is the first tile of its art, and as wide as Chemical Plant's)
+        const bool mtz = LEVEL_ZONE(level_id) == ZoneId_MTZ; // (Metropolis's is the first tile of its art, and as wide as Chemical Plant's)
         obj->tile = ssz ? TILE_MAP(0, 2, 0, 0, 0) : mtz ? TILE_MAP(0, 3, 0, 0, 0) : TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
         obj->width_pixels = ssz ? 0x10 : (cpz || mtz) ? 0xC : 8; // (Sand Shower's runs from x to x+32: its solid box is centred 16 to the right)
         obj->render.b |= SPRITE_CAM_FIELD;
@@ -460,6 +462,54 @@ void Obj_CPZBarrier(Object *obj) {
 
     int16_t d2, d3;
     const int16_t x = obj->pos.l.x.f.u;
+    if (LEVEL_ZONE(level_id) == ZoneId_SSZ) {
+        // Sand Shower's door, in three kinds by the subtype (bits 4-5: the kind; bits 0-3: the switch it answers; bits 6-7: the time of the third kind). It is drawn from x to x+32, and opens to the side that it faces:
+        // the open side is to the left, to the right if the object is flipped in X.
+        //  0 the door: opens as a character comes up to it on its open side, and shuts behind him
+        //  1 the switch door: the same, but it does not open until its switch is pressed, and then it waits for someone to go through it, and shuts behind him
+        //  2 the timed switch door: faces nothing: its switch opens it, it stays up for the time the subtype gives (3, 5, 8 or 12 seconds) and shuts, on someone in its way too (he is crushed)
+        const unsigned kind = (scratch->subtype >> 4) & 3;
+        const bool pressed = (f_switch[scratch->subtype & 0xF] & 1) != 0;
+        const bool flipped = obj->status.o.f.x_flip;
+        bool in_way = false;   // (in the door's place: it must not shut on him)
+        FOR_EACH_CHARACTER(chr, who) {
+            const int16_t cx = chr->pos.l.x.f.u, cy = chr->pos.l.y.f.u;
+            if (cx >= x - 8 && cx < x + 40 && cy >= scratch->base_y - 0x60 && cy < scratch->base_y + 0x30)
+                in_way = true;
+        }
+        bool open;
+        if (kind == 2) {
+            static const int16_t seconds[4] = { 3, 5, 8, 12 };
+            if (pressed)
+                scratch->wait = (int16_t)(seconds[(scratch->subtype >> 6) & 3] * 60);
+            open = scratch->wait > 0;
+            if (scratch->wait > 0)
+                scratch->wait--;
+            // (nothing holds it for someone in its way: when the time is up it shuts, and a character who is still under it is crushed, as the solid test has it. That is the puzzle)
+        } else {
+            // the strip in which a character opens it, as the barrier has it, wider for this one's width: the open side's reach, and the far edge that he has to be past for it to shut (x+$38, or x-$18 flipped)
+            const int16_t d2 = flipped ? (obj->routine_sec ? x - 0x18 : x + 0x20) : x - 0x200;
+            const int16_t d3 = flipped ? x + 0x200 : (obj->routine_sec ? x + 0x38 : x);
+            bool in_strip = false;
+            FOR_EACH_CHARACTER(chr, who) {
+                const int16_t cx = chr->pos.l.x.f.u;
+                if (cx >= d2 && cx < d3)
+                    in_strip = true;
+            }
+            if (kind == 0) {
+                open = in_strip || in_way;
+            } else {
+                if (pressed)
+                    scratch->latched = 1;
+                if (scratch->latched && in_way)
+                    scratch->passing = 1;
+                if (scratch->latched && scratch->passing && !in_way)
+                    scratch->latched = scratch->passing = 0; // (someone has gone through: it shuts behind him)
+                open = scratch->latched != 0;
+            }
+        }
+        obj->routine_sec = open ? 2 : 0;
+    } else {
     if (!obj->status.o.f.x_flip) {
         d2 = scratch->left;
         d3 = obj->routine_sec ? scratch->right : x;
@@ -472,6 +522,7 @@ void Obj_CPZBarrier(Object *obj) {
         const uint16_t cx = (uint16_t)chr->pos.l.x.f.u;
         if (cx >= (uint16_t)d2 && cx < (uint16_t)d3)
             obj->routine_sec = 2;
+    }
     }
     if (obj->routine_sec) {
         if (scratch->height != 0x40) {

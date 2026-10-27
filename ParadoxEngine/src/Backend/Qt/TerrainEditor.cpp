@@ -66,6 +66,7 @@ struct State {
 	int block_cell = 0;                       // which of a block's four tiles is being edited
 	int sel_line = 1, sel_index = 1;          // the palette's selection
 	quint64 change_count = 0;                 // counts the changes (what caches go by)
+	bool block_night = false;                 // the Blocks tab in night mode: the tiles that are not high priority darkened
 	int solid_view = 1;                       // the solids drawn over the chunk's blocks: 0 none, 1 path 1, 2 path 2
 	QWidget *palette_pane = nullptr, *tile_grid = nullptr, *tile_canvas = nullptr, *block_grid = nullptr, *block_canvas = nullptr, *chunk_grid = nullptr, *chunk_canvas = nullptr, *solid_pane = nullptr;
 	std::function<void()> refresh_all;
@@ -127,9 +128,13 @@ QImage TileImage(int tile, int line, bool x_flip, bool y_flip) {
 	return image;
 }
 
+bool priority_dim = false; // the planes' priority view: the tiles that are not high priority are darkened (the shadow of the VDP's shadow/highlight mode: the night mode Sega tested priority with)
+
 void DrawTileWord(QPainter *p, uint16_t word, const QRect &at) {
 	const QImage image = TileImage(word & 0x7FF, (word >> 13) & 3, word & 0x0800, word & 0x1000);
 	p->drawImage(at, image);
+	if (priority_dim && !(word & 0x8000))
+		p->fillRect(at, QColor(0, 0, 40, 165));
 }
 
 void DrawBlock(QPainter *p, int block, const QRect &at, bool x_flip = false, bool y_flip = false) {
@@ -423,7 +428,9 @@ protected:
 			return;
 		for (int c = 0; c < 4; c++) {
 			const QRect at((c % 2) * 72, (c / 2) * 72, 72, 72);
+			priority_dim = s.block_night;
 			DrawTileWord(&p, Be16(blocks + s.block * 8 + c * 2), at);
+			priority_dim = false;
 			p.setPen(QPen(c == s.block_cell ? QColor(255, 160, 0) : QColor(0, 0, 0, 120), 2));
 			p.setBrush(Qt::NoBrush);
 			p.drawRect(at.adjusted(1, 1, -1, -1));
@@ -633,8 +640,9 @@ QHash<int, QImage> thumb_cache; // chunk pictures by size and chunk, drawn once 
 
 void InvalidateThumbs() { thumb_cache.clear(); }
 
-const QImage &ChunkThumb(int chunk, int size) {
-	const int key = size * 1000 + chunk;
+// The picture of a chunk, with what the plane's view adds to it: mode 0 none, 1 priority (the tiles that are not high priority darkened), 2 and 3 the solids of path A and B over the blocks
+const QImage &ChunkThumb(int chunk, int size, int mode = 0) {
+	const int key = mode * 1000000 + size * 1000 + chunk;
 	auto found = thumb_cache.find(key);
 	if (found == thumb_cache.end()) {
 		QImage image(size, size, QImage::Format_ARGB32);
@@ -643,7 +651,16 @@ const QImage &ChunkThumb(int chunk, int size) {
 			QImage full(128, 128, QImage::Format_ARGB32);
 			full.fill(QColor(24, 24, 28));
 			QPainter fp(&full);
+			priority_dim = mode == 1;
 			DrawChunk(&fp, chunk, QRect(0, 0, 128, 128));
+			priority_dim = false;
+			if (mode >= 2) {
+				size_t chunk_bytes;
+				const uint8_t *chunks = Editor_Chunks(&chunk_bytes);
+				if (chunks != nullptr && size_t(chunk + 1) * 128 <= chunk_bytes)
+					for (int i = 0; i < 64; i++)
+						DrawSolidOverlay(&fp, Be16(chunks + chunk * 128 + i * 2), mode - 1, QRect((i % 8) * 16, (i / 8) * 16, 16, 16));
+			}
 			fp.end();
 			QPainter p(&image);
 			p.drawImage(QRect(0, 0, size, size), full);
@@ -661,6 +678,10 @@ public:
 		setMouseTracking(true);
 		SetZoom(128);
 	}
+	void SetMode(int mode) { // what is shown on the chunks: 0 nothing, 1 priority, 2 solids of path A, 3 of path B
+		mode_ = mode;
+		update();
+	}
 	void SetZoom(int zoom) {
 		zoom_ = zoom;
 		setFixedSize(128 * zoom_ + 1, 16 * zoom_ + 1);
@@ -676,7 +697,7 @@ protected:
 		for (int row = qMax(0, area.top() / zoom_); row <= qMin(15, area.bottom() / zoom_); row++)
 			for (int col = qMax(0, area.left() / zoom_); col <= qMin(127, area.right() / zoom_); col++) {
 				const int chunk = layout[row * 256 + plane_ * 128 + col];
-				p.drawImage(col * zoom_, row * zoom_, ChunkThumb(chunk, zoom_));
+				p.drawImage(col * zoom_, row * zoom_, ChunkThumb(chunk, zoom_, mode_));
 			}
 		p.setPen(QColor(0, 0, 0, 70));
 		for (int c = area.left() / zoom_; c <= qMin(128, area.right() / zoom_ + 1); c++)
@@ -760,6 +781,7 @@ private:
 	int plane_;
 	QLabel *where_;
 	int zoom_ = 128;
+	int mode_ = 0;
 };
 
 } // namespace
@@ -823,7 +845,9 @@ void AddTabs(QTabWidget *tabs) {
 		auto *block_layout = new QHBoxLayout(block_page);
 		auto *block_grid = new Grid(16, 16 * kBlockZoom + 1, [] { return BlockCount(); },
 		                            [](QPainter *p, int i, const QRect &at) {
+			                            priority_dim = s.block_night;
 			                            DrawBlock(p, i, at.adjusted(0, 0, -1, -1));
+			                            priority_dim = false;
 			                            size_t bytes;
 			                            const uint8_t *solids = Editor_Solids(0, &bytes);
 			                            if (solids != nullptr && size_t(i) < bytes && solids[i] != 0) {
@@ -855,7 +879,11 @@ void AddTabs(QTabWidget *tabs) {
 		auto *y_flip = new QCheckBox("Y flip", block_page);
 		auto *priority = new QCheckBox("High priority", block_page);
 		auto *use_tile = new QPushButton("Use the tile selected in Tiles", block_page);
-		for (QWidget *widget : std::initializer_list<QWidget *>{ tile_spin, line_spin, x_flip, y_flip, priority, use_tile })
+		auto *night = new QCheckBox("Night mode (darken the tiles that are not high priority)", block_page);
+		s.block_night = s.block_night || getenv("SONIC_QT_BLOCKNIGHT") != nullptr; // (the env var: for the automated checks)
+		night->setChecked(s.block_night);
+		QObject::connect(night, &QCheckBox::toggled, block_page, [](bool on) { s.block_night = on; if (s.refresh_all) s.refresh_all(); });
+		for (QWidget *widget : std::initializer_list<QWidget *>{ night, tile_spin, line_spin, x_flip, y_flip, priority, use_tile })
 			block_side->addWidget(widget);
 		block_side->addStretch();
 		block_layout->addLayout(block_side);
@@ -921,14 +949,22 @@ void AddTabs(QTabWidget *tabs) {
 			auto *zoom = new QComboBox(page);
 			for (int z : { 16, 32, 48, 64, 96, 128 }) // (128 is the chunk's own size)
 				zoom->addItem(QString("%1 pixels a chunk").arg(z), z);
-			zoom->setCurrentIndex(5); // (the chunks at their own size: 128 pixels)
+			zoom->setCurrentIndex(getenv("SONIC_QT_PLANEZOOM") ? atoi(getenv("SONIC_QT_PLANEZOOM")) : 5); // (the chunks at their own size: 128 pixels)
 			box->addWidget(zoom);
+			QComboBox *view_box = nullptr;
 			if (plane == 0) {
+				view_box = new QComboBox(page);
+				view_box->addItems({ "View: normal", "View: priority (shadow/highlight night mode)", "View: solids path A (primary)", "View: solids path B (secondary)" });
+				box->addWidget(view_box);
+				if (const char *forced = getenv("SONIC_QT_PLANEVIEW")) // (for the automated checks: the view the plane starts in)
+					view_box->setCurrentIndex(atoi(forced));
 				guides_box = new QCheckBox("Show objects and rings (as guides to place chunks by)", page);
 				QObject::connect(guides_box, &QCheckBox::toggled, page, [] { if (s.refresh_all) s.refresh_all(); });
 				box->addWidget(guides_box);
 			}
 			canvases[plane] = new LayerCanvas(plane, where);
+			if (view_box != nullptr)
+				QObject::connect(view_box, qOverload<int>(&QComboBox::currentIndexChanged), page, [=](int mode) { canvases[0]->SetMode(mode); });
 			animated << canvases[plane] << picker;
 			auto *canvas_area = Scroll(canvases[plane], page);
 			box->addWidget(canvas_area, 1);
@@ -936,6 +972,7 @@ void AddTabs(QTabWidget *tabs) {
 				canvases[plane]->SetZoom(zoom->currentData().toInt());
 				InvalidateThumbs();
 			});
+			canvases[plane]->SetZoom(zoom->currentData().toInt());
 			tabs->addTab(page, plane == 0 ? "Plane A" : "Plane B");
 			// opening the tab shows where the cursor (and so the camera) is
 			QObject::connect(tabs, &QTabWidget::currentChanged, page, [=](int) {

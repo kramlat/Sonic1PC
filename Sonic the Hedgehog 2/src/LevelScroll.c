@@ -681,7 +681,6 @@ static void Deform_ARZ(void) {
 static void (*deform_routines[ZoneId_Num])(void) = {
 	[ZoneId_WZ] = Deform_WZ,
 	[ZoneId_MTZ] = Deform_WZ,
-	[ZoneId_MTZ3] = Deform_WZ,
 	[ZoneId_OOZ] = Deform_OOZ,
 	[ZoneId_MCZ] = Deform_MCZ,
 	[ZoneId_CNZ] = Deform_CNZ,
@@ -737,8 +736,7 @@ void BgScrollSpeed(int16_t x, int16_t y) {
             bg_scrpos_x.f.u = (int16_t)(x >> 3);
             break;
 
-        case ZoneId_MTZ:
-        case ZoneId_MTZ3: /* Metropolis: a quarter of the height, an eighth of the width */
+        case ZoneId_MTZ: /* Metropolis: a quarter of the height, an eighth of the width */
         case ZoneId_GCZ: /* Cyber City: InitCam_Std (the camera's Y shifted right twice and its X three times, arithmetically) */
             bg_scrpos_y.f.u = (int16_t)(y >> 2);
             bg_scrpos_x.f.u = (int16_t)(x >> 3);

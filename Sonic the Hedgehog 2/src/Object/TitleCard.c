@@ -175,7 +175,7 @@ void Obj_GotThroughCard(Object *obj) {
         break;
     }
     case 0xA: { // Advance to the next act
-        level_id = level_order[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id) & 1];
+        level_id = (LEVEL_ZONE(level_id) == ZoneId_MTZ && LEVEL_ACT(level_id) == 2) ? 0 : level_order[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id) & 1]; // (Metropolis' third act has no next one yet: the prototype's own entry for it was empty)
         last_lamp = 0;
 
         // Sonic jumped into a giant ring (Obj_RingFlash set big_ring): the next screen is a special stage

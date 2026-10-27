@@ -6,6 +6,7 @@
 #include "Level.h"
 #include "Object.h"
 #include "Object/CharControl.h"
+#include "Object/CPZObjects.h"
 #include "Object/OOZObjects.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
@@ -180,10 +181,180 @@ static void SSZ_SandThatHoldsSticksACharacterAndCarriesItSidewaysUntilAJump(void
     CHECK_EQ(player->xsp, -0x200);
     jpad1_press2 = JPAD_A;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, -0x680); // (a full jump out of it)
+    CHECK_EQ(player->ysp, 0x680); // (a full jump out of it, downward)
     jpad1_press2 = 0;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, -0x680); // (rising: it does not hold him again)
+    CHECK_EQ(player->ysp, 0x680); // (on his way out: it does not hold him again)
+    SandPut(0x0000); // (out of it: it can take him again)
+    SandShower_LevelMisc();
+    SandPut(0x0898); // (Y flip: up)
+    SandShower_LevelMisc();
+    jpad1_press2 = JPAD_A;
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, -0x680);
+    jpad1_press2 = 0;
+    SandOff();
+}
+
+static void SSZ_ASandFallLetsGoWhereASidewaysOneTakesOverAndAJumpAtItsEndIsHigh(void) {
+    SandOn();
+    // a fall, then sand that holds: the new one takes over at once (his fall stops and the sideways flow starts)
+    SandPut(0x0051);
+    player->pos.l.y.f.u = (int16_t)(0xC0 - player->y_rad);
+    player->ysp = 0x180;
+    SandShower_LevelMisc();
+    SandPut(0x0098);
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, 0);
+    CHECK_EQ(player->xsp, 0x200);
+    // and back: the sideways speed goes at once
+    SandPut(0x0051);
+    SandShower_LevelMisc();
+    CHECK_EQ(player->xsp, 0);
+    // a jump from a fall that goes on is weak, and at its end (the block below is not a fall) a full one
+    SandPut(0x0051);
+    player->ysp = 0;
+    jpad1_press2 = JPAD_A;
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, -0x410);
+    player->status.p.f.in_ball = false;
+    for (int i = 48; i < 64; i++) // (the last two rows of the chunk are empty: the fall ends above them)
+        level_map128[0x80 * 0xFE + i * 2 + 1] = 0;
+    player->pos.l.y.f.u = (int16_t)(0x80 + 5 * 16 + 8); // (his middle in the sixth row, the last of the fall: his feet are in the seventh)
+    player->ysp = 0;
+    player->status.p.f.in_air = true;
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, -0x680);
+    jpad1_press2 = 0;
+    SandOff();
+}
+
+static void DoorRun(Object *door, int frames) {
+    for (int i = 0; i < frames; i++)
+        Obj_CPZBarrier(door);
+}
+
+static void SSZ_TheDoorOpensAsYouComeUpToItAndShutsBehindYou(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_SSZ, 0);
+    Object *door = Spawn(SLOT(0x20), 0x2D, 0x00, 0x60, 0x80);
+    player->pos.l.x.f.u = 0x1000;
+    DoorRun(door, 20);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80); // (shut: he is far away)
+    player->pos.l.x.f.u = 0x20; // (on its open side)
+    player->pos.l.y.f.u = 0x80;
+    DoorRun(door, 20);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80 - 0x40);
+    player->pos.l.x.f.u = 0x80; // (in the door)
+    DoorRun(door, 20);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80 - 0x40); // (it does not shut on him)
+    player->pos.l.x.f.u = 0xA0; // (past it)
+    DoorRun(door, 20);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80); // (it shuts behind him)
+    // flipped, it opens from the other side
+    Object *flipped = Spawn(SLOT(0x21), 0x2D, 0x00, 0x60, 0x80);
+    flipped->status.o.f.x_flip = true;
+    player->pos.l.x.f.u = 0x20;
+    DoorRun(flipped, 20);
+    CHECK_EQ(flipped->pos.l.y.f.u, 0x80); // (not from the left)
+    player->pos.l.x.f.u = 0xC0;
+    DoorRun(flipped, 20);
+    CHECK_EQ(flipped->pos.l.y.f.u, 0x80 - 0x40);
+}
+
+static void SSZ_TheSwitchDoorWaitsForItsSwitchAndShutsOnceYouAreThrough(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_SSZ, 0);
+    memset(f_switch, 0, sizeof(f_switch));
+    Object *door = Spawn(SLOT(0x20), 0x2D, 0x10, 0x60, 0x80);
+    player->pos.l.x.f.u = 0x20; // (at it, but its switch is not pressed)
+    player->pos.l.y.f.u = 0x80;
+    DoorRun(door, 20);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80);
+    f_switch[0] = 1; // (pressed, and let go: it stays up)
+    DoorRun(door, 2);
+    f_switch[0] = 0;
+    DoorRun(door, 200);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80 - 0x40);
+    player->pos.l.x.f.u = 0x80; // (going through)
+    DoorRun(door, 20);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80 - 0x40);
+    player->pos.l.x.f.u = 0xA0; // (through)
+    DoorRun(door, 20);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80);
+}
+
+static void SSZ_TheTimedSwitchDoorStaysUpForTheTimeOfItsSubtype(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_SSZ, 0);
+    memset(f_switch, 0, sizeof(f_switch));
+    Object *door = Spawn(SLOT(0x20), 0x2D, 0x20, 0x60, 0x80); // (3 seconds)
+    player->pos.l.x.f.u = 0x20; // (on its open side: it does not mind which side)
+    player->pos.l.y.f.u = 0x80;
+    DoorRun(door, 20);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80);
+    f_switch[0] = 1;
+    DoorRun(door, 2);
+    f_switch[0] = 0;
+    player->pos.l.x.f.u = 0x1000;
+    player->pos.l.y.f.u = 0x1000;
+    DoorRun(door, 150);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80 - 0x40); // (up after 2.5 seconds)
+    DoorRun(door, 100);
+    CHECK_EQ(door->pos.l.y.f.u, 0x80); // (shut after 4)
+    Object *slow = Spawn(SLOT(0x21), 0x2D, 0x80 | 0x20, 0x60, 0x80); // (8 seconds)
+    f_switch[0] = 1;
+    DoorRun(slow, 2);
+    f_switch[0] = 0;
+    DoorRun(slow, 400);
+    CHECK_EQ(slow->pos.l.y.f.u, 0x80 - 0x40);
+    player->pos.l.x.f.u = 0x80; // (in its way when the time is up: it shuts all the same)
+    player->pos.l.y.f.u = 0x80;
+    DoorRun(slow, 200);
+    CHECK_EQ(slow->pos.l.y.f.u, 0x80);
+}
+
+static void SSZ_TheTimedDoorCrushesWhoIsStillUnderItWhenTheTimeIsUp(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_SSZ, 0);
+    memset(f_switch, 0, sizeof(f_switch));
+    Object *door = Spawn(SLOT(0x20), 0x2D, 0x20, 0x60, 0x80); // (3 seconds)
+    door->render.f.on_screen = true;
+    player->pos.l.x.f.u = 0x1000; // (away while it opens)
+    f_switch[0] = 1;
+    DoorRun(door, 2);
+    f_switch[0] = 0;
+    DoorRun(door, 20);
+    player->pos.l.x.f.u = 0x70; // (under it)
+    player->pos.l.y.f.u = 0x95;
+    player->status.p.f.in_air = false;
+    player->ysp = 0;
+    for (int i = 0; i < 100; i++) {
+        door->render.f.on_screen = true;
+        Obj_CPZBarrier(door);
+    }
+    CHECK_EQ(player->routine, 2); // (alive while it is up)
+    for (int i = 0; i < 200 && player->routine == 2; i++) {
+        door->render.f.on_screen = true;
+        Obj_CPZBarrier(door);
+    }
+    CHECK_EQ(player->routine, 6); // (crushed)
+}
+
+static void SSZ_AFallTurnsIntoTheSidewaysSandBesideItsEnd(void) {
+    SandOn();
+    SandPut(0x0000);
+    for (int row = 0; row < 3; row++) // (a fall, down the first column)
+        level_map128[0x80 * 0xFE + (row * 8) * 2 + 1] = 0x51;
+    level_map128[0x80 * 0xFE + (3 * 8) * 2 + 1] = 0x97; // (its bend)
+    level_map128[0x80 * 0xFE + (3 * 8 + 1) * 2 + 1] = 0x98; // (and sand that holds beside it)
+    player->pos.l.x.f.u = 0x108;
+    player->pos.l.y.f.u = (int16_t)(0x80 + 3 * 16 + 4);
+    player->ysp = 0x180;
+    player->xsp = 0;
+    SandShower_LevelMisc();
+    CHECK_EQ(player->ysp, 0); // (not dropped)
+    CHECK_EQ(player->xsp, 0x200); // (carried round the corner)
     SandOff();
 }
 
@@ -460,7 +631,13 @@ void RegisterOOZObjectTests(void) {
     RUN_TEST(SSZ_SandIsIgnoredOutsideIt);
     RUN_TEST(SSZ_AJumpInTheSandTakesHimUpWeakly);
     RUN_TEST(SSZ_SandKillsAtThirtyTwoPixelsOfDepthAndNotBefore);
+    RUN_TEST(SSZ_AFallTurnsIntoTheSidewaysSandBesideItsEnd);
+    RUN_TEST(SSZ_TheDoorOpensAsYouComeUpToItAndShutsBehindYou);
+    RUN_TEST(SSZ_TheSwitchDoorWaitsForItsSwitchAndShutsOnceYouAreThrough);
+    RUN_TEST(SSZ_TheTimedSwitchDoorStaysUpForTheTimeOfItsSubtype);
+    RUN_TEST(SSZ_TheTimedDoorCrushesWhoIsStillUnderItWhenTheTimeIsUp);
     RUN_TEST(SSZ_ASandFallCarriesACharacterDownOrUpWithItsFlipAndDoesNotKill);
+    RUN_TEST(SSZ_ASandFallLetsGoWhereASidewaysOneTakesOverAndAJumpAtItsEndIsHigh);
     RUN_TEST(SSZ_SandThatHoldsSticksACharacterAndCarriesItSidewaysUntilAJump);
     RUN_TEST(OOZ_TheBallSpringsOffWhenPlayerTwoPressesA);
     RUN_TEST(OOZ_AFlippedBallGoesTheOtherWay);
