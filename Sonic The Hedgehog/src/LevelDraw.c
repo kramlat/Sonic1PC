@@ -181,28 +181,6 @@ void DrawBG_ColumnForBGIndex(plane_t *plane, int16_t x, int16_t y, int16_t sy, c
 	*flag &= 0xFF00;
 }
 
-void Draw_GHZ_Bg(int16_t sy, const LevelLayoutPlane *layout, plane_t *plane) {
-	int16_t y = 0;
-	for (size_t i = 0; i < SCROLL_ROWS; i++) {
-		static const uint8_t bg_array[] = {0x00, 0x00, 0x00, 0x00, 0x06, 0x06, 0x06, 0x04, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-		DrawBlocks_BG(plane, bg_scrpos_y.f.u, sy, y, layout, bg_array, 16, bg_pos_table, bg_pos_table_y);
-		y += 16;
-	}
-}
-
-void Draw_MZ_Bg(int16_t sy, const LevelLayoutPlane *layout, plane_t *plane) {
-    // Matches Draw_MZ_BG in the disassembly: starts one row above the top of
-    // the screen (y = -16, not 0), reads MZ_ScrollArray+1 (its row-index
-    // table is addressed with a +1 offset -- see BG_ScrollBlockMap_MZ+1),
-    // and biases the row index by -512 (v_bgscreenposy - $200) before
-    // masking, unlike every other zone's table.
-    int16_t y = -16;
-    for (size_t i = 0; i < SCROLL_ROWS; i++) {
-        DrawBlocks_BG_2(plane, bg_scrpos_x.f.u, sy, -0x200, y, layout, MZ_ScrollArray + 1, 128, bg_pos_table, bg_pos_table_y);
-        y += 16;
-    }
-}
-
 void Draw_SBZ_Bg(int16_t sy, const LevelLayoutPlane *layout, plane_t *plane) {
     // Matches Draw_SBZ_act1_BG in the disassembly: y = -16 (not 0), and
     // SBZ_ScrollArray+1 (see BG_ScrollBlockMap_SBZ+1).
@@ -216,10 +194,8 @@ void Draw_SBZ_Bg(int16_t sy, const LevelLayoutPlane *layout, plane_t *plane) {
 // Level drawing functions
 void LoadTilesFromStart(void) {
     DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_PLANE_FG, &screen1p.plane_a);
-    if (LEVEL_ZONE(level_id) == ZoneId_GHZ || LEVEL_ZONE(level_id) == ZoneId_EndZ)
-        Draw_GHZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
-    else if (LEVEL_ZONE(level_id) == ZoneId_MZ)
-        Draw_MZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
+    if (LevelScroll_UsesBands())
+        LevelScroll_DrawBands(&bg_scrpos_x, &bg2_scrpos_x, &bg3_scrpos_x, &bg_scrpos_y);
     else if (level_id == ZoneId_SBZ << 8)
         Draw_SBZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     else
@@ -312,69 +288,23 @@ void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlan
 		}
 }
 
-// Split out of DrawBG_Block3's MZ branch, named to match real ASM's
-// own Draw_MZ label for easier cross-referencing: a full row above/below
-// the screen if the top/bottom flag is set, then any remaining flag bits
-// trigger a vertical strip via DrawBG_ColumnForBGIndex.
-static void Draw_MZ(int16_t sx, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
-	int16_t y_rel = -16;
-	// Real Draw_MZ checks bit0 ("top")/bit1 ("bottom") here, set by
-	// BGScroll_YAbsolute -- NOT SCROLL_FLAG_LEFT/RIGHT (bit2/bit3), which
-	// are Block1's own X-scroll redraw bits and would collide with this
-	// check once Block1 uses its correct real bit numbers (see Deform_MZ's
-	// own comment on that fix).
-	if (!(*flag & SCROLL_FLAG_UP)) {
-		if (*flag & SCROLL_FLAG_DOWN) {
-			*flag &= ~SCROLL_FLAG_DOWN;
-			y_rel = SCREEN_HEIGHT;
-		} else goto check_mz_col;
-	} else *flag &= ~SCROLL_FLAG_UP;
-	// MZ's row lookup is biased by -512 for the table index only -- the
-	// actual draw position/content still uses the real, unbiased
-	// bg_scrpos_y_dup -- and (like Draw_MZ_BG) reads MZ_ScrollArray+1 for
-	// this single-row case.
-	DrawBlocks_BG_2(plane, sx, bg_scrpos_y_dup.f.u, -0x200, y_rel, layout, MZ_ScrollArray + 1, 128, bg_pos_table_dup, bg_pos_table_y_dup);
-	check_mz_col:
-	if ((*flag & 0xFF) == 0) return;
-	// Matches Draw_MZ's ".more"/".doMore": any remaining flag bits trigger
-	// a full vertical strip via DrawBG_ColumnForBGIndex (no +1 table
-	// offset here, unlike the single-row case above), at the screen's left
-	// edge by default, or the right edge if any of bits 7/5/3 ($A8) are
-	// among those remaining (which also get folded down into bits 6/4/2
-	// for the strip's own per-row bit tests).
-	int16_t col_x = -16;
-	uint8_t cf = (uint8_t)(*flag & 0xFF);
-	if (cf & 0xA8) {
-		cf >>= 1;
-		*flag = (*flag & 0xFF00) | cf;
-		col_x = RIGHT_EDGE_X;
-	}
-	uint16_t idx = (uint16_t)(bg_scrpos_y_dup.f.u - 0x200) & 0x7F0;
-	DrawBG_ColumnForBGIndex(plane, col_x, -16, bg_scrpos_y_dup.f.u, layout, MZ_ScrollArray + (idx >> 4), flag);
-}
-
 void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
 	//Check if any flags have been set
 	if (*flag == 0)
 		return;
-		//Run completely different code if in Marble Zone (what)
-		if (LEVEL_ZONE(level_id) != ZoneId_MZ) {
-			if (*flag & SCROLL_FLAG_LEFT2) {
-				DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, -16, 64), sx, sy, -16, 64, layout, 3);
-				*flag &= ~SCROLL_FLAG_LEFT2;
-			}
-			if (*flag & SCROLL_FLAG_RIGHT2) {
-				DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, RIGHT_EDGE_X, 64), sx, sy, RIGHT_EDGE_X, 64, layout, 3);
-				*flag &= ~SCROLL_FLAG_RIGHT2;
-			}
-		} else {
-			Draw_MZ(sx, flag, layout, plane);
+		if (*flag & SCROLL_FLAG_LEFT2) {
+			DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, -16, 64), sx, sy, -16, 64, layout, 3);
+			*flag &= ~SCROLL_FLAG_LEFT2;
+		}
+		if (*flag & SCROLL_FLAG_RIGHT2) {
+			DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, RIGHT_EDGE_X, 64), sx, sy, RIGHT_EDGE_X, 64, layout, 3);
+			*flag &= ~SCROLL_FLAG_RIGHT2;
 		}
 }
 
 void LoadTilesAsYouMove(void) {
     if (LevelScroll_UsesBands()) {
-        LevelScroll_DrawBands(bg2_scrpos_x_dup.f.u, bg3_scrpos_x_dup.f.u);
+        LevelScroll_DrawBands(&bg_scrpos_x_dup, &bg2_scrpos_x_dup, &bg3_scrpos_x_dup, &bg_scrpos_y_dup);
         LevelPlane_DrawPending(&fg_plane, LEVEL_LAYOUT_PLANE_FG);
         return;
     }
@@ -392,7 +322,7 @@ void LoadTilesAsYouMove(void) {
 
 void LoadTilesAsYouMove_BGOnly(void) {
     if (LevelScroll_UsesBands()) {
-        LevelScroll_DrawBands(bg2_scrpos_x.f.u, bg3_scrpos_x.f.u);
+        LevelScroll_DrawBands(&bg_scrpos_x, &bg2_scrpos_x, &bg3_scrpos_x, &bg_scrpos_y);
         return;
     }
     DrawBG_Top(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);

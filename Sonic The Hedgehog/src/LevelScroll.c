@@ -236,43 +236,34 @@ void Deform_GHZ(void)
 }
 
 void Deform_MZ(void) {
-	// Real ASM passes these as raw bit-INDICES (2, 6, 4) to bset, not the
-	// named SCROLL_FLAG_* masks -- BGScroll_Block1/2/3 use the base bit for
-	// a leftward/decreasing scroll and base+1 for rightward/increasing (see
-	// their own real-ASM comment: "d6 = bit to set for redraw direction").
-	// Block1's and Block3's masks here were previously off by one bit
-	// (SCROLL_FLAG_RIGHT/DOWN2, i.e. index 3/5, instead of the real 2/6),
-	// corrupting which rows/edges Draw_MZ's bit-masking logic (0xA8 = bits
-	// 7,5,3) thinks need redrawing. Block2's SCROLL_FLAG_UP2 (index 4) was
-	// already correct.
-	BGScroll_Block1((scrshift_x << 6) * 3, SCROLL_FLAG_LEFT);  // bit 2 (real: moveq #2,d6)
-	BGScroll_Block3(scrshift_x << 6, (uint8_t)(1 << 6));       // bit 6 (real: moveq #6,d6)
-	BGScroll_Block2(scrshift_x << 7, SCROLL_FLAG_UP2);         // bit 4 (real: moveq #4,d6)
+	// The three layers of buildings move by their own fractions of the camera's move
+	bg_scrpos_x.v += (scrshift_x << 6) * 3;
+	bg3_scrpos_x.v += scrshift_x << 6;
+	bg2_scrpos_x.v += scrshift_x << 7;
 
 	int16_t y_off = 0x200;
 	int16_t dy = scrpos_y.f.u - 0x1C8;
 	if (dy >= 0) y_off += (dy * 3) >> 2;
 
 	bg2_scrpos_y.f.u = bg3_scrpos_y.f.u = y_off;
-	BGScroll_YAbsolute(bg2_scrpos_y.f.u);
+	bg_scrpos_y.f.u = y_off;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 
-	bg3_scroll_flags |= (bg1_scroll_flags | bg2_scroll_flags);
-	bg1_scroll_flags = bg2_scroll_flags = 0;
-
-	int16_t *buf_ptr = (int16_t*)bgscroll_buffer;
+	// The background's lines: a position for each row of 16 (ScrollEngine_ApplyDeformation): the clouds' gradient over five rows, two of the third layer, nine of the
+	// second, and sixteen of the first
+	int16_t pos[32];
 	int16_t base_x = -scrpos_x.f.u;
 	int32_t delta = (((int32_t)(base_x >> 2) - base_x) << 12) / 5;
-	FillGradient(5, base_x >> 1, delta << 4, buf_ptr); buf_ptr += 5;
+	FillGradient(5, base_x >> 1, delta << 4, pos);
+	pos[5] = pos[6] = -bg3_scrpos_x.f.u;
+	for (int i = 0; i < 9; i++) pos[7 + i] = -bg2_scrpos_x.f.u;
+	for (int i = 0; i < 16; i++) pos[16 + i] = -bg_scrpos_x.f.u;
+	for (int i = 0; i < 32; i++) pos[i] = (int16_t)-pos[i]; // (they are given as the scroll lines hold them)
 
-	*buf_ptr++ = -bg3_scrpos_x.f.u;
-	*buf_ptr++ = -bg3_scrpos_x.f.u;
-	for (int i = 0; i < 9; i++) *buf_ptr++ = -bg2_scrpos_x.f.u;
-	for (int i = 0; i < 16; i++) *buf_ptr++ = -bg_scrpos_x.f.u;
-
+	static const uint16_t heights[32] = { 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 };
 	int16_t scroll_y = bg_scrpos_y.f.u - 0x200;
 	if (scroll_y > 0x100) scroll_y = 0x100;
-	BGScroll_X(bg_scrpos_y.f.u, (scroll_y & 0x1F0) >> 3);
+	ScrollEngine_ApplyDeformation(heights, 32, pos, (int16_t)((scroll_y & 0x1F0) + (bg_scrpos_y.f.u & 0xF)), scrpos_x.f.u, true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
 void Deform_SLZ(void) {
@@ -683,35 +674,84 @@ void DeformLayers(void)
 	ScrollEngine_Events(LEVEL_ZONE(level_id), LEVEL_ACT(level_id));
 }
 
-// Green Hill's background plane (also the ending's, which scrolls the same way), as the original keeps it: the clouds and the water are drawn once and only wrap (their scroll lines
-// move them), so their bands stay at position 0; the upper mountains (lines $40-$6F) follow the mountains' X and the hills (lines $70-$9F) the hills' X.
-static const uint16_t ghz_band_heights[4] = { 0x40, 0x30, 0x30, 0x10 };
-static ScrollBands ghz_bands;
-static bool ghz_bands_redraw = true;
+// The zones whose background plane is kept by the engine's band layers (ScrollBands) rather than by scroll flags. A layer is its bands' heights, and for each band which of the three
+// background positions it follows (1: the first, 2: the second, 3: the third; 0: none, the band is drawn once and only wraps, its scroll lines move it).
+typedef struct {
+	const uint16_t *heights;
+	const uint8_t *source;
+	int count;
+} BandLayer;
+
+// Green Hill's (also the ending's, which scrolls the same way), as the original keeps it: the clouds and the water are drawn once and only wrap; the upper mountains (lines $40-$6F)
+// follow the third position and the hills (lines $70-$9F) the second.
+static const uint16_t ghz_heights[4] = { 0x40, 0x30, 0x30, 0x10 };
+static const uint8_t ghz_source[4] = { 0, 3, 2, 0 };
+static const BandLayer ghz_layer = { ghz_heights, ghz_source, 4 };
+
+// Marble's: BG_ScrollBlockMap_MZ gives each 16-pixel row of the background (counting from a row $20 down the layer, and itself a row late) the position it follows: 0 none, 2 the first,
+// 4 the second, 6 the third. Made into bands over the layer's 128 rows (2048 lines) once.
+static uint16_t mz_heights[SCROLL_MAX_BANDS];
+static uint8_t mz_source[SCROLL_MAX_BANDS];
+static BandLayer mz_layer;
+
+static void BuildMarbleLayer(void)
+{
+	int n = 0;
+	for (int row = 0; row < 128; row++) {
+		uint8_t v = MZ_ScrollArray[1 + ((row - 0x20) & 0x7F)] >> 1;
+		if (n > 0 && mz_source[n - 1] == v)
+			mz_heights[n - 1] += 16;
+		else if (n < SCROLL_MAX_BANDS) {
+			mz_source[n] = v;
+			mz_heights[n++] = 16;
+		}
+	}
+	mz_layer = (BandLayer){ mz_heights, mz_source, n };
+}
+
+static const BandLayer *band_layer;
+static ScrollBands bg_bands;
+static bool bands_redraw = true;
 
 bool LevelScroll_UsesBands(void)
 {
-	return LEVEL_ZONE(level_id) == ZoneId_GHZ || LEVEL_ZONE(level_id) == ZoneId_EndZ;
+	return band_layer != NULL;
 }
 
-// A level begins (or the background is wiped): the next draw is the whole view
+// A level begins (or the background is wiped): which layer the zone has, and the next draw is the whole view
 void LevelScroll_BackgroundReset(void)
 {
-	ghz_bands_redraw = true;
+	switch (LEVEL_ZONE(level_id)) {
+	case ZoneId_GHZ:
+	case ZoneId_EndZ:
+		band_layer = &ghz_layer;
+		break;
+	case ZoneId_MZ:
+		if (mz_layer.count == 0)
+			BuildMarbleLayer();
+		band_layer = &mz_layer;
+		break;
+	default:
+		band_layer = NULL;
+		break;
+	}
+	bands_redraw = true;
+	if (band_layer != NULL) {
+		ScrollBands_Init(&bg_bands, &screen1p.plane_b, band_layer->heights, band_layer->count);
+		bg_bands.left_margin = 0; // (the original's rows start at the camera's block)
+	}
 }
 
 // Brings the background plane up to the given positions (the ones the scroll lines were made from)
-void LevelScroll_DrawBands(int16_t bg2_x, int16_t bg3_x)
+void LevelScroll_DrawBands(const dword_s *bg1_x, const dword_s *bg2_x, const dword_s *bg3_x, const dword_s *bg_y)
 {
-	if (ghz_bands.plane == NULL)
-		ScrollBands_Init(&ghz_bands, &screen1p.plane_b, ghz_band_heights, 4);
-		ghz_bands.left_margin = 0; // (the original's rows start at the camera's block)
-	ghz_bands.x[1] = bg3_x;
-	ghz_bands.x[2] = bg2_x;
-	ghz_bands.y = 0;
-	if (ghz_bands_redraw) {
-		ScrollBands_DrawAll(&ghz_bands, LEVEL_LAYOUT_PLANE_BG);
-		ghz_bands_redraw = false;
+	const dword_s *pos[4] = { NULL, bg1_x, bg2_x, bg3_x };
+	for (int b = 0; b < band_layer->count; b++)
+		bg_bands.x[b] = band_layer->source[b] ? pos[band_layer->source[b]]->f.u : 0;
+	bg_bands.y = bg_y->f.u;
+	if (bands_redraw) {
+		ScrollBands_DrawAll(&bg_bands, LEVEL_LAYOUT_PLANE_BG);
+		bands_redraw = false;
 	} else
-		ScrollBands_Draw(&ghz_bands, LEVEL_LAYOUT_PLANE_BG);
+		ScrollBands_Draw(&bg_bands, LEVEL_LAYOUT_PLANE_BG);
 }
