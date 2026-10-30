@@ -8,7 +8,7 @@
 ; frame here has the same 8 reachable pieces as .pole4 (matching the real,
 ; unfixed prototype behavior described in the object's own SStom_Len
 ; comment about the pole looking "too short").
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_SSto_internal:	mappingsTable
 	mappingsTableEntry.w	@block

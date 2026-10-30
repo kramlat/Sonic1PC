@@ -1,10 +1,9 @@
 #ifndef _LAVAGEYSER_H
 #define _LAVAGEYSER_H
 
-#include "Object.h"
+#include "Sst.h"
 
 typedef struct {
-    uint8_t pad0[8];      // 0x28-0x2F -- scratch.u8[0] here aliases obSubtype
     int16_t orig_y;      // 0x30
     uint8_t parent_index;  // 0x3C on real hardware (pointer there) -- meaning
                             // depends on which of the (up to) 3 spawned pieces
@@ -14,8 +13,8 @@ typedef struct {
                             // "bottom" tip's parent is also the GeyserMaker
                             // (copied from the top tip's own parent reference,
                             // not the top tip itself)
-} Scratch_LavaGeyser;
+} Own_LavaGeyser;
 
-void Obj_LavaGeyser(Object *obj);
+void Obj_LavaGeyser(Sst *self);
 
 #endif //_LAVAGEYSER_H

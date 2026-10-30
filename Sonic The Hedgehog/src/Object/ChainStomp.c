@@ -1,4 +1,7 @@
 #include "ChainStomp.h"
+#include "Object.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -40,132 +43,132 @@ static const CStomVar cstom_vars[4] = {
     { 6, (int8_t)0xF0, 2 }, // base at ceiling
 };
 
-static void CStom_UpdateBlockY(Object *obj, Scratch_ChainStomp *scratch) {
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y + (uint8_t)(scratch->current >> 8));
+static void CStom_UpdateBlockY(Sst *self, Own_ChainStomp *own) {
+    self->y_pos.f.u = (int16_t)(own->orig_y + (uint8_t)(own->current >> 8));
 }
 
 // Types 1/2/4/6 - rises and stomps down on its own on a timer.
-static void CStom_AutoStomp(Object *obj, Scratch_ChainStomp *scratch) {
-    if (scratch->rising) {
-        if (scratch->delay != 0) {
-            scratch->delay--;
+static void CStom_AutoStomp(Sst *self, Own_ChainStomp *own) {
+    if (own->rising) {
+        if (own->delay != 0) {
+            own->delay--;
         } else {
-            if (((uint8_t)frame_count & 0xF) == 0 && obj->render.f.on_screen)
+            if (((uint8_t)frame_count & 0xF) == 0 && (self->render_flags & SST_RENDER_ON_SCREEN))
                 QueueSound2(sfx_ChainRise);
 
-            bool underflow = scratch->current < 0x80;
-            scratch->current = (uint16_t)(scratch->current - 0x80);
+            bool underflow = own->current < 0x80;
+            own->current = (uint16_t)(own->current - 0x80);
             if (underflow) {
-                scratch->current = 0;
-                obj->ysp = 0;
-                scratch->rising = false;
+                own->current = 0;
+                self->y_vel = 0;
+                own->rising = false;
             }
         }
-    } else if (scratch->current != scratch->length) {
-        int16_t speed = obj->ysp;
-        obj->ysp += 0x70;
-        scratch->current = (uint16_t)(scratch->current + (uint16_t)speed);
+    } else if (own->current != own->length) {
+        int16_t speed = self->y_vel;
+        self->y_vel += 0x70;
+        own->current = (uint16_t)(own->current + (uint16_t)speed);
 
-        if (scratch->current >= scratch->length) {
-            scratch->current = scratch->length;
-            obj->ysp = 0;
-            scratch->rising = true;
-            scratch->delay = 60;
+        if (own->current >= own->length) {
+            own->current = own->length;
+            self->y_vel = 0;
+            own->rising = true;
+            own->delay = 60;
 
-            if (obj->render.f.on_screen)
+            if ((self->render_flags & SST_RENDER_ON_SCREEN))
                 QueueSound2(sfx_ChainStomp);
         }
     }
 
-    CStom_UpdateBlockY(obj, scratch);
+    CStom_UpdateBlockY(self, own);
 }
 
 // Type 0 - rises only while the matching switch is held down, and stops
 // short of the ceiling if a pushable block is currently sitting on top of
 // it (so the block doesn't get stuck poking into the ceiling).
-static void CStom_SwitchActivated(Object *obj, Scratch_ChainStomp *scratch) {
-    if (!f_switch[scratch->switch_id]) {
-        if (scratch->current != scratch->length) {
-            int16_t speed = obj->ysp;
-            obj->ysp += 0x70;
-            scratch->current = (uint16_t)(scratch->current + (uint16_t)speed);
+static void CStom_SwitchActivated(Sst *self, Own_ChainStomp *own) {
+    if (!f_switch[own->switch_id]) {
+        if (own->current != own->length) {
+            int16_t speed = self->y_vel;
+            self->y_vel += 0x70;
+            own->current = (uint16_t)(own->current + (uint16_t)speed);
 
-            if (scratch->current >= scratch->length) {
-                scratch->current = scratch->length;
-                obj->ysp = 0;
-                if (obj->render.f.on_screen)
+            if (own->current >= own->length) {
+                own->current = own->length;
+                self->y_vel = 0;
+                if ((self->render_flags & SST_RENDER_ON_SCREEN))
                     QueueSound2(sfx_ChainStomp);
             }
         }
-        CStom_UpdateBlockY(obj, scratch);
+        CStom_UpdateBlockY(self, own);
         return;
     }
 
-    bool blocked_by_pushblock = obj31_ypos < 0 && (uint8_t)(scratch->current >> 8) == 0x10;
-    if (!blocked_by_pushblock && scratch->current != 0) {
-        if (((uint8_t)frame_count & 0xF) == 0 && obj->render.f.on_screen)
+    bool blocked_by_pushblock = obj31_ypos < 0 && (uint8_t)(own->current >> 8) == 0x10;
+    if (!blocked_by_pushblock && own->current != 0) {
+        if (((uint8_t)frame_count & 0xF) == 0 && (self->render_flags & SST_RENDER_ON_SCREEN))
             QueueSound2(sfx_ChainRise);
 
-        bool underflow = scratch->current < 0x80;
-        scratch->current = (uint16_t)(scratch->current - 0x80);
+        bool underflow = own->current < 0x80;
+        own->current = (uint16_t)(own->current - 0x80);
         if (underflow)
-            scratch->current = 0;
+            own->current = 0;
     }
 
-    obj->ysp = 0;
-    CStom_UpdateBlockY(obj, scratch);
+    self->y_vel = 0;
+    CStom_UpdateBlockY(self, own);
 }
 
 // Types 3/5 - waits until Sonic is horizontally in range, then switches
 // its own subtype to the next one along (always an auto-stomp type).
-static void CStom_WaitForSonic(Object *obj, Scratch_ChainStomp *scratch) {
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u);
+static void CStom_WaitForSonic(Sst *self, Own_ChainStomp *own) {
+    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
     if (d0 < 0)
         d0 = (int16_t)-d0;
     if (d0 < 144)
-        obj->scratch.u8[0]++;
-    CStom_UpdateBlockY(obj, scratch);
+        self->subtype++;
+    CStom_UpdateBlockY(self, own);
 }
 
-static void CStom_Types(Object *obj, Scratch_ChainStomp *scratch) {
-    switch (obj->scratch.u8[0] & 0xF) {
+static void CStom_Types(Sst *self, Own_ChainStomp *own) {
+    switch (self->subtype & 0xF) {
     case 0:
-        CStom_SwitchActivated(obj, scratch);
+        CStom_SwitchActivated(self, own);
         break;
     case 1:
     case 2:
     case 4:
     case 6:
-        CStom_AutoStomp(obj, scratch);
+        CStom_AutoStomp(self, own);
         break;
     case 3:
     case 5:
-        CStom_WaitForSonic(obj, scratch);
+        CStom_WaitForSonic(self, own);
         break;
     default: // unused/undefined on real hardware too
-        CStom_UpdateBlockY(obj, scratch);
+        CStom_UpdateBlockY(self, own);
         break;
     }
 }
 
-static void CStom_MainBlock(Object *obj, Scratch_ChainStomp *scratch) {
-    CStom_Types(obj, scratch);
-    obj31_ypos = obj->pos.l.y.f.u;
+static void CStom_MainBlock(Sst *self, Own_ChainStomp *own) {
+    CStom_Types(self, own);
+    obj31_ypos = self->y_pos.f.u;
 
-    int16_t x_rad = (int16_t)(obj->width_pixels + 11 /* sonic_solid_width */);
-    SolidObject(obj, (uint16_t)x_rad, 24 / 2, 26 / 2, obj->pos.l.x.f.u, NULL, NULL);
+    int16_t x_rad = (int16_t)(self->width_pixels + 11 /* sonic_solid_width */);
+    SstSolidObject(self, (uint16_t)x_rad, 24 / 2, 26 / 2, self->x_pos.f.u, NULL, NULL);
 
-    if (obj->status.o.f.player_stand && (uint8_t)(scratch->current >> 8) < 0x10)
-        KillSonic(player, obj);
+    if (((self->status & SST_STATUS_PLAYER_STAND) != 0) && (uint8_t)(own->current >> 8) < 0x10)
+        KillSonicFrom(player, false);
 }
 
-static void CStom_Spikes(Object *obj, Scratch_ChainStomp *scratch) {
-    Object *parent = &objects[scratch->parent_index];
-    Scratch_ChainStomp *pscratch = (Scratch_ChainStomp *)&parent->scratch;
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y + (uint8_t)(pscratch->current >> 8));
+static void CStom_Spikes(Sst *self, Own_ChainStomp *own) {
+    Sst *parent = &sst[own->parent_index];
+    Own_ChainStomp *pscratch = (Own_ChainStomp *)parent->own.u8;
+    self->y_pos.f.u = (int16_t)(own->orig_y + (uint8_t)(pscratch->current >> 8));
 }
 
-static void CStom_Chain(Object *obj, Scratch_ChainStomp *scratch) {
+static void CStom_Chain(Sst *self, Own_ChainStomp *own) {
     // Real ASM sets these once every tick this routine runs (not just at
     // spawn): obHeight=256/2 + the custom-height render bit, since the
     // chain can be up to 256px tall and the default ~32px assumed cull
@@ -174,72 +177,71 @@ static void CStom_Chain(Object *obj, Scratch_ChainStomp *scratch) {
     // bit-identical uint8_t cast (-128), which BuildSprites' own
     // explicit_height cull path already reinterprets back to unsigned 128 (see
     // its own comment on exactly this pattern, added for this same reason).
-    obj->y_rad = (int8_t)(uint8_t)(256 / 2);
-    obj->render.f.explicit_height = true;
-    Object *parent = &objects[scratch->parent_index];
-    Scratch_ChainStomp *pscratch = (Scratch_ChainStomp *)&parent->scratch;
-    obj->frame = (uint8_t)((((uint8_t)(pscratch->current >> 8)) >> 5) + 3);
-    CStom_Spikes(obj, scratch); // shared Y-alignment
+    self->y_radius = (int8_t)(uint8_t)(256 / 2);
+    self->height_pixels = self->y_radius;
+    Sst *parent = &sst[own->parent_index];
+    Own_ChainStomp *pscratch = (Own_ChainStomp *)parent->own.u8;
+    self->mapping_frame = (uint8_t)((((uint8_t)(pscratch->current >> 8)) >> 5) + 3);
+    CStom_Spikes(self, own); // shared Y-alignment
 }
 
-static void CStom_Main(Object *obj, Scratch_ChainStomp *scratch) {
-    uint8_t subtype = obj->scratch.u8[0];
+static void CStom_Main(Sst *self, Own_ChainStomp *own) {
+    uint8_t subtype = self->subtype;
 
     if (subtype & 0x80) {
         // Switch-activated -- both real table entries just map index N to
         // switch N (the subtype override value is always 0), so no
         // lookup table is needed here.
-        scratch->switch_id = subtype & 0x7F;
+        own->switch_id = subtype & 0x7F;
         subtype = 0;
-        obj->scratch.u8[0] = subtype;
+        self->subtype = subtype;
     }
 
     uint16_t length = cstom_lengths[subtype & 0xF];
-    scratch->length = length;
+    own->length = length;
     if ((subtype & 0xF) == 0)
-        scratch->current = length; // spawn already fully extended
+        own->current = length; // spawn already fully extended
 
     bool spikeless = (subtype & 0xF0) == 0x20;
-    Object *last = obj;
+    Sst *last = self;
 
     for (int i = 0; i < 4; i++) {
         if (i == 1 && spikeless)
             continue;
 
-        Object *seg = obj;
+        Sst *seg = self;
         if (i > 0) {
-            seg = FindNextFreeObj(obj);
+            seg = Sst_AllocateAfter(self);
             if (seg == NULL)
                 break;
         }
 
         seg->routine = cstom_vars[i].routine;
-        seg->type = ObjId_ChainStomp;
-        seg->pos.l.x.f.u = obj->pos.l.x.f.u;
-        seg->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + cstom_vars[i].yoff);
+        seg->code = sst_object_codes[ObjId_ChainStomp];
+        seg->x_pos.f.u = self->x_pos.f.u;
+        seg->y_pos.f.u = (int16_t)(self->y_pos.f.u + cstom_vars[i].yoff);
         seg->mappings = Mappings_ChainedStompers;
-        seg->tile = TILE_MAP(0, 0, 0, 0, ArtTile_MZ_Spike_Stomper);
-        seg->render.b = 0;
-        seg->render.f.level_fg = true;
+        seg->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_MZ_Spike_Stomper);
+        seg->render_flags = SST_RENDER_LEVEL;
 
-        Scratch_ChainStomp *sscratch = (Scratch_ChainStomp *)&seg->scratch;
-        sscratch->orig_y = seg->pos.l.y.f.u;
-        seg->scratch.u8[0] = subtype;
+        Own_ChainStomp *sscratch = (Own_ChainStomp *)seg->own.u8;
+        sscratch->orig_y = seg->y_pos.f.u;
+        seg->subtype = subtype;
         seg->width_pixels = 32 / 2;
         sscratch->length = length;
-        seg->priority = 4;
-        seg->frame = cstom_vars[i].frame;
+        seg->priority = 4 * 0x80;
+        seg->mapping_frame = cstom_vars[i].frame;
 
         if (i == 1) { // spikes
             seg->width_pixels = 112 / 2;
-            seg->col_type = 0x90; // col_80x32 | col_hurt
+            seg->collision_flags = 0x90; // col_80x32 | col_hurt
         }
 
-        sscratch->parent_index = (uint8_t)(obj - objects);
+        sscratch->parent_index = (uint8_t)(self - sst);
         last = seg;
     }
 
-    last->priority = 3; // whichever piece was spawned last (normally the ceiling base) gets a higher priority
+    last->priority = 3 * 0x80; // whichever piece was spawned last (normally the ceiling base) gets a higher priority
 
     static const struct {
         uint8_t width, frame;
@@ -251,33 +253,29 @@ static void CStom_Main(Object *obj, Scratch_ChainStomp *scratch) {
     uint8_t size = (subtype >> 4) & 0xF;
     if (size > 2)
         size = 2;
-    obj->width_pixels = block_size[size].width;
-    obj->frame = block_size[size].frame;
+    self->width_pixels = block_size[size].width;
+    self->mapping_frame = block_size[size].frame;
 }
 
-void Obj_ChainStomp(Object *obj) {
-    Scratch_ChainStomp *scratch = (Scratch_ChainStomp *)&obj->scratch;
+void Obj_ChainStomp(Sst *self) {
+    Own_ChainStomp *own = (Own_ChainStomp *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        CStom_Main(obj, scratch);
+        CStom_Main(self, own);
         __attribute__((fallthrough));
     case 2:
-        CStom_MainBlock(obj, scratch);
+        CStom_MainBlock(self, own);
         break;
     case 4:
-        CStom_Spikes(obj, scratch);
+        CStom_Spikes(self, own);
         break;
     case 6: // base at ceiling -- doesn't move
         break;
     case 8:
-        CStom_Chain(obj, scratch);
+        CStom_Chain(self, own);
         break;
     }
 
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        ObjectDelete(obj);
-        return;
-    }
-    DisplaySprite(obj);
+    SstOnScreenTest2(self, self->x_pos.f.u);
 }

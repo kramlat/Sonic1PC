@@ -6,7 +6,7 @@
 ; (triggersize) instead of a rectangle -- 2 sizes, matching Disc_Main's own
 ; large/small (leftover, practically unused) choice.
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_RunningDiscMarker_internal:	mappingsTable
 	mappingsTableEntry.w	@large

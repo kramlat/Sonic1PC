@@ -8,8 +8,8 @@
 #include "Level.h"
 #include "Object.h"
 #include "Sst.h"
+#include "SstLoad.h"
 
-extern const SstCode sst_object_codes[0x100]; // (the objects that have moved to the status table run from there)
 
 static inline uint8_t RenderFlags_AfterFirstRun(int id) {
     memset(objects, 0, sizeof(Object) * 0x60);
@@ -19,6 +19,9 @@ static inline uint8_t RenderFlags_AfterFirstRun(int id) {
     player->routine = 2;
     if (sst_object_codes[id] != NULL) {
         Sst_Reset();
+        static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+        SstLoadCamera camera = {0, 0, false, 0xFFF};
+        SstLoad_Init(&index_, NULL, false, &camera); // (the camera the object keeps in range of)
         Sst *self = &sst[SST_FIRST_DYNAMIC + 5];
         self->code = sst_object_codes[id];
         self->render_flags = 3;

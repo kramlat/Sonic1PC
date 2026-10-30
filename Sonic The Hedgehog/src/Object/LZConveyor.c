@@ -1,4 +1,7 @@
 #include "LZConveyor.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 
 #include <string.h>
 
@@ -51,27 +54,27 @@ static const struct { uint8_t count; int16_t base_x; const LCon_Point *points; }
     { 4, 0x1300, lcon_points5 },
 };
 
-static uint8_t LCon_WrapIndex(Scratch_LCon *scratch, int8_t new_idx) {
-    if ((uint8_t)new_idx < scratch->count)
+static uint8_t LCon_WrapIndex(Own_LCon *own, int8_t new_idx) {
+    if ((uint8_t)new_idx < own->count)
         return (uint8_t)new_idx;
     if (new_idx >= 0)
         return 0;
-    return (uint8_t)(scratch->count - 1);
+    return (uint8_t)(own->count - 1);
 }
 
 // Sets a platform's movement speeds towards its next X/Y target -- moves
 // at a constant 1px/frame along whichever axis has the larger distance to
 // cover, and a calculated (possibly fractional, tracked via subpixel)
 // speed along the shorter axis so both arrive together.
-void LCon_ChangeDir(Object *obj, Scratch_LCon *scratch) {
-    int16_t dx = (int16_t)(obj->pos.l.x.f.u - scratch->next_x);
+void LCon_ChangeDir(Sst *self, Own_LCon *own) {
+    int16_t dx = (int16_t)(self->x_pos.f.u - own->next_x);
     int16_t velx_dir = -0x100;
     if (dx < 0) {
         dx = (int16_t)-dx;
         velx_dir = 0x100;
     }
 
-    int16_t dy = (int16_t)(obj->pos.l.y.f.u - scratch->next_y);
+    int16_t dy = (int16_t)(self->y_pos.f.u - own->next_y);
     int16_t vely_dir = -0x100;
     if (dy < 0) {
         dy = (int16_t)-dy;
@@ -79,126 +82,126 @@ void LCon_ChangeDir(Object *obj, Scratch_LCon *scratch) {
     }
 
     if (dy < dx) {
-        int16_t signed_dy = (int16_t)(obj->pos.l.y.f.u - scratch->next_y);
+        int16_t signed_dy = (int16_t)(self->y_pos.f.u - own->next_y);
         if (signed_dy == 0) {
-            obj->ysp = 0;
-            obj->pos.l.y.f.l = 0;
+            self->y_vel = 0;
+            self->y_pos.f.l = 0;
         } else {
             int32_t num = (int32_t)signed_dy << 8;
-            obj->ysp = (int16_t)-(int16_t)(num / dx);
-            obj->pos.l.y.f.l = (uint16_t)(int16_t)(num % dx);
+            self->y_vel = (int16_t)-(int16_t)(num / dx);
+            self->y_pos.f.l = (uint16_t)(int16_t)(num % dx);
         }
-        obj->xsp = velx_dir;
-        obj->pos.l.x.f.l = 0;
+        self->x_vel = velx_dir;
+        self->x_pos.f.l = 0;
         return;
     }
 
-    int16_t signed_dx = (int16_t)(obj->pos.l.x.f.u - scratch->next_x);
+    int16_t signed_dx = (int16_t)(self->x_pos.f.u - own->next_x);
     if (signed_dx == 0) {
-        obj->xsp = 0;
-        obj->pos.l.x.f.l = 0;
+        self->x_vel = 0;
+        self->x_pos.f.l = 0;
     } else {
         int32_t num = (int32_t)signed_dx << 8;
-        obj->xsp = (int16_t)-(int16_t)(num / dy);
-        obj->pos.l.x.f.l = (uint16_t)(int16_t)(num % dy);
+        self->x_vel = (int16_t)-(int16_t)(num / dy);
+        self->x_pos.f.l = (uint16_t)(int16_t)(num % dy);
     }
-    obj->ysp = vely_dir;
-    obj->pos.l.y.f.l = 0;
+    self->y_vel = vely_dir;
+    self->y_pos.f.l = 0;
 }
 
-static void LCon_Platform_Update(Object *obj, Scratch_LCon *scratch) {
+static void LCon_Platform_Update(Sst *self, Own_LCon *own) {
     bool at_corner;
-    if (f_switch[0xE] && !scratch->reversed) {
-        scratch->reversed = true;
+    if (f_switch[0xE] && !own->reversed) {
+        own->reversed = true;
         f_conveyrev = true;
-        scratch->increment = -1;
+        own->increment = -1;
         at_corner = true;
     } else {
-        at_corner = (obj->pos.l.x.f.u == scratch->next_x && obj->pos.l.y.f.u == scratch->next_y);
+        at_corner = (self->x_pos.f.u == own->next_x && self->y_pos.f.u == own->next_y);
     }
 
     if (at_corner) {
-        scratch->posindex = LCon_WrapIndex(scratch, (int8_t)(scratch->posindex + scratch->increment));
-        scratch->next_x = scratch->points[scratch->posindex].x;
-        scratch->next_y = scratch->points[scratch->posindex].y;
-        LCon_ChangeDir(obj, scratch);
+        own->posindex = LCon_WrapIndex(own, (int8_t)(own->posindex + own->increment));
+        own->next_x = own->points[own->posindex].x;
+        own->next_y = own->points[own->posindex].y;
+        LCon_ChangeDir(self, own);
     }
 
-    SpeedToPos(obj);
+    Sst_MoveSprite2(self);
 }
 
-static void LCon_Platform(Object *obj, Scratch_LCon *scratch) {
-    PlatformObject(obj, obj->width_pixels); // sets obj->routine = 4 on enter
-    LCon_Platform_Update(obj, scratch);
+static void LCon_Platform(Sst *self, Own_LCon *own) {
+    SstPlatformObject(self, self->width_pixels); // sets self->routine = 4 on enter
+    LCon_Platform_Update(self, own);
 }
 
-static void LCon_OnPlatform(Object *obj, Scratch_LCon *scratch) {
-    ExitPlatform(obj, obj->width_pixels, obj->width_pixels, NULL); // sets obj->routine = 2 on exit
+static void LCon_OnPlatform(Sst *self, Own_LCon *own) {
+    SstExitPlatform(self, self->width_pixels, self->width_pixels, NULL); // sets self->routine = 2 on exit
 
-    int16_t prev_x = obj->pos.l.x.f.u;
-    LCon_Platform_Update(obj, scratch);
-    MvSonicOnPtfm(obj, (int16_t)(obj->pos.l.y.f.u - 9), prev_x);
+    int16_t prev_x = self->x_pos.f.u;
+    LCon_Platform_Update(self, own);
+    SstMvSonicOnPtfm(self, (int16_t)(self->y_pos.f.u - 9), prev_x);
 }
 
-static void LCon_Wheel(Object *obj) {
+static void LCon_Wheel(Sst *self) {
     if (((uint8_t)frame_count & 3) == 0) {
         int8_t step = f_conveyrev ? -1 : 1;
-        obj->frame = (uint8_t)((obj->frame + step) & 3);
+        self->mapping_frame = (uint8_t)((self->mapping_frame + step) & 3);
     }
-    RememberState(obj);
+    SstOnScreenTest(self);
 }
 
-static void LCon_Main_Platform(Object *obj, Scratch_LCon *scratch, uint8_t subtype) {
-    obj->routine += 2;
-    obj->mappings = Mappings_LZConveyor;
-    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Conveyor_Belt); // | Tile_Pal3
-    obj->render.b |= SPRITE_CAM_FIELD;
-    obj->width_pixels = 32 / 2;
-    obj->priority = 4;
+static void LCon_Main_Platform(Sst *self, Own_LCon *own, uint8_t subtype) {
+    self->routine += 2;
+    self->mappings = Mappings_LZConveyor;
+    self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Conveyor_Belt); // | Tile_Pal3
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->width_pixels = 32 / 2;
+    self->priority = 4 * 0x80;
 
     if (subtype == 0x7F) {
         // Decorative wheel
-        obj->routine += 4; // -> LCon_Wheel
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Conveyor_Belt); // palette line 1
-        obj->priority = 1;
-        LCon_Wheel(obj);
+        self->routine += 4; // -> LCon_Wheel
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Conveyor_Belt); // palette line 1
+        self->priority = 1 * 0x80;
+        LCon_Wheel(self);
         return;
     }
 
-    obj->frame = 4; // "platform" frame
+    self->mapping_frame = 4; // "platform" frame
 
     uint8_t group_idx = (subtype >> 4) & 0xF;
-    scratch->count = LCon_Data[group_idx].count;
-    scratch->base_x = LCon_Data[group_idx].base_x;
-    scratch->points = LCon_Data[group_idx].points;
+    own->count = LCon_Data[group_idx].count;
+    own->base_x = LCon_Data[group_idx].base_x;
+    own->points = LCon_Data[group_idx].points;
 
-    scratch->posindex = subtype & 0xF;
-    scratch->increment = 1;
-    scratch->reversed = false; // the spawner's own slot isn't cleared -- don't trust a stale byte
+    own->posindex = subtype & 0xF;
+    own->increment = 1;
+    own->reversed = false; // the spawner's own slot isn't cleared -- don't trust a stale byte
 
     if (f_conveyrev) {
-        scratch->reversed = true;
-        scratch->increment = -1;
-        scratch->posindex = LCon_WrapIndex(scratch, (int8_t)(scratch->posindex + scratch->increment));
+        own->reversed = true;
+        own->increment = -1;
+        own->posindex = LCon_WrapIndex(own, (int8_t)(own->posindex + own->increment));
     }
 
-    scratch->next_x = scratch->points[scratch->posindex].x;
-    scratch->next_y = scratch->points[scratch->posindex].y;
+    own->next_x = own->points[own->posindex].x;
+    own->next_y = own->points[own->posindex].y;
 
-    LCon_ChangeDir(obj, scratch);
-    LCon_Platform(obj, scratch);
+    LCon_ChangeDir(self, own);
+    LCon_Platform(self, own);
 }
 
 // Returns false if the spawner deleted itself (no display this frame, no
 // group of newly spawned platforms displays this frame either -- they'll
 // each run through LCon_Main again, as regular platforms, next frame).
-static bool LCon_Main_Spawner(Object *obj, uint8_t subtype) {
-    Scratch_LCon *scratch = (Scratch_LCon *)&obj->scratch;
-    scratch->groupid = (int8_t)subtype;
+static bool LCon_Main_Spawner(Sst *self, uint8_t subtype) {
+    Own_LCon *own = (Own_LCon *)self->own.u8;
+    own->groupid = (int8_t)subtype;
     uint8_t group = subtype & 0x7F;
 
     if (obj63_loaded[group] & 1) {
-        ObjectDelete(obj);
+        Sst_Delete(self);
         return false;
     }
     obj63_loaded[group] |= 1;
@@ -208,75 +211,74 @@ static bool LCon_Main_Spawner(Object *obj, uint8_t subtype) {
     data += 2;
 
     for (uint16_t i = 0; i <= count; i++) {
-        Object *plat = (i == 0) ? obj : FindNextFreeObj(obj);
+        Sst *plat = (i == 0) ? self : Sst_AllocateAfter(self);
         if (plat == NULL) // none left after the spawner: any free slot will do (the original takes the first free one anywhere), or the
-            plat = FindFreeObj(); // rest of the group is never made and a rope loop is left with one or two platforms
+            plat = Sst_Allocate(); // rest of the group is never made and a rope loop is left with one or two platforms
         if (plat == NULL)
             break;
 
-        if (plat != obj) {
+        if (plat != self) {
             // FixBugs forced on (crash-class under C): a FindNextFreeObj()
             // slot can carry stale bytes. A leftover nonzero routine skipped
-            // platform init, so the stale host pointer in scratch->points
+            // platform init, so the stale host pointer in own->points
             // got dereferenced at the first corner. Start from a clean slot.
-            memset(plat, 0, sizeof(Object));
-            plat->mappings = NULL;
+            memset(plat, 0, sizeof(Sst));
         }
 
-        plat->type = ObjId_LabyrinthConvey;
-        plat->pos.l.x.f.u = (int16_t)((data[0] << 8) | data[1]);
-        plat->pos.l.y.f.u = (int16_t)((data[2] << 8) | data[3]);
-        plat->scratch.u8[0] = data[5]; // subtype (stored as a word; low byte only is ever nonzero)
+        plat->code = sst_object_codes[ObjId_LabyrinthConvey];
+        plat->x_pos.f.u = (int16_t)((data[0] << 8) | data[1]);
+        plat->y_pos.f.u = (int16_t)((data[2] << 8) | data[3]);
+        plat->subtype = data[5]; // subtype (stored as a word; low byte only is ever nonzero)
         data += 6;
     }
 
     return false;
 }
 
-void Obj_LabyrinthConvey(Object *obj) {
-    Scratch_LCon *scratch = (Scratch_LCon *)&obj->scratch;
+void Obj_LabyrinthConvey(Sst *self) {
+    Own_LCon *own = (Own_LCon *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: {
-        uint8_t subtype = obj->scratch.u8[0];
+        uint8_t subtype = self->subtype;
         if ((int8_t)subtype < 0) {
-            LCon_Main_Spawner(obj, subtype);
+            LCon_Main_Spawner(self, subtype);
             return; // matches real ASM skipping the shared display/delete tail entirely
         }
-        LCon_Main_Platform(obj, scratch, subtype);
+        LCon_Main_Platform(self, own, subtype);
         return; // LCon_Main_Platform already reached LCon_Platform/LCon_Wheel, which handle their own tail
     }
     case 2:
-        LCon_Platform(obj, scratch);
+        LCon_Platform(self, own);
         break;
     case 4:
-        LCon_OnPlatform(obj, scratch);
+        LCon_OnPlatform(self, own);
         break;
     case 6:
-        LCon_Wheel(obj); // handles its own display/delete (RememberState), skip the shared tail below
+        LCon_Wheel(self); // handles its own display/delete (RememberState), skip the shared tail below
         return;
     }
 
     // Shared tail: offscreen check (using the group's stable base_x), with
     // one exception -- and clears the group's "loaded" flag on deletion if
     // this happens to be the (former) spawner object.
-    uint16_t delta = (uint16_t)(((uint16_t)scratch->base_x & ~0x7F) - (((uint16_t)scrpos_x.f.u - 0x80) & ~0x7F));
+    uint16_t delta = (uint16_t)(((uint16_t)own->base_x & ~0x7F) - (((uint16_t)scrpos_x.f.u - 0x80) & ~0x7F));
     if (delta <= (((SCREEN_WIDTH + 0x80) & ~0x7F) + 0x100)) {
-        DisplaySprite(obj);
+        Sst_Draw(self);
         return;
     }
 
     // LZ3 pop-in fix: platforms in wide group 4 shouldn't despawn just
     // from barely crossing one coarse ($80px) step past the left edge.
     if (LEVEL_ACT(level_id) == 2 && delta >= 0xFF80) {
-        DisplaySprite(obj);
+        Sst_Draw(self);
         return;
     }
 
-    if (scratch->groupid >= 0) {
-        ObjectDelete(obj);
+    if (own->groupid >= 0) {
+        Sst_Delete(self);
         return;
     }
-    obj63_loaded[scratch->groupid & 0x7F] &= (uint8_t)~1;
-    ObjectDelete(obj);
+    obj63_loaded[own->groupid & 0x7F] &= (uint8_t)~1;
+    Sst_Delete(self);
 }

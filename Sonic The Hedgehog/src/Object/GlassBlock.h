@@ -1,7 +1,7 @@
 #ifndef _GLASSBLOCK_H
 #define _GLASSBLOCK_H
 
-#include "Object.h"
+#include "Sst.h"
 
 typedef struct {
     // 0x28 (subtype, read directly via obj->scratch.u8[0]) -- upper
@@ -32,8 +32,8 @@ typedef struct {
                                       // into objects[] of the pillar this object
                                       // belongs to (every spawned piece, pillar
                                       // included, points at the original pillar)
-} Scratch_GlassBlock;
+} Own_GlassBlock;
 
-void Obj_GlassBlock(Object *obj);
+void Obj_GlassBlock(Sst *self);
 
 #endif //_GLASSBLOCK_H

@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - ground saws	and pizza cutters (SBZ)
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_Saw_internal:	mappingsTable
 	mappingsTableEntry.w	@pizzacutter1

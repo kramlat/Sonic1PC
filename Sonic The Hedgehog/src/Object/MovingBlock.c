@@ -1,4 +1,9 @@
 #include "MovingBlock.h"
+#include "Object.h"
+#include "Resource/Mappings/LZMovingBlocks.h"
+#include "Resource/Mappings/MovingBlocks.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 
 #include "Level.h"
 #include "LevelCollision.h"
@@ -25,92 +30,92 @@ static const struct {
 // caller behavior (still reached even on the same frame the switch
 // press advances it to Type 4, since the dispatch below is on the
 // subtype value AT CALL TIME, before this function's own mutation).
-static bool MBlock_Move(Object *obj, Scratch_MovingBlock *scratch) {
-    uint8_t subtype = obj->scratch.u8[0] & 0xF;
+static bool MBlock_Move(Sst *self, Own_MovingBlock *own) {
+    uint8_t subtype = self->subtype & 0xF;
     switch (subtype) {
     case 0: // stationary
         break;
     case 1: { // moves left and right continuously
         int16_t d0 = (int16_t)(oscillatory.state[3][0] >> 8); // v_oscillate+$E, frequency 2, middle $30
-        if (obj->status.o.f.x_flip)
+        if (((self->status & SST_STATUS_X_FLIP) != 0))
             d0 = (int16_t)(-d0 + 0x60);
-        obj->pos.l.x.f.u = (int16_t)(scratch->orig_x - d0);
+        self->x_pos.f.u = (int16_t)(own->orig_x - d0);
         break;
     }
     case 2: // stationary, advances to next subtype (3) when stood on
     case 4: // stationary, advances to next subtype (5) when stood on
     case 9: // stationary, advances to next subtype (A) when stood on
-        if (obj->routine == 4)
-            obj->scratch.u8[0]++;
+        if (self->routine == 4)
+            self->subtype++;
         break;
     case 3: { // moves right, stops (type 0) on wall hit
-        int16_t d1 = ObjHitWallRight(obj, obj->width_pixels);
+        int16_t d1 = SstHitWallRight(self, self->width_pixels);
         if (d1 < 0) {
-            obj->scratch.u8[0] = 0;
+            self->subtype = 0;
             break;
         }
-        obj->pos.l.x.f.u += 1;
-        scratch->orig_x = obj->pos.l.x.f.u;
+        self->x_pos.f.u += 1;
+        own->orig_x = self->x_pos.f.u;
         break;
     }
     case 5: { // moves right, falls (type 6) on wall hit
-        int16_t d1 = ObjHitWallRight(obj, obj->width_pixels);
+        int16_t d1 = SstHitWallRight(self, self->width_pixels);
         if (d1 < 0) {
-            obj->scratch.u8[0] = 6;
+            self->subtype = 6;
             break;
         }
-        obj->pos.l.x.f.u += 1;
-        scratch->orig_x = obj->pos.l.x.f.u;
+        self->x_pos.f.u += 1;
+        own->orig_x = self->x_pos.f.u;
         break;
     }
     case 6: { // falls, stops (type 0) on floor hit
-        SpeedToPos(obj);
-        obj->ysp += 0x18;
-        int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
+        Sst_MoveSprite2(self);
+        self->y_vel += 0x18;
+        int16_t floor_dist = SstFloorDist(self, self->x_pos.f.u);
         if (floor_dist < 0) {
-            obj->pos.l.y.f.u += floor_dist;
-            obj->ysp = 0;
-            obj->scratch.u8[0] = 0;
+            self->y_pos.f.u += floor_dist;
+            self->y_vel = 0;
+            self->subtype = 0;
         }
         break;
     }
     case 7: // appears when switch 2 is pressed (secret LZ1 raft shortcut)
         if (f_switch[2])
-            obj->scratch.u8[0] = 4;
+            self->subtype = 4;
         return true;
     case 8: { // moves up and down continuously
         int16_t d0 = (int16_t)(oscillatory.state[7][0] >> 8); // v_oscillate+$1E, frequency 4, middle $40
-        if (obj->status.o.f.x_flip)
+        if (((self->status & SST_STATUS_X_FLIP) != 0))
             d0 = (int16_t)(-d0 + 0x80);
-        obj->pos.l.y.f.u = (int16_t)(scratch->orig_y - d0);
+        self->y_pos.f.u = (int16_t)(own->orig_y - d0);
         break;
     }
     case 0xA: { // SBZ red sliding floor: quickly slides out, then back after a delay
-        int16_t width2 = obj->width_pixels * 2;
+        int16_t width2 = self->width_pixels * 2;
         int16_t step = 8;
-        if (obj->status.o.f.x_flip) {
+        if (((self->status & SST_STATUS_X_FLIP) != 0)) {
             step = -8;
             width2 = -width2;
         }
-        if (scratch->slide_goback == 0) {
-            int16_t d0 = (int16_t)(obj->pos.l.x.f.u - scratch->orig_x);
+        if (own->slide_goback == 0) {
+            int16_t d0 = (int16_t)(self->x_pos.f.u - own->orig_x);
             if (d0 == width2) {
-                if (--scratch->slide_wait == 0)
-                    scratch->slide_goback = 1;
+                if (--own->slide_wait == 0)
+                    own->slide_goback = 1;
                 break;
             }
-            obj->pos.l.x.f.u += step;
-            scratch->slide_wait = 5 * 60;
+            self->x_pos.f.u += step;
+            own->slide_wait = 5 * 60;
             break;
         }
         {
-            int16_t d0 = (int16_t)(obj->pos.l.x.f.u - scratch->orig_x);
+            int16_t d0 = (int16_t)(self->x_pos.f.u - own->orig_x);
             if (d0 == 0) {
-                scratch->slide_goback = 0;
-                obj->scratch.u8[0] = 9; // wait for Sonic to step on it again
+                own->slide_goback = 0;
+                self->subtype = 9; // wait for Sonic to step on it again
                 break;
             }
-            obj->pos.l.x.f.u -= step;
+            self->x_pos.f.u -= step;
         }
         break;
     }
@@ -118,65 +123,52 @@ static bool MBlock_Move(Object *obj, Scratch_MovingBlock *scratch) {
     return false;
 }
 
-void Obj_MovingBlock(Object *obj) {
-    Scratch_MovingBlock *scratch = (Scratch_MovingBlock *)&obj->scratch;
+void Obj_MovingBlock(Sst *self) {
+    Own_MovingBlock *own = (Own_MovingBlock *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: { // Main
-        obj->routine += 2;
-        obj->mappings = Mappings_MovingBlocks;
-        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_MZ_Block); // | Tile_Pal3
+        self->routine += 2;
+        self->mappings = Mappings_MovingBlocks;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_MZ_Block); // | Tile_Pal3
 
         if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
-            obj->mappings = Mappings_LZMovingBlocks;
-            obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Moving_Block); // | Tile_Pal3
-            obj->y_rad = 14 / 2;
+            self->mappings = Mappings_LZMovingBlocks;
+            self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Moving_Block); // | Tile_Pal3
+            self->y_radius = 14 / 2;
         } else if (LEVEL_ZONE(level_id) == ZoneId_SBZ) {
-            obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_SBZ_Moving_Block_Short); // | Tile_Pal2
-            if (obj->scratch.u8[0] != 0x28)
-                obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Moving_Block_Long); // | Tile_Pal3
+            self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_SBZ_Moving_Block_Short); // | Tile_Pal2
+            if (self->subtype != 0x28)
+                self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Moving_Block_Long); // | Tile_Pal3
         }
 
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
+        self->render_flags = SST_RENDER_LEVEL;
 
-        uint8_t index = obj->scratch.u8[0] >> 4;
+        uint8_t index = self->subtype >> 4;
         if (index >= 5)
             index = 0;
-        obj->width_pixels = mblock_var[index].width;
-        obj->frame = mblock_var[index].frame;
+        self->width_pixels = mblock_var[index].width;
+        self->mapping_frame = mblock_var[index].frame;
 
-        obj->priority = 4;
-        scratch->orig_x = obj->pos.l.x.f.u;
-        scratch->orig_y = obj->pos.l.y.f.u;
-        obj->scratch.u8[0] &= 0xF;
+        self->priority = 4 * 0x80;
+        own->orig_x = self->x_pos.f.u;
+        own->orig_y = self->y_pos.f.u;
+        self->subtype &= 0xF;
         break;
     }
     case 2: // Platform
-        if (!MBlock_Move(obj, scratch)) {
-            PlatformObject(obj, obj->width_pixels);
-            if (IS_OFFSCREEN(scratch->orig_x)) {
-                ObjectDelete(obj);
-                return;
-            }
-            DisplaySprite(obj);
-        } else if (IS_OFFSCREEN(scratch->orig_x)) {
-            ObjectDelete(obj);
-        }
+        if (!MBlock_Move(self, own)) {
+            SstPlatformObject(self, self->width_pixels);
+            SstOnScreenTest2(self, own->orig_x);
+        } else SstDeleteIfNotInRange2(self, own->orig_x);
         break;
     case 4: { // StandOn
-        ExitPlatform(obj, obj->width_pixels, obj->width_pixels, NULL);
-        int16_t prev_x = obj->pos.l.x.f.u;
-        if (!MBlock_Move(obj, scratch)) {
-            MvSonicOnPtfm(obj, obj->pos.l.y.f.u - 8, prev_x);
-            if (IS_OFFSCREEN(scratch->orig_x)) {
-                ObjectDelete(obj);
-                return;
-            }
-            DisplaySprite(obj);
-        } else if (IS_OFFSCREEN(scratch->orig_x)) {
-            ObjectDelete(obj);
-        }
+        SstExitPlatform(self, self->width_pixels, self->width_pixels, NULL);
+        int16_t prev_x = self->x_pos.f.u;
+        if (!MBlock_Move(self, own)) {
+            SstMvSonicOnPtfm(self, self->y_pos.f.u - 8, prev_x);
+            SstOnScreenTest2(self, own->orig_x);
+        } else SstDeleteIfNotInRange2(self, own->orig_x);
         break;
     }
     }

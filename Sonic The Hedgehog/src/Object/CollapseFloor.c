@@ -1,4 +1,8 @@
 #include "CollapseFloor.h"
+#include "Object.h"
+#include "Resource/Mappings/CollapsingFloors.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -15,78 +19,78 @@ static const uint8_t floor_collapse_data[8] = {
     0x16, 0x1E, 0x1A, 0x12, 0x06, 0x0E, 0x0A, 0x02,
 };
 
-static void CFlo_WalkOff(Object *obj) {
-    int16_t prev_x = obj->pos.l.x.f.u;
-    ExitPlatform(obj, 64 / 2, 64 / 2, NULL);
-    MvSonicOnPtfm(obj, obj->pos.l.y.f.u - 8, prev_x);
-    RememberState(obj); // real hardware's own WalkOff always tail-calls RememberState
+static void CFlo_WalkOff(Sst *self) {
+    int16_t prev_x = self->x_pos.f.u;
+    SstExitPlatform(self, 64 / 2, 64 / 2, NULL);
+    SstMvSonicOnPtfm(self, self->y_pos.f.u - 8, prev_x);
+    SstOnScreenTest(self); // real hardware's own WalkOff always tail-calls RememberState
 }
 
-void Obj_CollapseFloor(Object *obj) {
-    Scratch_CollapseFloor *scratch = (Scratch_CollapseFloor *)&obj->scratch;
+void Obj_CollapseFloor(Sst *self) {
+    Own_CollapseFloor *own = (Own_CollapseFloor *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Main
-        obj->routine += 2;
-        obj->mappings = Mappings_CollapsingFloors;
-        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_MZ_Block); // | Tile_Pal3
+        self->routine += 2;
+        self->mappings = Mappings_CollapsingFloors;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_MZ_Block); // | Tile_Pal3
         if (LEVEL_ZONE(level_id) == ZoneId_SLZ) {
-            obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SLZ_Collapsing_Floor); // | Tile_Pal3
-            obj->frame += 2;
+            self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_SLZ_Collapsing_Floor); // | Tile_Pal3
+            self->mapping_frame += 2;
         } else if (LEVEL_ZONE(level_id) == ZoneId_SBZ) {
-            obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Collapsing_Floor); // | Tile_Pal3
+            self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Collapsing_Floor); // | Tile_Pal3
         }
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 4;
-        scratch->timedelay = 7;
-        obj->width_pixels = 136 / 2;
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        own->timedelay = 7;
+        self->width_pixels = 136 / 2;
         break;
     case 2: { // ChkTouch
-        if (scratch->flag) {
-            if (scratch->timedelay == 0) {
-                scratch->flag = 0;
-                obj->frame++; // advance to next frame, 8 sprite pieces
-                FragmentatePlatform(obj, 8, floor_collapse_data);
+        if (own->flag) {
+            if (own->timedelay == 0) {
+                own->flag = 0;
+                self->mapping_frame++; // advance to next frame, 8 sprite pieces
+                SstFragmentatePlatform(self, 8, floor_collapse_data);
                 break;
             }
-            scratch->timedelay--;
+            own->timedelay--;
         }
 
-        PlatformObject(obj, 64 / 2); // sets routine to 4 on touch
+        SstPlatformObject(self, 64 / 2); // sets routine to 4 on touch
 
         // SLZ-only (subtype's own top bit set): mirror the collapse
         // pattern to match which side of the platform Sonic is currently
         // standing on.
-        if (obj->scratch.s8[0] < 0 && player->status.p.f.object_stand)
-            obj->render.f.x_flip = (player->pos.l.x.f.u < obj->pos.l.x.f.u);
-        RememberState(obj);
+        if (self->own.s8[0] < 0 && player->status.p.f.object_stand)
+            SST_RENDER_SET(self, SST_RENDER_X_FLIP, (player->pos.l.x.f.u < self->x_pos.f.u));
+        SstOnScreenTest(self);
         break;
     }
     case 4: // OnPlatform
-        if (scratch->timedelay == 0) {
-            obj->frame++;
-            FragmentatePlatform(obj, 8, floor_collapse_data);
+        if (own->timedelay == 0) {
+            self->mapping_frame++;
+            SstFragmentatePlatform(self, 8, floor_collapse_data);
             break;
         }
-        scratch->flag = 1;
-        scratch->timedelay--;
+        own->flag = 1;
+        own->timedelay--;
         // Fallthrough
     case 10: // WalkOff
-        CFlo_WalkOff(obj);
+        CFlo_WalkOff(self);
         break;
     case 6: { // FragmentPiece
-        if (scratch->timedelay != 0) {
-            if (!scratch->flag) {
-                scratch->timedelay--;
-                DisplaySprite(obj);
+        if (own->timedelay != 0) {
+            if (!own->flag) {
+                own->timedelay--;
+                Sst_Draw(self);
                 break;
             }
 
-            scratch->timedelay--;
-            CFlo_WalkOff(obj);
+            own->timedelay--;
+            CFlo_WalkOff(self);
 
             if (player->status.p.f.object_stand) {
-                if (scratch->timedelay == 0) {
+                if (own->timedelay == 0) {
                     player->status.p.f.object_stand = false;
                     player->status.p.f.pushing = false;
                     player->prev_anim = SonAnimId_Run;
@@ -95,21 +99,17 @@ void Obj_CollapseFloor(Object *obj) {
                 }
             }
 
-            scratch->flag = 0;
-            obj->routine = 6;
+            own->flag = 0;
+            self->routine = 6;
             break;
         }
 
-        ObjectFall(obj);
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
-            return;
-        }
-        DisplaySprite(obj);
+        Sst_MoveSprite(self);
+        SstOnScreenTest2(self, self->x_pos.f.u);
         break;
     }
     case 8: // Delete
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     }
 }

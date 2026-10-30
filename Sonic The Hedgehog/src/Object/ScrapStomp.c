@@ -1,4 +1,7 @@
 #include "ScrapStomp.h"
+#include "Object.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -22,243 +25,237 @@ static const struct { uint8_t width, height; int16_t max_dist; uint8_t action_ty
     { 256 / 2, 128 / 2,  0, 5 }, // $4x - ancient lift at the start of SBZ3/LZ4
 };
 
-static void Sto_Action(Object *obj, Scratch_ScrapStomp *scratch);
+static void Sto_Action(Sst *self, Own_ScrapStomp *own);
 
-static bool Sto_OutOfRange(int16_t x) {
-    uint16_t obj_pos = (uint16_t)x & 0xFF80;
-    uint16_t cam_pos = (uint16_t)(scrpos_x.f.u - 128) & 0xFF80;
-    return (uint16_t)(obj_pos - cam_pos) > (128 + 320 + 192);
-}
-
-static void Sto_UpdateX(Object *obj, Scratch_ScrapStomp *scratch) {
-    int16_t d0 = scratch->offset_now;
-    if (obj->status.o.f.x_flip)
+static void Sto_UpdateX(Sst *self, Own_ScrapStomp *own) {
+    int16_t d0 = own->offset_now;
+    if (((self->status & SST_STATUS_X_FLIP) != 0))
         d0 = (int16_t)(-d0 + 128); // keep in the same general X-range (platform is 128px wide)
-    obj->pos.l.x.f.u = (int16_t)(scratch->orig_x - d0);
+    self->x_pos.f.u = (int16_t)(own->orig_x - d0);
 }
 
-static void Sto_UpdateY(Object *obj, Scratch_ScrapStomp *scratch) {
-    int16_t d0 = scratch->offset_now;
-    if (obj->status.o.f.x_flip)
+static void Sto_UpdateY(Sst *self, Own_ScrapStomp *own) {
+    int16_t d0 = own->offset_now;
+    if (((self->status & SST_STATUS_X_FLIP) != 0))
         d0 = (int16_t)(-d0 + 56); // keep in the same general Y-range (stomper is 56px tall)
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y + d0);
+    self->y_pos.f.u = (int16_t)(own->orig_y + d0);
 }
 
 // Type 1 - extending sliding platform
-static void Sto_SlidingPlatform_Extend(Object *obj, Scratch_ScrapStomp *scratch) {
-    if (!scratch->active) {
-        if (!(f_switch[scratch->switch_id] & 1)) {
-            Sto_UpdateX(obj, scratch);
+static void Sto_SlidingPlatform_Extend(Sst *self, Own_ScrapStomp *own) {
+    if (!own->active) {
+        if (!(f_switch[own->switch_id] & 1)) {
+            Sto_UpdateX(self, own);
             return;
         }
-        scratch->active = 1;
+        own->active = 1;
     }
 
-    if (scratch->offset_max != scratch->offset_now) {
-        scratch->offset_now += 2;
-        Sto_UpdateX(obj, scratch);
+    if (own->offset_max != own->offset_now) {
+        own->offset_now += 2;
+        Sto_UpdateX(self, own);
         return;
     }
 
     // stopPlatform
-    obj->scratch.u8[0]++; // -> Sto_SlidingPlatform_Retract
-    scratch->delay = 3 * 60;
-    scratch->active = 0;
-    if (obj->respawn_index != 0)
-        objstate[obj->respawn_index] |= 1; // seems to be unused elsewhere, kept faithfully
-    Sto_UpdateX(obj, scratch);
+    self->subtype++; // -> Sto_SlidingPlatform_Retract
+    own->delay = 3 * 60;
+    own->active = 0;
+    if (self->respawn != 0)
+        (*SstLoad_State(self)) |= 1; // seems to be unused elsewhere, kept faithfully
+    Sto_UpdateX(self, own);
 }
 
 // Type 2 (set from Type 1) - retract sliding platform again after a delay
-static void Sto_SlidingPlatform_Retract(Object *obj, Scratch_ScrapStomp *scratch) {
-    if (!scratch->active) {
-        if (--scratch->delay != 0) {
-            Sto_UpdateX(obj, scratch);
+static void Sto_SlidingPlatform_Retract(Sst *self, Own_ScrapStomp *own) {
+    if (!own->active) {
+        if (--own->delay != 0) {
+            Sto_UpdateX(self, own);
             return;
         }
-        scratch->active = 1;
+        own->active = 1;
     }
 
-    if (scratch->offset_now != 0) {
-        scratch->offset_now -= 2;
-        Sto_UpdateX(obj, scratch);
+    if (own->offset_now != 0) {
+        own->offset_now -= 2;
+        Sto_UpdateX(self, own);
         return;
     }
 
     // stopPlatform
-    obj->scratch.u8[0]--; // -> Sto_SlidingPlatform_Extend
-    scratch->active = 0;
-    if (obj->respawn_index != 0)
-        objstate[obj->respawn_index] &= ~1;
-    Sto_UpdateX(obj, scratch);
+    self->subtype--; // -> Sto_SlidingPlatform_Extend
+    own->active = 0;
+    if (self->respawn != 0)
+        (*SstLoad_State(self)) &= ~1;
+    Sto_UpdateX(self, own);
 }
 
 // Type 3 - stomper (stomps down, slowly retracts, waits, stomps down again)
-static void Sto_Stomper_DownAndRetract(Object *obj, Scratch_ScrapStomp *scratch) {
-    if (!scratch->active) {
-        if (scratch->offset_now != 0) {
-            scratch->offset_now--;
-            Sto_UpdateY(obj, scratch);
+static void Sto_Stomper_DownAndRetract(Sst *self, Own_ScrapStomp *own) {
+    if (!own->active) {
+        if (own->offset_now != 0) {
+            own->offset_now--;
+            Sto_UpdateY(self, own);
             return;
         }
-        if (--scratch->delay >= 0) {
-            Sto_UpdateY(obj, scratch);
+        if (--own->delay >= 0) {
+            Sto_UpdateY(self, own);
             return;
         }
-        scratch->delay = 1 * 60;
-        scratch->active = 1;
+        own->delay = 1 * 60;
+        own->active = 1;
     }
 
-    scratch->offset_now += 8;
-    if (scratch->offset_now == scratch->offset_max)
-        scratch->active = 0;
-    Sto_UpdateY(obj, scratch);
+    own->offset_now += 8;
+    if (own->offset_now == own->offset_max)
+        own->active = 0;
+    Sto_UpdateY(self, own);
 }
 
 // Type 4 - stomper (stomps up and down, waits 1 second between each stomp)
-static void Sto_Stomper_UpAndDown(Object *obj, Scratch_ScrapStomp *scratch) {
-    if (!scratch->active) {
-        if (scratch->offset_now != 0) {
-            scratch->offset_now -= 8;
-            Sto_UpdateY(obj, scratch);
+static void Sto_Stomper_UpAndDown(Sst *self, Own_ScrapStomp *own) {
+    if (!own->active) {
+        if (own->offset_now != 0) {
+            own->offset_now -= 8;
+            Sto_UpdateY(self, own);
             return;
         }
-        if (--scratch->delay >= 0) {
-            Sto_UpdateY(obj, scratch);
+        if (--own->delay >= 0) {
+            Sto_UpdateY(self, own);
             return;
         }
-        scratch->delay = 1 * 60;
-        scratch->active = 1;
+        own->delay = 1 * 60;
+        own->active = 1;
     }
 
-    if (scratch->offset_now == scratch->offset_max) {
-        if (--scratch->delay >= 0) {
-            Sto_UpdateY(obj, scratch);
+    if (own->offset_now == own->offset_max) {
+        if (--own->delay >= 0) {
+            Sto_UpdateY(self, own);
             return;
         }
-        scratch->delay = 1 * 60;
-        scratch->active = 0;
-        Sto_UpdateY(obj, scratch);
+        own->delay = 1 * 60;
+        own->active = 0;
+        Sto_UpdateY(self, own);
         return;
     }
 
-    scratch->offset_now += 8;
-    Sto_UpdateY(obj, scratch);
+    own->offset_now += 8;
+    Sto_UpdateY(self, own);
 }
 
 // Type 5 - ancient lift at the start of SBZ3/LZ4
-static void Sto_AncientLift(Object *obj, Scratch_ScrapStomp *scratch) {
-    if (!scratch->active) {
-        if (!(f_switch[scratch->switch_id] & 1))
+static void Sto_AncientLift(Sst *self, Own_ScrapStomp *own) {
+    if (!own->active) {
+        if (!(f_switch[own->switch_id] & 1))
             return;
-        scratch->active = 1;
-        if (obj->respawn_index != 0)
-            objstate[obj->respawn_index] |= 1; // globally remember lift has already started moving
+        own->active = 1;
+        if (self->respawn != 0)
+            (*SstLoad_State(self)) |= 1; // globally remember lift has already started moving
     }
 
-    obj->pos.l.x.v -= 0x10000; // move left at 1px/frame (incl. subpixels)
-    obj->pos.l.y.v += 0x8000;  // move down at 0.5px/frame (incl. subpixels)
-    scratch->orig_x = obj->pos.l.x.f.u; // overwrite initial X with current X
+    self->x_pos.v -= 0x10000; // move left at 1px/frame (incl. subpixels)
+    self->y_pos.v += 0x8000;  // move down at 0.5px/frame (incl. subpixels)
+    own->orig_x = self->x_pos.f.u; // overwrite initial X with current X
 
-    if (obj->pos.l.x.f.u == (int16_t)0x980) {
-        obj->scratch.u8[0] = 0; // stop -- Sto_Stationary
-        scratch->active = 0; // redundant at this point
+    if (self->x_pos.f.u == (int16_t)0x980) {
+        self->subtype = 0; // stop -- Sto_Stationary
+        own->active = 0; // redundant at this point
     }
 }
 
-static void Sto_Action(Object *obj, Scratch_ScrapStomp *scratch) {
-    int16_t prev_x = obj->pos.l.x.f.u;
+static void Sto_Action(Sst *self, Own_ScrapStomp *own) {
+    int16_t prev_x = self->x_pos.f.u;
 
-    switch (obj->scratch.u8[0] & 0xF) {
+    switch (self->subtype & 0xF) {
     case 0: break; // stationary
-    case 1: Sto_SlidingPlatform_Extend(obj, scratch); break;
-    case 2: Sto_SlidingPlatform_Retract(obj, scratch); break;
-    case 3: Sto_Stomper_DownAndRetract(obj, scratch); break;
-    case 4: Sto_Stomper_UpAndDown(obj, scratch); break;
-    case 5: Sto_AncientLift(obj, scratch); break;
+    case 1: Sto_SlidingPlatform_Extend(self, own); break;
+    case 2: Sto_SlidingPlatform_Retract(self, own); break;
+    case 3: Sto_Stomper_DownAndRetract(self, own); break;
+    case 4: Sto_Stomper_UpAndDown(self, own); break;
+    case 5: Sto_AncientLift(self, own); break;
     }
 
-    if (obj->render.f.on_screen) {
-        int16_t x_rad = (int16_t)(obj->width_pixels + 11 /* sonic_solid_width */);
-        SolidObject(obj, (uint16_t)x_rad, obj->y_rad, (uint16_t)(obj->y_rad + 1), prev_x, NULL, NULL);
+    if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
+        int16_t x_rad = (int16_t)(self->width_pixels + 11 /* sonic_solid_width */);
+        SstSolidObject(self, (uint16_t)x_rad, self->y_radius, (uint16_t)(self->y_radius + 1), prev_x, NULL, NULL);
     }
 
-    if (!Sto_OutOfRange(scratch->orig_x)) {
-        DisplaySprite(obj);
+    if (!SstOutOfRange(own->orig_x)) {
+        Sst_Draw(self);
         return;
     }
 
     if (LEVEL_ZONE(level_id) == ZoneId_LZ) {
         obj6B = 0;
-        if (obj->respawn_index != 0)
-            objstate[obj->respawn_index] &= 0x7F;
+        if (self->respawn != 0)
+            (*SstLoad_State(self)) &= 0x7F;
     }
-    ObjectDelete(obj);
+    Sst_Delete(self);
 }
 
-static void Sto_Main(Object *obj, Scratch_ScrapStomp *scratch) {
-    obj->routine = 2; // advance to Sto_Action
+static void Sto_Main(Sst *self, Own_ScrapStomp *own) {
+    self->routine = 2; // advance to Sto_Action
 
-    uint8_t subtype = obj->scratch.u8[0];
+    uint8_t subtype = self->subtype;
     int idx = (subtype >> 4) & 7;
 
-    obj->width_pixels = Sto_Var[idx].width;
-    obj->y_rad = (int8_t)Sto_Var[idx].height;
-    obj->frame = (uint8_t)idx;
+    self->width_pixels = Sto_Var[idx].width;
+    self->y_radius = (int8_t)Sto_Var[idx].height;
+    self->mapping_frame = (uint8_t)idx;
 
-    obj->mappings = Mappings_StomperDoor;
-    obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_SBZ_Moving_Block_Short); // | Tile_Pal2 (SBZ1/2)
+    self->mappings = Mappings_StomperDoor;
+    self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_SBZ_Moving_Block_Short); // | Tile_Pal2 (SBZ1/2)
 
     if (LEVEL_ZONE(level_id) == ZoneId_LZ) { // SBZ3
         bool already_loaded = (obj6B & 1) != 0;
         obj6B |= 1;
         if (already_loaded) {
-            if (obj->respawn_index != 0)
-                objstate[obj->respawn_index] &= 0x7F;
-            ObjectDelete(obj);
+            if (self->respawn != 0)
+                (*SstLoad_State(self)) &= 0x7F;
+            Sst_Delete(self);
             return;
         }
 
         // Ancient lift at the start of SBZ3
-        obj->tile = TILE_MAP(0, 2, 0, 0, (ArtTile_Level+0x1F0)); // | Tile_Pal3
-        if (obj->pos.l.x.f.u == (int16_t)0xA80 && obj->respawn_index != 0 &&
-            (objstate[obj->respawn_index] & 1)) {
+        self->art_tile = TILE_MAP(0, 2, 0, 0, (ArtTile_Level+0x1F0)); // | Tile_Pal3
+        if (self->x_pos.f.u == (int16_t)0xA80 && self->respawn != 0 &&
+            ((*SstLoad_State(self)) & 1)) {
             // Prevent a pre-switched ancient lift from reappearing after
             // the switch was already pressed.
             obj6B = 0;
-            if (obj->respawn_index != 0)
-                objstate[obj->respawn_index] &= 0x7F;
-            ObjectDelete(obj);
+            if (self->respawn != 0)
+                (*SstLoad_State(self)) &= 0x7F;
+            Sst_Delete(self);
             return;
         }
     }
 
-    obj->render.b |= SPRITE_CAM_FIELD;
-    obj->priority = 4;
-    scratch->orig_x = obj->pos.l.x.f.u;
-    scratch->orig_y = obj->pos.l.y.f.u;
-    scratch->offset_max = Sto_Var[idx].max_dist;
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
+    own->orig_x = self->x_pos.f.u;
+    own->orig_y = self->y_pos.f.u;
+    own->offset_max = Sto_Var[idx].max_dist;
 
     if (subtype & 0x80) {
-        scratch->switch_id = subtype & 0xF;
-        obj->scratch.u8[0] = Sto_Var[idx].action_type;
+        own->switch_id = subtype & 0xF;
+        self->subtype = Sto_Var[idx].action_type;
 
         if (Sto_Var[idx].action_type == 5)
-            obj->render.f.explicit_height = true; // custom sprite render height
+            self->height_pixels = self->y_radius; // custom sprite render height
 
-        if (obj->respawn_index != 0)
-            objstate[obj->respawn_index] &= 0x7F;
+        if (self->respawn != 0)
+            (*SstLoad_State(self)) &= 0x7F;
     }
 
-    Sto_Action(obj, scratch);
+    Sto_Action(self, own);
 }
 
-void Obj_ScrapStomp(Object *obj) {
-    Scratch_ScrapStomp *scratch = (Scratch_ScrapStomp *)&obj->scratch;
+void Obj_ScrapStomp(Sst *self) {
+    Own_ScrapStomp *own = (Own_ScrapStomp *)self->own.u8;
 
-    if (obj->routine == 0) {
-        Sto_Main(obj, scratch);
+    if (self->routine == 0) {
+        Sto_Main(self, own);
         return;
     }
-    Sto_Action(obj, scratch);
+    Sto_Action(self, own);
 }

@@ -1,4 +1,7 @@
 #include "Pole.h"
+#include "Object.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 
 #include "Backend/Joypad.h"
 #include "Game.h"
@@ -16,16 +19,16 @@
 // lets go, or -- if the subtype gave it a nonzero break timer -- it snaps
 // on its own.
 
-static void Pole_Release(Object *obj, Scratch_Pole *scratch) {
-    obj->col_type = 0;
-    obj->routine += 2; // -> Pole_Display
+static void Pole_Release(Sst *self, Own_Pole *own) {
+    self->collision_flags = 0;
+    self->routine += 2; // -> Pole_Display
     lock_multi = 0;
     f_wtunneldisallow = false;
-    scratch->grabbed = false;
+    own->grabbed = false;
 }
 
-static void Pole_CheckMoveUpDown(Object *obj) {
-    int16_t top = (int16_t)(obj->pos.l.y.f.u - 24);
+static void Pole_CheckMoveUpDown(Sst *self) {
+    int16_t top = (int16_t)(self->y_pos.f.u - 24);
     if (jpad1_hold1 & JPAD_UP) {
         player->pos.l.y.f.u--;
         if (player->pos.l.y.f.u < top)
@@ -40,42 +43,42 @@ static void Pole_CheckMoveUpDown(Object *obj) {
     }
 }
 
-static void Pole_Action(Object *obj, Scratch_Pole *scratch) {
-    if (scratch->grabbed) {
-        if (scratch->breaktime != 0) {
-            if (--scratch->breaktime == 0) {
-                obj->frame = 1; // broken pole frame
-                Pole_Release(obj, scratch);
-                RememberState(obj);
+static void Pole_Action(Sst *self, Own_Pole *own) {
+    if (own->grabbed) {
+        if (own->breaktime != 0) {
+            if (--own->breaktime == 0) {
+                self->mapping_frame = 1; // broken pole frame
+                Pole_Release(self, own);
+                SstOnScreenTest(self);
                 return;
             }
         }
 
-        Pole_CheckMoveUpDown(obj);
+        Pole_CheckMoveUpDown(self);
 
         if (!(jpad1_press1 & (JPAD_A | JPAD_C | JPAD_B))) {
-            RememberState(obj);
+            SstOnScreenTest(self);
             return;
         }
-        Pole_Release(obj, scratch);
-        RememberState(obj);
+        Pole_Release(self, own);
+        SstOnScreenTest(self);
         return;
     }
 
     // Not grabbed yet -- check for a fresh grab
-    if (!obj->col_property) {
-        RememberState(obj);
+    if (!self->collision_property) {
+        SstOnScreenTest(self);
         return;
     }
 
-    int16_t target_x = (int16_t)(obj->pos.l.x.f.u + 20);
+    int16_t target_x = (int16_t)(self->x_pos.f.u + 20);
     if (target_x >= player->pos.l.x.f.u) {
-        RememberState(obj);
+        SstOnScreenTest(self);
         return;
     }
-    obj->col_property = 0;
+    self->collision_property = 0;
     if (player->routine >= 4) { // Sonic is hurt or dying
-        RememberState(obj);
+        SstOnScreenTest(self);
         return;
     }
 
@@ -86,31 +89,30 @@ static void Pole_Action(Object *obj, Scratch_Pole *scratch) {
     player->anim = SonAnimId_Hang;
     lock_multi = 1;
     f_wtunneldisallow = true;
-    scratch->grabbed = true;
+    own->grabbed = true;
 
-    RememberState(obj);
+    SstOnScreenTest(self);
 }
 
-void Obj_Pole(Object *obj) {
-    Scratch_Pole *scratch = (Scratch_Pole *)&obj->scratch;
+void Obj_Pole(Sst *self) {
+    Own_Pole *own = (Own_Pole *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        obj->routine += 2;
-        obj->mappings = Mappings_PoleThatBreaks;
-        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Pole); // | Tile_Pal3
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->width_pixels = 16 / 2;
-        obj->priority = 4;
-        obj->col_type = 0x21 | 0xC0; // col_8x64 | col_special
-        scratch->breaktime = (int16_t)(obj->scratch.u8[0] * 60);
+        self->routine += 2;
+        self->mappings = Mappings_PoleThatBreaks;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Pole); // | Tile_Pal3
+        self->render_flags = SST_RENDER_LEVEL;
+        self->width_pixels = 16 / 2;
+        self->priority = 4 * 0x80;
+        self->collision_flags = 0x21 | 0xC0; // col_8x64 | col_special
+        own->breaktime = (int16_t)(self->subtype * 60);
         __attribute__((fallthrough));
     case 2:
-        Pole_Action(obj, scratch);
+        Pole_Action(self, own);
         break;
     case 4:
-        RememberState(obj);
+        SstOnScreenTest(self);
         break;
     }
 }

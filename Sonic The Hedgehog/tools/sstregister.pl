@@ -11,6 +11,16 @@ sub spit  { open my $h, '>', $_[0] or die "$_[0]: $!"; print $h $_[1]; close $h 
 my $table = slurp('src/Sonic1Objects.c');
 sub header_of { my ($n) = @_; for my $h (glob('src/Object/*.h')) { return $h =~ m{([^/]+)\.h$} ? $1 : $n if slurp($h) =~ /\bObj_\Q$n\E\(Sst/; } return $n }
 my @ids;
+# Sonic 2 has its own version of some objects (its yml lists the source in `except:`): those are not Sonic 1's and stay as they are
+sub s2_replaces {
+    my ($n) = @_;
+    my $yml = slurp('../Sonic the Hedgehog 2/paradoxmakefile.yml');
+    for my $c (glob('src/Object/*.c')) {
+        next unless slurp($c) =~ /^void Obj_\Q$n\E\(/m;
+        return $yml =~ /"\Q$c\E"/ ? 1 : 0;
+    }
+    return 0;
+}
 # a header that has no prototype for the object's routine gets one (the table includes the header)
 sub ensure_prototype {
     my ($n) = @_;
@@ -35,7 +45,7 @@ for my $arg (@ARGV) {
     push @ids, hex($id);
     ensure_prototype($name);
     my $s2 = '../Sonic the Hedgehog 2/src/Sonic2Objects.c';
-    if (-f $s2) {   # Sonic 2 runs some of Sonic 1's objects as they are: it moves them as well
+    if (-f $s2 && !s2_replaces($name)) {   # Sonic 2 runs some of Sonic 1's objects as they are: it moves them as well
         my $t2 = slurp($s2);
         if ($t2 =~ s{^(\t/\* [0-9A-F]{2} ObjId_\w+\s*\*/ )Obj_\Q$name\E,}{$1NULL, // (moved to the status table: sst_object_codes)}m) {
             $t2 =~ s/^void Obj_\Q$name\E\(Object \*obj\);\n//m;

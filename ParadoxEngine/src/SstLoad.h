@@ -62,6 +62,10 @@ void SstLoad_Forget(const Sst *obj);
 void SstOnScreenTest(Sst *obj);
 // Sprite_OnScreen_Test2: the same for an X the caller gives (the object's own position is somewhere else)
 void SstOnScreenTest2(Sst *obj, int16_t x);
+// The object's persistent state byte: its place in the respawn table (low 7 bits free for the object to keep what it must remember while it is away; bit 7 is the loader's). An object made by another has no
+// place: it gets a byte of its own that nothing remembers.
+uint8_t *SstLoad_State(const Sst *obj);
+
 // Whether an X is more than 0x280 past the coarse back edge of the camera (the test the three above make)
 bool SstOutOfRange(int16_t x);
 // Delete_Sprite_If_Not_In_Range: the same without the drawing

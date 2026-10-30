@@ -1,8 +1,8 @@
 #ifndef _SPINCONVEYOR_H
 #define _SPINCONVEYOR_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_SpinConveyor(Object *obj);
+void Obj_SpinConveyor(Sst *self);
 
 #endif //_SPINCONVEYOR_H

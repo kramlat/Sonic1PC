@@ -1,4 +1,7 @@
 #include "RotatingJunction.h"
+#include "Object.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -19,75 +22,75 @@ static const int8_t Jun_XYOffset[16][2] = {
     {     0,-0x20 }, {  -0xE,-0x1E }, { -0x18,-0x18 }, { -0x1E, -0xE },
 };
 
-static void Jun_Rotate(Object *obj, Scratch_Junction *scratch) {
-    if (f_switch[scratch->switch_id] & 1) {
-        if (!scratch->switchdown) {
-            scratch->direction = (int8_t)-scratch->direction;
-            scratch->switchdown = 1;
+static void Jun_Rotate(Sst *self, Own_Junction *own) {
+    if (f_switch[own->switch_id] & 1) {
+        if (!own->switchdown) {
+            own->direction = (int8_t)-own->direction;
+            own->switchdown = 1;
         }
     } else {
-        scratch->switchdown = 0;
+        own->switchdown = 0;
     }
 
-    if (--obj->frame_time.b >= 0)
+    if (--self->anim_frame_timer >= 0)
         return;
-    obj->frame_time.b = 8 - 1;
-    obj->frame = (uint8_t)((obj->frame + scratch->direction) & 0xF);
+    self->anim_frame_timer = 8 - 1;
+    self->mapping_frame = (uint8_t)((self->mapping_frame + own->direction) & 0xF);
 }
 
-static void Jun_ChgPos(Object *obj) {
-    const int8_t *off = Jun_XYOffset[obj->frame];
-    player->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + off[0]);
-    player->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + off[1]);
+static void Jun_ChgPos(Sst *self) {
+    const int8_t *off = Jun_XYOffset[self->mapping_frame];
+    player->pos.l.x.f.u = (int16_t)(self->x_pos.f.u + off[0]);
+    player->pos.l.y.f.u = (int16_t)(self->y_pos.f.u + off[1]);
 }
 
-static void Jun_Action(Object *obj, Scratch_Junction *scratch) {
-    Jun_Rotate(obj, scratch);
+static void Jun_Action(Sst *self, Own_Junction *own) {
+    Jun_Rotate(self, own);
 
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        RememberState(obj);
+    if (SstOutOfRange(self->x_pos.f.u)) {
+        SstOnScreenTest(self);
         return;
     }
 
     int16_t x_rad = (int16_t)(74 / 2 + 11 /* sonic_solid_width */);
-    SolidObject(obj, (uint16_t)x_rad, x_rad, (uint16_t)(x_rad + 1), obj->pos.l.x.f.u, NULL, NULL);
+    SstSolidObject(self, (uint16_t)x_rad, x_rad, (uint16_t)(x_rad + 1), self->x_pos.f.u, NULL, NULL);
 
-    if (!obj->status.o.f.player_push) {
-        RememberState(obj);
+    if (!((self->status & SST_STATUS_PLAYER_PUSH) != 0)) {
+        SstOnScreenTest(self);
         return;
     }
 
-    uint8_t check_frame = (player->pos.l.x.f.u < obj->pos.l.x.f.u) ? 0xE : 7;
-    if (obj->frame != check_frame) {
-        RememberState(obj);
+    uint8_t check_frame = (player->pos.l.x.f.u < self->x_pos.f.u) ? 0xE : 7;
+    if (self->mapping_frame != check_frame) {
+        SstOnScreenTest(self);
         return;
     }
 
-    scratch->grabframe = check_frame;
-    obj->routine = 6; // advance to Jun_Inside
+    own->grabframe = check_frame;
+    self->routine = 6; // advance to Jun_Inside
     lock_multi = 1; // lock Sonic's controls
     player->anim = SonAnimId_Roll;
     player->inertia = 0x800; // force fast ground speed for fast rolling animation
     player->xsp = 0;
     player->ysp = 0;
-    obj->status.o.f.player_push = false;
+    self->status &= (uint8_t)~SST_STATUS_PLAYER_PUSH;
     player->status.p.f.pushing = false;
     player->status.p.f.in_air = true;
 
     int16_t old_x = player->pos.l.x.f.u;
     int16_t old_y = player->pos.l.y.f.u;
-    Jun_ChgPos(obj);
+    Jun_ChgPos(self);
     // Average old and new position for a smooth in-between frame
     player->pos.l.x.f.u = (int16_t)((int16_t)(player->pos.l.x.f.u + old_x) >> 1);
     player->pos.l.y.f.u = (int16_t)((int16_t)(player->pos.l.y.f.u + old_y) >> 1);
 
-    RememberState(obj);
+    SstOnScreenTest(self);
 }
 
-static void Jun_Inside(Object *obj, Scratch_Junction *scratch) {
-    uint8_t frame = obj->frame;
+static void Jun_Inside(Sst *self, Own_Junction *own) {
+    uint8_t frame = self->mapping_frame;
 
-    if ((frame == 4 || frame == 7) && frame != scratch->grabframe) {
+    if ((frame == 4 || frame == 7) && frame != own->grabframe) {
         player->xsp = 0;
         player->ysp = 0x800; // shoot Sonic down
         if (frame != 4) { // exited to the right, not the bottom
@@ -95,56 +98,56 @@ static void Jun_Inside(Object *obj, Scratch_Junction *scratch) {
             player->ysp = 0x800;
         }
         lock_multi = 0; // unlock Sonic's controls
-        obj->routine = 2; // back to Jun_Action
+        self->routine = 2; // back to Jun_Action
     }
 
-    Jun_Rotate(obj, scratch);
-    Jun_ChgPos(obj);
-    RememberState(obj);
+    Jun_Rotate(self, own);
+    Jun_ChgPos(self);
+    SstOnScreenTest(self);
 }
 
-static void Jun_Main(Object *obj, Scratch_Junction *scratch) {
-    obj->routine = 2; // advance to Jun_Action
+static void Jun_Main(Sst *self, Own_Junction *own) {
+    self->routine = 2; // advance to Jun_Action
 
-    Object *targets[3];
+    Sst *targets[3];
     int count = 0;
-    targets[count++] = obj; // parent stays at routine 2
+    targets[count++] = self; // parent stays at routine 2
 
     for (int i = 0; i < 2; i++) {
-        Object *filler = FindFreeObj();
+        Sst *filler = Sst_Allocate();
         if (filler == NULL)
             continue;
-        filler->type = ObjId_Junction;
+        filler->code = sst_object_codes[ObjId_Junction];
         filler->routine = 4; // Jun_Display -- do nothing but display
-        filler->pos.l.x.f.u = obj->pos.l.x.f.u;
-        filler->pos.l.y.f.u = obj->pos.l.y.f.u;
-        filler->priority = 3; // above parent
-        filler->frame = 0x10; // large circular sprite
+        filler->x_pos.f.u = self->x_pos.f.u;
+        filler->y_pos.f.u = self->y_pos.f.u;
+        filler->priority = 3 * 0x80; // above parent
+        filler->mapping_frame = 0x10; // large circular sprite
         targets[count++] = filler;
     }
 
     for (int i = 0; i < count; i++) {
         targets[i]->mappings = Mappings_RotatingJunction;
-        targets[i]->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Junction); // | Tile_Pal3
-        targets[i]->render.f.level_fg = true;
+        targets[i]->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_SBZ_Junction); // | Tile_Pal3
+        targets[i]->render_flags |= SST_RENDER_LEVEL;
         targets[i]->width_pixels = 112 / 2;
     }
 
-    obj->width_pixels = 96 / 2; // parent's own narrower solidity/display width
-    obj->priority = 4;
-    scratch->direction = 1; // default rotation: clockwise
-    scratch->switch_id = obj->scratch.u8[0];
+    self->width_pixels = 96 / 2; // parent's own narrower solidity/display width
+    self->priority = 4 * 0x80;
+    own->direction = 1; // default rotation: clockwise
+    own->switch_id = self->subtype;
 
-    Jun_Action(obj, scratch);
+    Jun_Action(self, own);
 }
 
-void Obj_RotatingJunction(Object *obj) {
-    Scratch_Junction *scratch = (Scratch_Junction *)&obj->scratch;
+void Obj_RotatingJunction(Sst *self) {
+    Own_Junction *own = (Own_Junction *)self->own.u8;
 
-    switch (obj->routine) {
-    case 0: Jun_Main(obj, scratch); break;
-    case 2: Jun_Action(obj, scratch); break;
-    case 4: RememberState(obj); break;
-    case 6: Jun_Inside(obj, scratch); break;
+    switch (self->routine) {
+    case 0: Jun_Main(self, own); break;
+    case 2: Jun_Action(self, own); break;
+    case 4: SstOnScreenTest(self); break;
+    case 6: Jun_Inside(self, own); break;
     }
 }

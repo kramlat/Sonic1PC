@@ -1,4 +1,7 @@
 #include "RunningDisc.h"
+#include "Object.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 #include "Constants.h"
 
 #include "Game.h"
@@ -20,28 +23,22 @@
 // a second sprite at the gear's own center since the spot's own sprite
 // still needs its normal display too.
 
-static bool Disc_OutOfRange(int16_t x) {
-    uint16_t obj_pos = (uint16_t)x & 0xFF80;
-    uint16_t cam_pos = (uint16_t)(scrpos_x.f.u - 128) & 0xFF80;
-    return (uint16_t)(obj_pos - cam_pos) > (128 + 320 + 192);
-}
-
 // Sonic's "stick to convex" flag (the original's sticktoconvex, at 0x38 of his object): while it is set, his floor-following code keeps him on
 // the gear's tight curve instead of letting him leave the ground, and his slope repel does not shake him off it.
 static void SetStickToConvex(bool on) {
     ((Scratch_Sonic *)&player->scratch)->x38.floor_clip = on ? 1 : 0;
 }
 
-static void Disc_DetachSonic(Scratch_RunningDisc *scratch) {
-    if (scratch->sonic_attached) {
+static void Disc_DetachSonic(Own_RunningDisc *own) {
+    if (own->sonic_attached) {
         SetStickToConvex(false);
-        scratch->sonic_attached = 0;
+        own->sonic_attached = 0;
     }
 }
 
-static void Disc_AttachSonic(Scratch_RunningDisc *scratch) {
-    if (!scratch->sonic_attached) {
-        scratch->sonic_attached = 1;
+static void Disc_AttachSonic(Own_RunningDisc *own) {
+    if (!own->sonic_attached) {
+        own->sonic_attached = 1;
         if (!player->status.p.f.in_ball)
             player->anim = SonAnimId_Walk;
         player->status.p.f.pushing = false;
@@ -50,7 +47,7 @@ static void Disc_AttachSonic(Scratch_RunningDisc *scratch) {
     }
 
     int16_t inertia = player->inertia;
-    if (scratch->spot_speed >= 0) { // gear moving clockwise (it always is)
+    if (own->spot_speed >= 0) { // gear moving clockwise (it always is)
         if (inertia < 0x400) { player->inertia = 0x400; return; }
         if (inertia > (int16_t)0xF00) player->inertia = (int16_t)0xF00;
     } else {
@@ -59,57 +56,58 @@ static void Disc_AttachSonic(Scratch_RunningDisc *scratch) {
     }
 }
 
-static void Disc_MoveSonic(Scratch_RunningDisc *scratch) {
-    int16_t trig = scratch->triggersize;
+static void Disc_MoveSonic(Own_RunningDisc *own) {
+    int16_t trig = own->triggersize;
     int16_t diameter = (int16_t)(trig * 2);
 
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - scratch->orig_x + trig);
+    int16_t d0 = (int16_t)(player->pos.l.x.f.u - own->orig_x + trig);
     if ((uint16_t)d0 >= (uint16_t)diameter) {
-        Disc_DetachSonic(scratch);
+        Disc_DetachSonic(own);
         return;
     }
 
-    int16_t d1 = (int16_t)(player->pos.l.y.f.u - scratch->orig_y + trig);
+    int16_t d1 = (int16_t)(player->pos.l.y.f.u - own->orig_y + trig);
     if ((uint16_t)d1 >= (uint16_t)diameter) {
-        Disc_DetachSonic(scratch);
+        Disc_DetachSonic(own);
         return;
     }
 
     if (player->status.p.f.in_air) {
-        scratch->sonic_attached = 0;
+        own->sonic_attached = 0;
         return;
     }
-    Disc_AttachSonic(scratch);
+    Disc_AttachSonic(own);
 }
 
-static void Disc_MoveSpot(Object *obj, Scratch_RunningDisc *scratch) {
+static void Disc_MoveSpot(Sst *self, Own_RunningDisc *own) {
     // Real hardware does `add.w spot_speed,obAngle(a0)` -- a 16-bit add
     // into a word straddling obAngle and the following (otherwise-unused)
-    // byte, with only the high byte (obj->angle) ever read back for
+    // byte, with only the high byte (self->angle) ever read back for
     // CalcSine. That makes the effective turn rate spot_speed/256 per
     // frame rather than the raw spot_speed value.
-    uint16_t accum = (uint16_t)((obj->angle << 8) | scratch->angle_frac);
-    accum = (uint16_t)(accum + (uint16_t)scratch->spot_speed);
-    obj->angle = (uint8_t)(accum >> 8);
-    scratch->angle_frac = (uint8_t)accum;
+    uint16_t accum = (uint16_t)((self->angle << 8) | own->angle_frac);
+    accum = (uint16_t)(accum + (uint16_t)own->spot_speed);
+    self->angle = (uint8_t)(accum >> 8);
+    own->angle_frac = (uint8_t)accum;
 
     int16_t sin, cos;
-    CalcSine(obj->angle, &sin, &cos);
+    CalcSine(self->angle, &sin, &cos);
 
-    uint8_t distance = (uint8_t)scratch->spot_distance;
+    uint8_t distance = (uint8_t)own->spot_distance;
     int16_t dy = (int16_t)(((int32_t)sin * distance) >> 8);
     int16_t dx = (int16_t)(((int32_t)cos * distance) >> 8);
 
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y + dy);
-    obj->pos.l.x.f.u = (int16_t)(scratch->orig_x + dx);
+    self->y_pos.f.u = (int16_t)(own->orig_y + dy);
+    self->x_pos.f.u = (int16_t)(own->orig_x + dx);
 }
 
-static void Disc_Action(Object *obj, Scratch_RunningDisc *scratch) {
-    Disc_MoveSonic(scratch);
-    Disc_MoveSpot(obj, scratch);
+static void Disc_Action(Sst *self, Own_RunningDisc *own) {
+    Disc_MoveSonic(own);
+    Disc_MoveSpot(self, own);
 
-    if (Disc_OutOfRange(scratch->orig_x)) {
-        ObjectDelete(obj);
+    if (SstOutOfRange(own->orig_x)) {
+        SstLoad_Forget(self);
+        Sst_Delete(self);
         return;
     }
 
@@ -117,64 +115,64 @@ static void Disc_Action(Object *obj, Scratch_RunningDisc *scratch) {
         // Draw the marker as a separate sprite at the gear's own center,
         // saving/restoring the spot's own fields around it -- this object
         // only has room for one sprite's worth of state at a time.
-        int16_t spot_x = obj->pos.l.x.f.u;
-        int16_t spot_y = obj->pos.l.y.f.u;
-        const void *spot_mappings = obj->mappings;
-        uint16_t spot_tile = obj->tile;
-        uint8_t spot_frame = obj->frame;
+        int16_t spot_x = self->x_pos.f.u;
+        int16_t spot_y = self->y_pos.f.u;
+        const void *spot_mappings = self->mappings;
+        uint16_t spot_tile = self->art_tile;
+        uint8_t spot_frame = self->mapping_frame;
 
-        obj->pos.l.x.f.u = scratch->orig_x;
-        obj->pos.l.y.f.u = scratch->orig_y;
-        obj->col_type = 0; // marker itself has no collision
-        obj->mappings = Mappings_RunningDiscMarker;
-        obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
-        obj->frame = (scratch->triggersize == 0x48) ? 0 : 1; // 0 = large, 1 = small (leftover, practically unused)
-        DisplaySprite(obj);
+        self->x_pos.f.u = own->orig_x;
+        self->y_pos.f.u = own->orig_y;
+        self->collision_flags = 0; // marker itself has no collision
+        self->mappings = Mappings_RunningDiscMarker;
+        self->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
+        self->mapping_frame = (own->triggersize == 0x48) ? 0 : 1; // 0 = large, 1 = small (leftover, practically unused)
+        Sst_Draw(self);
 
-        obj->pos.l.x.f.u = spot_x;
-        obj->pos.l.y.f.u = spot_y;
-        obj->mappings = spot_mappings;
-        obj->tile = spot_tile;
-        obj->frame = spot_frame;
+        self->x_pos.f.u = spot_x;
+        self->y_pos.f.u = spot_y;
+        self->mappings = spot_mappings;
+        self->art_tile = spot_tile;
+        self->mapping_frame = spot_frame;
     }
 
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-static void Disc_Main(Object *obj, Scratch_RunningDisc *scratch) {
-    obj->routine = 2; // advance to Disc_Action
-    obj->mappings = Mappings_RunningDisc;
-    obj->tile = TILE_MAP(1, 2, 0, 0, ArtTile_SBZ_Disc); // | Tile_Pal3 | Tile_Prio
-    obj->render.b = SPRITE_CAM_FIELD;
-    obj->priority = 4;
-    obj->width_pixels = 16 / 2;
+static void Disc_Main(Sst *self, Own_RunningDisc *own) {
+    self->routine = 2; // advance to Disc_Action
+    self->mappings = Mappings_RunningDisc;
+    self->art_tile = TILE_MAP(1, 2, 0, 0, ArtTile_SBZ_Disc); // | Tile_Pal3 | Tile_Prio
+    self->render_flags = SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
+    self->width_pixels = 16 / 2;
 
-    scratch->orig_x = obj->pos.l.x.f.u;
-    scratch->orig_y = obj->pos.l.y.f.u;
-    scratch->spot_distance = 0x18;
-    scratch->triggersize = 0x48;
+    own->orig_x = self->x_pos.f.u;
+    own->orig_y = self->y_pos.f.u;
+    own->spot_distance = 0x18;
+    own->triggersize = 0x48;
 
     // Leftover from the prototype, where it was planned to also have
     // smaller-sized gears. In the final game, only large gears exist, so
     // this branch is never actually taken.
-    uint8_t subtype = obj->scratch.u8[0];
+    uint8_t subtype = self->subtype;
     if (subtype & 0x0F) {
-        scratch->spot_distance = 0x10;
-        scratch->triggersize = 0x38;
+        own->spot_distance = 0x10;
+        own->triggersize = 0x38;
     }
 
-    scratch->spot_speed = (int16_t)((int8_t)(subtype & 0xF0) * 8);
+    own->spot_speed = (int16_t)((int8_t)(subtype & 0xF0) * 8);
 
-    uint8_t status = obj->status.b;
+    uint8_t status = self->status;
     uint8_t rotated = (uint8_t)((status >> 2) | (uint8_t)(status << 6)); // ror.b #2
-    obj->angle = rotated & 0xC0;
+    self->angle = rotated & 0xC0;
 }
 
-void Obj_RunningDisc(Object *obj) {
-    Scratch_RunningDisc *scratch = (Scratch_RunningDisc *)&obj->scratch;
+void Obj_RunningDisc(Sst *self) {
+    Own_RunningDisc *own = (Own_RunningDisc *)self->own.u8;
 
-    if (obj->routine == 0)
-        Disc_Main(obj, scratch);
+    if (self->routine == 0)
+        Disc_Main(self, own);
 
-    Disc_Action(obj, scratch);
+    Disc_Action(self, own);
 }

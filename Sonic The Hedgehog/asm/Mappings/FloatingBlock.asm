@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - moving blocks (SYZ/SLZ/LZ)
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_FBlock_internal:	mappingsTable
 	mappingsTableEntry.w	@syz1x1

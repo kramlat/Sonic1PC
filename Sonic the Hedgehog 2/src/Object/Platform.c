@@ -15,7 +15,6 @@
 
 #include "Resource/Mappings/PlatformEHZ.h"
 #include "Resource/Mappings/PlatformNGHZ.h"
-#include "Object/BasicPlatform.h" // (Sonic 1's, kept for the mappings of its zones that the debug list names)
 
 typedef struct {
     uint8_t subtype;  // 0x28

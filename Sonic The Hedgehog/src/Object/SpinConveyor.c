@@ -1,4 +1,7 @@
 #include "SpinConveyor.h"
+#include "Object.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 
 #include <string.h>
 
@@ -17,7 +20,7 @@ extern const uint8_t ObjectLayout_SBZ1PF6[]; // From Level.c
 
 // Object 6F - spinning platforms that move around a conveyor belt (SBZ).
 // This is pretty much an edited copy-paste of Object 63 (LZ conveyor) --
-// reuses that object's own Scratch_LCon layout and its LCon_ChangeDir
+// reuses that object's own Own_LCon layout and its LCon_ChangeDir
 // subroutine. Unlike the LZ version, these platforms are solid from all
 // sides (not just from above) while upright, and become fully non-solid
 // (rather than walk-off-able) while spinning.
@@ -48,91 +51,85 @@ static uint8_t SpinC_WrapIndex(uint8_t count, int8_t new_idx) {
     return (uint8_t)(count - 1);
 }
 
-static bool SpinC_OutOfRange(int16_t x) {
-    uint16_t obj_pos = (uint16_t)x & 0xFF80;
-    uint16_t cam_pos = (uint16_t)(scrpos_x.f.u - 128) & 0xFF80;
-    return (uint16_t)(obj_pos - cam_pos) > (128 + 320 + 192);
-}
-
-static void SpinC_Platform_Update(Object *obj, Scratch_LCon *scratch) {
-    bool at_corner = (obj->pos.l.x.f.u == scratch->next_x && obj->pos.l.y.f.u == scratch->next_y);
+static void SpinC_Platform_Update(Sst *self, Own_LCon *own) {
+    bool at_corner = (self->x_pos.f.u == own->next_x && self->y_pos.f.u == own->next_y);
 
     if (at_corner) {
-        scratch->posindex = SpinC_WrapIndex(scratch->count, (int8_t)(scratch->posindex + scratch->increment));
-        scratch->next_x = scratch->points[scratch->posindex].x;
-        scratch->next_y = scratch->points[scratch->posindex].y;
+        own->posindex = SpinC_WrapIndex(own->count, (int8_t)(own->posindex + own->increment));
+        own->next_x = own->points[own->posindex].x;
+        own->next_y = own->points[own->posindex].y;
 
-        if (scratch->posindex == 0)
-            obj->anim = 1; // "still"
-        if (scratch->posindex == 2)
-            obj->anim = 0; // "spinning"
+        if (own->posindex == 0)
+            self->anim = 1; // "still"
+        if (own->posindex == 2)
+            self->anim = 0; // "spinning"
 
-        LCon_ChangeDir(obj, scratch);
+        LCon_ChangeDir(self, own);
     }
 
-    SpeedToPos(obj);
+    Sst_MoveSprite2(self);
 }
 
-static void SpinC_Solid(Object *obj, Scratch_LCon *scratch) {
-    AnimateSprite(obj, Animation_SpinConveyor);
+static void SpinC_Solid(Sst *self, Own_LCon *own) {
+    Sst_Animate(self, Animation_SpinConveyor);
 
-    if (obj->frame == 0) { // upright -- solid from all sides
-        int16_t prev_x = obj->pos.l.x.f.u;
-        SpinC_Platform_Update(obj, scratch);
+    if (self->mapping_frame == 0) { // upright -- solid from all sides
+        int16_t prev_x = self->x_pos.f.u;
+        SpinC_Platform_Update(self, own);
         int16_t x_rad = (int16_t)(32 / 2 + 11 /* sonic_solid_width */);
-        SolidObject(obj, (uint16_t)x_rad, 14 / 2, (uint16_t)(14 / 2 + 1), prev_x, NULL, NULL);
+        SstSolidObject(self, (uint16_t)x_rad, 14 / 2, (uint16_t)(14 / 2 + 1), prev_x, NULL, NULL);
         return;
     }
 
     // Spinning -- not solid
-    if (obj->status.o.f.player_stand) {
+    if (((self->status & SST_STATUS_PLAYER_STAND) != 0)) {
         player->status.p.f.object_stand = false;
-        obj->status.o.f.player_stand = false;
+        self->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;
     }
-    SpinC_Platform_Update(obj, scratch);
+    SpinC_Platform_Update(self, own);
 }
 
-static void SpinC_Main_Platform(Object *obj, Scratch_LCon *scratch, uint8_t subtype) {
-    obj->routine = 2; // advance to SpinC_Solid
-    obj->mappings = Mappings_SpinningPlatforms;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Spinning_Platform);
-    obj->width_pixels = 32 / 2;
-    obj->render.b |= SPRITE_CAM_FIELD;
-    obj->priority = 4;
+static void SpinC_Main_Platform(Sst *self, Own_LCon *own, uint8_t subtype) {
+    self->routine = 2; // advance to SpinC_Solid
+    self->mappings = Mappings_SpinningPlatforms;
+    self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Spinning_Platform);
+    self->width_pixels = 32 / 2;
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
 
     uint8_t group_idx = (subtype >> 4) & 0xF;
-    scratch->count = 4;
-    scratch->base_x = SpinC_Data[group_idx].base_x;
-    scratch->points = SpinC_Data[group_idx].points;
+    own->count = 4;
+    own->base_x = SpinC_Data[group_idx].base_x;
+    own->points = SpinC_Data[group_idx].points;
 
-    scratch->posindex = subtype & 0xF;
-    scratch->increment = 1;
-    scratch->reversed = false; // the spawner's own slot isn't cleared -- don't trust a stale byte
+    own->posindex = subtype & 0xF;
+    own->increment = 1;
+    own->reversed = false; // the spawner's own slot isn't cleared -- don't trust a stale byte
 
     if (convey_rev) {
-        scratch->reversed = true;
-        scratch->increment = -1;
-        scratch->posindex = SpinC_WrapIndex(scratch->count, (int8_t)(scratch->posindex + scratch->increment));
+        own->reversed = true;
+        own->increment = -1;
+        own->posindex = SpinC_WrapIndex(own->count, (int8_t)(own->posindex + own->increment));
     }
 
-    scratch->next_x = scratch->points[scratch->posindex].x;
-    scratch->next_y = scratch->points[scratch->posindex].y;
+    own->next_x = own->points[own->posindex].x;
+    own->next_y = own->points[own->posindex].y;
 
     // FixBugs: ensure platforms on the upper path never start in the
     // spinning state.
-    obj->anim = (scratch->posindex < 2) ? 1 : 0;
+    self->anim = (own->posindex < 2) ? 1 : 0;
 
-    LCon_ChangeDir(obj, scratch);
-    SpinC_Solid(obj, scratch);
+    LCon_ChangeDir(self, own);
+    SpinC_Solid(self, own);
 }
 
-static void SpinC_Main_Spawner(Object *obj, uint8_t subtype) {
-    Scratch_LCon *scratch = (Scratch_LCon *)&obj->scratch;
-    scratch->groupid = (int8_t)subtype;
+static void SpinC_Main_Spawner(Sst *self, uint8_t subtype) {
+    Own_LCon *own = (Own_LCon *)self->own.u8;
+    own->groupid = (int8_t)subtype;
     uint8_t group = subtype & 0x7F;
 
     if (obj63_loaded[group] & 1) {
-        ObjectDelete(obj);
+        Sst_Delete(self);
         return;
     }
     obj63_loaded[group] |= 1;
@@ -142,43 +139,42 @@ static void SpinC_Main_Spawner(Object *obj, uint8_t subtype) {
     data += 2;
 
     for (uint16_t i = 0; i <= count; i++) {
-        Object *plat = (i == 0) ? obj : FindNextFreeObj(obj);
+        Sst *plat = (i == 0) ? self : Sst_AllocateAfter(self);
         if (plat == NULL)
             break;
 
-        if (plat != obj) {
+        if (plat != self) {
             // FixBugs forced on (crash-class under C): a FindNextFreeObj()
             // slot can carry stale bytes. A leftover nonzero routine skipped
-            // platform init, so the stale host pointer in scratch->points
+            // platform init, so the stale host pointer in own->points
             // got dereferenced at the first corner. Start from a clean slot.
-            memset(plat, 0, sizeof(Object));
-            plat->mappings = NULL;
+            memset(plat, 0, sizeof(Sst));
         }
 
-        plat->type = ObjId_SpinConvey;
-        plat->pos.l.x.f.u = (int16_t)((data[0] << 8) | data[1]);
-        plat->pos.l.y.f.u = (int16_t)((data[2] << 8) | data[3]);
-        plat->scratch.u8[0] = data[5]; // subtype (stored as a word; low byte only is ever nonzero)
+        plat->code = sst_object_codes[ObjId_SpinConvey];
+        plat->x_pos.f.u = (int16_t)((data[0] << 8) | data[1]);
+        plat->y_pos.f.u = (int16_t)((data[2] << 8) | data[3]);
+        plat->subtype = data[5]; // subtype (stored as a word; low byte only is ever nonzero)
         data += 6;
     }
 }
 
-void Obj_SpinConveyor(Object *obj) {
-    Scratch_LCon *scratch = (Scratch_LCon *)&obj->scratch;
+void Obj_SpinConveyor(Sst *self) {
+    Own_LCon *own = (Own_LCon *)self->own.u8;
 
-    if (obj->routine == 0) {
-        uint8_t subtype = obj->scratch.u8[0];
+    if (self->routine == 0) {
+        uint8_t subtype = self->subtype;
         if ((int8_t)subtype < 0)
-            SpinC_Main_Spawner(obj, subtype);
+            SpinC_Main_Spawner(self, subtype);
         else
-            SpinC_Main_Platform(obj, scratch, subtype);
+            SpinC_Main_Platform(self, own, subtype);
         return;
     }
 
-    SpinC_Solid(obj, scratch);
+    SpinC_Solid(self, own);
 
-    if (!SpinC_OutOfRange(scratch->base_x)) {
-        DisplaySprite(obj);
+    if (!SstOutOfRange(own->base_x)) {
+        Sst_Draw(self);
         return;
     }
 
@@ -186,10 +182,10 @@ void Obj_SpinConveyor(Object *obj) {
     // dead, pointless leftover from copy-pasting Object 63 (SBZ act 3 is
     // Final Zone internally and never has these platforms), so it's
     // omitted here.
-    if (scratch->groupid >= 0) {
-        ObjectDelete(obj);
+    if (own->groupid >= 0) {
+        Sst_Delete(self);
         return;
     }
-    obj63_loaded[scratch->groupid & 0x7F] &= (uint8_t)~1;
-    ObjectDelete(obj);
+    obj63_loaded[own->groupid & 0x7F] &= (uint8_t)~1;
+    Sst_Delete(self);
 }

@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - collapsing floors (MZ, SLZ,	SBZ)
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_CFlo_internal:	mappingsTable
 	mappingsTableEntry.w	byte_874E

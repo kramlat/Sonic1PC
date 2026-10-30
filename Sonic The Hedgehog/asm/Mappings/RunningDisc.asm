@@ -3,7 +3,7 @@
 ; (It's just a small blob that moves around in a circle. The disc itself is
 ; part of the level tiles.)
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_Disc_internal:	mappingsTable
 	mappingsTableEntry.w	@spot

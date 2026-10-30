@@ -1,4 +1,7 @@
 #include "Teleporter.h"
+#include "Object.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 #include "Constants.h"
 
 #include "Game.h"
@@ -41,12 +44,6 @@ static const struct { uint8_t count; const Tele_Point *points; } Tele_Data[8] = 
     { 7, Tele_Points4 }, { 1, Tele_Points5 }, { 7, Tele_Points6 }, { 1, Tele_Points7 },
 };
 
-static bool Tele_OutOfRange(int16_t x) {
-    uint16_t obj_pos = (uint16_t)x & 0xFF80;
-    uint16_t cam_pos = (uint16_t)(scrpos_x.f.u - 128) & 0xFF80;
-    return (uint16_t)(obj_pos - cam_pos) > (128 + 320 + 192);
-}
-
 // Computes the secondary-axis velocity and travel time for one tube
 // segment. `primary_diff`/`primary_speed` describe the axis with the
 // larger distance (fixed at speed, +-0x1000); `secondary_diff` is the
@@ -69,14 +66,14 @@ static int16_t Tele_ComputeAxis(int16_t primary_diff, int16_t primary_speed, int
 
 // Sets Sonic's speed & direction in a teleport pipe, called at start and
 // whenever a bend is hit.
-static void Tele_NextDirection(Object *obj, Scratch_Teleport *scratch) {
-    (void)obj;
-    int16_t raw_dx = (int16_t)(scratch->target_x - player->pos.l.x.f.u);
+static void Tele_NextDirection(Sst *self, Own_Teleport *own) {
+    (void)self;
+    int16_t raw_dx = (int16_t)(own->target_x - player->pos.l.x.f.u);
     int16_t vx = 0x1000;
     if (raw_dx < 0)
         vx = (int16_t)-vx;
 
-    int16_t raw_dy = (int16_t)(scratch->target_y - player->pos.l.y.f.u);
+    int16_t raw_dy = (int16_t)(own->target_y - player->pos.l.y.f.u);
     int16_t vy = 0x1000;
     if (raw_dy < 0)
         vy = (int16_t)-vy;
@@ -94,25 +91,25 @@ static void Tele_NextDirection(Object *obj, Scratch_Teleport *scratch) {
         player->xsp = new_vel;
         player->ysp = vy;
     }
-    scratch->time = time;
+    own->time = time;
 }
 
-static void Tele_Main(Object *obj, Scratch_Teleport *scratch) {
-    obj->routine = 2; // advance to Tele_Action
-    scratch->current = 0;
-    const Tele_Point *p = Tele_Data[obj->scratch.u8[0]].points;
-    scratch->target_x = p[0].x;
-    scratch->target_y = p[0].y;
+static void Tele_Main(Sst *self, Own_Teleport *own) {
+    self->routine = 2; // advance to Tele_Action
+    own->current = 0;
+    const Tele_Point *p = Tele_Data[self->subtype].points;
+    own->target_x = p[0].x;
+    own->target_y = p[0].y;
 }
 
-static void Tele_Action(Object *obj, Scratch_Teleport *scratch) {
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u);
-    if (obj->status.o.f.x_flip)
+static void Tele_Action(Sst *self, Own_Teleport *own) {
+    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+    if (((self->status & SST_STATUS_X_FLIP) != 0))
         d0 = (int16_t)(d0 + 15);
     if ((uint16_t)d0 >= 16)
         return;
 
-    int16_t d1 = (int16_t)(player->pos.l.y.f.u - obj->pos.l.y.f.u + 32);
+    int16_t d1 = (int16_t)(player->pos.l.y.f.u - self->y_pos.f.u + 32);
     if ((uint16_t)d1 >= 64)
         return;
 
@@ -121,80 +118,80 @@ static void Tele_Action(Object *obj, Scratch_Teleport *scratch) {
     if (lock_multi) // already inside a teleporter (or other control override)
         return;
 
-    if (obj->scratch.u8[0] == 7 && rings < 50) // special 50-rings teleporter
+    if (self->subtype == 7 && rings < 50) // special 50-rings teleporter
         return;
 
-    obj->routine = 4; // advance to Tele_PreBump
+    self->routine = 4; // advance to Tele_PreBump
     lock_multi = 0x81; // lock controls and disable object interaction
     player->anim = SonAnimId_Roll;
     player->inertia = 0x800; // fast ground speed for fast rolling animation
     player->xsp = 0;
     player->ysp = 0;
-    obj->status.o.f.player_push = false;
+    self->status &= (uint8_t)~SST_STATUS_PLAYER_PUSH;
     player->status.p.f.pushing = false;
     player->status.p.f.in_air = true;
-    player->pos.l.x.f.u = obj->pos.l.x.f.u;
-    player->pos.l.y.f.u = obj->pos.l.y.f.u;
-    scratch->prebump = 0;
+    player->pos.l.x.f.u = self->x_pos.f.u;
+    player->pos.l.y.f.u = self->y_pos.f.u;
+    own->prebump = 0;
 
     QueueSound2(sfx_Roll);
 }
 
-static void Tele_PreBump(Object *obj, Scratch_Teleport *scratch) {
+static void Tele_PreBump(Sst *self, Own_Teleport *own) {
     int16_t sin, cos;
-    CalcSine(scratch->prebump, &sin, &cos);
-    scratch->prebump = (uint8_t)(scratch->prebump + 2);
+    CalcSine(own->prebump, &sin, &cos);
+    own->prebump = (uint8_t)(own->prebump + 2);
 
     int16_t bump = (int16_t)(sin >> 5);
-    player->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u - bump);
+    player->pos.l.y.f.u = (int16_t)(self->y_pos.f.u - bump);
 
-    if (scratch->prebump != 0x80)
+    if (own->prebump != 0x80)
         return;
 
-    Tele_NextDirection(obj, scratch); // begin teleportation
-    obj->routine = 6; // advance to Tele_Teleporting
+    Tele_NextDirection(self, own); // begin teleportation
+    self->routine = 6; // advance to Tele_Teleporting
     QueueSound2(sfx_Teleport);
 }
 
-static void Tele_Teleporting(Object *obj, Scratch_Teleport *scratch) {
-    if (--scratch->time >= 0) {
+static void Tele_Teleporting(Sst *self, Own_Teleport *own) {
+    if (--own->time >= 0) {
         // Direct copy of SpeedToPos, targeting Sonic instead of this object.
         player->pos.l.x.v += player->xsp << 8;
         player->pos.l.y.v += player->ysp << 8;
         return;
     }
 
-    player->pos.l.x.f.u = scratch->target_x;
-    player->pos.l.y.f.u = scratch->target_y;
+    player->pos.l.x.f.u = own->target_x;
+    player->pos.l.y.f.u = own->target_y;
 
-    uint8_t group = obj->scratch.u8[0];
-    uint8_t next = (uint8_t)(scratch->current + 1);
+    uint8_t group = self->subtype;
+    uint8_t next = (uint8_t)(own->current + 1);
     if (next < Tele_Data[group].count) {
-        scratch->current = next;
-        scratch->target_x = Tele_Data[group].points[next].x;
-        scratch->target_y = Tele_Data[group].points[next].y;
-        Tele_NextDirection(obj, scratch);
+        own->current = next;
+        own->target_x = Tele_Data[group].points[next].x;
+        own->target_y = Tele_Data[group].points[next].y;
+        Tele_NextDirection(self, own);
         return;
     }
 
     player->pos.l.y.f.u &= 0x7FF; // SBZ2 is a Y-wrapping level
-    obj->routine = 0; // reset teleporter back to Tele_Main
+    self->routine = 0; // reset teleporter back to Tele_Main
     lock_multi = 0; // clear Sonic control override flags
     player->xsp = 0;
     player->ysp = 0x200; // quickly land on floor again
 }
 
-void Obj_Teleporter(Object *obj) {
-    Scratch_Teleport *scratch = (Scratch_Teleport *)&obj->scratch;
+void Obj_Teleporter(Sst *self) {
+    Own_Teleport *own = (Own_Teleport *)self->own.u8;
 
-    if (obj->routine == 0)
-        Tele_Main(obj, scratch);
+    if (self->routine == 0)
+        Tele_Main(self, own);
 
-    switch (obj->routine) {
-    case 2: Tele_Action(obj, scratch); break;
-    case 4: Tele_PreBump(obj, scratch); break;
+    switch (self->routine) {
+    case 2: Tele_Action(self, own); break;
+    case 4: Tele_PreBump(self, own); break;
     case 6:
-        Tele_Teleporting(obj, scratch);
+        Tele_Teleporting(self, own);
         return; // never checked for out-of-range while actively teleporting
     }
 
@@ -202,13 +199,12 @@ void Obj_Teleporter(Object *obj) {
         // No collision of its own (a pooled slot's leftover col_type could
         // otherwise leak through now that this becomes visible/on-screen
         // for the first time) -- see LavaMaker.c's own comment on this.
-        obj->col_type = 0;
-        obj->mappings = Mappings_TeleporterMarker;
-        obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
-        obj->frame = 0;
-        DisplaySprite(obj);
+        self->collision_flags = 0;
+        self->mappings = Mappings_TeleporterMarker;
+        self->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
+        self->mapping_frame = 0;
+        Sst_Draw(self);
     }
 
-    if (Tele_OutOfRange(obj->pos.l.x.f.u))
-        ObjectDelete(obj);
+    SstDeleteIfNotInRange2(self, self->x_pos.f.u);
 }

@@ -118,7 +118,7 @@ static void LZ3Water_StaysShallowAtLamppost(void) {
 // sliding open -- the tunnel used to push Sonic into the door and kill him.
 static void LZ1Tunnel_OffUntilDoorFullyOpen(void) {
     level_id = LEVEL_ID(ZoneId_LZ, 0);
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
+    Sst_Reset();
     memset(f_switch, 0, sizeof(f_switch));
     f_wtunneldisallow = false;
     f_lz1tunnel_open = false;
@@ -127,11 +127,11 @@ static void LZ1Tunnel_OffUntilDoorFullyOpen(void) {
     nobgscroll = 0;
     scrpos_x.f.u = 0xA40;
 
-    Object *door = &level_objects[0];
-    door->type = ObjId_FloatingBlock;
-    door->scratch.u8[0] = 0xE3; // small LZ door, switch 3
-    door->pos.l.x.f.u = 0xB08;
-    door->pos.l.y.f.u = 0x2E0;
+    static const SstObjectIndex door_index = {sst_object_codes, 0x100};
+    SstLoadCamera door_camera = {0xA40, 0x200, false, 0xFFF};
+    SstLoad_Init(&door_index, NULL, false, &door_camera);
+    Sst *door = Sst_Spawn(ObjId_FloatingBlock, 0xB08, 0x2E0);
+    door->subtype = 0xE3; // small LZ door, switch 3
 
     memset(player, 0, sizeof(Object));
     player->type = ObjId_Sonic;
@@ -142,7 +142,7 @@ static void LZ1Tunnel_OffUntilDoorFullyOpen(void) {
     for (int f = 0; f < 5; f++) {
         player->pos.l.x.f.u = 0xB40;
         player->pos.l.y.f.u = 0x340;
-        Obj_FloatingBlock(door);
+        door->code(door);
         LZWaterFeatures();
         CHECK_EQ(tunnel_mode, 0);
     }
@@ -153,7 +153,7 @@ static void LZ1Tunnel_OffUntilDoorFullyOpen(void) {
     for (; frames < 200 && !f_lz1tunnel_open; frames++) {
         player->pos.l.x.f.u = 0xAE0;
         player->pos.l.y.f.u = 0x340;
-        Obj_FloatingBlock(door);
+        door->code(door);
         LZWaterFeatures();
         if (!f_lz1tunnel_open)
             CHECK_EQ(tunnel_mode, 0);
@@ -164,7 +164,7 @@ static void LZ1Tunnel_OffUntilDoorFullyOpen(void) {
     // Fully open: the tunnel carries Sonic.
     player->pos.l.x.f.u = 0xAE0;
     player->pos.l.y.f.u = 0x340;
-    Obj_FloatingBlock(door);
+    door->code(door);
     LZWaterFeatures();
     CHECK_EQ(tunnel_mode, 1);
     CHECK_EQ(player->pos.l.x.f.u, 0xAE4);

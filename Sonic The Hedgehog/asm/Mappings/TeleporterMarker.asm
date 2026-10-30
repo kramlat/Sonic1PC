@@ -4,7 +4,7 @@
 ; (no real trigger-boundary shape to scale to) -- just a distinct, dense
 ; marker for a system that otherwise has zero visual footprint at all.
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_TeleporterMarker_internal:	mappingsTable
 	mappingsTableEntry.w	@grid

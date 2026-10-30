@@ -65,7 +65,14 @@ for my $path (@ARGV) {
     $s =~ s/(\w+)->render\.b\s*=\s*0;\s*\n\s*\1->render\.f\.level_fg\s*=\s*true;/$1->render_flags = SST_RENDER_LEVEL;/g;
     $s =~ s/(\w+)->render\.b\b/$1->render_flags/g;
     $s =~ s/(\w+)->render\.f\.on_screen\b/($1->render_flags & SST_RENDER_ON_SCREEN)/g;
-    $s =~ s/(\w+)->render\.f\.level_fg\s*=\s*true;/$1->render_flags |= SST_RENDER_LEVEL;/g;
+    $s =~ s/([\w\[\]]+)->render\.f\.level_fg\s*=\s*true;/$1->render_flags |= SST_RENDER_LEVEL;/g;
+    # render flips and the explicit height
+    $s =~ s/(\w+)->render\.f\.([xy])_flip\s*=\s*([^;]+);/"SST_RENDER_SET($1, SST_RENDER_".uc($2)."_FLIP, $3);"/ge;
+    $s =~ s/(\w+)->render\.f\.([xy])_flip\b/"(($1->render_flags & SST_RENDER_".uc($2)."_FLIP) != 0)"/ge;
+    $s =~ s/(\w+)->render\.f\.explicit_height\s*=\s*true;/$1->height_pixels = $1->y_radius;/g;
+    $s =~ s/(\w+)->status\.b\b/$1->status/g;
+    $s =~ s/(\w+)->status\.o\.b\b/$1->status/g;
+    $s =~ s/(\w+)->status\.o\.f\.player_push\s*=\s*true;/$1->status |= SST_STATUS_PLAYER_PUSH;/g;
     # status flips
     $s =~ s/(\w+)->status\.o\.f\.([xy])_flip\s*=\s*([^;]+);/"SST_STATUS_SET($1, SST_STATUS_".uc($2)."_FLIP, $3);"/ge;
     $s =~ s/(\w+)->status\.o\.f\.x_flip\s*\^=\s*1;/$1->status ^= SST_STATUS_X_FLIP;/g;
@@ -82,6 +89,20 @@ for my $path (@ARGV) {
     $s =~ s/(\w+)->status\.o\.f\.flag7\b/(($1->status & 0x80) != 0)/g;
     # priority: 0-7 in the old, units of $80 in the new
     $s =~ s/(\w+)->priority\s*=\s*(\d+);/"$1->priority = $2 * 0x80;"/ge;
+    $s =~ s/\(Own_(\w+)\s*\*\)\s*&\s*(\w+)->scratch\b/(Own_$1 *)$2->own.u8/g;
+    $s =~ s/\(void\)\s*scratch;/(void)own;/g;
+    $s =~ s/KillSonic\(player,\s*self\)/KillSonicFrom(player, false)/g;
+    # pointers to other objects of the table (the ones that start as this object or a parent, or in an array)
+    $s =~ s/\bObject\s*\*\s*(\w+)\s*=\s*(self|parent|NULL)\b/Sst *$1 = $2/g;
+    $s =~ s/\bObject\s*\*\s*(\w+)\[/Sst *$1\[/g;
+    $s =~ s/\bFindNextFreeObj\(\s*(\w+)\s*\)/Sst_AllocateAfter($1)/g;
+    $s =~ s/(\w+)->type\s*=\s*(ObjId_\w+);/$1->code = sst_object_codes[$2];/g;
+    $s =~ s/\bobjects\[([^\]]+)\]\.(anim|routine|mapping_frame|subtype)\b/sst[$1].$2/g;
+    $s =~ s/\bObject(\s*\*\s*\w+\s*=\s*Sst_Allocate)/Sst$1/g;
+    # the persistent state byte
+    $s =~ s/objstate\[(\w+)->respawn_index\]/(*SstLoad_State($1))/g;
+    $s =~ s/(\w+)->respawn_index\b/$1->respawn/g;
+    $s =~ s/\b[A-Za-z]+_OutOfRange\(/SstOutOfRange(/g;
     # other objects of the table, by index
     $s =~ s/\bObject\s*\*\s*(\w+)\s*=\s*&objects\[/Sst *$1 = &sst[/g;
     $s =~ s/\bObjectDelete\(\s*&objects\[([^\]]+)\]\s*\)/Sst_Delete(&sst[$1])/g;
@@ -89,7 +110,8 @@ for my $path (@ARGV) {
     # leaving range: the object forgets its place in the respawn table (SstLoad.h) so that it comes back
     $s =~ s/if\s*\(IS_OFFSCREEN\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*\{\s*ObjectDelete\(\s*(\w+)\s*\);\s*return;\s*\}\s*DisplaySprite\(\s*\2\s*\);/SstOnScreenTest2($2, $1);/g;
     $s =~ s/if\s*\(IS_OFFSCREEN\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*\{?\s*ObjectDelete\(\s*(\w+)\s*\);\s*\}?\s*else\s*\{?\s*DisplaySprite\(\s*\2\s*\);\s*\}?/SstOnScreenTest2($2, $1);/g;
-    $s =~ s/if\s*\(IS_OFFSCREEN\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*\{?\s*ObjectDelete\(\s*(\w+)\s*\);\s*\}?/SstDeleteIfNotInRange2($2, $1);/g;
+    $s =~ s/if\s*\(IS_OFFSCREEN\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*\n?\s*ObjectDelete\(\s*(\w+)\s*\);/SstDeleteIfNotInRange2($2, $1);/g;
+    $s =~ s/\bIS_OFFSCREEN\(/SstOutOfRange(/g;
     $s =~ s/static bool \w+_OutOfRange\(int16_t x\) \{.*?\n\}\n\n?//gs;
     $s =~ s/if\s*\(\w+_OutOfRange\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*Sst_Delete\(\s*(\w+)\s*\);\s*else\s*Sst_Draw\(\s*\2\s*\);/SstOnScreenTest2($2, $1);/g;
     $s =~ s/if\s*\(\w+_OutOfRange\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*Sst_Delete\(\s*(\w+)\s*\);/SstDeleteIfNotInRange2($2, $1);/g;
@@ -134,6 +156,16 @@ for my $path (@ARGV) {
     for my $inc ('Object.h', 'ObjectSst.h', 'SstLoad.h') {
         $s =~ s/(#include "[^"]+"\n)/$1#include "$inc"\n/ unless $s =~ /#include "\Q$inc\E"/;
     }
+    # leaving range: forget the place in the respawn table before deleting
+    { my @l = split /\n/, $s, -1;
+      for my $i (0 .. $#l) {
+          next unless $l[$i] =~ /^\s*(?:\}\s*else\s*)?if\s*\(!?SstOutOfRange\(/ && $l[$i] !~ /^\s*if\s*\(!/;
+          next if $l[$i] !~ /\{\s*$/;   # (an unbraced `if` is a one-line delete: SstDeleteIfNotInRange2 does it)
+          for my $j ($i + 1 .. ($i + 8 > $#l ? $#l : $i + 8)) {
+              if ($l[$j] =~ /^(\s*)Sst_Delete\(self\);/ && $l[$j - 1] !~ /Forget/) { $l[$j] = "$1SstLoad_Forget(self);\n$l[$j]"; last }
+          }
+      }
+      $s = join "\n", @l; }
     $s =~ s/\x01(\w+)\x02/$1->/g;
     spit($path, $s);
 }

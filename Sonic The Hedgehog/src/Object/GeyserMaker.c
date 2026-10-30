@@ -1,4 +1,7 @@
 #include "GeyserMaker.h"
+#include "Object.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 
 #include "LavaGeyser.h"
 #include "Level.h"
@@ -19,86 +22,83 @@ extern const uint8_t Animation_LavaGeyser[];
 // spawned programmatically by PushBlock (to launch the block into the
 // air) -- never placed directly in a level layout.
 
-static void GMake_Display(Object *obj) {
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        ObjectDelete(obj);
+static void GMake_Display(Sst *self) {
+    if (SstOutOfRange(self->x_pos.f.u)) {
+        SstLoad_Forget(self);
+        Sst_Delete(self);
         return;
     }
-    AnimateSprite(obj, Animation_LavaGeyser);
-    DisplaySprite(obj);
+    Sst_Animate(self, Animation_LavaGeyser);
+    Sst_Draw(self);
 }
 
-void Obj_GeyserMaker(Object *obj) {
-    Scratch_GeyserMaker *scratch = (Scratch_GeyserMaker *)&obj->scratch;
+void Obj_GeyserMaker(Sst *self) {
+    Own_GeyserMaker *own = (Own_GeyserMaker *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Main
-        obj->routine += 2;
-        obj->mappings = Mappings_LavaGeyser;
-        obj->tile = TILE_MAP(1, 3, 0, 0, ArtTile_MZ_Lava); // | Tile_Pal4 | Tile_Prio
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->priority = 1;
-        obj->width_pixels = 112 / 2;
-        scratch->time = 120;
+        self->routine += 2;
+        self->mappings = Mappings_LavaGeyser;
+        self->art_tile = TILE_MAP(1, 3, 0, 0, ArtTile_MZ_Lava); // | Tile_Pal4 | Tile_Prio
+        self->render_flags = SST_RENDER_LEVEL;
+        self->priority = 1 * 0x80;
+        self->width_pixels = 112 / 2;
+        own->time = 120;
         __attribute__((fallthrough));
     case 2: // Wait
-        if (--scratch->timer < 0) {
-            scratch->timer = scratch->time;
+        if (--own->timer < 0) {
+            own->timer = own->time;
 
             int16_t sonic_y = player->pos.l.y.f.u;
-            int16_t maker_y = obj->pos.l.y.f.u;
+            int16_t maker_y = self->y_pos.f.u;
             if (sonic_y < maker_y && sonic_y >= (int16_t)(maker_y - 0x170))
-                obj->routine += 2;
+                self->routine += 2;
         }
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-            ObjectDelete(obj);
+        SstDeleteIfNotInRange2(self, self->x_pos.f.u);
         break;
     case 4: // ChkType
-        if (obj->scratch.u8[0] == 0) { // geyser -- fall straight into Display this same frame
-            GMake_Display(obj);
+        if (self->subtype == 0) { // geyser -- fall straight into Display this same frame
+            GMake_Display(self);
             break;
         }
-        obj->routine += 2;
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-            ObjectDelete(obj);
+        self->routine += 2;
+        SstDeleteIfNotInRange2(self, self->x_pos.f.u);
         break;
     case 6: { // MakeLava
-        obj->routine += 2;
+        self->routine += 2;
 
-        Object *geyser = FindNextFreeObj(obj);
+        Sst *geyser = Sst_AllocateAfter(self);
         if (geyser != NULL) {
-            geyser->type = ObjId_LavaGeyser;
-            geyser->pos.l.x.f.u = obj->pos.l.x.f.u;
-            geyser->pos.l.y.f.u = obj->pos.l.y.f.u;
-            geyser->scratch.u8[0] = obj->scratch.u8[0];
-            ((Scratch_LavaGeyser *)&geyser->scratch)->parent_index = (uint8_t)(obj - objects);
+            geyser->code = sst_object_codes[ObjId_LavaGeyser];
+            geyser->x_pos.f.u = self->x_pos.f.u;
+            geyser->y_pos.f.u = self->y_pos.f.u;
+            geyser->subtype = self->subtype;
+            ((Own_LavaGeyser *)geyser->own.u8)->parent_index = (uint8_t)(self - sst);
         }
 
-        obj->anim = 1; // ".bubble2"
-        if (obj->scratch.u8[0] != 0) {
-            obj->anim = 4; // ".blank" for lavafall
+        self->anim = 1; // ".bubble2"
+        if (self->subtype != 0) {
+            self->anim = 4; // ".blank" for lavafall
         } else {
             // Shoot the parent pushable block up into the air.
-            Object *parent = &objects[scratch->parent_index];
-            parent->status.b |= 0x02; // bit1 -- PushBlock's own "shot up by geyser" flag, see PushBlock.c
-            parent->ysp = (int16_t)-0x580;
+            Sst *parent = &sst[own->parent_index];
+            parent->status |= 0x02; // bit1 -- PushBlock's own "shot up by geyser" flag, see PushBlock.c
+            parent->y_vel = (int16_t)-0x580;
         }
-        GMake_Display(obj);
+        GMake_Display(self);
         break;
     }
     case 8: // Display
-        GMake_Display(obj);
+        GMake_Display(self);
         break;
     case 0xA: // Delete
-        obj->anim = 0; // ".bubble1"
-        obj->routine = 2;
-        if (obj->scratch.u8[0] == 0) {
-            ObjectDelete(obj); // geyser makers are one-shot
+        self->anim = 0; // ".bubble1"
+        self->routine = 2;
+        if (self->subtype == 0) {
+            Sst_Delete(self); // geyser makers are one-shot
             return;
         }
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-            ObjectDelete(obj); // lavafall makers stay alive indefinitely otherwise
+        SstDeleteIfNotInRange2(self, self->x_pos.f.u); // lavafall makers stay alive indefinitely otherwise
         break;
     }
 }

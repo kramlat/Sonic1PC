@@ -1,4 +1,7 @@
 #include "LZBlocks.h"
+#include "Object.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 
 #include "Level.h"
 #include "LevelCollision.h"
@@ -21,52 +24,52 @@ static const struct { uint8_t width, height; } LBlk_Var[4] = {
     { 32 / 2, 32 / 2 }, // generic solid block
 };
 
-static void LBlk_CheckStand(Object *obj, Scratch_LBlock *scratch) {
-    if (scratch->time == 0) {
-        if (!obj->status.o.f.player_stand)
+static void LBlk_CheckStand(Sst *self, Own_LBlock *own) {
+    if (own->time == 0) {
+        if (!((self->status & SST_STATUS_PLAYER_STAND) != 0))
             return;
-        scratch->time = 30;
+        own->time = 30;
         return;
     }
-    if (--scratch->time != 0)
+    if (--own->time != 0)
         return;
-    obj->scratch.u8[0]++; // advance to LBlk_Sink or LBlk_Rise
-    scratch->untouched = false;
+    self->subtype++; // advance to LBlk_Sink or LBlk_Rise
+    own->untouched = false;
 }
 
-static void LBlk_Sink(Object *obj) {
-    SpeedToPos(obj);
-    obj->ysp += 8;
+static void LBlk_Sink(Sst *self) {
+    Sst_MoveSprite2(self);
+    self->y_vel += 8;
 
-    int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
+    int16_t floor_dist = SstFloorDist(self, self->x_pos.f.u);
     if (floor_dist < 0) {
-        obj->pos.l.y.f.u += (int16_t)(floor_dist + 1);
-        obj->ysp = 0;
-        obj->scratch.u8[0] = 0; // stationary
+        self->y_pos.f.u += (int16_t)(floor_dist + 1);
+        self->y_vel = 0;
+        self->subtype = 0; // stationary
     }
 }
 
-static void LBlk_Rise(Object *obj) {
-    SpeedToPos(obj);
-    obj->ysp -= 8;
+static void LBlk_Rise(Sst *self) {
+    Sst_MoveSprite2(self);
+    self->y_vel -= 8;
 
-    int16_t ceil_dist = ObjHitCeiling(obj);
+    int16_t ceil_dist = SstHitCeiling(self);
     if (ceil_dist < 0) {
-        obj->pos.l.y.f.u -= ceil_dist;
-        obj->ysp = 0;
-        obj->scratch.u8[0] = 0; // stationary
+        self->y_pos.f.u -= ceil_dist;
+        self->y_vel = 0;
+        self->subtype = 0; // stationary
     }
 }
 
-static void LBlk_SideSink(Object *obj, Scratch_LBlock *scratch) {
-    if (scratch->touchtype != 1) // touched from the sides?
+static void LBlk_SideSink(Sst *self, Own_LBlock *own) {
+    if (own->touchtype != 1) // touched from the sides?
         return;
-    obj->scratch.u8[0]++; // advance to LBlk_Sink
-    scratch->untouched = false;
+    self->subtype++; // advance to LBlk_Sink
+    own->untouched = false;
 }
 
-static void LBlk_OnWater(Object *obj) {
-    int16_t d0 = (int16_t)(wtr_pos1 - obj->pos.l.y.f.u);
+static void LBlk_OnWater(Sst *self) {
+    int16_t d0 = (int16_t)(wtr_pos1 - self->y_pos.f.u);
     if (d0 == 0)
         return;
 
@@ -74,103 +77,98 @@ static void LBlk_OnWater(Object *obj) {
         // Block is above water -- sink down to meet it
         if (d0 > 2)
             d0 = 2;
-        obj->pos.l.y.f.u += d0;
+        self->y_pos.f.u += d0;
 
-        int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
+        int16_t floor_dist = SstFloorDist(self, self->x_pos.f.u);
         if (floor_dist < 0)
-            obj->pos.l.y.f.u += (int16_t)(floor_dist + 1);
+            self->y_pos.f.u += (int16_t)(floor_dist + 1);
         return;
     }
 
     // Block is below water -- rise up to meet it
     if (d0 < -2)
         d0 = -2;
-    obj->pos.l.y.f.u += d0;
+    self->y_pos.f.u += d0;
 
-    int16_t ceil_dist = ObjHitCeiling(obj);
+    int16_t ceil_dist = SstHitCeiling(self);
     if (ceil_dist < 0)
-        obj->pos.l.y.f.u -= ceil_dist;
+        self->y_pos.f.u -= ceil_dist;
 }
 
-static void LBlk_Nudge(Object *obj, Scratch_LBlock *scratch) {
-    if (!scratch->untouched)
+static void LBlk_Nudge(Sst *self, Own_LBlock *own) {
+    if (!own->untouched)
         return;
 
-    if (obj->status.o.f.player_stand) {
-        if (scratch->nudge == 0x40)
+    if (((self->status & SST_STATUS_PLAYER_STAND) != 0)) {
+        if (own->nudge == 0x40)
             return;
-        scratch->nudge += 4;
+        own->nudge += 4;
     } else {
-        if (scratch->nudge == 0)
+        if (own->nudge == 0)
             return;
-        scratch->nudge -= 4;
+        own->nudge -= 4;
     }
 
     int16_t sin, cos;
-    CalcSine(scratch->nudge, &sin, &cos);
+    CalcSine(own->nudge, &sin, &cos);
     int16_t nudge_off = (int16_t)(((int32_t)sin * 0x400) >> 16);
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y + nudge_off);
+    self->y_pos.f.u = (int16_t)(own->orig_y + nudge_off);
 }
 
-static void LBlk_Main(Object *obj, Scratch_LBlock *scratch) {
-    obj->routine += 2;
-    obj->mappings = Mappings_LZBlocks;
-    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Blocks); // | Tile_Pal3
-    obj->render.b = 0;
-    obj->render.f.level_fg = true;
-    obj->priority = 3;
+static void LBlk_Main(Sst *self, Own_LBlock *own) {
+    self->routine += 2;
+    self->mappings = Mappings_LZBlocks;
+    self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Blocks); // | Tile_Pal3
+    self->render_flags = SST_RENDER_LEVEL;
+    self->priority = 3 * 0x80;
 
-    uint8_t subtype = obj->scratch.u8[0];
+    uint8_t subtype = self->subtype;
     uint8_t index = (subtype >> 4) & 7;
-    obj->width_pixels = LBlk_Var[index].width;
-    obj->y_rad = (int8_t)LBlk_Var[index].height;
-    obj->frame = index;
+    self->width_pixels = LBlk_Var[index].width;
+    self->y_radius = (int8_t)LBlk_Var[index].height;
+    self->mapping_frame = index;
 
-    scratch->orig_x = obj->pos.l.x.f.u;
-    scratch->orig_y = obj->pos.l.y.f.u;
+    own->orig_x = self->x_pos.f.u;
+    own->orig_y = self->y_pos.f.u;
 
     uint8_t type = subtype & 0xF;
     if (type != 0 && type != 7) // not stationary, and not the small secret platform in LZ1
-        scratch->untouched = true;
+        own->untouched = true;
 }
 
-static void LBlk_Action(Object *obj, Scratch_LBlock *scratch) {
-    int16_t prev_x = obj->pos.l.x.f.u;
+static void LBlk_Action(Sst *self, Own_LBlock *own) {
+    int16_t prev_x = self->x_pos.f.u;
 
-    switch (obj->scratch.u8[0] & 0xF) {
+    switch (self->subtype & 0xF) {
     case 0: break; // stationary
-    case 1: LBlk_CheckStand(obj, scratch); break;
-    case 2: LBlk_Sink(obj); break;
-    case 3: LBlk_CheckStand(obj, scratch); break;
-    case 4: LBlk_Rise(obj); break;
-    case 5: LBlk_SideSink(obj, scratch); break;
-    case 6: LBlk_Sink(obj); break;
-    case 7: LBlk_OnWater(obj); break;
+    case 1: LBlk_CheckStand(self, own); break;
+    case 2: LBlk_Sink(self); break;
+    case 3: LBlk_CheckStand(self, own); break;
+    case 4: LBlk_Rise(self); break;
+    case 5: LBlk_SideSink(self, own); break;
+    case 6: LBlk_Sink(self); break;
+    case 7: LBlk_OnWater(self); break;
     }
 
-    if (obj->render.f.on_screen) {
-        int16_t x_rad = (int16_t)(obj->width_pixels + 11 /* sonic_solid_width */);
-        int32_t touch = SolidObject(obj, (uint16_t)x_rad, (uint16_t)obj->y_rad, (uint16_t)(obj->y_rad + 1), prev_x, NULL, NULL);
-        scratch->touchtype = (int8_t)touch;
-        LBlk_Nudge(obj, scratch);
+    if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
+        int16_t x_rad = (int16_t)(self->width_pixels + 11 /* sonic_solid_width */);
+        int32_t touch = SstSolidObject(self, (uint16_t)x_rad, (uint16_t)self->y_radius, (uint16_t)(self->y_radius + 1), prev_x, NULL, NULL);
+        own->touchtype = (int8_t)touch;
+        LBlk_Nudge(self, own);
     }
 
-    if (IS_OFFSCREEN(scratch->orig_x)) {
-        ObjectDelete(obj);
-        return;
-    }
-    DisplaySprite(obj);
+    SstOnScreenTest2(self, own->orig_x);
 }
 
-void Obj_LabyrinthBlock(Object *obj) {
-    Scratch_LBlock *scratch = (Scratch_LBlock *)&obj->scratch;
+void Obj_LabyrinthBlock(Sst *self) {
+    Own_LBlock *own = (Own_LBlock *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        LBlk_Main(obj, scratch);
+        LBlk_Main(self, own);
         __attribute__((fallthrough));
     case 2:
-        LBlk_Action(obj, scratch);
+        LBlk_Action(self, own);
         break;
     }
 }

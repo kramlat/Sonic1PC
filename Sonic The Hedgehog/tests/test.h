@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 
+void Sst_Reset(void); // (every test starts with an empty status table)
 extern int test_failures;
 extern const char *test_current_name;
 
@@ -18,6 +19,7 @@ extern const char *test_current_name;
         test_current_name = #fn;                                           \
         printf("  %s ... ", #fn);                                          \
         int before = test_failures;                                        \
+        Sst_Reset();                                                       \
         fn();                                                              \
         printf("%s\n", test_failures == before ? "ok" : "FAILED");         \
     } while (0)

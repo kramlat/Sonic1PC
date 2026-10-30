@@ -1,9 +1,9 @@
 #ifndef _GHZEDGE_H
 #define _GHZEDGE_H
 
-#include "Object.h"
+#include "Sst.h"
 
-// GHZ edge assets
-#include "Resource/Mappings/GHZEdge.h"
+
+void Obj_GHZEdge(Sst *self);
 
 #endif //_GHZEDGE_H

@@ -1,10 +1,8 @@
 #ifndef _GHZBRIDGE_H
 #define _GHZBRIDGE_H
 
-#include "Object.h"
+#include "Sst.h"
 
-// GHZ bridge assets
-#include "Resource/Mappings/GHZBridge.h"
 
 static const uint8_t ghz_bridge_bend1[0x110] = {
     0x00,
@@ -542,11 +540,12 @@ static const uint8_t ghz_bridge_bend2[256] = {
 
 // GHZ bridge object
 typedef struct {
-    uint8_t subtype; // 0x28
     uint8_t seg[0x13]; // 0x29
     int16_t base_y; // 0x3C
     uint8_t push; // 0x3E
     uint8_t push_seg; // 0x3F
-} Scratch_GHZBridge;
+} Own_GHZBridge;
+
+void Obj_GHZBridge(Sst *self);
 
 #endif // _GHZBRIDGE_H

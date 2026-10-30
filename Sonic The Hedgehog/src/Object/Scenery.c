@@ -1,4 +1,8 @@
 #include "Scenery.h"
+#include "Object.h"
+#include "Resource/Mappings/Scenery.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -25,33 +29,29 @@ static const SceneryVariant scenery_variants[4] = {
     { NULL, TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Bridge), 1, 32 / 2, 1 }, // | Tile_Pal3 -- Mappings_GHZBridge filled in below
 };
 
-void Obj_Scenery(Object *obj) {
-    switch (obj->routine) {
+void Obj_Scenery(Sst *self) {
+    switch (self->routine) {
     case 0: { // Main
-        obj->routine += 2;
+        self->routine += 2;
 
-        uint8_t subtype = obj->scratch.u8[0];
+        uint8_t subtype = self->subtype;
         if (subtype >= 4)
             subtype = 0;
         const SceneryVariant *v = &scenery_variants[subtype];
 
-        obj->mappings = (subtype == 3) ? (const void *)Mappings_GHZBridge : (const void *)Mappings_Scenery;
-        obj->tile = v->tile;
+        self->mappings = (subtype == 3) ? (const void *)Mappings_GHZBridge : (const void *)Mappings_Scenery;
+        self->art_tile = v->tile;
         // Original is `ori.b #sprite_cam_field,obRender`: keeps the X/Y flip bits from the
         // object layout, so the scenery draws facing the way it was placed.
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->frame = v->frame;
-        obj->width_pixels = v->width_pixels;
-        obj->priority = v->priority;
-        obj->col_type = 0; // col_none
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->mapping_frame = v->frame;
+        self->width_pixels = v->width_pixels;
+        self->priority = v->priority;
+        self->collision_flags = 0; // col_none
         __attribute__((fallthrough));
     }
     case 2: // ChkDel
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
-            return;
-        }
-        DisplaySprite(obj);
+        SstOnScreenTest2(self, self->x_pos.f.u);
         break;
     }
 }

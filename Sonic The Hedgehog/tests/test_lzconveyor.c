@@ -6,6 +6,7 @@
 #include "LevelScroll.h"
 #include "Object.h"
 #include "Object/LZConveyor.h"
+#include "SstLoad.h"
 #include "PaletteCycle.h"
 
 // Object 63 (LZ conveyor platforms), LZ3's upper route: spawner subtype $85
@@ -18,28 +19,41 @@
 //      a stale nonzero routine skipped init and a garbage points pointer
 //      was dereferenced at the first corner (crash).
 
+static void Camera(void) {
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    (void)index_;
+    SstLoadCamera camera = {scrpos_x.f.u, 0, false, 0xFFF};
+    SstLoad_Update(&camera);
+}
+
 static void RunConveyors(int frames) {
     for (int f = 0; f < frames; f++) {
-        for (int i = 0; i < LEVEL_OBJECTS; i++)
-            if (level_objects[i].type == ObjId_LabyrinthConvey)
-                Obj_LabyrinthConvey(&level_objects[i]);
+        Camera();
+        Sst_Process(false);
         frame_count++;
     }
 }
 
 static int CountConveyors(void) {
     int n = 0;
-    for (int i = 0; i < LEVEL_OBJECTS; i++)
-        if (level_objects[i].type == ObjId_LabyrinthConvey)
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == sst_object_codes[ObjId_LabyrinthConvey])
             n++;
     return n;
 }
 
-static void SpawnGroup5(uint8_t poison) {
-    for (int i = 0; i < LEVEL_OBJECTS; i++) {
-        memset(&level_objects[i], poison, sizeof(Object));
-        level_objects[i].type = ObjId_Null;
+static void ClearTable(uint8_t poison) {
+    Sst_Reset();
+    for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++) {
+        memset(&sst[i], poison, sizeof(Sst));
+        sst[i].code = NULL;
     }
+}
+
+static Sst *spawner_slot;
+
+static void SpawnGroup5(uint8_t poison) {
+    ClearTable(poison);
     memset(player, 0, sizeof(Object));
     player->routine = 2;
     player->pos.l.x.f.u = 0x1000; // well away, never standing on a platform
@@ -50,12 +64,17 @@ static void SpawnGroup5(uint8_t poison) {
     f_conveyrev = false;
     scrpos_x.f.u = 0x1200;
 
-    Object *spawner = &level_objects[0];
-    memset(spawner, 0, sizeof(Object));
-    spawner->type = ObjId_LabyrinthConvey;
-    spawner->pos.l.x.f.u = 0x1300;
-    spawner->pos.l.y.f.u = 0x280;
-    spawner->scratch.u8[0] = 0x85;
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {0x1200, 0, false, 0xFFF};
+    SstLoad_Init(&index_, NULL, false, &camera);
+    Sst *spawner = Sst_Spawn(ObjId_LabyrinthConvey, 0x1300, 0x280);
+    SstCode code = spawner->code;
+    memset(spawner, 0, sizeof(Sst)); // (the loader gives a clean slot: the table's free slots are cleared by Sst_Delete)
+    spawner->code = code;
+    spawner->x_pos.f.u = 0x1300;
+    spawner->y_pos.f.u = 0x280;
+    spawner_slot = spawner;
+    spawner->subtype = 0x85;
     RunConveyors(1); // spawn the group
 }
 
@@ -64,9 +83,9 @@ static void LZConveyor_GroupRespawnsAfterScrollingAway(void) {
     int n = CountConveyors();
     CHECK(n > 1);
     CHECK(obj63_loaded[5] & 1);
-    Scratch_LCon *s = (Scratch_LCon *)&level_objects[0].scratch;
+    Own_LCon *s = (Own_LCon *)spawner_slot->own.u8;
     CHECK_EQ((uint8_t)s->groupid, 0x85); // survives becoming the first platform
-    CHECK(s->subtype != 0x85);
+    CHECK(spawner_slot->subtype != 0x85);
 
     RunConveyors(10);
     scrpos_x.f.u = 0x2000; // far away -- every platform goes out of range
@@ -80,13 +99,13 @@ static void LZConveyor_PlatformsInitInDirtySlots(void) {
     int n = CountConveyors();
     CHECK(n > 1);
     RunConveyors(1); // each platform runs its init
-    for (int i = 0; i < LEVEL_OBJECTS; i++) {
-        Object *p = &level_objects[i];
-        if (p->type != ObjId_LabyrinthConvey)
+    for (int i = 0; i < SST_COUNT; i++) {
+        Sst *p = &sst[i];
+        if (p->code != sst_object_codes[ObjId_LabyrinthConvey])
             continue;
-        Scratch_LCon *s = (Scratch_LCon *)&p->scratch;
+        Own_LCon *s = (Own_LCon *)p->own.u8;
         CHECK(p->routine == 2 || p->routine == 4);
-        CHECK_EQ(p->frame, 4); // platform frame
+        CHECK_EQ(p->mapping_frame, 4); // platform frame
         CHECK_EQ(s->count, 4); // group 5 has 4 corners
         CHECK(s->posindex < s->count);
         CHECK(!s->reversed);
@@ -99,10 +118,7 @@ static void LZConveyor_PlatformsInitInDirtySlots(void) {
 // depends on what else was loaded) must still get all of its platforms: they went into slots after the spawner only, and the ones
 // that did not fit were silently dropped, leaving a rope loop with one or two platforms instead of the full set.
 static void LZConveyor_SpawnerLateInThePoolStillMakesTheWholeGroup(void) {
-    for (int i = 0; i < LEVEL_OBJECTS; i++) {
-        memset(&level_objects[i], 0, sizeof(Object));
-        level_objects[i].type = ObjId_Null;
-    }
+    ClearTable(0);
     memset(player, 0, sizeof(Object));
     player->routine = 2;
     player->pos.l.x.f.u = 0x100;
@@ -113,12 +129,15 @@ static void LZConveyor_SpawnerLateInThePoolStillMakesTheWholeGroup(void) {
     f_conveyrev = false;
     scrpos_x.f.u = 0xC80;
 
-    Object *spawner = &level_objects[LEVEL_OBJECTS - 3];
-    spawner->type = ObjId_LabyrinthConvey;
-    spawner->pos.l.x.f.u = 0xD22;
-    spawner->pos.l.y.f.u = 0x483;
-    spawner->scratch.u8[0] = 0x82; // group 2: 8 platforms
-    Obj_LabyrinthConvey(spawner);
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {0xC80, 0, false, 0xFFF};
+    SstLoad_Init(&index_, NULL, false, &camera);
+    Sst *spawner = &sst[SST_COUNT - 3];
+    spawner->code = sst_object_codes[ObjId_LabyrinthConvey];
+    spawner->x_pos.f.u = 0xD22;
+    spawner->y_pos.f.u = 0x483;
+    spawner->subtype = 0x82; // group 2: 8 platforms
+    spawner->code(spawner);
     CHECK_EQ(CountConveyors(), 8);
 }
 

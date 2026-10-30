@@ -1,10 +1,9 @@
 #ifndef _CHAINSTOMP_H
 #define _CHAINSTOMP_H
 
-#include "Object.h"
+#include "Sst.h"
 
 typedef struct {
-    uint8_t pad0[8];      // 0x28-0x2F -- scratch.u8[0] here aliases obSubtype
     int16_t orig_y;      // 0x30
     uint16_t current;      // 0x32 -- current extension, 8.8 fixed point (high byte = integer pixels)
     uint16_t length;         // 0x34 -- max extension length, 8.8 fixed point (block only, meaningfully;
@@ -15,8 +14,8 @@ typedef struct {
     uint8_t switch_id;              // 0x3A -- switch-activated type only: which f_switch entry triggers it
     uint8_t parent_index;             // 0x3C on real hardware (pointer there) -- children only: index
                                        // into objects[] of the main block this piece belongs to
-} Scratch_ChainStomp;
+} Own_ChainStomp;
 
-void Obj_ChainStomp(Object *obj);
+void Obj_ChainStomp(Sst *self);
 
 #endif //_CHAINSTOMP_H

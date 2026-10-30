@@ -1,4 +1,8 @@
 #include "CollapseLedge.h"
+#include "Object.h"
+#include "Resource/Mappings/CollapsingLedge.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -24,78 +28,78 @@ static const uint8_t ledge_collapse_data[25] = {
     0x14, 0x10, 0x0C,
 };
 
-static void Ledge_WalkOff(Object *obj) {
-    ExitPlatform(obj, 96 / 2, 96 / 2, NULL);
+static void Ledge_WalkOff(Sst *self) {
+    SstExitPlatform(self, 96 / 2, 96 / 2, NULL);
     // Real ASM calls SlopeObject_AssumeStoodOn here, not plain SlopeObject --
     // this just repositions Sonic to match the slope, it does NOT re-run
     // collision detection or re-trigger Platform3's routine advance. Ledge_WalkOff
     // runs every frame from routines 4, 6, and 10 (WalkOff itself), so calling
     // the collision-detecting SlopeObject here made Platform3 re-fire and bump
-    // obj->routine +2 on every single call, marching the object from 4 straight
+    // self->routine +2 on every single call, marching the object from 4 straight
     // through 6 to 8 (delete) in a couple of frames instead of actually crumbling.
-    SlopeObject_AssumeStoodOn(obj, 96 / 2, ledge_slope_data, obj->pos.l.x.f.u);
-    RememberState(obj);
+    SstSlopeObject_AssumeStoodOn(self, 96 / 2, ledge_slope_data, self->x_pos.f.u);
+    SstOnScreenTest(self);
 }
 
-void Obj_CollapseLedge(Object *obj) {
-    Scratch_CollapseLedge *scratch = (Scratch_CollapseLedge *)&obj->scratch;
+void Obj_CollapseLedge(Sst *self) {
+    Own_CollapseLedge *own = (Own_CollapseLedge *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Main
-        obj->routine += 2;
-        obj->mappings = Mappings_CollapsingLedge;
-        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 4;
-        scratch->timedelay = 7;
-        obj->width_pixels = 96 / 2;
-        obj->frame = obj->scratch.u8[0];
-        obj->y_rad = 112 / 2;
-        obj->render.f.explicit_height = true;
+        self->routine += 2;
+        self->mappings = Mappings_CollapsingLedge;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        own->timedelay = 7;
+        self->width_pixels = 96 / 2;
+        self->mapping_frame = self->subtype;
+        self->y_radius = 112 / 2;
+        self->height_pixels = self->y_radius;
         break;
 
     case 2: // ChkTouch
-        if (scratch->flag) {
-            if (scratch->timedelay == 0) {
-                scratch->flag = 0;
-                obj->frame += 2;
-                 FragmentatePlatform(obj, 25, ledge_collapse_data);
+        if (own->flag) {
+            if (own->timedelay == 0) {
+                own->flag = 0;
+                self->mapping_frame += 2;
+                 SstFragmentatePlatform(self, 25, ledge_collapse_data);
                 break;  // Fragmentate handles the rest
             }
-            scratch->timedelay--;
+            own->timedelay--;
         }
-        SlopeObject(obj, 96 / 2, ledge_slope_data);
-        RememberState(obj);
+        SstSlopeObject(self, 96 / 2, ledge_slope_data);
+        SstOnScreenTest(self);
         break;
 
 case 4: // OnPlatform
-    if (scratch->timedelay == 0) {
-        obj->frame += 2;
-        FragmentatePlatform(obj, 25, ledge_collapse_data);
+    if (own->timedelay == 0) {
+        self->mapping_frame += 2;
+        SstFragmentatePlatform(self, 25, ledge_collapse_data);
         break;  // ← CRITICAL: don't fall through to WalkOff
     }
-    scratch->flag = 1;
-    scratch->timedelay--;
+    own->flag = 1;
+    own->timedelay--;
     // Fallthrough to WalkOff (only when timedelay > 0)
 
 case 10: // WalkOff
-        Ledge_WalkOff(obj);
+        Ledge_WalkOff(self);
         break;
 
 case 6: { // FragmentPiece — matches ASM's Ledge_FragmentPiece
-    if (scratch->timedelay != 0) {
-        if (!scratch->flag) {
-            scratch->timedelay--;
-            DisplaySprite(obj);
+    if (own->timedelay != 0) {
+        if (!own->flag) {
+            own->timedelay--;
+            Sst_Draw(self);
             break;
         }
 
         // .delayCollapse:
-        scratch->timedelay--;
-        Ledge_WalkOff(obj);
+        own->timedelay--;
+        Ledge_WalkOff(self);
 
         if (player->status.p.f.object_stand) {
-            if (scratch->timedelay == 0) {
+            if (own->timedelay == 0) {
                 player->status.p.f.object_stand = false;
                 player->status.p.f.pushing = false;
                 player->prev_anim = SonAnimId_Run;
@@ -105,22 +109,18 @@ case 6: { // FragmentPiece — matches ASM's Ledge_FragmentPiece
         }
 
         // .startCollapse:
-        scratch->flag = 0;
-        obj->routine = 6;
+        own->flag = 0;
+        self->routine = 6;
         break;
     }
 
     // .fragmentFall:
-    ObjectFall(obj);
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        ObjectDelete(obj);
-        return;
-    }
-    DisplaySprite(obj);
+    Sst_MoveSprite(self);
+    SstOnScreenTest2(self, self->x_pos.f.u);
     break;
 }
     case 8: // Delete
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     }
 }

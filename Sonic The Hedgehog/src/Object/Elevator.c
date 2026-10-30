@@ -1,4 +1,7 @@
 #include "Elevator.h"
+#include "Object.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -19,187 +22,177 @@ static const struct { uint8_t half_dist_div8; uint8_t type; } Elev_Var2[15] = {
     { 0x180 / 8, 9 },                                    // E (from spawner)
 };
 
-static bool Elev_OutOfRange(int16_t x) {
-    uint16_t obj_pos = (uint16_t)x & 0xFF80;
-    uint16_t cam_pos = (uint16_t)(scrpos_x.f.u - 128) & 0xFF80;
-    return (uint16_t)(obj_pos - cam_pos) > (128 + 320 + 192);
-}
-
 // Accelerates/decelerates the platform again until it reaches its target
 // distance. The distance itself is generic -- each platform type below
 // interprets it differently (rising, descending, diagonal, ...).
-static void Elev_Move(Object *obj, Scratch_Elevator *scratch) {
-    int16_t accel = scratch->acceleration;
-    if (scratch->slowing_down) {
+static void Elev_Move(Sst *self, Own_Elevator *own) {
+    int16_t accel = own->acceleration;
+    if (own->slowing_down) {
         if (accel != 0)
             accel -= 0x10;
     } else if (accel < 0x800) {
         accel += 0x10;
     }
-    scratch->acceleration = accel;
+    own->acceleration = accel;
 
-    scratch->moved_distance += ((int32_t)accel) << 8;
-    int16_t dist = (int16_t)(scratch->moved_distance >> 16);
+    own->moved_distance += ((int32_t)accel) << 8;
+    int16_t dist = (int16_t)(own->moved_distance >> 16);
 
-    if ((uint16_t)dist > (uint16_t)scratch->half_distance)
-        scratch->slowing_down = 1;
+    if ((uint16_t)dist > (uint16_t)own->half_distance)
+        own->slowing_down = 1;
 
-    if ((uint16_t)dist == (uint16_t)(scratch->half_distance * 2))
-        obj->scratch.u8[0] = 0; // action type -> stationary
+    if ((uint16_t)dist == (uint16_t)(own->half_distance * 2))
+        self->subtype = 0; // action type -> stationary
 }
 
-static void Elev_Rising(Object *obj, Scratch_Elevator *scratch) {
-    Elev_Move(obj, scratch);
-    int16_t dist = (int16_t)(scratch->moved_distance >> 16);
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y - dist);
+static void Elev_Rising(Sst *self, Own_Elevator *own) {
+    Elev_Move(self, own);
+    int16_t dist = (int16_t)(own->moved_distance >> 16);
+    self->y_pos.f.u = (int16_t)(own->orig_y - dist);
 }
 
-static void Elev_Descending(Object *obj, Scratch_Elevator *scratch) {
-    Elev_Move(obj, scratch);
-    int16_t dist = (int16_t)(scratch->moved_distance >> 16);
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y + dist);
+static void Elev_Descending(Sst *self, Own_Elevator *own) {
+    Elev_Move(self, own);
+    int16_t dist = (int16_t)(own->moved_distance >> 16);
+    self->y_pos.f.u = (int16_t)(own->orig_y + dist);
 }
 
-static void Elev_RiseRight(Object *obj, Scratch_Elevator *scratch) {
-    Elev_Move(obj, scratch);
-    int16_t dist = (int16_t)(scratch->moved_distance >> 16);
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y - (dist >> 1));
-    obj->pos.l.x.f.u = (int16_t)(scratch->orig_x + dist);
+static void Elev_RiseRight(Sst *self, Own_Elevator *own) {
+    Elev_Move(self, own);
+    int16_t dist = (int16_t)(own->moved_distance >> 16);
+    self->y_pos.f.u = (int16_t)(own->orig_y - (dist >> 1));
+    self->x_pos.f.u = (int16_t)(own->orig_x + dist);
 }
 
-static void Elev_DescendLeft(Object *obj, Scratch_Elevator *scratch) {
-    Elev_Move(obj, scratch);
-    int16_t dist = (int16_t)(scratch->moved_distance >> 16);
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y + (dist >> 1));
-    obj->pos.l.x.f.u = (int16_t)(scratch->orig_x - dist);
+static void Elev_DescendLeft(Sst *self, Own_Elevator *own) {
+    Elev_Move(self, own);
+    int16_t dist = (int16_t)(own->moved_distance >> 16);
+    self->y_pos.f.u = (int16_t)(own->orig_y + (dist >> 1));
+    self->x_pos.f.u = (int16_t)(own->orig_x - dist);
 }
 
 // Rises and deletes itself once its peak is reached (only ever created by
 // Elev_Spawner).
-static void Elev_FromSpawner(Object *obj, Scratch_Elevator *scratch) {
-    Elev_Move(obj, scratch);
-    int16_t dist = (int16_t)(scratch->moved_distance >> 16);
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y - dist);
+static void Elev_FromSpawner(Sst *self, Own_Elevator *own) {
+    Elev_Move(self, own);
+    int16_t dist = (int16_t)(own->moved_distance >> 16);
+    self->y_pos.f.u = (int16_t)(own->orig_y - dist);
 
-    if (obj->scratch.u8[0] != 0) // has platform reached its final destination?
+    if (self->subtype != 0) // has platform reached its final destination?
         return;
 
-    if (obj->status.o.f.player_stand) {
+    if (((self->status & SST_STATUS_PLAYER_STAND) != 0)) {
         player->status.p.f.in_air = true;
         player->status.p.f.object_stand = false;
         player->routine = 2; // Sonic_Control
     }
-    ObjectDelete(obj);
+    Sst_Delete(self);
 }
 
-static void Elev_Types(Object *obj, Scratch_Elevator *scratch) {
-    switch (obj->scratch.u8[0] & 0xF) {
+static void Elev_Types(Sst *self, Own_Elevator *own) {
+    switch (self->subtype & 0xF) {
     case 0: // stationary
         break;
     case 1: case 3: case 5: case 7: // go to next action type once stood on
-        if (obj->routine == 4)
-            obj->scratch.u8[0]++;
+        if (self->routine == 4)
+            self->subtype++;
         break;
-    case 2: Elev_Rising(obj, scratch); break;
-    case 4: Elev_Descending(obj, scratch); break;
-    case 6: Elev_RiseRight(obj, scratch); break;
-    case 8: Elev_DescendLeft(obj, scratch); break;
-    case 9: Elev_FromSpawner(obj, scratch); break;
+    case 2: Elev_Rising(self, own); break;
+    case 4: Elev_Descending(self, own); break;
+    case 6: Elev_RiseRight(self, own); break;
+    case 8: Elev_DescendLeft(self, own); break;
+    case 9: Elev_FromSpawner(self, own); break;
     }
 }
 
-static void Elev_Main(Object *obj, Scratch_Elevator *scratch) {
-    obj->routine = 2; // advance to Elev_Platform
+static void Elev_Main(Sst *self, Own_Elevator *own) {
+    self->routine = 2; // advance to Elev_Platform
 
-    uint8_t subtype = obj->scratch.u8[0];
+    uint8_t subtype = self->subtype;
     if (subtype & 0x80) {
-        obj->routine = 6; // Elev_Spawner
+        self->routine = 6; // Elev_Spawner
         int16_t delay = (int16_t)((subtype & 0x7F) * 6);
-        scratch->half_distance = delay; // reused as elev_spawner_delay
-        scratch->spawner_delaybase = delay;
+        own->half_distance = delay; // reused as elev_spawner_delay
+        own->spawner_delaybase = delay;
         return; // keep spawner alive while invisible
     }
 
-    obj->width_pixels = 80 / 2;
-    obj->frame = 0;
+    self->width_pixels = 80 / 2;
+    self->mapping_frame = 0;
 
     uint8_t idx = subtype & 0xF;
-    scratch->half_distance = (int16_t)(Elev_Var2[idx].half_dist_div8 << 2);
-    obj->scratch.u8[0] = Elev_Var2[idx].type; // repurpose subtype -> action type
+    own->half_distance = (int16_t)(Elev_Var2[idx].half_dist_div8 << 2);
+    self->subtype = Elev_Var2[idx].type; // repurpose subtype -> action type
 
-    obj->mappings = Mappings_Elevator;
-    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
-    obj->render.b = SPRITE_CAM_FIELD;
-    obj->priority = 4;
-    scratch->orig_x = obj->pos.l.x.f.u;
-    scratch->orig_y = obj->pos.l.y.f.u;
+    self->mappings = Mappings_Elevator;
+    self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
+    self->render_flags = SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
+    own->orig_x = self->x_pos.f.u;
+    own->orig_y = self->y_pos.f.u;
 }
 
-static void Elev_Platform(Object *obj, Scratch_Elevator *scratch) {
-    PlatformObject(obj, obj->width_pixels); // may set obj->routine = 4
-    Elev_Types(obj, scratch);
+static void Elev_Platform(Sst *self, Own_Elevator *own) {
+    SstPlatformObject(self, self->width_pixels); // may set self->routine = 4
+    Elev_Types(self, own);
 }
 
 // Returns true if the platform deleted itself this frame (Elev_FromSpawner
 // reaching its peak) -- the caller must not touch it further.
-static bool Elev_StoodOn(Object *obj, Scratch_Elevator *scratch) {
-    ExitPlatform(obj, obj->width_pixels, obj->width_pixels, NULL); // may set obj->routine = 2
+static bool Elev_StoodOn(Sst *self, Own_Elevator *own) {
+    SstExitPlatform(self, self->width_pixels, self->width_pixels, NULL); // may set self->routine = 2
 
-    int16_t prev_x = obj->pos.l.x.f.u;
-    Elev_Types(obj, scratch);
+    int16_t prev_x = self->x_pos.f.u;
+    Elev_Types(self, own);
 
-    if (obj->type == ObjId_Null)
+    if (self->code == NULL)
         return true;
 
-    MvSonicOnPtfm(obj, obj->pos.l.y.f.u - 9, prev_x);
+    SstMvSonicOnPtfm(self, self->y_pos.f.u - 9, prev_x);
     return false;
 }
 
-static void Elev_Spawner(Object *obj, Scratch_Elevator *scratch) {
-    if (--scratch->half_distance == 0) {
-        scratch->half_distance = scratch->spawner_delaybase;
+static void Elev_Spawner(Sst *self, Own_Elevator *own) {
+    if (--own->half_distance == 0) {
+        own->half_distance = own->spawner_delaybase;
 
-        Object *plat = FindFreeObj();
+        Sst *plat = Sst_Allocate();
         if (plat != NULL) {
-            plat->type = ObjId_Elevator;
-            plat->pos.l.x.f.u = obj->pos.l.x.f.u;
-            plat->pos.l.y.f.u = obj->pos.l.y.f.u;
-            plat->scratch.u8[0] = 0xE; // Elev_Var2 entry $E -> action type 9
+            plat->code = sst_object_codes[ObjId_Elevator];
+            plat->x_pos.f.u = self->x_pos.f.u;
+            plat->y_pos.f.u = self->y_pos.f.u;
+            plat->subtype = 0xE; // Elev_Var2 entry $E -> action type 9
         }
     }
 
-    if (Elev_OutOfRange(obj->pos.l.x.f.u))
-        ObjectDelete(obj);
+    SstDeleteIfNotInRange2(self, self->x_pos.f.u);
 }
 
-void Obj_Elevator(Object *obj) {
-    Scratch_Elevator *scratch = (Scratch_Elevator *)&obj->scratch;
+void Obj_Elevator(Sst *self) {
+    Own_Elevator *own = (Own_Elevator *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        Elev_Main(obj, scratch);
-        if (obj->routine == 6)
+        Elev_Main(self, own);
+        if (self->routine == 6)
             return; // spawner: no display while invisible
         break;
     case 2:
-        Elev_Platform(obj, scratch);
+        Elev_Platform(self, own);
         break;
     case 4:
-        if (Elev_StoodOn(obj, scratch))
+        if (Elev_StoodOn(self, own))
             return; // already deleted itself
         break;
     case 6:
-        Elev_Spawner(obj, scratch);
+        Elev_Spawner(self, own);
         return; // spawner never reaches the shared display tail
     }
 
     // Elev_Types (via Elev_FromSpawner) can delete the platform even when
     // nobody's standing on it -- guard against touching it further.
-    if (obj->type == ObjId_Null)
+    if (self->code == NULL)
         return;
 
-    if (Elev_OutOfRange(scratch->orig_x))
-        ObjectDelete(obj);
-    else
-        DisplaySprite(obj);
+    SstOnScreenTest2(self, own->orig_x);
 }

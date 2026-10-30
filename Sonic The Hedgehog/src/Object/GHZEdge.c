@@ -1,4 +1,8 @@
 #include "GHZEdge.h"
+#include "Resource/Mappings/GHZEdge.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -7,9 +11,9 @@
 #include "Macros.h"
 
 // GHZ edge object
-static int32_t Obj44_SolidWall2(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off) {
+static int32_t Obj44_SolidWall2(Sst *self, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off) {
     // Check if we're touching horizontally
-    *x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+    *x_off = player->pos.l.x.f.u - self->x_pos.f.u + x_rad;
     uint16_t x_dia = x_rad << 1;
 
     if (*x_off < 0 || *x_off > x_dia)
@@ -18,7 +22,7 @@ static int32_t Obj44_SolidWall2(Object *obj, uint16_t x_rad, uint16_t y_rad, int
     // Check if we're touching vertically
     y_rad += player->y_rad;
 
-    *y_off = player->pos.l.y.f.u - obj->pos.l.y.f.u + 4 + y_rad;
+    *y_off = player->pos.l.y.f.u - self->y_pos.f.u + 4 + y_rad;
     uint16_t y_dia = y_rad << 1;
 
     if (*y_off < 0 || *y_off >= y_dia)
@@ -48,11 +52,11 @@ static int32_t Obj44_SolidWall2(Object *obj, uint16_t x_rad, uint16_t y_rad, int
         return -1;
 }
 
-static void Obj44_SolidWall(Object *obj, uint16_t x_rad, uint16_t y_rad)
+static void Obj44_SolidWall(Sst *self, uint16_t x_rad, uint16_t y_rad)
 {
     int16_t x_off, y_off;
 
-    signed int res = Obj44_SolidWall2(obj, x_rad, y_rad, &x_off, &y_off);
+    signed int res = Obj44_SolidWall2(self, x_rad, y_rad, &x_off, &y_off);
     if (res > 0) {
         // Hit horizontal
         if (x_off > 0) {
@@ -72,9 +76,9 @@ static void Obj44_SolidWall(Object *obj, uint16_t x_rad, uint16_t y_rad)
         // Update push flags
         if (!player->status.p.f.in_air) {
             player->status.p.f.pushing = true;
-            obj->status.o.f.player_push = true;
+            self->status |= SST_STATUS_PLAYER_PUSH;
         } else {
-            obj->status.o.f.player_push = false;
+            self->status &= (uint8_t)~SST_STATUS_PLAYER_PUSH;
             player->status.p.f.pushing = false;
         }
         return;
@@ -87,40 +91,40 @@ static void Obj44_SolidWall(Object *obj, uint16_t x_rad, uint16_t y_rad)
     }
 
     // Clear pushing state
-    if (obj->status.o.f.player_push) {
+    if (((self->status & SST_STATUS_PLAYER_PUSH) != 0)) {
         // (no forced running animation here: the original's "walk-jump bug", see SolidObject)
-        obj->status.o.f.player_push = false;
+        self->status &= (uint8_t)~SST_STATUS_PLAYER_PUSH;
         player->status.p.f.pushing = false;
     }
 }
 
-void Obj_GHZEdge(Object *obj)
+void Obj_GHZEdge(Sst *self)
 {
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Initialization
         // Increment routine
-        obj->routine += 2;
+        self->routine += 2;
 
         // Set object drawing information
-        obj->mappings = Mappings_GHZEdge;
-        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Edge_Wall);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 8;
-        obj->priority = 6;
-        obj->frame = obj->scratch.u8[0]; // subtype
+        self->mappings = Mappings_GHZEdge;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_Edge_Wall);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 8;
+        self->priority = 6 * 0x80;
+        self->mapping_frame = self->subtype; // subtype
 
         // Check if object should be solid
-        if (!(obj->frame & 0x10)) {
+        if (!(self->mapping_frame & 0x10)) {
             // Solid
-            Obj44_SolidWall(obj, 0x13, 0x28);
+            Obj44_SolidWall(self, 0x13, 0x28);
         } else {
             // Non-solid
-            obj->frame &= ~0x10;
-            obj->routine += 2;
+            self->mapping_frame &= ~0x10;
+            self->routine += 2;
         }
         break;
     case 2: // Solid and draw
-        Obj44_SolidWall(obj, 0x13, 0x28);
+        Obj44_SolidWall(self, 0x13, 0x28);
         break;
     case 4: // Draw
         break;
@@ -128,7 +132,6 @@ void Obj_GHZEdge(Object *obj)
         return;
     }
 
-    DisplaySprite(obj);
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-        ObjectDelete(obj);
+    Sst_Draw(self);
+    SstDeleteIfNotInRange2(self, self->x_pos.f.u);
 }

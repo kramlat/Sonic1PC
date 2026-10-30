@@ -331,3 +331,12 @@ void SstDeleteIfNotInRange2(Sst *obj, int16_t x) {
         Sst_Delete(obj);
     }
 }
+
+uint8_t *SstLoad_State(const Sst *obj) {
+    static uint8_t none;
+    if (obj->respawn == 0 || obj->respawn > SST_RESPAWN_COUNT) {
+        none = 0;
+        return &none;
+    }
+    return &sst_respawn_table[obj->respawn - 1];
+}

@@ -1,7 +1,7 @@
 #ifndef _LZCONVEYOR_H
 #define _LZCONVEYOR_H
 
-#include "Object.h"
+#include "Sst.h"
 #include "Macros.h"
 
 #include <stddef.h>
@@ -11,7 +11,6 @@ typedef struct {
 } LCon_Point;
 
 typedef struct {
-    uint8_t subtype;  // obSubtype (0x28) -- the spawner rewrites its own to the first platform's subtype
     // Copy of obSubtype from the initial group spawner (real ASM's
     // lcon_groupid, objoff_2F -- its own byte, NOT the subtype's). It must
     // survive the spawner turning itself into the first platform, so that
@@ -31,15 +30,14 @@ typedef struct {
     // requirement is why the explicit real-offset padding above was
     // dropped: with it, this struct overflowed the 24-byte scratch budget.
     const LCon_Point *points; // corner data for group
-} Scratch_LCon;
+} Own_LCon;
 
-STATIC_ASSERT(sizeof(Scratch_LCon) <= sizeof(((Object *)0)->scratch), "Scratch_LCon must fit the object scratch area");
-STATIC_ASSERT(offsetof(Scratch_LCon, groupid) != offsetof(Scratch_LCon, subtype), "groupid must not alias the subtype byte");
+STATIC_ASSERT(sizeof(Own_LCon) <= sizeof(((Sst *)0)->own), "Own_LCon must fit the object's own words");
 
-void Obj_LabyrinthConvey(Object *obj);
+void Obj_LabyrinthConvey(Sst *self);
 
 // Shared with Object 6F (SBZ spin platform conveyor) -- real hardware calls
 // this exact same subroutine from both objects.
-void LCon_ChangeDir(Object *obj, Scratch_LCon *scratch);
+void LCon_ChangeDir(Sst *self, Own_LCon *scratch);
 
 #endif //_LZCONVEYOR_H

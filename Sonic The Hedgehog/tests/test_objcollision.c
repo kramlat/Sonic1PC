@@ -8,7 +8,7 @@
 #include "LevelScroll.h"
 #include "Object.h"
 
-void Obj_LabyrinthBlock(Object *obj);
+#include "SstLoad.h"
 
 // Regression test (2026-09): ObjHitCeiling/ObjHitWallRight/ObjHitWallLeft
 // probed the top-solid bit instead of the left/right/bottom bit P128
@@ -16,8 +16,8 @@ void Obj_LabyrinthBlock(Object *obj);
 // down by Sonic standing on it (y=$34C), got a bogus -32 "ceiling hit" on its
 // very first rising frame and was shoved into the floor, taking Sonic with it.
 
-static Object *SpawnBlock(int16_t x, int16_t y, uint8_t subtype) {
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
+static Sst *SpawnBlock(int16_t x, int16_t y, uint8_t subtype) {
+    Sst_Reset();
     memset(player, 0, sizeof(Object));
     player->routine = 2;
     player->pos.l.x.f.u = 0x900;
@@ -25,12 +25,12 @@ static Object *SpawnBlock(int16_t x, int16_t y, uint8_t subtype) {
     scrpos_x.f.u = x - 160;
     scrpos_y.f.u = y - 112;
 
-    Object *b = &level_objects[0];
-    b->type = ObjId_LabyrinthBlock;
-    b->pos.l.x.f.u = x;
-    b->pos.l.y.f.u = y;
-    b->scratch.u8[0] = subtype;
-    Obj_LabyrinthBlock(b); // init
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {x - 160, y - 112, false, 0xFFF};
+    SstLoad_Init(&index_, NULL, false, &camera);
+    Sst *b = Sst_Spawn(ObjId_LabyrinthBlock, x, y);
+    b->subtype = subtype;
+    b->code(b); // init
     return b;
 }
 
@@ -61,11 +61,11 @@ static void LZ1Rise_PlatformRisesFromNudgedPosition(void) {
     LevelDataLoad();
     ColIndexLoad();
 
-    Object *b = SpawnBlock(0xAA0, 0x34C, 0x14); // nudged down, straight into the rise
+    Sst *b = SpawnBlock(0xAA0, 0x34C, 0x14); // nudged down, straight into the rise
     for (int f = 0; f < 60; f++)
-        Obj_LabyrinthBlock(b);
-    CHECK(b->pos.l.y.f.u < 0x34C); // went up, never down
-    CHECK((b->scratch.u8[0] & 0xF) == 4); // still rising, not stopped by a fake ceiling
+        b->code(b);
+    CHECK(b->y_pos.f.u < 0x34C); // went up, never down
+    CHECK((b->subtype & 0xF) == 4); // still rising, not stopped by a fake ceiling
 }
 
 void RegisterObjCollisionTests(void) {

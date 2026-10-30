@@ -29,6 +29,8 @@ typedef void (*SstCode)(Sst *self);
 // status: bit 0 x flip, bit 1 y flip (the others are the object's own)
 #define SST_STATUS_X_FLIP 0x01
 #define SST_STATUS_Y_FLIP 0x02
+// sets or clears render flag bits to match a condition
+#define SST_RENDER_SET(obj, bit, on) ((on) ? ((obj)->render_flags |= (uint8_t)(bit)) : ((obj)->render_flags &= (uint8_t)~(bit)))
 // sets or clears status bits to match a condition
 #define SST_STATUS_SET(obj, bit, on) ((on) ? ((obj)->status |= (uint8_t)(bit)) : ((obj)->status &= (uint8_t)~(bit)))
 
