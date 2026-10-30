@@ -4,6 +4,7 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/Explosion.h"
 #include "Object/Pylon.h"
 #include "Object/SpinningLight.h"
 #include "Object/LZWaterfall.h"
@@ -31,8 +32,6 @@ void Obj_BuzzExplode(Object *obj);
 void Obj_Ring(Object *obj);
 void Obj_Monitor(Object *obj);
 void Obj_Checkpoint(Object *obj);
-void Obj_Explosion(Object *obj);
-void Obj_ExplosionBomb(Object *obj);
 void Obj_Chopper(Object *obj);
 void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
@@ -179,7 +178,7 @@ const ObjectFunc game_objects[] = {
 	/* 24 ObjId_BuzzExplode         */ Obj_BuzzExplode,
 	/* 25 ObjId_Ring                */ Obj_Ring,
 	/* 26 ObjId_Monitor             */ Obj_Monitor,
-	/* 27 ObjId_Explosion           */ Obj_Explosion,
+	/* 27 ObjId_Explosion           */ Obj_ExplosionObject, // (an old object that turns into one: the explosion is on the status table)
 	/* 28 ObjId_Animal              */ Obj_Animals,
 	/* 29 ObjId_Points              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2A ObjId_SmallDoor           */ Obj_SmallDoor,
@@ -203,7 +202,7 @@ const ObjectFunc game_objects[] = {
 	/* 3C ObjId_SmashWall           */ Obj_SmashWall,
 	/* 3D ObjId_BossGreenHill       */ Obj_BossGreenHill,
 	/* 3E ObjId_PrisonCapsule       */ Obj_PrisonCapsule,
-	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBomb,
+	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBombObject,
 	/* 40 ObjId_Motobug             */ Obj_Motobug,
 	/* 41 ObjId_Spring              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 42 ObjId_Newtron             */ Obj_Newtron,
@@ -291,6 +290,8 @@ const SstCode sst_object_codes[0x100] = {
 	[ObjId_Waterfall] = Obj_Waterfall,
 	[ObjId_Pylon] = Obj_Pylon,
 	[ObjId_Points] = Obj_Points,
+	[ObjId_Explosion] = Obj_Explosion,
+	[ObjId_ExplosionBomb] = Obj_ExplosionBomb,
 	[ObjId_Bumper] = Obj_Bumper,
 	[ObjId_Spikes] = Obj_Spikes,
 	[ObjId_Spring] = Obj_Spring,

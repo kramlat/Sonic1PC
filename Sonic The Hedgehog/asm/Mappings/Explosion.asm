@@ -1,9 +1,9 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - explosion from a badnik or monitor
 ; ---------------------------------------------------------------------------
-; (converted to Sonic 2 mapping format: see _MapMacros.asm and engine/Mappings.h)
+; (converted to Sonic 2 mapping format: see _MapMacrosS3.asm and engine/Mappings.h)
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_ExplodeItem_internal:	mappingsTable
 	mappingsTableEntry.w	Map_ExplodeItem_Frame00

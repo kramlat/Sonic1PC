@@ -4,7 +4,7 @@
 ; The original's table shares three of these five frames with Map_ExplodeItem through negative table offsets, which this
 ; engine cannot follow (it reads frame offsets as unsigned), so the shared frames are written out here in full.
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_ExplodeBomb_internal:	mappingsTable
 	mappingsTableEntry.w	@bomb_0

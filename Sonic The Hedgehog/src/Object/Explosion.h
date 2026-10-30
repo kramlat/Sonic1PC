@@ -1,27 +1,17 @@
 #ifndef _EXPLOSION_H
 #define _EXPLOSION_H
 
-#include "Object.h"
+#include "EngineObject.h"
+#include "Sst.h"
 
-// Explosion assets
-#include "Resource/Mappings/Explosion.h"
-// Real hardware's Map_ExplodeBomb shares 3 of its 5 frames with
-// Map_ExplodeItem via backwards (negative) mappingsTable offsets -- not
-// representable here since this engine's frame lookup treats mapping
-// offsets as unsigned. Mappings_ExplodeBomb is therefore its own
-// standalone resource with those shared frames duplicated in rather than
-// referenced.
-#include "Resource/Mappings/ExplodeBomb.h"
+// Object 27 - the explosion of a destroyed badnik (it lets an animal out), and object 3F - the fiery one of a destroyed boss, a Walking Bomb or a Ball Hog cannonball. The objects on the status table.
+void Obj_Explosion(Sst *self);
+void Obj_ExplosionBomb(Sst *self);
 
-void Obj_Explosion_Animal(Object *obj);
-void Obj_Explosion_Construct(Object *obj);
-void Obj_Explosion_Animate(Object *obj);
-void Obj_Explosion(Object *obj);
-
-// Object 3F - fiery explosion from a destroyed boss, Walking Bomb badnik,
-// or Ball Hog cannonball. Shares its animate/delete tail with Object 27
-// above (Obj_Explosion_Animate) but uses its own mapping table and sound.
-void Obj_ExplosionBomb_Construct(Object *obj);
-void Obj_ExplosionBomb(Object *obj);
+// What the old objects that turn into an explosion by setting their `type` run (an `Object` of these ids): it makes the explosion on the status table where the object was, with its routine and the badnik's
+// score (scratch word 0xB), then stays in the object table, invisible, for as long as the explosion lasts: the objects that were made by what exploded check `parent->type == ObjId_Explosion` to know it did
+// (Caterkiller, Buzz Bomber). Goes when the last of those has moved over and the sites that set the type make the explosion directly.
+void Obj_ExplosionObject(Object *obj);
+void Obj_ExplosionBombObject(Object *obj);
 
 #endif

@@ -1,5 +1,6 @@
 #include "SstLoad.h"
 #include "Object/Points.h"
+#include "Object/Explosion.h"
 #include "Object.h"
 
 #include "Object/AirBubbles.h"
@@ -31,8 +32,6 @@ void Obj_Spikes(Object *obj);
 void Obj_Spring(Object *obj);
 void Obj_Monitor(Object *obj);
 void Obj_Checkpoint(Object *obj);
-void Obj_Explosion(Object *obj);
-void Obj_ExplosionBomb(Object *obj);
 void Obj_Chopper(Object *obj);
 void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
@@ -265,7 +264,7 @@ const ObjectFunc game_objects[] = {
 	/* 24 ObjId_BuzzExplode         */ Obj_OxygenBubbles, // (the alpha's vents of bubbles, where the prototype has Sonic 1's Buzz Bomber explosion that nothing makes)
 	/* 25 ObjId_Ring                */ Obj_Ring,
 	/* 26 ObjId_Monitor             */ Obj_Monitor,
-	/* 27 ObjId_Explosion           */ Obj_Explosion,
+	/* 27 ObjId_Explosion           */ Obj_ExplosionObject, // (an old object that turns into one: the explosion is on the status table)
 	/* 28 ObjId_Animal              */ Obj_FlickyAnimals,
 	/* 29 ObjId_Points              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2A ObjId_SmallDoor           */ Obj_DHZStomper, // (the prototype's stomper of Dust Hill)
@@ -289,7 +288,7 @@ const ObjectFunc game_objects[] = {
 	/* 3C ObjId_SmashWall           */ Obj_SmashWall,
 	/* 3D ObjId_BossGreenHill       */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 3E ObjId_PrisonCapsule       */ Obj_PrisonCapsule,
-	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBomb,
+	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBombObject,
 	/* 40 ObjId_Motobug             */ Obj_DiagSpring, // (the prototype's diagonal springs)
 	/* 41 ObjId_Spring              */ Obj_Spring,
 	/* 42 ObjId_Newtron             */ Obj_MTZSteamVent, // (the prototype's steam vent of Metropolis)
@@ -406,5 +405,7 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
-	[ObjId_Points] = Obj_Points, // (Sonic 1's, shared)
+	[ObjId_Points] = Obj_Points,
+	[ObjId_Explosion] = Obj_Explosion,
+	[ObjId_ExplosionBomb] = Obj_ExplosionBomb, // (Sonic 1's, shared)
 };
