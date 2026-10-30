@@ -425,37 +425,46 @@ static uint8_t ehz_runcount; // (the low byte of Vint_runcount: the wave steps e
 
 // Emerald Hill's lines, also the title screen's (which passes 0 for the foreground, and the title's own camera for d2 = the foreground's X)
 static void EHZ_Lines(int16_t fg, int16_t d2) {
-	HScroll h;
-	HS_Start(&h, fg);
-	HS_Lines(&h, 0x16, 0);        // sky
+	// The lines as a band table (ScrollEngine_ApplyDeformation negates each position, so they are given the other way round): the sky, the clouds, the wavy line (a position for
+	// every line), the hills' strip, two bands of hills and the water, whose gradient has a position for every line
+	enum { WAVE = 0x15, WATER = 15 + 9 * 2 + 15 * 3 };
+	static const uint16_t heights[7] = { 0x16, 0x3A, WAVE | SCROLL_BAND_PER_LINE, 0x0B, 0x10, 0x10, WATER | SCROLL_BAND_PER_LINE };
+	int16_t pos[1 + 1 + WAVE + 1 + 1 + 1 + WATER];
+	int n = 0;
+	pos[n++] = 0;                 // sky
 	int16_t d0 = d2 >> 6;
-	HS_Lines(&h, 0x3A, d0);       // clouds
+	pos[n++] = (int16_t)-d0;      // clouds
 	if ((ehz_runcount++ & 7) == 0)
 		ehz_wave--;
 	const int8_t *wave = Deform_EHZ_Data + (ehz_wave & 0x1F);
-	for (int i = 0; i < 0x15; i++) // the wavy line
-		HS_Line(&h, (int16_t)(d0 + wave[i]));
-	HS_Lines(&h, 0x0B, 0);
+	for (int i = 0; i < WAVE; i++) // the wavy line
+		pos[n++] = (int16_t)-(int16_t)(d0 + wave[i]);
+	pos[n++] = 0;
 	d0 = d2 >> 4;
-	HS_Lines(&h, 0x10, d0);
+	pos[n++] = (int16_t)-d0;
 	d0 = (int16_t)(d0 + (d0 >> 1));
-	HS_Lines(&h, 0x10, d0);
+	pos[n++] = (int16_t)-d0;
 	// the water: a gradient of the foreground's X down to a third of it, in steps of one, two and three lines
 	int32_t delta = HS_Delta((int16_t)((d2 >> 1) - (d2 >> 3)), 4, 0x30);
 	uint32_t acc = (uint32_t)(uint16_t)(d2 >> 3) << 16;
-	for (int i = 0; i < 0x0F; i++) {
-		HS_Line(&h, (int16_t)(acc >> 16));
+	for (int i = 0; i < 15; i++) {
+		pos[n++] = (int16_t)-(int16_t)(acc >> 16);
 		acc += (uint32_t)delta;
 	}
 	for (int i = 0; i < 9; i++) {
-		HS_Lines(&h, 2, (int16_t)(acc >> 16));
+		int16_t v = (int16_t)-(int16_t)(acc >> 16);
+		pos[n++] = v;
+		pos[n++] = v;
 		acc += 2 * (uint32_t)delta;
 	}
-	for (int i = 0; i < 0x0F; i++) {
-		HS_Lines(&h, 3, (int16_t)(acc >> 16));
+	for (int i = 0; i < 15; i++) {
+		int16_t v = (int16_t)-(int16_t)(acc >> 16);
+		pos[n++] = v;
+		pos[n++] = v;
+		pos[n++] = v;
 		acc += 3 * (uint32_t)delta;
 	}
-	HS_Finish(&h);
+	ScrollEngine_ApplyDeformation(heights, 7, pos, 0, (int16_t)-fg, true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
 void Deform_EHZ(void) {

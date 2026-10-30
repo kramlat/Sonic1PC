@@ -2,6 +2,7 @@
 
 #include "Camera.h"
 #include "LevelScroll.h"
+#include "Video.h"
 
 // The prototype's Scroll_Block1..4 (and the shared UpdateBGScroll the port's other background scrolls use): a background moves by a 16.16 amount, and when it crosses a line between 16 pixel blocks its
 // "crossed" tracker toggles and the zone's flag for the direction is raised, so the level drawing adds the row or column that has come into view. Left raises the flag's bit and right the next one (D6 and
@@ -179,7 +180,36 @@ static void ScrollBlock_YUsesTheSecondRowOfFlags(void) {
     CHECK_EQ(bg1_scroll_flags, SCROLL_FLAG_DOWN);
 }
 
+extern void Deform_EHZ(void);
+extern void Deform_TitleScreen(void);
+
+// Emerald Hill's scroll lines (sky, clouds, the wavy line, hills, the water's gradient in steps of one, two and three lines) over a sweep of camera positions, the title screen's too; the hash is
+// of the lines the original's loops wrote, recorded before the zone was written as band tables.
+static void ScrollBlock_EmeraldHillsLinesAreTheOriginals(void) {
+    uint64_t hash = 0xcbf29ce484222325ull;
+    for (int f = 0; f < 500; f++) {
+        scrpos_x.f.u = (int16_t)(f * 13 - 100);
+        Deform_EHZ();
+        for (int l = 0; l < SCREEN_HEIGHT; l++)
+            for (int k = 0; k < 2; k++) {
+                hash = (hash ^ (uint8_t)hscroll_buffer[l][k]) * 0x100000001b3ull;
+                hash = (hash ^ (uint8_t)((uint16_t)hscroll_buffer[l][k] >> 8)) * 0x100000001b3ull;
+            }
+    }
+    scrpos_x.f.u = 0x1BC0;
+    for (int f = 0; f < 40; f++) { // (the title's camera runs on by 8 up to $1C00)
+        Deform_TitleScreen();
+        for (int l = 0; l < SCREEN_HEIGHT; l++)
+            for (int k = 0; k < 2; k++) {
+                hash = (hash ^ (uint8_t)hscroll_buffer[l][k]) * 0x100000001b3ull;
+                hash = (hash ^ (uint8_t)((uint16_t)hscroll_buffer[l][k] >> 8)) * 0x100000001b3ull;
+            }
+    }
+    CHECK(hash == 0x356e9d00d3e1008bull);
+}
+
 void RegisterScrollBlockTests(void) {
+    RUN_TEST(ScrollBlock_EmeraldHillsLinesAreTheOriginals);
     RUN_TEST(ScrollBlock_RightAcrossALineRaisesTheRightFlag);
     RUN_TEST(ScrollBlock_LeftAcrossALineRaisesTheLeftFlag);
     RUN_TEST(ScrollBlock_AMoveInsideABlockRaisesNothing);
