@@ -126,7 +126,7 @@ static int BandOfRow(const ScrollBands *sb, int row) {
 static void DrawRow(const ScrollBands *sb, const LevelLayoutPlane *layout, int row) {
     int16_t sx = sb->x[BandOfRow(sb, row)];
     int16_t y = (int16_t)(row * 16);
-    int16_t x = (int16_t)(-16 - (sx & 15));
+    int16_t x = (int16_t)(-16 * sb->left_margin - (sx & 15));
     DrawBlocks_LR_2(sb->plane, CalcVRAMPos(sx, 0, x, y), sx, 0, x, y, layout, PLANE_WIDTH / 2);
 }
 
@@ -146,6 +146,7 @@ void ScrollBands_Init(ScrollBands *sb, plane_t *plane, const uint16_t *heights, 
     sb->plane = plane;
     sb->heights = heights;
     sb->count = count > SCROLL_MAX_BANDS ? SCROLL_MAX_BANDS : count;
+    sb->left_margin = 1;
 }
 
 void ScrollBands_DrawAll(ScrollBands *sb, const LevelLayoutPlane *layout) {

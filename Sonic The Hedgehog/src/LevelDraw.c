@@ -373,6 +373,11 @@ void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlan
 }
 
 void LoadTilesAsYouMove(void) {
+    if (LevelScroll_UsesBands()) {
+        LevelScroll_DrawBands(bg2_scrpos_x_dup.f.u, bg3_scrpos_x_dup.f.u);
+        LevelPlane_DrawPending(&fg_plane, LEVEL_LAYOUT_PLANE_FG);
+        return;
+    }
     DrawBG_Top(bg_scrpos_x_dup.f.u, bg_scrpos_y_dup.f.u,
                        &bg1_scroll_flags_dup, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
 
@@ -386,6 +391,10 @@ void LoadTilesAsYouMove(void) {
 }
 
 void LoadTilesAsYouMove_BGOnly(void) {
+    if (LevelScroll_UsesBands()) {
+        LevelScroll_DrawBands(bg2_scrpos_x.f.u, bg3_scrpos_x.f.u);
+        return;
+    }
     DrawBG_Top(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     DrawBG_Bottom(bg2_scrpos_x.f.u, bg2_scrpos_y.f.u, &bg2_scroll_flags, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     // No scroll block 3, even in REV01... odd

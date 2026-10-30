@@ -195,8 +195,8 @@ void Deform_GHZ(void)
 {
 	int16_t fg_x;
 	//Scroll background layers
-	BGScroll_Block3((scrshift_x << 6) + (scrshift_x << 5), SCROLL_FLAG_LEFT2); //Upper mountains
-	BGScroll_Block2(scrshift_x << 7, SCROLL_FLAG_LEFT2); //Hills and waterfalls
+	bg3_scrpos_x.v += (scrshift_x << 6) + (scrshift_x << 5); //Upper mountains
+	bg2_scrpos_x.v += scrshift_x << 7; //Hills and waterfalls
 
 	//Get Y position
 	vid_bg_scrpos_y_dup =  0x20 - ((scrpos_y.f.u & 0x7FF) >> 5);
@@ -681,4 +681,37 @@ void DeformLayers(void)
 	//Run the zone's routines (the scrolling engine's frame)
 	RegisterZones();
 	ScrollEngine_Events(LEVEL_ZONE(level_id), LEVEL_ACT(level_id));
+}
+
+// Green Hill's background plane (also the ending's, which scrolls the same way), as the original keeps it: the clouds and the water are drawn once and only wrap (their scroll lines
+// move them), so their bands stay at position 0; the upper mountains (lines $40-$6F) follow the mountains' X and the hills (lines $70-$9F) the hills' X.
+static const uint16_t ghz_band_heights[4] = { 0x40, 0x30, 0x30, 0x10 };
+static ScrollBands ghz_bands;
+static bool ghz_bands_redraw = true;
+
+bool LevelScroll_UsesBands(void)
+{
+	return LEVEL_ZONE(level_id) == ZoneId_GHZ || LEVEL_ZONE(level_id) == ZoneId_EndZ;
+}
+
+// A level begins (or the background is wiped): the next draw is the whole view
+void LevelScroll_BackgroundReset(void)
+{
+	ghz_bands_redraw = true;
+}
+
+// Brings the background plane up to the given positions (the ones the scroll lines were made from)
+void LevelScroll_DrawBands(int16_t bg2_x, int16_t bg3_x)
+{
+	if (ghz_bands.plane == NULL)
+		ScrollBands_Init(&ghz_bands, &screen1p.plane_b, ghz_band_heights, 4);
+		ghz_bands.left_margin = 0; // (the original's rows start at the camera's block)
+	ghz_bands.x[1] = bg3_x;
+	ghz_bands.x[2] = bg2_x;
+	ghz_bands.y = 0;
+	if (ghz_bands_redraw) {
+		ScrollBands_DrawAll(&ghz_bands, LEVEL_LAYOUT_PLANE_BG);
+		ghz_bands_redraw = false;
+	} else
+		ScrollBands_Draw(&ghz_bands, LEVEL_LAYOUT_PLANE_BG);
 }

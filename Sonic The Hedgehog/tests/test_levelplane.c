@@ -418,7 +418,52 @@ static void ScrollEngine_GreenHillsLinesAreTheOriginalsBands(void) {
     CHECK(drift1 >= drift2 && drift2 >= drift3); // (the layers drift at 1, 3/4 and 1/2 a pixel a frame)
 }
 
+void LoadTilesAsYouMove(void);
+// What Green Hill's background plane shows (the plane's tile under every 8th pixel of every line, through the scroll lines), frame by frame over a run of 900 frames
+// that speeds up, slows down and goes back. The hash is of what the flag-driven drawing of the original showed, recorded before the zone moved to the band layers.
+static void ScrollEngine_GreenHillsBackgroundShowsWhatTheOriginalDid(void) {
+    uint64_t hash = 0xcbf29ce484222325ull;
+    level_id = LEVEL_ID(ZoneId_GHZ, 0);
+    gamemode = GameMode_Level;
+    Viewport_SetSize(320, 224, 64, 32);
+    LevelDataLoad();
+    LoadLevelLayout();
+    Plane_Clear(&screen1p.plane_b);
+    scrpos_x.v = 0x50 << 16;
+    scrpos_y.v = 0x2A0 << 16;
+    bg_scrpos_x.v = bg_scrpos_y.v = bg2_scrpos_x.v = bg2_scrpos_y.v = bg3_scrpos_x.v = bg3_scrpos_y.v = 0;
+    bg_scrpos_x_dup = bg_scrpos_y_dup = bg2_scrpos_x_dup = bg2_scrpos_y_dup = bg3_scrpos_x_dup = bg3_scrpos_y_dup = bg_scrpos_x;
+    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
+    DrawChunks(0, 0, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
+    for (int frame = 0; frame < 900; frame++) {
+        int sp = frame < 600 ? (frame / 40) % 17 : -((frame / 30) % 9);
+        scrshift_x = (int16_t)sp;
+        scrpos_x.v += (int32_t)sp << 16;
+        scrpos_y.f.u = (int16_t)(0x2A0 + frame / 3);
+        bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
+        Deform_GHZ();
+        bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
+        bg2_scrpos_x_dup.v = bg2_scrpos_x.v; bg2_scrpos_y_dup.v = bg2_scrpos_y.v;
+        bg3_scrpos_x_dup.v = bg3_scrpos_x.v; bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
+        bg1_scroll_flags_dup = bg1_scroll_flags; bg2_scroll_flags_dup = bg2_scroll_flags; bg3_scroll_flags_dup = bg3_scroll_flags;
+        LoadTilesAsYouMove();
+        int vsy = vid_bg_scrpos_y_dup;
+        for (int l = 0; l < SCREEN_HEIGHT; l++) {
+            int row = ((l + vsy) >> 3) & (PLANE_HEIGHT - 1);
+            int x0 = -hscroll_buffer[l][1];
+            for (int sx = 0; sx < SCREEN_WIDTH; sx += 8) {
+                int col = ((x0 + sx) >> 3) & (PLANE_WIDTH - 1);
+                uint16_t w = Plane_Word(&screen1p.plane_b, (size_t)(row * PLANE_WIDTH + col) * 2);
+                hash = (hash ^ (w & 0xFF)) * 0x100000001b3ull;
+                hash = (hash ^ (w >> 8)) * 0x100000001b3ull;
+            }
+        }
+    }
+    CHECK(hash == 0xde8b197e9c5c6617ull);
+}
+
 void RegisterLevelPlaneTests(void) {
+    RUN_TEST(ScrollEngine_GreenHillsBackgroundShowsWhatTheOriginalDid);
     RUN_TEST(ScrollEngine_RunsAZonesRoutinesInTheOriginalsOrder);
     RUN_TEST(ScrollEngine_ALevelsMasksSetHowItWraps);
     RUN_TEST(ScrollEngine_GreenHillsLinesAreTheOriginalsBands);

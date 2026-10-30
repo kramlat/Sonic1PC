@@ -60,6 +60,7 @@ typedef struct {
     plane_t *plane;
     const uint16_t *heights; // (the table: bit 15 is ignored here, a band is drawn as one piece)
     int count;
+    int left_margin;         // blocks a whole row starts to the left of the view (1: the usual margin; 0: at the camera's block, as Sonic 1 draws its backgrounds)
     int16_t x[SCROLL_MAX_BANDS]; // each band's position now: set these, then call ScrollBands_Draw
     int16_t y;                   // the layer's Y now
     int16_t drawn_x[SCROLL_MAX_BANDS]; // what the plane holds

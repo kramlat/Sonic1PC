@@ -43,3 +43,8 @@ void BgScrollSpeed(int16_t x, int16_t y);
 void DeformLayers(void);
 void BGScroll_XY(int32_t x_off, int32_t y_off);
 void BGScroll_Block1(int32_t x, uint8_t bit);
+
+// Zones whose background plane is kept by the engine's band layers (ScrollBands) instead of the scroll flags
+bool LevelScroll_UsesBands(void);
+void LevelScroll_BackgroundReset(void);
+void LevelScroll_DrawBands(int16_t bg2_x, int16_t bg3_x);
