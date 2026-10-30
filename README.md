@@ -19,15 +19,39 @@ Handbook**, or F1).
   a console, a demo recorder and the SMPS Inspector.
 * Settings are kept in YAML at `~/.local/share/SonicPC/Sonic1Settings.cfg`.
 
+## What is in the repository
+
+Folder | What it is
+--------|--------
+`Sonic The Hedgehog/` | The Sonic 1 port (the project that `cmake` builds by default). The executable is `Sonic`.
+`Sonic the Hedgehog 2/` | The Sonic 2 port, work in progress. The executable is `Sonic2`.
+`ParadoxEngine/` | The engine both games are built on (a shared library), with its sound compiler, `libparadoxsmps`, and the third-party code in `contrib/`.
+`ParadoxMake/` | The project tool that reads each folder's `paradoxmakefile.yml` and builds the engine and the game.
+
+Everything the games need is in the repository (art, music, level data): nothing has to be downloaded or converted to build or play them.
+
 ## Dependencies
 
+* A C99 and C++17 compiler (GCC, Clang or MSVC), CMake 3.16 or newer, git
 * Qt 6 (Widgets and OpenGLWidgets) -- the game window, menu bar and debug tools
 * Qt 6 Multimedia -- audio
-* yaml-cpp -- the settings file (`~/.local/share/SonicPC/Sonic1Settings.cfg`)
+* yaml-cpp -- the settings file, and ParadoxMake itself
 * SDL2 -- gamepads and the software renderer that draws the frame
-* Optional: KDE Frameworks 6 CoreAddons and XmlGui (the KDE About dialog), xsltproc (builds the handbook's HTML for the in-game Help
+* An OpenGL development package (Linux: Mesa's libGL headers; Qt's OpenGLWidgets needs it)
+* Optional: KDE Frameworks 6 CoreAddons and XmlGui (the KDE About dialog; a plain message box is used without them), xsltproc (builds the handbook's HTML for the in-game Help
   window), KDE's DocTools (`meinproc6`, `checkXML6`) to check the handbook
-* pkg-config (for builds that require static-linkage)
+* Optional: pkg-config (for builds that require static-linkage)
+
+The packages, by system (the Linux lines are the ones the project is built and tested with; the macOS and Windows lines are written from the build files and have not been run by the maintainer, so treat them as a starting point):
+
+System | Install
+--------|--------
+Arch Linux, CachyOS | `sudo pacman -S base-devel cmake git qt6-base qt6-multimedia sdl2 yaml-cpp pkgconf` (optional: `libxslt kcoreaddons kxmlgui kdoctools`)
+Debian, Ubuntu | `sudo apt install build-essential cmake git pkg-config qt6-base-dev qt6-multimedia-dev libsdl2-dev libyaml-cpp-dev libgl1-mesa-dev` (optional: `xsltproc libkf6coreaddons-dev libkf6xmlgui-dev`)
+Fedora | `sudo dnf install gcc gcc-c++ cmake git qt6-qtbase-devel qt6-qtmultimedia-devel SDL2-devel yaml-cpp-devel mesa-libGL-devel`
+macOS (Homebrew) | `brew install cmake qt sdl2 yaml-cpp pkg-config` and add `-DCMAKE_PREFIX_PATH="$(brew --prefix qt)"` when configuring
+Windows, MSYS2 (UCRT64 shell) | `pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-qt6-multimedia mingw-w64-ucrt-x86_64-SDL2 mingw-w64-ucrt-x86_64-yaml-cpp mingw-w64-ucrt-x86_64-pkgconf git`
+Windows, Visual Studio | Visual Studio 2022 (with the C++ and CMake workloads) and [vcpkg](https://vcpkg.io): `vcpkg install qtbase qtmultimedia sdl2 yaml-cpp --triplet x64-windows`
 
 ## Getting the source
 
@@ -41,37 +65,88 @@ git clone --recursive https://github.com/kramlat/Sonic1PC.git
 
 ## Building
 
-This project uses CMake, allowing it to be built with a range of compilers. The root CMake project builds ParadoxMake (`ParadoxMake/`, the Paradox Engine
-project tool, like qmake for Qt), which reads each folder's `paradoxmakefile.yml` and builds the engine and the game; the real build tree is `build/projects`.
-You can also run it directly: `build/ParadoxMake/paradoxmake build "Sonic The Hedgehog"`.
+This project uses CMake. The root CMake project builds ParadoxMake (`ParadoxMake/`, the Paradox Engine project tool, like qmake for Qt), which reads each folder's
+`paradoxmakefile.yml` and builds the engine and the game; the real build tree is `build/projects`. Open a terminal and `cd` into the repository folder.
 
-Switch to the terminal and `cd` into this folder.
+### Linux
 
-After that, generate the files for your build system with:
+Sonic 1:
 ```
 cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+bin/Release/Sonic
 ```
 
-MSYS2 users should append `-G"MSYS Makefiles" -DPKG_CONFIG_STATIC_LIBS=ON` to this command, also.
+Sonic 2 (its own build folder: one build tree builds one game):
+```
+cmake -B build-sonic2 -DPARADOX_PROJECT="Sonic the Hedgehog 2"
+cmake --build build-sonic2 -j
+bin/Debug/Sonic2
+```
 
-You can also add the following flags:
+Sonic 2 builds as Debug when no build type is given (its debug mode is the way into its tools for now); Sonic 1 builds as Release. You can also run ParadoxMake directly:
+`build/ParadoxMake/paradoxmake build "Sonic The Hedgehog"` (`generate`, `configure`, `build`, `install`, `test`, `clean` and `info` are its commands).
+
+The games are one executable plus two shared libraries that sit next to it (`libParadoxEngine.so`, the engine, and `libparadoxsmps.so`, the sound compiler): copy the
+folder, not just the executable. The executables are in `bin/<build type>/` (`bin/` for a build without a build type).
+
+### Options
+
+Pass these to the first `cmake` command (`-DNAME=VALUE`; use a separate build folder per build type):
 
 Name | Function
 --------|--------
-`-DJAPANESE=ON` | Compile a Japanese ROM
+`-DCMAKE_BUILD_TYPE=` | `Debug`, `Release`, or `Premier` / `Showcase` (Release-speed builds that start at the SSRG splash screen; Premier keeps the cheats, Showcase does not)
+`-DPARADOX_PROJECT=` | The folder to build: `"Sonic The Hedgehog"` (the default) or `"Sonic the Hedgehog 2"`
+`-DJAPANESE=ON` | Compile a Japanese ROM (Sonic 1)
 `-DFIX_BUGS=ON` | Fix bugs that are blatant screw-ups that may harm performance (not gameplay bugs)
+`-DSPLASH=ON` | Start at the SSRG splash screen
+`-DBUILD_TESTS=OFF` | Do not build the unit tests, the smoke tests and the developer tools (on by default)
+`-DSANITIZE=ON` | Build with the address and undefined-behaviour sanitizers
 `-DLTO=ON` | Enable link-time optimisation
 `-DMSVC_LINK_STATIC_RUNTIME=ON` | Link the static MSVC runtime library, to reduce the number of required DLL files (Visual Studio only)
 
 You can pass your own compiler flags with `-DCMAKE_C_FLAGS` and `-DCMAKE_CXX_FLAGS`.
 
-You can then compile the executable with this command:
+### Tests
+
+The unit tests and the per-zone smoke tests (the real game started in a level) are built by default:
 
 ```
-cmake --build build --config Release
+ctest --test-dir build/projects --output-on-failure      # Sonic 1 (use build-sonic2/projects for Sonic 2)
+bin/Release/SonicTests                                   # or run the unit tests directly (bin/Debug/Sonic2Tests for Sonic 2)
 ```
 
-The game is `bin/Release/Sonic` (`bin/Sonic` for a build without a build type). Run it from anywhere. The game is one executable plus two shared libraries that sit next to it (`libParadoxEngine.so`, the engine every Sonic game shares, and `libparadoxsmps.so`, the sound compiler): copy the folder, not just the executable.
+### macOS
+
+The same commands as on Linux, with Qt found through Homebrew (`-DCMAKE_PREFIX_PATH="$(brew --prefix qt)"`), and the shared libraries are `.dylib` files that sit next to the
+executable. This has not been run by the maintainer.
+
+### Windows
+
+ParadoxMake starts CMake through the system shell with POSIX quoting, which Windows' `cmd.exe` does not understand, so on Windows let ParadoxMake write the build files and run CMake
+yourself. Build ParadoxMake first, then:
+
+MSYS2 (UCRT64 shell):
+```
+cmake -S ParadoxMake -B build/ParadoxMake -G Ninja
+cmake --build build/ParadoxMake
+build/ParadoxMake/paradoxmake generate -B build/projects "Sonic The Hedgehog"
+cmake -S build/projects/paradoxmake -B build/projects -G Ninja -DCMAKE_BUILD_TYPE=Release -DPKG_CONFIG_STATIC_LIBS=ON
+cmake --build build/projects
+```
+
+Visual Studio (a "Developer PowerShell"; vcpkg's folder in `VCPKG_ROOT`):
+```
+cmake -S ParadoxMake -B build/ParadoxMake -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+cmake --build build/ParadoxMake --config Release
+build/ParadoxMake/Release/paradoxmake.exe generate -B build/projects "Sonic The Hedgehog"
+cmake -S build/projects/paradoxmake -B build/projects -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DMSVC_LINK_STATIC_RUNTIME=ON
+cmake --build build/projects --config Release
+```
+
+(For Sonic 2 give `"Sonic the Hedgehog 2"` to `generate` and use another build folder.) The executable and its DLLs end up in `bin/Release`. On Windows, copy the Qt, SDL2 and
+yaml-cpp DLLs next to the executable (Qt's `windeployqt` does it for Qt's), or run from the MSYS2 shell. This has not been run by the maintainer: please report what needs changing.
 
 ## Installing
 
