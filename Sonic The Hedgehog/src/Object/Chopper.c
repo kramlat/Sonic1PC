@@ -1,59 +1,49 @@
 #include "Chopper.h"
 #include "Constants.h"
+#include "Object.h"
+#include "SstLoad.h"
 
-// Helper function for initialization
-void Obj_Chopper_Construct(Object *obj, Scratch_Chopper *scratch) {
-    obj->mappings = Mappings_Chopper;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Chopper);
-    obj->render.b = 0;
-    obj->render.f.level_fg = true; obj->priority = 4;
-    obj->col_type = 0x09;
-    obj->width_pixels = 16;
-    obj->ysp = -0x700;
-    scratch->orig_y = obj->pos.l.y.f.u;
-}
+// Chopper assets
+#include "Resource/Mappings/Chopper.h"
+#include "Resource/Animation/Chopper.h"
 
-// Helper function for movement logic
-void Obj_Chopper_Move(Object *obj, Scratch_Chopper *scratch) {
-    SpeedToPos(obj);
-    obj->ysp += 0x18;
-    Obj_Chopper_CheckAndResetPosition(obj, scratch);
-}
+// Object 2B - Chopper (GHZ): jumps up out of the water again and again
+typedef struct {
+    int16_t orig_y;
+} Own_Chopper;
 
-// Helper function for animation
-void Obj_Chopper_Animate(Object *obj, Scratch_Chopper *scratch) {
-    obj->anim = 1;
-    if ((scratch->orig_y - 0xC0) < obj->pos.l.y.f.u) {
-        obj->anim = 0;
-        if (obj->ysp >= 0)
-            obj->anim = 2;
-    }
-    AnimateSprite(obj, Animation_Chopper);
-}
-
-// Helper function to check position and reset if necessary
-void Obj_Chopper_CheckAndResetPosition(Object *obj, Scratch_Chopper *scratch) {
-    if (scratch->orig_y < obj->pos.l.y.f.u) {
-        obj->pos.l.y.f.u = scratch->orig_y;
-        obj->ysp = -0x700;
-    }
-}
-
-// Main Chopper function using helpers
-void Obj_Chopper(Object *obj) {
-    Scratch_Chopper *scratch = (Scratch_Chopper*)&obj->scratch;
-    switch (obj->routine) {
+void Obj_Chopper(Sst *self) {
+    Own_Chopper *own = (Own_Chopper *)self->own.u8;
+    switch (self->routine) {
         case 0: // Initialization
-            obj->routine += 2;
-            Obj_Chopper_Construct(obj, scratch);
+            self->routine += 2;
+            self->mappings = Mappings_Chopper;
+            self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Chopper);
+            self->render_flags = SST_RENDER_LEVEL;
+            self->priority = 4 * 0x80;
+            self->collision_flags = 0x09;
+            self->width_pixels = 16;
+            self->y_vel = -0x700;
+            own->orig_y = self->y_pos.f.u;
             break;
 
-            // Fallthrough to case 2
         case 2: // Moving
-            Obj_Chopper_Move(obj, scratch);
-             Obj_Chopper_Animate(obj, scratch);
-             break;
+            Sst_MoveSprite2(self);
+            self->y_vel += 0x18;
+            if (own->orig_y < self->y_pos.f.u) { // (back at the water)
+                self->y_pos.f.u = own->orig_y;
+                self->y_vel = -0x700;
+            }
+
+            self->anim = 1;
+            if ((own->orig_y - 0xC0) < self->y_pos.f.u) {
+                self->anim = 0;
+                if (self->y_vel >= 0)
+                    self->anim = 2;
+            }
+            Sst_Animate(self, Animation_Chopper);
+            break;
     }
     // Draw and unload once off-screen
-    RememberState(obj);
+    SstOnScreenTest(self);
 }

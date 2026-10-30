@@ -815,7 +815,7 @@ static signed int ReactSst_Monitor(Object *obj, Sst *hit) {
     return 0;
 }
 
-static signed int ReactToItem(Object *obj) {
+signed int ReactToItem(Object *obj) {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
     // Get collision area

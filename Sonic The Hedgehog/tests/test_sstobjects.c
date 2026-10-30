@@ -7,6 +7,7 @@
 #include "Object.h"
 #include "SstLoad.h"
 #include "Object/Explosion.h"
+#include "Object/Sonic.h"
 
 // The Sonic 1 objects that have moved to the status table, loaded from a layout by the loader of that table and run by its handler.
 
@@ -156,7 +157,98 @@ static void SstObjects_AnOldObjectThatTurnsIntoAnExplosionLeavesOneOnTheTableAnd
     CHECK_EQ(animals, 1);
 }
 
+signed int ReactToItem(Object *obj); // Sonic.c: the touch response
+
+static void Touch_Setup(void) {
+    Start();
+    memset(player, 0, sizeof(Object));
+    player->type = ObjId_Sonic;
+    player->routine = 2;
+    player->y_rad = 14;
+    player->x_rad = 7;
+    player->pos.l.x.f.u = 0x100;
+    player->pos.l.y.f.u = 0x300;
+    invincibility = 0;
+    score = 0;
+    item_bonus = 0;
+    ((Scratch_Sonic *)&player->scratch)->flash_time = 0;
+}
+
+static Sst *Touch_Chopper(void) {
+    Sst *chopper = Sst_Spawn(ObjId_Chopper, 0x100, 0x300);
+    Sst_Process(false);                                  // (sets it up)
+    chopper->x_pos.f.u = 0x100;
+    chopper->y_pos.f.u = 0x300;
+    chopper->render_flags |= SST_RENDER_ON_SCREEN;       // (the renderer's)
+    return chopper;
+}
+
+static void SstObjects_SonicRollingIntoABadnikOnTheTableDestroysItAndScores(void) {
+    Touch_Setup();
+    Sst *chopper = Touch_Chopper();
+    CHECK_EQ(chopper->collision_flags, 0x09);
+    player->anim = SonAnimId_Roll;
+    player->pos.l.y.f.u = 0x2F0;                         // (landing on it from above)
+    player->ysp = 0x200;
+    ReactToItem(player);
+    CHECK(chopper->code == sst_object_codes[ObjId_Explosion]);   // (it became the explosion where it was)
+    CHECK_EQ(chopper->routine, 0);
+    CHECK_EQ(chopper->own.u16[0xB], 0);                          // (the first of the chain: 100 points)
+    CHECK_EQ(score, 10);
+    CHECK_EQ(item_bonus, 2);
+    CHECK_EQ(player->ysp, -0x200);                               // (bounced)
+    CHECK(chopper->status & 0x80);
+}
+
+static void SstObjects_SonicWalkingIntoABadnikOnTheTableIsHurt(void) {
+    Touch_Setup();
+    Sst *chopper = Touch_Chopper();
+    player->anim = SonAnimId_Walk;
+    rings = 5;
+    shield = 0;
+    ReactToItem(player);
+    CHECK(chopper->code == sst_object_codes[ObjId_Chopper]);     // (still a chopper)
+    CHECK_EQ(player->routine, 4);                                // (hurt)
+    CHECK_EQ(score, 0);
+}
+
+static void SstObjects_AChopperJumpsInItsPlaceAndTurnsBackAtTheWater(void) {
+    Start();
+    Sst *chopper = Sst_Spawn(ObjId_Chopper, 0x100, 0x200);
+    Sst_Process(false);
+    CHECK_EQ(chopper->y_vel, -0x700);
+    int min_y = 0x200, max_y = 0x200;
+    for (int i = 0; i < 100; i++) {
+        Sst_Process(false);
+        if (chopper->y_pos.f.u < min_y)
+            min_y = chopper->y_pos.f.u;
+        if (chopper->y_pos.f.u > max_y)
+            max_y = chopper->y_pos.f.u;
+    }
+    CHECK(min_y < 0x200 - 0x70);                       // (it jumped)
+    CHECK(max_y <= 0x200);                             // (and never went lower than the water it came from)
+}
+
+static void SstObjects_JawsTurnAfterTheirDelay(void) {
+    Start();
+    Sst *jaws = Sst_Spawn(ObjId_Jaws, 0x100, 0x200);
+    jaws->subtype = 2;                                 // (a delay of 2 * 64 frames)
+    Sst_Process(false);
+    CHECK_EQ(jaws->x_vel, -0x40);
+    for (int i = 0; i < 126; i++)
+        Sst_Process(false);
+    CHECK_EQ(jaws->x_vel, -0x40);
+    for (int i = 0; i < 4; i++)
+        Sst_Process(false);
+    CHECK_EQ(jaws->x_vel, 0x40);
+    CHECK(jaws->status & SST_STATUS_X_FLIP);
+}
+
 void RegisterSstObjectsTests(void) {
+    RUN_TEST(SstObjects_SonicRollingIntoABadnikOnTheTableDestroysItAndScores);
+    RUN_TEST(SstObjects_SonicWalkingIntoABadnikOnTheTableIsHurt);
+    RUN_TEST(SstObjects_AChopperJumpsInItsPlaceAndTurnsBackAtTheWater);
+    RUN_TEST(SstObjects_JawsTurnAfterTheirDelay);
     RUN_TEST(SstObjects_AnOldObjectThatTurnsIntoAnExplosionLeavesOneOnTheTableAndStaysAsItsMarker);
     RUN_TEST(SstObjects_ABumperThrowsSonicAwayAndPaysTenPointsTenTimes);
     RUN_TEST(SstObjects_PointsRiseAndSlowAndAreDeletedWhenTheySettle);

@@ -4,6 +4,10 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/Yadrin.h"
+#include "Object/Jaws.h"
+#include "Object/Chopper.h"
+#include "Object/MotoBug.h"
 #include "Object/Explosion.h"
 #include "Object/Pylon.h"
 #include "Object/SpinningLight.h"
@@ -32,7 +36,6 @@ void Obj_BuzzExplode(Object *obj);
 void Obj_Ring(Object *obj);
 void Obj_Monitor(Object *obj);
 void Obj_Checkpoint(Object *obj);
-void Obj_Chopper(Object *obj);
 void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
 void Obj_GotThroughCard(Object *obj);
@@ -43,7 +46,6 @@ void Obj_GameOverCard(Object *obj);
 void Obj_GHZRock(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_BigSpikeBall(Object *obj);
-void Obj_Motobug(Object *obj);
 void Obj_Newtron(Object *obj);
 void Obj_GHZEdge(Object *obj);
 void Obj_Credits(Object *obj);
@@ -81,7 +83,6 @@ void Obj_ChainStomp(Object *obj);
 void Obj_GeyserMaker(Object *obj);
 void Obj_LavaGeyser(Object *obj);
 void Obj_PushBlock(Object *obj);
-void Obj_Yadrin(Object *obj);
 void Obj_Roller(Object *obj);
 void Obj_SpikeBall(Object *obj);
 void Obj_FloatingBlock(Object *obj);
@@ -93,7 +94,6 @@ void Obj_Pole(Object *obj);
 void Obj_Gargoyle(Object *obj);
 void Obj_LabyrinthBlock(Object *obj);
 void Obj_LabyrinthConvey(Object *obj);
-void Obj_Jaws(Object *obj);
 void Obj_Burrobot(Object *obj);
 void Obj_Orbinaut(Object *obj);
 void Obj_Bomb(Object *obj);
@@ -182,8 +182,8 @@ const ObjectFunc game_objects[] = {
 	/* 28 ObjId_Animal              */ Obj_Animals,
 	/* 29 ObjId_Points              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2A ObjId_SmallDoor           */ Obj_SmallDoor,
-	/* 2B ObjId_Chopper             */ Obj_Chopper,
-	/* 2C ObjId_Jaws                */ Obj_Jaws,
+	/* 2B ObjId_Chopper             */ NULL, // (moved to the status table: sst_object_codes)
+	/* 2C ObjId_Jaws                */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2D ObjId_Burrobot            */ Obj_Burrobot,
 	/* 2E ObjId_MonitorItem         */ Obj_MonitorItem,
 	/* 2F ObjId_LargeGrass          */ Obj_LargeGrass,
@@ -203,7 +203,7 @@ const ObjectFunc game_objects[] = {
 	/* 3D ObjId_BossGreenHill       */ Obj_BossGreenHill,
 	/* 3E ObjId_PrisonCapsule       */ Obj_PrisonCapsule,
 	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBombObject,
-	/* 40 ObjId_Motobug             */ Obj_Motobug,
+	/* 40 ObjId_Motobug             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 41 ObjId_Spring              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 42 ObjId_Newtron             */ Obj_Newtron,
 	/* 43 ObjId_Roller              */ Obj_Roller,
@@ -219,7 +219,7 @@ const ObjectFunc game_objects[] = {
 	/* 4D ObjId_LavaGeyser          */ Obj_LavaGeyser,
 	/* 4E ObjId_LavaWall            */ Obj_LavaWall,
 	/* 4F ObjId_4F                  */ Obj_Null,
-	/* 50 ObjId_Yadrin              */ Obj_Yadrin,
+	/* 50 ObjId_Yadrin              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 51 ObjId_SmashBlock          */ Obj_SmashBlock,
 	/* 52 ObjId_MovingBlock         */ Obj_MovingBlock,
 	/* 53 ObjId_CollapseFloor       */ Obj_CollapseFloor,
@@ -290,6 +290,10 @@ const SstCode sst_object_codes[0x100] = {
 	[ObjId_Waterfall] = Obj_Waterfall,
 	[ObjId_Pylon] = Obj_Pylon,
 	[ObjId_Points] = Obj_Points,
+	[ObjId_Yadrin] = Obj_Yadrin,
+	[ObjId_Jaws] = Obj_Jaws,
+	[ObjId_Chopper] = Obj_Chopper,
+	[ObjId_Motobug] = Obj_Motobug,
 	[ObjId_Explosion] = Obj_Explosion,
 	[ObjId_ExplosionBomb] = Obj_ExplosionBomb,
 	[ObjId_Bumper] = Obj_Bumper,

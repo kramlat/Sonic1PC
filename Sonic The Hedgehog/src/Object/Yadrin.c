@@ -1,9 +1,10 @@
 #include "Yadrin.h"
 
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 #include "Level.h"
-#include "LevelCollision.h"
 #include "LevelScroll.h"
-#include "Macros.h"
 #include "Resource/Animation/Yadrin.h"
 #include "Resource/Mappings/Yadrin.h"
 
@@ -15,86 +16,89 @@
 // touching within that thin band hurts Sonic; touching it anywhere else
 // (deeper, or outside that band) is a normal stompable badnik touch.
 
-static bool Yad_ChkWall(Object *obj) {
+typedef struct {
+    int16_t timedelay; // delay before turning around
+} Own_Yadrin;
+
+static bool Yad_ChkWall(Sst *self) {
     // Only checked every 4th frame on real hardware too (offset by this
     // object's own RAM index so multiple Yadrins don't all check on the
     // same frame) -- presumably a performance shortcut, not gameplay-critical.
-    if (((uint8_t)frame_count + (uint8_t)(obj - objects)) & 3)
+    if (((uint8_t)frame_count + (uint8_t)(self - sst)) & 3)
         return false;
 
-    int16_t hit = (obj->xsp < 0) ? ObjHitWallLeft(obj, (int16_t)(~(uint16_t)obj->width_pixels))
-                                  : ObjHitWallRight(obj, obj->width_pixels);
+    int16_t hit = (self->x_vel < 0) ? SstHitWallLeft(self, (int16_t)(~(uint16_t)self->width_pixels))
+                                    : SstHitWallRight(self, self->width_pixels);
     return hit < 0;
 }
 
-static void Yad_Action_Wait(Object *obj, Scratch_Yadrin *scratch) {
-    if (--scratch->timedelay >= 0)
+static void Yad_Action_Wait(Sst *self, Own_Yadrin *own) {
+    if (--own->timedelay >= 0)
         return;
 
-    obj->routine_sec += 2;
-    obj->xsp = (int16_t)-0x100;
-    obj->anim = 1;
+    self->routine_secondary += 2;
+    self->x_vel = (int16_t)-0x100;
+    self->anim = 1;
 
-    bool was_left = obj->status.o.f.x_flip;
-    obj->status.o.f.x_flip ^= 1;
+    bool was_left = (self->status & SST_STATUS_X_FLIP) != 0;
+    self->status ^= SST_STATUS_X_FLIP;
     if (!was_left)
-        obj->xsp = (int16_t)-obj->xsp;
+        self->x_vel = (int16_t)-self->x_vel;
 }
 
-static void Yad_Action_Move(Object *obj, Scratch_Yadrin *scratch) {
-    SpeedToPos(obj);
+static void Yad_Action_Move(Sst *self, Own_Yadrin *own) {
+    Sst_MoveSprite2(self);
 
-    int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
+    int16_t floor_dist = SstFloorDist(self, self->x_pos.f.u);
     bool pause = (floor_dist < -8) || (floor_dist >= 0xC);
     if (!pause) {
-        obj->pos.l.y.f.u += floor_dist;
-        pause = Yad_ChkWall(obj);
+        self->y_pos.f.u += floor_dist;
+        pause = Yad_ChkWall(self);
     }
     if (!pause)
         return;
 
-    obj->routine_sec -= 2;
-    scratch->timedelay = 60 - 1;
-    obj->xsp = 0;
-    obj->anim = 0;
+    self->routine_secondary -= 2;
+    own->timedelay = 60 - 1;
+    self->x_vel = 0;
+    self->anim = 0;
 }
 
-void Obj_Yadrin(Object *obj) {
-    Scratch_Yadrin *scratch = (Scratch_Yadrin *)&obj->scratch;
+void Obj_Yadrin(Sst *self) {
+    Own_Yadrin *own = (Own_Yadrin *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: { // Main -- falls until it lands, invisible the whole time
-        obj->mappings = Mappings_Yadrin;
-        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Yadrin); // | Tile_Pal2
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->priority = 4;
-        obj->width_pixels = 40 / 2;
-        obj->y_rad = 34 / 2;
-        obj->x_rad = 16 / 2;
-        obj->col_type = 0xCC; // col_40x32 | col_special
+        self->mappings = Mappings_Yadrin;
+        self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Yadrin); // | Tile_Pal2
+        self->render_flags = SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 40 / 2;
+        self->y_radius = 34 / 2;
+        self->x_radius = 16 / 2;
+        self->collision_flags = 0xCC; // col_40x32 | col_special
 
-        ObjectFall(obj);
-        int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
+        Sst_MoveSprite(self);
+        int16_t floor_dist = SstFloorDist(self, self->x_pos.f.u);
         if (floor_dist >= 0) {
-            if ((uint16_t)obj->pos.l.y.f.u > 0x7FF) // fell below max level height
-                ObjectDelete(obj);
+            if ((uint16_t)self->y_pos.f.u > 0x7FF) // fell below max level height
+                Sst_Delete(self);
             return;
         }
-        obj->pos.l.y.f.u += floor_dist;
-        obj->ysp = 0;
-        obj->routine += 2;
-        obj->status.o.f.x_flip ^= 1; // face left on spawn
+        self->y_pos.f.u += floor_dist;
+        self->y_vel = 0;
+        self->routine += 2;
+        self->status ^= SST_STATUS_X_FLIP; // face left on spawn
         return;
     }
     case 2: // Action
-        if (obj->routine_sec == 0)
-            Yad_Action_Wait(obj, scratch);
+        if (self->routine_secondary == 0)
+            Yad_Action_Wait(self, own);
         else
-            Yad_Action_Move(obj, scratch);
+            Yad_Action_Move(self, own);
 
-        AnimateSprite(obj, Animation_Yadrin);
-        RememberState(obj);
+        Sst_Animate(self, Animation_Yadrin);
+        SstOnScreenTest(self);
         break;
     }
 }

@@ -16,6 +16,10 @@ void SstSlopeObject_AssumeStoodOn(Sst *obj, uint16_t x_rad, const uint8_t *heigh
 int32_t SstSolid_ChkEnter(Sst *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off);
 int32_t SstSolidObject(Sst *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off);
 int32_t SstSolidObject_Heightmap(Sst *obj, uint16_t x_rad, uint16_t y_rad, const uint8_t *heightmap);
+int16_t SstFloorDist(Sst *obj, int16_t x);
+int16_t SstHitWallRight(Sst *obj, int16_t x_off);
+int16_t SstHitWallLeft(Sst *obj, int16_t x_off);
+int16_t SstHitCeiling(Sst *obj);
 bool SstChkObjectVisible(const Sst *obj);
 bool SstChkPartiallyVisible(const Sst *obj);
 

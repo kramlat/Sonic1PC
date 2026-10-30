@@ -3,6 +3,7 @@
 #include "Level.h"
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
+#include "LevelCollision.h"
 #include "Standing.h"
 
 // The solid and platform helpers for the status table's objects (see ObjectSst.h): Object.c's, field for field.
@@ -288,4 +289,27 @@ bool SstChkPartiallyVisible(const Sst *obj) {
     if ((y + obj->y_radius) < 0 || (y - obj->y_radius) >= SCREEN_HEIGHT)
         return false;
     return true;
+}
+
+// The collision probes of an object (ObjFloorDist and Object.c's wall and ceiling ones) for a status table object. The probes only use the object for the collision path it walks on, which for every object but
+// the characters is the first one's: a plain object stands in.
+static Object collision_proxy;
+
+int16_t SstFloorDist(Sst *obj, int16_t x) {
+    return FindFloor(&collision_proxy, x, obj->y_pos.f.u + (int8_t)obj->y_radius, META_SOLID_TOP, 0, 0x10, &angle_buffer0);
+}
+
+int16_t SstHitWallRight(Sst *obj, int16_t x_off) {
+    uint8_t angle;
+    return FindWall(&collision_proxy, (int16_t)(obj->x_pos.f.u + x_off), obj->y_pos.f.u, META_SOLID_LRB, 0, 0x10, &angle);
+}
+
+int16_t SstHitWallLeft(Sst *obj, int16_t x_off) {
+    uint8_t angle;
+    return FindWall(&collision_proxy, (int16_t)(obj->x_pos.f.u + x_off), obj->y_pos.f.u, META_SOLID_LRB, 0, -0x10, &angle);
+}
+
+int16_t SstHitCeiling(Sst *obj) {
+    uint8_t angle;
+    return FindFloor(&collision_proxy, obj->x_pos.f.u, (int16_t)((obj->y_pos.f.u - (int8_t)obj->y_radius) ^ 0xF), META_SOLID_LRB, META_Y_FLIP, -0x10, &angle);
 }

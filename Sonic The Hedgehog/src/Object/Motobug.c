@@ -1,109 +1,114 @@
 #include "MotoBug.h"
 #include "Constants.h"
 
-#include "LevelCollision.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
+#include "Resource/Mappings/Motobug.h"
+#include "Resource/Animation/Motobug.h"
+
+typedef struct {
+    int16_t time;
+    uint8_t pad;
+    int8_t smoke_delay;
+} Own_Motobug;
 
 // Motobug object
-void Obj_Motobug(Object* obj) {
-    Scratch_Motobug* scratch = (Scratch_Motobug*)&obj->scratch;
+void Obj_Motobug(Sst *self) {
+    Own_Motobug *own = (Own_Motobug *)self->own.u8;
 
     int16_t floor_dist;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Initialization
         // Set object drawing information
-        obj->mappings = Mappings_Motobug;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Moto_Bug);
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->priority = 4;
-        obj->width_pixels = 20;
+        self->mappings = Mappings_Motobug;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Moto_Bug);
+        self->render_flags = SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 20;
 
         // Check if we're smoke
-        if (!obj->anim) {
+        if (!self->anim) {
             // Motobug
             // Initialize collision
-            obj->y_rad = 14;
-            obj->x_rad = 8;
-            obj->col_type = 0x0C;
+            self->y_radius = 14;
+            self->x_radius = 8;
+            self->collision_flags = 0x0C;
 
             // Fall before enabling
-            ObjectFall(obj);
-            if ((floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u)) >= 0)
+            Sst_MoveSprite(self);
+            if ((floor_dist = SstFloorDist(self, self->x_pos.f.u)) >= 0)
                 break;
 
             // Clip and increment routine
-            obj->pos.l.y.f.u += floor_dist;
-            obj->ysp = 0;
-            obj->routine += 2;
-            obj->status.o.f.x_flip ^= 1;
+            self->y_pos.f.u += floor_dist;
+            self->y_vel = 0;
+            self->routine += 2;
+            self->status ^= SST_STATUS_X_FLIP;
         } else {
             // Smoke
             // Increment routine and draw
-            obj->routine += 4;
-            AnimateSprite(obj, Animation_Motobug);
-            DisplaySprite(obj);
+            self->routine += 4;
+            Sst_Animate(self, Animation_Motobug);
+            Sst_Draw(self);
             break;
         }
         // Fallthrough
     case 2: // Moving around
-        switch (obj->routine_sec) {
+        switch (self->routine_secondary) {
         case 0:
             // Wait for timer to expire
-            if (--scratch->time < 0) {
+            if (--own->time < 0) {
                 // Turn around and begin moving
-                obj->routine_sec += 2;
-                obj->xsp = -0x100;
-                obj->anim = 1;
-                if ((obj->status.o.f.x_flip ^= 1))
-                    obj->xsp = -obj->xsp;
+                self->routine_secondary += 2;
+                self->x_vel = -0x100;
+                self->anim = 1;
+                self->status ^= SST_STATUS_X_FLIP;
+                if (self->status & SST_STATUS_X_FLIP)
+                    self->x_vel = -self->x_vel;
             }
             break;
         case 2:
             // Move and check floor
-            SpeedToPos(obj);
-            floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
+            Sst_MoveSprite2(self);
+            floor_dist = SstFloorDist(self, self->x_pos.f.u);
 
             if (floor_dist >= -8 && floor_dist < 12) {
                 // Clip
-                obj->pos.l.y.f.u += floor_dist;
+                self->y_pos.f.u += floor_dist;
 
                 // Emit smoke every 16 frames
-                if (--scratch->smoke_delay < 0) {
-                    scratch->smoke_delay = 15;
-
-                    // Find smoke object slot
-                    Object* smoke = FindFreeObj();
-                    if (smoke == NULL)
-                        break;
+                if (--own->smoke_delay < 0) {
+                    own->smoke_delay = 15;
 
                     // Setup smoke object
-                    smoke->type = ObjId_Motobug;
-                    smoke->pos.l.x.f.u = obj->pos.l.x.f.u;
-                    smoke->pos.l.y.f.u = obj->pos.l.y.f.u;
-                    smoke->status.o.b = obj->status.o.b;
+                    Sst *smoke = Sst_Spawn(ObjId_Motobug, self->x_pos.f.u, self->y_pos.f.u);
+                    if (smoke == NULL)
+                        break;
+                    smoke->status = self->status;
                     smoke->anim = 2;
                 }
             } else {
                 // Stop moving
-                obj->routine_sec -= 2;
-                scratch->time = 59;
-                obj->xsp = 0;
-                obj->anim = 0;
+                self->routine_secondary -= 2;
+                own->time = 59;
+                self->x_vel = 0;
+                self->anim = 0;
             }
             break;
         }
 
         // Animate, draw, and unload when off-screen
-        AnimateSprite(obj, Animation_Motobug);
-        RememberState(obj);
+        Sst_Animate(self, Animation_Motobug);
+        SstOnScreenTest(self);
         break;
     case 4: // Smoke
-        AnimateSprite(obj, Animation_Motobug);
-        DisplaySprite(obj);
+        Sst_Animate(self, Animation_Motobug);
+        Sst_Draw(self);
         break;
     case 6: // Delete (smoke)
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     }
 }
