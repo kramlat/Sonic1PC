@@ -4,7 +4,7 @@
 ; Eggman icon). Same tight layout as Map_Invis's own .solid frame, just a
 ; different relative tile ($20, the Goggles monitor content icon).
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_WaterfallMarker_internal:	mappingsTable
 	mappingsTableEntry.w	@solid

@@ -1,8 +1,8 @@
 #ifndef _PYLON_H
 #define _PYLON_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_Pylon(Object *obj);
+void Obj_Pylon(Sst *self);
 
 #endif //_PYLON_H

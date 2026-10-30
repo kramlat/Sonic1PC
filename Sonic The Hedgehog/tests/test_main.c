@@ -25,6 +25,7 @@ void RegisterVDPSplitTests(void);
 void RegisterLevelPlaneTests(void);
 void RegisterSstTests(void);
 void RegisterSstLoadTests(void);
+void RegisterSstObjectsTests(void);
 void RegisterBossLZTests(void);
 void RegisterBossSLZTests(void);
 void RegisterScrapEggmanTests(void);
@@ -88,6 +89,7 @@ int main(void) {
     printf("Status table (Sonic 3 object) tests:\n");
     RegisterSstTests();
     RegisterSstLoadTests();
+    RegisterSstObjectsTests();
 
     printf("LZ boss tests:\n");
     RegisterBossLZTests();

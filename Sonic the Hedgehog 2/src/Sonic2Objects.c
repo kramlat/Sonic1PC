@@ -1,3 +1,4 @@
+#include "SstLoad.h"
 #include "Object.h"
 
 #include "Object/AirBubbles.h"
@@ -402,3 +403,6 @@ const ObjectFunc game_objects[] = {
 	/* AE ObjId_AE                 */ Obj_Null, // (the alpha's Clucker: not ported yet)
 };
 const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0]));
+
+// The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; none yet (see Sonic 1's table). The loader of that table loads their layout entries.
+const SstCode sst_object_codes[0x100];

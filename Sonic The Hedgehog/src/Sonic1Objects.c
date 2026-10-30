@@ -1,6 +1,9 @@
 #include "Object.h"
+#include "SstLoad.h"
 
 #include "Object/AirBubbles.h"
+#include "Object/Pylon.h"
+#include "Object/Waterfall.h"
 #include "Object/DrownCount.h"
 #include "Object/InvisibleBarrier.h"
 #include "Object/PathSwapper.h"
@@ -50,7 +53,6 @@ void Obj_TryChaos(Object *obj);
 void Obj_EndEggmobile(Object *obj);
 void Obj_ContScrItem(Object *obj);
 void Obj_ContSonic(Object *obj);
-void Obj_Waterfall(Object *obj);
 void Obj_GiantRing(Object *obj);
 void Obj_RingFlash(Object *obj);
 void Obj_HiddenBonus(Object *obj);
@@ -99,7 +101,6 @@ void Obj_Bomb(Object *obj);
 void Obj_Elevator(Object *obj);
 void Obj_CirclingPlatform(Object *obj);
 void Obj_Staircase(Object *obj);
-void Obj_Pylon(Object *obj);
 void Obj_Fan(Object *obj);
 void Obj_Seesaw(Object *obj);
 void Obj_Electrocuter(Object *obj);
@@ -212,7 +213,7 @@ const ObjectFunc game_objects[] = {
 	/* 46 ObjId_MarbleBrick         */ Obj_MarbleBrick,
 	/* 47 ObjId_Bumper              */ Obj_Bumper,
 	/* 48 ObjId_BossBall            */ Obj_BossBall,
-	/* 49 ObjId_Waterfall           */ Obj_Waterfall,
+	/* 49 ObjId_Waterfall           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 4A ObjId_VanishSonic         */ Obj_VanishSonic,
 	/* 4B ObjId_GiantRing           */ Obj_GiantRing,
 	/* 4C ObjId_GeyserMaker         */ Obj_GeyserMaker,
@@ -231,7 +232,7 @@ const ObjectFunc game_objects[] = {
 	/* 59 ObjId_Elevator            */ Obj_Elevator,
 	/* 5A ObjId_CirclingPlatform    */ Obj_CirclingPlatform,
 	/* 5B ObjId_Staircase           */ Obj_Staircase,
-	/* 5C ObjId_Pylon               */ Obj_Pylon,
+	/* 5C ObjId_Pylon               */ NULL, // (moved to the status table: sst_object_codes)
 	/* 5D ObjId_Fan                 */ Obj_Fan,
 	/* 5E ObjId_Seesaw              */ Obj_Seesaw,
 	/* 5F ObjId_Bomb                */ Obj_Bomb,
@@ -283,3 +284,10 @@ const ObjectFunc game_objects[] = {
 	/* 8D ObjId_8D                  */ Obj_EndEggmobile,
 };
 const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0]));
+
+// The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
+// An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
+const SstCode sst_object_codes[0x100] = {
+	[ObjId_Waterfall] = Obj_Waterfall,
+	[ObjId_Pylon] = Obj_Pylon,
+};

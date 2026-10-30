@@ -827,8 +827,8 @@ void SignpostArtLoad(void) {
 // original 320-pixel picture's, whatever the picture size: see IS_OFFSCREEN.
 ObjectsManager objects_manager;
 
-// The objects that have moved over to the status table of Sonic 3 & Knuckles (Sst.h) and are loaded by its loader (SstLoad.h) instead: an id's routine. The manager above leaves their entries alone.
-static const SstCode sst_object_codes[0x100];
+// The objects that have moved over to the status table of Sonic 3 & Knuckles (Sst.h) are loaded by its loader (SstLoad.h): an id's routine is in the table. The manager above leaves their entries alone.
+extern const SstCode sst_object_codes[0x100]; // Sonic1Objects.c
 static const SstObjectIndex sst_object_index = {sst_object_codes, 0x100};
 
 static SstLoadCamera SstCamera(void) {

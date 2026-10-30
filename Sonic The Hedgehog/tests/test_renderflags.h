@@ -7,6 +7,9 @@
 
 #include "Level.h"
 #include "Object.h"
+#include "Sst.h"
+
+extern const SstCode sst_object_codes[0x100]; // (the objects that have moved to the status table run from there)
 
 static inline uint8_t RenderFlags_AfterFirstRun(int id) {
     memset(objects, 0, sizeof(Object) * 0x60);
@@ -14,6 +17,16 @@ static inline uint8_t RenderFlags_AfterFirstRun(int id) {
     scrpos_x.v = scrpos_y.v = 0;
     player->type = 1;
     player->routine = 2;
+    if (sst_object_codes[id] != NULL) {
+        Sst_Reset();
+        Sst *self = &sst[SST_FIRST_DYNAMIC + 5];
+        self->code = sst_object_codes[id];
+        self->render_flags = 3;
+        self->x_pos.f.u = 0x100;
+        self->y_pos.f.u = 0x100;
+        self->code(self);
+        return self->code != NULL ? (uint8_t)(self->render_flags & 3) : 0xFF;
+    }
     Object *obj = &objects[0x20];
     obj->type = (uint8_t)id;
     obj->render.b = 3;

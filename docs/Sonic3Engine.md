@@ -134,6 +134,10 @@ game plays as before after each. Tests compare the new path with the old one (th
    * d. **Moving the objects**: Sonic 1 has 235 object files (about 22,700 lines) and Sonic 2 99 (about 20,600): each is rewritten for the `Sst` (field names, `Sst_*` calls, the routine tables as code pointers)
      and its tests move with it, a group at a time (players first, then the objects every zone shares, then each zone's), with the old and new handlers both running every frame until the last one is over. Not
      mechanical: the new `x_pos` is a word with a sub-pixel word, the radii are two fields, the status bits differ from the old ones, and the sprite pieces are drawn from different mappings.
+     *Method, proven on Sonic 1's Pylon and Waterfall trigger* (see the ChangeLog entry): the object's `.c` takes `Sst *self`; its mappings file includes `asm/Mappings/_MapMacrosS3.asm` (6-byte pieces; the
+     `res/Mappings` files are generated and ignored by git, the `.asm` is the source); its row goes into `sst_object_codes[]` (`Sonic1Objects.c`) and NULL into `game_objects[]`;
+     `tools/objlayout_clear_remember.pl` clears bit 15 of its id in `res/ObjectLayout`; a test loads it from a layout and runs it. Left for the players' step: the debug list (its previews draw the old
+     mappings format), the editor's live placement, and everything that touches `player` or the solid/touch helpers.
    * e. **The old handler goes**: `Object`, `ExecuteObjects`, `BuildSprites`, `ObjectsManager` removed.
 6. **The levels**: every zone of both games through the converters (Emerald Hill and Hill Top first: the one primary and two secondaries), the importers and the editor writing the new formats, the old
    readers removed (the camera limits and start positions stay in their tables, as in S3&K, unless the user wants them taken from the data).

@@ -1,8 +1,8 @@
 #ifndef _WATERFALL_H
 #define _WATERFALL_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_Waterfall(Object *obj);
+void Obj_Waterfall(Sst *self);
 
-#endif
+#endif //_WATERFALL_H
