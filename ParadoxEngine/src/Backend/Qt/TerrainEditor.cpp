@@ -31,6 +31,7 @@ extern "C" {
 
 extern "C" {
 extern int screen_width, screen_height; // the picture's size (Video.c)
+bool Peek_LevelSupplement(int zone, int *tile_start, int *block_start); // (DebugPeek.h)
 uint8_t *VDP_TileSpace(void); // (VDP.h: not included, it has C++ keywords in it) the tile space, VRAM_SIZE bytes
 }
 
@@ -66,6 +67,11 @@ struct State {
 	int block_cell = 0;                       // which of a block's four tiles is being edited
 	int sel_line = 1, sel_index = 1;          // the palette's selection
 	quint64 change_count = 0;                 // counts the changes (what caches go by)
+	// A zone whose tiles and blocks are another's with its own over them (Hill Top over Emerald Hill, Peek_LevelSupplement): the tools can edit the supplement, the base, or both.
+	// Where the supplement starts can be moved here to try it out; it is not saved (it is a note to make, and the code to change)
+	int supp_mode = 0;                        // 0 normal (both), 1 the supplement only, 2 the base only
+	int supp_tile = -1, supp_block = -1;      // where it starts, in tiles and in blocks (-1: this level has none)
+	int supp_default_tile = -1, supp_default_block = -1, supp_zone = -1;
 	bool block_night = false;                 // the Blocks tab in night mode: the tiles that are not high priority darkened
 	int solid_view = 1;                       // the solids drawn over the chunk's blocks: 0 none, 1 path 1, 2 path 2
 	QWidget *palette_pane = nullptr, *tile_grid = nullptr, *tile_canvas = nullptr, *block_grid = nullptr, *block_canvas = nullptr, *chunk_grid = nullptr, *chunk_canvas = nullptr, *solid_pane = nullptr;
@@ -82,6 +88,49 @@ void PutBe16(uint8_t *p, uint16_t v) { p[0] = uint8_t(v >> 8); p[1] = uint8_t(v)
 int TileCount() { size_t n; Editor_Art(&n); return int(n / 32); }
 int BlockCount() { size_t n; Editor_Blocks(&n); return int(n / 8); }
 int ChunkCount() { size_t n; Editor_Chunks(&n); return int(n / 128); }
+
+// The level's supplement (the game says where it starts; the editor keeps the start it was told or the one it was moved to, until another level is edited)
+void LoadSupplement() {
+	if (s.supp_zone == editor_session.zone && editor_open)
+		return;
+	s.supp_zone = editor_open ? editor_session.zone : -1;
+	int t, b;
+	if (editor_open && Peek_LevelSupplement(editor_session.zone, &t, &b)) {
+		s.supp_default_tile = s.supp_tile = t;
+		s.supp_default_block = s.supp_block = b;
+		if (const char *forced = getenv("SONIC_QT_SUPPMODE")) // (for the automated checks)
+			s.supp_mode = atoi(forced);
+	} else {
+		s.supp_default_tile = s.supp_default_block = s.supp_tile = s.supp_block = -1;
+		s.supp_mode = 0;
+	}
+}
+bool HasSupplement() { return s.supp_tile >= 0 && s.supp_block >= 0; }
+
+// Which of a tool's items (tiles or blocks) its mode shows and lets be edited: [first, first + count)
+void ItemRange(int total, int start, int *first, int *count) {
+	*first = 0;
+	*count = total;
+	if (start < 0 || s.supp_mode == 0)
+		return;
+	start = qBound(0, start, total);
+	if (s.supp_mode == 1) {
+		*first = start;
+		*count = total - start;
+	} else {
+		*count = start;
+	}
+}
+void TileRange(int *first, int *count) { ItemRange(TileCount(), s.supp_tile, first, count); }
+void BlockRange(int *first, int *count) { ItemRange(BlockCount(), s.supp_block, first, count); }
+bool TileEditable(int tile) { int f, c; TileRange(&f, &c); return tile >= f && tile < f + c; }
+bool BlockEditable(int block) { int f, c; BlockRange(&f, &c); return block >= f && block < f + c; }
+// "supplement +12", "base": where an item is, for the labels
+QString SupplementNote(int i, int start) {
+	if (start < 0)
+		return QString();
+	return i >= start ? QString("  [supplement +%1 ($%2)]").arg(i - start).arg(QString::number(i - start, 16).toUpper()) : QString("  [base]");
+}
 
 // An index as the tools show it: 16 ($10) of 255 (the last one there is)
 QString IndexText(int i, int count) {
@@ -197,8 +246,8 @@ bool NeedsCurve(int block, int path) {
 // A grid of things in a scroll area: `count` cells of `cell` pixels, `columns` to a row; a click selects
 class Grid : public QWidget {
 public:
-	Grid(int columns, int cell, std::function<int()> count, std::function<void(QPainter *, int, const QRect &)> draw, int *selected, std::function<void()> picked)
-	    : columns_(columns), cell_(cell), count_(std::move(count)), draw_(std::move(draw)), selected_(selected), picked_(std::move(picked)) {}
+	Grid(int columns, int cell, std::function<int()> count, std::function<void(QPainter *, int, const QRect &)> draw, int *selected, std::function<void()> picked, std::function<int()> first = nullptr)
+	    : columns_(columns), cell_(cell), count_(std::move(count)), draw_(std::move(draw)), selected_(selected), picked_(std::move(picked)), first_(std::move(first)) {}
 
 	QSize sizeHint() const override { return QSize(columns_ * cell_ + 1, qMax(1, (count_() + columns_ - 1) / columns_) * cell_ + 1); }
 	void Resize() { setFixedSize(sizeHint()); update(); }
@@ -207,8 +256,10 @@ protected:
 	void paintEvent(QPaintEvent *) override {
 		QPainter p(this);
 		p.fillRect(rect(), QColor(24, 24, 28));
-		for (int i = 0; i < count_(); i++) {
-			const QRect at((i % columns_) * cell_, (i / columns_) * cell_, cell_, cell_);
+		const int first = first_ ? first_() : 0;
+		for (int k = 0; k < count_(); k++) {
+			const int i = first + k; // (the item; k is where it is in the grid: a mode can show only some of them)
+			const QRect at((k % columns_) * cell_, (k / columns_) * cell_, cell_, cell_);
 			if (!at.intersects(visibleRegion().boundingRect()))
 				continue;
 			draw_(&p, i, at);
@@ -220,9 +271,9 @@ protected:
 		}
 	}
 	void mousePressEvent(QMouseEvent *e) override {
-		const int i = (e->position().toPoint().y() / cell_) * columns_ + e->position().toPoint().x() / cell_;
-		if (i >= 0 && i < count_()) {
-			*selected_ = i;
+		const int k = (e->position().toPoint().y() / cell_) * columns_ + e->position().toPoint().x() / cell_;
+		if (k >= 0 && k < count_()) {
+			*selected_ = (first_ ? first_() : 0) + k;
 			picked_();
 			update();
 		}
@@ -234,6 +285,7 @@ private:
 	std::function<void(QPainter *, int, const QRect &)> draw_;
 	int *selected_;
 	std::function<void()> picked_;
+	std::function<int()> first_;
 };
 
 QScrollArea *Scroll(QWidget *inner, QWidget *parent) {
@@ -356,6 +408,8 @@ private:
 		if (art == nullptr || size_t(s.tile + 1) * 32 > bytes)
 			return;
 		uint8_t &b = art[s.tile * 32 + y * 4 + x / 2];
+		if (!(e->buttons() & Qt::RightButton) && !TileEditable(s.tile))
+			return; // (the mode keeps this tile as it is)
 		if (e->buttons() & Qt::RightButton) { // (pick)
 			s.colour = (x & 1) ? (b & 15) : (b >> 4);
 			if (s.refresh_all)
@@ -371,6 +425,8 @@ private:
 };
 
 void FlipTile(bool horizontal) {
+	if (!TileEditable(s.tile))
+		return;
 	size_t bytes;
 	uint8_t *art = Editor_Art(&bytes);
 	if (art == nullptr || size_t(s.tile + 1) * 32 > bytes)
@@ -807,8 +863,13 @@ void AddTabs(QTabWidget *tabs) {
 		// Tiles
 		auto *tile_page = new QWidget();
 		auto *tile_layout = new QHBoxLayout(tile_page);
-		auto *tile_grid = new Grid(16, 8 * kTileZoom + 1, [] { return TileCount(); },
-		                           [](QPainter *p, int i, const QRect &at) { p->drawImage(at.adjusted(0, 0, -1, -1), TileImage(i, s.palette_line, false, false)); }, &s.tile, [] { if (s.refresh_all) s.refresh_all(); });
+		auto *tile_grid = new Grid(16, 8 * kTileZoom + 1, [] { int f, c; TileRange(&f, &c); return c; },
+		                           [](QPainter *p, int i, const QRect &at) {
+			                           p->drawImage(at.adjusted(0, 0, -1, -1), TileImage(i, s.palette_line, false, false));
+			                           if (HasSupplement() && i >= s.supp_tile) // (a small mark on the supplement's tiles)
+				                           p->fillRect(QRect(at.x() + 1, at.y() + 1, 4, 4), QColor(0, 220, 255));
+		                           },
+		                           &s.tile, [] { if (s.refresh_all) s.refresh_all(); }, [] { int f, c; TileRange(&f, &c); return f; });
 		animated << tile_grid;
 		tile_layout->addWidget(Scroll(tile_grid, tile_page), 1);
 		auto *tile_side = new QVBoxLayout();
@@ -826,7 +887,16 @@ void AddTabs(QTabWidget *tabs) {
 		auto *flip_v = new QPushButton("Flip up-down", tile_page);
 		flip_row->addWidget(flip_h);
 		flip_row->addWidget(flip_v);
+		auto *tile_mode = new QComboBox(tile_page); // the supplement (Hill Top's tiles over Emerald Hill's): which part is edited
+		tile_mode->addItems({ "Edit: normal (base and supplement)", "Edit: the supplement only", "Edit: the base only" });
+		auto *tile_start = new QSpinBox(tile_page);
+		tile_start->setRange(0, 0x7FF);
+		tile_start->setDisplayIntegerBase(16);
+		tile_start->setPrefix("Supplement starts at tile $");
+		tile_start->setToolTip("Moves where the supplement starts, to try it out: it is not saved. Make a note of it and change the code (Peek_LevelSupplement).");
 		tile_side->addWidget(tile_label);
+		tile_side->addWidget(tile_mode);
+		tile_side->addWidget(tile_start);
 		tile_side->addWidget(line_box);
 		tile_side->addWidget(tile_canvas);
 		tile_side->addWidget(strip);
@@ -843,11 +913,13 @@ void AddTabs(QTabWidget *tabs) {
 		// Blocks
 		auto *block_page = new QWidget();
 		auto *block_layout = new QHBoxLayout(block_page);
-		auto *block_grid = new Grid(16, 16 * kBlockZoom + 1, [] { return BlockCount(); },
+		auto *block_grid = new Grid(16, 16 * kBlockZoom + 1, [] { int f, c; BlockRange(&f, &c); return c; },
 		                            [](QPainter *p, int i, const QRect &at) {
 			                            priority_dim = s.block_night;
 			                            DrawBlock(p, i, at.adjusted(0, 0, -1, -1));
 			                            priority_dim = false;
+			                            if (HasSupplement() && i >= s.supp_block) // (a small mark on the supplement's blocks)
+				                            p->fillRect(QRect(at.x() + 1, at.y() + 1, 4, 4), QColor(0, 220, 255));
 			                            size_t bytes;
 			                            const uint8_t *solids = Editor_Solids(0, &bytes);
 			                            if (solids != nullptr && size_t(i) < bytes && solids[i] != 0) {
@@ -860,14 +932,23 @@ void AddTabs(QTabWidget *tabs) {
 				                            p->drawRect(at.adjusted(1, 1, -2, -2));
 			                            }
 		                            },
-		                            &s.block, [] { if (s.refresh_all) s.refresh_all(); });
+		                            &s.block, [] { if (s.refresh_all) s.refresh_all(); }, [] { int f, c; BlockRange(&f, &c); return f; });
 		animated << block_grid;
 		block_layout->addWidget(Scroll(block_grid, block_page), 1);
 		auto *block_side = new QVBoxLayout();
 		auto *block_label = new QLabel(block_page);
 		auto *block_canvas = new BlockCanvas();
 		animated << block_canvas;
+		auto *block_mode = new QComboBox(block_page);
+		block_mode->addItems({ "Edit: normal (base and supplement)", "Edit: the supplement only", "Edit: the base only" });
+		auto *block_start = new QSpinBox(block_page);
+		block_start->setRange(0, 0x3FF);
+		block_start->setDisplayIntegerBase(16);
+		block_start->setPrefix("Supplement starts at block $");
+		block_start->setToolTip("Moves where the supplement starts, to try it out: it is not saved. Make a note of it and change the code (Peek_LevelSupplement).");
 		block_side->addWidget(block_label);
+		block_side->addWidget(block_mode);
+		block_side->addWidget(block_start);
 		block_side->addWidget(block_canvas);
 		auto *tile_spin = new QSpinBox(block_page);
 		tile_spin->setRange(0, 0x7FF);
@@ -989,7 +1070,7 @@ void AddTabs(QTabWidget *tabs) {
 		auto write_cell = [=] {
 			size_t bytes;
 			uint8_t *blocks = Editor_Blocks(&bytes);
-			if (blocks == nullptr || size_t(s.block + 1) * 8 > bytes)
+			if (blocks == nullptr || size_t(s.block + 1) * 8 > bytes || !BlockEditable(s.block))
 				return;
 			const uint16_t word = uint16_t((tile_spin->value() & 0x7FF) | (x_flip->isChecked() ? 0x0800 : 0) | (y_flip->isChecked() ? 0x1000 : 0) | (line_spin->value() << 13) | (priority->isChecked() ? 0x8000 : 0));
 			PutBe16(blocks + s.block * 8 + s.block_cell * 2, word);
@@ -1003,9 +1084,40 @@ void AddTabs(QTabWidget *tabs) {
 			QObject::connect(box, &QCheckBox::toggled, block_page, [=](bool) { if (!loading_cell) write_cell(); });
 		QObject::connect(use_tile, &QPushButton::clicked, block_page, [=] { tile_spin->setValue(s.tile); });
 
+		// The supplement: the mode (both tools share it) and where it starts (each its own: tiles, blocks)
+		auto set_mode = [](int mode) { s.supp_mode = mode; if (s.refresh_all) s.refresh_all(); };
+		QObject::connect(tile_mode, qOverload<int>(&QComboBox::activated), tile_page, set_mode);
+		QObject::connect(block_mode, qOverload<int>(&QComboBox::activated), block_page, set_mode);
+		QObject::connect(tile_start, qOverload<int>(&QSpinBox::valueChanged), tile_page, [](int v) { if (s.supp_tile != v) { s.supp_tile = v; if (s.refresh_all) s.refresh_all(); } });
+		QObject::connect(block_start, qOverload<int>(&QSpinBox::valueChanged), block_page, [](int v) { if (s.supp_block != v) { s.supp_block = v; if (s.refresh_all) s.refresh_all(); } });
+		auto sync_supplement = [=] {
+			LoadSupplement();
+			const bool has = HasSupplement();
+			for (QWidget *w : std::initializer_list<QWidget *>{ tile_mode, tile_start, block_mode, block_start })
+				w->setVisible(has);
+			for (QComboBox *box : { tile_mode, block_mode }) {
+				QSignalBlocker block(box);
+				box->setCurrentIndex(s.supp_mode);
+			}
+			if (has) {
+				QSignalBlocker b1(tile_start), b2(block_start);
+				tile_start->setValue(s.supp_tile);
+				block_start->setValue(s.supp_block);
+			}
+			int f, c;
+			TileRange(&f, &c);
+			if (c > 0 && !TileEditable(s.tile))
+				s.tile = f; // (the mode shows only some tiles: the selection stays among them)
+			BlockRange(&f, &c);
+			if (c > 0 && !BlockEditable(s.block))
+				s.block = f;
+		};
+
 		// The palette cycles on the screen: the pictures follow it, redrawn when the colours they show have moved (the Palette tab shows the palette itself, with its placeholders as they are)
 		auto *timer = new QTimer(tabs);
 		QObject::connect(timer, &QTimer::timeout, tabs, [tabs] {
+			if (s.supp_zone != (editor_open ? editor_session.zone : -1) && s.refresh_all)
+				s.refresh_all(); // (another level: its supplement)
 			if (!tabs->isVisible())
 				return;
 			quint64 signature = 1469598103934665603ull;
@@ -1035,6 +1147,7 @@ void AddTabs(QTabWidget *tabs) {
 		timer->start(40);
 
 		s.refresh_all = [=] {
+			sync_supplement();
 			tile_grid->Resize();
 			block_grid->Resize();
 			chunk_grid->Resize();
@@ -1048,8 +1161,8 @@ void AddTabs(QTabWidget *tabs) {
 				canvases[plane]->update();
 				chunk_picks[plane]->setText("Painting with chunk " + IndexText(s.chunk, ChunkCount()));
 			}
-			tile_label->setText("Tile " + IndexText(s.tile, TileCount()));
-			block_label->setText(QString("Block %1, tile %2 of 4").arg(IndexText(s.block, BlockCount())).arg(s.block_cell + 1));
+			tile_label->setText("Tile " + IndexText(s.tile, TileCount()) + SupplementNote(s.tile, s.supp_tile));
+			block_label->setText(QString("Block %1, tile %2 of 4").arg(IndexText(s.block, BlockCount())).arg(s.block_cell + 1) + SupplementNote(s.block, s.supp_block));
 			chunk_label->setText(QString("Chunk %1 (drawn with block %2)").arg(IndexText(s.chunk, ChunkCount())).arg(IndexText(s.block, BlockCount())));
 			line_box->blockSignals(true);
 			line_box->setCurrentIndex(s.palette_line);

@@ -48,6 +48,7 @@ WEAK const char *Peek_LevelName(int zone, int act) { (void)zone; (void)act; retu
 WEAK const char *Peek_TerrainFolder(int kind) { (void)kind; return NULL; }
 WEAK const char *Peek_LevelLayoutFolder(void) { return NULL; }
 WEAK const char *Peek_ZoneCode(int zone) { (void)zone; return NULL; }
+WEAK bool Peek_LevelSupplement(int zone, int *tile_start, int *block_start) { (void)zone; (void)tile_start; (void)block_start; return false; }
 WEAK const char *Peek_ZoneName(int zone) { (void)zone; return NULL; }
 WEAK int Peek_VarCount(void) { return 0; }
 WEAK void Peek_GetVar(int i, VarPeek *out) { (void)i; (void)out; }

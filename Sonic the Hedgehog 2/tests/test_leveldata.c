@@ -1,6 +1,8 @@
 #include "test.h"
 
 #include "Level.h"
+#include "Kosinski.h"
+#include "DebugPeek.h"
 #include "Palette.h"
 #include "Backend/VDP.h"
 #include <string.h>
@@ -171,7 +173,33 @@ static void LevelData_CyberCityLightsPulseBetweenTheirTwoColours(void) {
     CHECK(changes > 10 && changes < 400); // (a slow pulse: it is not a change every tick)
 }
 
+// Hill Top's tiles and blocks are Emerald Hill's with its own written over them from the supplement's start (HTZ_SUPPLEMENT_TILE and _BLOCK in Sonic2LevelData.c, which the editor
+// shows and can move to try out: a note to make and a number to change there): the data must agree with those numbers. Hill Top's are Emerald Hill's up to the start, and the first
+// tile (or block) that differs is the start
+static void LevelData_HillTopsSupplementStartsWhereTheSymbolsSay(void) {
+    int tile_start = 0, block_start = 0;
+    CHECK(Peek_LevelSupplement(ZoneId_HTZ, &tile_start, &block_start));
+    int other_tile = 0, other_block = 0;
+    CHECK(!Peek_LevelSupplement(ZoneId_EHZ, &other_tile, &other_block)); // (the base has none)
+    static uint8_t base[0x20000], top[0x20000];
+    for (int kind = 0; kind < 2; kind++) {
+        const uint8_t *base_data = kind ? level_header[ZoneId_EHZ].map16 : level_header[ZoneId_EHZ].art;
+        const uint8_t *top_data = kind ? level_header[ZoneId_HTZ].map16 : level_header[ZoneId_HTZ].art;
+        const int unit = kind ? 8 : 32, start = kind ? block_start : tile_start;
+        memset(base, 0, sizeof(base));
+        memset(top, 0, sizeof(top));
+        KosDec(base_data, base);
+        KosDec(top_data, top);
+        int first = -1;
+        for (int k = 0; k < (int)sizeof(base) && first < 0; k++)
+            if (base[k] != top[k])
+                first = k / unit;
+        CHECK_EQ(first, start);
+    }
+}
+
 void RegisterLevelDataTests(void) {
+    RUN_TEST(LevelData_HillTopsSupplementStartsWhereTheSymbolsSay);
     RUN_TEST(LevelData_StartPositionsMatchThePrototype);
     RUN_TEST(LevelData_CyberCityLightsPulseBetweenTheirTwoColours);
     RUN_TEST(LevelData_SandShowerCactusTopsSwayThroughThreeDrawings);

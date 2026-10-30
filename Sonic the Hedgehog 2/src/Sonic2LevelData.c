@@ -355,6 +355,18 @@ const uint8_t* level_ring[ZoneId_Num][4] = {
 };
 
 // The name of a zone's terrain files in res/ (S2Art/<name>, S2Map16/<name> ...), for the level editor's saved files
+// Hill Top's tiles and blocks are Emerald Hill's with its own over them (the importer's Hill Top entry: the tiles from byte $3F80, the blocks from byte $980). Where the supplement starts is
+// these two numbers (the level editor can move them to try them out, without saving: a note to make and a number to change here, and in the importer's offsets)
+#define HTZ_SUPPLEMENT_TILE  0x1FC // (the importer's $3F80 / 32)
+#define HTZ_SUPPLEMENT_BLOCK 0x130 // (the importer's $980 / 8)
+bool Peek_LevelSupplement(int zone, int *tile_start, int *block_start) {
+    if (zone != ZoneId_HTZ)
+        return false;
+    *tile_start = HTZ_SUPPLEMENT_TILE;
+    *block_start = HTZ_SUPPLEMENT_BLOCK;
+    return true;
+}
+
 const char *Peek_ZoneCode(int zone) {
     static const char *const names[ZoneId_Num] = {
         [0x00] = "EHZ",

@@ -5,6 +5,8 @@
 
 #include <stdint.h>
 
+#include <stdbool.h>
+
 #include "Backend/PeekData.h"
 
 #ifdef __cplusplus
@@ -62,6 +64,8 @@ const char *Peek_LevelName(int zone, int act);
 const char *Peek_TerrainFolder(int kind);
 const char *Peek_LevelLayoutFolder(void); // the folder of a level's layout file ("S2Layout"), named in it by Peek_LevelName
 const char *Peek_ZoneCode(int zone);
+// A zone whose tiles and blocks are another zone's with its own supplement over them (Hill Top over Emerald Hill): where the supplement starts, in tiles and in blocks, or false. The level editor lets the supplement be edited apart from the base.
+bool Peek_LevelSupplement(int zone, int *tile_start, int *block_start);
 // The zone's own name for the editor's title ("Sand Shower Zone"), or NULL
 const char *Peek_ZoneName(int zone);
 
