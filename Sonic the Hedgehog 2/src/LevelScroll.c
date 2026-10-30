@@ -709,6 +709,11 @@ static void RegisterZones(void) {
 }
 
 
+// (for the tests: the zones' routines registered with the engine, as the first frame does)
+void LevelScroll_RegisterZones(void) {
+    RegisterZones();
+}
+
 /* BgScrollSpeed (Nick Arcade's): the background positions each zone starts with */
 void BgScrollSpeed(int16_t x, int16_t y) {
     /* A checkpoint restore brings its own background positions */

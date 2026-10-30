@@ -31,7 +31,7 @@
 #define META_SOLID_LRB META_SOLID_LRB_1
 
 extern uint8_t *const level_map128;
-extern uint8_t level_map16[0x1800];
+extern uint8_t level_map16[0x2000];
 // The level's layout: two planes of chunk numbers (0 is empty), each allocated at exactly the size the layout file says (LevelLayout.h): a level takes the memory it needs, no
 // fixed buffer. A chunk is read with LevelLayout_Chunk and written with LevelLayout_SetChunk; nothing indexes the rows itself.
 //

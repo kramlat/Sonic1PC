@@ -3,6 +3,13 @@
 #include "Camera.h"
 #include "LevelScroll.h"
 #include "Video.h"
+#include "Level.h"
+#include "ScrollEngine.h"
+#include "LevelDraw.h"
+#include "Backend/VDP.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // The prototype's Scroll_Block1..4 (and the shared UpdateBGScroll the port's other background scrolls use): a background moves by a 16.16 amount, and when it crosses a line between 16 pixel blocks its
 // "crossed" tracker toggles and the zone's flag for the direction is raised, so the level drawing adds the row or column that has come into view. Left raises the flag's bit and right the next one (D6 and
@@ -208,7 +215,96 @@ static void ScrollBlock_EmeraldHillsLinesAreTheOriginals(void) {
     CHECK(hash == 0x356e9d00d3e1008bull);
 }
 
+// ---- the zones' backgrounds through the scrolling engine ----
+// What a zone's background plane shows (the plane's tile under every 8th pixel of every line, through the scroll lines) over a run of 1200 frames of the camera going right and down, stopping, going
+// left and up, then small moves both ways; the hash is of what the flag-driven drawing showed, recorded before the zones moved to the engine's band layers.
+
+void LevelScroll_RegisterZones(void);
+void LoadTilesAsYouMove(void);
+extern uint8_t bg1_xblock, bg2_xblock, bg3_xblock, bg1_yblock, bg2_yblock, bg3_yblock;
+
+static uint64_t ZoneBackgroundHash(int zone, int act) {
+    uint64_t hash = 0xcbf29ce484222325ull;
+    level_id = LEVEL_ID(zone, act);
+    last_lamp = 0;
+    camera_split = false;
+    LevelScroll_RegisterZones();
+    LevelDataLoad();
+    Plane_Clear(&screen1p.plane_a);
+    Plane_Clear(&screen1p.plane_b);
+    int16_t x = StartLocArray[zone][act][0], y = StartLocArray[zone][act][1];
+    x = (int16_t)(x < 160 ? 0 : x - 160);
+    y = (int16_t)(y < 96 ? 0 : y - 96);
+    scrpos_x.v = (int32_t)x << 16;
+    scrpos_y.v = (int32_t)y << 16;
+    bg_scrpos_x.v = bg_scrpos_y.v = bg2_scrpos_x.v = bg2_scrpos_y.v = bg3_scrpos_x.v = bg3_scrpos_y.v = 0;
+    BgScrollSpeed(x, y);
+    bg1_xblock = bg2_xblock = bg3_xblock = 0;
+    bg1_yblock = bg2_yblock = bg3_yblock = 0;
+    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
+    scrshift_x = scrshift_y = 0;
+    vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
+    LoadTilesFromStart();
+    for (int frame = 0; frame < 1200; frame++) {
+        int sx, sy;
+        if (frame < 400) { sx = (frame / 25) % 9; sy = (frame / 20) % 7; }
+        else if (frame < 450) { sx = 0; sy = 0; }
+        else if (frame < 900) { sx = -((frame / 25) % 9); sy = -((frame / 20) % 7); }
+        else { sx = (frame % 7) - 3; sy = (frame % 11) - 5; }
+        if (scrpos_x.f.u + sx < 0) sx = 0;
+        if (scrpos_y.f.u + sy < 0) sy = 0;
+        scrshift_x = (int16_t)(sx << 8);
+        scrshift_y = (int16_t)(sy << 8);
+        scrpos_x.v += (int32_t)sx << 16;
+        scrpos_y.v += (int32_t)sy << 16;
+        bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
+        ScrollEngine_Events(zone, act);
+        bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
+        bg2_scrpos_x_dup.v = bg2_scrpos_x.v; bg2_scrpos_y_dup.v = bg2_scrpos_y.v;
+        bg3_scrpos_x_dup.v = bg3_scrpos_x.v; bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
+        bg1_scroll_flags_dup = bg1_scroll_flags; bg2_scroll_flags_dup = bg2_scroll_flags; bg3_scroll_flags_dup = bg3_scroll_flags;
+        LoadTilesAsYouMove();
+        int vsy = vid_bg_scrpos_y_dup;
+        for (int l = 0; l < SCREEN_HEIGHT; l++) {
+            int row = ((l + vsy) >> 3) & (PLANE_HEIGHT - 1);
+            int x0 = -hscroll_buffer[l][1];
+            for (int px = 0; px < SCREEN_WIDTH; px += 8) {
+                int col = ((x0 + px) >> 3) & (PLANE_WIDTH - 1);
+                uint16_t w = Plane_Word(&screen1p.plane_b, (size_t)(row * PLANE_WIDTH + col) * 2);
+                hash = (hash ^ (w & 0xFF)) * 0x100000001b3ull;
+                hash = (hash ^ (w >> 8)) * 0x100000001b3ull;
+            }
+        }
+    }
+    return hash;
+}
+
+typedef struct { int zone, act; uint64_t hash; } ZoneGolden;
+static const ZoneGolden zone_goldens[] = {
+    { ZoneId_EHZ, 0, 0xca7815ae48c085a9ull },
+    { ZoneId_CPZ, 0, 0xd5e4d0b49d087472ull },
+    { ZoneId_HPZ, 0, 0xb7e71a2611871156ull },
+    { ZoneId_HTZ, 0, 0x5ae5d58317443125ull },
+    { ZoneId_WZ, 0, 0xe01b70f32a410a88ull },
+    { ZoneId_MTZ, 0, 0xdcff82b672d2ac03ull },
+    { ZoneId_OOZ, 0, 0xaa21dfdd6e90753ull },
+    { ZoneId_MCZ, 0, 0x305ca2de88d0a7a0ull },
+    { ZoneId_MCZ, 1, 0xfbc11d93656a3fbbull },
+    { ZoneId_CNZ, 0, 0xa8858b0e01c44f30ull },
+    { ZoneId_SSZ, 0, 0xd8755c5673d1e8f7ull },
+    { ZoneId_ARZ, 0, 0xda475adf275582baull },
+    { ZoneId_ARZ, 1, 0x22919f96ba252d92ull },
+};
+
+static void ScrollZones_BackgroundsShowWhatTheOriginalsDid(void) {
+    for (size_t i = 0; i < sizeof(zone_goldens) / sizeof(zone_goldens[0]); i++) {
+        uint64_t h = ZoneBackgroundHash(zone_goldens[i].zone, zone_goldens[i].act);
+        CHECK(h == zone_goldens[i].hash);
+    }
+}
+
 void RegisterScrollBlockTests(void) {
+    RUN_TEST(ScrollZones_BackgroundsShowWhatTheOriginalsDid);
     RUN_TEST(ScrollBlock_EmeraldHillsLinesAreTheOriginals);
     RUN_TEST(ScrollBlock_RightAcrossALineRaisesTheRightFlag);
     RUN_TEST(ScrollBlock_LeftAcrossALineRaisesTheLeftFlag);
