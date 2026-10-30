@@ -4,6 +4,7 @@
 #include "../../EditorLive.h"
 extern "C" {
 #include "../../Kosinski.h"
+#include "../../LevelLayout.h"
 }
 
 #include <QCheckBox>
@@ -1230,8 +1231,10 @@ bool Save(const QString &slot, int zone, int act, QString *message) {
 		const uint8_t *layout = Editor_Layout(&bytes);
 		const char *folder = Peek_LevelLayoutFolder();
 		const char *name = Peek_LevelName(zone, act);
-		size_t packed_size;
-		uint8_t *packed = KosEnc(layout, bytes, &packed_size);
+		size_t file_size, packed_size;
+		uint8_t *file_data = LevelLayout_Pack(layout, int(bytes / 0x100), &file_size, nullptr); // (the Sonic 3 & Knuckles layout format, then Kosinski: LevelLayout.h)
+		uint8_t *packed = KosEnc(file_data, file_size, &packed_size);
+		free(file_data);
 		const QString path = folder && name ? QString("%1/%2/%3").arg(slot, folder, name) : QString("%1/layout_act%2.kos").arg(slot).arg(act + 1);
 		QDir().mkpath(QFileInfo(path).absolutePath());
 		QFile file(path);

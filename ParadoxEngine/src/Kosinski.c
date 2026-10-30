@@ -27,6 +27,8 @@ static bool GetDescriptorBit(void) {
 	return bit;
 }
 
+const uint8_t *KosDec_SourceEnd(void) { return source; }
+
 uint8_t* KosDec(const uint8_t *_source, void *_destination) {
 	source = _source;
 	uint8_t *destination = _destination;

@@ -4,6 +4,7 @@
 
 #include "EngineConstants.h"
 #include "GameInterface.h"
+#include "KosinskiModule.h"
 #include "Nemesis.h"
 
 #include "Backend/VDP.h"
@@ -107,6 +108,7 @@ static void ProcessDPLC_Main(size_t off) {
 }
 
 void ProcessDPLC(void) {
+    ProcessKosinskiModuleQueue(); // (the moduled art that is streaming in: a module a frame, beside the Nemesis queue)
     if (plc_buffer_reg18 != 0) {
         plc_buffer_reg1A = PLC_SPEED_1; // Process PLC_SPEED_1 tiles
 

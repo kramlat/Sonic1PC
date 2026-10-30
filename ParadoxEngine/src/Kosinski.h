@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 uint8_t *KosDec(const uint8_t *source, void *destination);
+// Where the last KosDec stopped reading: just past the end marker of the data it decompressed (a moduled archive's next module is found from it)
+const uint8_t *KosDec_SourceEnd(void);
 
 // Compresses `size` bytes at `src` into a newly malloc'd Kosinski buffer,
 // writing its length to `*out_size`. Caller owns the returned buffer (free()

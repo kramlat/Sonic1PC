@@ -1,6 +1,7 @@
 #include "test.h"
 
 #include "Level.h"
+#include "LevelLayout.h"
 #include "Kosinski.h"
 #include "DebugPeek.h"
 #include "Palette.h"
@@ -198,7 +199,23 @@ static void LevelData_HillTopsSupplementStartsWhereTheSymbolsSay(void) {
     }
 }
 
+// A level's layout says how big the level is (the Sonic 3 & Knuckles format): Hill Top's first act is 83 chunks wide and 16 rows tall in the foreground, 60 by 16 in the background; the null level has no chunk at all
+static void LevelData_TheLayoutHeaderSaysHowBigTheLevelIs(void) {
+    level_id = LEVEL_ID(ZoneId_HTZ, 0);
+    LoadLevelLayout();
+    CHECK_EQ(level_layout_size.fg_width, 83);
+    CHECK_EQ(level_layout_size.fg_rows, 16);
+    CHECK_EQ(level_layout_size.bg_width, 60);
+    CHECK_EQ(level_layout_size.bg_rows, 16);
+    level_id = LEVEL_ID(ZoneId_HTZ, 2); // (the null level)
+    LoadLevelLayout();
+    CHECK_EQ(level_layout_size.fg_width, 0);
+    CHECK_EQ(level_layout_size.fg_rows, 0);
+    CHECK_EQ(level_layout[0], 0);
+}
+
 void RegisterLevelDataTests(void) {
+    RUN_TEST(LevelData_TheLayoutHeaderSaysHowBigTheLevelIs);
     RUN_TEST(LevelData_HillTopsSupplementStartsWhereTheSymbolsSay);
     RUN_TEST(LevelData_StartPositionsMatchThePrototype);
     RUN_TEST(LevelData_CyberCityLightsPulseBetweenTheirTwoColours);

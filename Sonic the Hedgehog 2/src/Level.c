@@ -13,6 +13,7 @@ void S2_PrimeLevelArt(void); // AnimatedArt.c
 #include "Enigma.h"
 #include "Game.h"
 #include "Kosinski.h"
+#include "LevelLayout.h"
 #include "LevelDraw.h"
 #include "LevelScroll.h"
 #include "SplitScreen.h"
@@ -198,11 +199,9 @@ void LoadLevelMaps(void) {
 }
 
 void LoadLevelLayout(void) {
-    // Load the single interleaved FG+BG layout blob (Kosinski-compressed,
-    // matches level_layout's flat LEVEL_LAYOUT_ROWS*LEVEL_LAYOUT_ROW_STRIDE
-    // shape exactly, one KosDec call decodes both planes at once)
-    memset(level_layout, 0, sizeof(level_layout));
-    KosDec(level_layouts[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)].layout, level_layout);
+    // The layout file is the Sonic 3 & Knuckles format (LevelLayout.h: a header with the level's size, then the rows), Kosinski compressed; it fills level_layout
+    // (the fixed buffer, zero where the file has no chunk) and level_layout_size
+    LevelLayout_LoadKosinski(level_layouts[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)].layout);
 }
 
 void LevelSizeLoad(void) {

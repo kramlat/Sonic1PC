@@ -5,7 +5,7 @@
 #   tiles      Nemesis tilesets (one or more, a later one over an earlier at a byte offset) -> one Kosinski tileset (Level.c decompresses it at level start)   res/S2Art/<ZONE>
 #   blocks     16x16 block mappings (raw; a later file over an earlier at a byte offset) -> Kosinski                                                          res/S2Map16/<ZONE>
 #   chunks     128x128 chunk mappings (Kosinski already, Sonic 2's final format: copied as they are)                                                          res/S2Map128/<ZONE>
-#   fg/bglayout  the layouts, stored apart (a width-1, height-1 header, then the rows): put side by side as the game has them in RAM (a row of 0x100 bytes: the FG's first, the BG's from +0x80), Kosinski   res/S2Layout/<ZONE><ACT>
+#   fg/bglayout  the layouts, stored apart (a width-1, height-1 header, then the rows): written as the Sonic 3 & Knuckles layout file (header with the size, row pointers, the rows: see s3_layout), Kosinski   res/S2Layout/<ZONE><ACT>
 #   objects    Sonic 1's kind of entries (flips in the Y word's bits 14-15, remember-state in the id): to the engine's (flips in 13-14, remember state in Y bit 15)           res/S2Objects/<ZONE><ACT>
 #   rings, colind1/2, palette                                                                                                                               res/S2Rings, res/S2Collision/<ZONE>1,2, res/S2Palette/<ZONE>
 #
@@ -68,6 +68,22 @@ my %pal = (EHZ => 'PalId_EHZ', HTZ => 'PalId_HTZ', HPZ => 'PalId_HPZ', CPZ => 'P
 
 sub slurp { my $p = shift; open my $f, '<:raw', $p or die "$p: $!\n"; local $/; my $d = <$f>; close $f; $d }
 sub spit { my ($p, $d) = @_; open my $f, '>:raw', $p or die "$p: $!\n"; print $f $d; close $f }
+# The layout file is the Sonic 3 & Knuckles format (engine LevelLayout.h): a header (the planes' chunks per row and rows), $40 row pointers ($8000 and the offset in the file), the foreground rows then the background rows,
+# each plane only as wide and as tall as what is not empty. The games keep it Kosinski compressed. $blob is the old shape: 16 rows of $100 bytes, the foreground first in each and the background from +$80
+sub s3_layout {
+    my $blob = shift;
+    my %w = (0 => 0, 1 => 0); my %h = (0 => 0, 1 => 0);
+    for my $plane (0, 1) { for my $row (0 .. 15) { for my $col (0 .. 0x7F) {
+        next if ord(substr($blob, $row * 0x100 + $plane * 0x80 + $col, 1)) == 0;
+        $w{$plane} = $col + 1 if $col + 1 > $w{$plane}; $h{$plane} = $row + 1 if $row + 1 > $h{$plane};
+    } } }
+    my $head = pack('n4', $w{0}, $w{1}, $h{0}, $h{1}); my @ptr = (0) x 0x40; my $rows = '';
+    for my $plane (0, 1) { for my $row (0 .. $h{$plane} - 1) {
+        $ptr[$row * 2 + $plane] = 0x8000 + 8 + 0x80 + length $rows;
+        $rows .= substr($blob, $row * 0x100 + $plane * 0x80, $w{$plane});
+    } }
+    return $head . pack('n*', @ptr) . $rows;
+}
 sub kos { my ($p, $d) = @_; spit("$p.raw", $d); system($kosenc, "$p.raw", $p) == 0 or die "kosenc failed\n"; unlink "$p.raw" }
 # The ring layouts of the prototypes and the alpha are in the order they were made in, and the games sort them by X in RAM when a level begins (the alpha's Load_Rings_Layout); the final's files, and the rings manager here, expect them sorted already
 # (it walks them as the camera goes), so they are put in order here: by X, entries with the same X as they were (the 2-byte end marker stays last)
@@ -159,7 +175,7 @@ for my $name (@order) {
     # (the prototype's loader (Interleave_Level_Layout) repeats each row across the 0x80 entries of the RAM layout, as many whole times as it fits: a narrow background is a pattern that repeats, not a strip followed by nothing)
     for my $row (0 .. $fh - 1) { substr($blob, $row * 0x100 + $_ * $fw, $fw) = substr($fg, 2 + $row * $fw, $fw) for 0 .. int(0x80 / $fw) - 1 }
     for my $row (0 .. $bh - 1) { substr($blob, $row * 0x100 + 0x80 + $_ * $bw, $bw) = substr($bg, 2 + $row * $bw, $bw) for 0 .. int(0x80 / $bw) - 1 }
-    kos("$res/S2Layout/$key", $blob);
+    kos("$res/S2Layout/$key", s3_layout($blob));
 
     # objects (an act without any has none), rings
     my $o = $s->{objects} ? slurp(path($s->{objects})) : '';
@@ -195,6 +211,7 @@ for my $name (@order) {
             my $key = "$z$act";
             my $lay = "$imp/level/CCZ_" . (3 - $act) . ".kos"; # (the files' acts are swapped: the one with the boss area is the first act here)
             if (-e $lay) {
+                # (a layout staged from the level editor is in the new format already: the editor writes it so, Kosinski compressed. One saved before that, an old-format file, has to be converted with ParadoxEngine/tools/layout2s3 first)
                 spit("$res/S2Layout/$key", slurp($lay));
                 spit("$res/S2Objects/$key", pack('nnCC', 0xFFFF, 0, 0, 0));
                 spit("$res/S2Rings/$key", pack('n', 0xFFFF));
