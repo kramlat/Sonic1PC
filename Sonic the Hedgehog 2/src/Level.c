@@ -1,5 +1,6 @@
 #include "EditorLive.h"
 #include "Level.h"
+#include "BackgroundLayer.h"
 #include "HTZQuake.h"
 #include "Object/DHZBoss.h"
 #include "Object/CNZBoss.h"
@@ -202,6 +203,7 @@ void LoadLevelLayout(void) {
     // The layout file is the Sonic 3 & Knuckles format (LevelLayout.h: a header with the level's size, then the rows), Kosinski compressed; it fills level_layout
     // (the fixed buffer, zero where the file has no chunk) and level_layout_size
     LevelLayout_LoadKosinski(level_layouts[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)].layout);
+    LevelScroll_BackgroundReset(); // (the zone's background layer)
 }
 
 void LevelSizeLoad(void) {

@@ -2,6 +2,7 @@
 #include "EditorLive.h"
 #include "LevelScroll.h"
 #include "ScrollEngine.h"
+#include "BackgroundLayer.h"
 #include "HTZQuake.h"
 #include "HTZBackground.h"
 #include "SplitScreen.h"
@@ -714,6 +715,89 @@ void LevelScroll_RegisterZones(void) {
     RegisterZones();
 }
 
+// ---- the background planes, kept by the engine's band layers (ScrollBands) ----
+// A zone's background is a table of bands, each following one of the three background positions (1: the first, 2: the second, 3: the third): all of Sonic 2's are one band, except Chemical Plant's two.
+// Some zones never move their plane (Emerald Hill, Casino Night: only their scroll lines move) and have none. The first view has a ScrollBands of its own, and the second view of a split screen another.
+typedef struct {
+	const uint16_t *heights;
+	const uint8_t *source;
+	int count;
+	bool columns_only; // the original draws no rows for this background (Hill Top's quake moves it up and down without drawing)
+	bool full_rows; // a row that comes into view is a whole plane wide (the 1 << 6 and 1 << 7 flags of Hidden Palace, Dust Hill and Neo Green Hill), not a screen and two blocks
+} BandLayer;
+
+static const uint16_t one_band_heights[1] = { 0x800 };
+static const uint8_t one_band_source[1] = { 1 };
+static const BandLayer plain_layer = { one_band_heights, one_band_source, 1, false, false };
+static const BandLayer columns_layer = { one_band_heights, one_band_source, 1, true, false };
+static const BandLayer full_rows_layer = { one_band_heights, one_band_source, 1, false, true };
+
+// Chemical Plant's: the rows down to row 18 (of 16 lines) follow the first background's X, those below the second's, twice over the 64 rows of its table
+static const uint16_t cpz_heights[4] = { 19 * 16, 45 * 16, 19 * 16, 45 * 16 };
+static const uint8_t cpz_source[4] = { 1, 2, 1, 2 };
+static const BandLayer cpz_layer = { cpz_heights, cpz_source, 4, false, false };
+
+static const BandLayer *band_layer;
+static ScrollBands band_view[2];
+
+static const BandLayer *LayerOfZone(void)
+{
+	switch (LEVEL_ZONE(level_id)) {
+	case ZoneId_WZ: case ZoneId_MTZ: case ZoneId_GCZ: case ZoneId_OOZ: case ZoneId_SSZ:
+		return &plain_layer;
+	case ZoneId_HTZ:
+		return &columns_layer;
+	case ZoneId_HPZ: case ZoneId_MCZ: case ZoneId_ARZ:
+		return &full_rows_layer;
+	case ZoneId_CPZ:
+		return &cpz_layer;
+	default:
+		return NULL;
+	}
+}
+
+// A level begins (or its layout loads again): which layer the zone has
+void LevelScroll_BackgroundReset(void)
+{
+	band_layer = LayerOfZone();
+	if (band_layer == NULL)
+		return;
+	ScrollBands_Init(&band_view[0], &screen1p.plane_b, band_layer->heights, band_layer->count);
+	ScrollBands_Init(&band_view[1], &screen2p.plane_b, band_layer->heights, band_layer->count);
+	// (a row that comes into view is a screen and two blocks wide, from a block left of it, as the original draws it; or a whole plane wide)
+	int row_width = band_layer->full_rows ? 0 : (RIGHT_EDGE_X + 32) / 16;
+	if (row_width > PLANE_WIDTH / 2)
+		row_width = PLANE_WIDTH / 2;
+	band_view[0].columns_only = band_view[1].columns_only = band_layer->columns_only;
+	band_view[0].entering_width = band_view[1].entering_width = row_width;
+}
+
+static void SetBandPositions(int view, const dword_s *bg1_x, const dword_s *bg2_x, const dword_s *bg3_x, const dword_s *bg_y)
+{
+	const dword_s *pos[4] = { bg1_x, bg1_x, bg2_x, bg3_x };
+	for (int b = 0; b < band_layer->count; b++)
+		band_view[view].x[b] = pos[band_layer->source[b]]->f.u;
+	band_view[view].y = bg_y->f.u;
+}
+
+// The background was drawn whole at these positions (the level's start, or the second view's): the layer takes them as drawn
+void LevelScroll_BackgroundSync(int view, const dword_s *bg1_x, const dword_s *bg2_x, const dword_s *bg3_x, const dword_s *bg_y)
+{
+	if (band_layer == NULL)
+		return;
+	SetBandPositions(view, bg1_x, bg2_x, bg3_x, bg_y);
+	ScrollBands_Sync(&band_view[view]);
+}
+
+// Brings a view's background plane up to the given positions
+void LevelScroll_BackgroundDraw(int view, const dword_s *bg1_x, const dword_s *bg2_x, const dword_s *bg3_x, const dword_s *bg_y)
+{
+	if (band_layer == NULL)
+		return;
+	SetBandPositions(view, bg1_x, bg2_x, bg3_x, bg_y);
+	ScrollBands_Draw(&band_view[view], LEVEL_LAYOUT_PLANE_BG);
+}
+
 /* BgScrollSpeed (Nick Arcade's): the background positions each zone starts with */
 void BgScrollSpeed(int16_t x, int16_t y) {
     /* A checkpoint restore brings its own background positions */
@@ -1048,6 +1132,7 @@ static void DeformSwap(DeformState *s) {
 
 void DeformLayersP2_Init(void) {
 	deform_p2 = (DeformState){ bg_scrpos_x, bg_scrpos_y, bg2_scrpos_x, bg2_scrpos_y, bg3_scrpos_x, bg3_scrpos_y, ehz_wave, ehz_runcount, { bg1_xblock, bg2_xblock, bg3_xblock }, { bg1_yblock, bg2_yblock, bg3_yblock } };
+	LevelScroll_BackgroundSync(1, &deform_p2.bg_x, &deform_p2.bg2_x, &deform_p2.bg3_x, &deform_p2.bg_y); // (its plane was drawn whole where the first's is)
 	memset(p2_flags, 0, sizeof(p2_flags));
 	memset(p2_flags_dup, 0, sizeof(p2_flags_dup));
 }
@@ -1096,7 +1181,5 @@ void DeformLayersP2_Draw(void) {
 	for (int i = 0; i < 3; i++) {
 		p2_flags_dup[i] = p2_flags[i];
 	}
-	DrawBG_Top(p2_dup[0][0].f.u, p2_dup[0][1].f.u, &p2_flags_dup[0], LEVEL_LAYOUT_PLANE_BG, &screen2p.plane_b);
-	DrawBG_Bottom(p2_dup[1][0].f.u, p2_dup[1][1].f.u, &p2_flags_dup[1], LEVEL_LAYOUT_PLANE_BG, &screen2p.plane_b);
-	DrawBG_Block3(p2_dup[2][0].f.u, p2_dup[2][1].f.u, &p2_flags_dup[2], LEVEL_LAYOUT_PLANE_BG, &screen2p.plane_b);
+	LevelScroll_BackgroundDraw(1, &p2_dup[0][0], &p2_dup[1][0], &p2_dup[2][0], &p2_dup[0][1]);
 }

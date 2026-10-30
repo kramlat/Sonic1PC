@@ -1,5 +1,6 @@
 // Sonic 2's level drawing: Sonic 1's (a copy of LevelDraw.c) with the background drawing Nick Arcade's zones need (see LoadTilesFromStart and DrawBG_Top).
 #include "LevelDraw.h"
+#include "BackgroundLayer.h"
 #include "LevelDrawCore.h" // the block drawing: the engine's
 
 #include "Constants.h"
@@ -223,6 +224,7 @@ void LoadTilesFromStart(void) {
     DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_PLANE_FG, &screen1p.plane_a);
     // (the backgrounds of Sonic 2's zones are plain)
     DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
+    LevelScroll_BackgroundSync(0, &bg_scrpos_x, &bg2_scrpos_x, &bg3_scrpos_x, &bg_scrpos_y);
 }
 
 void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
@@ -420,22 +422,12 @@ void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlan
 
 void LoadTilesAsYouMove(void) {
     SplitScreen_VBlank();
-    DrawBG_Top(bg_scrpos_x_dup.f.u, bg_scrpos_y_dup.f.u,
-                       &bg1_scroll_flags_dup, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
-
-    DrawBG_Bottom(bg2_scrpos_x_dup.f.u, bg2_scrpos_y_dup.f.u,
-                       &bg2_scroll_flags_dup, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
-
-    // REV01 added a third scroll block call
-    DrawBG_Block3(bg3_scrpos_x_dup.f.u, bg3_scrpos_y_dup.f.u,
-                       &bg3_scroll_flags_dup, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
+    LevelScroll_BackgroundDraw(0, &bg_scrpos_x_dup, &bg2_scrpos_x_dup, &bg3_scrpos_x_dup, &bg_scrpos_y_dup);
     LevelPlane_DrawPending(&fg_plane, LEVEL_LAYOUT_PLANE_FG);
 }
 
 void LoadTilesAsYouMove_BGOnly(void) {
-    DrawBG_Top(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
-    DrawBG_Bottom(bg2_scrpos_x.f.u, bg2_scrpos_y.f.u, &bg2_scroll_flags, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
-    // No scroll block 3, even in REV01... odd
+    LevelScroll_BackgroundDraw(0, &bg_scrpos_x, &bg2_scrpos_x, &bg3_scrpos_x, &bg_scrpos_y);
 }
 
 void LoadTiles(const uint8_t *source, uint16_t count) {

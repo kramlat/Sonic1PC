@@ -62,6 +62,8 @@ typedef struct {
     int count;
     uint8_t left_margin[SCROLL_MAX_BANDS]; // blocks a whole row of the band starts to the left of the view (1: the usual margin; 0: at the camera's block)
     uint8_t fixed[SCROLL_MAX_BANDS];       // a fixed band is never given a column when its position moves (only whole rows, when they come into view): its scroll lines do its moving
+    bool columns_only;                     // only columns are drawn as the bands move: a layer whose rows the original never draws (its Y moves, the plane keeps its rows), and a move too far for columns draws nothing
+    int entering_width;                    // blocks wide a row is drawn when it comes into view (0: the plane's whole width); Sonic's own rows are a screen and two blocks wide, the plane's other cells stay as they were
     int16_t fixed_entry_x;                 // the X a fixed band's row is drawn at when it comes into view later (the first full draw uses the band's own x)
     int16_t x[SCROLL_MAX_BANDS]; // each band's position now: set these, then call ScrollBands_Draw
     int16_t y;                   // the layer's Y now
@@ -70,5 +72,7 @@ typedef struct {
 } ScrollBands;
 
 void ScrollBands_Init(ScrollBands *sb, plane_t *plane, const uint16_t *heights, int count);
+// The plane was drawn by other means (a full draw of the view at the positions now): takes them as what it holds
+void ScrollBands_Sync(ScrollBands *sb);
 void ScrollBands_DrawAll(ScrollBands *sb, const LevelLayoutPlane *layout);  // the whole view, from the positions now
 void ScrollBands_Draw(ScrollBands *sb, const LevelLayoutPlane *layout);     // only what the move since the last draw needs

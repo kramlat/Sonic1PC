@@ -128,7 +128,8 @@ static void DrawRow(const ScrollBands *sb, const LevelLayoutPlane *layout, int r
     int16_t sx = entering && sb->fixed[band] ? sb->fixed_entry_x : sb->x[band];
     int16_t y = (int16_t)(row * 16);
     int16_t x = (int16_t)(-16 * sb->left_margin[band] - (sx & 15));
-    DrawBlocks_LR_2(sb->plane, CalcVRAMPos(sx, 0, x, y), sx, 0, x, y, layout, PLANE_WIDTH / 2);
+    int width = entering && sb->entering_width > 0 ? sb->entering_width : PLANE_WIDTH / 2;
+    DrawBlocks_LR_2(sb->plane, CalcVRAMPos(sx, 0, x, y), sx, 0, x, y, layout, (size_t)width);
 }
 
 // One column of blocks (world column `col`) for the rows of one band
@@ -150,6 +151,11 @@ void ScrollBands_Init(ScrollBands *sb, plane_t *plane, const uint16_t *heights, 
     memset(sb->left_margin, 1, sizeof(sb->left_margin));
 }
 
+void ScrollBands_Sync(ScrollBands *sb) {
+    memcpy(sb->drawn_x, sb->x, sizeof(sb->x));
+    sb->drawn_y = sb->y;
+}
+
 void ScrollBands_DrawAll(ScrollBands *sb, const LevelLayoutPlane *layout) {
     int first = FirstRow(sb, sb->y);
     for (int r = first; r < first + SCROLL_ROWS; r++)
@@ -161,6 +167,8 @@ void ScrollBands_DrawAll(ScrollBands *sb, const LevelLayoutPlane *layout) {
 void ScrollBands_Draw(ScrollBands *sb, const LevelLayoutPlane *layout) {
     int old_first = FirstRow(sb, sb->drawn_y), first = FirstRow(sb, sb->y);
     int dl = first - old_first;
+    if (sb->columns_only)
+        dl = 0;
     if (dl >= SCROLL_ROWS || -dl >= SCROLL_ROWS) {
         ScrollBands_DrawAll(sb, layout);
         return;
@@ -174,6 +182,8 @@ void ScrollBands_Draw(ScrollBands *sb, const LevelLayoutPlane *layout) {
     for (int b = 0; b < sb->count; b++) {
         int l0 = sb->drawn_x[b] >> 4, l1 = sb->x[b] >> 4, k = l1 - l0;
         if (k == 0 || sb->fixed[b])
+            continue;
+        if ((k > 8 || k < -8) && sb->columns_only)
             continue;
         if (k > 8 || k < -8) { // too far for columns: the band's rows again
             for (int r = first; r < first + SCROLL_ROWS; r++)

@@ -2,6 +2,7 @@
 // object 30 (Obj_0x30, the solid pieces of the ground that moves). The events move the background by a diff of their own while the camera is in a quake's stretch of the level (Screen_Shaking_Flag_HTZ),
 // and every now and then they move the ground up or down by a quarter pixel a frame, between two limits, with the screen shaking (Screen_Shaking_Flag) while it does.
 #include "HTZQuake.h"
+#include "BackgroundLayer.h"
 #include "LevelCollision.h"
 #include "Constants.h"
 
@@ -38,6 +39,11 @@ static int16_t htz_delay;                    // HTZ_Terrain_Delay
 // (the second view of a split screen follows the second camera, and any layer of it).
 static int16_t sprite_cam_x[2], sprite_cam_y[2];
 static int cur_view;       // the view the deformation is running for now (0 the first, 1 the second)
+
+// The background was put somewhere else, not moved there: its plane is not drawn for the jump (the original raises no flags for one), the layer takes the new place as where it is
+static void BackgroundJumped(void) {
+    LevelScroll_BackgroundSync(cur_view, &bg_scrpos_x, &bg2_scrpos_x, &bg3_scrpos_x, &bg_scrpos_y);
+}
 static uint8_t quake_owner; // the view whose camera started the quake: its events and its background follow it
 
 void HTZQuake_SetView(int view) {
@@ -123,6 +129,7 @@ static void Start(int16_t y_offset) {
     htz_bg_y_offset = y_offset;
     bg_scrpos_y.f.u = (int16_t)(bg_scrpos_y.f.u - 0x100);
     htz_delay = 0;
+    BackgroundJumped();
 }
 
 // The alpha's quake has sounds that the prototype's does not: $E1 (the ground rumbling as it moves, every 64th frame: an effect of the alpha's, which has them from $E0 to $E9) and $F8 (as the stretch is left: a command
@@ -139,6 +146,7 @@ static void Leave(void) {
     bg_scrpos_y.v = 0;
     htz_bg_x_offset = htz_bg_y_offset = 0;
     htz_direction = 0;
+    BackgroundJumped();
 }
 
 // The ground between its two offsets: a quarter pixel every fourth frame, and at each end it rests for $78 frames with the screen still before it turns and the shaking begins again. The alpha moves it only
@@ -236,6 +244,7 @@ static void RunEvents(void) {
             if (camy >= 0x380) {
                 htz_bg_x_offset = (int16_t)0xF980;
                 bg_scrpos_x.f.u = (int16_t)(bg_scrpos_x.f.u + 0x480);
+                BackgroundJumped();
                 htz_bg_y_offset = 0x300;
                 dle_routine += 6;
             }
@@ -282,6 +291,7 @@ static void RunEvents(void) {
             Start(0x300);
             htz_bg_x_offset = (int16_t)0xF980;
             bg_scrpos_x.f.u = (int16_t)(bg_scrpos_x.f.u + 0x480);
+            BackgroundJumped();
             dle_routine -= 2;
         }
         break;
