@@ -255,9 +255,139 @@ static void ScrollEngine_ALevelsMasksSetHowItWraps(void) {
     LevelLayout_Resize(LEVEL_LAYOUT_PLANE_FG, 0, 0);
 }
 
+
+// ---- band tables (engine/ScrollEngine.c) ----
+
+static void ScrollBands_FindTheBandAndTheLineInIt(void) {
+    static const uint16_t bands[] = { 32, 16, 64 };
+    int off;
+    CHECK_EQ(ScrollBands_BandAt(bands, 3, 0, &off), 0);
+    CHECK_EQ(off, 0);
+    CHECK_EQ(ScrollBands_BandAt(bands, 3, 31, &off), 0);
+    CHECK_EQ(off, 31);
+    CHECK_EQ(ScrollBands_BandAt(bands, 3, 32, &off), 1);
+    CHECK_EQ(off, 0);
+    CHECK_EQ(ScrollBands_BandAt(bands, 3, 60, &off), 2);
+    CHECK_EQ(off, 12);
+    CHECK_EQ(ScrollBands_BandAt(bands, 3, 500, 0), 2); // (below the table: the last band)
+    CHECK_EQ(ScrollBands_BandAt(bands, 3, -9, 0), 0);
+}
+
+static void ScrollEngine_ApplyDeformationFillsTheLinesLikeTheOriginal(void) {
+    // Bands of 4, 2 and 3 lines (the middle one with a position for every line): positions 100 | 10, 20 | 7
+    static const uint16_t bands[] = { 4, 2 | SCROLL_BAND_PER_LINE, 3 };
+    static const int16_t pos[] = { 100, 10, 20, 7 };
+    int16_t out[12][2];
+    ScrollEngine_ApplyDeformation(bands, 3, pos, 0, 55, true, 9, out);
+    static const int16_t want_bg[9] = { -100, -100, -100, -100, -10, -20, -7, -7, -7 };
+    for (int i = 0; i < 9; i++) {
+        CHECK_EQ(out[i][1], want_bg[i]);
+        CHECK_EQ(out[i][0], -55); // (the foreground's camera)
+    }
+    // Starting inside the bands: layer line 3 is the last line of the first band, line 5 the second of the per-line band
+    ScrollEngine_ApplyDeformation(bands, 3, pos, 3, 55, true, 3, out);
+    CHECK_EQ(out[0][1], -100);
+    CHECK_EQ(out[1][1], -10);
+    CHECK_EQ(out[2][1], -20);
+    ScrollEngine_ApplyDeformation(bands, 3, pos, 5, 55, true, 2, out);
+    CHECK_EQ(out[0][1], -20);
+    CHECK_EQ(out[1][1], -7);
+    // The table ends before the lines do: the last position holds
+    ScrollEngine_ApplyDeformation(bands, 3, pos, 6, 55, true, 12, out);
+    for (int i = 0; i < 12; i++)
+        CHECK_EQ(out[i][1], -7);
+    // A deformed foreground (ApplyFGDeformation): the bands are the foreground's, the other value is the background's camera
+    ScrollEngine_ApplyDeformation(bands, 3, pos, 0, 33, false, 5, out);
+    CHECK_EQ(out[0][0], -100);
+    CHECK_EQ(out[4][0], -10);
+    CHECK_EQ(out[4][1], -33);
+}
+
+// A made-up level whose every block differs: chunk (c, r) is 1 + (c + r * 7) % 200, and each block entry in it its own block
+static tile_entry_t band_memory[2][0x1000];
+static plane_t band_plane[2] = { { band_memory[0], 0x1000, NULL }, { band_memory[1], 0x1000, NULL } };
+
+static void MakeDistinctLevel(void) {
+    LevelLayout_Resize(LEVEL_LAYOUT_PLANE_BG, 0, 0);
+    for (int r = 0; r < 16; r++)
+        for (int c = 0; c < 128; c++)
+            LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_BG, c, r, (uint8_t)(1 + (c + r * 7) % 200));
+    for (int chunk = 0; chunk < 256; chunk++)
+        for (int i = 0; i < 64; i++) {
+            unsigned blk = (unsigned)(chunk * 64 + i) & 0x3FF;
+            level_map128[(chunk << 7) + i * 2] = (uint8_t)(blk >> 8);
+            level_map128[(chunk << 7) + i * 2 + 1] = (uint8_t)blk;
+        }
+    for (unsigned blk = 0; blk < 0x400; blk++)
+        for (int k = 0; k < 4; k++) {
+            unsigned w = (blk * 4 + k) & 0x7FF;
+            level_map16[blk * 8 + k * 2] = (uint8_t)(w >> 8);
+            level_map16[blk * 8 + k * 2 + 1] = (uint8_t)w;
+        }
+    Viewport_SetSize(320, 224, 64, 32);
+}
+
+// The view's cells of both planes agree: for every row drawn, the columns from one block left of the view to the right edge, at their own band's X
+static bool BandPlanesAgree(const ScrollBands *a, const ScrollBands *b) {
+    int first = (a->y >> 4) - 1;
+    for (int r = first; r < first + SCROLL_ROWS; r++) {
+        int band = ScrollBands_BandAt(a->heights, a->count, r * 16, 0);
+        int c0 = (a->x[band] >> 4) - 1;
+        for (int c = c0; c <= (a->x[band] >> 4) + RIGHT_EDGE_X / 16; c++) {
+            size_t pos = CalcVRAMPos((int16_t)(c * 16), 0, 0, (int16_t)(r * 16));
+            size_t cell[4] = { pos, pos + 2, pos + PLANE_WIDTH * 2, pos + PLANE_WIDTH * 2 + 2 };
+            for (int k = 0; k < 4; k++)
+                if (Plane_Word(a->plane, cell[k]) != Plane_Word(b->plane, cell[k]))
+                    return false;
+        }
+    }
+    return true;
+}
+
+static void ScrollBands_MovingBandsDrawLikeDrawingTheViewAgain(void) {
+    MakeDistinctLevel();
+    static const uint16_t bands[] = { 48, 16, 96, 32, 64, 128 };
+    ScrollBands moving, fresh;
+    ScrollBands_Init(&moving, &band_plane[0], bands, 6);
+    ScrollBands_Init(&fresh, &band_plane[1], bands, 6);
+    Plane_Clear(&band_plane[0]);
+    for (int b = 0; b < 6; b++)
+        moving.x[b] = (int16_t)(200 + b * 37);
+    moving.y = 300;
+    ScrollBands_DrawAll(&moving, LEVEL_LAYOUT_PLANE_BG);
+
+    unsigned seed = 12345;
+    for (int step = 0; step < 600; step++) {
+        seed = seed * 1103515245u + 12345u;
+        int speed = (int)((seed >> 16) % 5) + 1; // 1..5 pixels a frame, the bands each at a different rate
+        int dir = (seed >> 24) & 1 ? 1 : -1;
+        for (int b = 0; b < 6; b++)
+            moving.x[b] = (int16_t)(moving.x[b] + dir * ((speed * (b + 1)) / 2));
+        if (step % 3 == 0)
+            moving.y = (int16_t)(moving.y + (((seed >> 8) & 1) ? 2 : -3));
+        if (step == 300) // (a jump: more than the plane holds)
+            moving.y = 900;
+        ScrollBands_Draw(&moving, LEVEL_LAYOUT_PLANE_BG);
+
+        Plane_Clear(&band_plane[1]);
+        memcpy(fresh.x, moving.x, sizeof(fresh.x));
+        fresh.y = moving.y;
+        ScrollBands_DrawAll(&fresh, LEVEL_LAYOUT_PLANE_BG);
+        if (!BandPlanesAgree(&moving, &fresh)) {
+            CHECK_EQ(step, -1); // (fails, naming the step)
+            break;
+        }
+    }
+    CHECK(true);
+    LevelLayout_Resize(LEVEL_LAYOUT_PLANE_BG, 0, 0);
+}
+
 void RegisterLevelPlaneTests(void) {
     RUN_TEST(ScrollEngine_RunsAZonesRoutinesInTheOriginalsOrder);
     RUN_TEST(ScrollEngine_ALevelsMasksSetHowItWraps);
+    RUN_TEST(ScrollBands_FindTheBandAndTheLineInIt);
+    RUN_TEST(ScrollEngine_ApplyDeformationFillsTheLinesLikeTheOriginal);
+    RUN_TEST(ScrollBands_MovingBandsDrawLikeDrawingTheViewAgain);
     RUN_TEST(LevelLayout_PlanesAreExactAndReadLikeTheFixedBuffer);
     RUN_TEST(LevelPlane_DrawAllWritesTheViewsBlocks);
     RUN_TEST(LevelPlane_FlagsComeFromCrossingSixteenPixelLines);
