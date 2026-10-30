@@ -1,8 +1,8 @@
 #ifndef _LZWATERFALL_H
 #define _LZWATERFALL_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_LZWaterfall(Object *obj);
+void Obj_LZWaterfall(Sst *self);
 
 #endif //_LZWATERFALL_H

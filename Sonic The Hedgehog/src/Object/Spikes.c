@@ -3,6 +3,9 @@
 #include "Level.h"
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
+#include "Resource/Mappings/Spikes.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -17,7 +20,7 @@ static const uint8_t spike_set[][2] = {
     { 5, 16 },
 };
 
-static void Spike_Hurt(Object *obj) {
+static void Spike_Hurt(Sst *self) {
     // Check if player can be hurt
     if (invincibility)
         return;
@@ -31,98 +34,95 @@ static void Spike_Hurt(Object *obj) {
 
     // Hurt player
     player->pos.l.y.v -= player->ysp << 8;
-    HurtSonic(player, obj);
+    HurtSonicFrom(player, self->x_pos.f.u, true);
 }
 
-static void Spike_Wait(Object *obj) {
-    Scratch_Spikes *scratch = (Scratch_Spikes*)&obj->scratch;
+static void Spike_Wait(Sst *self) {
+    Own_Spikes *own = (Own_Spikes *)self->own.u8;
 
     // Wait for direction switch
-    if (scratch->timer) {
-        if (--scratch->timer)
+    if (own->timer) {
+        if (--own->timer)
             return;
-        if (obj->render.f.on_screen) {
-            ;
+        if (self->render_flags & SST_RENDER_ON_SCREEN) {
             PlaySound(sfx_SpikesMove);
         }
         return;
     }
 
     // Switch direction
-    if (scratch->dir) {
+    if (own->dir) {
         // Move to target position
-        if ((scratch->move.v -= 0x800) >= 0x8000) {
-            scratch->move.v = 0x0000;
-            scratch->dir = 0;
-            scratch->timer = 60;
+        if ((own->move.v -= 0x800) >= 0x8000) {
+            own->move.v = 0x0000;
+            own->dir = 0;
+            own->timer = 60;
         }
     } else {
         // Move to target position
-        if ((scratch->move.v += 0x800) >= 0x2000) {
-            scratch->move.v = 0x2000;
-            scratch->dir = 1;
-            scratch->timer = 60;
+        if ((own->move.v += 0x800) >= 0x2000) {
+            own->move.v = 0x2000;
+            own->dir = 1;
+            own->timer = 60;
         }
     }
 }
 
-void Obj_Spikes(Object *obj) {
-    Scratch_Spikes* scratch = (Scratch_Spikes*)&obj->scratch;
+void Obj_Spikes(Sst *self) {
+    Own_Spikes *own = (Own_Spikes *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: {
         // Increment routine
-        obj->routine += 2;
+        self->routine += 2;
 
         // Set object drawing information
-        obj->mappings = Mappings_Spikes;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Spikes);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 4;
+        self->mappings = Mappings_Spikes;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Spikes);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
 
         // Initialize spikes
-        const uint8_t* set = spike_set[scratch->subtype >> 4];
-        scratch->subtype &= 0xF;
+        const uint8_t* set = spike_set[self->subtype >> 4];
+        self->subtype &= 0xF;
 
-        obj->frame = *set++;
-        obj->width_pixels = *set++;
-        scratch->orig_x = obj->pos.l.x.f.u;
-        scratch->orig_y = obj->pos.l.y.f.u;
+        self->mapping_frame = *set++;
+        self->width_pixels = *set++;
+        own->orig_x = self->x_pos.f.u;
+        own->orig_y = self->y_pos.f.u;
     }
         // Fallthrough
     case 2: {
         // Spike movement
-        switch (scratch->subtype) {
+        switch (self->subtype) {
         case 0: // Don't move
             break;
         case 1: // Move up and down
-            Spike_Wait(obj);
-            obj->pos.l.y.f.u = scratch->orig_y + scratch->move.f.u;
+            Spike_Wait(self);
+            self->y_pos.f.u = own->orig_y + own->move.f.u;
             break;
         case 2: // Move left and right
-            Spike_Wait(obj);
-            obj->pos.l.x.f.u = scratch->orig_x + scratch->move.f.u;
+            Spike_Wait(self);
+            self->x_pos.f.u = own->orig_x + own->move.f.u;
             break;
         }
 
         // Handle spike solidity and damage
         int16_t height = 4;
-        if (obj->frame == 5 || (height = 20, obj->frame == 1)) {
+        if (self->mapping_frame == 5 || (height = 20, self->mapping_frame == 1)) {
             // Sideways
-            signed int solid = SolidObject(obj, 27, height, height + 1, obj->pos.l.x.f.u, NULL, NULL);
-            if (!obj->status.o.f.player_stand && solid == 1)
-                Spike_Hurt(obj);
+            signed int solid = SstSolidObject(self, 27, height, height + 1, self->x_pos.f.u, NULL, NULL);
+            if (!(self->status & SST_STATUS_PLAYER_STAND) && solid == 1)
+                Spike_Hurt(self);
         } else {
             // Up/down
-            signed int solid = SolidObject(obj, obj->width_pixels + 11, 16, 17, obj->pos.l.x.f.u, NULL, NULL);
-            if (obj->status.o.f.player_stand || solid < 0)
-                Spike_Hurt(obj);
+            signed int solid = SstSolidObject(self, self->width_pixels + 11, 16, 17, self->x_pos.f.u, NULL, NULL);
+            if ((self->status & SST_STATUS_PLAYER_STAND) || solid < 0)
+                Spike_Hurt(self);
         }
 
         // Draw and unload once offscreen
-        DisplaySprite(obj);
-        if (IS_OFFSCREEN(scratch->orig_x))
-            ObjectDelete(obj);
+        SstOnScreenTest2(self, own->orig_x);
         break;
     }
     }

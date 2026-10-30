@@ -1,6 +1,7 @@
 // Solid objects for both characters (Nick Arcade's sub SolidObject.asm: SolidObject_Always_SingleCharacter and SlopedSolid_SingleCharacter, with MvSonicOnPtfm, MvSonicOnSlope and RideObject_SetRide),
 // as one function: a flat top, or the top of a slope when a height table is given.
 #include "Solid.h"
+#include "Standing.h"
 
 #include "Level.h"
 #include "Object/CharControl.h"
@@ -28,12 +29,10 @@ static int16_t SlopeHeight(const Object *obj, const Object *chr, int16_t x_rad, 
 static void RideObject(Object *obj, Object *chr, int who) {
     Scratch_Sonic *scratch = (Scratch_Sonic *)&chr->scratch;
 
-    if (chr->status.p.f.object_stand) {
-        Object *prv = &objects[scratch->standing_obj];
-        prv->status.o.f.player_stand = false;
-    }
+    if (chr->status.p.f.object_stand)
+        Standing_Release(scratch->standing_obj, STANDING_RELEASE_FLAG);
 
-    scratch->standing_obj = (uint8_t)(obj - objects);
+    scratch->standing_obj = Standing_IdOfObject(obj);
     chr->angle = 0;
     chr->ysp = 0;
     chr->inertia = chr->xsp;

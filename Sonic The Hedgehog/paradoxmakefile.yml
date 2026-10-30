@@ -61,6 +61,8 @@ sources:
   - "src/Object.c"
   - "src/Sonic1Objects.c"
   - "src/Object.h"
+  - "src/ObjectSst.c"
+  - "src/ObjectSst.h"
   - "src/Object/Sonic.c"
   - "src/Object/SpecialSonic.c"
   - "src/Object/Signpost.c"

@@ -1,6 +1,7 @@
 // Tails (Nick Arcade's objects 02 and 05), made as Sonic Team made him: a copy of Sonic's object (Sonic.c) with the changes Tails needs, and the same copy's quirks. His control is pad 2,
 // which a stub of a "CPU" fills with Sonic's own pad from 16 frames ago; he has no water code, no debug mode and no flight yet; hurting him loses SONIC'S rings (the copy of the hurt
 // code works on the shared ring count); he does not die from enemies, only from falling below the level, and then he comes back above Sonic.
+#include "Standing.h"
 #include "Object/Tails.h"
 #include "Object/DustSplash.h"
 #include "Object/Countdown.h"
@@ -1078,11 +1079,12 @@ static void Tails_Move(Object *obj) {
 
                 if (obj->status.p.f.object_stand) {
                     // Balance on an object
-                    Object* stand = &objects[scratch->standing_obj];
-                    if (!stand->status.o.f.flag7) {
-                        int16_t left_dist = stand->width_pixels;
+                    StandingInfo stand;
+                    Standing_Get(scratch->standing_obj, &stand);
+                    if (!stand.flag7) {
+                        int16_t left_dist = stand.width;
                         int16_t right_dist = left_dist + left_dist - 4;
-                        left_dist += obj->pos.l.x.f.u - stand->pos.l.x.f.u;
+                        left_dist += obj->pos.l.x.f.u - stand.x;
 
                         if (left_dist < 4)
                             obj->status.p.f.x_flip = true;

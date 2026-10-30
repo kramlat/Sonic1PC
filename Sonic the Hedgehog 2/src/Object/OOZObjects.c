@@ -1,6 +1,7 @@
 // Oil Ocean's objects for Sonic 2 (the Simon Wai prototype's 07, 33, 43, 45, 46 and 48; the collapsing platform, 1F, the switch, 47, the elevator, 19, and the swing, 15, are shared with other zones): the oil that
 // is stood on and kills whoever stays in it (07), the platform that hops (33), the pair of spiked balls that roll to and fro (43), the spring and the pusher with a spring behind it (45), the ball that rolls
 // off a spring (46) and the cannon that catches a character and fires it off (48). All carry Sonic and Tails.
+#include "Standing.h"
 #include "Object/OOZObjects.h"
 #include "Constants.h"
 
@@ -740,7 +741,7 @@ static void Cannon_Char(Object *obj, Scratch_Cannon *scratch, Object *chr, int w
             return;
         if ((uint16_t)(chr->pos.l.y.f.u - obj->pos.l.y.f.u + 0x10) >= 0x20)
             return;
-        if (chr->status.p.f.object_stand) { // (it was on another cannon: that one lets go of it)
+        if (chr->status.p.f.object_stand && sscratch->standing_obj < STANDING_SST) { // (it was on another cannon: that one lets go of it)
             Object *prev = &objects[sscratch->standing_obj];
             if (prev != obj && prev->type == obj->type) {
                 Scratch_Cannon *other = (Scratch_Cannon *)&prev->scratch;
@@ -750,7 +751,7 @@ static void Cannon_Char(Object *obj, Scratch_Cannon *scratch, Object *chr, int w
                     other->state_tails = 0;
             }
         }
-        sscratch->standing_obj = (uint8_t)(obj - objects);
+        sscratch->standing_obj = Standing_IdOfObject(obj);
         *state += 2;
         chr->pos.l.x.f.u = obj->pos.l.x.f.u;
         chr->pos.l.y.f.u = obj->pos.l.y.f.u;

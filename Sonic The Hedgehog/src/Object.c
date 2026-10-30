@@ -1,6 +1,7 @@
 #include "Object.h"
 
 #include "Video.h"
+#include "Standing.h"
 #include "Level.h"
 #include "LevelCollision.h"
 #include "LevelScroll.h"
@@ -121,16 +122,10 @@ void Platform_SetStand(Object *obj) {
 	
 	//Release from last standing object
 	if (player->status.p.f.object_stand)
-	{
-		Object *prv = objects + scratch->standing_obj;
-		prv->status.o.f.player_stand = false;
-		prv->routine_sec = 0;
-		if (prv->routine == 4)
-			prv->routine = 2;
-	}
+		Standing_Release(scratch->standing_obj, STANDING_RELEASE_PLATFORM);
 	
 	//Modify player state
-	scratch->standing_obj = obj - objects;
+	scratch->standing_obj = Standing_IdOfObject(obj);
 	player->angle = 0;
 	player->ysp = 0;
 	player->inertia = player->xsp;
@@ -408,14 +403,11 @@ static void Solid_ResetFloor(Object *obj, Object *pla) {
 	Scratch_Sonic *scratch = (Scratch_Sonic*)&player->scratch;
 	
 	//Release player from last standing object
-	if (player->status.p.f.object_stand) {
-		Object *prv = objects + scratch->standing_obj;
-		prv->status.o.f.player_stand = false;
-		prv->routine_sec = 0;
-	}
+	if (player->status.p.f.object_stand)
+		Standing_Release(scratch->standing_obj, STANDING_RELEASE_SOLID);
 	
 	//Modify player state
-	scratch->standing_obj = obj - objects;
+	scratch->standing_obj = Standing_IdOfObject(obj);
 	player->angle = 0;
 	player->ysp = 0;
 	player->inertia = player->xsp;

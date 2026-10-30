@@ -1,8 +1,8 @@
 #ifndef _SPINNINGLIGHT_H
 #define _SPINNINGLIGHT_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_SpinningLight(Object *obj);
+void Obj_SpinningLight(Sst *self);
 
 #endif //_SPINNINGLIGHT_H

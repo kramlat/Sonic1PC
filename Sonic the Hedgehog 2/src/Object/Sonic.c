@@ -1,4 +1,5 @@
 // Sonic for Sonic 2: a copy of Sonic 1's Sonic.c (Sonic 1 keeps its own), with Nick Arcade's animation code below; his art, mappings, DPLC, animations and palette are Nick Arcade's (res/).
+#include "Standing.h"
 #include "Object/BossCommon.h"
 #include "Object/HTZBoss.h"
 #include "Object/Sonic.h"
@@ -910,7 +911,12 @@ static signed int ReactToItem(Object *obj) {
 }
 
 // Sonic functions
-signed int HurtSonic(Object *obj, Object *src)
+signed int HurtSonic(Object *obj, Object *src) {
+    return HurtSonicFrom(obj, src->pos.l.x.f.u, src->type == ObjId_Spikes);
+}
+
+// HurtSonic for whatever hurt him: the X it was at (he is thrown away from it) and whether it was spikes (the sound). The objects on the status table of Sonic 3 & Knuckles come this way.
+signed int HurtSonicFrom(Object *obj, int16_t src_x, bool spikes)
 {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
     DEBUG_LOG("player", "hurt at (%d,%d) rings=%u shield=%u", obj->pos.l.x.f.u, obj->pos.l.y.f.u, rings, shield);
@@ -927,7 +933,7 @@ signed int HurtSonic(Object *obj, Object *src)
             }
         } else if (!debug_mode) {
             // Die
-            return KillSonic(obj, src);
+            return KillSonicFrom(obj, spikes);
         }
     }
     shield = 0;
@@ -941,7 +947,7 @@ signed int HurtSonic(Object *obj, Object *src)
 
     obj->xsp = obj->status.p.f.underwater ? -0x100 : -0x200;
     obj->ysp = obj->status.p.f.underwater ? -0x200 : -0x400;
-    if (obj->pos.l.x.f.u >= src->pos.l.x.f.u)
+    if (obj->pos.l.x.f.u >= src_x)
         obj->xsp = -obj->xsp;
     obj->inertia = 0;
 
@@ -949,12 +955,15 @@ signed int HurtSonic(Object *obj, Object *src)
     scratch->flash_time = 120;
 
     // LZ harpoon isn't ported yet -- only checking for Spikes here.
-    PlaySound((src->type == ObjId_Spikes) ? sfx_HitSpikes : sfx_Death);
+    PlaySound(spikes ? sfx_HitSpikes : sfx_Death);
     return -1;
 }
 
 int32_t KillSonic(Object *obj, Object *src) {
-    (void)src;
+    return KillSonicFrom(obj, src != NULL && src->type == ObjId_Spikes);
+}
+
+int32_t KillSonicFrom(Object *obj, bool spikes) {
     DEBUG_LOG("player", "killed at (%d,%d) lives=%u rings=%u", obj->pos.l.x.f.u, obj->pos.l.y.f.u, lives, rings);
     Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
 
@@ -975,7 +984,7 @@ int32_t KillSonic(Object *obj, Object *src) {
     obj->tile |= TILE_PRIORITY_AND;
 
     // Play death sound (LZ harpoon isn't ported yet -- only Spikes here)
-    PlaySound((src->type == ObjId_Spikes) ? sfx_HitSpikes : sfx_Death);
+    PlaySound(spikes ? sfx_HitSpikes : sfx_Death);
     return -1;
 }
 
@@ -1111,11 +1120,12 @@ static void Sonic_Move(Object *obj) {
 
                 if (obj->status.p.f.object_stand) {
                     // Balance on an object
-                    Object* stand = &objects[scratch->standing_obj];
-                    if (!stand->status.o.f.flag7) {
-                        int16_t dist = stand->width_pixels;
+                    StandingInfo stand;
+                    Standing_Get(scratch->standing_obj, &stand);
+                    if (!stand.flag7) {
+                        int16_t dist = stand.width;
                         int16_t far_dist = dist + dist - 2;
-                        dist += obj->pos.l.x.f.u - stand->pos.l.x.f.u;
+                        dist += obj->pos.l.x.f.u - stand.x;
 
                         if (!super_sonic_flag) {
                             if (dist < 2) { // at the left edge

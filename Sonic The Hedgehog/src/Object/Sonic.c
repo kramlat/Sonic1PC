@@ -1,3 +1,4 @@
+#include "Standing.h"
 #include "Sonic.h"
 #include "SstLoad.h"
 #include "Constants.h"
@@ -743,7 +744,7 @@ static signed int ReactSst_ChkHurt(Object *obj, Sst *hit) {
         return -1;
     if (scratch->flash_time)
         return -1;
-    return HurtSonicFrom(obj, hit->x_pos.f.u, sst_object_codes[ObjId_Spikes] != NULL && hit->code == sst_object_codes[ObjId_Spikes], NULL);
+    return HurtSonicFrom(obj, hit->x_pos.f.u, sst_object_codes[ObjId_Spikes] != NULL && hit->code == sst_object_codes[ObjId_Spikes]);
 }
 
 // An object made into another one: on the table when the other has moved there too, else the other is made as an old object where it was and this one goes
@@ -935,11 +936,11 @@ static signed int ReactToItem(Object *obj) {
 
 // Sonic functions
 signed int HurtSonic(Object *obj, Object *src) {
-    return HurtSonicFrom(obj, src->pos.l.x.f.u, src->type == ObjId_Spikes, src);
+    return HurtSonicFrom(obj, src->pos.l.x.f.u, src->type == ObjId_Spikes);
 }
 
 // HurtSonic for whatever hurt him: the X it was at (he is thrown away from it) and whether it was spikes (the sound); `src` only if it is an old object (the death routine takes it)
-signed int HurtSonicFrom(Object *obj, int16_t src_x, bool spikes, Object *src)
+signed int HurtSonicFrom(Object *obj, int16_t src_x, bool spikes)
 {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
     DEBUG_LOG("player", "hurt at (%d,%d) rings=%u shield=%u", obj->pos.l.x.f.u, obj->pos.l.y.f.u, rings, shield);
@@ -956,7 +957,7 @@ signed int HurtSonicFrom(Object *obj, int16_t src_x, bool spikes, Object *src)
             }
         } else if (!debug_mode) {
             // Die
-            return KillSonic(obj, src);
+            return KillSonicFrom(obj, spikes);
         }
     }
     shield = 0;
@@ -983,7 +984,10 @@ signed int HurtSonicFrom(Object *obj, int16_t src_x, bool spikes, Object *src)
 }
 
 int32_t KillSonic(Object *obj, Object *src) {
-    (void)src;
+    return KillSonicFrom(obj, src != NULL && src->type == ObjId_Spikes);
+}
+
+int32_t KillSonicFrom(Object *obj, bool spikes) {
     DEBUG_LOG("player", "killed at (%d,%d) lives=%u rings=%u", obj->pos.l.x.f.u, obj->pos.l.y.f.u, lives, rings);
     Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
 
@@ -1004,7 +1008,7 @@ int32_t KillSonic(Object *obj, Object *src) {
     obj->tile |= TILE_PRIORITY_AND;
 
     // Play death sound (LZ harpoon isn't ported yet -- only Spikes here)
-    PlaySound((src->type == ObjId_Spikes) ? sfx_HitSpikes : sfx_Death);
+    PlaySound(spikes ? sfx_HitSpikes : sfx_Death);
     return -1;
 }
 
@@ -1166,11 +1170,12 @@ static void Sonic_Move(Object *obj) {
 
                 if (obj->status.p.f.object_stand) {
                     // Balance on an object
-                    Object* stand = &objects[scratch->standing_obj];
-                    if (!stand->status.o.f.flag7) {
-                        int16_t left_dist = stand->width_pixels;
+                    StandingInfo stand;
+                    Standing_Get(scratch->standing_obj, &stand);
+                    if (!stand.flag7) {
+                        int16_t left_dist = stand.width;
                         int16_t right_dist = left_dist + left_dist - 4;
-                        left_dist += obj->pos.l.x.f.u - stand->pos.l.x.f.u;
+                        left_dist += obj->pos.l.x.f.u - stand.x;
 
                         if (left_dist < 4)
                             obj->status.p.f.x_flip = true;

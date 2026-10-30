@@ -6,22 +6,13 @@
 #include "LevelScroll.h"
 #include "Object.h"
 #include "Object/Sonic.h"
-// (Spikes.h would define the object's art a second time: its scratch layout is repeated here)
-typedef struct {
-    uint8_t subtype;   // 0x28
-    uint8_t pad1[0x7]; // 0x29-0x2F
-    int16_t orig_x;    // 0x30
-    int16_t orig_y;    // 0x32
-    word_u move;       // 0x34
-    uint16_t dir;      // 0x36
-    uint16_t timer;    // 0x38
-} Scratch_Spikes;
-
-void Obj_Spikes(Object *obj);
+#include "Object/Spikes.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 // Object 36, the spikes: the high nibble of the subtype is their size and direction (a table of frame and width), and they hurt Sonic who lands on them or touches them from the side.
 
-static Object *Spawn(uint8_t subtype) {
+static Sst *Spawn(uint8_t subtype) {
     memset(player, 0, sizeof(Object));
     player->routine = 2;
     player->y_rad = 19;
@@ -30,12 +21,12 @@ static Object *Spawn(uint8_t subtype) {
     scrpos_x.f.u = 0xF00;
     scrpos_y.f.u = 0xF00;
     invincibility = 0;
-    Object *obj = &level_objects[4];
-    memset(obj, 0, sizeof(Object));
-    obj->type = ObjId_Spikes;
-    obj->scratch.u8[0] = subtype;
-    obj->pos.l.x.f.u = 0x1000;
-    obj->pos.l.y.f.u = 0x1040;
+    Sst_Reset();
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {0xF00, 0xF00, false, 0xFFF};
+    SstLoad_Init(&index_, NULL, false, &camera);
+    Sst *obj = Sst_Spawn(ObjId_Spikes, 0x1000, 0x1040);
+    obj->subtype = subtype;
     Obj_Spikes(obj);
     return obj;
 }
@@ -45,14 +36,14 @@ static void Spikes_SizeAndDirectionComeFromTheHighNibble(void) {
         { 0x00, 0, 20 }, { 0x10, 1, 10 }, { 0x20, 2, 4 }, { 0x30, 3, 28 }, { 0x40, 4, 64 }, { 0x50, 5, 16 },
     };
     for (size_t i = 0; i < sizeof(sets) / sizeof(sets[0]); i++) {
-        Object *obj = Spawn(sets[i].subtype);
-        CHECK_EQ(obj->frame, sets[i].frame);
+        Sst *obj = Spawn(sets[i].subtype);
+        CHECK_EQ(obj->mapping_frame, sets[i].frame);
         CHECK_EQ(obj->width_pixels, sets[i].width);
     }
 }
 
 static void Spikes_HurtWhoLandsOnThem(void) {
-    Object *obj = Spawn(0x00); // up, $28 wide
+    Sst *obj = Spawn(0x00); // up, $28 wide
     player->pos.l.x.f.u = 0x1000;
     player->pos.l.y.f.u = 0x1040 - 16 - 19 - 2;
     player->ysp = 0x400;
@@ -65,7 +56,7 @@ static void Spikes_HurtWhoLandsOnThem(void) {
 }
 
 static void Spikes_DoNotHurtWhoIsInvincible(void) {
-    Object *obj = Spawn(0x00);
+    Sst *obj = Spawn(0x00);
     invincibility = 1;
     player->pos.l.x.f.u = 0x1000;
     player->pos.l.y.f.u = 0x1040 - 16 - 19 - 2;
@@ -79,13 +70,13 @@ static void Spikes_DoNotHurtWhoIsInvincible(void) {
 }
 
 static void Spikes_ThatMoveDoMove(void) {
-    Object *obj = Spawn(0x01); // moves up and down
-    Scratch_Spikes *scratch = (Scratch_Spikes *)&obj->scratch;
+    Sst *obj = Spawn(0x01); // moves up and down
+    Own_Spikes *scratch = (Own_Spikes *)obj->own.u8;
     const int16_t y0 = scratch->orig_y;
     int moved = 0;
     for (int i = 0; i < 400; i++) {
         Obj_Spikes(obj);
-        if (obj->pos.l.y.f.u != y0)
+        if (obj->y_pos.f.u != y0)
             moved = 1;
     }
     CHECK(moved);

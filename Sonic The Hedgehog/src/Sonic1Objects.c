@@ -5,6 +5,10 @@
 #include "Object/Bumper.h"
 #include "Object/Points.h"
 #include "Object/Pylon.h"
+#include "Object/SpinningLight.h"
+#include "Object/LZWaterfall.h"
+#include "Object/Spikes.h"
+#include "Object/Spring.h"
 #include "Object/Waterfall.h"
 #include "Object/DrownCount.h"
 #include "Object/InvisibleBarrier.h"
@@ -34,7 +38,6 @@ void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
 void Obj_GotThroughCard(Object *obj);
 void Obj_Animals(Object *obj);
-void Obj_Spikes(Object *obj);
 void Obj_RingLoss(Object *obj);
 void Obj_ShieldInvincibility(Object *obj);
 void Obj_GameOverCard(Object *obj);
@@ -42,7 +45,6 @@ void Obj_GHZRock(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_BigSpikeBall(Object *obj);
 void Obj_Motobug(Object *obj);
-void Obj_Spring(Object *obj);
 void Obj_Newtron(Object *obj);
 void Obj_GHZEdge(Object *obj);
 void Obj_Credits(Object *obj);
@@ -81,13 +83,11 @@ void Obj_GeyserMaker(Object *obj);
 void Obj_LavaGeyser(Object *obj);
 void Obj_PushBlock(Object *obj);
 void Obj_Yadrin(Object *obj);
-void Obj_SpinningLight(Object *obj);
 void Obj_Roller(Object *obj);
 void Obj_SpikeBall(Object *obj);
 void Obj_FloatingBlock(Object *obj);
 void Obj_SidewaysStomper(Object *obj);
 void Obj_LavaWall(Object *obj);
-void Obj_LZWaterfall(Object *obj);
 void Obj_FlapDoor(Object *obj);
 void Obj_Harpoon(Object *obj);
 void Obj_Pole(Object *obj);
@@ -158,7 +158,7 @@ const ObjectFunc game_objects[] = {
 	/* 0F ObjId_PSB                 */ Obj_PSB,
 	/* 10 ObjId_GHZTunnel           */ Obj_GHZTunnel,
 	/* 11 ObjId_GHZBridge           */ Obj_GHZBridge,
-	/* 12 ObjId_SpinningLight       */ Obj_SpinningLight,
+	/* 12 ObjId_SpinningLight       */ NULL, // (moved to the status table: sst_object_codes)
 	/* 13 ObjId_LavaMaker           */ Obj_LavaMaker,
 	/* 14 ObjId_LavaBall            */ Obj_LavaBall,
 	/* 15 ObjId_SwingingPlatform    */ Obj_SwingingPlatform,
@@ -194,7 +194,7 @@ const ObjectFunc game_objects[] = {
 	/* 33 ObjId_PushBlock           */ Obj_PushBlock,
 	/* 34 ObjId_TitleCard           */ Obj_TitleCard,
 	/* 35 ObjId_GrassFire           */ Obj_GrassFire,
-	/* 36 ObjId_Spikes              */ Obj_Spikes,
+	/* 36 ObjId_Spikes              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 37 ObjId_RingLoss            */ Obj_RingLoss,
 	/* 38 ObjId_ShieldInvincibility */ Obj_ShieldInvincibility,
 	/* 39 ObjId_GameOverCard        */ Obj_GameOverCard,
@@ -205,7 +205,7 @@ const ObjectFunc game_objects[] = {
 	/* 3E ObjId_PrisonCapsule       */ Obj_PrisonCapsule,
 	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBomb,
 	/* 40 ObjId_Motobug             */ Obj_Motobug,
-	/* 41 ObjId_Spring              */ Obj_Spring,
+	/* 41 ObjId_Spring              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 42 ObjId_Newtron             */ Obj_Newtron,
 	/* 43 ObjId_Roller              */ Obj_Roller,
 	/* 44 ObjId_GHZEdge             */ Obj_GHZEdge,
@@ -241,7 +241,7 @@ const ObjectFunc game_objects[] = {
 	/* 62 ObjId_Gargoyle            */ Obj_Gargoyle,
 	/* 63 ObjId_LabyrinthConvey     */ Obj_LabyrinthConvey,
 	/* 64 ObjId_Bubble              */ Obj_Bubble,
-	/* 65 ObjId_LZWaterfall         */ Obj_LZWaterfall,
+	/* 65 ObjId_LZWaterfall         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 66 ObjId_Junction            */ Obj_RotatingJunction,
 	/* 67 ObjId_RunningDisc         */ Obj_RunningDisc,
 	/* 68 ObjId_SBZConveyor         */ Obj_SBZConveyor,
@@ -292,4 +292,8 @@ const SstCode sst_object_codes[0x100] = {
 	[ObjId_Pylon] = Obj_Pylon,
 	[ObjId_Points] = Obj_Points,
 	[ObjId_Bumper] = Obj_Bumper,
+	[ObjId_Spikes] = Obj_Spikes,
+	[ObjId_Spring] = Obj_Spring,
+	[ObjId_SpinningLight] = Obj_SpinningLight,
+	[ObjId_LZWaterfall] = Obj_LZWaterfall,
 };

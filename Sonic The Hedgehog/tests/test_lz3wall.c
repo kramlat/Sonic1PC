@@ -7,6 +7,7 @@
 #include "Object.h"
 #include "Macros.h"
 #include "Object/LZWaterfall.h"
+#include "SstLoad.h"
 #include "LZWaterFeatures.h"
 #include "Object/FloatingBlock.h"
 #include "Game.h"
@@ -19,14 +20,13 @@
 // against $F8 instead -- the closed wall -- so the splash drew in front of
 // the wall before the switch and vanished once it opened.
 
-static Object *SpawnHiddenSplash(void) {
-    Object *splash = &level_objects[0];
-    memset(splash, 0, sizeof(Object));
-    splash->type = ObjId_LZWaterfall;
-    splash->scratch.u8[0] = 0xA9;
-    splash->pos.l.x.f.u = 0x658;
-    splash->pos.l.y.f.u = 0x2F0;
-    splash->respawn_index = 0; // no respawn entry to update
+static Sst *SpawnHiddenSplash(void) {
+    Sst_Reset();
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {0x5C0, 0x200, false, 0xFFF};
+    SstLoad_Init(&index_, NULL, false, &camera); // (the camera the object keeps in range of)
+    Sst *splash = Sst_Spawn(ObjId_LZWaterfall, 0x658, 0x2F0);
+    splash->subtype = 0xA9;
     return splash;
 }
 
@@ -40,11 +40,11 @@ static void LZ3Wall_SplashFollowsSwitch(void) {
     CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 12, 5), 0xF8);
     CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 13, 5), 0xF9);
 
-    Object *splash = SpawnHiddenSplash();
+    Sst *splash = SpawnHiddenSplash();
     Obj_LZWaterfall(splash); // WFall_Main
     CHECK_EQ(splash->routine, 8);
     Obj_LZWaterfall(splash); // WFall_Priority
-    CHECK_EQ(splash->tile & 0x8000, 0); // hidden behind the closed wall
+    CHECK_EQ(splash->art_tile & 0x8000, 0); // hidden behind the closed wall
 
     // No switch yet: DLE leaves the layout alone.
     DynamicLevelEvents();
@@ -57,7 +57,7 @@ static void LZ3Wall_SplashFollowsSwitch(void) {
     CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 13, 5), 0x18);
 
     Obj_LZWaterfall(splash);
-    CHECK_EQ(splash->tile & 0x8000, 0x8000); // visible through the opened wall
+    CHECK_EQ(splash->art_tile & 0x8000, 0x8000); // visible through the opened wall
 }
 
 // The original sets high priority with "bset #7,obGfx(a0)" -- a byte op on the
@@ -66,10 +66,10 @@ static void LZ3Wall_SplashFollowsSwitch(void) {
 // into unrelated art.
 static void LZWaterfall_HighPrioritySetsBit15(void) {
     scrpos_x.f.u = 0x5C0;
-    Object *wf = SpawnHiddenSplash();
-    wf->scratch.u8[0] = 0x80; // high-priority narrow vertical piece
+    Sst *wf = SpawnHiddenSplash();
+    wf->subtype = 0x80; // high-priority narrow vertical piece
     Obj_LZWaterfall(wf);
-    CHECK_EQ(wf->tile, TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Splash) | 0x8000);
+    CHECK_EQ(wf->art_tile, TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Splash) | 0x8000);
 }
 
 // Object 61's generic block frame is a single piece with tile word $FDFA
