@@ -92,7 +92,7 @@ void LevelLayout_Resize(LevelLayoutPlane *plane, int width, int rows) {
 }
 
 void LevelLayout_SetChunk(LevelLayoutPlane *plane, int x, int y, uint8_t chunk) {
-    const int cx = x & (LEVEL_LAYOUT_COLS - 1), cy = y & (LEVEL_LAYOUT_ROWS - 1);
+    const int cx = x & (int)level_layout_col_mask, cy = y & (int)level_layout_row_mask;
     if (cx >= plane->width || cy >= plane->rows) {
         if (chunk == 0)
             return; // (nothing to write where there is nothing)

@@ -50,8 +50,9 @@ extern LevelLayoutPlane level_layout_fg, level_layout_bg;
 #define LEVEL_LAYOUT_PLANE_BG (&level_layout_bg)
 extern unsigned level_layout_generation; // counts the layouts loaded (the level editor's copy of one is stale when it changes)
 
+extern unsigned level_layout_col_mask, level_layout_row_mask; // (ScrollEngine.h: how the level wraps; $7F and $F unless a level says otherwise)
 static inline uint8_t LevelLayout_Chunk(const LevelLayoutPlane *plane, int x, int y) {
-	const unsigned cx = (unsigned)x & (LEVEL_LAYOUT_COLS - 1), cy = (unsigned)y & (LEVEL_LAYOUT_ROWS - 1);
+	const unsigned cx = (unsigned)x & level_layout_col_mask, cy = (unsigned)y & level_layout_row_mask;
 	return (cx < plane->width && cy < plane->rows) ? plane->data[cy * plane->width + cx] : 0;
 }
 // Writes a chunk; a plane that is not that big yet grows to hold it (the rest of it empty)

@@ -1,6 +1,7 @@
 // Sonic 2's level scrolling: Sonic 1's (a copy of LevelScroll.c) with Nick Arcade's zones: their background starts and deformation routines.
 #include "EditorLive.h"
 #include "LevelScroll.h"
+#include "ScrollEngine.h"
 #include "HTZQuake.h"
 #include "HTZBackground.h"
 #include "SplitScreen.h"
@@ -678,20 +679,26 @@ static void Deform_ARZ(void) {
 	HTZQuake_ShakeDustHill(); // (the boss of act 2 shakes the screen as its walls rise: the alpha's Bg_Scroll_NGHz)
 }
 
-static void (*deform_routines[ZoneId_Num])(void) = {
-	[ZoneId_WZ] = Deform_WZ,
-	[ZoneId_MTZ] = Deform_WZ,
-	[ZoneId_OOZ] = Deform_OOZ,
-	[ZoneId_MCZ] = Deform_MCZ,
-	[ZoneId_CNZ] = Deform_CNZ,
-	[ZoneId_GCZ] = Deform_WZ, // (Cyber City: Wood's)
-	[ZoneId_SSZ] = Deform_SSZ,
-	[ZoneId_ARZ] = Deform_ARZ,
-	[ZoneId_CPZ] = Deform_CPZ,
-	[ZoneId_EHZ] = Deform_EHZ,
-	[ZoneId_HPZ] = Deform_HPZ,
-	[ZoneId_HTZ] = Deform_HTZ,
-};
+// Each zone's background deformation, registered with the scrolling engine (ScrollEngine.h) as its background event: these are the old deformation routines, kept until each zone is written for the engine
+static void RegisterZones(void) {
+    static bool done;
+    if (done)
+        return;
+    done = true;
+    ScrollEngine_SetZone(ZoneId_WZ, -1, &(ScrollZone){ .background_event = Deform_WZ });
+    ScrollEngine_SetZone(ZoneId_MTZ, -1, &(ScrollZone){ .background_event = Deform_WZ });
+    ScrollEngine_SetZone(ZoneId_OOZ, -1, &(ScrollZone){ .background_event = Deform_OOZ });
+    ScrollEngine_SetZone(ZoneId_MCZ, -1, &(ScrollZone){ .background_event = Deform_MCZ });
+    ScrollEngine_SetZone(ZoneId_CNZ, -1, &(ScrollZone){ .background_event = Deform_CNZ });
+    ScrollEngine_SetZone(ZoneId_GCZ, -1, &(ScrollZone){ .background_event = Deform_WZ });
+    ScrollEngine_SetZone(ZoneId_SSZ, -1, &(ScrollZone){ .background_event = Deform_SSZ });
+    ScrollEngine_SetZone(ZoneId_ARZ, -1, &(ScrollZone){ .background_event = Deform_ARZ });
+    ScrollEngine_SetZone(ZoneId_CPZ, -1, &(ScrollZone){ .background_event = Deform_CPZ });
+    ScrollEngine_SetZone(ZoneId_EHZ, -1, &(ScrollZone){ .background_event = Deform_EHZ });
+    ScrollEngine_SetZone(ZoneId_HPZ, -1, &(ScrollZone){ .background_event = Deform_HPZ });
+    ScrollEngine_SetZone(ZoneId_HTZ, -1, &(ScrollZone){ .background_event = Deform_HTZ });
+}
+
 
 /* BgScrollSpeed (Nick Arcade's): the background positions each zone starts with */
 void BgScrollSpeed(int16_t x, int16_t y) {
@@ -994,9 +1001,9 @@ void DeformLayers(void)
 	vid_scrpos_y_dup = scrpos_y.f.u;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 	
-	//Run zone's background deformation routine
-	if (deform_routines[LEVEL_ZONE(level_id)] != NULL)
-		deform_routines[LEVEL_ZONE(level_id)]();
+	//Run the zone's routines (the scrolling engine's frame)
+	RegisterZones();
+	ScrollEngine_Events(LEVEL_ZONE(level_id), LEVEL_ACT(level_id));
 
 	//The second view of a split screen follows the second player (from the first's scroll lines)
 	SplitScreen_Scroll();
@@ -1032,7 +1039,9 @@ void DeformLayersP2_Init(void) {
 }
 
 void DeformLayersP2(int16_t (*lines)[2], int16_t *bg_y) {
-	void (*deform)(void) = deform_routines[LEVEL_ZONE(level_id)];
+	RegisterZones();
+	const ScrollZone *zone = ScrollEngine_GetZone(LEVEL_ZONE(level_id), LEVEL_ACT(level_id));
+	void (*deform)(void) = zone ? zone->background_event : NULL;
 	if (deform == NULL) {
 		memcpy(lines, hscroll_buffer, sizeof(hscroll_buffer));
 		for (int i = 0; i < SCREEN_HEIGHT; i++)

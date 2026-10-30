@@ -1,5 +1,6 @@
 #include "EditorLive.h"
 #include "LevelScroll.h"
+#include "ScrollEngine.h"
 
 #include "Video.h"
 #include "Level.h"
@@ -363,15 +364,21 @@ void Deform_SBZ(void) {
 	BGScroll_X(bg_scrpos_y.f.u, (bg_scrpos_y.f.u & 0x1F0) >> 3);
 }
 
-static void (*deform_routines[ZoneId_Num])(void) = {
-	/* ZoneId_GHZ  */ Deform_GHZ,
-	/* ZoneId_LZ   */ NULL, // BG scroll + ripple both moved to LZWaterFeatures() -- see LZWaterFeatures.c
-	/* ZoneId_MZ   */ Deform_MZ,
-	/* ZoneId_SLZ  */ Deform_SLZ,
-	/* ZoneId_SYZ  */ Deform_SYZ,
-	/* ZoneId_SBZ  */ Deform_SBZ,
-	/* ZoneId_EndZ */ Deform_GHZ,
-};
+// Each zone's background deformation, registered with the scrolling engine (ScrollEngine.h) as its background event: these are the old deformation routines, kept until each zone is written for the engine
+static void RegisterZones(void) {
+    static bool done;
+    if (done)
+        return;
+    done = true;
+    ScrollEngine_SetZone(ZoneId_GHZ, -1, &(ScrollZone){ .background_event = Deform_GHZ });
+    ScrollEngine_SetZone(ZoneId_MZ, -1, &(ScrollZone){ .background_event = Deform_MZ });
+    ScrollEngine_SetZone(ZoneId_SLZ, -1, &(ScrollZone){ .background_event = Deform_SLZ });
+    ScrollEngine_SetZone(ZoneId_SYZ, -1, &(ScrollZone){ .background_event = Deform_SYZ });
+    ScrollEngine_SetZone(ZoneId_SBZ, -1, &(ScrollZone){ .background_event = Deform_SBZ });
+    ScrollEngine_SetZone(ZoneId_EndZ, -1, &(ScrollZone){ .background_event = Deform_GHZ });
+    // (Labyrinth has none: its background scroll and its ripple are in LZWaterFeatures)
+}
+
 
 /**
  * BgScrollSpeed: Subroutine to set scroll speed of some backgrounds.
@@ -688,7 +695,7 @@ void DeformLayers(void)
 	vid_scrpos_y_dup = scrpos_y.f.u;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 	
-	//Run zone's background deformation routine
-	if (deform_routines[LEVEL_ZONE(level_id)] != NULL)
-		deform_routines[LEVEL_ZONE(level_id)]();
+	//Run the zone's routines (the scrolling engine's frame)
+	RegisterZones();
+	ScrollEngine_Events(LEVEL_ZONE(level_id), LEVEL_ACT(level_id));
 }

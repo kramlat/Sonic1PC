@@ -98,14 +98,29 @@ game plays as before after each. Tests compare the new path with the old one (th
    * b. **Primary and secondary groups** of patterns, blocks and chunks in the level table (section 1.6), loaded the way `LoadLevelLoadBlock` does; Hill Top and Wing Fortress first.
    * c. **Plane drawing**: the plane buffer, `Draw_TileColumn` / `Draw_TileRow`, `DrawTilesAsYouMove`, reading the layout through its row pointers and masks (engine `LevelDrawCore.c`, `LevelPlane.c`),
      each checked against the old drawing (the planes' name tables identical after the same camera moves).
-3. **The scrolling engine**: the per-zone routines (screen init / background init / screen event / background event), the block-table deformation (`Refresh_PlaneTileDeform`, `Draw_BG`),
-   the camera code (`MoveCameraX/Y`, `DeformBgLayer`) in place of the games' `LevelScroll.c` `Deform_*`, ported zone by zone (Green Hill first in Sonic 1, Emerald Hill in Sonic 2), each checked against
-   the old one frame by frame.
+3. **The scrolling engine** (the user's stage 3). The games keep their own camera (how a game's camera moves is part of how it feels: Sonic 1's 16-pixel limit, Sonic 2's look-ahead); S3&K's
+   `MoveCameraX` / `MoveCameraY` (line 38378 on: the $90 to $A0 window, $18 pixels a frame, the position history for the flying and the panic) are added to the engine as an option for the Sonic 3 port. What is
+   converted is what the zones do each frame.
+   * a. **The frame and the wrap masks** (DONE): `ScrollEngine.c/.h`: the four routines of a zone and act (screen init, background init, screen event, background event) in a table, `ScrollEngine_Init` /
+     `_Events`, and the level's wrap masks (`level_layout_col_mask`, `_row_mask`, `level_camera_y_mask`, `level_screen_y_wrap`: the engine's old 128 across and 16 down unless a level sets its own),
+     which `LevelLayout_Chunk` reads. Both games register their zones' old deformation routines as background events, so nothing moves yet.
+   * b. **Deformation as data**: the block tables of S3&K (`Refresh_PlaneTileDeform`, `Draw_BG`, `Get_DeformDrawPosVert`: each band's height and the position it scrolls to) as engine primitives that fill the
+     scroll lines and draw the background's columns band by band, replacing the old scroll flags (`bg1_scroll_flags`...) and `BGScroll_Block*`.
+   * c. **First zones through it**: Green Hill in Sonic 1 and Emerald Hill in Sonic 2 written as engine zones (init, events, deformation tables), each checked against the old routine for the same camera
+     moves: the scroll lines and the planes' name tables must come out the same.
+   * d. **The other zones**, one at a time the same way (Sonic 1: Labyrinth, Marble, Star Light, Spring Yard, Scrap Brain; Sonic 2: Hill Top with its quake, Hidden Palace, Chemical Plant, Wood, Oil
+     Ocean, Dust Hill, Casino Night, Neo Green Hill, Sand Shower, Cyber City, Metropolis), then the split screen's second view; the old `Deform_*`, `BGScroll_*` and the scroll flags are removed.
+   * e. **Per-level masks and camera limits**: each level sets its masks (from its layout's size) instead of the defaults; where a level was optimised, its start position and its dynamic events are adjusted (the
+     user's note).
 4. **Ring data format** (engine `RingsManager.c`, the editor's ring tools): the 4-byte entries and the status table; `Test_Ring_Collisions` and `Render_Rings` as the model; Sonic 2's `S2Rings/*`
    converted by expanding each group, and Sonic 1's `res/RingLayout/*` the same way. The editor keeps placing "a line of N rings" and writes N entries.
-5. **Object handler** (engine `ObjectCore.c`, `ObjectsManager.c`, `Sprites.c`): a code pointer in each `Object` (filled from the layout's id through the game's table when the object is created),
-   `Process_Sprites` as the one loop, `Draw_Sprite` / `Render_Sprites` with the 8 queues. Objects keep working as they are (the pointer starts as `game_objects[type]`); an object that changes its own
-   routine can then do it the S3&K way, one object at a time, when it is touched anyway.
+5. **Object handler** (the user's stage 4, after the scrolling engine): the object format of Sonic 3 & Knuckles with its own status table, an SST of its own beside the old one (the games' objects keep
+   working until each moves over). The S3&K object is $4A bytes (`object_size`): the code address first (a long: 0 is a free slot), `render_flags` ($4), the routine ($5), the height and width in pixels ($6, $7),
+   the priority as a word in units of $80 ($8), the art tile word ($A), the mappings pointer ($C), the position ($10 and $14, words or longs with a sub-pixel word after), the speeds ($18 on), the animation
+   ($20, $23, $24), the mapping frame ($22), the collision flags and property ($28, $29), the status bytes ($2A, $2B, $37), the subtype ($2C), the secondary routine ($3C) and the respawn address ($48), the rest
+   free for each object's own use (`objoff_*`). The handler is `Process_Sprites` as the one loop, with `Draw_Sprite` and `Render_Sprites` over the 8 priority queues. The engine gets the new `Object` struct,
+   its slots (player 1, player 2, the reserved one, the 90 dynamic ones, the level's), the handler and the manager that reads the layout's ids into code addresses (`Sprite_Listing`); a game's objects are
+   moved over to it one at a time, and the old handler runs the old ones until the last has moved.
 6. **The levels**: every zone of both games through the converters (Emerald Hill and Hill Top first: the one primary and two secondaries), the importers and the editor writing the new formats, the old
    readers removed (the camera limits and start positions stay in their tables, as in S3&K, unless the user wants them taken from the data).
 

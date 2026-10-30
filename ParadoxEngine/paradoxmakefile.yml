@@ -52,6 +52,8 @@ sources:
   - "src/Kosinski.h"
   - "src/KosinskiModule.c"
   - "src/LevelLayout.c"
+  - "src/ScrollEngine.c"
+  - "src/ScrollEngine.h"
   - "src/LevelLayout.h"
   - "src/KosinskiModule.h"
   - "src/Nemesis.c"

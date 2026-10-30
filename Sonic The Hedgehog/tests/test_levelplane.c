@@ -7,6 +7,7 @@
 #include "Kosinski.h"
 #include "Level.h"
 #include "LevelLayout.h"
+#include "ScrollEngine.h"
 #include "LevelDrawCore.h"
 #include "LevelPlane.h"
 #include "Backend/VDP.h"
@@ -210,7 +211,53 @@ static void LevelLayout_PlanesAreExactAndReadLikeTheFixedBuffer(void) {
     CHECK_EQ(mismatches, 0);
 }
 
+// --- The scrolling engine's zone routines and a level's wrap masks ---------------
+
+static char scroll_trace[16];
+static int scroll_trace_n;
+static void TraceA(void) { scroll_trace[scroll_trace_n++] = 'a'; }
+static void TraceB(void) { scroll_trace[scroll_trace_n++] = 'b'; }
+static void TraceC(void) { scroll_trace[scroll_trace_n++] = 'c'; }
+static void TraceD(void) { scroll_trace[scroll_trace_n++] = 'd'; }
+
+static void ScrollEngine_RunsAZonesRoutinesInTheOriginalsOrder(void) {
+    static const ScrollZone zone = { TraceA, TraceB, TraceC, TraceD };
+    ScrollEngine_SetZone(51, -1, &zone); // (zones no game has: 51 to 53)
+    ScrollEngine_SetZone(52, 2, &(ScrollZone){ .background_event = TraceD }); // (an act of its own, and no other routines)
+    scroll_trace_n = 0;
+    ScrollEngine_Init(51, 1);
+    CHECK_EQ(scroll_trace_n, 2);
+    CHECK(scroll_trace[0] == 'a' && scroll_trace[1] == 'b'); // (the foreground's init, then the background's)
+    scroll_trace_n = 0;
+    ScrollEngine_Events(51, 3);
+    CHECK_EQ(scroll_trace_n, 2);
+    CHECK(scroll_trace[0] == 'c' && scroll_trace[1] == 'd'); // (the foreground's event, then the background's)
+    scroll_trace_n = 0;
+    ScrollEngine_Events(52, 2);
+    ScrollEngine_Events(52, 1); // (the zone's other act has nothing)
+    ScrollEngine_Events(53, 0); // (nor has a zone that was never set)
+    CHECK_EQ(scroll_trace_n, 1);
+    CHECK(ScrollEngine_GetZone(52, 1) == NULL);
+}
+
+static void ScrollEngine_ALevelsMasksSetHowItWraps(void) {
+    LevelLayout_Resize(LEVEL_LAYOUT_PLANE_FG, 0, 0);
+    LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 3, 2, 9);
+    CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 3 + 0x80, 2 + 16), 9); // (the engine's wrap: 128 across and 16 down)
+    ScrollEngine_SetLevelMasks(0x3F, 7);
+    CHECK_EQ(level_screen_y_wrap, 0x3FF);                                   // (8 rows of 128 pixels)
+    CHECK_EQ(level_camera_y_mask, 0x3F0);
+    CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 3 + 0x40, 2 + 8), 9); // (64 across and 8 down now)
+    CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 3 + 0x80, 2 + 16), 9);
+    ScrollEngine_SetLevelMasks(0x7F, 0xF); // (the defaults back)
+    CHECK_EQ(level_screen_y_wrap, 0x7FF);
+    CHECK_EQ(level_camera_y_mask, 0x7F0);
+    LevelLayout_Resize(LEVEL_LAYOUT_PLANE_FG, 0, 0);
+}
+
 void RegisterLevelPlaneTests(void) {
+    RUN_TEST(ScrollEngine_RunsAZonesRoutinesInTheOriginalsOrder);
+    RUN_TEST(ScrollEngine_ALevelsMasksSetHowItWraps);
     RUN_TEST(LevelLayout_PlanesAreExactAndReadLikeTheFixedBuffer);
     RUN_TEST(LevelPlane_DrawAllWritesTheViewsBlocks);
     RUN_TEST(LevelPlane_FlagsComeFromCrossingSixteenPixelLines);
