@@ -581,7 +581,7 @@ typedef struct {
 	const uint16_t *heights;
 	const uint8_t *source;
 	int count;
-	int fixed_entry_source; // which position (0-3 as in source) a fixed band's row comes into view drawn at (the port draws it at the one its block draw was called with)
+	int fixed_entry_source; // which position (0-3 as in source) a fixed band's row comes into view drawn at (the ROM's map has entry 0 mean the first)
 	int moving_margin; // blocks left of the view a row of a band that follows a position starts (a band that follows none starts at the camera's block)
 	bool chunk_init;   // the level's first draw is the whole view in chunks (DrawChunks) and the layer takes that as drawn
 	int row_width;     // blocks wide a row is when it comes into view (0: the plane's width)
@@ -611,10 +611,10 @@ static void BuildMarbleLayer(void)
 			mz_heights[n++] = 16;
 		}
 	}
-	mz_layer = (BandLayer){ mz_heights, mz_source, n, 3, 1, false, 0 };
+	mz_layer = (BandLayer){ mz_heights, mz_source, n, 0, 1, false, 0 };
 }
 
-// Scrap Brain act 1's: BG_ScrollBlockMap_SBZ, the same way over the 32 rows of its 512-pixel layer, repeated down the plane (a fixed band's row comes into view at the second position)
+// Scrap Brain act 1's: BG_ScrollBlockMap_SBZ, the same way over the 32 rows of its 512-pixel layer, repeated down the plane (a fixed band's row comes into view at the first position)
 static uint16_t sbz_heights[SCROLL_MAX_BANDS];
 static uint8_t sbz_source[SCROLL_MAX_BANDS];
 static BandLayer sbz_layer;
@@ -631,7 +631,7 @@ static void BuildScrapBrainLayer(void)
 			sbz_heights[n++] = 16;
 		}
 	}
-	sbz_layer = (BandLayer){ sbz_heights, sbz_source, n, 2, 1, false, 0 };
+	sbz_layer = (BandLayer){ sbz_heights, sbz_source, n, 0, 1, false, 0 };
 }
 
 // The plain backgrounds, one band that follows the first position: Labyrinth's and Scrap Brain's later acts move it both ways (rows a screen and two blocks wide, from a block left of the view); Star Light's and

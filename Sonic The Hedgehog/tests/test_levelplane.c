@@ -463,7 +463,7 @@ static void ScrollEngine_GreenHillsBackgroundShowsWhatTheOriginalDid(void) {
 }
 
 // Marble's background plane over a run of 1200 frames that goes right and down, then left and up, with a stop: what the plane shows under every 8th pixel of every line, through the
-// scroll lines (the clouds' gradient, the three layers of buildings, and the rows that follow no layer). The hash is of what the original's flag-driven drawing showed.
+// scroll lines (the clouds' gradient, the three layers of buildings, and the rows that follow no layer). The hash is of what the original's flag-driven drawing showed, except for its fixed rows that come into view: the ROM draws those at the first background's X (`DrawBG_XPosCopy_Ptrs` entry 0), which the port's old drawing did not.
 static void ScrollEngine_MarblesBackgroundShowsWhatTheOriginalDid(void) {
     uint64_t hash = 0xcbf29ce484222325ull;
     level_id = LEVEL_ID(ZoneId_MZ, 0);
@@ -510,11 +510,11 @@ static void ScrollEngine_MarblesBackgroundShowsWhatTheOriginalDid(void) {
             }
         }
     }
-    CHECK(hash == 0x8cda10e688630c02ull);
+    CHECK(hash == 0xf34b0e30460e1586ull);
 }
 
 // Scrap Brain act 1's background plane over 1200 frames (right and down, a stop, left and up, then small moves both ways): what the plane shows under every 8th pixel of every line, through the
-// scroll lines. The hash is of what the original's flag-driven drawing showed.
+// scroll lines. The hash is of what the original's flag-driven drawing showed, except for its fixed rows that come into view: the ROM draws those at the first background's X (`DrawBG_XPosCopy_Ptrs` entry 0), which the port's old drawing did not.
 static void ScrollEngine_ScrapBrainsBackgroundShowsWhatTheOriginalDid(void) {
     uint64_t hash = 0xcbf29ce484222325ull;
     level_id = LEVEL_ID(ZoneId_SBZ, 0);
@@ -561,7 +561,7 @@ static void ScrollEngine_ScrapBrainsBackgroundShowsWhatTheOriginalDid(void) {
             }
         }
     }
-    CHECK(hash == 0x2325db7b098c1528ull);
+    CHECK(hash == 0x925d8d105c2081c6ull);
 }
 
 // ---- the rest of Sonic 1's zones: what each background plane shows through its scroll lines (and the foreground's lines) over 1200 frames of the camera ----
