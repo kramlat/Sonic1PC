@@ -4,6 +4,7 @@
 
 #include "Game.h"
 #include "Level.h"
+#include "SstLoad.h"
 #include "MathUtil.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
@@ -63,12 +64,9 @@ void Obj_CNZBumper(Object *obj) {
             }
             if (award) {
                 AddPoints(1);
-                Object *points = FindFreeObj();
+                Sst *points = Sst_Spawn(ObjId_Points, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
                 if (points != NULL) {
-                    points->type = ObjId_Points;
-                    points->pos.l.x.f.u = obj->pos.l.x.f.u;
-                    points->pos.l.y.f.u = obj->pos.l.y.f.u;
-                    points->frame = 4;
+                    points->mapping_frame = 4;
                 }
             }
         }

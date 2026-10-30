@@ -101,6 +101,7 @@ void Sonic_ResetOnFloor(Object *obj);
 void Sonic_ChkRoll(Object *obj);
 void Sonic_CancelSpindash(void); // drops a charging spin dash (flag, rev count, dust), e.g. when a seesaw launches Sonic
 int32_t HurtSonic(Object *obj, Object *src);
+int32_t HurtSonicFrom(Object *obj, int16_t src_x, bool spikes, Object *src);
 int32_t KillSonic(Object *obj, Object *src);
 
 #endif //_SONIC_H

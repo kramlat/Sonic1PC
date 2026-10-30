@@ -1,6 +1,7 @@
 #include "SmashBlock.h"
 
 #include "Level.h"
+#include "SstLoad.h"
 #include "LevelScroll.h"
 #include "Macros.h"
 #include "Object/Sonic.h"
@@ -64,11 +65,8 @@ void Obj_SmashBlock(Object *obj) {
 
         SmashObject(obj, 4, &smab_speeds[0][0]);
 
-        Object *points = FindFreeObj();
+        Sst *points = Sst_Spawn(ObjId_Points, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
         if (points != NULL) {
-            points->type = ObjId_Points;
-            points->pos.l.x.f.u = obj->pos.l.x.f.u;
-            points->pos.l.y.f.u = obj->pos.l.y.f.u;
 
             uint16_t combo = item_bonus;
             item_bonus += 2; // word-based combo table below, so +2 per hit
@@ -82,7 +80,7 @@ void Obj_SmashBlock(Object *obj) {
                 frame = 5;
             }
             AddPoints(points_tens);
-            points->frame = frame;
+            points->mapping_frame = frame;
         }
         __attribute__((fallthrough)); // parent object is now the first fragment (routine 4)
     }

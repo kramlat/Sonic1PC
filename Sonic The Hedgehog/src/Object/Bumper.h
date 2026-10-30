@@ -1,8 +1,8 @@
 #ifndef _BUMPER_H
 #define _BUMPER_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_Bumper(Object *obj);
+void Obj_Bumper(Sst *self);
 
 #endif //_BUMPER_H

@@ -1,4 +1,5 @@
 #include "Sonic.h"
+#include "SstLoad.h"
 #include "Constants.h"
 #include "DebugLog.h"
 
@@ -734,6 +735,85 @@ static signed int React_Monitor(Object *obj, Object *hit) {
     return 0; // d0 not set
 }
 
+// The same reactions to an object on the status table of Sonic 3 & Knuckles (Sst.h): its collision flags and property, status bit 7 (the touch flag) and own words stand where the old object's col_type, col_property,
+// flag7 and scratch did.
+static signed int ReactSst_ChkHurt(Object *obj, Sst *hit) {
+    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+    if (invincibility)
+        return -1;
+    if (scratch->flash_time)
+        return -1;
+    return HurtSonicFrom(obj, hit->x_pos.f.u, sst_object_codes[ObjId_Spikes] != NULL && hit->code == sst_object_codes[ObjId_Spikes], NULL);
+}
+
+// An object made into another one: on the table when the other has moved there too, else the other is made as an old object where it was and this one goes
+static void Sst_BecomeObject(Sst *hit, ObjectId id) {
+    if (sst_object_codes[id] != NULL) {
+        hit->code = sst_object_codes[id];
+        hit->routine = 0;
+        return;
+    }
+    Object *made = FindFreeObj();
+    if (made != NULL) {
+        made->type = id;
+        made->pos.l.x.f.u = hit->x_pos.f.u;
+        made->pos.l.y.f.u = hit->y_pos.f.u;
+        made->scratch.u16[0xB] = hit->own.u16[0xB];
+    }
+    Sst_Delete(hit);
+}
+
+static signed int ReactSst_Enemy(Object *obj, Sst *hit) {
+    if (!(invincibility || obj->anim == SonAnimId_Roll))
+        return ReactSst_ChkHurt(obj, hit);
+
+    if (hit->collision_property) { // a boss
+        obj->xsp = -obj->xsp >> 1;
+        obj->ysp = -obj->ysp >> 1;
+        hit->collision_flags = 0;
+        if (!(--hit->collision_property))
+            hit->status |= 0x80;
+    } else {
+        hit->status |= 0x80;
+        uint8_t bonus = item_bonus;
+        item_bonus += 2;
+        hit->own.u16[0xB] = bonus;
+        static const uint16_t points[] = { 10, 20, 50, 100 };
+        uint16_t point_bonus = points[bonus >> 1];
+        if (item_bonus >= 32) {
+            point_bonus = 1000;
+            hit->own.u16[0xB] = 10;
+        }
+        AddPoints(point_bonus);
+        Sst_BecomeObject(hit, ObjId_Explosion);
+        if (obj->ysp >= 0) {
+            if (obj->pos.l.y.f.u < hit->y_pos.f.u)
+                obj->ysp = -obj->ysp;
+            else
+                obj->ysp -= 0x100;
+        } else {
+            obj->ysp += 0x100;
+        }
+    }
+    return 0;
+}
+
+static signed int ReactSst_Monitor(Object *obj, Sst *hit) {
+    if (obj->ysp < 0) {
+        uint16_t chky = obj->pos.l.y.f.u - 0x10;
+        if ((uint16_t)hit->y_pos.f.u < chky) {
+            obj->ysp = -obj->ysp;
+            hit->y_vel = -0x180;
+            if (!hit->routine_secondary)
+                hit->routine_secondary += 4;
+        }
+    } else if (obj->anim == SonAnimId_Roll) {
+        obj->ysp = -obj->ysp;
+        hit->routine += 2;
+    }
+    return 0;
+}
+
 static signed int ReactToItem(Object *obj) {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
 
@@ -803,11 +883,63 @@ static signed int ReactToItem(Object *obj) {
             }
         }
     }
+
+    // ... and the objects on the status table of Sonic 3 & Knuckles
+    for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++) {
+        Sst *hit = &sst[i];
+        if (hit->code == NULL || !(hit->render_flags & SST_RENDER_ON_SCREEN) || !hit->collision_flags)
+            continue;
+        const uint8_t *sizep = obj_sizes[hit->collision_flags & 0x3F];
+        uint8_t hit_width = *sizep++;
+        uint8_t hit_height = *sizep++;
+        int16_t x_diff = x - (hit->x_pos.f.u - hit_width);
+        int16_t y_diff = y - (hit->y_pos.f.u - hit_height);
+        if (x_diff >= -width && x_diff <= hit_width * 2 && y_diff >= -height && y_diff <= hit_height * 2) {
+            switch (hit->collision_flags & 0xC0) {
+            case 0x00: // Enemy
+                return ReactSst_Enemy(obj, hit);
+            case 0xC0: // Special
+                if ((hit->collision_flags & 0x3F) == 0x0B) { // Caterkiller spiked body segment
+                    hit->status |= 0x80;
+                    return ReactSst_ChkHurt(obj, hit);
+                }
+                if ((hit->collision_flags & 0x3F) == 0x0C) { // Yadrin
+                    int16_t penetration = (int16_t)((y + height) - (hit->y_pos.f.u - hit_height));
+                    if (penetration < 8) {
+                        int16_t face_left = (int16_t)(hit->x_pos.f.u - 4);
+                        if (hit->status & SST_STATUS_X_FLIP)
+                            face_left -= 16;
+                        if (x < (int16_t)(face_left + 24) && (int16_t)(x + width) > face_left)
+                            return ReactSst_ChkHurt(obj, hit);
+                    }
+                    return ReactSst_Enemy(obj, hit);
+                }
+                if ((hit->collision_flags & 0x3F) == 0x17 || (hit->collision_flags & 0x3F) == 0x21) { // SYZ bumper / LZ pole
+                    hit->collision_property++;
+                    return 0;
+                }
+                break;
+            case 0x80: // Hurt
+                return ReactSst_ChkHurt(obj, hit);
+            case 0x40: // Other
+                if ((hit->collision_flags & 0x3F) == 6)
+                    return ReactSst_Monitor(obj, hit);
+                if (scratch->flash_time < 90)
+                    hit->routine = 4;
+                break;
+            }
+        }
+    }
     return 0;
 }
 
 // Sonic functions
-signed int HurtSonic(Object *obj, Object *src)
+signed int HurtSonic(Object *obj, Object *src) {
+    return HurtSonicFrom(obj, src->pos.l.x.f.u, src->type == ObjId_Spikes, src);
+}
+
+// HurtSonic for whatever hurt him: the X it was at (he is thrown away from it) and whether it was spikes (the sound); `src` only if it is an old object (the death routine takes it)
+signed int HurtSonicFrom(Object *obj, int16_t src_x, bool spikes, Object *src)
 {
     Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
     DEBUG_LOG("player", "hurt at (%d,%d) rings=%u shield=%u", obj->pos.l.x.f.u, obj->pos.l.y.f.u, rings, shield);
@@ -838,7 +970,7 @@ signed int HurtSonic(Object *obj, Object *src)
 
     obj->xsp = obj->status.p.f.underwater ? -0x100 : -0x200;
     obj->ysp = obj->status.p.f.underwater ? -0x200 : -0x400;
-    if (obj->pos.l.x.f.u >= src->pos.l.x.f.u)
+    if (obj->pos.l.x.f.u >= src_x)
         obj->xsp = -obj->xsp;
     obj->inertia = 0;
 
@@ -846,7 +978,7 @@ signed int HurtSonic(Object *obj, Object *src)
     scratch->flash_time = 120;
 
     // LZ harpoon isn't ported yet -- only checking for Spikes here.
-    PlaySound((src->type == ObjId_Spikes) ? sfx_HitSpikes : sfx_Death);
+    PlaySound(spikes ? sfx_HitSpikes : sfx_Death);
     return -1;
 }
 
@@ -1752,8 +1884,46 @@ static void DebugMode_BuildStack(Object *obj, const uint8_t *base_mappings, cons
 // that forgot to set mappings) shows a Ring instead of nothing/garbage --
 // purely a safety fallback, since spawning is still blocked by type ==
 // ObjId_Null regardless of what the preview sprite looks like.
+// The mappings of an object that has moved to the status table are in Sonic 3 & Knuckles' format (6-byte pieces); the preview is drawn by this (old) object, which reads the Sonic 2 format (8-byte). The
+// table is converted into a buffer, once for each item selected. (Goes with the debug mode when the player moves over.)
+static uint8_t debug_s2_buffer[0x2000];
+static const uint8_t *debug_s2_source;
+
+static const uint8_t *DebugMode_PreviewMappings(const DebugListEntry *item) {
+    const uint8_t *m = (const uint8_t *)item->mappings;
+    if (m == NULL || item->type >= 0x100 || sst_object_codes[item->type] == NULL)
+        return m;
+    if (debug_s2_source == m)
+        return debug_s2_buffer;
+    const int frames = ((m[0] << 8) | m[1]) / 2;
+    size_t at = (size_t)frames * 2;
+    for (int f = 0; f < frames; f++) {
+        const uint8_t *pieces;
+        const uint16_t count = Mappings_FramePieces(m, (unsigned)f, &pieces);
+        if (at + SPRITE_FRAME_HEADER_SIZE + (size_t)count * SPRITE_PIECE_SIZE > sizeof(debug_s2_buffer))
+            return NULL;
+        debug_s2_buffer[f * 2] = (uint8_t)(at >> 8);
+        debug_s2_buffer[f * 2 + 1] = (uint8_t)at;
+        debug_s2_buffer[at++] = (uint8_t)(count >> 8);
+        debug_s2_buffer[at++] = (uint8_t)count;
+        for (uint16_t p = 0; p < count; p++, pieces += SPRITE_PIECE_SIZE_S3) {
+            debug_s2_buffer[at++] = pieces[0];
+            debug_s2_buffer[at++] = pieces[1];
+            debug_s2_buffer[at++] = pieces[2];
+            debug_s2_buffer[at++] = pieces[3];
+            debug_s2_buffer[at++] = pieces[2]; // (the 2-player tile word: not used by the preview)
+            debug_s2_buffer[at++] = pieces[3];
+            debug_s2_buffer[at++] = pieces[4];
+            debug_s2_buffer[at++] = pieces[5];
+        }
+    }
+    debug_s2_source = m;
+    return debug_s2_buffer;
+}
+
 static void DebugMode_RefreshPreview(Object *obj, const DebugListEntry *item) {
-    if (item->mappings == NULL) {
+    const uint8_t *preview_mappings = DebugMode_PreviewMappings(item);
+    if (preview_mappings == NULL) {
         obj->mappings = Mappings_RingREV01;
         obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
         obj->frame = 0;
@@ -1761,7 +1931,7 @@ static void DebugMode_RefreshPreview(Object *obj, const DebugListEntry *item) {
         return;
     }
 
-    obj->mappings = item->mappings;
+    obj->mappings = preview_mappings;
     obj->tile = item->tile;
     obj->frame = item->frame;
     obj->render.f.static_mappings = false;
@@ -1772,7 +1942,7 @@ static void DebugMode_RefreshPreview(Object *obj, const DebugListEntry *item) {
             if (item->variants[i].subtype_key != key)
                 continue;
             const DebugSubtypeVariant *v = &item->variants[i];
-            DebugMode_BuildStack(obj, (const uint8_t*)item->mappings, v->stack, v->stack_count);
+            DebugMode_BuildStack(obj, preview_mappings, v->stack, v->stack_count);
             uint16_t base_tile = v->tile_override ? v->tile_override : item->tile;
             if (v->flip || v->pal_add || v->tile_override) {
                 uint16_t tile = base_tile & (uint16_t)~(TILE_PALETTE_AND | TILE_X_FLIP_AND | TILE_Y_FLIP_AND);
@@ -1935,7 +2105,11 @@ void Sonic_DebugMode(Object *obj) {
         // Spawn the currently-selected item at the debug object's position.
         const DebugListEntry *item = &list[debug_item];
         if (item->type != ObjId_Null) {
-            Object *spawned = FindFreeObj();
+            Sst *made = sst_object_codes[item->type] != NULL ? Sst_Spawn(item->type, obj->pos.l.x.f.u, obj->pos.l.y.f.u) : NULL;
+            if (made != NULL) {
+                made->subtype = debug_subtype; // (an object that has moved to the status table)
+            }
+            Object *spawned = sst_object_codes[item->type] != NULL ? NULL : FindFreeObj();
             if (spawned != NULL) {
                 spawned->pos.l.x.f.u = obj->pos.l.x.f.u;
                 spawned->pos.l.y.f.u = obj->pos.l.y.f.u;

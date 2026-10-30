@@ -2,6 +2,8 @@
 #include "SstLoad.h"
 
 #include "Object/AirBubbles.h"
+#include "Object/Bumper.h"
+#include "Object/Points.h"
 #include "Object/Pylon.h"
 #include "Object/Waterfall.h"
 #include "Object/DrownCount.h"
@@ -32,7 +34,6 @@ void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
 void Obj_GotThroughCard(Object *obj);
 void Obj_Animals(Object *obj);
-void Obj_Points(Object *obj);
 void Obj_Spikes(Object *obj);
 void Obj_RingLoss(Object *obj);
 void Obj_ShieldInvincibility(Object *obj);
@@ -81,7 +82,6 @@ void Obj_LavaGeyser(Object *obj);
 void Obj_PushBlock(Object *obj);
 void Obj_Yadrin(Object *obj);
 void Obj_SpinningLight(Object *obj);
-void Obj_Bumper(Object *obj);
 void Obj_Roller(Object *obj);
 void Obj_SpikeBall(Object *obj);
 void Obj_FloatingBlock(Object *obj);
@@ -181,7 +181,7 @@ const ObjectFunc game_objects[] = {
 	/* 26 ObjId_Monitor             */ Obj_Monitor,
 	/* 27 ObjId_Explosion           */ Obj_Explosion,
 	/* 28 ObjId_Animal              */ Obj_Animals,
-	/* 29 ObjId_Points              */ Obj_Points,
+	/* 29 ObjId_Points              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2A ObjId_SmallDoor           */ Obj_SmallDoor,
 	/* 2B ObjId_Chopper             */ Obj_Chopper,
 	/* 2C ObjId_Jaws                */ Obj_Jaws,
@@ -211,7 +211,7 @@ const ObjectFunc game_objects[] = {
 	/* 44 ObjId_GHZEdge             */ Obj_GHZEdge,
 	/* 45 ObjId_SidewaysStomper     */ Obj_SidewaysStomper,
 	/* 46 ObjId_MarbleBrick         */ Obj_MarbleBrick,
-	/* 47 ObjId_Bumper              */ Obj_Bumper,
+	/* 47 ObjId_Bumper              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 48 ObjId_BossBall            */ Obj_BossBall,
 	/* 49 ObjId_Waterfall           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 4A ObjId_VanishSonic         */ Obj_VanishSonic,
@@ -290,4 +290,6 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 const SstCode sst_object_codes[0x100] = {
 	[ObjId_Waterfall] = Obj_Waterfall,
 	[ObjId_Pylon] = Obj_Pylon,
+	[ObjId_Points] = Obj_Points,
+	[ObjId_Bumper] = Obj_Bumper,
 };

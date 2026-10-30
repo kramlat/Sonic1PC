@@ -7,6 +7,7 @@
 #include "Camera.h"
 #include "Game.h"
 #include "Level.h"
+#include "SstLoad.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
 #include "MathUtil.h"
@@ -575,13 +576,10 @@ static void Cover_Launch(Object *chr, bool rolling) {
 
 // loc_17818: the score for it, as for a badnik (Obj29, 10, 20, 50 then 100 and, after fifteen in a row, 1000)
 void ObjectChainScore(Object *obj) {
-    Object *points = FindFreeObj();
+    Sst *points = Sst_Spawn(ObjId_Points, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
     if (points == NULL)
         return;
     static const uint16_t scores[4] = { 10, 20, 50, 100 };
-    points->type = ObjId_Points;
-    points->pos.l.x.f.u = obj->pos.l.x.f.u;
-    points->pos.l.y.f.u = obj->pos.l.y.f.u;
     uint16_t d2 = item_bonus;
     item_bonus += 2;
     if (d2 >= 6)
@@ -592,7 +590,7 @@ void ObjectChainScore(Object *obj) {
         d2 = 10;
     }
     AddPoints(score);
-    points->frame = (uint8_t)(d2 >> 1);
+    points->mapping_frame = (uint8_t)(d2 >> 1);
 }
 
 // BreakObjectToPieces: the object is its first piece, and each other piece of the frame is a new object of the same id, in routine 4, that drifts away on the speed its piece is given

@@ -64,3 +64,10 @@ void SstOnScreenTest(Sst *obj);
 void SstOnScreenTest2(Sst *obj, int16_t x);
 // Delete_Sprite_If_Not_In_Range: the same without the drawing
 void SstDeleteIfNotInRange(Sst *obj);
+
+// The game's table of the routine for each object id (Sprite_Listing): a game defines it (an id with NULL has not moved to the status table). The loader above and Sst_Spawn read it.
+extern const SstCode sst_object_codes[0x100];
+
+// Creates an object of the id at a position, as the objects that make others do (AllocateObject, then the routine, x_pos, y_pos): the dynamic slot, or NULL when there is none. The object has no place in the
+// respawn table, and its routine counter is 0: it sets itself up on its first run.
+Sst *Sst_Spawn(uint8_t id, int16_t x, int16_t y);

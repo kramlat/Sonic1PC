@@ -828,7 +828,6 @@ void SignpostArtLoad(void) {
 ObjectsManager objects_manager;
 
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (Sst.h) are loaded by its loader (SstLoad.h): an id's routine is in the table. The manager above leaves their entries alone.
-extern const SstCode sst_object_codes[0x100]; // Sonic1Objects.c
 static const SstObjectIndex sst_object_index = {sst_object_codes, 0x100};
 
 static SstLoadCamera SstCamera(void) {

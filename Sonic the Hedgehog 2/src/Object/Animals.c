@@ -3,6 +3,7 @@
 #include "Object/Animals.h"
 
 #include "Level.h"
+#include "SstLoad.h"
 #include "LevelCollision.h"
 #include "MathUtil.h"
 #include "Macros.h"
@@ -187,12 +188,9 @@ static void Init(Object *obj, Scratch_Flicky *a) {
         obj->routine = 0x1C;
         obj->xsp = 0;
     } else {
-        Object *points = FindFreeObj();
+        Sst *points = Sst_Spawn(ObjId_Points, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
         if (points != NULL) {
-            points->type = ObjId_Points;
-            points->pos.l.x.f.u = obj->pos.l.x.f.u;
-            points->pos.l.y.f.u = obj->pos.l.y.f.u;
-            points->frame = (uint8_t)(a->points >> 1);
+            points->mapping_frame = (uint8_t)(a->points >> 1);
         }
     }
     DisplaySprite(obj);

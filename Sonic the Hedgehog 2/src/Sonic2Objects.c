@@ -1,4 +1,5 @@
 #include "SstLoad.h"
+#include "Object/Points.h"
 #include "Object.h"
 
 #include "Object/AirBubbles.h"
@@ -50,7 +51,6 @@ void Obj_MTZBossBall(Object *obj);
 void Obj_Slicer(Object *obj);
 void Obj_SlicerPincers(Object *obj);
 void Obj_EnemyWeapon(Object *obj);
-void Obj_Points(Object *obj);
 void Obj_Spikes(Object *obj);
 void Obj_RingLoss(Object *obj);
 void Obj_ShieldInvincibility(Object *obj);
@@ -267,7 +267,7 @@ const ObjectFunc game_objects[] = {
 	/* 26 ObjId_Monitor             */ Obj_Monitor,
 	/* 27 ObjId_Explosion           */ Obj_Explosion,
 	/* 28 ObjId_Animal              */ Obj_FlickyAnimals,
-	/* 29 ObjId_Points              */ Obj_Points,
+	/* 29 ObjId_Points              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2A ObjId_SmallDoor           */ Obj_DHZStomper, // (the prototype's stomper of Dust Hill)
 	/* 2B ObjId_Chopper             */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 2C ObjId_Jaws                */ Obj_NGHZLeaves, // (the prototype's leaves of Neo Green Hill)
@@ -404,5 +404,7 @@ const ObjectFunc game_objects[] = {
 };
 const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0]));
 
-// The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; none yet (see Sonic 1's table). The loader of that table loads their layout entries.
-const SstCode sst_object_codes[0x100];
+// The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
+const SstCode sst_object_codes[0x100] = {
+	[ObjId_Points] = Obj_Points, // (Sonic 1's, shared)
+};

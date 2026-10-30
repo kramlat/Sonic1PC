@@ -1,6 +1,7 @@
 #include "Bumper.h"
 
 #include "Level.h"
+#include "SstLoad.h"
 #include "LevelScroll.h"
 #include "Macros.h"
 #include "MathUtil.h"
@@ -14,12 +15,12 @@
 // col_property each time Sonic touches it; this object's own routine
 // reads/clears that flag each frame to trigger the actual bounce.
 
-static void Bump_Hit(Object *obj) {
-    if (obj->col_property) {
-        obj->col_property = 0;
+static void Bump_Hit(Sst *self) {
+    if (self->collision_property) {
+        self->collision_property = 0;
 
-        int16_t dx = (int16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
-        int16_t dy = (int16_t)(obj->pos.l.y.f.u - player->pos.l.y.f.u);
+        int16_t dx = (int16_t)(self->x_pos.f.u - player->pos.l.x.f.u);
+        int16_t dy = (int16_t)(self->y_pos.f.u - player->pos.l.y.f.u);
         uint16_t angle = CalcAngle(dx, dy);
         int16_t sin, cos;
         CalcSine((uint8_t)angle, &sin, &cos);
@@ -33,47 +34,44 @@ static void Bump_Hit(Object *obj) {
         Scratch_Sonic *pscratch = (Scratch_Sonic *)&player->scratch;
         pscratch->jumping = false;
 
-        obj->anim = 1; // bumper "hit" animation
+        self->anim = 1; // bumper "hit" animation
         QueueSound2(sfx_Bumper);
 
         bool award_points = true;
-        if (obj->respawn_index) {
-            if (objstate[obj->respawn_index] >= (10 + 0x80))
+        if (self->respawn) { // (the count of hits is in the object's byte of the respawn table, under its loaded bit)
+            uint8_t *hits = &sst_respawn_table[self->respawn - 1];
+            if (*hits >= (10 + 0x80))
                 award_points = false;
             else
-                objstate[obj->respawn_index]++;
+                (*hits)++;
         }
         if (award_points) {
             AddPoints(1); // 10 points (AddPoints counts in tens)
 
-            Object *points = FindFreeObj();
+            Sst *points = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
             if (points != NULL) {
-                points->type = ObjId_Points;
-                points->pos.l.x.f.u = obj->pos.l.x.f.u;
-                points->pos.l.y.f.u = obj->pos.l.y.f.u;
-                points->frame = 4; // "10" frame
+                points->mapping_frame = 4; // "10" frame
             }
         }
     }
 
-    AnimateSprite(obj, Animation_Bumper);
-    RememberState(obj);
+    Sst_Animate(self, Animation_Bumper);
+    SstOnScreenTest(self);
 }
 
-void Obj_Bumper(Object *obj) {
-    switch (obj->routine) {
+void Obj_Bumper(Sst *self) {
+    switch (self->routine) {
     case 0:
-        obj->routine += 2;
-        obj->mappings = Mappings_Bumper;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SYZ_Bumper);
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->width_pixels = 32 / 2;
-        obj->priority = 1;
-        obj->col_type = 0x17 | 0xC0; // col_16x16_alt | col_special
+        self->routine += 2;
+        self->mappings = Mappings_Bumper;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_SYZ_Bumper);
+        self->render_flags = SST_RENDER_LEVEL;
+        self->width_pixels = 32 / 2;
+        self->priority = 1 * 0x80;
+        self->collision_flags = 0x17 | 0xC0; // col_16x16_alt | col_special
         __attribute__((fallthrough));
     case 2:
-        Bump_Hit(obj);
+        Bump_Hit(self);
         break;
     }
 }

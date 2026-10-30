@@ -1,6 +1,7 @@
 #define Animals_Build
 #include "Animal.h"
 #include <stdio.h>
+#include "SstLoad.h"
 
 #include "Resource/Mappings/Animals1.h"
 #include "Resource/Mappings/Animals2.h"
@@ -219,12 +220,11 @@ void Obj_Animals_FromEnemy(Object *obj, Scratch_Animals *scratch) {
     obj->ysp = -0x400;
 
     if (boss_status == 0) {
-        Object* newObj = FindFreeObj();
+        Sst* newObj = Sst_Spawn(ObjId_Points, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
         if (newObj != NULL) {
-            newObj->type = ObjId_Points;
-            newObj->pos.l.x.v = obj->pos.l.x.v;
-            newObj->pos.l.y.v = obj->pos.l.y.v;
-            newObj->frame = (scratch->points) >> 1;
+            newObj->x_pos.v = obj->pos.l.x.v;
+            newObj->y_pos.v = obj->pos.l.y.v;
+            newObj->mapping_frame = (scratch->points) >> 1;
         }
     } else {
         obj->routine = 0x12;
