@@ -1,4 +1,7 @@
 #include "Caterkiller.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 
 #include "Level.h"
 #include "LevelCollision.h"
@@ -23,7 +26,7 @@
 // particular direction) is also simplified away as gameplay-invisible.
 
 // Non-standard animation format (unique to this object): a flat 128-entry
-// table indexed directly by (obj->angle & 0x7F), NOT the standard
+// table indexed directly by (self->angle & 0x7F), NOT the standard
 // duration+frame-list bytecode AnimateSprite expects elsewhere -- so this
 // is walked by hand rather than going through AnimateSprite. Head frames
 // are 0-7; body segments add 8 to reach their own equivalent frame widths.
@@ -46,174 +49,174 @@ static const int16_t cat_frag_speed[4] = { -0x200, -0x180, 0x180, 0x200 };
 // flag (if any) and marks it for deletion NEXT frame via the plain
 // Cat_Delete routine, rather than deleting immediately -- same idea as
 // RememberState's own offscreen cleanup (see Object.c).
-static void Cat_Despawn(Object *obj) {
-    if (obj->respawn_index)
-        objstate[obj->respawn_index] &= 0x7F;
-    obj->routine = 0xA;
+static void Cat_Despawn(Sst *self) {
+    if (self->respawn)
+        (*SstLoad_State(self)) &= 0x7F;
+    self->routine = 0xA;
 }
 
-static void Cat_FragmentateBody(Object *obj) {
-    uint8_t index = (uint8_t)((obj->routine - 2) / 2);
+static void Cat_FragmentateBody(Sst *self) {
+    uint8_t index = (uint8_t)((self->routine - 2) / 2);
     int16_t speed = cat_frag_speed[index];
-    if (obj->status.o.f.x_flip)
+    if (((self->status & SST_STATUS_X_FLIP) != 0))
         speed = (int16_t)-speed;
-    obj->xsp = speed;
-    obj->ysp = (int16_t)-0x400;
-    obj->routine = 0xC;
-    obj->frame &= 0xF8; // reset to frame 0 of this segment's own 8-frame set
+    self->x_vel = speed;
+    self->y_vel = (int16_t)-0x400;
+    self->routine = 0xC;
+    self->mapping_frame &= 0xF8; // reset to frame 0 of this segment's own 8-frame set
 }
 
 // Notifies this segment's own parent that the whole Caterkiller should
 // break apart (bubbling the break both upward, toward the head, and --
 // via each segment's own .chkBroken check below -- downward toward any
 // remaining children too), then starts fragmentating THIS segment.
-static void Cat_FragmentateBody_NotifyHead(Object *obj, Object *parent) {
-    parent->status.o.f.flag7 = true;
-    Cat_FragmentateBody(obj);
+static void Cat_FragmentateBody_NotifyHead(Sst *self, Sst *parent) {
+    parent->status |= 0x80;
+    Cat_FragmentateBody(self);
 }
 
-static void Cat_Undulate(Object *obj, Scratch_Caterkiller *scratch) {
-    if ((int8_t)(--scratch->waittime) >= 0)
+static void Cat_Undulate(Sst *self, Own_Caterkiller *own) {
+    if ((int8_t)(--own->waittime) >= 0)
         return; // still waiting
 
-    obj->routine_sec += 2; // -> Cat_Floor
-    scratch->waittime = 17 - 1;
-    obj->xsp = (int16_t)-0xC0;
-    obj->inertia = 0x40;
+    self->routine_secondary += 2; // -> Cat_Floor
+    own->waittime = 17 - 1;
+    self->x_vel = (int16_t)-0xC0;
+    self->ground_vel = 0x40;
 
-    bool was_open = (scratch->mode & 0x10) != 0;
-    scratch->mode ^= 0x10; // toggle mouth open/moving-up <-> closed/moving-down
+    bool was_open = (own->mode & 0x10) != 0;
+    own->mode ^= 0x10; // toggle mouth open/moving-up <-> closed/moving-down
     if (!was_open) {
         // just opened -- cancel the leftward nudge above, use the inverted inertia instead
-        obj->xsp = 0;
-        obj->inertia = (int16_t)-obj->inertia;
+        self->x_vel = 0;
+        self->ground_vel = (int16_t)-self->ground_vel;
     }
-    scratch->mode |= 0x80; // request a head sprite update this tick
+    own->mode |= 0x80; // request a head sprite update this tick
 }
 
-static void Cat_Floor(Object *obj, Scratch_Caterkiller *scratch) {
-    if ((int8_t)(--scratch->waittime) < 0) {
-        obj->routine_sec -= 2; // -> Cat_Undulate
-        scratch->waittime = 8 - 1;
-        obj->xsp = 0;
-        obj->inertia = 0;
+static void Cat_Floor(Sst *self, Own_Caterkiller *own) {
+    if ((int8_t)(--own->waittime) < 0) {
+        self->routine_secondary -= 2; // -> Cat_Undulate
+        own->waittime = 8 - 1;
+        self->x_vel = 0;
+        self->ground_vel = 0;
         return;
     }
 
-    if (obj->xsp == 0)
+    if (self->x_vel == 0)
         return;
 
-    int32_t prev_full = obj->pos.l.x.v;
-    int16_t speed = obj->status.o.f.x_flip ? (int16_t)-obj->xsp : obj->xsp;
-    obj->pos.l.x.v += (int32_t)speed << 8;
+    int32_t prev_full = self->x_pos.v;
+    int16_t speed = ((self->status & SST_STATUS_X_FLIP) != 0) ? (int16_t)-self->x_vel : self->x_vel;
+    self->x_pos.v += (int32_t)speed << 8;
 
-    if ((int16_t)(prev_full >> 16) == obj->pos.l.x.f.u)
+    if ((int16_t)(prev_full >> 16) == self->x_pos.f.u)
         return; // hasn't moved horizontally
 
-    int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
+    int16_t floor_dist = SstFloorDist(self, self->x_pos.f.u);
     if (floor_dist < -8 || floor_dist >= 0xC) {
         // hit a wall or a ledge -- turn around
-        scratch->floormap[scratch->segmentpos] = 0x80;
-        obj->status.o.f.x_flip ^= 1;
-        obj->render.b = obj->status.b;
-        scratch->segmentpos = (scratch->segmentpos + 1) & 0xF;
+        own->floormap[own->segmentpos] = 0x80;
+        self->status ^= SST_STATUS_X_FLIP;
+        self->render_flags = self->status;
+        own->segmentpos = (own->segmentpos + 1) & 0xF;
         return;
     }
-    obj->pos.l.y.f.u += floor_dist;
+    self->y_pos.f.u += floor_dist;
 
-    scratch->floormap[scratch->segmentpos] = (uint8_t)floor_dist;
-    scratch->segmentpos = (scratch->segmentpos + 1) & 0xF;
+    own->floormap[own->segmentpos] = (uint8_t)floor_dist;
+    own->segmentpos = (own->segmentpos + 1) & 0xF;
 }
 
-static void Cat_Head(Object *obj, Scratch_Caterkiller *scratch) {
-    if (obj->status.o.f.flag7) { // a spiked body segment was touched
-        Cat_FragmentateBody(obj);
+static void Cat_Head(Sst *self, Own_Caterkiller *own) {
+    if (((self->status & 0x80) != 0)) { // a spiked body segment was touched
+        Cat_FragmentateBody(self);
         return;
     }
 
-    if (obj->routine_sec == 0)
-        Cat_Undulate(obj, scratch);
+    if (self->routine_secondary == 0)
+        Cat_Undulate(self, own);
     else
-        Cat_Floor(obj, scratch);
+        Cat_Floor(self, own);
 
-    if (scratch->mode & 0x80) {
-        uint8_t angle = obj->angle & 0x7F;
-        obj->angle += 4;
+    if (own->mode & 0x80) {
+        uint8_t angle = self->angle & 0x7F;
+        self->angle += 4;
         int8_t frame = cat_animation[angle];
         if (frame < 0)
-            scratch->mode &= ~0x80; // animation done -- stop requesting updates
+            own->mode &= ~0x80; // animation done -- stop requesting updates
         else
-            obj->frame = (uint8_t)(frame + (scratch->mode & 0x10));
+            self->mapping_frame = (uint8_t)(frame + (own->mode & 0x10));
     }
 
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        Cat_Despawn(obj);
+    if (SstOutOfRange(self->x_pos.f.u)) {
+        Cat_Despawn(self);
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
 // Shared tail for both body segment routines: propagates fragmentation
 // both upward (parent already fragmenting) and cleans up after the head
 // itself is gone (exploded normally, or about to self-delete offscreen).
-static void Cat_BodySeg_ChkBroken(Object *obj, Object *parent) {
+static void Cat_BodySeg_ChkBroken(Sst *self, Sst *parent) {
     if (parent->routine == 0xC) { // parent already fragmenting -- so do we
-        Cat_FragmentateBody_NotifyHead(obj, parent);
+        Cat_FragmentateBody_NotifyHead(self, parent);
         return;
     }
-    if (parent->type == ObjId_Explosion) { // parent was stomped/rolled into normally
-        obj->routine = 0xA;
+    if (parent->code == sst_object_codes[ObjId_Explosion]) { // parent was stomped/rolled into normally
+        self->routine = 0xA;
         return; // don't display -- our own child will delete us next
     }
     if (parent->routine == 0xA) { // parent about to self-delete (e.g. went offscreen)
-        ObjectDelete(parent); // delete it immediately rather than lingering a frame
-        obj->routine = 0xA;
+        Sst_Delete(parent); // delete it immediately rather than lingering a frame
+        self->routine = 0xA;
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
 // Routine 4, 8 -- first and third body segments. Follows its own parent's
 // velocity/inertia and floor-height history (one position-slot behind),
 // turning around in lockstep whenever the parent did.
-static void Cat_BodySeg1(Object *obj, Scratch_Caterkiller *scratch) {
-    Object *parent = &objects[scratch->parent_index];
+static void Cat_BodySeg1(Sst *self, Own_Caterkiller *own) {
+    Sst *parent = &sst[own->parent_index];
 
-    if (obj->status.o.f.flag7) { // this segment itself was touched
-        Cat_FragmentateBody_NotifyHead(obj, parent);
+    if (((self->status & 0x80) != 0)) { // this segment itself was touched
+        Cat_FragmentateBody_NotifyHead(self, parent);
         return;
     }
 
-    Scratch_Caterkiller *pscratch = (Scratch_Caterkiller *)&parent->scratch;
-    scratch->mode = pscratch->mode;
-    obj->routine_sec = parent->routine_sec;
+    Own_Caterkiller *pscratch = (Own_Caterkiller *)parent->own.u8;
+    own->mode = pscratch->mode;
+    self->routine_secondary = parent->routine_secondary;
 
-    if (obj->routine_sec != 0) {
-        obj->inertia = parent->inertia;
-        int16_t speed = (int16_t)(parent->xsp + obj->inertia);
-        obj->xsp = speed;
+    if (self->routine_secondary != 0) {
+        self->ground_vel = parent->ground_vel;
+        int16_t speed = (int16_t)(parent->x_vel + self->ground_vel);
+        self->x_vel = speed;
 
-        int32_t prev_full = obj->pos.l.x.v;
-        int16_t applied = obj->status.o.f.x_flip ? (int16_t)-speed : speed;
-        obj->pos.l.x.v += (int32_t)applied << 8;
+        int32_t prev_full = self->x_pos.v;
+        int16_t applied = ((self->status & SST_STATUS_X_FLIP) != 0) ? (int16_t)-speed : speed;
+        self->x_pos.v += (int32_t)applied << 8;
 
-        if ((int16_t)(prev_full >> 16) != obj->pos.l.x.f.u) {
-            uint8_t idx = scratch->segmentpos;
+        if ((int16_t)(prev_full >> 16) != self->x_pos.f.u) {
+            uint8_t idx = own->segmentpos;
             uint8_t floor = pscratch->floormap[idx];
             if (floor == 0x80) {
                 // parent hit a wall/ledge at this position -- follow suit
-                scratch->floormap[idx] = 0x80;
-                obj->status.o.f.x_flip ^= 1;
-                obj->render.b = obj->status.b;
+                own->floormap[idx] = 0x80;
+                self->status ^= SST_STATUS_X_FLIP;
+                self->render_flags = self->status;
             } else {
-                obj->pos.l.y.f.u += (int16_t)(int8_t)floor;
-                scratch->floormap[idx] = floor; // propagate to whatever follows us
+                self->y_pos.f.u += (int16_t)(int8_t)floor;
+                own->floormap[idx] = floor; // propagate to whatever follows us
             }
-            scratch->segmentpos = (scratch->segmentpos + 1) & 0xF;
+            own->segmentpos = (own->segmentpos + 1) & 0xF;
         }
     }
 
-    Cat_BodySeg_ChkBroken(obj, parent);
+    Cat_BodySeg_ChkBroken(self, parent);
 }
 
 // Routine 6 -- second (middle) body segment only: also walks the same
@@ -221,134 +224,134 @@ static void Cat_BodySeg1(Object *obj, Scratch_Caterkiller *scratch) {
 // peeking one step ahead so it can pre-emptively skip past the sentinel
 // value instead of needing its own end-of-table handling, then falls
 // through to the same movement logic as the other two segments.
-static void Cat_BodySeg2(Object *obj, Scratch_Caterkiller *scratch) {
-    Object *parent = &objects[scratch->parent_index];
-    Scratch_Caterkiller *pscratch = (Scratch_Caterkiller *)&parent->scratch;
-    scratch->mode = pscratch->mode;
+static void Cat_BodySeg2(Sst *self, Own_Caterkiller *own) {
+    Sst *parent = &sst[own->parent_index];
+    Own_Caterkiller *pscratch = (Own_Caterkiller *)parent->own.u8;
+    own->mode = pscratch->mode;
 
-    if (scratch->mode & 0x80) {
-        uint8_t idx = obj->angle & 0x7F;
-        obj->angle += 4;
+    if (own->mode & 0x80) {
+        uint8_t idx = self->angle & 0x7F;
+        self->angle += 4;
         if (cat_animation[(idx + 4) & 0x7F] < 0)
-            obj->angle += 4;
-        obj->frame = (uint8_t)(cat_animation[idx] + 8);
+            self->angle += 4;
+        self->mapping_frame = (uint8_t)(cat_animation[idx] + 8);
     }
 
-    Cat_BodySeg1(obj, scratch);
+    Cat_BodySeg1(self, own);
 }
 
-static void Cat_Fragment(Object *obj) {
-    ObjectFall(obj);
+static void Cat_Fragment(Sst *self) {
+    Sst_MoveSprite(self);
 
-    if (obj->ysp < 0) {
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            Cat_Despawn(obj);
+    if (self->y_vel < 0) {
+        if (SstOutOfRange(self->x_pos.f.u)) {
+            Cat_Despawn(self);
             return;
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
         return;
     }
 
-    int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
+    int16_t floor_dist = SstFloorDist(self, self->x_pos.f.u);
     if (floor_dist < 0) {
-        obj->pos.l.y.f.u += floor_dist;
-        obj->ysp = (int16_t)-0x400; // bounce
+        self->y_pos.f.u += floor_dist;
+        self->y_vel = (int16_t)-0x400; // bounce
     }
 
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        Cat_Despawn(obj);
+    if (SstOutOfRange(self->x_pos.f.u)) {
+        Cat_Despawn(self);
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-void Obj_Caterkiller(Object *obj) {
-    Scratch_Caterkiller *scratch = (Scratch_Caterkiller *)&obj->scratch;
+void Obj_Caterkiller(Sst *self) {
+    Own_Caterkiller *own = (Own_Caterkiller *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: { // Main -- head only, re-runs every frame until it lands
-        obj->y_rad = 14 / 2;
-        obj->x_rad = 16 / 2;
+        self->y_radius = 14 / 2;
+        self->x_radius = 16 / 2;
 
-        ObjectFall(obj);
-        int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
+        Sst_MoveSprite(self);
+        int16_t floor_dist = SstFloorDist(self, self->x_pos.f.u);
         if (floor_dist >= 0) {
             // still falling
-            if ((uint16_t)obj->pos.l.y.f.u > 0x7FF) // fell below max level height
-                ObjectDelete(obj);
+            if ((uint16_t)self->y_pos.f.u > 0x7FF) // fell below max level height
+                Sst_Delete(self);
             break;
         }
-        obj->pos.l.y.f.u += floor_dist;
-        obj->ysp = 0;
-        obj->routine += 2;
-        obj->mappings = Mappings_Caterkiller;
-        obj->tile = (LEVEL_ZONE(level_id) == ZoneId_SBZ)
+        self->y_pos.f.u += floor_dist;
+        self->y_vel = 0;
+        self->routine += 2;
+        self->mappings = Mappings_Caterkiller;
+        self->art_tile = (LEVEL_ZONE(level_id) == ZoneId_SBZ)
             ? TILE_MAP(0, 1, 0, 0, ArtTile_SBZ_Caterkiller)  // | Tile_Pal2
             : TILE_MAP(0, 1, 0, 0, ArtTile_MZ_SYZ_Caterkiller); // | Tile_Pal2
 
-        obj->render.b &= 0x03; // andi.b #sprite_xflip|sprite_yflip: keep only the spawn-time x/y flip
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->status.b = obj->render.b;
-        obj->priority = 4;
-        obj->width_pixels = 16 / 2;
-        obj->col_type = 0x0B; // col_16x16 | col_badnik
+        self->render_flags &= 0x03; // andi.b #sprite_xflip|sprite_yflip: keep only the spawn-time x/y flip
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->status = self->render_flags;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 16 / 2;
+        self->collision_flags = 0x0B; // col_16x16 | col_badnik
 
-        int16_t seg_x = obj->pos.l.x.f.u;
-        int16_t gap = obj->status.o.f.x_flip ? -12 : 12;
+        int16_t seg_x = self->x_pos.f.u;
+        int16_t gap = ((self->status & SST_STATUS_X_FLIP) != 0) ? -12 : 12;
 
-        Object *parent = obj;
+        Sst *parent = self;
         uint8_t routine = 4;
         for (int i = 0; i < 3; i++) {
-            Object *seg = FindNextFreeObj(parent);
+            Sst *seg = Sst_AllocateAfter(parent);
             if (seg == NULL) {
                 // Object RAM full -- despawn the whole Caterkiller (matches
                 // REV01; any segments already spawned clean themselves up
                 // via Cat_BodySeg_ChkBroken once they see the head's
                 // routine go to Cat_Delete).
-                Cat_Despawn(obj);
+                Cat_Despawn(self);
                 return;
             }
-            seg->type = ObjId_Caterkiller;
+            seg->code = sst_object_codes[ObjId_Caterkiller];
             seg->routine = routine;
             routine += 2;
-            seg->mappings = obj->mappings;
-            seg->tile = obj->tile;
-            seg->priority = 5;
+            seg->mappings = self->mappings;
+            seg->art_tile = self->art_tile;
+            seg->priority = 5 * 0x80;
             seg->width_pixels = 16 / 2;
-            seg->col_type = 0xCB; // col_16x16 | col_special
+            seg->collision_flags = 0xCB; // col_16x16 | col_special
             seg_x = (int16_t)(seg_x + gap);
-            seg->pos.l.x.f.u = seg_x;
-            seg->pos.l.y.f.u = obj->pos.l.y.f.u;
-            seg->status.b = obj->status.b;
-            seg->render.b = obj->status.b;
-            seg->frame = 8; // ".body1" frame
+            seg->x_pos.f.u = seg_x;
+            seg->y_pos.f.u = self->y_pos.f.u;
+            seg->status = self->status;
+            seg->render_flags = self->status;
+            seg->mapping_frame = 8; // ".body1" frame
 
-            Scratch_Caterkiller *sscratch = (Scratch_Caterkiller *)&seg->scratch;
-            sscratch->parent_index = (uint8_t)(parent - objects);
+            Own_Caterkiller *sscratch = (Own_Caterkiller *)seg->own.u8;
+            sscratch->parent_index = (uint8_t)(parent - sst);
             sscratch->segmentpos = (uint8_t)(4 * (i + 1));
 
             parent = seg;
         }
 
-        scratch->waittime = 8 - 1;
-        scratch->segmentpos = 0;
+        own->waittime = 8 - 1;
+        own->segmentpos = 0;
         break;
     }
     case 2:
-        Cat_Head(obj, scratch);
+        Cat_Head(self, own);
         break;
     case 4:
     case 8:
-        Cat_BodySeg1(obj, scratch);
+        Cat_BodySeg1(self, own);
         break;
     case 6:
-        Cat_BodySeg2(obj, scratch);
+        Cat_BodySeg2(self, own);
         break;
     case 0xA: // Delete
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     case 0xC: // Fragment
-        Cat_Fragment(obj);
+        Cat_Fragment(self);
         break;
     }
 }

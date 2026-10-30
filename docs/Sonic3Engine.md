@@ -138,6 +138,11 @@ game plays as before after each. Tests compare the new path with the old one (th
      `res/Mappings` files are generated and ignored by git, the `.asm` is the source); its row goes into `sst_object_codes[]` (`Sonic1Objects.c`) and NULL into `game_objects[]`;
      `tools/objlayout_clear_remember.pl` clears bit 15 of its id in `res/ObjectLayout`; a test loads it from a layout and runs it. Left for the players' step: the debug list (its previews draw the old
      mappings format), the editor's live placement, and everything that touches `player` or the solid/touch helpers.
+     *Status of d (Sonic 1)*: 79 object ids run on the status table (everything of the level machinery, the badniks that do not need the player's animation, the platforms, hazards, fireballs, explosions, points,
+     bumpers); 42 object files remain: the player (`Sonic.c`, `SpecialSonic.c`) and what follows it (`ShieldInvincibility`, `Splash`, `AirBubbles`, `DrownCount`, `WaterSurface`, `InvisibleBarrier`), the bosses and their
+     parts, the screens' objects (title, ending, credits, results, continue, special stage), `Ring` (stage 5), `Monitor`, `Signpost`, `Checkpoint`, `Animal`, `Seesaw` (shares its ball with the Star Light boss),
+     `Button`/`Scrap Eggman`, `PathSwapper`, `GHZTunnel`, `GiantRing`, `HiddenBonus`. Sonic 2: its shared objects moved with Sonic 1's; its own 90-odd object files (two characters, `Solid.c`, `Tails`) are all still to come,
+     with the characters, which move after Sonic 1's player. The tools (`objtosst.pl`, `sstregister.pl`) and the lessons in the ChangeLog make a file a matter of minutes; the player and the bosses are not mechanical.
    * e. **The old handler goes**: `Object`, `ExecuteObjects`, `BuildSprites`, `ObjectsManager` removed.
 6. **The levels**: every zone of both games through the converters (Emerald Hill and Hill Top first: the one primary and two secondaries), the importers and the editor writing the new formats, the old
    readers removed (the camera limits and start positions stay in their tables, as in S3&K, unless the user wants them taken from the data).

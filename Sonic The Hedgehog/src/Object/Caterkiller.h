@@ -1,7 +1,7 @@
 #ifndef _CATERKILLER_H
 #define _CATERKILLER_H
 
-#include "Object.h"
+#include "Sst.h"
 
 typedef struct {
     uint8_t waittime;    // 0x2A -- time to wait between actions
@@ -17,8 +17,8 @@ typedef struct {
     // kept as two honest, separate fields here instead.
     uint8_t parent_index; // 0x3C on real hardware -- body segments only: index into objects[] of this segment's own parent (head or previous segment)
     uint8_t segmentpos;   // 0x3C on real hardware -- position counter (0/4/8/0xA at spawn), incremented as this object moves; used by both the head (into its own floormap) and body segments (into their own AND their parent's floormap)
-} Scratch_Caterkiller;
+} Own_Caterkiller;
 
-void Obj_Caterkiller(Object *obj);
+void Obj_Caterkiller(Sst *self);
 
 #endif //_CATERKILLER_H

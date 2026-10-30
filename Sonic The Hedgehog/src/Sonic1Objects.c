@@ -4,6 +4,7 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/Caterkiller.h"
 #include "Object/Pole.h"
 #include "Object/PushBlock.h"
 #include "Object/BigSpikeBall.h"
@@ -114,7 +115,6 @@ void Obj_GiantRing(Object *obj);
 void Obj_RingFlash(Object *obj);
 void Obj_HiddenBonus(Object *obj);
 void Obj_Button(Object *obj);
-void Obj_Caterkiller(Object *obj);
 void Obj_Seesaw(Object *obj);
 void Obj_BossGreenHill(Object *obj);
 void Obj_BossBall(Object *obj);
@@ -257,7 +257,7 @@ const ObjectFunc game_objects[] = {
 	/* 75 ObjId_BossSpringYard      */ Obj_BossSpringYard,
 	/* 76 ObjId_BossBlock           */ Obj_BossBlock,
 	/* 77 ObjId_BossLabyrinth      */ Obj_BossLabyrinth,
-	/* 78 ObjId_Caterkiller         */ Obj_Caterkiller,
+	/* 78 ObjId_Caterkiller         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 79 ObjId_Checkpoint          */ Obj_Checkpoint,
 	/* 7A ObjId_BossStarLight       */ Obj_BossStarLight,
 	/* 7B ObjId_BossSpikeball       */ Obj_BossSpikeball,
@@ -285,6 +285,7 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_Caterkiller] = Obj_Caterkiller,
 	[ObjId_Pole] = Obj_Pole,
 	[ObjId_PushBlock] = Obj_PushBlock,
 	[ObjId_BigSpikeBall] = Obj_BigSpikeBall,
