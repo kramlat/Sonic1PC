@@ -79,298 +79,6 @@ const int8_t Lz_Scroll_Data[] = {
 };
 
 
-// Helper to fill gradients into the background scroll buffer
-static void FillGradient(int16_t count, int16_t start, int32_t delta, int16_t *dest) {
-	uint32_t acc = (uint16_t)start << 16;
-	for (int i = 0; i < count; i++) {
-		*dest++ = (int16_t)(acc >> 16);
-		acc += delta;
-	}
-}
-
-void ApplyScrollUpdate(int16_t current_y, int16_t previous_y, uint8_t *block_state, uint16_t *flags, uint16_t up_bit, uint16_t down_bit) {
-	if ((current_y & 0x10) != (*block_state & 0x10)) {
-		*block_state ^= 0x10;
-		if (current_y < previous_y)
-			*flags |= up_bit;
-		else
-			*flags |= down_bit;
-	}
-}
-
-// Applies background buffer to the H-scroll table in 16-pixel chunks (REV01 style)
-	void BGScroll_X(int16_t y_pos, int16_t buf_offset) {
-	int16_t *bufp = &hscroll_buffer[0][0];
-	int16_t *bg_ptr = (int16_t*)&bgscroll_buffer[buf_offset];
-	int16_t fg_x = -scrpos_x.f.u;
-
-	int16_t lines_left = SCREEN_HEIGHT;
-	int16_t chunk_h = 16 - (y_pos & 0xF);
-
-	while (lines_left > 0) {
-		int16_t bg_x = *bg_ptr++;
-		int16_t step = (lines_left < chunk_h) ? lines_left : chunk_h;
-		for (int i = 0; i < step; i++) {
-			*bufp++ = fg_x;
-			*bufp++ = bg_x;
-		}
-		lines_left -= step;
-		chunk_h = 16;
-	}
-}
-
-void UpdateBGScroll(dword_s *pos, int32_t delta, uint8_t *block, uint16_t *flags, uint16_t neg_bit, uint16_t pos_bit) {
-	int32_t old_v = pos->v;
-	pos->v += delta;
-
-	if ((pos->f.u & 0x10) != (*block & 0x10)) {
-		*block ^= 0x10;
-		if (pos->v < old_v)
-			*flags |= neg_bit;
-		else
-			*flags |= pos_bit;
-	}
-}
-
-void BGScroll_XY(int32_t x_off, int32_t y_off) {
-	UpdateBGScroll(&bg_scrpos_x, x_off, &bg1_xblock, &bg1_scroll_flags, SCROLL_FLAG_LEFT, SCROLL_FLAG_RIGHT);
-	UpdateBGScroll(&bg_scrpos_y, y_off, &bg1_yblock, &bg1_scroll_flags, SCROLL_FLAG_UP, SCROLL_FLAG_DOWN);
-}
-
-void BGScroll_Y(int32_t y_off) {
-	UpdateBGScroll(&bg_scrpos_y, y_off, &bg1_yblock, &bg1_scroll_flags, SCROLL_FLAG_UP2, SCROLL_FLAG_DOWN2);
-}
-
-// Real BGScroll_YRelative: the same relative Y move as BGScroll_Y, but flagging redraws in bits 0/1 (top/bottom row)
-// instead of 4/5 -- SBZ act 1's own drawing (Draw_SBZ) only looks at bits 0/1.
-void BGScroll_YRelative(int32_t y_off) {
-	UpdateBGScroll(&bg_scrpos_y, y_off, &bg1_yblock, &bg1_scroll_flags, SCROLL_FLAG_UP, SCROLL_FLAG_DOWN);
-}
-
-void BGScroll_YAbsolute(uint16_t y_pos) {
-	int16_t old_y = bg_scrpos_y.f.u;
-	bg_scrpos_y.f.u = (int16_t)y_pos;
-	ApplyScrollUpdate(bg_scrpos_y.f.u, old_y, &bg1_yblock, &bg1_scroll_flags, SCROLL_FLAG_UP, SCROLL_FLAG_DOWN);
-}
-
-//Scroll draw functions
-void BGScroll_Block1(int32_t x, uint8_t bit)
-{
-	int32_t prev_x = bg_scrpos_x.v;
-	bg_scrpos_x.v += x;
-	uint8_t no_scroll = (bg_scrpos_x.f.u & 0x10) ^ bg1_xblock;
-	if (no_scroll)
-		return;
-	bg1_xblock ^= 0x10;
-	if (bg_scrpos_x.v < prev_x)
-		bg1_scroll_flags |= bit;
-	else
-		bg1_scroll_flags |= (bit << 1);
-}
-
-void BGScroll_Block2(int32_t x, uint8_t bit)
-{
-	int32_t prev_x = bg2_scrpos_x.v;
-	bg2_scrpos_x.v += x;
-	uint8_t no_scroll = (bg2_scrpos_x.f.u & 0x10) ^ bg2_xblock;
-	if (no_scroll)
-		return;
-	bg2_xblock ^= 0x10;
-	if (bg2_scrpos_x.v < prev_x)
-		bg2_scroll_flags |= bit;
-	else
-		bg2_scroll_flags |= (bit << 1);
-}
-
-void BGScroll_Block3(int32_t x, uint8_t bit)
-{
-	int32_t prev_x = bg3_scrpos_x.v;
-	bg3_scrpos_x.v += x;
-	uint8_t no_scroll = (bg3_scrpos_x.f.u & 0x10) ^ bg3_xblock;
-	if (no_scroll)
-		return;
-	bg3_xblock ^= 0x10;
-	if (bg3_scrpos_x.v < prev_x)
-		bg3_scroll_flags |= bit;
-	else
-		bg3_scroll_flags |= (bit << 1);
-}
-
-//Level deformation routines
-void Deform_GHZ(void)
-{
-	int16_t fg_x, bg_x;
-	int16_t *bufp = &hscroll_buffer[0][0];
-	//Scroll background layers
-	BGScroll_Block3((scrshift_x << 6) + (scrshift_x << 5), SCROLL_FLAG_LEFT2); //Upper mountains
-	BGScroll_Block2(scrshift_x << 7, SCROLL_FLAG_LEFT2); //Hills and waterfalls
-
-	//Get Y position
-	vid_bg_scrpos_y_dup =  0x20 - ((scrpos_y.f.u & 0x7FF) >> 5);
-	if (vid_bg_scrpos_y_dup < 0)
-		vid_bg_scrpos_y_dup = 0;
-
-	//Get foreground position
-	if (gamemode == GameMode_Title)
-		fg_x = 0;
-	else
-		fg_x = -scrpos_x.f.u;
-
-	//Scroll clouds
-	int32_t *scroll = (int32_t*)bgscroll_buffer;
-	scroll[0] += 0x10000;
-	scroll[1] += 0xC000;
-	scroll[2] += 0x8000;
-
-	//Scroll cloud layer 1
-	bg_x = -(bg3_scrpos_x.f.u + (scroll[0] >> 16));
-	for (int i = 0; i < 0x20 - vid_bg_scrpos_y_dup; i++)
-	{ *bufp++ = fg_x; *bufp++ = bg_x; }
-
-	//Scroll cloud layer 2
-	bg_x = -(bg3_scrpos_x.f.u + (scroll[1] >> 16));
-	for (int i = 0; i < 0x10; i++)
-	{ *bufp++ = fg_x; *bufp++ = bg_x; }
-
-	//Scroll cloud layer 3
-	bg_x = -(bg3_scrpos_x.f.u + (scroll[2] >> 16));
-	for (int i = 0; i < 0x10; i++)
-	{ *bufp++ = fg_x; *bufp++ = bg_x; }
-
-	//Scroll upper mountains
-	bg_x = -bg3_scrpos_x.f.u;
-	for (int i = 0; i < 0x30; i++)
-	{ *bufp++ = fg_x; *bufp++ = bg_x; }
-
-	//Scroll hills and waterfalls
-	bg_x = -bg2_scrpos_x.f.u;
-	for (int i = 0; i < 0x28; i++)
-	{ *bufp++ = fg_x; *bufp++ = bg_x; }
-
-	//Scroll water
-	int32_t wx = bg2_scrpos_x.v;
-	int32_t wi = (((scrpos_x.f.u - bg2_scrpos_x.f.u) << 8) / 0x68) << 8;
-
-	for (int i = 0; i < 0x48 + SCREEN_TALLADD + vid_bg_scrpos_y_dup; i++)
-	{
-		*bufp++ = fg_x; *bufp++ = -(wx >> 16);
-		wx += wi;
-	}
-}
-
-void Deform_MZ(void) {
-	// Real ASM passes these as raw bit-INDICES (2, 6, 4) to bset, not the
-	// named SCROLL_FLAG_* masks -- BGScroll_Block1/2/3 use the base bit for
-	// a leftward/decreasing scroll and base+1 for rightward/increasing (see
-	// their own real-ASM comment: "d6 = bit to set for redraw direction").
-	// Block1's and Block3's masks here were previously off by one bit
-	// (SCROLL_FLAG_RIGHT/DOWN2, i.e. index 3/5, instead of the real 2/6),
-	// corrupting which rows/edges Draw_MZ's bit-masking logic (0xA8 = bits
-	// 7,5,3) thinks need redrawing. Block2's SCROLL_FLAG_UP2 (index 4) was
-	// already correct.
-	BGScroll_Block1((scrshift_x << 6) * 3, SCROLL_FLAG_LEFT);  // bit 2 (real: moveq #2,d6)
-	BGScroll_Block3(scrshift_x << 6, (uint8_t)(1 << 6));       // bit 6 (real: moveq #6,d6)
-	BGScroll_Block2(scrshift_x << 7, SCROLL_FLAG_UP2);         // bit 4 (real: moveq #4,d6)
-
-	int16_t y_off = 0x200;
-	int16_t dy = scrpos_y.f.u - 0x1C8;
-	if (dy >= 0) y_off += (dy * 3) >> 2;
-
-	bg2_scrpos_y.f.u = bg3_scrpos_y.f.u = y_off;
-	BGScroll_YAbsolute(bg2_scrpos_y.f.u);
-	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-
-	bg3_scroll_flags |= (bg1_scroll_flags | bg2_scroll_flags);
-	bg1_scroll_flags = bg2_scroll_flags = 0;
-
-	int16_t *buf_ptr = (int16_t*)bgscroll_buffer;
-	int16_t base_x = -scrpos_x.f.u;
-	int32_t delta = (((int32_t)(base_x >> 2) - base_x) << 12) / 5;
-	FillGradient(5, base_x >> 1, delta << 4, buf_ptr); buf_ptr += 5;
-
-	*buf_ptr++ = -bg3_scrpos_x.f.u;
-	*buf_ptr++ = -bg3_scrpos_x.f.u;
-	for (int i = 0; i < 9; i++) *buf_ptr++ = -bg2_scrpos_x.f.u;
-	for (int i = 0; i < 16; i++) *buf_ptr++ = -bg_scrpos_x.f.u;
-
-	int16_t scroll_y = bg_scrpos_y.f.u - 0x200;
-	if (scroll_y > 0x100) scroll_y = 0x100;
-	BGScroll_X(bg_scrpos_y.f.u, (scroll_y & 0x1F0) >> 3);
-}
-
-void Deform_SLZ(void) {
-	BGScroll_Y(scrshift_y << 7);
-	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-
-	int16_t *buf_ptr = (int16_t*)bgscroll_buffer;
-	int16_t base_x = -scrpos_x.f.u;
-	int32_t delta = (((int32_t)(base_x >> 3) - base_x) << 12) / 28;
-	FillGradient(28, base_x, delta << 4, buf_ptr); buf_ptr += 28;
-
-	int16_t bld1 = (base_x >> 3);
-	bld1 += (bld1 >> 1);
-	for (int i = 0; i < 5; i++) *buf_ptr++ = bld1;
-	for (int i = 0; i < 5; i++) *buf_ptr++ = base_x >> 2;
-	for (int i = 0; i < 30; i++) *buf_ptr++ = base_x >> 1;
-
-	BGScroll_X(bg_scrpos_y.f.u, ((bg_scrpos_y.f.u - 0xC0) & 0x3F0) >> 3);
-}
-
-void Deform_SYZ(void) {
-	BGScroll_Y((scrshift_y << 4) * 3);
-	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-
-	int16_t *buf_ptr = (int16_t*)bgscroll_buffer;
-	int16_t base_x = -scrpos_x.f.u;
-	int32_t delta = (((int32_t)(base_x >> 3) - base_x) << 11) / 8;
-	FillGradient(8, base_x >> 1, delta << 5, buf_ptr); buf_ptr += 8;
-
-	for (int i = 0; i < 5; i++) *buf_ptr++ = base_x >> 3;
-	for (int i = 0; i < 6; i++) *buf_ptr++ = base_x >> 2;
-
-	delta = (((int32_t)base_x - (base_x >> 1)) << 12) / 14;
-	FillGradient(14, base_x >> 1, delta << 4, buf_ptr);
-
-	BGScroll_X(bg_scrpos_y.f.u, (bg_scrpos_y.f.u & 0x1F0) >> 3);
-}
-
-void Deform_SBZ(void) {
-	if (LEVEL_ACT(level_id) != 0) { // Act 2/3
-		BGScroll_XY(scrshift_x << 6, scrshift_y << 5);
-		vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-		int16_t fg_x = -scrpos_x.f.u;
-		int16_t bg_x = -bg_scrpos_x.f.u;
-		int16_t *bufp = &hscroll_buffer[0][0];
-		for (int i = 0; i < SCREEN_HEIGHT; i++) { *bufp++ = fg_x; *bufp++ = bg_x; }
-		return;
-	}
-
-	// The last argument is the left-redraw flag's bit mask (right is the next bit up): real moveq #2/#6/#4,d6.
-	// Block1 used to get SCROLL_FLAG_RIGHT and Block3 SCROLL_FLAG_DOWN2 -- one bit too high, so the redraw
-	// flags landed on the wrong blocks and new right-edge columns were drawn from the wrong layer.
-	BGScroll_Block1(scrshift_x << 7, SCROLL_FLAG_LEFT);        // bits 2/3
-	BGScroll_Block3(scrshift_x << 6, (uint8_t)(1 << 6));       // bits 6/7
-	BGScroll_Block2((scrshift_x << 5) * 3, SCROLL_FLAG_UP2);   // bits 4/5
-
-	BGScroll_YRelative(scrshift_y << 5);
-	vid_bg_scrpos_y_dup = bg2_scrpos_y.f.u = bg3_scrpos_y.f.u = bg_scrpos_y.f.u;
-
-	bg2_scroll_flags |= (bg1_scroll_flags | bg3_scroll_flags);
-	bg1_scroll_flags = bg3_scroll_flags = 0;
-
-	int16_t *buf_ptr = (int16_t*)bgscroll_buffer;
-	int16_t d2_w = (-scrpos_x.f.u) >> 2;
-	int32_t delta = (((int32_t)(d2_w >> 1) - d2_w) << 11) / 4;
-	FillGradient(4, d2_w, delta << 5, buf_ptr); buf_ptr += 4;
-
-	for (int i = 0; i < 10; i++) *buf_ptr++ = -bg3_scrpos_x.f.u;
-	for (int i = 0; i < 7; i++)  *buf_ptr++ = -bg2_scrpos_x.f.u;
-	for (int i = 0; i < 11; i++) *buf_ptr++ = -bg_scrpos_x.f.u;
-
-	BGScroll_X(bg_scrpos_y.f.u, (bg_scrpos_y.f.u & 0x1F0) >> 3);
-}
-
-
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Sonic 2 (Nick Arcade): the zones' deformation. Each zone's routine fills the horizontal scroll table (a foreground and a background X for every line), as the
 // prototype's DeformBGLayer routines do (_inc/BgScrollSpeed & DeformBGLayer.asm); the 16.16 fixed point gradients are the original's own (a long that is swapped around
@@ -487,13 +195,11 @@ void Deform_TitleScreen(void) {
 // a second one that goes four times as fast; Emerald Hill's wavy line runs along row 18. The redraw flags of both go to the third background's (the drawing of the plane's rows by which background
 // they belong to is DrawBG_Block3's Draw_CPZ).
 void Deform_CPZ(void) {
-	BGScroll_XY((int32_t)scrshift_x << 5, (int32_t)scrshift_y << 6);
-	UpdateBGScroll(&bg2_scrpos_x, (int32_t)scrshift_x << 7, &bg2_xblock, &bg2_scroll_flags, 1 << 4, 1 << 5);
+	bg_scrpos_x.v += (int32_t)scrshift_x << 5;
+	bg_scrpos_y.v += (int32_t)scrshift_y << 6;
+	bg2_scrpos_x.v += (int32_t)scrshift_x << 7;
 	bg2_scrpos_y.f.u = bg_scrpos_y.f.u;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-	bg3_scroll_flags = (uint16_t)((bg1_scroll_flags | bg2_scroll_flags) & 0xFF);
-	bg1_scroll_flags = 0;
-	bg2_scroll_flags = 0;
 	if ((ehz_runcount++ & 7) == 0)
 		ehz_wave--;
 
@@ -517,8 +223,8 @@ void Deform_CPZ(void) {
 // Hidden Palace (Deform_HPZ): bands of the background scroll at their own speeds, picked by the background's height (Deform_All)
 void Water_Ripple(void);
 void Deform_HPZ(void) {
-	BGScroll_Block1((int32_t)scrshift_x << 6, SCROLL_FLAG_LEFT);
-	UpdateBGScroll(&bg_scrpos_y, (int32_t)scrshift_y << 7, &bg1_yblock, &bg1_scroll_flags, 1 << 6, 1 << 7); // (BGScroll_SetupY with d6 = 6)
+	bg_scrpos_x.v += (int32_t)scrshift_x << 6;
+	bg_scrpos_y.v += (int32_t)scrshift_y << 7;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 
 	int16_t layer[96] = { 0 };
@@ -571,7 +277,8 @@ void Deform_HTZ(void) {
 // The prototype's plain backgrounds (Bg_Scroll_Wz, _Mz, _OOz and _CNz): the whole background in one piece, moved by a share of the camera's move (the delta is the camera's move shifted left by x_shift and y_shift
 // into 16.16), its scroll one value for all the lines
 static void Deform_Plain(int x_shift, int y_shift) {
-	BGScroll_XY((int32_t)scrshift_x << x_shift, (int32_t)scrshift_y << y_shift);
+	bg_scrpos_x.v += (int32_t)scrshift_x << x_shift;
+	bg_scrpos_y.v += (int32_t)scrshift_y << y_shift;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 	HScroll h;
 	HS_Start(&h, (int16_t)-scrpos_x.f.u);
@@ -586,7 +293,6 @@ static void Deform_OOZ(void) { Deform_Plain(5, 5); }
 // Casino Night (Bg_Scroll_CNz): a plain background that never redraws (its flags are cleared as they are set: the picture is the whole plane)
 static void Deform_CNZ(void) {
 	Deform_Plain(6, 2);
-	bg1_scroll_flags = 0;
 }
 
 // The prototype's bands of a background (the loop at loc_6526 and loc_6A36): `heights` are the bands' heights in lines and `values` their scroll; the background's own Y says which band is at the top and how
@@ -611,7 +317,8 @@ static void Deform_Bands(const uint8_t *heights, int count, const int16_t *value
 // 1's Deform_GHZ: three layers that move on their own by 1, 3/4 and 1/2 of a pixel a frame, over the rocks' own scroll), the rocks on the horizon move with the background (an eighth of the camera's X) and the sand, the
 // nearest, a quarter. The bands are in lines of the background: its X and Y are the plain ones, so the redraw is Oil Ocean's.
 static void Deform_SSZ(void) {
-	BGScroll_XY((int32_t)scrshift_x << 5, (int32_t)scrshift_y << 5);
+	bg_scrpos_x.v += (int32_t)scrshift_x << 5;
+	bg_scrpos_y.v += (int32_t)scrshift_y << 5;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 	int32_t *drift = (int32_t *)bgscroll_buffer; // (cleared where the level starts)
 	drift[0] += 0x10000;
@@ -627,7 +334,6 @@ static void Deform_SSZ(void) {
 // camera's X, mirrored about the middle band
 static void Deform_MCZ(void) {
 	uint16_t cy = (uint16_t)scrpos_y.f.u;
-	int32_t old = bg_scrpos_y.v;
 	int16_t q;
 	uint16_t r;
 	if (LEVEL_ACT(level_id) == 0) {
@@ -638,10 +344,6 @@ static void Deform_MCZ(void) {
 		r = cy % 6;
 	}
 	bg_scrpos_y.v = (int32_t)(((uint32_t)(uint16_t)q << 16) | r);
-	if ((bg_scrpos_y.f.u & 0x10) != (bg1_yblock & 0x10)) {
-		bg1_yblock ^= 0x10;
-		bg1_scroll_flags |= (bg_scrpos_y.v < old) ? (1 << 6) : (1 << 7);
-	}
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 
 	int32_t d0 = (int32_t)(int16_t)(((int32_t)scrpos_x.f.u * 16) / 10) << 12;
@@ -670,11 +372,11 @@ static void Deform_MCZ(void) {
 
 // Neo Green Hill (Bg_Scroll_NGHz): 12 bands, the upper and lower ones on a background that crawls (a 233rd of the camera's move), those between at multiples of a tenth of the camera's X
 static void Deform_ARZ(void) {
-	UpdateBGScroll(&bg_scrpos_x, (int32_t)(int16_t)(scrshift_x) * 0x119, &bg1_xblock, &bg1_scroll_flags, SCROLL_FLAG_LEFT, SCROLL_FLAG_RIGHT);
+	bg_scrpos_x.v += (int32_t)(int16_t)(scrshift_x) * 0x119;
 	int32_t dy = (int32_t)scrshift_y << 7;
 	if (LEVEL_ACT(level_id) == 0)
 		dy <<= 1;
-	UpdateBGScroll(&bg_scrpos_y, dy, &bg1_yblock, &bg1_scroll_flags, 1 << 6, 1 << 7);
+	bg_scrpos_y.v += dy;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 
 	int32_t d0 = (int32_t)(int16_t)(((int32_t)scrpos_x.f.u * 16) / 10) << 12;
@@ -1066,9 +768,6 @@ void DeformLayers(void)
 	
 	//Clear previous flags
 	LevelPlane_ClearFlags(&fg_plane);
-	bg1_scroll_flags = 0;
-	bg2_scroll_flags = 0;
-	bg3_scroll_flags = 0;
 	
 	//Scroll camera
 	// While the level is edited the camera follows the editor's cursor and is free of the level's own locks (the end of level's, a boss arena's: the limits the level's size gives are the only ones)
@@ -1114,10 +813,8 @@ typedef struct {
 	dword_s bg_x, bg_y, bg2_x, bg2_y, bg3_x, bg3_y;
 	int16_t ehz_wave;
 	uint8_t ehz_runcount;
-	uint8_t xblock[3], yblock[3]; // (which 16 pixel block each background was last in: what decides that a row or column is new, so each view needs its own)
 } DeformState;
 static DeformState deform_p2;
-static uint16_t p2_flags[3], p2_flags_dup[3];
 static dword_s p2_dup[3][2]; // the background positions as of the last blank (the flags apply to these)
 
 #define DEFORM_SWAP(a, b) do { __typeof__(a) t_ = (a); (a) = (b); (b) = t_; } while (0)
@@ -1126,15 +823,11 @@ static void DeformSwap(DeformState *s) {
 	DEFORM_SWAP(bg2_scrpos_x, s->bg2_x); DEFORM_SWAP(bg2_scrpos_y, s->bg2_y);
 	DEFORM_SWAP(bg3_scrpos_x, s->bg3_x); DEFORM_SWAP(bg3_scrpos_y, s->bg3_y);
 	DEFORM_SWAP(ehz_wave, s->ehz_wave); DEFORM_SWAP(ehz_runcount, s->ehz_runcount);
-	DEFORM_SWAP(bg1_xblock, s->xblock[0]); DEFORM_SWAP(bg2_xblock, s->xblock[1]); DEFORM_SWAP(bg3_xblock, s->xblock[2]);
-	DEFORM_SWAP(bg1_yblock, s->yblock[0]); DEFORM_SWAP(bg2_yblock, s->yblock[1]); DEFORM_SWAP(bg3_yblock, s->yblock[2]);
 }
 
 void DeformLayersP2_Init(void) {
-	deform_p2 = (DeformState){ bg_scrpos_x, bg_scrpos_y, bg2_scrpos_x, bg2_scrpos_y, bg3_scrpos_x, bg3_scrpos_y, ehz_wave, ehz_runcount, { bg1_xblock, bg2_xblock, bg3_xblock }, { bg1_yblock, bg2_yblock, bg3_yblock } };
+	deform_p2 = (DeformState){ bg_scrpos_x, bg_scrpos_y, bg2_scrpos_x, bg2_scrpos_y, bg3_scrpos_x, bg3_scrpos_y, ehz_wave, ehz_runcount };
 	LevelScroll_BackgroundSync(1, &deform_p2.bg_x, &deform_p2.bg2_x, &deform_p2.bg3_x, &deform_p2.bg_y); // (its plane was drawn whole where the first's is)
-	memset(p2_flags, 0, sizeof(p2_flags));
-	memset(p2_flags_dup, 0, sizeof(p2_flags_dup));
 }
 
 void DeformLayersP2(int16_t (*lines)[2], int16_t *bg_y) {
@@ -1152,11 +845,9 @@ void DeformLayersP2(int16_t (*lines)[2], int16_t *bg_y) {
 	memcpy(saved, hscroll_buffer, sizeof(saved));
 	dword_s sx = scrpos_x, sy = scrpos_y;
 	int16_t shx = scrshift_x, shy = scrshift_y, bgy_dup = vid_bg_scrpos_y_dup, fgy_dup = vid_scrpos_y_dup; // (the first view's own scroll dups: the second camera's quake branch writes them too)
-	uint16_t f1 = bg1_scroll_flags, f2 = bg2_scroll_flags, f3 = bg3_scroll_flags;
 	DeformSwap(&deform_p2);
 	scrpos_x = scrpos_x_p2; scrpos_y = scrpos_y_p2;
 	scrshift_x = scrshift_x_p2; scrshift_y = scrshift_y_p2;
-	bg1_scroll_flags = p2_flags[0]; bg2_scroll_flags = p2_flags[1]; bg3_scroll_flags = p2_flags[2];
 	deforming_p2 = true;
 	HTZQuake_SetView(1);
 	if (LEVEL_ZONE(level_id) == ZoneId_HTZ)
@@ -1165,12 +856,10 @@ void DeformLayersP2(int16_t (*lines)[2], int16_t *bg_y) {
 	HTZQuake_SetView(0);
 	deforming_p2 = false;
 	*bg_y = vid_bg_scrpos_y_dup;
-	p2_flags[0] = bg1_scroll_flags; p2_flags[1] = bg2_scroll_flags; p2_flags[2] = bg3_scroll_flags;
 	DeformSwap(&deform_p2);
 	memcpy(lines, hscroll_buffer, sizeof(saved));
 	memcpy(hscroll_buffer, saved, sizeof(saved));
 	scrpos_x = sx; scrpos_y = sy; scrshift_x = shx; scrshift_y = shy; vid_bg_scrpos_y_dup = bgy_dup; vid_scrpos_y_dup = fgy_dup;
-	bg1_scroll_flags = f1; bg2_scroll_flags = f2; bg3_scroll_flags = f3;
 }
 
 // At the blank: the second background's pending rows and columns, for its camera as the blank saw it (as the first's, from the "dup" copies)
@@ -1178,8 +867,5 @@ void DeformLayersP2_Draw(void) {
 	p2_dup[0][0] = deform_p2.bg_x; p2_dup[0][1] = deform_p2.bg_y;
 	p2_dup[1][0] = deform_p2.bg2_x; p2_dup[1][1] = deform_p2.bg2_y;
 	p2_dup[2][0] = deform_p2.bg3_x; p2_dup[2][1] = deform_p2.bg3_y;
-	for (int i = 0; i < 3; i++) {
-		p2_flags_dup[i] = p2_flags[i];
-	}
 	LevelScroll_BackgroundDraw(1, &p2_dup[0][0], &p2_dup[1][0], &p2_dup[2][0], &p2_dup[0][1]);
 }

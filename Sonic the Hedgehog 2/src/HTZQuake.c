@@ -24,8 +24,6 @@
 #include "Macros.h"
 
 // (LevelScroll.c's, Sonic 2's own scroll helpers)
-void UpdateBGScroll(dword_s *pos, int32_t delta, uint8_t *block, uint16_t *flags, uint16_t neg_bit, uint16_t pos_bit);
-void BGScroll_YRelative(int32_t y_off);
 
 uint8_t htz_quake, htz_shaking;
 uint8_t dhz_shake;
@@ -361,8 +359,8 @@ int16_t htz_p2_shake_y; // what the second view's foreground is moved down by (S
 // loc_6236, the shaking branch of Bg_Scroll_HTz, for the view that owns the quake: the background moves by the events' diffs, the screen shakes while the ground moves
 void HTZQuake_Deform(void) {
     const int view = cur_view;
-    UpdateBGScroll(&bg_scrpos_x, (int32_t)htz_bg_x_diff << 8, &bg1_xblock, &bg1_scroll_flags, SCROLL_FLAG_LEFT, SCROLL_FLAG_RIGHT); // (Scroll_Block2)
-    BGScroll_YRelative((int32_t)htz_bg_y_diff << 8);                                                                                    // (Scroll_Block3)
+    bg_scrpos_x.v += (int32_t)htz_bg_x_diff << 8; // (Scroll_Block2)
+    bg_scrpos_y.v += (int32_t)htz_bg_y_diff << 8;                                                                                    // (Scroll_Block3)
     vid_scrpos_y_dup = scrpos_y.f.u;
     vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
     int16_t shake_x = 0, shake_y = 0;
