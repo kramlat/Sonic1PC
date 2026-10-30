@@ -117,7 +117,7 @@ const dword_s* bg_pos_table_y_dup[] = {
     &bg3_scrpos_y_dup  // Index 6
 };
 
-void DrawBlocks_BG_2(plane_t *plane, int16_t sx, int16_t sy, int16_t index_bias, int16_t y, const uint8_t *layout, const uint8_t *array, size_t entries, const dword_s *const *pos_table, const dword_s *const *pos_table_y) {
+void DrawBlocks_BG_2(plane_t *plane, int16_t sx, int16_t sy, int16_t index_bias, int16_t y, const LevelLayoutPlane *layout, const uint8_t *array, size_t entries, const dword_s *const *pos_table, const dword_s *const *pos_table_y) {
 	// Matches the disassembly's "move.w v_bgscreenposy,d0 ; add.w d4,d0 ;
 	// andi.w #$1F0,d0" (mask varies per table size): combine the camera
 	// position with the relative row offset (y can legitimately be
@@ -154,7 +154,7 @@ void DrawBlocks_BG_2(plane_t *plane, int16_t sx, int16_t sy, int16_t index_bias,
 		DrawBlocks_LR_3(plane, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH / 2);
 }
 
-void DrawBlocks_BG(plane_t *plane, int16_t sx, int16_t sy, int16_t y, const uint8_t *layout, const uint8_t *array, size_t entries, const dword_s *const *pos_table, const dword_s *const *pos_table_y) {
+void DrawBlocks_BG(plane_t *plane, int16_t sx, int16_t sy, int16_t y, const LevelLayoutPlane *layout, const uint8_t *array, size_t entries, const dword_s *const *pos_table, const dword_s *const *pos_table_y) {
 	DrawBlocks_BG_2(plane, sx, sy, 0, y, layout, array, entries, pos_table, pos_table_y);
 }
 
@@ -166,7 +166,7 @@ void DrawBlocks_BG(plane_t *plane, int16_t sx, int16_t sy, int16_t y, const uint
 // checking each directly against the shared redraw-flags byte. Only ever
 // reached from incremental (per-frame) redraw paths, so it always uses the
 // "_dup" position table (real ASM: DrawBG_XPosCopy_Ptrs), never the live one.
-void DrawBG_ColumnForBGIndex(plane_t *plane, int16_t x, int16_t y, int16_t sy, const uint8_t *layout, const uint8_t *table, uint16_t *flag) {
+void DrawBG_ColumnForBGIndex(plane_t *plane, int16_t x, int16_t y, int16_t sy, const LevelLayoutPlane *layout, const uint8_t *table, uint16_t *flag) {
 	for (size_t i = 0; i < SCROLL_ROWS; i++, y += 16) {
 		uint8_t bit = table[i];
 		if (*flag & (1 << bit)) {
@@ -181,7 +181,7 @@ void DrawBG_ColumnForBGIndex(plane_t *plane, int16_t x, int16_t y, int16_t sy, c
 	*flag &= 0xFF00;
 }
 
-void Draw_GHZ_Bg(int16_t sy, const uint8_t *layout, plane_t *plane) {
+void Draw_GHZ_Bg(int16_t sy, const LevelLayoutPlane *layout, plane_t *plane) {
 	int16_t y = 0;
 	for (size_t i = 0; i < SCROLL_ROWS; i++) {
 		static const uint8_t bg_array[] = {0x00, 0x00, 0x00, 0x00, 0x06, 0x06, 0x06, 0x04, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -190,7 +190,7 @@ void Draw_GHZ_Bg(int16_t sy, const uint8_t *layout, plane_t *plane) {
 	}
 }
 
-void Draw_MZ_Bg(int16_t sy, const uint8_t *layout, plane_t *plane) {
+void Draw_MZ_Bg(int16_t sy, const LevelLayoutPlane *layout, plane_t *plane) {
     // Matches Draw_MZ_BG in the disassembly: starts one row above the top of
     // the screen (y = -16, not 0), reads MZ_ScrollArray+1 (its row-index
     // table is addressed with a +1 offset -- see BG_ScrollBlockMap_MZ+1),
@@ -203,7 +203,7 @@ void Draw_MZ_Bg(int16_t sy, const uint8_t *layout, plane_t *plane) {
     }
 }
 
-void Draw_SBZ_Bg(int16_t sy, const uint8_t *layout, plane_t *plane) {
+void Draw_SBZ_Bg(int16_t sy, const LevelLayoutPlane *layout, plane_t *plane) {
     // Matches Draw_SBZ_act1_BG in the disassembly: y = -16 (not 0), and
     // SBZ_ScrollArray+1 (see BG_ScrollBlockMap_SBZ+1).
     int16_t y = -16;
@@ -215,18 +215,18 @@ void Draw_SBZ_Bg(int16_t sy, const uint8_t *layout, plane_t *plane) {
 
 // Level drawing functions
 void LoadTilesFromStart(void) {
-    DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_FG(0), &screen1p.plane_a);
+    DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_PLANE_FG, &screen1p.plane_a);
     if (LEVEL_ZONE(level_id) == ZoneId_GHZ || LEVEL_ZONE(level_id) == ZoneId_EndZ)
-        Draw_GHZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), &screen1p.plane_b);
+        Draw_GHZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     else if (LEVEL_ZONE(level_id) == ZoneId_MZ)
-        Draw_MZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), &screen1p.plane_b);
+        Draw_MZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     else if (level_id == ZoneId_SBZ << 8)
-        Draw_SBZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), &screen1p.plane_b);
+        Draw_SBZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     else
-    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), &screen1p.plane_b);
+    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
 }
 
-void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, plane_t *plane) {
+void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
 	//Check if any flags have been set
 	if (*flag == 0)
 		return;
@@ -265,7 +265,7 @@ void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, p
 // Draw_SBZ label for easier cross-referencing: a full row above/below the
 // screen if the top/bottom flag is set, then any remaining flag bits
 // trigger a vertical strip via DrawBG_ColumnForBGIndex.
-static void Draw_SBZ(int16_t sx, uint16_t *flag, const uint8_t *layout, plane_t *plane) {
+static void Draw_SBZ(int16_t sx, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
 	int16_t vertical_offset = -16; // Margin for drawing new tiles
 	if (*flag & 0x01) {
 		*flag &= ~0x01;
@@ -294,7 +294,7 @@ static void Draw_SBZ(int16_t sx, uint16_t *flag, const uint8_t *layout, plane_t 
 	}
 }
 
-void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, plane_t *plane) {
+void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
 	if (*flag == 0)
 		return;
 		if (LEVEL_ZONE(level_id) != ZoneId_SBZ) {
@@ -316,7 +316,7 @@ void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout
 // own Draw_MZ label for easier cross-referencing: a full row above/below
 // the screen if the top/bottom flag is set, then any remaining flag bits
 // trigger a vertical strip via DrawBG_ColumnForBGIndex.
-static void Draw_MZ(int16_t sx, uint16_t *flag, const uint8_t *layout, plane_t *plane) {
+static void Draw_MZ(int16_t sx, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
 	int16_t y_rel = -16;
 	// Real Draw_MZ checks bit0 ("top")/bit1 ("bottom") here, set by
 	// BGScroll_YAbsolute -- NOT SCROLL_FLAG_LEFT/RIGHT (bit2/bit3), which
@@ -353,7 +353,7 @@ static void Draw_MZ(int16_t sx, uint16_t *flag, const uint8_t *layout, plane_t *
 	DrawBG_ColumnForBGIndex(plane, col_x, -16, bg_scrpos_y_dup.f.u, layout, MZ_ScrollArray + (idx >> 4), flag);
 }
 
-void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout, plane_t *plane) {
+void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
 	//Check if any flags have been set
 	if (*flag == 0)
 		return;
@@ -374,20 +374,20 @@ void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const uint8_t *layout
 
 void LoadTilesAsYouMove(void) {
     DrawBG_Top(bg_scrpos_x_dup.f.u, bg_scrpos_y_dup.f.u,
-                       &bg1_scroll_flags_dup, LEVEL_LAYOUT_BG(0), &screen1p.plane_b);
+                       &bg1_scroll_flags_dup, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
 
     DrawBG_Bottom(bg2_scrpos_x_dup.f.u, bg2_scrpos_y_dup.f.u,
-                       &bg2_scroll_flags_dup, LEVEL_LAYOUT_BG(0), &screen1p.plane_b);
+                       &bg2_scroll_flags_dup, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
 
     // REV01 added a third scroll block call
     DrawBG_Block3(bg3_scrpos_x_dup.f.u, bg3_scrpos_y_dup.f.u,
-                       &bg3_scroll_flags_dup, LEVEL_LAYOUT_BG(0), &screen1p.plane_b);
-    LevelPlane_DrawPending(&fg_plane, LEVEL_LAYOUT_FG(0));
+                       &bg3_scroll_flags_dup, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
+    LevelPlane_DrawPending(&fg_plane, LEVEL_LAYOUT_PLANE_FG);
 }
 
 void LoadTilesAsYouMove_BGOnly(void) {
-    DrawBG_Top(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, LEVEL_LAYOUT_BG(0), &screen1p.plane_b);
-    DrawBG_Bottom(bg2_scrpos_x.f.u, bg2_scrpos_y.f.u, &bg2_scroll_flags, LEVEL_LAYOUT_BG(0), &screen1p.plane_b);
+    DrawBG_Top(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
+    DrawBG_Bottom(bg2_scrpos_x.f.u, bg2_scrpos_y.f.u, &bg2_scroll_flags, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     // No scroll block 3, even in REV01... odd
 }
 

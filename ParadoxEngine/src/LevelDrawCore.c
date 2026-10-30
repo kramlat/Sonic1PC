@@ -22,7 +22,7 @@ size_t CalcVRAMPos_Unknown(int16_t sx, int16_t sy, int16_t x, int16_t y) {
 /**
  * Primary entry point: Calculates block data by first applying the camera's X offset.
  */
-void GetBlockData(const uint8_t **meta, const uint8_t **block, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
+void GetBlockData(const uint8_t **meta, const uint8_t **block, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout) {
     GetBlockData_2(meta, block, sy, sx + x, y, layout);
 }
 
@@ -30,17 +30,13 @@ void GetBlockData(const uint8_t **meta, const uint8_t **block, int16_t sx, int16
  * Secondary entry point: Calculates the memory addresses for block metadata and
  * tile data based on world coordinates and the level layout.
  */
-void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
+void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout) {
 	y += sy;
-	// layout points at a plane's start within the interleaved level_layout
-	// buffer (LEVEL_LAYOUT_FG(0)/LEVEL_LAYOUT_BG(0)) -- rows are
-	// LEVEL_LAYOUT_ROW_STRIDE (0x100) apart, not 0x80, since FG and BG share
-	// each row. Chunks are 128x128 px (real Sonic 2 size), hence >>7.
-	int16_t cx = (x >> 7) & (LEVEL_LAYOUT_COLS - 1);
-	int16_t cy = (y >> 7) & (LEVEL_LAYOUT_ROWS - 1);
+	// layout is one of the level's planes (LEVEL_LAYOUT_PLANE_FG / _BG), each as big as its layout file says. Chunks are 128x128 px (real Sonic 2 size), hence >>7;
+	// LevelLayout_Chunk wraps the position as the old fixed buffer did and gives 0 where the plane has nothing.
 	// Real Sonic 2 uses the full byte (0-255) as the chunk ID, no reserved
 	// high bit like Sonic 1 had.
-	uint8_t chunk = layout[cy * LEVEL_LAYOUT_ROW_STRIDE + cx];
+	uint8_t chunk = LevelLayout_Chunk(layout, x >> 7, y >> 7);
 	if (chunk == 0) {
 		*meta = level_map128;
 		*block = level_map16;
@@ -131,7 +127,7 @@ void DrawBlock(const uint8_t *meta, const uint8_t *block, plane_t *plane, size_t
 	}
 }
 
-void DrawBlocks_LR_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t width) {
+void DrawBlocks_LR_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout, size_t width) {
 	const uint8_t *meta;
 	const uint8_t *block;
 	while (width-- > 0) {
@@ -144,7 +140,7 @@ void DrawBlocks_LR_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t
 	}
 }
 
-void DrawBlocks_LR_3(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t width) {
+void DrawBlocks_LR_3(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout, size_t width) {
     const uint8_t* meta;
     const uint8_t* block;
     while (width-- > 0) {
@@ -159,14 +155,14 @@ void DrawBlocks_LR_3(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t
 
 // A row, as the original draws it: the width of the screen and two extra columns (22 blocks at 320, from one block left of the view), no more than the plane holds. One
 // block fewer leaves the block at the right edge of the view stale in every row drawn while the camera is not on a block line.
-void DrawBlocks_LR(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
+void DrawBlocks_LR(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout) {
 	size_t width = (RIGHT_EDGE_X + 32) / 16;
 	if (width > PLANE_WIDTH / 2)
 		width = PLANE_WIDTH / 2;
 	DrawBlocks_LR_2(plane, pos, sx, sy, x, y, layout, width);
 }
 
-void DrawBlocks_TB_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t height) {
+void DrawBlocks_TB_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout, size_t height) {
 	const uint8_t *meta;
 	const uint8_t *block;
 	while (height-- > 0) {
@@ -179,12 +175,12 @@ void DrawBlocks_TB_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t
 	}
 }
 
-void DrawBlocks_TB(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout) {
+void DrawBlocks_TB(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout) {
 	DrawBlocks_TB_2(plane, pos, sx, sy, x, y, layout, SCROLL_ROWS);
 }
 
 // Draws the rows of blocks that fill a plane, from one block above the view, for the camera at (sx, sy)
-void DrawChunks(int16_t sx, int16_t sy, const uint8_t *layout, plane_t *plane) {
+void DrawChunks(int16_t sx, int16_t sy, const LevelLayoutPlane *layout, plane_t *plane) {
     int16_t y = -16;
     for (size_t i = 0; i < SCROLL_ROWS; i++) {
         DrawBlocks_LR_2(plane, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH / 2);

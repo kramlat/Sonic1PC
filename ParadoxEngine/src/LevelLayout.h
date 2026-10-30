@@ -14,8 +14,8 @@
 // A row's pointer is $8000 plus its offset from the start of the file (the original's RAM address: the header and the pointers take $88 bytes, so the first row's is $8088). The file is not
 // compressed. A level is as wide and as tall as its header says: nothing is padded to a fixed size, and the size comes with the level.
 //
-// In memory the layout stays the engine's fixed buffer (LevelData.h: level_layout, 16 rows of a $100 stride, the foreground in the first $80 bytes and the background in the second), zero
-// where the file has no chunk, so everything that reads it is as before; level_layout_size says how much of it the file filled.
+// In memory each plane is allocated at exactly the size the file says (LevelData.h: level_layout_fg and level_layout_bg, read with LevelLayout_Chunk, which gives 0 where there is nothing,
+// as the old fixed buffer did); level_layout_size is the header as it was read.
 
 #define LEVEL_LAYOUT_FILE_HEADER 8
 #define LEVEL_LAYOUT_FILE_ROWS 0x20      // the pointer table holds $40 words: a pair for each of 32 rows

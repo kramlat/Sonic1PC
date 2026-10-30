@@ -430,13 +430,13 @@ void DynamicLevelEvents(void) {
             break;
         case 2: // Act 3
             if (f_switch[0xF] &&
-                !(LEVEL_LAYOUT_FG(5)[12] == 0x17 && LEVEL_LAYOUT_FG(5)[13] == 0x18)) {
+                !(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 12, 5) == 0x17 && LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 13, 5) == 0x18)) {
                 // MJ: modify level layout (P128 overwrites two chunks instead
                 // of one) -- opens an exit from the water slide section by
                 // replacing the slide-through chunks DynWater_LZ3 opened
                 // earlier with a slide+landing pair.
-                LEVEL_LAYOUT_FG(5)[12] = 0x17;
-                LEVEL_LAYOUT_FG(5)[13] = 0x18;
+                LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 12, 5, 0x17);
+                LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 13, 5, 0x18);
                 QueueSound2(sfx_Rumbling);
             }
             if (dle_routine == 0) {

@@ -17,9 +17,8 @@ static void GetBlockData2_ReadsColumnsPast64(void) {
     // One row (row 0) of a layout, 128 bytes wide, all empty (chunk 0)
     // except column 100 (chunk 1) -- past the old 0x3F/64 mask, but well
     // within the real 0x7F/128 range.
-    static uint8_t layout[128 * 8];
-    memset(layout, 0, sizeof(layout));
-    layout[100] = 1;
+    LevelLayoutPlane layout = { 0 };
+    LevelLayout_SetChunk(&layout, 100, 0, 1); // (the plane grows to hold it)
 
     // Place known tile data for chunk 1 at block position (tx=3, ty=2), and
     // pick x/y so the lookup lands on column 100, row 0, tx=3, ty=2.
@@ -34,12 +33,13 @@ static void GetBlockData2_ReadsColumnsPast64(void) {
     int16_t y = 0x20;              // row 0, ty = 2
 
     const uint8_t *meta = NULL, *block = NULL;
-    GetBlockData_2(&meta, &block, /*sy=*/0, x, y, layout);
+    GetBlockData_2(&meta, &block, /*sy=*/0, x, y, &layout);
 
     // Before the fix, column 100 aliased to (100 & 0x3F) == 36, which is
     // empty (chunk 0) in this layout, so *block would fall back to the
     // default level_map16 base instead of resolving tile 5.
     CHECK(block == level_map16 + (5 << 3));
+    LevelLayout_Resize(&layout, 0, 0); // (gives its memory back)
 }
 
 // SBZ act 1 (REV01) background scrolling: Draw_SBZ only looks at the redraw flags the real routines set --

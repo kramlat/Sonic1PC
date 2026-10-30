@@ -74,12 +74,76 @@ uint8_t *LevelLayout_Pack(const uint8_t *interleaved, int rows, size_t *out_size
 
 #ifndef LEVELLAYOUT_NO_LEVEL // (the layout converter is built without the level's buffers)
 #include "LevelData.h"
+#include "Kosinski.h"
 
-bool LevelLayout_Load(const uint8_t *file, size_t file_size) {
-    return LevelLayout_Unpack(file, file_size, level_layout, LEVEL_LAYOUT_ROWS, &level_layout_size);
+void LevelLayout_Resize(LevelLayoutPlane *plane, int width, int rows) {
+    if (width < 0) width = 0;
+    if (rows < 0) rows = 0;
+    if (width == plane->width && rows == plane->rows)
+        return;
+    uint8_t *data = (width && rows) ? calloc((size_t)width * (size_t)rows, 1) : NULL;
+    if (data != NULL && plane->data != NULL)
+        for (int row = 0; row < rows && row < plane->rows; row++)
+            memcpy(data + (size_t)row * width, plane->data + (size_t)row * plane->width, (size_t)(width < plane->width ? width : plane->width));
+    free(plane->data);
+    plane->data = data;
+    plane->width = (uint16_t)(data ? width : 0);
+    plane->rows = (uint16_t)(data ? rows : 0);
 }
 
-#include "Kosinski.h"
+void LevelLayout_SetChunk(LevelLayoutPlane *plane, int x, int y, uint8_t chunk) {
+    const int cx = x & (LEVEL_LAYOUT_COLS - 1), cy = y & (LEVEL_LAYOUT_ROWS - 1);
+    if (cx >= plane->width || cy >= plane->rows) {
+        if (chunk == 0)
+            return; // (nothing to write where there is nothing)
+        LevelLayout_Resize(plane, cx >= plane->width ? cx + 1 : plane->width, cy >= plane->rows ? cy + 1 : plane->rows);
+    }
+    plane->data[(size_t)cy * plane->width + cx] = chunk;
+}
+
+void LevelLayout_ToInterleaved(uint8_t *interleaved) {
+    memset(interleaved, 0, (size_t)LEVEL_LAYOUT_ROWS * 0x100);
+    for (int row = 0; row < LEVEL_LAYOUT_ROWS; row++)
+        for (int col = 0; col < LEVEL_LAYOUT_COLS; col++) {
+            interleaved[row * 0x100 + col] = LevelLayout_Chunk(&level_layout_fg, col, row);
+            interleaved[row * 0x100 + 0x80 + col] = LevelLayout_Chunk(&level_layout_bg, col, row);
+        }
+}
+
+// The planes become the smallest size that holds everything that is not 0 in the fixed buffer
+void LevelLayout_FromInterleaved(const uint8_t *interleaved) {
+    for (int plane_i = 0; plane_i < 2; plane_i++) {
+        LevelLayoutPlane *plane = plane_i ? &level_layout_bg : &level_layout_fg;
+        int width = 0, rows = 0;
+        for (int row = 0; row < LEVEL_LAYOUT_ROWS; row++)
+            for (int col = 0; col < LEVEL_LAYOUT_COLS; col++)
+                if (interleaved[row * 0x100 + plane_i * 0x80 + col] != 0) {
+                    if (col + 1 > width) width = col + 1;
+                    if (row + 1 > rows) rows = row + 1;
+                }
+        LevelLayout_Resize(plane, 0, 0);
+        LevelLayout_Resize(plane, width, rows);
+        for (int row = 0; row < rows; row++)
+            memcpy(plane->data + (size_t)row * width, interleaved + row * 0x100 + plane_i * 0x80, (size_t)width);
+    }
+}
+
+bool LevelLayout_Load(const uint8_t *file, size_t file_size) {
+    level_layout_generation++;
+    static uint8_t scratch[LEVEL_LAYOUT_ROWS * 0x100];
+    const bool ok = LevelLayout_Unpack(file, file_size, scratch, LEVEL_LAYOUT_ROWS, &level_layout_size);
+    // (each plane is exactly as big as its header says)
+    for (int plane_i = 0; plane_i < 2; plane_i++) {
+        LevelLayoutPlane *plane = plane_i ? &level_layout_bg : &level_layout_fg;
+        const int width = plane_i ? level_layout_size.bg_width : level_layout_size.fg_width, rows = plane_i ? level_layout_size.bg_rows : level_layout_size.fg_rows;
+        LevelLayout_Resize(plane, 0, 0);
+        LevelLayout_Resize(plane, width, rows);
+        for (int row = 0; row < plane->rows; row++)
+            memcpy(plane->data + (size_t)row * plane->width, scratch + row * 0x100 + plane_i * 0x80, plane->width);
+    }
+    return ok;
+}
+
 bool LevelLayout_LoadKosinski(const uint8_t *compressed) {
     static uint8_t file[0x4000]; // (a file holds up to $88 bytes of header and 16 rows of 2 planes of $80)
     const size_t size = (size_t)(KosDec(compressed, file) - file);

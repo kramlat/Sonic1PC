@@ -8,6 +8,7 @@
 #include "EnginePalette.h"
 #include "GameInterface.h"
 #include "LevelData.h"
+#include "LevelLayout.h"
 
 EditorSession editor_session;
 bool editor_open;
@@ -174,7 +175,21 @@ uint8_t *Editor_Art(size_t *bytes) { *bytes = art_bytes; return art_buffer; }
 uint8_t *Editor_Blocks(size_t *bytes) { *bytes = block_bytes; return level_map16; }
 uint8_t *Editor_Chunks(size_t *bytes) { *bytes = chunk_bytes; return level_map128; }
 uint8_t *Editor_Solids(int path, size_t *bytes) { *bytes = solid_bytes[path & 1]; return coll_index[path & 1]; }
-uint8_t *Editor_Layout(size_t *bytes) { *bytes = sizeof(level_layout); return level_layout; }
+// The layout as the editor handles it: a fixed buffer of both planes (16 rows of $100 bytes), made from the level's planes when the editor first looks at a layout, and put back into them (each
+// plane at the size that holds it) when the picture is redrawn. The planes themselves are only as big as the level.
+static uint8_t editor_layout[LEVEL_LAYOUT_ROWS * 0x100];
+static unsigned editor_layout_generation = ~0u;
+static bool editor_layout_changed;
+uint8_t *Editor_Layout(size_t *bytes) {
+    if (editor_layout_generation != level_layout_generation) { // (another layout has been loaded since)
+        LevelLayout_ToInterleaved(editor_layout);
+        editor_layout_generation = level_layout_generation;
+        editor_layout_changed = false;
+    }
+    *bytes = sizeof(editor_layout);
+    editor_layout_changed = true; // (the caller may write it)
+    return editor_layout;
+}
 const uint8_t *Editor_HeightMap(void) { return Collision_HeightMap; }
 const uint8_t *Editor_CurveAngles(void) { return Collision_Angle; }
 
@@ -186,6 +201,10 @@ void Editor_CommitArt(int tile) {
 }
 
 void Editor_RedrawLevel(void) {
+    if (editor_layout_changed && editor_layout_generation == level_layout_generation) {
+        LevelLayout_FromInterleaved(editor_layout); // (the planes take what the editor changed)
+        editor_layout_changed = false;
+    }
     Game_EditorRedraw();
 }
 

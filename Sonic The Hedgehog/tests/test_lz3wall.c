@@ -37,8 +37,8 @@ static void LZ3Wall_SplashFollowsSwitch(void) {
     scrpos_x.f.u = 0x5C0; // camera over the wall so RememberState keeps the splash
 
     // Closed wall as shipped in the layout.
-    CHECK_EQ(LEVEL_LAYOUT_FG(5)[12], 0xF8);
-    CHECK_EQ(LEVEL_LAYOUT_FG(5)[13], 0xF9);
+    CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 12, 5), 0xF8);
+    CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 13, 5), 0xF9);
 
     Object *splash = SpawnHiddenSplash();
     Obj_LZWaterfall(splash); // WFall_Main
@@ -48,13 +48,13 @@ static void LZ3Wall_SplashFollowsSwitch(void) {
 
     // No switch yet: DLE leaves the layout alone.
     DynamicLevelEvents();
-    CHECK_EQ(LEVEL_LAYOUT_FG(5)[12], 0xF8);
+    CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 12, 5), 0xF8);
 
     // Press switch $F.
     f_switch[0xF] = 1;
     DynamicLevelEvents();
-    CHECK_EQ(LEVEL_LAYOUT_FG(5)[12], 0x17);
-    CHECK_EQ(LEVEL_LAYOUT_FG(5)[13], 0x18);
+    CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 12, 5), 0x17);
+    CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 13, 5), 0x18);
 
     Obj_LZWaterfall(splash);
     CHECK_EQ(splash->tile & 0x8000, 0x8000); // visible through the opened wall

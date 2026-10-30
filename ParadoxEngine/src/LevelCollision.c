@@ -22,7 +22,7 @@ const uint8_t* FindNearestTile(Object *obj, int16_t x, int16_t y) {
     // trick (that priority effect is Obj03/path-swapper's job now).
     uint16_t cx = ((uint16_t)x >> 7) & (LEVEL_LAYOUT_COLS - 1);
     uint16_t cy = ((uint16_t)y >> 7) & (LEVEL_LAYOUT_ROWS - 1);
-    uint8_t chunk = LEVEL_LAYOUT_FG(cy)[cx];
+    uint8_t chunk = LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, cx, cy);
     if (chunk == 0)
         return chunk0_dummy;
 

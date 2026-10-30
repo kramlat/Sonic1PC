@@ -4,6 +4,9 @@
 #include <string.h>
 
 #include "LevelData.h"
+#include "Kosinski.h"
+#include "Level.h"
+#include "LevelLayout.h"
 #include "LevelDrawCore.h"
 #include "LevelPlane.h"
 #include "Backend/VDP.h"
@@ -20,9 +23,9 @@ static uint16_t Word(size_t offset) {
 }
 
 static void MakeLevel(void) {
-    memset(level_layout, 0, sizeof(level_layout));
+    LevelLayout_Resize(LEVEL_LAYOUT_PLANE_FG, 0, 0);
     for (int c = 0; c < LEVEL_LAYOUT_COLS; c++)
-        LEVEL_LAYOUT_FG(0)[c] = 1;
+        LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, c, 0, 1);
     memset(level_map128, 0, 0x100);
     for (int i = 0; i < 64; i++) { // chunk 1's 64 block entries: block 5, no flips
         level_map128[(1 << 7) + i * 2] = 0x00;
@@ -39,7 +42,7 @@ static void LevelPlane_DrawAllWritesTheViewsBlocks(void) {
     dword_s cx = { 0 }, cy = { 0 };
     LevelPlane p;
     LevelPlane_Init(&p, &test_plane, &cx, &cy, 0);
-    LevelPlane_DrawAll(&p, LEVEL_LAYOUT_FG(0));
+    LevelPlane_DrawAll(&p, LEVEL_LAYOUT_PLANE_FG);
     // The block at the camera's top-left corner: its four tiles, two to a row of the plane
     CHECK_EQ(Word(0), 0x0101);
     CHECK_EQ(Word(2), 0x0102);
@@ -95,7 +98,7 @@ static void LevelPlane_SnapshotThenDrawPending(void) {
 
     size_t pos = CalcVRAMPos(0x20, 0, SCREEN_WIDTH, 0);
     CHECK_EQ(Word(pos), 0);
-    LevelPlane_DrawPending(&p, LEVEL_LAYOUT_FG(0));
+    LevelPlane_DrawPending(&p, LEVEL_LAYOUT_PLANE_FG);
     CHECK_EQ(p.flags_snap, 0);
     CHECK_EQ(Word(pos), 0x0101); // the column on the right edge, for the camera as it was
 }
@@ -104,10 +107,10 @@ static void LevelPlane_SnapshotThenDrawPending(void) {
 // A made-up level of random chunks and blocks, to compare a plane scrolled step by step with one drawn afresh at the same camera
 static void MakeRandomLevel(unsigned seed) {
     srand(seed);
-    memset(level_layout, 0, sizeof(level_layout));
+    LevelLayout_Resize(LEVEL_LAYOUT_PLANE_FG, 0, 0);
     for (int r = 0; r < LEVEL_LAYOUT_ROWS; r++)
         for (int c = 0; c < LEVEL_LAYOUT_COLS; c++)
-            LEVEL_LAYOUT_FG(r)[c] = (uint8_t)(1 + rand() % 12);
+            LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, c, r, (uint8_t)(1 + rand() % 12));
     for (int i = 0; i < 0x80 * 13 / 2; i++) { // chunks 1-12: random blocks (0-63) with random flips
         uint16_t w = (uint16_t)((rand() % 64) | ((rand() & 3) << 10));
         level_map128[0x80 + i * 2] = w >> 8;
@@ -131,7 +134,7 @@ static int ViewMismatches(int16_t cam_x, int16_t cam_y) {
     fy.f.u = (uint16_t)cam_y;
     LevelPlane fresh;
     LevelPlane_Init(&fresh, &test_plane, &fx, &fy, 0);
-    LevelPlane_DrawAll(&fresh, LEVEL_LAYOUT_FG(0));
+    LevelPlane_DrawAll(&fresh, LEVEL_LAYOUT_PLANE_FG);
     int bad = 0;
     for (int wy = 0; wy < SCREEN_HEIGHT; wy += 8)
         for (int wx = 0; wx < SCREEN_WIDTH; wx += 8) {
@@ -152,7 +155,7 @@ static int ScrollStress(unsigned seed, int max_step, int frames_per_blank) {
     cy.f.u = 0x100;
     LevelPlane p;
     LevelPlane_Init(&p, &test_plane, &cx, &cy, 0);
-    LevelPlane_DrawAll(&p, LEVEL_LAYOUT_FG(0));
+    LevelPlane_DrawAll(&p, LEVEL_LAYOUT_PLANE_FG);
     int bad_frames = 0;
     for (int frame = 0; frame < 600; frame++) {
         for (int k = 0; k < frames_per_blank; k++) {
@@ -165,7 +168,7 @@ static int ScrollStress(unsigned seed, int max_step, int frames_per_blank) {
             LevelPlane_CameraMoved(&p, ox, oy);
         }
         LevelPlane_Snapshot(&p);
-        LevelPlane_DrawPending(&p, LEVEL_LAYOUT_FG(0));
+        LevelPlane_DrawPending(&p, LEVEL_LAYOUT_PLANE_FG);
         if (ViewMismatches(p.snap_x.f.u, p.snap_y.f.u))
             bad_frames++;
     }
@@ -180,7 +183,35 @@ static void LevelPlane_ScrollingAtGameSpeedsLeavesNoHoles(void) {
 }
 
 
+// Each level's layout planes are exactly as big as its file says and read the same as the old fixed buffer did (the unpacked file, 16 rows of 128 chunks, 0 where the level has nothing)
+static void LevelLayout_PlanesAreExactAndReadLikeTheFixedBuffer(void) {
+    static uint8_t file[0x4000], reference[LEVEL_LAYOUT_ROWS * 0x100];
+    int levels = 0, mismatches = 0;
+    for (int zone = 0; zone < ZoneId_Num; zone++)
+        for (int act = 0; act < 4; act++) {
+            const uint8_t *blob = level_layouts[zone][act].layout;
+            if (blob == NULL)
+                continue;
+            LevelLayoutSize size;
+            CHECK(LevelLayout_Unpack(file, KosDec(blob, file) - file, reference, LEVEL_LAYOUT_ROWS, &size));
+            CHECK(LevelLayout_LoadKosinski(blob));
+            CHECK_EQ(level_layout_fg.width, size.fg_width);
+            CHECK_EQ(level_layout_fg.rows, size.fg_rows);
+            CHECK_EQ(level_layout_bg.width, size.bg_width);
+            CHECK_EQ(level_layout_bg.rows, size.bg_rows);
+            for (int y = 0; y < LEVEL_LAYOUT_ROWS; y++)
+                for (int x = 0; x < LEVEL_LAYOUT_COLS; x++) {
+                    mismatches += LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, x, y) != reference[y * 0x100 + x];
+                    mismatches += LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_BG, x, y) != reference[y * 0x100 + 0x80 + x];
+                }
+            levels++;
+        }
+    CHECK(levels > 10);
+    CHECK_EQ(mismatches, 0);
+}
+
 void RegisterLevelPlaneTests(void) {
+    RUN_TEST(LevelLayout_PlanesAreExactAndReadLikeTheFixedBuffer);
     RUN_TEST(LevelPlane_DrawAllWritesTheViewsBlocks);
     RUN_TEST(LevelPlane_FlagsComeFromCrossingSixteenPixelLines);
     RUN_TEST(LevelPlane_SnapshotThenDrawPending);

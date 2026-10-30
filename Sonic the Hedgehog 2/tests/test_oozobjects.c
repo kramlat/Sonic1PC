@@ -96,12 +96,12 @@ static uint8_t sand_saved_cell;
 
 static void SandOn(void) {
     memcpy(sand_saved_chunk, level_map128 + 0x80 * 0xFE, 128);
-    sand_saved_cell = LEVEL_LAYOUT_FG(1)[2];
+    sand_saved_cell = LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 2, 1);
     for (int i = 0; i < 64; i++) { // (a chunk of sand: blocks 168 to 175, all in the range)
         level_map128[0x80 * 0xFE + i * 2] = 0;
         level_map128[0x80 * 0xFE + i * 2 + 1] = (uint8_t)(168 + (i & 7));
     }
-    LEVEL_LAYOUT_FG(1)[2] = 0xFE; // (x $100 to $17F, y $80 to $FF: its top is at $80)
+    LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 2, 1, 0xFE); // (x $100 to $17F, y $80 to $FF: its top is at $80)
     Reset();
     player->status.p.f.in_air = true;
     player->pos.l.x.f.u = 0x140;
@@ -109,7 +109,7 @@ static void SandOn(void) {
 
 static void SandOff(void) {
     memcpy(level_map128 + 0x80 * 0xFE, sand_saved_chunk, 128);
-    LEVEL_LAYOUT_FG(1)[2] = sand_saved_cell;
+    LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 2, 1, sand_saved_cell);
 }
 
 static void SSZ_SandSinksACharacterSlowlyAndHoldsItBack(void) {

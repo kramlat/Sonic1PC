@@ -84,7 +84,7 @@ static void GHZ1_DumpVisibleScreenGrid(void) {
         printf("    ");
         for (int bx = 0; bx < 20; bx++) {
             const uint8_t *meta = NULL, *block = NULL;
-            GetBlockData(&meta, &block, scrpos_x.f.u, scrpos_y.f.u, bx * 16, by * 16, LEVEL_LAYOUT_FG(0));
+            GetBlockData(&meta, &block, scrpos_x.f.u, scrpos_y.f.u, bx * 16, by * 16, LEVEL_LAYOUT_PLANE_FG);
             size_t tile = (size_t)((meta[0] << 8) | meta[1]) & META_TILE;
             printf("%3zx ", tile);
         }

@@ -26,7 +26,7 @@ Line numbers are those of `sonic3k.asm` in the disassembly this was read from.
 * `Level_layout_main`: $40 word-sized row pointers (a foreground and a background pointer for each of up to 32 line pairs), then the rows themselves, each only as wide as its
   plane is (a row is a run of chunk numbers, one byte each). The file is not compressed (`Levels/AIZ/Layout/1.bin` is 2124 bytes for 97 x 13 + 66 x 11 chunks).
 * Masks make the size free: `Layout_row_index_mask`, `Camera_Y_pos_mask`, `Screen_Y_wrap_value` are set per level in `LevelSetup` (line 102216), so a level is any width and
-  any height up to the 32 rows, and wraps where it should. The level size tables of the older games (sizes, start positions by act) are what this replaces.
+  any height up to the 32 rows, and wraps where it should. The header is the level's size in chunks. What it does not hold is the camera's limits (`LevelSizes`, line 38121: x start, x end, y start, y end for each act, in code) or the start position (`Sonic_Start_Locations`): S3&K keeps those in tables, as Sonic 2 does.
 * Chunks ($80 bytes: 8 x 8 words, block number in bits 0-9, X flip bit 10, Y flip bit 11, solidity above) and blocks (8 bytes: four tile words) are the Sonic 2 formats.
 
 ### 1.3 Drawing the planes: draw as you move (lines 102690-103290)
@@ -93,7 +93,8 @@ game plays as before after each. Tests compare the new path with the old one (th
 2. **The drawing engine**:
    * a. **Level layout format** (DONE): the Sonic 3 & Knuckles layout file (`LevelLayout.c/.h`), Kosinski compressed; all 44 layouts of both games converted by `tools/layout2s3` (each checked to
      read back to the old buffer byte for byte); both games' loaders, the editor's save and the importer write and read it. In memory it is still the fixed buffer (zero where the file has no chunk),
-     `level_layout_size` says how big the level is. The size and start tables (`LevelSizes`, `StartLocArray`) have not moved into the data yet.
+     `level_layout_size` says how big the level is, in chunks, as the original's header does. The camera limits and start positions (`LevelSizes`, `StartLocArray`) stay tables in code, as they are in S3&K.
+   * a2. **The layout is allocated at the size its file says** (DONE): two planes of exactly that size (`LevelLayoutPlane`), no fixed buffer; the chunk accessors wrap as the old buffer did until the per-level masks of stage 3. The user's note: the start positions and the dynamic events may have to be adjusted where an optimisation changes a level.
    * b. **Primary and secondary groups** of patterns, blocks and chunks in the level table (section 1.6), loaded the way `LoadLevelLoadBlock` does; Hill Top and Wing Fortress first.
    * c. **Plane drawing**: the plane buffer, `Draw_TileColumn` / `Draw_TileRow`, `DrawTilesAsYouMove`, reading the layout through its row pointers and masks (engine `LevelDrawCore.c`, `LevelPlane.c`),
      each checked against the old drawing (the planes' name tables identical after the same camera moves).
@@ -106,7 +107,7 @@ game plays as before after each. Tests compare the new path with the old one (th
    `Process_Sprites` as the one loop, `Draw_Sprite` / `Render_Sprites` with the 8 queues. Objects keep working as they are (the pointer starts as `game_objects[type]`); an object that changes its own
    routine can then do it the S3&K way, one object at a time, when it is touched anyway.
 6. **The levels**: every zone of both games through the converters (Emerald Hill and Hill Top first: the one primary and two secondaries), the importers and the editor writing the new formats, the old
-   readers removed, the size and start tables folded into the data where they belong.
+   readers removed (the camera limits and start positions stay in their tables, as in S3&K, unless the user wants them taken from the data).
 
 ## 4. Things to decide, and a warning
 

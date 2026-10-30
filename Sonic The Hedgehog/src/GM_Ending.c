@@ -188,9 +188,11 @@ void GM_Ending(void) {
 
         // Fully white and the emeralds are gone: add the flowers to the layout and fade back in
         restart = 0;
-        LEVEL_LAYOUT_FG(2)[0] = 0xAA; LEVEL_LAYOUT_FG(2)[1] = 0xAB; LEVEL_LAYOUT_FG(2)[2] = 0xAE; LEVEL_LAYOUT_FG(2)[3] = 0x9A;
-        LEVEL_LAYOUT_FG(3)[0] = 0xAC; LEVEL_LAYOUT_FG(3)[1] = 0xAD; LEVEL_LAYOUT_FG(3)[2] = 0xAF; LEVEL_LAYOUT_FG(3)[3] = 0xB0;
-        DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_FG(0), &screen1p.plane_a);
+        static const uint8_t flowers[2][4] = { { 0xAA, 0xAB, 0xAE, 0x9A }, { 0xAC, 0xAD, 0xAF, 0xB0 } };
+        for (int row = 0; row < 2; row++)
+            for (int col = 0; col < 4; col++)
+                LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, col, 2 + row, flowers[row][col]);
+        DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_PLANE_FG, &screen1p.plane_a);
         PalLoad1(PalId_Ending);
         PaletteWhiteIn();
     }

@@ -28,7 +28,7 @@ static void WFall_Priority(Object *obj) {
     // LZ3 water slide wall: visible only once switch $F has made
     // DLE_LZ3 swap row 5, columns 12-13 to chunks $17/$18 (MJ: P128
     // compares the whole word $1718). $F8/$F9 there is the closed wall.
-    if (LEVEL_LAYOUT_FG(5)[12] == 0x17 && LEVEL_LAYOUT_FG(5)[13] == 0x18)
+    if (LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 12, 5) == 0x17 && LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 13, 5) == 0x18)
         obj->tile |= 0x8000; // render on high plane (visible)
     WFall_Animate(obj);
 }

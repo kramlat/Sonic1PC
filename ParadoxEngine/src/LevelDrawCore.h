@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "EngineConstants.h"
+#include "LevelData.h"
 #include "Viewport.h"
 
 // Drawing the level's blocks into a plane: the chunk layout (LevelData.h) is looked up for a position in the level, and a 16x16 block's four tiles are written to a
@@ -29,15 +30,15 @@ void DrawTileRemap_Clear(void);
 size_t CalcVRAMPos(int16_t sx, int16_t sy, int16_t x, int16_t y);
 size_t CalcVRAMPos_2(int16_t sx, int16_t x, int16_t y);
 size_t CalcVRAMPos_Unknown(int16_t sx, int16_t sy, int16_t x, int16_t y);
-void GetBlockData(const uint8_t **meta, const uint8_t **block, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout);
-void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int16_t x, int16_t y, const uint8_t *layout);
+void GetBlockData(const uint8_t **meta, const uint8_t **block, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout);
+void GetBlockData_2(const uint8_t **meta, const uint8_t **block, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout);
 void DrawFlipX(const uint8_t* block, plane_t *plane, size_t pos);
 void DrawFlipY(const uint8_t* block, plane_t *plane, size_t pos);
 void DrawFlipXY(const uint8_t* block, plane_t *plane, size_t pos);
 void DrawBlock(const uint8_t* meta, const uint8_t* block, plane_t *plane, size_t pos);
-void DrawBlocks_LR_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t width);
-void DrawBlocks_LR_3(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t width);
-void DrawBlocks_LR(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout);
-void DrawBlocks_TB_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout, size_t height);
-void DrawBlocks_TB(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const uint8_t *layout);
-void DrawChunks(int16_t sx, int16_t sy, const uint8_t *layout, plane_t *plane);
+void DrawBlocks_LR_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout, size_t width);
+void DrawBlocks_LR_3(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout, size_t width);
+void DrawBlocks_LR(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout);
+void DrawBlocks_TB_2(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout, size_t height);
+void DrawBlocks_TB(plane_t *plane, size_t pos, int16_t sx, int16_t sy, int16_t x, int16_t y, const LevelLayoutPlane *layout);
+void DrawChunks(int16_t sx, int16_t sy, const LevelLayoutPlane *layout, plane_t *plane);

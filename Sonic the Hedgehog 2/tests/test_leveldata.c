@@ -211,10 +211,38 @@ static void LevelData_TheLayoutHeaderSaysHowBigTheLevelIs(void) {
     LoadLevelLayout();
     CHECK_EQ(level_layout_size.fg_width, 0);
     CHECK_EQ(level_layout_size.fg_rows, 0);
-    CHECK_EQ(level_layout[0], 0);
+    CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 0, 0), 0);
+}
+
+// Each level's layout planes are exactly as big as its file says and read the same as the old fixed buffer did (the unpacked file, 16 rows of 128 chunks, 0 where the level has nothing)
+static void LevelLayout_PlanesAreExactAndReadLikeTheFixedBuffer(void) {
+    static uint8_t file[0x4000], reference[LEVEL_LAYOUT_ROWS * 0x100];
+    int levels = 0, mismatches = 0;
+    for (int zone = 0; zone < ZoneId_Num; zone++)
+        for (int act = 0; act < 4; act++) {
+            const uint8_t *blob = level_layouts[zone][act].layout;
+            if (blob == NULL)
+                continue;
+            LevelLayoutSize size;
+            CHECK(LevelLayout_Unpack(file, KosDec(blob, file) - file, reference, LEVEL_LAYOUT_ROWS, &size));
+            CHECK(LevelLayout_LoadKosinski(blob));
+            CHECK_EQ(level_layout_fg.width, size.fg_width);
+            CHECK_EQ(level_layout_fg.rows, size.fg_rows);
+            CHECK_EQ(level_layout_bg.width, size.bg_width);
+            CHECK_EQ(level_layout_bg.rows, size.bg_rows);
+            for (int y = 0; y < LEVEL_LAYOUT_ROWS; y++)
+                for (int x = 0; x < LEVEL_LAYOUT_COLS; x++) {
+                    mismatches += LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, x, y) != reference[y * 0x100 + x];
+                    mismatches += LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_BG, x, y) != reference[y * 0x100 + 0x80 + x];
+                }
+            levels++;
+        }
+    CHECK(levels > 10);
+    CHECK_EQ(mismatches, 0);
 }
 
 void RegisterLevelDataTests(void) {
+    RUN_TEST(LevelLayout_PlanesAreExactAndReadLikeTheFixedBuffer);
     RUN_TEST(LevelData_TheLayoutHeaderSaysHowBigTheLevelIs);
     RUN_TEST(LevelData_HillTopsSupplementStartsWhereTheSymbolsSay);
     RUN_TEST(LevelData_StartPositionsMatchThePrototype);

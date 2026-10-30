@@ -1073,7 +1073,7 @@ void DeformLayersP2_Draw(void) {
 	for (int i = 0; i < 3; i++) {
 		p2_flags_dup[i] = p2_flags[i];
 	}
-	DrawBG_Top(p2_dup[0][0].f.u, p2_dup[0][1].f.u, &p2_flags_dup[0], LEVEL_LAYOUT_BG(0), &screen2p.plane_b);
-	DrawBG_Bottom(p2_dup[1][0].f.u, p2_dup[1][1].f.u, &p2_flags_dup[1], LEVEL_LAYOUT_BG(0), &screen2p.plane_b);
-	DrawBG_Block3(p2_dup[2][0].f.u, p2_dup[2][1].f.u, &p2_flags_dup[2], LEVEL_LAYOUT_BG(0), &screen2p.plane_b);
+	DrawBG_Top(p2_dup[0][0].f.u, p2_dup[0][1].f.u, &p2_flags_dup[0], LEVEL_LAYOUT_PLANE_BG, &screen2p.plane_b);
+	DrawBG_Bottom(p2_dup[1][0].f.u, p2_dup[1][1].f.u, &p2_flags_dup[1], LEVEL_LAYOUT_PLANE_BG, &screen2p.plane_b);
+	DrawBG_Block3(p2_dup[2][0].f.u, p2_dup[2][1].f.u, &p2_flags_dup[2], LEVEL_LAYOUT_PLANE_BG, &screen2p.plane_b);
 }

@@ -90,8 +90,8 @@ static void DynWater_LZ3(void) {
         if (x >= 0x600 && player->pos.l.y.f.u >= 0x3C0 && player->pos.l.y.f.u < 0x600) {
             target = 0x4C8;
             // Opens a wall: row 5, FG columns 12-13 -> chunks F8, F9.
-            LEVEL_LAYOUT_FG(5)[12] = 0xF8;
-            LEVEL_LAYOUT_FG(5)[13] = 0xF9;
+            LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 12, 5, 0xF8);
+            LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 13, 5, 0xF9);
             wtr_routine = 1;
             QueueSound2(sfx_Rumbling);
         }

@@ -25,7 +25,7 @@ void LevelPlane_Init(LevelPlane *p, plane_t *plane, const dword_s *camera_x, con
     p->snap_y = *camera_y;
 }
 
-void LevelPlane_DrawAll(const LevelPlane *p, const uint8_t *layout) {
+void LevelPlane_DrawAll(const LevelPlane *p, const LevelLayoutPlane *layout) {
     DrawChunks(p->camera_x->f.u, p->camera_y->f.u, layout, p->plane);
 }
 
@@ -64,7 +64,7 @@ void LevelPlane_Snapshot(LevelPlane *p) {
     p->flags_snap = p->flags;
 }
 
-void LevelPlane_DrawPending(LevelPlane *p, const uint8_t *layout) {
+void LevelPlane_DrawPending(LevelPlane *p, const LevelLayoutPlane *layout) {
     if (p->flags_snap == 0)
         return;
     int16_t sx = p->snap_x.f.u;

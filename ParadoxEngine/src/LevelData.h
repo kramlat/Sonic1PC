@@ -32,18 +32,35 @@
 
 extern uint8_t *const level_map128;
 extern uint8_t level_map16[0x1800];
-//Interleaved single-buffer level layout (matches s1disasm's ProjectSonic1TwoEight
-//branch / Sonic 2 convention): each row is a fixed 0x100-byte stride, with
-//foreground chunk IDs in the first 0x80 bytes and background chunk IDs in the
-//second 0x80 bytes of that same row. Use level_layout[row]/level_layout[row]+0x80
-//(or the LEVEL_LAYOUT_FG/LEVEL_LAYOUT_BG helpers) rather than indexing a
-//separate plane dimension.
+// The level's layout: two planes of chunk numbers (0 is empty), each allocated at exactly the size the layout file says (LevelLayout.h): a level takes the memory it needs, no
+// fixed buffer. A chunk is read with LevelLayout_Chunk and written with LevelLayout_SetChunk; nothing indexes the rows itself.
+//
+// The positions wrap as the old fixed buffer did (LEVEL_LAYOUT_COLS chunks across, LEVEL_LAYOUT_ROWS down) and are 0 where the plane has nothing: so a level is read exactly as before
+// (the old buffer was zero outside the level too). The wrap is the engine's until the levels carry their own masks (the Sonic 3 scrolling engine: Layout_row_index_mask).
 #define LEVEL_LAYOUT_ROWS 16
-#define LEVEL_LAYOUT_ROW_STRIDE 0x100
 #define LEVEL_LAYOUT_COLS 0x80
-#define LEVEL_LAYOUT_FG(row) (&level_layout[(row) * LEVEL_LAYOUT_ROW_STRIDE])
-#define LEVEL_LAYOUT_BG(row) (&level_layout[(row) * LEVEL_LAYOUT_ROW_STRIDE + LEVEL_LAYOUT_COLS])
-extern uint8_t level_layout[LEVEL_LAYOUT_ROWS * LEVEL_LAYOUT_ROW_STRIDE];
+
+typedef struct {
+	uint8_t *data;       // width * rows chunk numbers, row after row (NULL when the plane is empty)
+	uint16_t width, rows;
+} LevelLayoutPlane;
+
+extern LevelLayoutPlane level_layout_fg, level_layout_bg;
+#define LEVEL_LAYOUT_PLANE_FG (&level_layout_fg)
+#define LEVEL_LAYOUT_PLANE_BG (&level_layout_bg)
+extern unsigned level_layout_generation; // counts the layouts loaded (the level editor's copy of one is stale when it changes)
+
+static inline uint8_t LevelLayout_Chunk(const LevelLayoutPlane *plane, int x, int y) {
+	const unsigned cx = (unsigned)x & (LEVEL_LAYOUT_COLS - 1), cy = (unsigned)y & (LEVEL_LAYOUT_ROWS - 1);
+	return (cx < plane->width && cy < plane->rows) ? plane->data[cy * plane->width + cx] : 0;
+}
+// Writes a chunk; a plane that is not that big yet grows to hold it (the rest of it empty)
+void LevelLayout_SetChunk(LevelLayoutPlane *plane, int x, int y, uint8_t chunk);
+// Gives a plane exactly width x rows (what it had is kept where it still fits; the rest is empty)
+void LevelLayout_Resize(LevelLayoutPlane *plane, int width, int rows);
+// The whole layout as the editor handles it: both planes in a fixed buffer, 16 rows of $100 bytes (the foreground's $80 first, then the background's $80), and back
+void LevelLayout_ToInterleaved(uint8_t *interleaved);
+void LevelLayout_FromInterleaved(const uint8_t *interleaved);
 //Dual collision heightmap arrays (collision curve ID -> 16 height bytes),
 //selected at runtime by the active path (see META_SOLID_TOP_1/2,
 //META_SOLID_LRB_1/2). coll_index[0] = path 1 (primary), coll_index[1] = path

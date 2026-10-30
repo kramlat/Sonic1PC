@@ -93,9 +93,9 @@ void SplitScreen_LoadLevel(void) {
     LevelPlane_Init(&level_plane_p2, &screen2p.plane_a, &scrpos_x_p2, &scrpos_y_p2, view_width);
     level_plane_p2.xblock = fg_plane.xblock;
     level_plane_p2.yblock = fg_plane.yblock;
-    LevelPlane_DrawAll(&fg_plane, LEVEL_LAYOUT_FG(0));
-    LevelPlane_DrawAll(&level_plane_p2, LEVEL_LAYOUT_FG(0));
-    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_BG(0), &screen2p.plane_b); // (its background starts where the first's is)
+    LevelPlane_DrawAll(&fg_plane, LEVEL_LAYOUT_PLANE_FG);
+    LevelPlane_DrawAll(&level_plane_p2, LEVEL_LAYOUT_PLANE_FG);
+    DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen2p.plane_b); // (its background starts where the first's is)
     DeformLayersP2_Init();
     screen2p.vsram.a = scrpos_y.f.u;
     screen2p.vsram.b = vid_bg_scrpos_y_dup;
@@ -213,6 +213,6 @@ void SplitScreen_VBlank(void) {
         return;
     LevelPlane_Snapshot(&level_plane_p2);
     Video_UploadHScrollP2();
-    LevelPlane_DrawPending(&level_plane_p2, LEVEL_LAYOUT_FG(0));
+    LevelPlane_DrawPending(&level_plane_p2, LEVEL_LAYOUT_PLANE_FG);
     DeformLayersP2_Draw();
 }

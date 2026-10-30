@@ -16,7 +16,7 @@ void Slide_Update(const SlideSurface *surfaces, int count) {
         return;
     }
 
-    uint8_t chunk = LEVEL_LAYOUT_FG((player->pos.l.y.f.u >> 7) & 0xF)[(player->pos.l.x.f.u >> 7) & 0x7F];
+    uint8_t chunk = LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, player->pos.l.x.f.u >> 7, player->pos.l.y.f.u >> 7);
 
     int match = -1;
     for (int i = 0; i < count; i++) {

@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "Types.h"
+#include "LevelData.h"
 #include "Viewport.h"
 
 // A foreground plane that follows a camera: what keeps one view's foreground drawn as its camera moves. The game keeps one LevelPlane per view (two in a split
@@ -33,7 +34,7 @@ typedef struct {
 void LevelPlane_Init(LevelPlane *p, plane_t *plane, const dword_s *camera_x, const dword_s *camera_y, int16_t width);
 
 // Draws the whole view at the camera: the rows of blocks that fill the plane, from one block above the view
-void LevelPlane_DrawAll(const LevelPlane *p, const uint8_t *layout);
+void LevelPlane_DrawAll(const LevelPlane *p, const LevelLayoutPlane *layout);
 
 // The camera moved from `old_x` / `old_y` to where it is now: flags the column / row the new position needs. Call after each move of the camera (X and Y have
 // their own, as the games move the camera one axis at a time; CameraMoved does both).
@@ -48,7 +49,7 @@ void LevelPlane_ClearFlags(LevelPlane *p);
 void LevelPlane_Snapshot(LevelPlane *p);
 
 // Draws what the snapshot's flags ask for, against the snapshot's camera, and clears them
-void LevelPlane_DrawPending(LevelPlane *p, const uint8_t *layout);
+void LevelPlane_DrawPending(LevelPlane *p, const LevelLayoutPlane *layout);
 
 // The second view's foreground plane in a split screen, on screen2p's plane A and the second camera (Camera.h). Set up with LevelPlane_Init when a split level starts;
 // valid (and idle) before that.
