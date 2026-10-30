@@ -123,10 +123,11 @@ static int BandOfRow(const ScrollBands *sb, int row) {
 }
 
 // A whole row of the plane (all the blocks it holds), with its band's X
-static void DrawRow(const ScrollBands *sb, const LevelLayoutPlane *layout, int row) {
-    int16_t sx = sb->x[BandOfRow(sb, row)];
+static void DrawRow(const ScrollBands *sb, const LevelLayoutPlane *layout, int row, bool entering) {
+    int band = BandOfRow(sb, row);
+    int16_t sx = entering && sb->fixed[band] ? sb->fixed_entry_x : sb->x[band];
     int16_t y = (int16_t)(row * 16);
-    int16_t x = (int16_t)(-16 * sb->left_margin - (sx & 15));
+    int16_t x = (int16_t)(-16 * sb->left_margin[band] - (sx & 15));
     DrawBlocks_LR_2(sb->plane, CalcVRAMPos(sx, 0, x, y), sx, 0, x, y, layout, PLANE_WIDTH / 2);
 }
 
@@ -146,13 +147,13 @@ void ScrollBands_Init(ScrollBands *sb, plane_t *plane, const uint16_t *heights, 
     sb->plane = plane;
     sb->heights = heights;
     sb->count = count > SCROLL_MAX_BANDS ? SCROLL_MAX_BANDS : count;
-    sb->left_margin = 1;
+    memset(sb->left_margin, 1, sizeof(sb->left_margin));
 }
 
 void ScrollBands_DrawAll(ScrollBands *sb, const LevelLayoutPlane *layout) {
     int first = FirstRow(sb, sb->y);
     for (int r = first; r < first + SCROLL_ROWS; r++)
-        DrawRow(sb, layout, r);
+        DrawRow(sb, layout, r, false);
     memcpy(sb->drawn_x, sb->x, sizeof(sb->x));
     sb->drawn_y = sb->y;
 }
@@ -166,18 +167,18 @@ void ScrollBands_Draw(ScrollBands *sb, const LevelLayoutPlane *layout) {
     }
     // Rows that came into the view, drawn whole with the positions now
     for (int r = old_first + SCROLL_ROWS; r < first + SCROLL_ROWS; r++)
-        DrawRow(sb, layout, r);
+        DrawRow(sb, layout, r, true);
     for (int r = first; r < old_first; r++)
-        DrawRow(sb, layout, r);
+        DrawRow(sb, layout, r, true);
     // Each band that crossed 16-pixel lines in X: the columns that came into the view, for its rows
     for (int b = 0; b < sb->count; b++) {
         int l0 = sb->drawn_x[b] >> 4, l1 = sb->x[b] >> 4, k = l1 - l0;
-        if (k == 0)
+        if (k == 0 || sb->fixed[b])
             continue;
         if (k > 8 || k < -8) { // too far for columns: the band's rows again
             for (int r = first; r < first + SCROLL_ROWS; r++)
                 if (BandOfRow(sb, r) == b)
-                    DrawRow(sb, layout, r);
+                    DrawRow(sb, layout, r, false);
             continue;
         }
         for (int c = l0 + 1; c <= l1; c++)

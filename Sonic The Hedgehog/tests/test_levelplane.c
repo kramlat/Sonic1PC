@@ -440,7 +440,7 @@ static void ScrollEngine_GreenHillsBackgroundShowsWhatTheOriginalDid(void) {
     DrawChunks(0, 0, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     for (int frame = 0; frame < 900; frame++) {
         int sp = frame < 600 ? (frame / 40) % 17 : -((frame / 30) % 9);
-        scrshift_x = (int16_t)sp;
+        scrshift_x = (int16_t)(sp << 8);
         scrpos_x.v += (int32_t)sp << 16;
         scrpos_y.f.u = (int16_t)(0x2A0 + frame / 3);
         bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
@@ -462,7 +462,7 @@ static void ScrollEngine_GreenHillsBackgroundShowsWhatTheOriginalDid(void) {
             }
         }
     }
-    CHECK(hash == 0xde8b197e9c5c6617ull);
+    CHECK(hash == 0x1f7a3cda97b7951ull);
 }
 
 // Marble's background plane over a run of 1200 frames that goes right and down, then left and up, with a stop: what the plane shows under every 8th pixel of every line, through the
@@ -493,10 +493,10 @@ static void ScrollEngine_MarblesBackgroundShowsWhatTheOriginalDid(void) {
         else if (frame < 450) { sx = 0; sy = 0; }
         else if (frame < 900) { sx = -((frame / 25) % 9); sy = -((frame / 20) % 5); }
         else { sx = (frame % 7) - 3; sy = (frame % 11) - 5; }
-        if (bg_scrpos_x.v + (int32_t)(sx << 6) * 3 < 0) sx = 0; // (a background does not go left of its start: nor does the camera)
+        if (bg_scrpos_x.v + (int32_t)((sx << 8) << 6) * 3 < 0) sx = 0; // (a background does not go left of its start: nor does the camera)
         if (scrpos_y.f.u + sy < 0x1C8) sy = 0;
-        scrshift_x = (int16_t)sx;
-        scrshift_y = (int16_t)sy;
+        scrshift_x = (int16_t)(sx << 8);
+        scrshift_y = (int16_t)(sy << 8);
         scrpos_x.v += (int32_t)sx << 16;
         scrpos_y.v += (int32_t)sy << 16;
         bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
@@ -518,7 +518,7 @@ static void ScrollEngine_MarblesBackgroundShowsWhatTheOriginalDid(void) {
             }
         }
     }
-    CHECK(hash == 0x480f21b32f5ffe5dull);
+    CHECK(hash == 0x8cda10e688630c02ull);
 }
 
 void RegisterLevelPlaneTests(void) {

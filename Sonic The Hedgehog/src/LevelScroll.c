@@ -680,13 +680,15 @@ typedef struct {
 	const uint16_t *heights;
 	const uint8_t *source;
 	int count;
+	int fixed_entry_source; // which position (0-3 as in source) a fixed band's row comes into view drawn at (the port draws it at the one its block draw was called with)
+	int moving_margin; // blocks left of the view a row of a band that follows a position starts (a band that follows none starts at the camera's block)
 } BandLayer;
 
 // Green Hill's (also the ending's, which scrolls the same way), as the original keeps it: the clouds and the water are drawn once and only wrap; the upper mountains (lines $40-$6F)
 // follow the third position and the hills (lines $70-$9F) the second.
 static const uint16_t ghz_heights[4] = { 0x40, 0x30, 0x30, 0x10 };
 static const uint8_t ghz_source[4] = { 0, 3, 2, 0 };
-static const BandLayer ghz_layer = { ghz_heights, ghz_source, 4 };
+static const BandLayer ghz_layer = { ghz_heights, ghz_source, 4, 0, 0 };
 
 // Marble's: BG_ScrollBlockMap_MZ gives each 16-pixel row of the background (counting from a row $20 down the layer, and itself a row late) the position it follows: 0 none, 2 the first,
 // 4 the second, 6 the third. Made into bands over the layer's 128 rows (2048 lines) once.
@@ -706,7 +708,7 @@ static void BuildMarbleLayer(void)
 			mz_heights[n++] = 16;
 		}
 	}
-	mz_layer = (BandLayer){ mz_heights, mz_source, n };
+	mz_layer = (BandLayer){ mz_heights, mz_source, n, 3, 1 };
 }
 
 static const BandLayer *band_layer;
@@ -738,17 +740,22 @@ void LevelScroll_BackgroundReset(void)
 	bands_redraw = true;
 	if (band_layer != NULL) {
 		ScrollBands_Init(&bg_bands, &screen1p.plane_b, band_layer->heights, band_layer->count);
-		bg_bands.left_margin = 0; // (the original's rows start at the camera's block)
+		for (int b = 0; b < band_layer->count; b++)
+		{
+			bg_bands.left_margin[b] = band_layer->source[b] ? (uint8_t)band_layer->moving_margin : 0;
+			bg_bands.fixed[b] = band_layer->source[b] == 0;
+		}
 	}
 }
 
 // Brings the background plane up to the given positions (the ones the scroll lines were made from)
 void LevelScroll_DrawBands(const dword_s *bg1_x, const dword_s *bg2_x, const dword_s *bg3_x, const dword_s *bg_y)
 {
-	const dword_s *pos[4] = { NULL, bg1_x, bg2_x, bg3_x };
+	const dword_s *pos[4] = { bg1_x, bg1_x, bg2_x, bg3_x }; // (a band that follows none is drawn at the first position, as the original's map has it: 0 and 2 are the same)
 	for (int b = 0; b < band_layer->count; b++)
-		bg_bands.x[b] = band_layer->source[b] ? pos[band_layer->source[b]]->f.u : 0;
+		bg_bands.x[b] = pos[band_layer->source[b]]->f.u;
 	bg_bands.y = bg_y->f.u;
+	bg_bands.fixed_entry_x = pos[band_layer->fixed_entry_source]->f.u;
 	if (bands_redraw) {
 		ScrollBands_DrawAll(&bg_bands, LEVEL_LAYOUT_PLANE_BG);
 		bands_redraw = false;
