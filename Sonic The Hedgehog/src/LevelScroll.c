@@ -193,8 +193,7 @@ void BGScroll_Block3(int32_t x, uint8_t bit)
 //Level deformation routines
 void Deform_GHZ(void)
 {
-	int16_t fg_x, bg_x;
-	int16_t *bufp = &hscroll_buffer[0][0];
+	int16_t fg_x;
 	//Scroll background layers
 	BGScroll_Block3((scrshift_x << 6) + (scrshift_x << 5), SCROLL_FLAG_LEFT2); //Upper mountains
 	BGScroll_Block2(scrshift_x << 7, SCROLL_FLAG_LEFT2); //Hills and waterfalls
@@ -208,7 +207,7 @@ void Deform_GHZ(void)
 	if (gamemode == GameMode_Title)
 		fg_x = 0;
 	else
-		fg_x = -scrpos_x.f.u;
+		fg_x = scrpos_x.f.u;
 
 	//Scroll clouds
 	int32_t *scroll = (int32_t*)bgscroll_buffer;
@@ -216,40 +215,24 @@ void Deform_GHZ(void)
 	scroll[1] += 0xC000;
 	scroll[2] += 0x8000;
 
-	//Scroll cloud layer 1
-	bg_x = -(bg3_scrpos_x.f.u + (scroll[0] >> 16));
-	for (int i = 0; i < 0x20 - vid_bg_scrpos_y_dup; i++)
-	{ *bufp++ = fg_x; *bufp++ = bg_x; }
-
-	//Scroll cloud layer 2
-	bg_x = -(bg3_scrpos_x.f.u + (scroll[1] >> 16));
-	for (int i = 0; i < 0x10; i++)
-	{ *bufp++ = fg_x; *bufp++ = bg_x; }
-
-	//Scroll cloud layer 3
-	bg_x = -(bg3_scrpos_x.f.u + (scroll[2] >> 16));
-	for (int i = 0; i < 0x10; i++)
-	{ *bufp++ = fg_x; *bufp++ = bg_x; }
-
-	//Scroll upper mountains
-	bg_x = -bg3_scrpos_x.f.u;
-	for (int i = 0; i < 0x30; i++)
-	{ *bufp++ = fg_x; *bufp++ = bg_x; }
-
-	//Scroll hills and waterfalls
-	bg_x = -bg2_scrpos_x.f.u;
-	for (int i = 0; i < 0x28; i++)
-	{ *bufp++ = fg_x; *bufp++ = bg_x; }
-
-	//Scroll water
+	// The background's bands, top of the screen down, one position each (ScrollEngine_ApplyDeformation): three cloud layers (the first
+	// shortened as the view climbs), the upper mountains, the hills and waterfalls, and the water, whose every line has its own position
+	int water_lines = 0x48 + SCREEN_TALLADD + vid_bg_scrpos_y_dup;
+	uint16_t heights[6] = { (uint16_t)(0x20 - vid_bg_scrpos_y_dup), 0x10, 0x10, 0x30, 0x28, (uint16_t)(water_lines | SCROLL_BAND_PER_LINE) };
+	static int16_t positions[5 + SCREEN_MAX_HEIGHT];
+	positions[0] = (int16_t)(bg3_scrpos_x.f.u + (scroll[0] >> 16));
+	positions[1] = (int16_t)(bg3_scrpos_x.f.u + (scroll[1] >> 16));
+	positions[2] = (int16_t)(bg3_scrpos_x.f.u + (scroll[2] >> 16));
+	positions[3] = bg3_scrpos_x.f.u;
+	positions[4] = bg2_scrpos_x.f.u;
 	int32_t wx = bg2_scrpos_x.v;
 	int32_t wi = (((scrpos_x.f.u - bg2_scrpos_x.f.u) << 8) / 0x68) << 8;
-
-	for (int i = 0; i < 0x48 + SCREEN_TALLADD + vid_bg_scrpos_y_dup; i++)
+	for (int i = 0; i < water_lines; i++)
 	{
-		*bufp++ = fg_x; *bufp++ = -(wx >> 16);
+		positions[5 + i] = (int16_t)(wx >> 16);
 		wx += wi;
 	}
+	ScrollEngine_ApplyDeformation(heights, 6, positions, 0, fg_x, true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
 void Deform_MZ(void) {

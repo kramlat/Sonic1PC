@@ -12,6 +12,9 @@
 #include "LevelPlane.h"
 #include "Backend/VDP.h"
 #include "Viewport.h"
+#include "LevelScroll.h"
+#include "Video.h"
+#include "Game.h"
 
 // The foreground plane that follows a camera (engine/LevelPlane.c), on a made-up level: every chunk of row 0 is chunk 1, whose blocks are all block 5 (tiles
 // $101-$104); everything else is the empty chunk 0.
@@ -382,9 +385,43 @@ static void ScrollBands_MovingBandsDrawLikeDrawingTheViewAgain(void) {
     LevelLayout_Resize(LEVEL_LAYOUT_PLANE_BG, 0, 0);
 }
 
+void Deform_GHZ(void);
+// Green Hill's background through the band tables: the lines come out as the original's loops wrote them (three cloud layers, mountains, hills, the water ramp)
+static void ScrollEngine_GreenHillsLinesAreTheOriginalsBands(void) {
+    gamemode = GameMode_Level;
+    Viewport_SetSize(320, 224, 64, 32);
+    scrpos_x.f.u = 777;
+    scrpos_y.f.u = 0x2A0;
+    bg2_scrpos_x.v = 300 << 16;
+    bg3_scrpos_x.v = 120 << 16;
+    scrshift_x = 0;
+    Deform_GHZ();
+    int16_t top = hscroll_buffer[0][1]; // (cloud layer 1: bg3 + its drift)
+    int bgy = vid_bg_scrpos_y_dup;
+    int l1 = 0x20 - bgy;
+    CHECK(bgy >= 0 && bgy <= 0x20);
+    int drift1 = -top - 120, drift2 = -hscroll_buffer[l1][1] - 120, drift3 = -hscroll_buffer[l1 + 0x10][1] - 120;
+    int16_t ref[SCREEN_MAX_HEIGHT][2];
+    int n = 0;
+    for (int i = 0; i < 0x20 - bgy; i++, n++) { ref[n][0] = -777; ref[n][1] = (int16_t)-(120 + drift1); }
+    for (int i = 0; i < 0x10; i++, n++) { ref[n][0] = -777; ref[n][1] = (int16_t)-(120 + drift2); }
+    for (int i = 0; i < 0x10; i++, n++) { ref[n][0] = -777; ref[n][1] = (int16_t)-(120 + drift3); }
+    for (int i = 0; i < 0x30; i++, n++) { ref[n][0] = -777; ref[n][1] = -120; }
+    for (int i = 0; i < 0x28; i++, n++) { ref[n][0] = -777; ref[n][1] = -300; }
+    int32_t wx = 300 << 16, wi = (((777 - 300) << 8) / 0x68) << 8;
+    for (int i = 0; i < 0x48 + SCREEN_TALLADD + bgy; i++, n++) { ref[n][0] = -777; ref[n][1] = (int16_t)-(wx >> 16); wx += wi; }
+    CHECK_EQ(n, SCREEN_HEIGHT);
+    for (int i = 0; i < SCREEN_HEIGHT; i++) {
+        CHECK_EQ(hscroll_buffer[i][0], ref[i][0]);
+        CHECK_EQ(hscroll_buffer[i][1], ref[i][1]);
+    }
+    CHECK(drift1 >= drift2 && drift2 >= drift3); // (the layers drift at 1, 3/4 and 1/2 a pixel a frame)
+}
+
 void RegisterLevelPlaneTests(void) {
     RUN_TEST(ScrollEngine_RunsAZonesRoutinesInTheOriginalsOrder);
     RUN_TEST(ScrollEngine_ALevelsMasksSetHowItWraps);
+    RUN_TEST(ScrollEngine_GreenHillsLinesAreTheOriginalsBands);
     RUN_TEST(ScrollBands_FindTheBandAndTheLineInIt);
     RUN_TEST(ScrollEngine_ApplyDeformationFillsTheLinesLikeTheOriginal);
     RUN_TEST(ScrollBands_MovingBandsDrawLikeDrawingTheViewAgain);
