@@ -1,4 +1,7 @@
 #include "Orbinaut.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -13,157 +16,152 @@
 // of the orbit) before finally moving; in SLZ/SBZ it just moves and fires
 // immediately, skipping the distance check.
 
-static void Orb_DeleteWithSpikeballs(Object *obj, Scratch_Orbinaut *scratch) {
-    if (obj->respawn_index)
-        objstate[obj->respawn_index] &= 0x7F;
+static void Orb_DeleteWithSpikeballs(Sst *self, Own_Orbinaut *own) {
+    SstLoad_Forget(self);
 
-    for (int i = 0; i < scratch->ammo; i++)
-        ObjectDelete(&objects[scratch->ball_idx[i]]);
-    ObjectDelete(obj);
+    for (int i = 0; i < own->ammo; i++)
+        Sst_Delete(&sst[own->ball_idx[i]]);
+    Sst_Delete(self);
 }
 
-static void Orb_DisplayNoMove(Object *obj, Scratch_Orbinaut *scratch) {
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        Orb_DeleteWithSpikeballs(obj, scratch);
+static void Orb_DisplayNoMove(Sst *self, Own_Orbinaut *own) {
+    if (SstOutOfRange(self->x_pos.f.u)) {
+        Orb_DeleteWithSpikeballs(self, own);
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-static void Orb_DisplayAndMove(Object *obj, Scratch_Orbinaut *scratch) {
-    SpeedToPos(obj);
-    Orb_DisplayNoMove(obj, scratch);
+static void Orb_DisplayAndMove(Sst *self, Own_Orbinaut *own) {
+    Sst_MoveSprite2(self);
+    Orb_DisplayNoMove(self, own);
 }
 
-static void Orb_CheckSonic(Object *obj, Scratch_Orbinaut *scratch) {
-    int16_t dx = (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u);
+static void Orb_CheckSonic(Sst *self, Own_Orbinaut *own) {
+    int16_t dx = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
     if (dx < 0)
         dx = (int16_t)-dx;
     if (dx < 160) {
-        int16_t dy = (int16_t)(player->pos.l.y.f.u - obj->pos.l.y.f.u);
+        int16_t dy = (int16_t)(player->pos.l.y.f.u - self->y_pos.f.u);
         if (dy < 0)
             dy = (int16_t)-dy;
         if (dy < 80 && !debug_use)
-            obj->anim = 1; // angry -- triggers launch in Orb_CircleSpikeball
+            self->anim = 1; // angry -- triggers launch in Orb_CircleSpikeball
     }
 
-    AnimateSprite(obj, Animation_Orbinaut);
-    Orb_DisplayNoMove(obj, scratch);
+    Sst_Animate(self, Animation_Orbinaut);
+    Orb_DisplayNoMove(self, own);
 }
 
-static void Orb_CircleSpikeball(Object *obj, Scratch_Orbinaut *scratch) {
-    Object *parent = &objects[scratch->parent_index];
+static void Orb_CircleSpikeball(Sst *self, Own_Orbinaut *own) {
+    Sst *parent = &sst[own->parent_index];
 
-    if (parent->type != ObjId_Orbinaut) {
-        ObjectDelete(obj);
+    if (parent->code != self->code) {
+        Sst_Delete(self);
         return;
     }
 
-    if (parent->frame == 2 && obj->angle == 0x40) {
+    if (parent->mapping_frame == 2 && self->angle == 0x40) {
         // Directly under the Orbinaut while it's angry -- fire
-        obj->routine += 2; // -> Orb_FiredSpikeball
-        Scratch_Orbinaut *pscratch = (Scratch_Orbinaut *)&parent->scratch;
+        self->routine += 2; // -> Orb_FiredSpikeball
+        Own_Orbinaut *pscratch = (Own_Orbinaut *)parent->own.u8;
         if (--pscratch->ammo == 0)
             parent->routine += 2; // out of ammo -- let the Orbinaut start moving
 
-        obj->xsp = -0x200;
-        if (parent->status.o.f.x_flip)
-            obj->xsp = (int16_t)-obj->xsp;
-        DisplaySprite(obj);
+        self->x_vel = -0x200;
+        if (((parent->status & SST_STATUS_X_FLIP) != 0))
+            self->x_vel = (int16_t)-self->x_vel;
+        Sst_Draw(self);
         return;
     }
 
     int16_t sin, cos;
-    CalcSine(obj->angle, &sin, &cos);
-    obj->pos.l.x.f.u = (int16_t)((cos >> 4) + parent->pos.l.x.f.u);
-    obj->pos.l.y.f.u = (int16_t)((sin >> 4) + parent->pos.l.y.f.u);
+    CalcSine(self->angle, &sin, &cos);
+    self->x_pos.f.u = (int16_t)((cos >> 4) + parent->x_pos.f.u);
+    self->y_pos.f.u = (int16_t)((sin >> 4) + parent->y_pos.f.u);
 
-    Scratch_Orbinaut *pscratch = (Scratch_Orbinaut *)&parent->scratch;
-    obj->angle = (uint8_t)(obj->angle + pscratch->circledir);
-    DisplaySprite(obj);
+    Own_Orbinaut *pscratch = (Own_Orbinaut *)parent->own.u8;
+    self->angle = (uint8_t)(self->angle + pscratch->circledir);
+    Sst_Draw(self);
 }
 
-static void Orb_FiredSpikeball(Object *obj) {
-    SpeedToPos(obj);
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        ObjectDelete(obj);
-        return;
-    }
-    DisplaySprite(obj);
+static void Orb_FiredSpikeball(Sst *self) {
+    Sst_MoveSprite2(self);
+    SstOnScreenTest(self);
 }
 
-static void Orb_Main(Object *obj, Scratch_Orbinaut *scratch) {
-    obj->mappings = Mappings_Orbinaut;
+static void Orb_Main(Sst *self, Own_Orbinaut *own) {
+    self->mappings = Mappings_Orbinaut;
 
     ZoneId zone = LEVEL_ZONE(level_id);
     if (zone == ZoneId_SBZ)
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Orbinaut);
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Orbinaut);
     else
-        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_SLZ_Orbinaut); // | Tile_Pal2
+        self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_SLZ_Orbinaut); // | Tile_Pal2
     if (zone == ZoneId_LZ)
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Orbinaut);
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Orbinaut);
 
-    obj->render.b |= SPRITE_CAM_FIELD;
-    obj->priority = 4;
-    obj->col_type = 0x0B; // col_16x16 | col_badnik
-    obj->width_pixels = 24 / 2;
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
+    self->collision_flags = 0x0B; // col_16x16 | col_badnik
+    self->width_pixels = 24 / 2;
 
     uint8_t count = 0;
     uint8_t angle = 0;
     for (int i = 0; i < 4; i++) {
-        Object *ball = FindNextFreeObj(obj);
+        Sst *ball = Sst_AllocateAfter(self);
         if (ball == NULL)
             break;
 
-        scratch->ball_idx[count] = (uint8_t)(ball - objects);
+        own->ball_idx[count] = (uint8_t)(ball - sst);
         count++;
 
-        ball->type = obj->type;
+        ball->code = self->code;
         ball->routine = 6; // Orb_CircleSpikeball
-        ball->mappings = obj->mappings;
-        ball->tile = obj->tile;
-        ball->render.b |= SPRITE_CAM_FIELD;
-        ball->priority = 4;
+        ball->mappings = self->mappings;
+        ball->art_tile = self->art_tile;
+        ball->render_flags |= SST_RENDER_LEVEL;
+        ball->priority = 4 * 0x80;
         ball->width_pixels = 16 / 2;
-        ball->frame = 3; // spikeball frame
-        ball->col_type = 0x18 | 0x80; // col_8x8 | col_hurt
+        ball->mapping_frame = 3; // spikeball frame
+        ball->collision_flags = 0x18 | 0x80; // col_8x8 | col_hurt
         ball->angle = angle;
         angle = (uint8_t)(angle + 0x40);
 
-        Scratch_Orbinaut *bscratch = (Scratch_Orbinaut *)&ball->scratch;
-        bscratch->parent_index = (uint8_t)(obj - objects);
+        Own_Orbinaut *bscratch = (Own_Orbinaut *)ball->own.u8;
+        bscratch->parent_index = (uint8_t)(self - sst);
     }
-    scratch->ammo = count;
+    own->ammo = count;
 
-    scratch->circledir = 1;
-    if (obj->status.o.f.x_flip)
-        scratch->circledir = -1;
+    own->circledir = 1;
+    if (((self->status & SST_STATUS_X_FLIP) != 0))
+        own->circledir = -1;
 
-    obj->routine = (uint8_t)(obj->scratch.u8[0] + 2); // subtype (0 = LZ, 2 = SLZ/SBZ) as base routine
+    self->routine = (uint8_t)(self->subtype + 2); // subtype (0 = LZ, 2 = SLZ/SBZ) as base routine
 
-    obj->xsp = -0x40;
-    if (obj->status.o.f.x_flip)
-        obj->xsp = (int16_t)-obj->xsp;
+    self->x_vel = -0x40;
+    if (((self->status & SST_STATUS_X_FLIP) != 0))
+        self->x_vel = (int16_t)-self->x_vel;
 }
 
-void Obj_Orbinaut(Object *obj) {
-    Scratch_Orbinaut *scratch = (Scratch_Orbinaut *)&obj->scratch;
+void Obj_Orbinaut(Sst *self) {
+    Own_Orbinaut *own = (Own_Orbinaut *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        Orb_Main(obj, scratch);
+        Orb_Main(self, own);
         break;
     case 2:
-        Orb_CheckSonic(obj, scratch);
+        Orb_CheckSonic(self, own);
         break;
     case 4:
-        Orb_DisplayAndMove(obj, scratch);
+        Orb_DisplayAndMove(self, own);
         break;
     case 6:
-        Orb_CircleSpikeball(obj, scratch);
+        Orb_CircleSpikeball(self, own);
         break;
     case 8:
-        Orb_FiredSpikeball(obj);
+        Orb_FiredSpikeball(self);
         break;
     }
 }

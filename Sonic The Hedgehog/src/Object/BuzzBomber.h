@@ -1,50 +1,23 @@
 #ifndef _BUZZBOMBER_H_
 #define _BUZZBOMBER_H_
 
-#include "Object.h"
+#include "Sst.h"
 
-#include "Level.h"
-
-// Buzz Bomber assets
-#ifndef Buzz_Build
-extern const uint8_t Mappings_BuzzBomber[];
-extern const uint8_t Mappings_BuzzMissile[];
-extern const uint8_t Mappings_BuzzBomber[];
-extern const uint8_t Mappings_BuzzMissile[];
-#endif
-
-// Buzz Bomber's missile
+// Buzz Bomber's missile (object 23; Newtron's too, by its subtype)
 typedef struct {
-    uint8_t subtype; // 0x28
-    uint8_t pad0[9]; // 0x29 - 0x31
-    int16_t time_delay; // 0x32
-    uint8_t pad1[0xC - sizeof(Object*)]; // This will break in 20 years when 128-bit processors are mainstream
-    Object *parent; // 0x3C assuming 32-bit address
-} Scratch_BuzzMissile;
+    int16_t time_delay;
+    uint8_t parent_index; // the table slot of the Buzz Bomber that fired it
+} Own_BuzzMissile;
 
 // Buzz Bomber object
 typedef struct {
-    uint8_t pad0[10]; // 0x28-0x31
-    int16_t time_delay; // 0x32
-    int16_t buzz_status; // 0x34
-} Scratch_BuzzBomber;
+    int16_t time_delay;
+    int16_t buzz_status;
+} Own_BuzzBomber;
 
-void Obj_BuzzExplode(Object *obj);
-
-void Obj_BuzzMissile_Construct(Object *obj);
-bool Obj_BuzzMissile_CheckNewtron(Object *obj, Scratch_BuzzMissile *scratch);
-void Obj_BuzzMissile_Charge(Object *obj, Scratch_BuzzMissile *scratch);
-void Obj_BuzzMissile_Fire(Object *obj);
-void Obj_BuzzMissile_NewtFire(Object *obj);
-void Obj_BuzzMissile(Object *obj);
-
-void Obj_BuzzBomber_Construct(Object *obj);
-void Obj_BuzzBomber_Fly(Object* obj, Scratch_BuzzBomber *scratch);
-void Obj_BuzzBomber_Fire(Object* obj, Object *missile, Scratch_BuzzBomber *scratch);
-bool Obj_BuzzBomber_CheckCloseToSonic(Object *obj);
-void Obj_BuzzBomber_SetStatusAttack(Scratch_BuzzBomber *scratch);
-void Obj_BuzzBomber_TurnAround(Object *obj, Scratch_BuzzBomber *scratch);
-void Obj_BuzzBomber_Stop(Object *obj);
-void Obj_BuzzBomber(Object *obj);
+// Buzz Bomber's missile blowing up (object 24): the dissolving animation of the original is not ported yet, the missile just goes
+void Obj_BuzzExplode(Sst *self);
+void Obj_BuzzMissile(Sst *self);
+void Obj_BuzzBomber(Sst *self);
 
 #endif //_BUZZBOMBER_H_

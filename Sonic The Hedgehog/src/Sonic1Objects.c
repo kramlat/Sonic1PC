@@ -4,6 +4,9 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/Newtron.h"
+#include "Object/BuzzBomber.h"
+#include "Object/Orbinaut.h"
 #include "Object/BossFire.h"
 #include "Object/LavaMaker.h"
 #include "Object/LavaBall.h"
@@ -44,9 +47,6 @@ void Obj_PSB(Object *obj);
 void Obj_GHZTunnel(Object *obj);
 void Obj_GHZBridge(Object *obj);
 void Obj_HUD(Object *obj);
-void Obj_BuzzBomber(Object *obj);
-void Obj_BuzzMissile(Object *obj);
-void Obj_BuzzExplode(Object *obj);
 void Obj_Ring(Object *obj);
 void Obj_Monitor(Object *obj);
 void Obj_Checkpoint(Object *obj);
@@ -60,7 +60,6 @@ void Obj_GameOverCard(Object *obj);
 void Obj_GHZRock(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_BigSpikeBall(Object *obj);
-void Obj_Newtron(Object *obj);
 void Obj_GHZEdge(Object *obj);
 void Obj_Credits(Object *obj);
 void Obj_EndSonic(Object *obj);
@@ -102,7 +101,6 @@ void Obj_Pole(Object *obj);
 void Obj_LabyrinthBlock(Object *obj);
 void Obj_LabyrinthConvey(Object *obj);
 void Obj_Burrobot(Object *obj);
-void Obj_Orbinaut(Object *obj);
 void Obj_Bomb(Object *obj);
 void Obj_Elevator(Object *obj);
 void Obj_Fan(Object *obj);
@@ -173,9 +171,9 @@ const ObjectFunc game_objects[] = {
 	/* 1F ObjId_Crabmeat            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 20 ObjId_Cannonball          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 21 ObjId_HUD                 */ Obj_HUD,
-	/* 22 ObjId_BuzzBomber          */ Obj_BuzzBomber,
-	/* 23 ObjId_BuzzMissile         */ Obj_BuzzMissile,
-	/* 24 ObjId_BuzzExplode         */ Obj_BuzzExplode,
+	/* 22 ObjId_BuzzBomber          */ NULL, // (moved to the status table: sst_object_codes)
+	/* 23 ObjId_BuzzMissile         */ NULL, // (moved to the status table: sst_object_codes)
+	/* 24 ObjId_BuzzExplode         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 25 ObjId_Ring                */ Obj_Ring,
 	/* 26 ObjId_Monitor             */ Obj_Monitor,
 	/* 27 ObjId_Explosion           */ Obj_ExplosionObject, // (an old object that turns into one: the explosion is on the status table)
@@ -205,7 +203,7 @@ const ObjectFunc game_objects[] = {
 	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBombObject,
 	/* 40 ObjId_Motobug             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 41 ObjId_Spring              */ NULL, // (moved to the status table: sst_object_codes)
-	/* 42 ObjId_Newtron             */ Obj_Newtron,
+	/* 42 ObjId_Newtron             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 43 ObjId_Roller              */ Obj_Roller,
 	/* 44 ObjId_GHZEdge             */ Obj_GHZEdge,
 	/* 45 ObjId_SidewaysStomper     */ Obj_SidewaysStomper,
@@ -235,7 +233,7 @@ const ObjectFunc game_objects[] = {
 	/* 5D ObjId_Fan                 */ Obj_Fan,
 	/* 5E ObjId_Seesaw              */ Obj_Seesaw,
 	/* 5F ObjId_Bomb                */ Obj_Bomb,
-	/* 60 ObjId_Orbinaut            */ Obj_Orbinaut,
+	/* 60 ObjId_Orbinaut            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 61 ObjId_LabyrinthBlock      */ Obj_LabyrinthBlock,
 	/* 62 ObjId_Gargoyle            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 63 ObjId_LabyrinthConvey     */ Obj_LabyrinthConvey,
@@ -287,6 +285,11 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_Newtron] = Obj_Newtron,
+	[ObjId_BuzzExplode] = Obj_BuzzExplode,
+	[ObjId_BuzzMissile] = Obj_BuzzMissile,
+	[ObjId_BuzzBomber] = Obj_BuzzBomber,
+	[ObjId_Orbinaut] = Obj_Orbinaut,
 	[ObjId_BossFire] = Obj_BossFire,
 	[ObjId_LavaMaker] = Obj_LavaMaker,
 	[ObjId_LavaBall] = Obj_LavaBall,

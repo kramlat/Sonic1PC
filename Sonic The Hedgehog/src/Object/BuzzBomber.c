@@ -1,8 +1,11 @@
-#define Buzz_Build
+#include "BuzzBomber.h"
+#include "Constants.h"
+
 #include "Level.h"
 #include "LevelScroll.h"
-#include "Macros.h"
-#include "BuzzBomber.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "Resource/Mappings/BuzzBomber.h"
 #include "Resource/Mappings/BuzzMissile.h"
@@ -10,252 +13,241 @@
 #include "Resource/Animation/BuzzBomber.h"
 #include "Resource/Animation/BuzzMissile.h"
 
-
-// Buzz Bomber's explosion
-void Obj_BuzzExplode(Object *obj) {
-    (void)obj;
+// Buzz Bomber's missile blowing up. (The original dissolves it with an animation; this port never had that, and the object it turned into did nothing and never went: it goes now.)
+void Obj_BuzzExplode(Sst *self) {
+    Sst_Delete(self);
 }
 
-void Obj_BuzzMissile_Construct(Object* obj) {
-        obj->mappings = Mappings_BuzzMissile;
-        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Buzz_Bomber);
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->priority = 3;
-        obj->width_pixels = 8;
-        obj->status.o.f.flag2 = false;
-        obj->status.o.f.player_stand = false;
-        obj->status.o.f.flag4 = false;
-        obj->status.o.f.player_push = false;
-        obj->status.o.f.flag6 = false;
-        obj->status.o.f.flag7 = false;
+static void BuzzMissile_Construct(Sst *self) {
+    self->mappings = Mappings_BuzzMissile;
+    self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Buzz_Bomber);
+    self->render_flags = SST_RENDER_LEVEL;
+    self->priority = 3 * 0x80;
+    self->width_pixels = 8;
+    self->status &= 3; // (the flips stay)
 }
 
-bool Obj_BuzzMissile_CheckNewtron(Object *obj, Scratch_BuzzMissile *scratch) {
-    if (scratch->subtype) {
-        obj->routine = 8;
-        obj->col_type = 0x87;
-        obj->anim = 1;
-        AnimateSprite(obj, Animation_BuzzMissile);
-        DisplaySprite(obj);
+static bool BuzzMissile_CheckNewtron(Sst *self) {
+    if (self->subtype) {
+        self->routine = 8;
+        self->collision_flags = 0x87;
+        self->anim = 1;
+        Sst_Animate(self, Animation_BuzzMissile);
+        Sst_Draw(self);
         return true;
     }
     return false;
 }
 
-void Obj_BuzzMissile_Charge(Object *obj, Scratch_BuzzMissile *scratch) {
+static void BuzzMissile_Charge(Sst *self, Own_BuzzMissile *own) {
     // Delete object if parent Buzz Bomber has exploded
-    if (scratch->parent->type == ObjId_Explosion)
-        ObjectDelete(obj);
+    if (sst[own->parent_index].code == sst_object_codes[ObjId_Explosion])
+        Sst_Delete(self);
 
     // Animate and draw
-    AnimateSprite(obj, Animation_BuzzMissile);
-    DisplaySprite(obj);
+    if (self->code != NULL) {
+        Sst_Animate(self, Animation_BuzzMissile);
+        Sst_Draw(self);
+    }
 }
 
-void Obj_BuzzMissile_Fire(Object *obj) {
+static void BuzzMissile_Fire(Sst *self) {
     // Check if we've 'hit Sonic' (disabled)
-    if (!obj->status.o.f.flag7) {
+    if (!(self->status & 0x80)) {
         // Use fired collision and animation
-        obj->col_type = 0x87;
-        obj->anim = 1;
+        self->collision_flags = 0x87;
+        self->anim = 1;
 
         // Move and animate
-        SpeedToPos(obj);
-        AnimateSprite(obj, Animation_BuzzMissile);
-        DisplaySprite(obj);
+        Sst_MoveSprite2(self);
+        Sst_Animate(self, Animation_BuzzMissile);
+        Sst_Draw(self);
 
         // Delete if fallen below stage
-        if ((limit_btm2 + SCREEN_HEIGHT) < obj->pos.l.y.f.u)
-            ObjectDelete(obj);
+        if ((limit_btm2 + SCREEN_HEIGHT) < self->y_pos.f.u)
+            Sst_Delete(self);
 
     } else {
         // Explode
-        obj->type = ObjId_BuzzExplode;
-        obj->routine = 0;
-        Obj_BuzzExplode(obj);
+        self->code = sst_object_codes[ObjId_BuzzExplode];
+        self->routine = 0;
+        self->code(self);
     }
 }
 
-void Obj_BuzzMissile_NewtFire(Object *obj) {
-    // Delete once off-screen
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-        ObjectDelete(obj);
-    else {
-        // Move and animate
-        SpeedToPos(obj);
-        AnimateSprite(obj, Animation_BuzzMissile);
-        DisplaySprite(obj);
-    }
+static void BuzzMissile_NewtFire(Sst *self) {
+    // Move and animate, deleted once off-screen
+    Sst_MoveSprite2(self);
+    Sst_Animate(self, Animation_BuzzMissile);
+    SstOnScreenTest(self);
 }
 
-void Obj_BuzzMissile(Object *obj) {
-    Scratch_BuzzMissile* scratch = (Scratch_BuzzMissile*)&obj->scratch;
+void Obj_BuzzMissile(Sst *self) {
+    Own_BuzzMissile *own = (Own_BuzzMissile *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Initialization
         // Wait for timer to expire
-        if (--scratch->time_delay >= 0)
+        if (--own->time_delay >= 0)
             break;
 
         // Increment routine
-        obj->routine += 2;
+        self->routine += 2;
 
         // Set object drawing information
-        Obj_BuzzMissile_Construct(obj);
+        BuzzMissile_Construct(self);
 
         // Check if we were created by a Newtron
-        if(Obj_BuzzMissile_CheckNewtron(obj, scratch))
+        if (BuzzMissile_CheckNewtron(self))
             break;
 
         // Fallthrough
     case 2: // Charging
-        Obj_BuzzMissile_Charge(obj, scratch);
+        BuzzMissile_Charge(self, own);
         break;
     case 4: // Fired by Buzz Bomber
-        Obj_BuzzMissile_Fire(obj);
+        BuzzMissile_Fire(self);
         break;
     case 6: // Delete
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     case 8: // Fired by Newtron
-        Obj_BuzzMissile_NewtFire(obj);
+        BuzzMissile_NewtFire(self);
         break;
     }
 }
 
-void Obj_BuzzBomber_Construct(Object *obj) {
+static void Obj_BuzzBomber_Construct(Sst *self) {
     // Set object drawing information
-    obj->mappings = Mappings_BuzzBomber;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Buzz_Bomber);
-    obj->render.b = 0;
-    obj->render.f.level_fg = true;
-    obj->priority = 3;
-    obj->col_type = 0x08;
-    obj->width_pixels = 24;
+    self->mappings = Mappings_BuzzBomber;
+    self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Buzz_Bomber);
+    self->render_flags = SST_RENDER_LEVEL;
+    self->priority = 3 * 0x80;
+    self->collision_flags = 0x08;
+    self->width_pixels = 24;
 }
 
-void Obj_BuzzBomber_Fly(Object *obj, Scratch_BuzzBomber *scratch) {
+static void Obj_BuzzBomber_Fly(Sst *self, Own_BuzzBomber *own) {
     // Not near Sonic
-    obj->routine_sec += 2;
-    scratch->time_delay = 127; // It's a word, Yuji!
-    obj->xsp = 0x400;
-    obj->anim = 1;
-    if (!obj->status.o.f.x_flip)
-        obj->xsp = -obj->xsp;
+    self->routine_secondary += 2;
+    own->time_delay = 127; // It's a word, Yuji!
+    self->x_vel = 0x400;
+    self->anim = 1;
+    if (!((self->status & SST_STATUS_X_FLIP) != 0))
+        self->x_vel = -self->x_vel;
 }
 
-void Obj_BuzzBomber_Fire(Object *obj, Object *missile, Scratch_BuzzBomber *scratch) {
-    Scratch_BuzzMissile* mscratch = (Scratch_BuzzMissile*)&missile->scratch;
+static void Obj_BuzzBomber_Fire(Sst *self, Sst *missile, Own_BuzzBomber *own) {
+    Own_BuzzMissile *mscratch = (Own_BuzzMissile *)missile->own.u8;
 
-    missile->type = ObjId_BuzzMissile;
-    missile->pos.l.x.f.u = obj->pos.l.x.f.u;
-    missile->pos.l.y.f.u = obj->pos.l.y.f.u + 28;
-    missile->ysp = 0x200;
-    missile->xsp = 0x200;
-    if (!obj->status.o.f.x_flip) {
-        missile->pos.l.x.f.u -= 24;
-        missile->xsp = -missile->xsp;
+    missile->code = sst_object_codes[ObjId_BuzzMissile];
+    missile->x_pos.f.u = self->x_pos.f.u;
+    missile->y_pos.f.u = self->y_pos.f.u + 28;
+    missile->y_vel = 0x200;
+    missile->x_vel = 0x200;
+    if (!((self->status & SST_STATUS_X_FLIP) != 0)) {
+        missile->x_pos.f.u -= 24;
+        missile->x_vel = -missile->x_vel;
     } else
-        missile->pos.l.x.f.u += 24;
+        missile->x_pos.f.u += 24;
 
-    missile->status.o.b = obj->status.o.b;
+    missile->status = self->status;
     mscratch->time_delay = 14;
-    mscratch->parent = obj;
+    mscratch->parent_index = (uint8_t)(self - sst);
 
     // Set our state
-    scratch->buzz_status = 1;
-    scratch->time_delay = 59;
-    obj->anim = 2;
+    own->buzz_status = 1;
+    own->time_delay = 59;
+    self->anim = 2;
 }
 
-bool Obj_BuzzBomber_CheckCloseToSonic(Object *obj) {
+static bool Obj_BuzzBomber_CheckCloseToSonic(Sst *self) {
     // Get X difference and check if we're close enough to Sonic
-    uint16_t x_off = (obj->pos.l.x.f.u < player->pos.l.x.f.u) ? (player->pos.l.x.f.u - obj->pos.l.x.f.u) : (obj->pos.l.x.f.u - player->pos.l.x.f.u);
+    uint16_t x_off = (self->x_pos.f.u < player->pos.l.x.f.u) ? (player->pos.l.x.f.u - self->x_pos.f.u) : (self->x_pos.f.u - player->pos.l.x.f.u);
 
-    if (x_off >= 0x60 || !obj->render.f.on_screen)
+    if (x_off >= 0x60 || !(self->render_flags & SST_RENDER_ON_SCREEN))
         return false;
     return true;
 }
 
-void Obj_BuzzBomber_SetStatusAttack(Scratch_BuzzBomber *scratch) {
+static void Obj_BuzzBomber_SetStatusAttack(Own_BuzzBomber *own) {
     // Set that we're near Sonic
-    scratch->buzz_status = 2;
-    scratch->time_delay = 29;
+    own->buzz_status = 2;
+    own->time_delay = 29;
 }
 
-void Obj_BuzzBomber_TurnAround(Object *obj, Scratch_BuzzBomber *scratch) {
+static void Obj_BuzzBomber_TurnAround(Sst *self, Own_BuzzBomber *own) {
     // Change direction
-    scratch->buzz_status = 0;
-    obj->status.o.f.x_flip ^= 1;
-    scratch->time_delay = 59;
+    own->buzz_status = 0;
+    self->status ^= SST_STATUS_X_FLIP;
+    own->time_delay = 59;
 }
 
-void Obj_BuzzBomber_Stop(Object *obj) {
+static void Obj_BuzzBomber_Stop(Sst *self) {
     // Stop
-    obj->routine_sec -= 2;
-    obj->xsp = 0;
-    obj->anim = 0;
+    self->routine_secondary -= 2;
+    self->x_vel = 0;
+    self->anim = 0;
 }
 
-void Obj_BuzzBomber(Object *obj)
+void Obj_BuzzBomber(Sst *self)
 {
-    Scratch_BuzzBomber *scratch = (Scratch_BuzzBomber*)&obj->scratch;
+    Own_BuzzBomber *own = (Own_BuzzBomber *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Initialization
         // Increment routine
-        obj->routine += 2;
+        self->routine += 2;
 
-        Obj_BuzzBomber_Construct(obj);
+        Obj_BuzzBomber_Construct(self);
 
         // Fallthrough
     case 2: // Moving
-        switch (obj->routine_sec) {
+        switch (self->routine_secondary) {
         case 0: // Moving
             // Wait for timer to expire
-            if (--scratch->time_delay >= 0)
+            if (--own->time_delay >= 0)
                 break;
 
             // Start firing missile if near Sonic
-            if (!(scratch->buzz_status & 2)) {
-                Obj_BuzzBomber_Fly(obj, scratch);
+            if (!(own->buzz_status & 2)) {
+                Obj_BuzzBomber_Fly(self, own);
             } else {
                 // Near Sonic
                 // Create missile object
-                Object* missile = FindFreeObj();
+                Sst *missile = Sst_Allocate();
                 if (missile == NULL)
                     break;
-                Obj_BuzzBomber_Fire(obj,missile,scratch);
+                Obj_BuzzBomber_Fire(self,missile,own);
             }
             break;
         case 2: // Check near Sonic
             // Wait for timer to expire
-            if (--scratch->time_delay >= 0) {
+            if (--own->time_delay >= 0) {
                 // Move and check if we're near Sonic
-                SpeedToPos(obj);
+                Sst_MoveSprite2(self);
 
-                if (scratch->buzz_status)
+                if (own->buzz_status)
                     break;
 
-                if(Obj_BuzzBomber_CheckCloseToSonic(obj)) {
-                    Obj_BuzzBomber_SetStatusAttack(scratch);
+                if(Obj_BuzzBomber_CheckCloseToSonic(self)) {
+                    Obj_BuzzBomber_SetStatusAttack(own);
                 } else
                     break;
             } else {
-                Obj_BuzzBomber_TurnAround(obj,scratch);
+                Obj_BuzzBomber_TurnAround(self,own);
             }
 
-            Obj_BuzzBomber_Stop(obj);
+            Obj_BuzzBomber_Stop(self);
             break;
         }
 
         // Animate, draw, and unload when off-screen
-        AnimateSprite(obj, Animation_BuzzBomber);
-        RememberState(obj);
+        Sst_Animate(self, Animation_BuzzBomber);
+        SstOnScreenTest(self);
         break;
     case 4: // Delete
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     }
 }

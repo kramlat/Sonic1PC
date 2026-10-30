@@ -30,6 +30,8 @@ for my $path (@ARGV) {
         spit($path, $s);
         next;
     }
+    # the characters are still old objects: their fields stay as they are
+    $s =~ s/\b(player|sidekick)->/\x01$1\x02/g;
     # scratch overlays
     $s =~ s/Scratch_((?!Sonic\b|Tails\b)\w+)\s*\*\s*(\w+)\s*=\s*\(Scratch_\w+\s*\*\)\s*&\s*(\w+)->scratch;/Own_$1 *$2 = (Own_$1 *)$3->own.u8;/g;
     $s =~ s/\bScratch_((?!Sonic\b|Tails\b)\w+)\b/Own_$1/g;
@@ -113,12 +115,13 @@ for my $path (@ARGV) {
         $s =~ s/([(,]\s*)scratch(\s*[,)])/$1own$2/g;
     }
     $s =~ s/\bObject\s*\*\s*(\w+)\s*=\s*FindNextFreeObj\(\s*(\w+)\s*\);/Sst *$1 = Sst_AllocateAfter($2);/g;
-    $s =~ s/\bObject\s*\*\s*(\w+)\s*=\s*FindFreeObj\(\s*\);/Sst *$1 = Sst_Allocate(); \/* SST-CHECK: made by hand: code and position *\//g;
+    $s =~ s/\bObject\s*\*\s*(\w+)\s*=\s*FindFreeObj\(\s*\);/Sst *$1 = Sst_Allocate();/g;
     # the object's own name for itself in the bodies
     $s =~ s/\bobj\b/self/g;
     # includes
     $s =~ s/#include "Object.h"\n//;
     $s =~ s/(#include "[^"]+\.h"\n)/$1/;
     unless ($s =~ /#include "SstLoad.h"/) { $s =~ s/(#include "[^"]+"\n)/$1#include "Object.h"\n#include "ObjectSst.h"\n#include "SstLoad.h"\n/; }
+    $s =~ s/\x01(\w+)\x02/$1->/g;
     spit($path, $s);
 }

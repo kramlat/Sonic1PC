@@ -262,7 +262,56 @@ static void SstObjects_AHelixMakesItsSpikesAndTakesThemWhenItLeaves(void) {
     CHECK_EQ(made, 1);                                   // (the children go with the parent: the pylon, fixed to the screen, is all that stays)
 }
 
+static void SstObjects_AnOrbinautCarriesFourSpikeballsAndTakesThemWhenItLeaves(void) {
+    Start();
+    memset(player, 0, sizeof(Object));
+    player->pos.l.x.f.u = 0x2000;
+    player->pos.l.y.f.u = 0x2000;
+    Sst *orb = Sst_Spawn(ObjId_Orbinaut, 0x100, 0x200);
+    orb->subtype = 0;                                    // (LZ's: waits for Sonic)
+    Sst_Process(false);
+    int balls = 0;
+    for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++)
+        balls += sst[i].code == orb->code && &sst[i] != orb;
+    CHECK_EQ(balls, 4);
+    SstLoadCamera far = {0x3000, 0, false, 0xFFF};
+    SstLoad_Update(&far);
+    Sst_Process(false);
+    int left = 0;
+    for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++)
+        left += sst[i].code != NULL;
+    CHECK_EQ(left, 1);                                   // (the pylon of the layout stays; the orbinaut and its balls are gone)
+}
+
+static void SstObjects_ABuzzBomberFiresAMissileThatGoesWhenItsParentExplodes(void) {
+    Start();
+    memset(player, 0, sizeof(Object));
+    player->pos.l.x.f.u = 0x100 - 0x20;                  // (close to it)
+    player->pos.l.y.f.u = 0x200;
+    Sst *buzz = Sst_Spawn(ObjId_BuzzBomber, 0x100, 0x200);
+    Sst_Process(false);
+    buzz->render_flags |= SST_RENDER_ON_SCREEN;
+    Sst *missile = NULL;
+    for (int f = 0; f < 400 && missile == NULL; f++) {
+        buzz->render_flags |= SST_RENDER_ON_SCREEN;
+        Sst_Process(false);
+        for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++)
+            if (sst[i].code == sst_object_codes[ObjId_BuzzMissile])
+                missile = &sst[i];
+    }
+    CHECK(missile != NULL);
+    for (int f = 0; f < 16; f++)
+        Sst_Process(false);                              // (its 14 frames of waiting)
+    CHECK_EQ(missile->routine, 2);                       // (charging, on the Buzz Bomber's nose)
+    buzz->code = sst_object_codes[ObjId_Explosion];      // (it was hit)
+    buzz->routine = 0;
+    Sst_Process(false);
+    CHECK(missile->code == NULL);                        // (the missile goes with it)
+}
+
 void RegisterSstObjectsTests(void) {
+    RUN_TEST(SstObjects_ABuzzBomberFiresAMissileThatGoesWhenItsParentExplodes);
+    RUN_TEST(SstObjects_AnOrbinautCarriesFourSpikeballsAndTakesThemWhenItLeaves);
     RUN_TEST(SstObjects_AHelixMakesItsSpikesAndTakesThemWhenItLeaves);
     RUN_TEST(SstObjects_SonicRollingIntoABadnikOnTheTableDestroysItAndScores);
     RUN_TEST(SstObjects_SonicWalkingIntoABadnikOnTheTableIsHurt);
