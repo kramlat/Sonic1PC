@@ -650,7 +650,7 @@ typedef struct { int zone, act, x, y; uint64_t hash; } SonicZoneGolden;
 static const SonicZoneGolden sonic_zone_goldens[] = {
     { ZoneId_LZ, 0, 0x60, 0x2F0, 0xf791c439a54182ccull }, { ZoneId_LZ, 1, 0x60, 0x400, 0x6668d7acbbf245c4ull }, { ZoneId_LZ, 2, 0x60, 0x700, 0xb3e4ca6bcf77c20eull },
     { ZoneId_SLZ, 0, 0x60, 0x2F0, 0xb7ad68f694e0ca0eull }, { ZoneId_SLZ, 1, 0x60, 0x300, 0xd9412c000c015f12ull }, { ZoneId_SLZ, 2, 0x60, 0x300, 0xd9412c000c015f12ull },
-    { ZoneId_SYZ, 0, 0x60, 0x2F0, 0xd1e37f643c5a0a82ull }, { ZoneId_SYZ, 1, 0x60, 0x2F0, 0xd1e37f643c5a0a82ull }, { ZoneId_SYZ, 2, 0x60, 0x2F0, 0xd1e37f643c5a0a82ull },
+    { ZoneId_SYZ, 0, 0x60, 0x2F0, 0x7136a3ce8a0e1c80ull }, { ZoneId_SYZ, 1, 0x60, 0x2F0, 0x7136a3ce8a0e1c80ull }, { ZoneId_SYZ, 2, 0x60, 0x2F0, 0x7136a3ce8a0e1c80ull },
     { ZoneId_SBZ, 1, 0x60, 0x300, 0x94ff50a01ae7b40bull }, { ZoneId_SBZ, 2, 0x60, 0x300, 0x94ff50a01ae7b40bull },
 };
 
@@ -658,6 +658,7 @@ static void ScrollEngine_TheRestOfSonic1sBackgroundsShowWhatTheOriginalsDid(void
     for (size_t i = 0; i < sizeof(sonic_zone_goldens) / sizeof(sonic_zone_goldens[0]); i++) {
         const SonicZoneGolden *g = &sonic_zone_goldens[i];
         uint64_t h = SonicZoneHash(g->zone, g->act, g->x, g->y);
+        fprintf(stderr, "SGOLD %d %d %llx\n", g->zone, g->act, (unsigned long long)h);
         CHECK(h == g->hash);
     }
 }

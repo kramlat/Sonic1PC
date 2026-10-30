@@ -1,3 +1,4 @@
+#include <string.h>
 #include "EditorLive.h"
 #include "LevelScroll.h"
 #include "ScrollEngine.h"
@@ -367,6 +368,7 @@ void LevelScroll_RegisterZones(void) {
  * based on the current zone and revision logic.
  */
 void BgScrollSpeed(int16_t x, int16_t y) {
+    memset(bgscroll_buffer, 0, sizeof(bgscroll_buffer)); // (a level starts with the deformation's table cleared: what its rows past the table's end read)
     /*
      * If the player is spawning from a checkpoint, the background
      * positions are loaded from saved state instead of the current camera.
