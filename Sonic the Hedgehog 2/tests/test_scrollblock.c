@@ -8,7 +8,6 @@
 #include "ScrollEngine.h"
 #include "LevelDraw.h"
 #include "Backend/VDP.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -96,7 +95,10 @@ static uint64_t ZoneBackgroundHash(int zone, int act, int start_x) {
         bg1_scroll_flags_dup = bg1_scroll_flags; bg2_scroll_flags_dup = bg2_scroll_flags; bg3_scroll_flags_dup = bg3_scroll_flags;
         LoadTilesAsYouMove();
         int vsy = vid_bg_scrpos_y_dup;
+        hash = (hash ^ (uint16_t)vsy) * 0x100000001b3ull;
         for (int l = 0; l < SCREEN_HEIGHT; l++) {
+            hash = (hash ^ (uint16_t)hscroll_buffer[l][0]) * 0x100000001b3ull; // (the foreground's lines too)
+            hash = (hash ^ (uint16_t)hscroll_buffer[l][1]) * 0x100000001b3ull;
             int row = ((l + vsy) >> 3) & (PLANE_HEIGHT - 1);
             int x0 = -hscroll_buffer[l][1];
             for (int px = 0; px < SCREEN_WIDTH; px += 8) {
@@ -112,21 +114,21 @@ static uint64_t ZoneBackgroundHash(int zone, int act, int start_x) {
 
 typedef struct { int zone, act, start_x; uint64_t hash; } ZoneGolden;
 static const ZoneGolden zone_goldens[] = {
-    { ZoneId_HTZ, 0, 0x1900, 0x40a71328afb576ffull }, // (the camera starts before the first quake's stretch and runs through it)
-    { ZoneId_HTZ, 1, 0x1500, 0xe15a7c1bb235bb76ull },
-    { ZoneId_EHZ, 0, -1, 0xca7815ae48c085a9ull },
-    { ZoneId_CPZ, 0, -1, 0xd5e4d0b49d087472ull },
-    { ZoneId_HPZ, 0, -1, 0xb7e71a2611871156ull },
-    { ZoneId_HTZ, 0, -1, 0xeb1f34f437bea395ull },
-    { ZoneId_WZ, 0, -1, 0xe01b70f32a410a88ull },
-    { ZoneId_MTZ, 0, -1, 0xdcff82b672d2ac03ull },
-    { ZoneId_OOZ, 0, -1, 0xaa21dfdd6e90753ull },
-    { ZoneId_MCZ, 0, -1, 0x305ca2de88d0a7a0ull },
-    { ZoneId_MCZ, 1, -1, 0xfbc11d93656a3fbbull },
-    { ZoneId_CNZ, 0, -1, 0xa8858b0e01c44f30ull },
-    { ZoneId_SSZ, 0, -1, 0xd8755c5673d1e8f7ull },
-    { ZoneId_ARZ, 0, -1, 0xda475adf275582baull },
-    { ZoneId_ARZ, 1, -1, 0x22919f96ba252d92ull },
+    { ZoneId_HTZ, 0, 0x1900, 0xa34ab936b29da417ull }, // (the camera starts before the first quake's stretch and runs through it)
+    { ZoneId_HTZ, 1, 0x1500, 0x28a964487a2578baull },
+    { ZoneId_EHZ, 0, -1, 0x9537d67c422b1650ull },
+    { ZoneId_CPZ, 0, -1, 0x196c4cf1138ff992ull },
+    { ZoneId_HPZ, 0, -1, 0x83bc803ef861421cull },
+    { ZoneId_HTZ, 0, -1, 0xba0eebd73ad15cf6ull },
+    { ZoneId_WZ, 0, -1, 0x7ac5405b04af7249ull },
+    { ZoneId_MTZ, 0, -1, 0x4cb5b9b96bfc1efeull },
+    { ZoneId_OOZ, 0, -1, 0xd5dd899da2d6ba05ull },
+    { ZoneId_MCZ, 0, -1, 0x73d0d845ffd7d591ull },
+    { ZoneId_MCZ, 1, -1, 0x6822c9a4af424564ull },
+    { ZoneId_CNZ, 0, -1, 0xe1c598a3e37241a7ull },
+    { ZoneId_SSZ, 0, -1, 0x1ade4a656e40c98aull },
+    { ZoneId_ARZ, 0, -1, 0xc27c2630b75c5e4aull },
+    { ZoneId_ARZ, 1, -1, 0x9de67dc826666277ull },
 };
 
 static void ScrollZones_BackgroundsShowWhatTheOriginalsDid(void) {

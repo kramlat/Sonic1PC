@@ -7,6 +7,7 @@
 #include "Level.h"
 #include "Camera.h"
 #include "LevelScroll.h"
+#include "ScrollEngine.h"
 #include "Video.h"
 
 #include <string.h>
@@ -150,11 +151,6 @@ void HTZBackground_Animate(void) {
 void HTZBackground_Deform(int view) {
     int16_t *layers = htz_layerdef[view];
     const int16_t negx = (int16_t)-scrpos_x.f.u;
-    int16_t *bufp = &hscroll_buffer[0][0];
-    int left = SCREEN_HEIGHT;
-    #define LINES(n, bg) do { for (int n_ = (n); n_ > 0 && left > 0; n_--, left--) { *bufp++ = negx; *bufp++ = (bg); } } while (0)
-    int16_t bg = (int16_t)(negx >> 3);
-    LINES(0x80, bg);
 
     const int16_t drift = layers[0x11];
     layers[0x11] = (int16_t)(drift + 4);
@@ -173,27 +169,29 @@ void HTZBackground_Deform(int view) {
     for (int g = 0; g < 4; g++)
         layers[4 + g * 3] = layers[5 + g * 3] = layers[6 + g * 3] = VALUE(5 + g * 3);
 
-    // The rest of the lines, in bands of growing height, each four times the step further than the last: 17, 21, 25, then 33, 41 (two steps of four), 53, 65, 81 and 97
+    // The lines as a band table: the first $80 at an eighth of the camera, then bands of growing height, each four times the step further than the last: 17, 21, 25, then 33, 41 (two steps of four), 53, 65, 81 and
+    // 97; the last band holds for a picture taller than the original's lines
+    static const uint16_t heights[10] = { 0x80, 3, 5, 7, 8, 10, 15, 16, 16, 16 };
     const uint32_t step4 = (uint32_t)step * 4;
+    int16_t pos[10];
+    pos[0] = (int16_t)-(int16_t)(negx >> 3);
     uint32_t a = acc + 17u * (uint32_t)step;
-    LINES(3, (int16_t)(a >> 16));
+    pos[1] = (int16_t)-(int16_t)(a >> 16);
     a += step4;
-    LINES(5, (int16_t)(a >> 16));
+    pos[2] = (int16_t)-(int16_t)(a >> 16);
     a += step4;
-    LINES(7, (int16_t)(a >> 16));
+    pos[3] = (int16_t)-(int16_t)(a >> 16);
     a += step4 * 2;
-    LINES(8, (int16_t)(a >> 16));
+    pos[4] = (int16_t)-(int16_t)(a >> 16);
     a += step4 * 2;
-    LINES(10, (int16_t)(a >> 16));
+    pos[5] = (int16_t)-(int16_t)(a >> 16);
     a += step4 * 3;
-    LINES(15, (int16_t)(a >> 16));
+    pos[6] = (int16_t)-(int16_t)(a >> 16);
     a += step4 * 3;
     for (int g = 0; g < 3; g++) {
-        LINES(16, (int16_t)(a >> 16));
+        pos[7 + g] = (int16_t)-(int16_t)(a >> 16);
         a += step4 * 4;
     }
-    // (a picture taller than the original's lines goes on with the last band)
-    LINES(left, (int16_t)((a - step4 * 4) >> 16));
     #undef VALUE
-    #undef LINES
+    ScrollEngine_ApplyDeformation(heights, 10, pos, 0, scrpos_x.f.u, true, SCREEN_HEIGHT, hscroll_buffer);
 }

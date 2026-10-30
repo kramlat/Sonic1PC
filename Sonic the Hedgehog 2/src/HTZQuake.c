@@ -2,6 +2,7 @@
 // object 30 (Obj_0x30, the solid pieces of the ground that moves). The events move the background by a diff of their own while the camera is in a quake's stretch of the level (Screen_Shaking_Flag_HTZ),
 // and every now and then they move the ground up or down by a quarter pixel a frame, between two limits, with the screen shaking (Screen_Shaking_Flag) while it does.
 #include "HTZQuake.h"
+#include "ScrollEngine.h"
 #include "BackgroundLayer.h"
 #include "LevelCollision.h"
 #include "Constants.h"
@@ -380,11 +381,10 @@ void HTZQuake_Deform(void) {
     sprite_cam_x[view] = (int16_t)(scrpos_x.f.u + shake_x);
     sprite_cam_y[view] = (int16_t)(scrpos_y.f.u + shake_y);
     SpritesFollow(view, true);
-    int16_t *bufp = &hscroll_buffer[0][0];
-    for (int i = 0; i < SCREEN_HEIGHT; i++) {
-        *bufp++ = (int16_t)-(scrpos_x.f.u + shake_x);
-        *bufp++ = (int16_t)-(bg_scrpos_x.f.u + shake_x);
-    }
+    // (every line alike: the foreground and the background each at the camera's place and the shake)
+    static const uint16_t whole[1] = { 0x100 };
+    const int16_t bg_pos = (int16_t)(bg_scrpos_x.f.u + shake_x);
+    ScrollEngine_ApplyDeformation(whole, 1, &bg_pos, 0, (int16_t)(scrpos_x.f.u + shake_x), true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
 // Dust Hill's boss shakes the screen as it digs (Bg_Scroll_DHz of the alpha): by the same table as the quake, the foreground, the background and the sprites move down by its first byte and the sprites across by its

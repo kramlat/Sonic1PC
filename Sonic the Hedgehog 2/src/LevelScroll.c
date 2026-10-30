@@ -84,39 +84,6 @@ const int8_t Lz_Scroll_Data[] = {
 // prototype's DeformBGLayer routines do (_inc/BgScrollSpeed & DeformBGLayer.asm); the 16.16 fixed point gradients are the original's own (a long that is swapped around
 // an add), written here as a plain accumulator.
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-typedef struct {
-	int16_t *p;
-	int left;
-	int16_t fg, last_bg;
-} HScroll;
-
-static void HS_Line(HScroll *h, int16_t bg) {
-	if (h->left <= 0)
-		return;
-	*h->p++ = h->fg;
-	*h->p++ = bg;
-	h->left--;
-	h->last_bg = bg;
-}
-
-static void HS_Lines(HScroll *h, int n, int16_t bg) {
-	while (n-- > 0)
-		HS_Line(h, bg);
-}
-
-static void HS_Start(HScroll *h, int16_t fg) {
-	h->p = &hscroll_buffer[0][0];
-	h->left = SCREEN_HEIGHT;
-	h->fg = fg;
-	h->last_bg = 0;
-}
-
-// (a picture taller than the original's lines goes on with the last line's scroll)
-static void HS_Finish(HScroll *h) {
-	while (h->left > 0)
-		HS_Line(h, h->last_bg);
-}
-
 // The per-line step of a gradient: divs.w of (diff << shift) by divisor, then to 16.16 (ext.l, asl #4, asl #8)
 static int32_t HS_Delta(int16_t diff, int shift, int divisor) {
 	return (int32_t)(int16_t)(((int32_t)diff << shift) / divisor) << 12;
@@ -203,21 +170,23 @@ void Deform_CPZ(void) {
 	if ((ehz_runcount++ & 7) == 0)
 		ehz_wave--;
 
-	uint16_t by = (uint16_t)bg_scrpos_y.f.u;
-	int row = (by & 0x3F0) >> 4;
-	int first = 16 - (by & 0xF);
-	int16_t x1 = (int16_t)-bg_scrpos_x.f.u, x2 = (int16_t)-bg2_scrpos_x.f.u;
+	// The lines as a band table: 64 rows of 16, the first 18 following the first background, row 18 (a position for every line) Emerald Hill's wavy line on it, the rest the second; the table's end holds
 	const int8_t *wave = Deform_EHZ_Data + (ehz_wave & 0x1F);
-	HScroll h;
-	HS_Start(&h, (int16_t)-scrpos_x.f.u);
-	for (int n = first; h.left > 0; n = 16, row++) {
-		if (row == 0x12) {
-			for (int i = 0; i < n; i++)
-				HS_Line(&h, (int16_t)(x1 + wave[i]));
-		} else {
-			HS_Lines(&h, n, row < 0x12 ? x1 : x2);
-		}
+	const int16_t x1 = (int16_t)-bg_scrpos_x.f.u, x2 = (int16_t)-bg2_scrpos_x.f.u;
+	uint16_t heights[64];
+	int16_t pos[63 + 16];
+	int n = 0;
+	// (the wavy line is read from its start for the lines that show, also when the view starts part way down it: the first row shows its wave from the top)
+	const int top_row = ((uint16_t)bg_scrpos_y.f.u & 0x3F0) >> 4, top_skip = (uint16_t)bg_scrpos_y.f.u & 0xF;
+	for (int row = 0; row < 64; row++) {
+		heights[row] = row == 0x12 ? (16 | SCROLL_BAND_PER_LINE) : 16;
+		if (row == 0x12)
+			for (int i = 0; i < 16; i++)
+				pos[n++] = (int16_t)-(int16_t)(x1 + wave[top_row == 0x12 && i >= top_skip ? i - top_skip : i]);
+		else
+			pos[n++] = (int16_t)-(row < 0x12 ? x1 : x2);
 	}
+	ScrollEngine_ApplyDeformation(heights, 64, pos, (int16_t)((uint16_t)bg_scrpos_y.f.u & 0x3FF), scrpos_x.f.u, true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
 // Hidden Palace (Deform_HPZ): bands of the background scroll at their own speeds, picked by the background's height (Deform_All)
@@ -247,14 +216,13 @@ void Deform_HPZ(void) {
 		layer[i] = d2 >> 1;
 
 	// Deform_All: a word of the table for every 16 lines, from the one for the background's height (the first 16 lines start part way through)
-	uint16_t by = (uint16_t)bg_scrpos_y.f.u;
-	const int16_t *band = &layer[(by & 0x3F0) >> 4];
-	HScroll h;
-	HS_Start(&h, d2);
-	int first = 16 - (by & 0xF);
-	HS_Lines(&h, first, *band++);
-	while (h.left > 0)
-		HS_Lines(&h, 16, *band++);
+	uint16_t heights[96];
+	int16_t pos[96];
+	for (int i = 0; i < 96; i++) {
+		heights[i] = 16;
+		pos[i] = (int16_t)-layer[i];
+	}
+	ScrollEngine_ApplyDeformation(heights, 96, pos, (int16_t)((uint16_t)bg_scrpos_y.f.u & 0x3FF), (int16_t)-d2, true, SCREEN_HEIGHT, hscroll_buffer);
     if (Level_HasWater())
         Water_Ripple(); // the underwater ripple (LZWaterFeatures.c)
 }
@@ -280,10 +248,9 @@ static void Deform_Plain(int x_shift, int y_shift) {
 	bg_scrpos_x.v += (int32_t)scrshift_x << x_shift;
 	bg_scrpos_y.v += (int32_t)scrshift_y << y_shift;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-	HScroll h;
-	HS_Start(&h, (int16_t)-scrpos_x.f.u);
-	HS_Lines(&h, 0xE0, (int16_t)-bg_scrpos_x.f.u);
-	HS_Finish(&h);
+	static const uint16_t whole[1] = { 0x100 };
+	const int16_t pos = bg_scrpos_x.f.u;
+	ScrollEngine_ApplyDeformation(whole, 1, &pos, 0, scrpos_x.f.u, true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
 // Wood (Bg_Scroll_Wz) and Metropolis (Bg_Scroll_Mz): an eighth of the way across, a quarter down
@@ -298,19 +265,13 @@ static void Deform_CNZ(void) {
 // The prototype's bands of a background (the loop at loc_6526 and loc_6A36): `heights` are the bands' heights in lines and `values` their scroll; the background's own Y says which band is at the top and how
 // much of it shows. Each band's value is the background's X as the original writes it (negated here).
 static void Deform_Bands(const uint8_t *heights, int count, const int16_t *values, uint16_t bg_y, int16_t fg) {
-	int band = 0;
-	uint16_t left = bg_y;
-	while (band < count - 1 && left >= heights[band])
-		left = (uint16_t)(left - heights[band++]);
-	int lines = heights[band] - left;
-	HScroll h;
-	HS_Start(&h, fg);
-	while (h.left > 0) {
-		HS_Lines(&h, lines, (int16_t)-values[band]);
-		if (band < count - 1)
-			band++;
-		lines = heights[band];
+	uint16_t h[24];
+	int16_t pos[24];
+	for (int i = 0; i < count; i++) {
+		h[i] = heights[i];
+		pos[i] = values[i];
 	}
+	ScrollEngine_ApplyDeformation(h, count, pos, (int16_t)bg_y, (int16_t)-fg, true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
 // Sand Shower: the background (night sky, a horizon about 240 lines down, sand below) moves an eighth of the way across and an eighth down, like Oil Ocean's, in five bands. The clouds drift as Green Hill's do (Sonic
