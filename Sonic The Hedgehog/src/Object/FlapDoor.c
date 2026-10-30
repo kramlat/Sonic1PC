@@ -1,4 +1,7 @@
 #include "FlapDoor.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -13,52 +16,52 @@
 // tunnel just past it) only while shut and Sonic hasn't already passed
 // through it.
 
-static void Flap_Animate(Object *obj) {
-    AnimateSprite(obj, Animation_FlappingDoor);
+static void Flap_Animate(Sst *self) {
+    Sst_Animate(self, Animation_FlappingDoor);
 
     f_wtunneldisallow = false;
 
-    if (obj->frame != 0 || player->pos.l.x.f.u >= obj->pos.l.x.f.u) {
-        RememberState(obj);
+    if (self->mapping_frame != 0 || player->pos.l.x.f.u >= self->x_pos.f.u) {
+        SstOnScreenTest(self);
         return;
     }
 
     f_wtunneldisallow = true;
 
     int16_t x_rad = (int16_t)(16 / 2 + 11 /* sonic_solid_width */);
-    SolidObject(obj, (uint16_t)x_rad, 64 / 2, 64 / 2 + 1, obj->pos.l.x.f.u, NULL, NULL);
+    SstSolidObject(self, (uint16_t)x_rad, 64 / 2, 64 / 2 + 1, self->x_pos.f.u, NULL, NULL);
 
-    RememberState(obj);
+    SstOnScreenTest(self);
 }
 
-static void Flap_OpenClose(Object *obj, Scratch_FlapDoor *scratch) {
-    if (--scratch->wait >= 0) {
-        Flap_Animate(obj);
+static void Flap_OpenClose(Sst *self, Own_FlapDoor *own) {
+    if (--own->wait >= 0) {
+        Flap_Animate(self);
         return;
     }
 
-    scratch->wait = scratch->time;
-    obj->anim ^= 1;
-    if (obj->render.f.on_screen)
+    own->wait = own->time;
+    self->anim ^= 1;
+    if ((self->render_flags & SST_RENDER_ON_SCREEN))
         QueueSound2(sfx_Door);
 
-    Flap_Animate(obj);
+    Flap_Animate(self);
 }
 
-void Obj_FlapDoor(Object *obj) {
-    Scratch_FlapDoor *scratch = (Scratch_FlapDoor *)&obj->scratch;
+void Obj_FlapDoor(Sst *self) {
+    Own_FlapDoor *own = (Own_FlapDoor *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        obj->routine += 2;
-        obj->mappings = Mappings_FlappingDoor;
-        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Flapping_Door); // | Tile_Pal3
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 80 / 2;
-        scratch->time = (int16_t)(obj->scratch.u8[0] * 60);
+        self->routine += 2;
+        self->mappings = Mappings_FlappingDoor;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Flapping_Door); // | Tile_Pal3
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 80 / 2;
+        own->time = (int16_t)(self->subtype * 60);
         __attribute__((fallthrough));
     case 2:
-        Flap_OpenClose(obj, scratch);
+        Flap_OpenClose(self, own);
         break;
     }
 }

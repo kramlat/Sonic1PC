@@ -5,7 +5,7 @@
 ; relative to ArtTile_Monitor) instead of Eggman, and only 2 sizes since
 ; Conv_Main only ever picks one of 2 widths (256 or 112, height fixed).
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_SBZConveyorMarker_internal:	mappingsTable
 	mappingsTableEntry.w	@wide

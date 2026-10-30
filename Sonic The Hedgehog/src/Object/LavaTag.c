@@ -1,4 +1,7 @@
 #include "LavaTag.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "Game.h"
 #include "Level.h"
@@ -18,13 +21,12 @@ static const uint8_t ltag_col_types[3] = {
     0x95, // subtype 2 - large,  256x64 (col_256x64 | col_hurt)
 };
 
-void Obj_LavaTag(Object *obj) {
-    switch (obj->routine) {
+void Obj_LavaTag(Sst *self) {
+    switch (self->routine) {
     case 0: // Main
-        obj->routine = 2;
-        obj->col_type = ltag_col_types[obj->scratch.u8[0]]; // subtype selects hurt hitbox size
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
+        self->routine = 2;
+        self->collision_flags = ltag_col_types[self->subtype]; // subtype selects hurt hitbox size
+        self->render_flags = SST_RENDER_LEVEL;
         // Fallthrough
     case 2: // ChkDel
         // Real hardware sets a "rendered" flag by hand here so its own
@@ -43,18 +45,14 @@ void Obj_LavaTag(Object *obj) {
         // Sonic 1 has no "?" monitor type, so this substitutes the Eggman
         // icon instead (same one InvisibleBarrier's own Map_Invis uses).
         if (debug_cheat) {
-            obj->mappings = Mappings_LavaTagMarker;
-            obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
-            obj->frame = obj->scratch.u8[0]; // subtype selects the matching scaled frame
+            self->mappings = Mappings_LavaTagMarker;
+            self->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
+            self->mapping_frame = self->subtype; // subtype selects the matching scaled frame
         } else {
-            obj->mappings = Mappings_LavaTag; // blank -- genuinely invisible
+            self->mappings = Mappings_LavaTag; // blank -- genuinely invisible
         }
 
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
-            return;
-        }
-        DisplaySprite(obj);
+        SstOnScreenTest(self);
         break;
     }
 }

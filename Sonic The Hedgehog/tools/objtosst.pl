@@ -86,6 +86,13 @@ for my $path (@ARGV) {
     $s =~ s/\bObject\s*\*\s*(\w+)\s*=\s*&objects\[/Sst *$1 = &sst[/g;
     $s =~ s/\bObjectDelete\(\s*&objects\[([^\]]+)\]\s*\)/Sst_Delete(&sst[$1])/g;
     $s =~ s/\(uint8_t\)\(\s*(\w+)\s*-\s*objects\s*\)/(uint8_t)($1 - sst)/g;
+    # leaving range: the object forgets its place in the respawn table (SstLoad.h) so that it comes back
+    $s =~ s/if\s*\(IS_OFFSCREEN\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*\{\s*ObjectDelete\(\s*(\w+)\s*\);\s*return;\s*\}\s*DisplaySprite\(\s*\2\s*\);/SstOnScreenTest2($2, $1);/g;
+    $s =~ s/if\s*\(IS_OFFSCREEN\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*\{?\s*ObjectDelete\(\s*(\w+)\s*\);\s*\}?\s*else\s*\{?\s*DisplaySprite\(\s*\2\s*\);\s*\}?/SstOnScreenTest2($2, $1);/g;
+    $s =~ s/if\s*\(IS_OFFSCREEN\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*\{?\s*ObjectDelete\(\s*(\w+)\s*\);\s*\}?/SstDeleteIfNotInRange2($2, $1);/g;
+    $s =~ s/static bool \w+_OutOfRange\(int16_t x\) \{.*?\n\}\n\n?//gs;
+    $s =~ s/if\s*\(\w+_OutOfRange\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*Sst_Delete\(\s*(\w+)\s*\);\s*else\s*Sst_Draw\(\s*\2\s*\);/SstOnScreenTest2($2, $1);/g;
+    $s =~ s/if\s*\(\w+_OutOfRange\(([^()]*(?:\([^()]*\))?[^()]*)\)\)\s*Sst_Delete\(\s*(\w+)\s*\);/SstDeleteIfNotInRange2($2, $1);/g;
     # the handler's calls
     $s =~ s/\bAnimateSprite\(\s*(\w+)\s*,/Sst_Animate($1,/g;
     $s =~ s/\bDisplaySprite\(\s*(\w+)\s*\)/Sst_Draw($1)/g;
@@ -99,6 +106,9 @@ for my $path (@ARGV) {
     $s =~ s/\bObjHitCeiling\(/SstHitCeiling(/g;
     $s =~ s/\bChkObjectVisible\(/SstChkObjectVisible(/g;
     $s =~ s/\bChkPartiallyVisible\(/SstChkPartiallyVisible(/g;
+    $s =~ s/\bSmashObject\(/SstSmashObject(/g;
+    $s =~ s/\bFragmentatePlatform\(/SstFragmentatePlatform(/g;
+    $s =~ s/\bFindNearestTile\(\s*\w+\s*,/FindNearestTile(NULL,/g;
     $s =~ s/\bSolidObject_Heightmap\(/SstSolidObject_Heightmap(/g;
     $s =~ s/\bSolidObject\(/SstSolidObject(/g;
     $s =~ s/\bSolid_ChkEnter\(/SstSolid_ChkEnter(/g;
@@ -121,7 +131,9 @@ for my $path (@ARGV) {
     # includes
     $s =~ s/#include "Object.h"\n//;
     $s =~ s/(#include "[^"]+\.h"\n)/$1/;
-    unless ($s =~ /#include "SstLoad.h"/) { $s =~ s/(#include "[^"]+"\n)/$1#include "Object.h"\n#include "ObjectSst.h"\n#include "SstLoad.h"\n/; }
+    for my $inc ('Object.h', 'ObjectSst.h', 'SstLoad.h') {
+        $s =~ s/(#include "[^"]+"\n)/$1#include "$inc"\n/ unless $s =~ /#include "\Q$inc\E"/;
+    }
     $s =~ s/\x01(\w+)\x02/$1->/g;
     spit($path, $s);
 }

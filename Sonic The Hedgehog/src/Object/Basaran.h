@@ -1,13 +1,12 @@
 #ifndef _BASARAN_H
 #define _BASARAN_H
 
-#include "Object.h"
+#include "Sst.h"
 
 typedef struct {
-    uint8_t pad0[14]; // 0x28-0x35 (unused -- this object doesn't read a subtype)
     int16_t sonic_y;    // 0x36 -- Sonic's own Y-position at the moment this Basaran started dropping from the ceiling
-} Scratch_Basaran;
+} Own_Basaran;
 
-void Obj_Basaran(Object *obj);
+void Obj_Basaran(Sst *self);
 
 #endif //_BASARAN_H

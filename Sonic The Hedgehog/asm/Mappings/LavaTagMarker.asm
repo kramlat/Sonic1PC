@@ -8,7 +8,7 @@
 ; Frame 0/1/2 match LavaTag.c's own ltag_col_types indices (64x64/128x64/
 ; 256x64 hurt boxes) exactly -- obj->frame is just set to the subtype.
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_LavaTagMarker_internal:	mappingsTable
 	mappingsTableEntry.w	@f0

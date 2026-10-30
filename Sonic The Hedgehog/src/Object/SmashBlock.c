@@ -1,4 +1,7 @@
 #include "SmashBlock.h"
+#include "ObjectSst.h"
+#include "Object.h"
+#include "Resource/Mappings/SmashableGreenBlock.h"
 
 #include "Level.h"
 #include "SstLoad.h"
@@ -19,34 +22,33 @@ static const int16_t smab_speeds[4][2] = {
 // are hardcoded to 10000 regardless of this table.
 static const uint16_t smab_scores[4] = { 10, 20, 50, 100 };
 
-void Obj_SmashBlock(Object *obj) {
-    Scratch_SmashBlock *scratch = (Scratch_SmashBlock *)&obj->scratch;
+void Obj_SmashBlock(Sst *self) {
+    Own_SmashBlock *own = (Own_SmashBlock *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Main
-        obj->routine += 2;
-        obj->mappings = Mappings_SmashableGreenBlock;
-        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_MZ_Block); // | Tile_Pal3
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->width_pixels = 32 / 2;
-        obj->priority = 4;
+        self->routine += 2;
+        self->mappings = Mappings_SmashableGreenBlock;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_MZ_Block); // | Tile_Pal3
+        self->render_flags = SST_RENDER_LEVEL;
+        self->width_pixels = 32 / 2;
+        self->priority = 4 * 0x80;
         break;
     case 2: { // Solid
-        scratch->combo = item_bonus;
-        scratch->sonic_anim = player->anim;
+        own->combo = item_bonus;
+        own->sonic_anim = player->anim;
 
-        SolidObject(obj, 32 / 2 + 11 /* sonic_solid_width */, 32 / 2, 34 / 2, obj->pos.l.x.f.u, NULL, NULL);
-        if (!obj->status.o.f.player_stand) {
-            RememberState(obj);
+        SstSolidObject(self, 32 / 2 + 11 /* sonic_solid_width */, 32 / 2, 34 / 2, self->x_pos.f.u, NULL, NULL);
+        if (!((self->status & SST_STATUS_PLAYER_STAND) != 0)) {
+            SstOnScreenTest(self);
             break;
         }
-        if (scratch->sonic_anim != SonAnimId_Roll) {
-            RememberState(obj);
+        if (own->sonic_anim != SonAnimId_Roll) {
+            SstOnScreenTest(self);
             break;
         }
 
-        item_bonus = scratch->combo;
+        item_bonus = own->combo;
 
         player->status.p.f.in_ball = true;
         player->y_rad = 28 / 2; // sonic_roll_height
@@ -56,16 +58,16 @@ void Obj_SmashBlock(Object *obj) {
         player->status.p.f.in_air = true;
         player->status.p.f.object_stand = false;
         player->routine = 2; // force Sonic to Sonic_Control
-        obj->status.o.f.player_stand = false;
+        self->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;
 
         // Two mapping frames exist -- 2-piece (normal) and 4-piece
         // (fragmentation effect) -- swap to the 4-piece one right before
         // smashing.
-        obj->frame = 1;
+        self->mapping_frame = 1;
 
-        SmashObject(obj, 4, &smab_speeds[0][0]);
+        SstSmashObject(self, 4, &smab_speeds[0][0]);
 
-        Sst *points = Sst_Spawn(ObjId_Points, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
+        Sst *points = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
         if (points != NULL) {
 
             uint16_t combo = item_bonus;
@@ -85,14 +87,10 @@ void Obj_SmashBlock(Object *obj) {
         __attribute__((fallthrough)); // parent object is now the first fragment (routine 4)
     }
     case 4: // Fragment
-        SpeedToPos(obj);
-        obj->ysp += 0x38; // gravity
+        Sst_MoveSprite2(self);
+        self->y_vel += 0x38; // gravity
 
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
-            return;
-        }
-        DisplaySprite(obj);
+        SstOnScreenTest(self);
         break;
     }
 }

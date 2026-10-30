@@ -66,6 +66,8 @@ void SstOnScreenTest2(Sst *obj, int16_t x);
 bool SstOutOfRange(int16_t x);
 // Delete_Sprite_If_Not_In_Range: the same without the drawing
 void SstDeleteIfNotInRange(Sst *obj);
+// ... for an X the caller gives
+void SstDeleteIfNotInRange2(Sst *obj, int16_t x);
 
 // The game's table of the routine for each object id (Sprite_Listing): a game defines it (an id with NULL has not moved to the status table). The loader above and Sst_Spawn read it.
 extern const SstCode sst_object_codes[0x100];

@@ -324,3 +324,10 @@ Sst *Sst_Spawn(uint8_t id, int16_t x, int16_t y) {
     o->y_pos.f.u = y;
     return o;
 }
+
+void SstDeleteIfNotInRange2(Sst *obj, int16_t x) {
+    if (SstOutOfRange(x)) {
+        SstLoad_Forget(obj);
+        Sst_Delete(obj);
+    }
+}

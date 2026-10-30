@@ -1,5 +1,7 @@
 #include "SstLoad.h"
 #include "Object/Points.h"
+#include "Object/SmashWall.h"
+#include "Object/GHZRock.h"
 #include "Object/Helix.h"
 #include "Object/Explosion.h"
 #include "Object.h"
@@ -56,7 +58,6 @@ void Obj_EnemyWeapon(Object *obj);
 void Obj_RingLoss(Object *obj);
 void Obj_ShieldInvincibility(Object *obj);
 void Obj_GameOverCard(Object *obj);
-void Obj_GHZRock(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_BigSpikeBall(Object *obj);
 void Obj_Motobug(Object *obj);
@@ -76,7 +77,6 @@ void Obj_GiantRing(Object *obj);
 void Obj_RingFlash(Object *obj);
 void Obj_HiddenBonus(Object *obj);
 void Obj_BasicPlatform(Object *obj);
-void Obj_SmashWall(Object *obj);
 void Obj_Scenery(Object *obj);
 void Obj_HPZDecor(Object *obj);
 void Obj_EHZWaterfall(Object *obj);
@@ -284,8 +284,8 @@ const ObjectFunc game_objects[] = {
 	/* 38 ObjId_ShieldInvincibility */ Obj_ShieldInvincibility,
 	/* 39 ObjId_GameOverCard        */ Obj_GameOverCard,
 	/* 3A ObjId_GotThroughCard      */ Obj_GotThroughCard,
-	/* 3B ObjId_GHZRock             */ Obj_GHZRock,
-	/* 3C ObjId_SmashWall           */ Obj_SmashWall,
+	/* 3B ObjId_GHZRock             */ NULL, // (moved to the status table: sst_object_codes)
+	/* 3C ObjId_SmashWall           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3D ObjId_BossGreenHill       */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 3E ObjId_PrisonCapsule       */ Obj_PrisonCapsule,
 	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBombObject,
@@ -406,6 +406,8 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
 	[ObjId_Points] = Obj_Points,
+	[ObjId_SmashWall] = Obj_SmashWall,
+	[ObjId_GHZRock] = Obj_GHZRock,
 	[ObjId_Helix] = Obj_Helix,
 	[ObjId_Explosion] = Obj_Explosion,
 	[ObjId_ExplosionBomb] = Obj_ExplosionBomb, // (Sonic 1's, shared)

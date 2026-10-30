@@ -1,8 +1,8 @@
 #ifndef _SMALLDOOR_H
 #define _SMALLDOOR_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_SmallDoor(Object *obj);
+void Obj_SmallDoor(Sst *self);
 
 #endif //_SMALLDOOR_H

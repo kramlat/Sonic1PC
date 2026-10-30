@@ -1,4 +1,7 @@
 #include "Harpoon.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -19,40 +22,40 @@ static const uint8_t Harp_ColTypes[6] = {
     0x20 | 0x80, // frame 5, upright,  extended      (col_8x80 | col_hurt)
 };
 
-static void Harp_Move(Object *obj) {
-    AnimateSprite(obj, Animation_Harpoon); // advances obRoutine to Harp_Wait on animation finish
-    obj->col_type = Harp_ColTypes[obj->frame];
-    RememberState(obj);
+static void Harp_Move(Sst *self) {
+    Sst_Animate(self, Animation_Harpoon); // advances obRoutine to Harp_Wait on animation finish
+    self->collision_flags = Harp_ColTypes[self->mapping_frame];
+    SstOnScreenTest(self);
 }
 
-static void Harp_Wait(Object *obj, Scratch_Harpoon *scratch) {
-    if (--scratch->time < 0) {
-        scratch->time = 60;
-        obj->routine -= 2; // back to Harp_Move
-        obj->anim ^= 1; // toggle between extending/retracting animation
+static void Harp_Wait(Sst *self, Own_Harpoon *own) {
+    if (--own->time < 0) {
+        own->time = 60;
+        self->routine -= 2; // back to Harp_Move
+        self->anim ^= 1; // toggle between extending/retracting animation
     }
-    RememberState(obj);
+    SstOnScreenTest(self);
 }
 
-void Obj_Harpoon(Object *obj) {
-    Scratch_Harpoon *scratch = (Scratch_Harpoon *)&obj->scratch;
+void Obj_Harpoon(Sst *self) {
+    Own_Harpoon *own = (Own_Harpoon *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        obj->routine += 2;
-        obj->mappings = Mappings_Harpoon;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Harpoon);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 4;
-        obj->anim = obj->scratch.u8[0]; // subtype: 0 = sideways, 2 = upright
-        obj->width_pixels = 40 / 2;
-        scratch->time = 60;
+        self->routine += 2;
+        self->mappings = Mappings_Harpoon;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Harpoon);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->anim = self->subtype; // subtype: 0 = sideways, 2 = upright
+        self->width_pixels = 40 / 2;
+        own->time = 60;
         __attribute__((fallthrough));
     case 2:
-        Harp_Move(obj);
+        Harp_Move(self);
         break;
     case 4:
-        Harp_Wait(obj, scratch);
+        Harp_Wait(self, own);
         break;
     }
 }

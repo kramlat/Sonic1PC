@@ -1,32 +1,34 @@
 #include "GHZRock.h"
+#include "Resource/Mappings/GHZRock.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "LevelScroll.h"
 
 #include "Macros.h"
 
 // GHZ rock object
-void Obj_GHZRock(Object* obj) {
-    switch (obj->routine) {
+void Obj_GHZRock(Sst *self) {
+    switch (self->routine) {
     case 0: // Initialization
         // Increment routine
-        obj->routine += 2;
+        self->routine += 2;
 
         // Set object drawing information
-        obj->mappings = Mappings_GHZRock;
-        obj->tile = TILE_MAP(0, 3, 0, 0, ArtTile_GHZ_Purple_Rock);
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->width_pixels = 19;
-        obj->priority = 4;
+        self->mappings = Mappings_GHZRock;
+        self->art_tile = TILE_MAP(0, 3, 0, 0, ArtTile_GHZ_Purple_Rock);
+        self->render_flags = SST_RENDER_LEVEL;
+        self->width_pixels = 19;
+        self->priority = 4 * 0x80;
         // Fallthrough
     case 2: // Solid
         // Act as solid object and draw
-        SolidObject(obj, 27, 16, 16, obj->pos.l.x.f.u, NULL, NULL);
-        DisplaySprite(obj);
+        SstSolidObject(self, 27, 16, 16, self->x_pos.f.u, NULL, NULL);
+        Sst_Draw(self);
 
         // Delete once off-screen
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-            ObjectDelete(obj);
+        SstDeleteIfNotInRange(self);
         break;
     }
 }

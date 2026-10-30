@@ -5,6 +5,7 @@
 #include "Object/Sonic.h"
 #include "LevelCollision.h"
 #include "Standing.h"
+#include "Sound.h"
 
 // The solid and platform helpers for the status table's objects (see ObjectSst.h): Object.c's, field for field.
 
@@ -312,4 +313,78 @@ int16_t SstHitWallLeft(Sst *obj, int16_t x_off) {
 int16_t SstHitCeiling(Sst *obj) {
     uint8_t angle;
     return FindFloor(&collision_proxy, obj->x_pos.f.u, (int16_t)((obj->y_pos.f.u - (int8_t)obj->y_radius) ^ 0xF), META_SOLID_LRB, META_Y_FLIP, -0x10, &angle);
+}
+
+void SstSmashObject(Sst *obj, int count, const int16_t *frag_speeds) {
+    SstCode code = obj->code;
+    uint8_t render = obj->render_flags;
+    uint16_t tile = obj->art_tile;
+    uint16_t priority = obj->priority;
+    uint8_t width_pixels = obj->width_pixels;
+    int16_t x = obj->x_pos.f.u;
+    int16_t y = obj->y_pos.f.u;
+
+    const uint8_t *piece;
+    Mappings_FramePieces((const uint8_t *)obj->mappings, obj->mapping_frame, &piece);
+
+    Sst *prev = obj;
+    for (int i = 0; i < count; i++) {
+        Sst *frag = obj;
+        if (i > 0) {
+            frag = Sst_AllocateAfter(prev);
+            if (frag == NULL)
+                break;
+            piece += SPRITE_PIECE_SIZE_S3;
+        }
+        frag->routine = 4;
+        frag->code = code;
+        frag->mappings = piece;
+        frag->render_flags = render | SST_RENDER_STATIC;
+        frag->x_pos.f.u = x;
+        frag->y_pos.f.u = y;
+        frag->art_tile = tile;
+        frag->priority = priority;
+        frag->width_pixels = width_pixels;
+        frag->x_vel = *frag_speeds++;
+        frag->y_vel = *frag_speeds++;
+        prev = frag;
+    }
+    PlaySound(sfx_WallSmash);
+}
+
+void SstFragmentatePlatform(Sst *obj, int count, const uint8_t *delays) {
+    SstCode code = obj->code;
+    uint8_t render = obj->render_flags;
+    uint16_t tile = obj->art_tile;
+    uint16_t priority = obj->priority;
+    uint8_t width_pixels = obj->width_pixels;
+    int16_t x = obj->x_pos.f.u;
+    int16_t y = obj->y_pos.f.u;
+
+    const uint8_t *piece;
+    Mappings_FramePieces((const uint8_t *)obj->mappings, obj->mapping_frame, &piece);
+
+    Sst *prev = obj;
+    for (int i = 0; i < count; i++) {
+        Sst *frag = obj;
+        if (i > 0) {
+            frag = Sst_AllocateAfter(prev);
+            if (frag == NULL)
+                break;
+            piece += SPRITE_PIECE_SIZE_S3;
+        }
+        frag->routine = 6;
+        frag->code = code;
+        frag->mappings = piece;
+        frag->render_flags = render | SST_RENDER_STATIC;
+        frag->x_pos.f.u = x;
+        frag->y_pos.f.u = y;
+        frag->art_tile = tile;
+        frag->priority = priority;
+        frag->width_pixels = width_pixels;
+        frag->own.u8[SST_COLLAPSE_DELAY] = delays[i];
+        prev = frag;
+    }
+    Sst_Draw(obj);
+    PlaySound(sfx_Collapse);
 }

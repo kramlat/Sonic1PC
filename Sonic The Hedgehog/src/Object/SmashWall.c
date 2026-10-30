@@ -1,4 +1,8 @@
 #include "SmashWall.h"
+#include "Resource/Mappings/SmashableWalls.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -17,43 +21,42 @@ static const int16_t frag_speed_left[8][2] = {
     { -0x400, -0x500 }, { -0x600, -0x100 }, { -0x600, 0x100 }, { -0x400, 0x500 },
 };
 
-void Obj_SmashWall(Object *obj) {
-    Scratch_SmashWall *scratch = (Scratch_SmashWall *)&obj->scratch;
+void Obj_SmashWall(Sst *self) {
+    Own_SmashWall *own = (Own_SmashWall *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Main
-        obj->routine += 2;
-        obj->mappings = Mappings_SmashableWalls;
-        obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_SLZ_Smashable_Wall); // | Tile_Pal3
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->width_pixels = 32 / 2;
-        obj->priority = 4;
-        obj->frame = obj->scratch.u8[0]; // subtype -- 0=left, 1=middle, 2=right
+        self->routine += 2;
+        self->mappings = Mappings_SmashableWalls;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_SLZ_Smashable_Wall); // | Tile_Pal3
+        self->render_flags = SST_RENDER_LEVEL;
+        self->width_pixels = 32 / 2;
+        self->priority = 4 * 0x80;
+        self->mapping_frame = self->subtype; // subtype -- 0=left, 1=middle, 2=right
         // Fallthrough
     case 2: { // Solid
-        scratch->speed = player->xsp;
+        own->speed = player->xsp;
 
-        SolidObject(obj, 32 / 2 + 11 /* sonic_solid_width */, 64 / 2, 64 / 2, obj->pos.l.x.f.u, NULL, NULL);
-        if (!obj->status.o.f.player_push) {
-            RememberState(obj);
+        SstSolidObject(self, 32 / 2 + 11 /* sonic_solid_width */, 64 / 2, 64 / 2, self->x_pos.f.u, NULL, NULL);
+        if (!((self->status & SST_STATUS_PLAYER_PUSH) != 0)) {
+            SstOnScreenTest(self);
             break;
         }
 
         if (player->anim != SonAnimId_Roll) {
-            RememberState(obj);
+            SstOnScreenTest(self);
             break;
         }
 
-        int16_t impact_speed = scratch->speed < 0 ? (int16_t)-scratch->speed : scratch->speed;
+        int16_t impact_speed = own->speed < 0 ? (int16_t)-own->speed : own->speed;
         if (impact_speed < 0x480) {
-            RememberState(obj);
+            SstOnScreenTest(self);
             break;
         }
 
-        player->xsp = scratch->speed; // restore Sonic's speed from before SolidObject changed it
+        player->xsp = own->speed; // restore Sonic's speed from before SolidObject changed it
         const int16_t(*frag_speeds)[2];
-        if (obj->pos.l.x.f.u < player->pos.l.x.f.u) {
+        if (self->x_pos.f.u < player->pos.l.x.f.u) {
             player->pos.l.x.f.u += 4; // push Sonic right a bit for pseudo-seamless movement
             frag_speeds = frag_speed_right;
         } else {
@@ -62,21 +65,17 @@ void Obj_SmashWall(Object *obj) {
         }
 
         player->inertia = player->xsp;
-        obj->status.o.f.player_push = false;
+        self->status &= (uint8_t)~SST_STATUS_PLAYER_PUSH;
         player->status.p.f.pushing = false;
 
-        SmashObject(obj, 8, &frag_speeds[0][0]);
+        SstSmashObject(self, 8, &frag_speeds[0][0]);
         __attribute__((fallthrough)); // parent object is now the first fragment -- routine 4
     }
     case 4: // Fragment
-        SpeedToPos(obj);
-        obj->ysp += 0x38 * 2; // double gravity
+        Sst_MoveSprite2(self);
+        self->y_vel += 0x38 * 2; // double gravity
 
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
-            return;
-        }
-        DisplaySprite(obj);
+        SstOnScreenTest(self);
         break;
     }
 }

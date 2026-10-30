@@ -1,4 +1,7 @@
 #include "Burrobot.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "Level.h"
 #include "LevelCollision.h"
@@ -15,15 +18,15 @@
 // Checks how far Sonic is horizontally and faces the object towards him;
 // returns true if Sonic is within `zone` px. Sets *out_vel to the speed
 // (and direction) to move towards Sonic, when non-NULL.
-static bool Burro_CheckDistanceAndFaceSonic(Object *obj, int16_t zone, int16_t *out_vel) {
+static bool Burro_CheckDistanceAndFaceSonic(Sst *self, int16_t zone, int16_t *out_vel) {
     int16_t vel = 0x80;
-    obj->status.o.f.x_flip = true;
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, true);
 
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u);
+    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
     if (d0 < 0) {
         d0 = (int16_t)-d0;
         vel = (int16_t)-vel;
-        obj->status.o.f.x_flip = false;
+        SST_STATUS_SET(self, SST_STATUS_X_FLIP, false);
     }
 
     if (out_vel)
@@ -31,118 +34,118 @@ static bool Burro_CheckDistanceAndFaceSonic(Object *obj, int16_t zone, int16_t *
     return d0 < zone;
 }
 
-static void Burro_Action_Move_NextAction(Object *obj, Scratch_Burrobot *scratch) {
+static void Burro_Action_Move_NextAction(Sst *self, Own_Burrobot *own) {
     // 50/50 chance to jump again or turn around, based on the current VBlank counter
     if (!((uint8_t)frame_count & 4)) {
-        obj->routine_sec += 2; // -> Burro_Action_Jump
-        obj->ysp = -0x400;
-        obj->anim = 2;
+        self->routine_secondary += 2; // -> Burro_Action_Jump
+        self->y_vel = -0x400;
+        self->anim = 2;
         return;
     }
 
-    obj->routine_sec -= 2; // -> Burro_Action_TurnAround
-    scratch->timedelay = 60 - 1;
-    obj->xsp = 0;
-    obj->anim = 0;
+    self->routine_secondary -= 2; // -> Burro_Action_TurnAround
+    own->timedelay = 60 - 1;
+    self->x_vel = 0;
+    self->anim = 0;
 }
 
-static void Burro_Action_TurnAround(Object *obj, Scratch_Burrobot *scratch) {
-    if (--scratch->timedelay >= 0)
+static void Burro_Action_TurnAround(Sst *self, Own_Burrobot *own) {
+    if (--own->timedelay >= 0)
         return;
 
-    obj->routine_sec += 2; // -> Burro_Action_Move
-    scratch->timedelay = 255;
-    obj->xsp = 0x80;
-    obj->anim = 1;
-    obj->status.o.f.x_flip ^= 1;
-    if (!obj->status.o.f.x_flip)
+    self->routine_secondary += 2; // -> Burro_Action_Move
+    own->timedelay = 255;
+    self->x_vel = 0x80;
+    self->anim = 1;
+    self->status ^= SST_STATUS_X_FLIP;
+    if (!((self->status & SST_STATUS_X_FLIP) != 0))
         return;
-    obj->xsp = (int16_t)-obj->xsp;
+    self->x_vel = (int16_t)-self->x_vel;
 }
 
-static void Burro_Action_Move(Object *obj, Scratch_Burrobot *scratch) {
-    if (--scratch->timedelay < 0) {
-        Burro_Action_Move_NextAction(obj, scratch);
+static void Burro_Action_Move(Sst *self, Own_Burrobot *own) {
+    if (--own->timedelay < 0) {
+        Burro_Action_Move_NextAction(self, own);
         return;
     }
 
-    SpeedToPos(obj);
+    Sst_MoveSprite2(self);
 
-    scratch->checktype ^= 1;
-    if (scratch->checktype) {
-        int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
-        obj->pos.l.y.f.u += floor_dist;
+    own->checktype ^= 1;
+    if (own->checktype) {
+        int16_t floor_dist = SstFloorDist(self, self->x_pos.f.u);
+        self->y_pos.f.u += floor_dist;
         return;
     }
 
-    int16_t x = (int16_t)(obj->pos.l.x.f.u + 12);
-    if (!obj->status.o.f.x_flip)
-        x = (int16_t)(obj->pos.l.x.f.u - 12);
-    int16_t floor_dist = ObjFloorDist(obj, x);
+    int16_t x = (int16_t)(self->x_pos.f.u + 12);
+    if (!((self->status & SST_STATUS_X_FLIP) != 0))
+        x = (int16_t)(self->x_pos.f.u - 12);
+    int16_t floor_dist = SstFloorDist(self, x);
     if (floor_dist >= 0xC)
-        Burro_Action_Move_NextAction(obj, scratch);
+        Burro_Action_Move_NextAction(self, own);
 }
 
-static void Burro_Action_Jump(Object *obj, Scratch_Burrobot *scratch) {
-    SpeedToPos(obj);
-    obj->ysp += 0x18;
-    if (obj->ysp < 0)
+static void Burro_Action_Jump(Sst *self, Own_Burrobot *own) {
+    Sst_MoveSprite2(self);
+    self->y_vel += 0x18;
+    if (self->y_vel < 0)
         return;
-    obj->anim = 3;
+    self->anim = 3;
 
-    int16_t floor_dist = ObjFloorDist(obj, obj->pos.l.x.f.u);
+    int16_t floor_dist = SstFloorDist(self, self->x_pos.f.u);
     if (floor_dist >= 0)
         return;
-    obj->pos.l.y.f.u += floor_dist;
+    self->y_pos.f.u += floor_dist;
 
-    obj->ysp = 0;
-    obj->anim = 1;
-    scratch->timedelay = 255;
-    obj->routine_sec -= 2; // -> Burro_Action_Move
-    Burro_CheckDistanceAndFaceSonic(obj, 0, NULL); // face Sonic one last time (distance check ignored)
+    self->y_vel = 0;
+    self->anim = 1;
+    own->timedelay = 255;
+    self->routine_secondary -= 2; // -> Burro_Action_Move
+    Burro_CheckDistanceAndFaceSonic(self, 0, NULL); // face Sonic one last time (distance check ignored)
 }
 
-static void Burro_Action_ChkSonic(Object *obj, Scratch_Burrobot *scratch) {
-    (void)scratch;
+static void Burro_Action_ChkSonic(Sst *self, Own_Burrobot *own) {
+    (void)own;
     int16_t vel;
-    if (!Burro_CheckDistanceAndFaceSonic(obj, 96, &vel))
+    if (!Burro_CheckDistanceAndFaceSonic(self, 96, &vel))
         return;
 
-    int16_t dy = (int16_t)(player->pos.l.y.f.u - obj->pos.l.y.f.u);
+    int16_t dy = (int16_t)(player->pos.l.y.f.u - self->y_pos.f.u);
     if (dy >= 0 || dy < -128 || debug_use)
         return;
 
-    obj->routine_sec -= 2; // -> Burro_Action_Jump
-    obj->xsp = vel;
-    obj->ysp = -0x400;
+    self->routine_secondary -= 2; // -> Burro_Action_Jump
+    self->x_vel = vel;
+    self->y_vel = -0x400;
 }
 
-void Obj_Burrobot(Object *obj) {
-    Scratch_Burrobot *scratch = (Scratch_Burrobot *)&obj->scratch;
+void Obj_Burrobot(Sst *self) {
+    Own_Burrobot *own = (Own_Burrobot *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        obj->routine += 2;
-        obj->y_rad = 38 / 2;
-        obj->x_rad = 16 / 2;
-        obj->mappings = Mappings_Burrobot;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Burrobot);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 4;
-        obj->col_type = 0x05; // col_24x36 | col_badnik
-        obj->width_pixels = 24 / 2;
-        obj->routine_sec += 6; // run Burro_Action_ChkSonic first
-        obj->anim = 2;
+        self->routine += 2;
+        self->y_radius = 38 / 2;
+        self->x_radius = 16 / 2;
+        self->mappings = Mappings_Burrobot;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Burrobot);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->collision_flags = 0x05; // col_24x36 | col_badnik
+        self->width_pixels = 24 / 2;
+        self->routine_secondary += 6; // run Burro_Action_ChkSonic first
+        self->anim = 2;
         __attribute__((fallthrough));
     case 2:
-        switch (obj->routine_sec) {
-        case 0: Burro_Action_TurnAround(obj, scratch); break;
-        case 2: Burro_Action_Move(obj, scratch); break;
-        case 4: Burro_Action_Jump(obj, scratch); break;
-        case 6: Burro_Action_ChkSonic(obj, scratch); break;
+        switch (self->routine_secondary) {
+        case 0: Burro_Action_TurnAround(self, own); break;
+        case 2: Burro_Action_Move(self, own); break;
+        case 4: Burro_Action_Jump(self, own); break;
+        case 6: Burro_Action_ChkSonic(self, own); break;
         }
-        AnimateSprite(obj, Animation_Burrobot);
-        RememberState(obj);
+        Sst_Animate(self, Animation_Burrobot);
+        SstOnScreenTest(self);
         break;
     }
 }

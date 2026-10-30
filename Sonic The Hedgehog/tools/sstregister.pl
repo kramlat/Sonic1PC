@@ -9,7 +9,22 @@ sub slurp { open my $h, '<', $_[0] or die "$_[0]: $!"; local $/; my $d = <$h>; c
 sub spit  { open my $h, '>', $_[0] or die "$_[0]: $!"; print $h $_[1]; close $h }
 
 my $table = slurp('src/Sonic1Objects.c');
+sub header_of { my ($n) = @_; for my $h (glob('src/Object/*.h')) { return $h =~ m{([^/]+)\.h$} ? $1 : $n if slurp($h) =~ /\bObj_\Q$n\E\(Sst/; } return $n }
 my @ids;
+# a header that has no prototype for the object's routine gets one (the table includes the header)
+sub ensure_prototype {
+    my ($n) = @_;
+    for my $h (glob('src/Object/*.h')) { return if slurp($h) =~ /\bObj_\Q$n\E\(Sst/; }
+    for my $c (glob('src/Object/*.c')) {
+        next unless slurp($c) =~ /^void Obj_\Q$n\E\(Sst/m;
+        (my $h = $c) =~ s/\.c$/.h/;
+        my $t = slurp($h);
+        $t =~ s/#endif/void Obj_$n(Sst *self);\n\n#endif/;
+        spit($h, $t);
+        return;
+    }
+}
+my @s2ids;
 for my $arg (@ARGV) {
     my ($name, $maps) = split /:/, $arg, 2;
     my @maps = defined $maps ? split(/,/, $maps) : ($name);
@@ -18,11 +33,21 @@ for my $arg (@ARGV) {
         or die "$name: not in the table\n";
     my ($id, $idname) = ($2, $3);
     push @ids, hex($id);
-    if (-f '../Sonic the Hedgehog 2/src/Sonic2Objects.c' && slurp('../Sonic the Hedgehog 2/src/Sonic2Objects.c') =~ /^\t\/\* [0-9A-F]{2} ObjId_\w+\s*\*\/ Obj_\Q$name\E,/m) {
-        warn "$name: Sonic 2's table runs it too (shared): move it there as well (sst_object_codes, NULL in game_objects, its layouts in res/S2Objects)\n";
+    ensure_prototype($name);
+    my $s2 = '../Sonic the Hedgehog 2/src/Sonic2Objects.c';
+    if (-f $s2) {   # Sonic 2 runs some of Sonic 1's objects as they are: it moves them as well
+        my $t2 = slurp($s2);
+        if ($t2 =~ s{^(\t/\* [0-9A-F]{2} ObjId_\w+\s*\*/ )Obj_\Q$name\E,}{$1NULL, // (moved to the status table: sst_object_codes)}m) {
+            $t2 =~ s/^void Obj_\Q$name\E\(Object \*obj\);\n//m;
+            $t2 =~ s/(const SstCode sst_object_codes\[0x100\] = \{\n)/$1\t[$idname] = Obj_$name,\n/ or die "no sst table in Sonic 2\n";
+            { my $h = header_of($name); $t2 =~ s/(#include "Object\/Points.h"\n)/$1#include "Object\/$h.h"\n/ unless $t2 =~ /#include "Object\/\Q$h\E\.h"/; }
+            spit($s2, $t2);
+            push @s2ids, hex($id);
+            warn "$name: Sonic 2 runs it too: moved there as well\n";
+        }
     }
     $table =~ s/(const SstCode sst_object_codes\[0x100\] = \{\n)/$1\t[$idname] = Obj_$name,\n/ or die "no sst table\n";
-    $table =~ s/(#include "Object\/Points.h"\n)/$1#include "Object\/$name.h"\n/ unless $table =~ /#include "Object\/\Q$name\E\.h"/;
+    { my $h = header_of($name); $table =~ s/(#include "Object\/Points.h"\n)/$1#include "Object\/$h.h"\n/ unless $table =~ /#include "Object\/\Q$h\E\.h"/; }
     for my $m (@maps) {
         my $p = "asm/Mappings/$m.asm";
         my $t = slurp($p);
@@ -33,3 +58,7 @@ for my $arg (@ARGV) {
 spit('src/Sonic1Objects.c', $table);
 my $list = join ',', map { sprintf '0x%02X', $_ } @ids;
 system("perl tools/objlayout_clear_remember.pl $list res/ObjectLayout/* 2>&1 | grep -v skipped");
+if (@s2ids) {
+    my $l2 = join ',', map { sprintf '0x%02X', $_ } @s2ids;
+    system("perl tools/objlayout_clear_remember.pl $l2 '../Sonic the Hedgehog 2/res/S2Objects'/* 2>&1 | grep -v skipped");
+}
