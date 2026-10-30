@@ -47,15 +47,11 @@ void Deform_SBZ(void);
 static void SBZ1_BackgroundRaisesNoRedrawFlags(void) {
     level_id = LEVEL_ID(ZoneId_SBZ, 0);
     bg_scrpos_x.v = bg2_scrpos_x.v = bg3_scrpos_x.v = bg_scrpos_y.v = 0;
-    bg1_xblock = bg2_xblock = bg3_xblock = 0;
-    bg1_yblock = 0x10;
-    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
     scrshift_x = 0x400; // moving right...
     scrshift_y = 0x400; // ...and down
     scrpos_x.v = 0;
     Deform_SBZ();
     CHECK(bg_scrpos_x.v > 0 && bg_scrpos_y.v > 0 && bg2_scrpos_x.v > 0 && bg3_scrpos_x.v > 0);
-    CHECK_EQ(bg1_scroll_flags | bg2_scroll_flags | bg3_scroll_flags, 0);
 }
 
 // SBZ act 1's background row map must be the real BG_ScrollBlockMap_SBZ (which BG layer each 16px row follows).

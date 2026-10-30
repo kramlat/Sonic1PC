@@ -84,94 +84,15 @@ void LoadTilesFromStart(void) {
     DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
 }
 
-void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
-	//Check if any flags have been set
-	if (*flag == 0)
-		return;
-	// Real DrawBG_Top's bit0/bit1 (top/bottom) use plain DrawBlocks_LR --
-	// its own default width ((320+16+16)/16, a screen-width strip) -- NOT
-	// the full 32-block plane width. That full-plane draw only belongs to
-	// bit4/bit5 ("TopAll"/"BottomAll") below, via DrawBlocks_LR_3.
-	if (*flag & SCROLL_FLAG_UP) {
-		DrawBlocks_LR(plane, CalcVRAMPos(sx, sy, -16, -16), sx, sy, -16, -16, layout);
-		*flag &= ~SCROLL_FLAG_UP;
-	}
-	if (*flag & SCROLL_FLAG_DOWN) {
-		DrawBlocks_LR(plane, CalcVRAMPos(sx, sy, -16, SCROLL_HEIGHT), sx, sy, -16, SCROLL_HEIGHT, layout);
-		*flag &= ~SCROLL_FLAG_DOWN;
-	}
-	if (*flag & SCROLL_FLAG_LEFT) {
-		DrawBlocks_TB(plane, CalcVRAMPos(sx, sy, -16, -16), sx, sy, -16, -16, layout);
-		*flag &= ~SCROLL_FLAG_LEFT;
-	}
-	if (*flag & SCROLL_FLAG_RIGHT) {
-		DrawBlocks_TB(plane, CalcVRAMPos(sx, sy, RIGHT_EDGE_X, -16), sx, sy, RIGHT_EDGE_X, -16, layout);
-		*flag &= ~SCROLL_FLAG_RIGHT;
-	}
-	if (*flag & SCROLL_FLAG_UP2) {
-		DrawBlocks_LR_3(plane, CalcVRAMPos(0, sy, 0, -16), 0, sy, 0, -16, layout, PLANE_WIDTH / 2);
-		*flag &= ~SCROLL_FLAG_UP2;
-	}
-	if (*flag & SCROLL_FLAG_DOWN2) {
-		DrawBlocks_LR_3(plane, CalcVRAMPos(0, sy, 0, SCROLL_HEIGHT), 0, sy, 0, SCROLL_HEIGHT, layout, PLANE_WIDTH / 2);
-		*flag &= ~SCROLL_FLAG_DOWN2;
-	}
-}
-
-
-void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
-	if (*flag == 0)
-		return;
-		if (*flag & SCROLL_FLAG_LEFT2) {
-			DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, -16, 0x70), sx, sy, -16, 0x70, layout, 3);
-			*flag &= ~SCROLL_FLAG_LEFT2;
-		}
-		if (*flag & SCROLL_FLAG_RIGHT2) {
-			DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, RIGHT_EDGE_X, 0x70), sx, sy, RIGHT_EDGE_X, 0x70, layout, 3);
-			*flag &= ~SCROLL_FLAG_RIGHT2;
-		}
-}
-
-void DrawBG_Block3(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
-	//Check if any flags have been set
-	if (*flag == 0)
-		return;
-		if (*flag & SCROLL_FLAG_LEFT2) {
-			DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, -16, 64), sx, sy, -16, 64, layout, 3);
-			*flag &= ~SCROLL_FLAG_LEFT2;
-		}
-		if (*flag & SCROLL_FLAG_RIGHT2) {
-			DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, RIGHT_EDGE_X, 64), sx, sy, RIGHT_EDGE_X, 64, layout, 3);
-			*flag &= ~SCROLL_FLAG_RIGHT2;
-		}
-}
-
 void LoadTilesAsYouMove(void) {
-    if (LevelScroll_UsesBands()) {
+    if (LevelScroll_UsesBands())
         LevelScroll_DrawBands(&bg_scrpos_x_dup, &bg2_scrpos_x_dup, &bg3_scrpos_x_dup, &bg_scrpos_y_dup);
-        LevelPlane_DrawPending(&fg_plane, LEVEL_LAYOUT_PLANE_FG);
-        return;
-    }
-    DrawBG_Top(bg_scrpos_x_dup.f.u, bg_scrpos_y_dup.f.u,
-                       &bg1_scroll_flags_dup, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
-
-    DrawBG_Bottom(bg2_scrpos_x_dup.f.u, bg2_scrpos_y_dup.f.u,
-                       &bg2_scroll_flags_dup, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
-
-    // REV01 added a third scroll block call
-    DrawBG_Block3(bg3_scrpos_x_dup.f.u, bg3_scrpos_y_dup.f.u,
-                       &bg3_scroll_flags_dup, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     LevelPlane_DrawPending(&fg_plane, LEVEL_LAYOUT_PLANE_FG);
 }
 
 void LoadTilesAsYouMove_BGOnly(void) {
-    if (LevelScroll_UsesBands()) {
+    if (LevelScroll_UsesBands())
         LevelScroll_DrawBands(&bg_scrpos_x, &bg2_scrpos_x, &bg3_scrpos_x, &bg_scrpos_y);
-        return;
-    }
-    DrawBG_Top(bg_scrpos_x.f.u, bg_scrpos_y.f.u, &bg1_scroll_flags, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
-    DrawBG_Bottom(bg2_scrpos_x.f.u, bg2_scrpos_y.f.u, &bg2_scroll_flags, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
-    // No scroll block 3, even in REV01... odd
 }
 
 void LoadTiles(const uint8_t *source, uint16_t count) {

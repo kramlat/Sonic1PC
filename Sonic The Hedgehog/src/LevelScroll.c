@@ -13,16 +13,12 @@
 //Level scroll state
 uint8_t nobgscroll, bgscrollvert;
 
-uint16_t bg1_scroll_flags, bg2_scroll_flags, bg3_scroll_flags;
-uint16_t bg1_scroll_flags_dup, bg2_scroll_flags_dup, bg3_scroll_flags_dup;
 
 dword_s bg2_scrpos_x, bg2_scrpos_y;
 dword_s scrpos_x_dup, scrpos_y_dup, bg_scrpos_x_dup, bg_scrpos_y_dup, bg2_scrpos_x_dup, bg2_scrpos_y_dup, bg3_scrpos_x_dup, bg3_scrpos_y_dup;
 
 int16_t scrshift_x, scrshift_y;
 
-uint8_t bg1_xblock, bg2_xblock, bg3_xblock;
-uint8_t bg1_yblock, bg2_yblock, bg3_yblock;
 
 // The foreground plane and what keeps it drawn as the camera moves (the engine's LevelPlane)
 LevelPlane fg_plane = { .plane = &screen1p.plane_a, .camera_x = &scrpos_x, .camera_y = &scrpos_y }; // (valid before a level starts too)
@@ -81,114 +77,6 @@ static void FillGradient(int16_t count, int16_t start, int32_t delta, int16_t *d
 		*dest++ = (int16_t)(acc >> 16);
 		acc += delta;
 	}
-}
-
-void ApplyScrollUpdate(int16_t current_y, int16_t previous_y, uint8_t *block_state, uint16_t *flags, uint16_t up_bit, uint16_t down_bit) {
-	if ((current_y & 0x10) != (*block_state & 0x10)) {
-		*block_state ^= 0x10;
-		if (current_y < previous_y)
-			*flags |= up_bit;
-		else
-			*flags |= down_bit;
-	}
-}
-
-// Applies background buffer to the H-scroll table in 16-pixel chunks (REV01 style)
-	void BGScroll_X(int16_t y_pos, int16_t buf_offset) {
-	int16_t *bufp = &hscroll_buffer[0][0];
-	int16_t *bg_ptr = (int16_t*)&bgscroll_buffer[buf_offset];
-	int16_t fg_x = -scrpos_x.f.u;
-
-	int16_t lines_left = SCREEN_HEIGHT;
-	int16_t chunk_h = 16 - (y_pos & 0xF);
-
-	while (lines_left > 0) {
-		int16_t bg_x = *bg_ptr++;
-		int16_t step = (lines_left < chunk_h) ? lines_left : chunk_h;
-		for (int i = 0; i < step; i++) {
-			*bufp++ = fg_x;
-			*bufp++ = bg_x;
-		}
-		lines_left -= step;
-		chunk_h = 16;
-	}
-}
-
-void UpdateBGScroll(dword_s *pos, int32_t delta, uint8_t *block, uint16_t *flags, uint16_t neg_bit, uint16_t pos_bit) {
-	int32_t old_v = pos->v;
-	pos->v += delta;
-
-	if ((pos->f.u & 0x10) != (*block & 0x10)) {
-		*block ^= 0x10;
-		if (pos->v < old_v)
-			*flags |= neg_bit;
-		else
-			*flags |= pos_bit;
-	}
-}
-
-void BGScroll_XY(int32_t x_off, int32_t y_off) {
-	UpdateBGScroll(&bg_scrpos_x, x_off, &bg1_xblock, &bg1_scroll_flags, SCROLL_FLAG_LEFT, SCROLL_FLAG_RIGHT);
-	UpdateBGScroll(&bg_scrpos_y, y_off, &bg1_yblock, &bg1_scroll_flags, SCROLL_FLAG_UP, SCROLL_FLAG_DOWN);
-}
-
-void BGScroll_Y(int32_t y_off) {
-	UpdateBGScroll(&bg_scrpos_y, y_off, &bg1_yblock, &bg1_scroll_flags, SCROLL_FLAG_UP2, SCROLL_FLAG_DOWN2);
-}
-
-// Real BGScroll_YRelative: the same relative Y move as BGScroll_Y, but flagging redraws in bits 0/1 (top/bottom row)
-// instead of 4/5 -- SBZ act 1's own drawing (Draw_SBZ) only looks at bits 0/1.
-void BGScroll_YRelative(int32_t y_off) {
-	UpdateBGScroll(&bg_scrpos_y, y_off, &bg1_yblock, &bg1_scroll_flags, SCROLL_FLAG_UP, SCROLL_FLAG_DOWN);
-}
-
-void BGScroll_YAbsolute(uint16_t y_pos) {
-	int16_t old_y = bg_scrpos_y.f.u;
-	bg_scrpos_y.f.u = (int16_t)y_pos;
-	ApplyScrollUpdate(bg_scrpos_y.f.u, old_y, &bg1_yblock, &bg1_scroll_flags, SCROLL_FLAG_UP, SCROLL_FLAG_DOWN);
-}
-
-//Scroll draw functions
-void BGScroll_Block1(int32_t x, uint8_t bit)
-{
-	int32_t prev_x = bg_scrpos_x.v;
-	bg_scrpos_x.v += x;
-	uint8_t no_scroll = (bg_scrpos_x.f.u & 0x10) ^ bg1_xblock;
-	if (no_scroll)
-		return;
-	bg1_xblock ^= 0x10;
-	if (bg_scrpos_x.v < prev_x)
-		bg1_scroll_flags |= bit;
-	else
-		bg1_scroll_flags |= (bit << 1);
-}
-
-void BGScroll_Block2(int32_t x, uint8_t bit)
-{
-	int32_t prev_x = bg2_scrpos_x.v;
-	bg2_scrpos_x.v += x;
-	uint8_t no_scroll = (bg2_scrpos_x.f.u & 0x10) ^ bg2_xblock;
-	if (no_scroll)
-		return;
-	bg2_xblock ^= 0x10;
-	if (bg2_scrpos_x.v < prev_x)
-		bg2_scroll_flags |= bit;
-	else
-		bg2_scroll_flags |= (bit << 1);
-}
-
-void BGScroll_Block3(int32_t x, uint8_t bit)
-{
-	int32_t prev_x = bg3_scrpos_x.v;
-	bg3_scrpos_x.v += x;
-	uint8_t no_scroll = (bg3_scrpos_x.f.u & 0x10) ^ bg3_xblock;
-	if (no_scroll)
-		return;
-	bg3_xblock ^= 0x10;
-	if (bg3_scrpos_x.v < prev_x)
-		bg3_scroll_flags |= bit;
-	else
-		bg3_scroll_flags |= (bit << 1);
 }
 
 //Level deformation routines
@@ -268,49 +156,56 @@ void Deform_MZ(void) {
 }
 
 void Deform_SLZ(void) {
-	BGScroll_Y(scrshift_y << 7);
+	bg_scrpos_y.v += scrshift_y << 7;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 
-	int16_t *buf_ptr = (int16_t*)bgscroll_buffer;
+	// The lines: a position for each row of 16 (ScrollEngine_ApplyDeformation): 28 rows of a gradient, five of the first buildings, five of the second and thirty of the far ones; the rows past those are not set
+	int16_t pos[80] = { 0 };
 	int16_t base_x = -scrpos_x.f.u;
 	int32_t delta = (((int32_t)(base_x >> 3) - base_x) << 12) / 28;
-	FillGradient(28, base_x, delta << 4, buf_ptr); buf_ptr += 28;
-
+	FillGradient(28, base_x, delta << 4, pos);
 	int16_t bld1 = (base_x >> 3);
 	bld1 += (bld1 >> 1);
-	for (int i = 0; i < 5; i++) *buf_ptr++ = bld1;
-	for (int i = 0; i < 5; i++) *buf_ptr++ = base_x >> 2;
-	for (int i = 0; i < 30; i++) *buf_ptr++ = base_x >> 1;
+	for (int i = 0; i < 5; i++) pos[28 + i] = bld1;
+	for (int i = 0; i < 5; i++) pos[33 + i] = base_x >> 2;
+	for (int i = 0; i < 30; i++) pos[38 + i] = base_x >> 1;
+	for (int i = 0; i < 68; i++) pos[i] = (int16_t)-pos[i]; // (they are given as the scroll lines hold them)
 
-	BGScroll_X(bg_scrpos_y.f.u, ((bg_scrpos_y.f.u - 0xC0) & 0x3F0) >> 3);
+	uint16_t heights[80];
+	for (int i = 0; i < 80; i++)
+		heights[i] = 16;
+	ScrollEngine_ApplyDeformation(heights, 80, pos, (int16_t)((((bg_scrpos_y.f.u - 0xC0) & 0x3F0)) + (bg_scrpos_y.f.u & 0xF)), scrpos_x.f.u, true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
 void Deform_SYZ(void) {
-	BGScroll_Y((scrshift_y << 4) * 3);
+	bg_scrpos_y.v += (scrshift_y << 4) * 3;
 	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 
-	int16_t *buf_ptr = (int16_t*)bgscroll_buffer;
+	// The lines: eight rows of a gradient, five and six of the nearer layers and fourteen of a second gradient
+	int16_t pos[48] = { 0 };
 	int16_t base_x = -scrpos_x.f.u;
 	int32_t delta = (((int32_t)(base_x >> 3) - base_x) << 11) / 8;
-	FillGradient(8, base_x >> 1, delta << 5, buf_ptr); buf_ptr += 8;
-
-	for (int i = 0; i < 5; i++) *buf_ptr++ = base_x >> 3;
-	for (int i = 0; i < 6; i++) *buf_ptr++ = base_x >> 2;
-
+	FillGradient(8, base_x >> 1, delta << 5, pos);
+	for (int i = 0; i < 5; i++) pos[8 + i] = base_x >> 3;
+	for (int i = 0; i < 6; i++) pos[13 + i] = base_x >> 2;
 	delta = (((int32_t)base_x - (base_x >> 1)) << 12) / 14;
-	FillGradient(14, base_x >> 1, delta << 4, buf_ptr);
+	FillGradient(14, base_x >> 1, delta << 4, pos + 19);
+	for (int i = 0; i < 33; i++) pos[i] = (int16_t)-pos[i];
 
-	BGScroll_X(bg_scrpos_y.f.u, (bg_scrpos_y.f.u & 0x1F0) >> 3);
+	uint16_t heights[48];
+	for (int i = 0; i < 48; i++)
+		heights[i] = 16;
+	ScrollEngine_ApplyDeformation(heights, 48, pos, (int16_t)(bg_scrpos_y.f.u & 0x1FF), scrpos_x.f.u, true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
 void Deform_SBZ(void) {
-	if (LEVEL_ACT(level_id) != 0) { // Act 2/3
-		BGScroll_XY(scrshift_x << 6, scrshift_y << 5);
+	if (LEVEL_ACT(level_id) != 0) { // Act 2/3: one background, moved as a whole
+		bg_scrpos_x.v += scrshift_x << 6;
+		bg_scrpos_y.v += scrshift_y << 5;
 		vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
-		int16_t fg_x = -scrpos_x.f.u;
-		int16_t bg_x = -bg_scrpos_x.f.u;
-		int16_t *bufp = &hscroll_buffer[0][0];
-		for (int i = 0; i < SCREEN_HEIGHT; i++) { *bufp++ = fg_x; *bufp++ = bg_x; }
+		static const uint16_t whole[1] = { 0x100 };
+		const int16_t pos = bg_scrpos_x.f.u;
+		ScrollEngine_ApplyDeformation(whole, 1, &pos, 0, scrpos_x.f.u, true, SCREEN_HEIGHT, hscroll_buffer);
 		return;
 	}
 
@@ -645,9 +540,6 @@ void DeformLayers(void)
 	
 	//Clear previous flags
 	LevelPlane_ClearFlags(&fg_plane);
-	bg1_scroll_flags = 0;
-	bg2_scroll_flags = 0;
-	bg3_scroll_flags = 0;
 	
 	//Scroll camera
 	// While the level is edited the camera follows the editor's cursor and is free of the level's own locks (the end of level's, a boss arena's: the limits the level's size gives are the only ones)
@@ -691,13 +583,15 @@ typedef struct {
 	int count;
 	int fixed_entry_source; // which position (0-3 as in source) a fixed band's row comes into view drawn at (the port draws it at the one its block draw was called with)
 	int moving_margin; // blocks left of the view a row of a band that follows a position starts (a band that follows none starts at the camera's block)
+	bool chunk_init;   // the level's first draw is the whole view in chunks (DrawChunks) and the layer takes that as drawn
+	int row_width;     // blocks wide a row is when it comes into view (0: the plane's width)
 } BandLayer;
 
 // Green Hill's (also the ending's, which scrolls the same way), as the original keeps it: the clouds and the water are drawn once and only wrap; the upper mountains (lines $40-$6F)
 // follow the third position and the hills (lines $70-$9F) the second.
 static const uint16_t ghz_heights[4] = { 0x40, 0x30, 0x30, 0x10 };
 static const uint8_t ghz_source[4] = { 0, 3, 2, 0 };
-static const BandLayer ghz_layer = { ghz_heights, ghz_source, 4, 0, 0 };
+static const BandLayer ghz_layer = { ghz_heights, ghz_source, 4, 0, 0, false, 0 };
 
 // Marble's: BG_ScrollBlockMap_MZ gives each 16-pixel row of the background (counting from a row $20 down the layer, and itself a row late) the position it follows: 0 none, 2 the first,
 // 4 the second, 6 the third. Made into bands over the layer's 128 rows (2048 lines) once.
@@ -717,7 +611,7 @@ static void BuildMarbleLayer(void)
 			mz_heights[n++] = 16;
 		}
 	}
-	mz_layer = (BandLayer){ mz_heights, mz_source, n, 3, 1 };
+	mz_layer = (BandLayer){ mz_heights, mz_source, n, 3, 1, false, 0 };
 }
 
 // Scrap Brain act 1's: BG_ScrollBlockMap_SBZ, the same way over the 32 rows of its 512-pixel layer, repeated down the plane (a fixed band's row comes into view at the second position)
@@ -737,8 +631,15 @@ static void BuildScrapBrainLayer(void)
 			sbz_heights[n++] = 16;
 		}
 	}
-	sbz_layer = (BandLayer){ sbz_heights, sbz_source, n, 2, 1 };
+	sbz_layer = (BandLayer){ sbz_heights, sbz_source, n, 2, 1, false, 0 };
 }
+
+// The plain backgrounds, one band that follows the first position: Labyrinth's and Scrap Brain's later acts move it both ways (rows a screen and two blocks wide, from a block left of the view); Star Light's and
+// Spring Yard's move only down (rows a plane wide from the layer's first column, which is the view's: their X is 0)
+static const uint16_t plain_heights[1] = { 0x800 };
+static const uint8_t plain_source[1] = { 1 };
+static const BandLayer plain_layer = { plain_heights, plain_source, 1, 1, 1, true, -1 };
+static const BandLayer down_layer = { plain_heights, plain_source, 1, 1, 0, true, 0 };
 
 static const BandLayer *band_layer;
 static ScrollBands bg_bands;
@@ -768,7 +669,14 @@ void LevelScroll_BackgroundReset(void)
 				BuildScrapBrainLayer();
 			band_layer = &sbz_layer;
 		} else
-			band_layer = NULL;
+			band_layer = &plain_layer;
+		break;
+	case ZoneId_LZ:
+		band_layer = &plain_layer;
+		break;
+	case ZoneId_SLZ:
+	case ZoneId_SYZ:
+		band_layer = &down_layer;
 		break;
 	default:
 		band_layer = NULL;
@@ -782,6 +690,9 @@ void LevelScroll_BackgroundReset(void)
 			bg_bands.left_margin[b] = band_layer->source[b] ? (uint8_t)band_layer->moving_margin : 0;
 			bg_bands.fixed[b] = band_layer->source[b] == 0;
 		}
+		bg_bands.entering_width = band_layer->row_width;
+		if (band_layer->row_width < 0) // (a screen and two blocks wide, as the original's rows are)
+			bg_bands.entering_width = (RIGHT_EDGE_X + 32) / 16 > PLANE_WIDTH / 2 ? PLANE_WIDTH / 2 : (RIGHT_EDGE_X + 32) / 16;
 	}
 }
 
@@ -794,7 +705,11 @@ void LevelScroll_DrawBands(const dword_s *bg1_x, const dword_s *bg2_x, const dwo
 	bg_bands.y = bg_y->f.u;
 	bg_bands.fixed_entry_x = pos[band_layer->fixed_entry_source]->f.u;
 	if (bands_redraw) {
-		ScrollBands_DrawAll(&bg_bands, LEVEL_LAYOUT_PLANE_BG);
+		if (band_layer->chunk_init) {
+			DrawChunks(pos[1]->f.u, bg_y->f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
+			ScrollBands_Sync(&bg_bands);
+		} else
+			ScrollBands_DrawAll(&bg_bands, LEVEL_LAYOUT_PLANE_BG);
 		bands_redraw = false;
 	} else
 		ScrollBands_Draw(&bg_bands, LEVEL_LAYOUT_PLANE_BG);

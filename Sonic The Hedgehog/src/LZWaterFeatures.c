@@ -1,4 +1,5 @@
 #include "LZWaterFeatures.h"
+#include "ScrollEngine.h"
 #include "Viewport.h"
 
 #include "Backend/Joypad.h"
@@ -193,19 +194,16 @@ static void LZWaterRipple(void) {
     d2 += (uint8_t)bg_scrpos_y.f.u;
     d3 += (uint8_t)scrpos_y.f.u;
 
-    int16_t fg_x_base = -scrpos_x.f.u;
-    int16_t bg_x_base = -bg_scrpos_x.f.u;
-    int16_t *bufp = &hscroll_buffer[0][0];
-
-    for (int i = 0; i < SCREEN_HEIGHT; i++) {
-        if ((scrpos_y.f.u + i) >= (uint16_t)wtr_pos1) {
-            *bufp++ = fg_x_base + (int16_t)Lz_Scroll_Data[d3];
-            *bufp++ = bg_x_base + (int16_t)Drown_WobbleData[d2];
-        } else {
-            *bufp++ = fg_x_base; *bufp++ = bg_x_base;
-        }
-        d2++; d3++;
-    }
+    // The background's lines: a position for every line (ScrollEngine_ApplyDeformation), rippled below the water's surface; the foreground's ripple is added to its lines after
+    int16_t pos[SCREEN_MAX_HEIGHT];
+    uint16_t heights[1] = { (uint16_t)(SCREEN_HEIGHT | SCROLL_BAND_PER_LINE) };
+    uint8_t d2_line = d2;
+    for (int i = 0; i < SCREEN_HEIGHT; i++, d2_line++)
+        pos[i] = (int16_t)-((-bg_scrpos_x.f.u) + (((scrpos_y.f.u + i) >= (uint16_t)wtr_pos1) ? (int16_t)Drown_WobbleData[d2_line] : 0));
+    ScrollEngine_ApplyDeformation(heights, 1, pos, 0, scrpos_x.f.u, true, SCREEN_HEIGHT, hscroll_buffer);
+    for (int i = 0; i < SCREEN_HEIGHT; i++, d3++)
+        if ((scrpos_y.f.u + i) >= (uint16_t)wtr_pos1)
+            hscroll_buffer[i][0] = (int16_t)(hscroll_buffer[i][0] + (int16_t)Lz_Scroll_Data[d3]);
 }
 
 static void LZDynamicWater(void) {
@@ -320,7 +318,8 @@ void LZWaterFeatures(void) {
     // called via the conditionally gated DeformLayers() before -- moved
     // here in full since it needs to run reliably every frame, not just
     // when "debug_use || player->routine < 6" happens to be true).
-    BGScroll_XY(scrshift_x << 7, scrshift_y << 7);
+    bg_scrpos_x.v += scrshift_x << 7;
+    bg_scrpos_y.v += scrshift_y << 7;
     vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
 
     LZWaterRipple();

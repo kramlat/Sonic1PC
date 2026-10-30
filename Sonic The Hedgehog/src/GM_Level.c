@@ -125,17 +125,8 @@ void Level_ClearState(void) {
     dle_routine = 0;
     nobgscroll = false;
 
-    bg1_xblock = 0;
-    bg1_yblock = 0;
-    bg2_xblock = 0;
-    bg2_yblock = 0;
-    bg3_xblock = 0;
-    bg3_yblock = 0;
 
     LevelPlane_Init(&fg_plane, &screen1p.plane_a, &scrpos_x, &scrpos_y, 0);
-    bg1_scroll_flags = 0;
-    bg2_scroll_flags = 0;
-    bg3_scroll_flags = 0;
     bgscrollvert = false;
     sonspeed_max = 0;
     sonspeed_acc = 0;
@@ -204,9 +195,6 @@ void Level_ClearState(void) {
     bg3_scrpos_y_dup.v = 0;
 
     fg_plane.flags_snap = 0;
-    bg1_scroll_flags_dup = 0;
-    bg2_scroll_flags_dup = 0;
-    bg3_scroll_flags_dup = 0;
 
     // The lamppost counter is deliberately NOT cleared here: this runs again for
     // every restart (dying, time over), and a restart must keep it so that

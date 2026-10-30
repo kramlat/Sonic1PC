@@ -18,16 +18,12 @@
 //Level scroll state
 uint8_t nobgscroll, bgscrollvert;
 
-uint16_t bg1_scroll_flags, bg2_scroll_flags, bg3_scroll_flags;
-uint16_t bg1_scroll_flags_dup, bg2_scroll_flags_dup, bg3_scroll_flags_dup;
 
 dword_s bg2_scrpos_x, bg2_scrpos_y;
 dword_s scrpos_x_dup, scrpos_y_dup, bg_scrpos_x_dup, bg_scrpos_y_dup, bg2_scrpos_x_dup, bg2_scrpos_y_dup, bg3_scrpos_x_dup, bg3_scrpos_y_dup;
 
 int16_t scrshift_x, scrshift_y;
 
-uint8_t bg1_xblock, bg2_xblock, bg3_xblock;
-uint8_t bg1_yblock, bg2_yblock, bg3_yblock;
 
 // The foreground plane and what keeps it drawn as the camera moves (the engine's LevelPlane)
 LevelPlane fg_plane = { .plane = &screen1p.plane_a, .camera_x = &scrpos_x, .camera_y = &scrpos_y }; // (valid before a level starts too)

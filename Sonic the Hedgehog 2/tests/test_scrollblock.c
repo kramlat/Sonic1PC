@@ -47,7 +47,6 @@ static void ScrollBlock_EmeraldHillsLinesAreTheOriginals(void) {
 
 void LevelScroll_RegisterZones(void);
 void LoadTilesAsYouMove(void);
-extern uint8_t bg1_xblock, bg2_xblock, bg3_xblock, bg1_yblock, bg2_yblock, bg3_yblock;
 
 static uint64_t ZoneBackgroundHash(int zone, int act, int start_x) {
     uint64_t hash = 0xcbf29ce484222325ull;
@@ -67,9 +66,6 @@ static uint64_t ZoneBackgroundHash(int zone, int act, int start_x) {
     scrpos_y.v = (int32_t)y << 16;
     bg_scrpos_x.v = bg_scrpos_y.v = bg2_scrpos_x.v = bg2_scrpos_y.v = bg3_scrpos_x.v = bg3_scrpos_y.v = 0;
     BgScrollSpeed(x, y);
-    bg1_xblock = bg2_xblock = bg3_xblock = 0;
-    bg1_yblock = bg2_yblock = bg3_yblock = 0;
-    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
     scrshift_x = scrshift_y = 0;
     vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
     LoadTilesFromStart();
@@ -85,14 +81,12 @@ static uint64_t ZoneBackgroundHash(int zone, int act, int start_x) {
         scrshift_y = (int16_t)(sy << 8);
         scrpos_x.v += (int32_t)sx << 16;
         scrpos_y.v += (int32_t)sy << 16;
-        bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
         if (zone == ZoneId_HTZ)
             HTZQuake_Events(); // (Hill Top's quake starts and stops by where the camera is)
         ScrollEngine_Events(zone, act);
         bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
         bg2_scrpos_x_dup.v = bg2_scrpos_x.v; bg2_scrpos_y_dup.v = bg2_scrpos_y.v;
         bg3_scrpos_x_dup.v = bg3_scrpos_x.v; bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
-        bg1_scroll_flags_dup = bg1_scroll_flags; bg2_scroll_flags_dup = bg2_scroll_flags; bg3_scroll_flags_dup = bg3_scroll_flags;
         LoadTilesAsYouMove();
         int vsy = vid_bg_scrpos_y_dup;
         hash = (hash ^ (uint16_t)vsy) * 0x100000001b3ull;

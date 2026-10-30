@@ -13,7 +13,6 @@
 // The camera: how it follows Sonic (the dead zone, the 16 pixel cap, the limits), the end sign's lock, and the split screen's second camera, which follows Tails with limits of its own. The sign locks the
 // cameras of the views it is in sight of and no other (the first version set the one shared limit, which dragged the second view to the end of the level too).
 
-extern uint8_t bg1_xblock, bg1_yblock;
 extern void ScrollHoriz(void);
 extern void ScrollVertical(void);
 
@@ -244,20 +243,20 @@ static void Split_SignJustOutsideTheViewIsNotInSight(void) {
     Teardown();
 }
 
-// The second view's background has block trackers of its own: running its deformation must leave the first's alone
-static void Split_SecondViewsBackgroundLeavesTheFirstsTrackersAlone(void) {
+// The second view's background has positions of its own: running its deformation must leave the first's alone
+static void Split_SecondViewsBackgroundLeavesTheFirstsPositionsAlone(void) {
     Setup(true);
     level_id = LEVEL_ID(ZoneId_HPZ, 0); // (Hidden Palace's background moves by the block-tracked scroll)
-    bg1_xblock = 0x10;
-    bg1_yblock = 0x10;
+    bg_scrpos_x.v = 0x12340000;
+    bg_scrpos_y.v = 0x00560000;
     for (int i = 0; i < 60; i++) { // Tails runs ahead for 60 frames: the second camera, and so its background, moves some hundreds of pixels
         TAILS_OBJ->pos.l.x.f.u = scrpos_x_p2.f.u + SplitScreen_FollowX() + 16 + 40;
         TAILS_OBJ->pos.l.y.f.u = scrpos_y_p2.f.u + 96;
         SplitScreen_Scroll();
     }
     CHECK(scrpos_x_p2.f.u > 0x400 + 300);
-    CHECK_EQ(bg1_xblock, 0x10);
-    CHECK_EQ(bg1_yblock, 0x10);
+    CHECK_EQ(bg_scrpos_x.v, 0x12340000);
+    CHECK_EQ(bg_scrpos_y.v, 0x00560000);
     Teardown();
 }
 
@@ -281,5 +280,5 @@ void RegisterCameraTests(void) {
     RUN_TEST(Split_SignInSightOfNeitherViewLocksNeither);
     RUN_TEST(Split_SignInSightOfBothLocksBoth);
     RUN_TEST(Split_SignJustOutsideTheViewIsNotInSight);
-    RUN_TEST(Split_SecondViewsBackgroundLeavesTheFirstsTrackersAlone);
+    RUN_TEST(Split_SecondViewsBackgroundLeavesTheFirstsPositionsAlone);
 }

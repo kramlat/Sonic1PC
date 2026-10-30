@@ -422,7 +422,6 @@ void LoadTilesAsYouMove(void);
 void Deform_MZ(void);
 void Deform_SBZ(void);
 void LoadTilesFromStart(void);
-extern uint8_t bg1_xblock, bg2_xblock, bg3_xblock, bg1_yblock, bg2_yblock, bg3_yblock;
 // What Green Hill's background plane shows (the plane's tile under every 8th pixel of every line, through the scroll lines), frame by frame over a run of 900 frames
 // that speeds up, slows down and goes back. The hash is of what the flag-driven drawing of the original showed, recorded before the zone moved to the band layers.
 static void ScrollEngine_GreenHillsBackgroundShowsWhatTheOriginalDid(void) {
@@ -437,19 +436,16 @@ static void ScrollEngine_GreenHillsBackgroundShowsWhatTheOriginalDid(void) {
     scrpos_y.v = 0x2A0 << 16;
     bg_scrpos_x.v = bg_scrpos_y.v = bg2_scrpos_x.v = bg2_scrpos_y.v = bg3_scrpos_x.v = bg3_scrpos_y.v = 0;
     bg_scrpos_x_dup = bg_scrpos_y_dup = bg2_scrpos_x_dup = bg2_scrpos_y_dup = bg3_scrpos_x_dup = bg3_scrpos_y_dup = bg_scrpos_x;
-    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
     DrawChunks(0, 0, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     for (int frame = 0; frame < 900; frame++) {
         int sp = frame < 600 ? (frame / 40) % 17 : -((frame / 30) % 9);
         scrshift_x = (int16_t)(sp << 8);
         scrpos_x.v += (int32_t)sp << 16;
         scrpos_y.f.u = (int16_t)(0x2A0 + frame / 3);
-        bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
         Deform_GHZ();
         bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
         bg2_scrpos_x_dup.v = bg2_scrpos_x.v; bg2_scrpos_y_dup.v = bg2_scrpos_y.v;
         bg3_scrpos_x_dup.v = bg3_scrpos_x.v; bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
-        bg1_scroll_flags_dup = bg1_scroll_flags; bg2_scroll_flags_dup = bg2_scroll_flags; bg3_scroll_flags_dup = bg3_scroll_flags;
         LoadTilesAsYouMove();
         int vsy = vid_bg_scrpos_y_dup;
         for (int l = 0; l < SCREEN_HEIGHT; l++) {
@@ -479,9 +475,6 @@ static void ScrollEngine_MarblesBackgroundShowsWhatTheOriginalDid(void) {
     scrpos_x.v = 0x60 << 16;
     scrpos_y.v = 0x1D0 << 16;
     bg_scrpos_x.v = bg_scrpos_y.v = bg2_scrpos_x.v = bg2_scrpos_y.v = bg3_scrpos_x.v = bg3_scrpos_y.v = 0;
-    bg1_xblock = bg2_xblock = bg3_xblock = 0;
-    bg1_yblock = bg2_yblock = bg3_yblock = 0;
-    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
     scrshift_x = scrshift_y = 0;
     Deform_MZ();
     bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
@@ -500,12 +493,10 @@ static void ScrollEngine_MarblesBackgroundShowsWhatTheOriginalDid(void) {
         scrshift_y = (int16_t)(sy << 8);
         scrpos_x.v += (int32_t)sx << 16;
         scrpos_y.v += (int32_t)sy << 16;
-        bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
         Deform_MZ();
         bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
         bg2_scrpos_x_dup.v = bg2_scrpos_x.v; bg2_scrpos_y_dup.v = bg2_scrpos_y.v;
         bg3_scrpos_x_dup.v = bg3_scrpos_x.v; bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
-        bg1_scroll_flags_dup = bg1_scroll_flags; bg2_scroll_flags_dup = bg2_scroll_flags; bg3_scroll_flags_dup = bg3_scroll_flags;
         LoadTilesAsYouMove();
         int vsy = vid_bg_scrpos_y_dup;
         for (int l = 0; l < SCREEN_HEIGHT; l++) {
@@ -535,9 +526,6 @@ static void ScrollEngine_ScrapBrainsBackgroundShowsWhatTheOriginalDid(void) {
     scrpos_x.v = 0x60 << 16;
     scrpos_y.v = 0x300 << 16;
     bg_scrpos_x.v = bg_scrpos_y.v = bg2_scrpos_x.v = bg2_scrpos_y.v = bg3_scrpos_x.v = bg3_scrpos_y.v = 0;
-    bg1_xblock = bg2_xblock = bg3_xblock = 0;
-    bg1_yblock = bg2_yblock = bg3_yblock = 0;
-    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
     scrshift_x = scrshift_y = 0;
     Deform_SBZ();
     bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
@@ -556,12 +544,10 @@ static void ScrollEngine_ScrapBrainsBackgroundShowsWhatTheOriginalDid(void) {
         scrshift_y = (int16_t)(sy << 8);
         scrpos_x.v += (int32_t)sx << 16;
         scrpos_y.v += (int32_t)sy << 16;
-        bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
         Deform_SBZ();
         bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
         bg2_scrpos_x_dup.v = bg2_scrpos_x.v; bg2_scrpos_y_dup.v = bg2_scrpos_y.v;
         bg3_scrpos_x_dup.v = bg3_scrpos_x.v; bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
-        bg1_scroll_flags_dup = bg1_scroll_flags; bg2_scroll_flags_dup = bg2_scroll_flags; bg3_scroll_flags_dup = bg3_scroll_flags;
         LoadTilesAsYouMove();
         int vsy = vid_bg_scrpos_y_dup;
         for (int l = 0; l < SCREEN_HEIGHT; l++) {
@@ -599,9 +585,6 @@ static uint64_t SonicZoneHash(int zone, int act, int start_x, int start_y) {
     scrpos_y.v = (int32_t)y << 16;
     bg_scrpos_x.v = bg_scrpos_y.v = bg2_scrpos_x.v = bg2_scrpos_y.v = bg3_scrpos_x.v = bg3_scrpos_y.v = 0;
     BgScrollSpeed(x, y);
-    bg1_xblock = bg2_xblock = bg3_xblock = 0;
-    bg1_yblock = bg2_yblock = bg3_yblock = 0;
-    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
     scrshift_x = scrshift_y = 0;
     memset(player, 0, sizeof(Object));
     player->routine = 2;
@@ -619,14 +602,12 @@ static uint64_t SonicZoneHash(int zone, int act, int start_x, int start_y) {
         scrshift_y = (int16_t)(sy << 8);
         scrpos_x.v += (int32_t)sx << 16;
         scrpos_y.v += (int32_t)sy << 16;
-        bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
         ScrollEngine_Events(zone, act);
         if (zone == ZoneId_LZ)
             LZWaterFeatures(); // (Labyrinth's background and its ripple are done there)
         bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
         bg2_scrpos_x_dup.v = bg2_scrpos_x.v; bg2_scrpos_y_dup.v = bg2_scrpos_y.v;
         bg3_scrpos_x_dup.v = bg3_scrpos_x.v; bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
-        bg1_scroll_flags_dup = bg1_scroll_flags; bg2_scroll_flags_dup = bg2_scroll_flags; bg3_scroll_flags_dup = bg3_scroll_flags;
         LoadTilesAsYouMove();
         int vsy = vid_bg_scrpos_y_dup;
         hash = (hash ^ (uint16_t)vsy) * 0x100000001b3ull;

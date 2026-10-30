@@ -362,9 +362,6 @@ void VBlank(void) {
         bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
 
         LevelPlane_Snapshot(&fg_plane);
-        bg1_scroll_flags_dup = bg1_scroll_flags;
-        bg2_scroll_flags_dup = bg2_scroll_flags;
-        bg3_scroll_flags_dup = bg3_scroll_flags;
 
         // If the LZ water surface's HBlank trigger line is near the top of the
         // screen, there isn't enough time before HBlank fires to safely do these
@@ -459,9 +456,6 @@ void VBlank(void) {
         bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
 
         LevelPlane_Snapshot(&fg_plane);
-        bg1_scroll_flags_dup = bg1_scroll_flags;
-        bg2_scroll_flags_dup = bg2_scroll_flags;
-        bg3_scroll_flags_dup = bg3_scroll_flags;
 
         // Scroll camera
         LoadTilesAsYouMove();
