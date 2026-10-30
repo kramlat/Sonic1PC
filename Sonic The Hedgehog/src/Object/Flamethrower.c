@@ -1,4 +1,7 @@
 #include "Flamethrower.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -9,67 +12,58 @@
 
 // Object 6D - flame thrower (SBZ)
 
-static bool Flame_OutOfRange(int16_t x) {
-    uint16_t obj_pos = (uint16_t)x & 0xFF80;
-    uint16_t cam_pos = (uint16_t)(scrpos_x.f.u - 128) & 0xFF80;
-    return (uint16_t)(obj_pos - cam_pos) > (128 + 320 + 192);
+static void Flame_Animate(Sst *self, Own_Flamethrower *own) {
+    Sst_Animate(self, Animation_Flamethrower); // stays on last 1/2 frames per animation indefinitely
+
+    self->collision_flags = 0; // col_none -- harmless by default
+    if (self->mapping_frame == own->hurtframe)
+        self->collision_flags = 0x23 | 0x80; // col_24x48 | col_hurt
+
+    SstOnScreenTest(self);
 }
 
-static void Flame_Animate(Object *obj, Scratch_Flamethrower *scratch) {
-    AnimateSprite(obj, Animation_Flamethrower); // stays on last 1/2 frames per animation indefinitely
-
-    obj->col_type = 0; // col_none -- harmless by default
-    if (obj->frame == scratch->hurtframe)
-        obj->col_type = 0x23 | 0x80; // col_24x48 | col_hurt
-
-    if (Flame_OutOfRange(obj->pos.l.x.f.u))
-        ObjectDelete(obj);
-    else
-        DisplaySprite(obj);
-}
-
-static void Flame_Action(Object *obj, Scratch_Flamethrower *scratch) {
-    if (--scratch->timer >= 0) {
-        Flame_Animate(obj, scratch);
+static void Flame_Action(Sst *self, Own_Flamethrower *own) {
+    if (--own->timer >= 0) {
+        Flame_Animate(self, own);
         return;
     }
 
-    scratch->timer = scratch->pausetime; // begin pause time
-    uint8_t before = obj->anim & 1;
-    obj->anim ^= 1; // toggle between expanding/retracting animations
+    own->timer = own->pausetime; // begin pause time
+    uint8_t before = self->anim & 1;
+    self->anim ^= 1; // toggle between expanding/retracting animations
     if (before == 0) {
-        Flame_Animate(obj, scratch); // now retracting -- pause
+        Flame_Animate(self, own); // now retracting -- pause
         return;
     }
 
-    scratch->timer = scratch->firetime; // now expanding again -- begin flaming time
+    own->timer = own->firetime; // now expanding again -- begin flaming time
     QueueSound2(sfx_Flamethrower);
-    Flame_Animate(obj, scratch);
+    Flame_Animate(self, own);
 }
 
-void Obj_Flamethrower(Object *obj) {
-    Scratch_Flamethrower *scratch = (Scratch_Flamethrower *)&obj->scratch;
+void Obj_Flamethrower(Sst *self) {
+    Own_Flamethrower *own = (Own_Flamethrower *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine = 2; // advance to Flame_Action
-        obj->mappings = Mappings_Flamethrower;
-        obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_SBZ_Flamethrower); // | Tile_Prio
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 1;
-        obj->width_pixels = 24 / 2;
+    if (self->routine == 0) {
+        self->routine = 2; // advance to Flame_Action
+        self->mappings = Mappings_Flamethrower;
+        self->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_SBZ_Flamethrower); // | Tile_Prio
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 1 * 0x80;
+        self->width_pixels = 24 / 2;
 
-        uint16_t d0 = (uint16_t)((obj->scratch.u8[0] & 0xF0) * 2);
-        scratch->timer = (int16_t)d0;
-        scratch->firetime = (int16_t)d0;
+        uint16_t d0 = (uint16_t)((self->subtype & 0xF0) * 2);
+        own->timer = (int16_t)d0;
+        own->firetime = (int16_t)d0;
 
-        scratch->pausetime = (int16_t)((obj->scratch.u8[0] & 0x0F) << 5);
+        own->pausetime = (int16_t)((self->subtype & 0x0F) << 5);
 
-        scratch->hurtframe = 0xA; // broken-pipe flamethrower
-        if (obj->status.o.f.y_flip) {
-            obj->anim = 2; // "valve" animations
-            scratch->hurtframe = 0x15; // valve flamethrower
+        own->hurtframe = 0xA; // broken-pipe flamethrower
+        if (((self->status & SST_STATUS_Y_FLIP) != 0)) {
+            self->anim = 2; // "valve" animations
+            own->hurtframe = 0x15; // valve flamethrower
         }
     }
 
-    Flame_Action(obj, scratch);
+    Flame_Action(self, own);
 }

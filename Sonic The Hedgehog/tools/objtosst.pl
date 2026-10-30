@@ -1,0 +1,108 @@
+#!/usr/bin/perl
+# Rewrites an object source file from the old `Object` to the `Sst` of Sonic 3 & Knuckles (engine/Sst.h), the mechanical part: the names of the fields, the calls of the handler, the scratch overlays.
+# What it cannot know is left alone and is found by the compiler: the render and status bits written as bit fields, other objects reached through pointers, the screen-position test, anything that is
+# not this object. It never changes the meaning of a line it does not recognise.
+#
+# Usage: objtosst.pl FILE.c [FILE.h]      (in place; the header's Scratch_X structs become Own_X without their leading pad)
+use strict;
+use warnings;
+
+sub slurp { open my $h, '<', $_[0] or die "$_[0]: $!"; local $/; my $d = <$h>; close $h; $d }
+sub spit  { open my $h, '>', $_[0] or die "$_[0]: $!"; print $h $_[1]; close $h }
+
+for my $path (@ARGV) {
+    my $s = slurp($path);
+    if ($path =~ /\.h$/) {
+        $s =~ s/\bScratch_(\w+)\b/Own_$1/g;
+        $s =~ s/^\s*u?int\d+_t\s+pad\d*(\[\w+\])?;[^\n]*\n//mg;           # the pad down to 0x2F
+        $s =~ s/^\s*uint8_t\s+subtype;[^\n]*\n//mg;
+        $s =~ s/\(Object\s*\*\s*(\w+)/(Sst *self/g;
+        $s =~ s/#include "Object.h"/#include "Sst.h"/;
+        spit($path, $s);
+        next;
+    }
+    # scratch overlays
+    $s =~ s/Scratch_((?!Sonic\b|Tails\b)\w+)\s*\*\s*(\w+)\s*=\s*\(Scratch_\w+\s*\*\)\s*&\s*(\w+)->scratch;/Own_$1 *$2 = (Own_$1 *)self->own.u8;/g;
+    $s =~ s/\bScratch_((?!Sonic\b|Tails\b)\w+)\b/Own_$1/g;
+    my $own_var = ($s =~ /Own_\w+\s*\*\s*scratch\b/) ? 1 : 0;
+    # signatures
+    $s =~ s/\bObject\s*\*\s*obj\b/Sst *self/g;
+    # positions
+    $s =~ s/\b(\w+)->pos\.l\.x\.(f\.u|f\.l|v)\b/$1->x_pos.$2/g;
+    $s =~ s/\b(\w+)->pos\.l\.y\.(f\.u|f\.l|v)\b/$1->y_pos.$2/g;
+    $s =~ s/\b(\w+)->pos\.s\.x\b/$1->x_pos.f.u/g;
+    $s =~ s/\b(\w+)->pos\.s\.y\b/$1->y_pos.f.u/g;
+    # motion, radii, tile, frames
+    $s =~ s/->xsp\b/->x_vel/g;
+    $s =~ s/->ysp\b/->y_vel/g;
+    $s =~ s/->inertia\b/->ground_vel/g;
+    $s =~ s/->x_rad\b/->x_radius/g;
+    $s =~ s/->y_rad\b/->y_radius/g;
+    $s =~ s/->tile\b/->art_tile/g;
+    $s =~ s/->frame_time\.b\b/->anim_frame_timer/g;
+    $s =~ s/->frame\b/->mapping_frame/g;
+    $s =~ s/->col_type\b/->collision_flags/g;
+    $s =~ s/->col_property\b/->collision_property/g;
+    $s =~ s/->routine_sec\b/->routine_secondary/g;
+    # the subtype is the first scratch byte of the old object
+    $s =~ s/\b(\w+)->scratch\.u8\[0\]/$1->subtype/g;
+    $s =~ s/\bscratch->subtype\b/self->subtype/g;
+    $s =~ s/\b(\w+)->scratch\.(u8|s8|u16|s16|u32|s32)\b/$1->own.$2/g;
+    # render flags the way the objects write them
+    $s =~ s/(\w+)->render\.b\s*\|=\s*SPRITE_CAM_FIELD;/$1->render_flags |= SST_RENDER_LEVEL;/g;
+    $s =~ s/(\w+)->render\.b\s*=\s*SPRITE_CAM_FIELD;/$1->render_flags = SST_RENDER_LEVEL;/g;
+    $s =~ s/(\w+)->render\.b\s*=\s*0;\s*\n\s*\1->render\.f\.level_fg\s*=\s*true;/$1->render_flags = SST_RENDER_LEVEL;/g;
+    $s =~ s/(\w+)->render\.b\b/$1->render_flags/g;
+    $s =~ s/(\w+)->render\.f\.on_screen\b/($1->render_flags & SST_RENDER_ON_SCREEN)/g;
+    $s =~ s/(\w+)->render\.f\.level_fg\s*=\s*true;/$1->render_flags |= SST_RENDER_LEVEL;/g;
+    # status flips
+    $s =~ s/(\w+)->status\.o\.f\.x_flip\s*\^=\s*1;/$1->status ^= SST_STATUS_X_FLIP;/g;
+    $s =~ s/(\w+)->status\.o\.f\.x_flip\s*=\s*true;/$1->status |= SST_STATUS_X_FLIP;/g;
+    $s =~ s/(\w+)->status\.o\.f\.y_flip\s*=\s*true;/$1->status |= SST_STATUS_Y_FLIP;/g;
+    $s =~ s/(\w+)->status\.o\.f\.x_flip\b/(($1->status & SST_STATUS_X_FLIP) != 0)/g;
+    $s =~ s/(\w+)->status\.o\.f\.y_flip\b/(($1->status & SST_STATUS_Y_FLIP) != 0)/g;
+    $s =~ s/(\w+)->status\.o\.f\.player_stand\s*=\s*false;/$1->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;/g;
+    $s =~ s/(\w+)->status\.o\.f\.player_stand\s*=\s*true;/$1->status |= SST_STATUS_PLAYER_STAND;/g;
+    $s =~ s/(\w+)->status\.o\.f\.player_push\s*=\s*false;/$1->status &= (uint8_t)~SST_STATUS_PLAYER_PUSH;/g;
+    $s =~ s/(\w+)->status\.o\.f\.player_stand\b/(($1->status & SST_STATUS_PLAYER_STAND) != 0)/g;
+    $s =~ s/(\w+)->status\.o\.f\.player_push\b/(($1->status & SST_STATUS_PLAYER_PUSH) != 0)/g;
+    $s =~ s/(\w+)->status\.o\.f\.flag7\s*=\s*true;/$1->status |= 0x80;/g;
+    $s =~ s/(\w+)->status\.o\.f\.flag7\b/(($1->status & 0x80) != 0)/g;
+    # priority: 0-7 in the old, units of $80 in the new
+    $s =~ s/(\w+)->priority\s*=\s*(\d+);/"$1->priority = $2 * 0x80;"/ge;
+    # the handler's calls
+    $s =~ s/\bAnimateSprite\(\s*(\w+)\s*,/Sst_Animate($1,/g;
+    $s =~ s/\bDisplaySprite\(\s*(\w+)\s*\)/Sst_Draw($1)/g;
+    $s =~ s/\bObjectDelete\(\s*(\w+)\s*\)/Sst_Delete($1)/g;
+    $s =~ s/\bRememberState\(\s*(\w+)\s*\)/SstOnScreenTest($1)/g;
+    $s =~ s/\bSpeedToPos\(\s*(\w+)\s*\)/Sst_MoveSprite2($1)/g;
+    $s =~ s/\bObjectFall\(\s*(\w+)\s*\)/Sst_MoveSprite($1)/g;
+    $s =~ s/\bObjFloorDist\(/SstFloorDist(/g;
+    $s =~ s/\bObjHitWallRight\(/SstHitWallRight(/g;
+    $s =~ s/\bObjHitWallLeft\(/SstHitWallLeft(/g;
+    $s =~ s/\bObjHitCeiling\(/SstHitCeiling(/g;
+    $s =~ s/\bChkObjectVisible\(/SstChkObjectVisible(/g;
+    $s =~ s/\bChkPartiallyVisible\(/SstChkPartiallyVisible(/g;
+    $s =~ s/\bSolidObject_Heightmap\(/SstSolidObject_Heightmap(/g;
+    $s =~ s/\bSolidObject\(/SstSolidObject(/g;
+    $s =~ s/\bSolid_ChkEnter\(/SstSolid_ChkEnter(/g;
+    $s =~ s/\bPlatformObject_CustomHeight\(/SstPlatformObject_CustomHeight(/g;
+    $s =~ s/\bPlatformObject\(/SstPlatformObject(/g;
+    $s =~ s/\bPlatform3\(/SstPlatform3(/g;
+    $s =~ s/\bSlopeObject_AssumeStoodOn\(/SstSlopeObject_AssumeStoodOn(/g;
+    $s =~ s/\bSlopeObject\(/SstSlopeObject(/g;
+    $s =~ s/\bExitPlatform\(/SstExitPlatform(/g;
+    $s =~ s/\bMvSonicOnPtfm\(/SstMvSonicOnPtfm(/g;
+    if ($own_var && $s !~ /Scratch_(Sonic|Tails)\s*\*\s*scratch\b/) {
+        $s =~ s/\b(Own_\w+)\s*\*\s*scratch\b/$1 *own/g;
+        $s =~ s/\bscratch->/own->/g;
+        $s =~ s/([(,]\s*)scratch(\s*[,)])/$1own$2/g;
+    }
+    # the object's own name for itself in the bodies
+    $s =~ s/\bobj\b/self/g;
+    # includes
+    $s =~ s/#include "Object.h"\n//;
+    $s =~ s/(#include "[^"]+\.h"\n)/$1/;
+    unless ($s =~ /#include "SstLoad.h"/) { $s =~ s/(#include "[^"]+"\n)/$1#include "Object.h"\n#include "ObjectSst.h"\n#include "SstLoad.h"\n/; }
+    spit($path, $s);
+}

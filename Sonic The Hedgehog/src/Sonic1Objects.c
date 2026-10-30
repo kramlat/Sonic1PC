@@ -4,6 +4,13 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/Crabmeat.h"
+#include "Object/CirclingPlatform.h"
+#include "Object/Cannonball.h"
+#include "Object/BallHog.h"
+#include "Object/Gargoyle.h"
+#include "Object/Flamethrower.h"
+#include "Object/Electrocuter.h"
 #include "Object/Yadrin.h"
 #include "Object/Jaws.h"
 #include "Object/Chopper.h"
@@ -28,7 +35,6 @@ void Obj_TitleSonic(Object *obj);
 void Obj_PSB(Object *obj);
 void Obj_GHZTunnel(Object *obj);
 void Obj_GHZBridge(Object *obj);
-void Obj_Crabmeat(Object *obj);
 void Obj_HUD(Object *obj);
 void Obj_BuzzBomber(Object *obj);
 void Obj_BuzzMissile(Object *obj);
@@ -91,21 +97,17 @@ void Obj_LavaWall(Object *obj);
 void Obj_FlapDoor(Object *obj);
 void Obj_Harpoon(Object *obj);
 void Obj_Pole(Object *obj);
-void Obj_Gargoyle(Object *obj);
 void Obj_LabyrinthBlock(Object *obj);
 void Obj_LabyrinthConvey(Object *obj);
 void Obj_Burrobot(Object *obj);
 void Obj_Orbinaut(Object *obj);
 void Obj_Bomb(Object *obj);
 void Obj_Elevator(Object *obj);
-void Obj_CirclingPlatform(Object *obj);
 void Obj_Staircase(Object *obj);
 void Obj_Fan(Object *obj);
 void Obj_Seesaw(Object *obj);
-void Obj_Electrocuter(Object *obj);
 void Obj_SmallDoor(Object *obj);
 void Obj_SBZConveyor(Object *obj);
-void Obj_Flamethrower(Object *obj);
 void Obj_GirderBlock(Object *obj);
 void Obj_ScrapStomp(Object *obj);
 void Obj_SpinPlatform(Object *obj);
@@ -133,8 +135,6 @@ void Obj_BossBlock(Object *obj);
 void Obj_PrisonCapsule(Object *obj);
 void Obj_VanishSonic(Object *obj);
 void Obj_MagicSwitch(Object *obj);
-void Obj_BallHog(Object *obj);
-void Obj_Cannonball(Object *obj);
 
 // Sonic 1's objects by object id. The engine (EngineObject.h) runs whichever one an object slot's type names; an id that is not listed, or a NULL entry,
 // runs as the null object.
@@ -169,9 +169,9 @@ const ObjectFunc game_objects[] = {
 	/* 1B ObjId_WaterSurface        */ Obj_WaterSurface,
 	/* 1C ObjId_Scenery             */ Obj_Scenery,
 	/* 1D ObjId_MagicSwitch         */ Obj_MagicSwitch,
-	/* 1E ObjId_BallHog             */ Obj_BallHog,
-	/* 1F ObjId_Crabmeat            */ Obj_Crabmeat,
-	/* 20 ObjId_Cannonball          */ Obj_Cannonball,
+	/* 1E ObjId_BallHog             */ NULL, // (moved to the status table: sst_object_codes)
+	/* 1F ObjId_Crabmeat            */ NULL, // (moved to the status table: sst_object_codes)
+	/* 20 ObjId_Cannonball          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 21 ObjId_HUD                 */ Obj_HUD,
 	/* 22 ObjId_BuzzBomber          */ Obj_BuzzBomber,
 	/* 23 ObjId_BuzzMissile         */ Obj_BuzzMissile,
@@ -229,7 +229,7 @@ const ObjectFunc game_objects[] = {
 	/* 57 ObjId_SpikeBall           */ Obj_SpikeBall,
 	/* 58 ObjId_BigSpikeBall        */ Obj_BigSpikeBall,
 	/* 59 ObjId_Elevator            */ Obj_Elevator,
-	/* 5A ObjId_CirclingPlatform    */ Obj_CirclingPlatform,
+	/* 5A ObjId_CirclingPlatform    */ NULL, // (moved to the status table: sst_object_codes)
 	/* 5B ObjId_Staircase           */ Obj_Staircase,
 	/* 5C ObjId_Pylon               */ NULL, // (moved to the status table: sst_object_codes)
 	/* 5D ObjId_Fan                 */ Obj_Fan,
@@ -237,7 +237,7 @@ const ObjectFunc game_objects[] = {
 	/* 5F ObjId_Bomb                */ Obj_Bomb,
 	/* 60 ObjId_Orbinaut            */ Obj_Orbinaut,
 	/* 61 ObjId_LabyrinthBlock      */ Obj_LabyrinthBlock,
-	/* 62 ObjId_Gargoyle            */ Obj_Gargoyle,
+	/* 62 ObjId_Gargoyle            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 63 ObjId_LabyrinthConvey     */ Obj_LabyrinthConvey,
 	/* 64 ObjId_Bubble              */ Obj_Bubble,
 	/* 65 ObjId_LZWaterfall         */ NULL, // (moved to the status table: sst_object_codes)
@@ -248,8 +248,8 @@ const ObjectFunc game_objects[] = {
 	/* 6A ObjId_Saw                 */ Obj_Saw,
 	/* 6B ObjId_ScrapStomp          */ Obj_ScrapStomp,
 	/* 6C ObjId_VanishPlatform      */ Obj_VanishPlatform,
-	/* 6D ObjId_Flamethrower        */ Obj_Flamethrower,
-	/* 6E ObjId_Electrocuter        */ Obj_Electrocuter,
+	/* 6D ObjId_Flamethrower        */ NULL, // (moved to the status table: sst_object_codes)
+	/* 6E ObjId_Electrocuter        */ NULL, // (moved to the status table: sst_object_codes)
 	/* 6F ObjId_SpinConvey          */ Obj_SpinConveyor,
 	/* 70 ObjId_GirderBlock         */ Obj_GirderBlock,
 	/* 71 ObjId_InvisibleBarrier    */ Obj_InvisibleBarrier,
@@ -287,9 +287,16 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_Crabmeat] = Obj_Crabmeat,
+	[ObjId_CirclingPlatform] = Obj_CirclingPlatform,
+	[ObjId_Cannonball] = Obj_Cannonball,
+	[ObjId_BallHog] = Obj_BallHog,
 	[ObjId_Waterfall] = Obj_Waterfall,
 	[ObjId_Pylon] = Obj_Pylon,
 	[ObjId_Points] = Obj_Points,
+	[ObjId_Gargoyle] = Obj_Gargoyle,
+	[ObjId_Flamethrower] = Obj_Flamethrower,
+	[ObjId_Electrocuter] = Obj_Electrocuter,
 	[ObjId_Yadrin] = Obj_Yadrin,
 	[ObjId_Jaws] = Obj_Jaws,
 	[ObjId_Chopper] = Obj_Chopper,

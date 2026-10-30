@@ -1,4 +1,7 @@
 #include "CirclingPlatform.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -27,11 +30,11 @@ static int16_t Circ_Radius(int idx) {
     return (int16_t)(int8_t)((uint8_t)(oscillatory.state[idx][0] >> 8) - 0x50);
 }
 
-static void Circ_Types(Object *obj, Scratch_CirclingPlatform *scratch) {
+static void Circ_Types(Sst *self, Own_CirclingPlatform *own) {
     int16_t d1 = Circ_Radius(8);
     int16_t d2 = Circ_Radius(9);
 
-    uint8_t subtype = obj->scratch.u8[0];
+    uint8_t subtype = self->subtype;
     if (subtype & 1) { // shift 180 degrees ahead
         d1 = (int16_t)-d1;
         d2 = (int16_t)-d2;
@@ -45,46 +48,46 @@ static void Circ_Types(Object *obj, Scratch_CirclingPlatform *scratch) {
     if (subtype & 4) // circle clockwise
         d1 = (int16_t)-d1;
 
-    obj->pos.l.x.f.u = (int16_t)(scratch->orig_x + d1);
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y + d2);
+    self->x_pos.f.u = (int16_t)(own->orig_x + d1);
+    self->y_pos.f.u = (int16_t)(own->orig_y + d2);
 }
 
-static void Circ_Main(Object *obj, Scratch_CirclingPlatform *scratch) {
-    obj->routine = 2; // advance to Circ_ChkTouch
-    obj->mappings = Mappings_CirclingPlatform;
-    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
-    obj->render.b = SPRITE_CAM_FIELD;
-    obj->priority = 4;
-    obj->width_pixels = 48 / 2;
-    scratch->orig_x = obj->pos.l.x.f.u;
-    scratch->orig_y = obj->pos.l.y.f.u;
+static void Circ_Main(Sst *self, Own_CirclingPlatform *own) {
+    self->routine = 2; // advance to Circ_ChkTouch
+    self->mappings = Mappings_CirclingPlatform;
+    self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // ArtTile_Level | Tile_Pal3
+    self->render_flags = SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
+    self->width_pixels = 48 / 2;
+    own->orig_x = self->x_pos.f.u;
+    own->orig_y = self->y_pos.f.u;
 }
 
-static void Circ_ChkTouch(Object *obj, Scratch_CirclingPlatform *scratch) {
-    PlatformObject(obj, obj->width_pixels); // may set obj->routine = 4
-    Circ_Types(obj, scratch);
+static void Circ_ChkTouch(Sst *self, Own_CirclingPlatform *own) {
+    SstPlatformObject(self, self->width_pixels); // may set self->routine = 4
+    Circ_Types(self, own);
 }
 
-static void Circ_OnPlatform(Object *obj, Scratch_CirclingPlatform *scratch) {
-    ExitPlatform(obj, obj->width_pixels, obj->width_pixels, NULL); // may set obj->routine = 2
+static void Circ_OnPlatform(Sst *self, Own_CirclingPlatform *own) {
+    SstExitPlatform(self, self->width_pixels, self->width_pixels, NULL); // may set self->routine = 2
 
-    int16_t prev_x = obj->pos.l.x.f.u;
-    Circ_Types(obj, scratch);
+    int16_t prev_x = self->x_pos.f.u;
+    Circ_Types(self, own);
 
-    MvSonicOnPtfm(obj, obj->pos.l.y.f.u - 9, prev_x);
+    SstMvSonicOnPtfm(self, self->y_pos.f.u - 9, prev_x);
 }
 
-void Obj_CirclingPlatform(Object *obj) {
-    Scratch_CirclingPlatform *scratch = (Scratch_CirclingPlatform *)&obj->scratch;
+void Obj_CirclingPlatform(Sst *self) {
+    Own_CirclingPlatform *own = (Own_CirclingPlatform *)self->own.u8;
 
-    switch (obj->routine) {
-    case 0: Circ_Main(obj, scratch); break;
-    case 2: Circ_ChkTouch(obj, scratch); break;
-    case 4: Circ_OnPlatform(obj, scratch); break;
+    switch (self->routine) {
+    case 0: Circ_Main(self, own); break;
+    case 2: Circ_ChkTouch(self, own); break;
+    case 4: Circ_OnPlatform(self, own); break;
     }
 
-    if (Circ_OutOfRange(scratch->orig_x))
-        ObjectDelete(obj);
+    if (Circ_OutOfRange(own->orig_x))
+        Sst_Delete(self);
     else
-        DisplaySprite(obj);
+        Sst_Draw(self);
 }

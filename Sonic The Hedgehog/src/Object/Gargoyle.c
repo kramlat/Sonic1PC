@@ -1,4 +1,7 @@
 #include "Gargoyle.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "Level.h"
 #include "LevelCollision.h"
@@ -13,102 +16,99 @@
 
 static const uint8_t Gar_SpitRate[8] = { 30, 60, 90, 120, 150, 180, 210, 240 };
 
-static void Gar_Main(Object *obj, Scratch_Gargoyle *scratch) {
-    obj->routine += 2;
-    obj->mappings = Mappings_Gargoyle;
-    obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Gargoyle); // | Tile_Pal3
-    obj->render.b |= SPRITE_CAM_FIELD;
-    obj->priority = 3;
-    obj->width_pixels = 32 / 2;
+static void Gar_Main(Sst *self, Own_Gargoyle *own) {
+    self->routine += 2;
+    self->mappings = Mappings_Gargoyle;
+    self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_LZ_Gargoyle); // | Tile_Pal3
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 3 * 0x80;
+    self->width_pixels = 32 / 2;
 
-    uint8_t subtype = obj->scratch.u8[0] & 0xF;
-    scratch->spit_rate = Gar_SpitRate[subtype];
-    obj->frame_time.b = (int8_t)scratch->spit_rate;
-    obj->scratch.u8[0] = subtype;
+    uint8_t subtype = self->subtype & 0xF;
+    own->spit_rate = Gar_SpitRate[subtype];
+    self->anim_frame_timer = (int8_t)own->spit_rate;
+    self->subtype = subtype;
 }
 
-static void Gar_MakeFire(Object *obj, Scratch_Gargoyle *scratch) {
-    if (--obj->frame_time.b != 0)
+static void Gar_MakeFire(Sst *self, Own_Gargoyle *own) {
+    if (--self->anim_frame_timer != 0)
         return;
-    obj->frame_time.b = (int8_t)scratch->spit_rate;
+    self->anim_frame_timer = (int8_t)own->spit_rate;
 
-    if (!ChkObjectVisible(obj))
+    if (!SstChkObjectVisible(self))
         return;
 
-    Object *fire = FindFreeObj();
+    Sst *fire = Sst_Spawn(ObjId_Gargoyle, self->x_pos.f.u, self->y_pos.f.u);
     if (fire == NULL)
         return;
 
-    fire->type = ObjId_Gargoyle;
     fire->routine = 4; // Gar_FireBall
-    fire->pos.l.x.f.u = obj->pos.l.x.f.u;
-    fire->pos.l.y.f.u = obj->pos.l.y.f.u;
-    fire->render = obj->render;
-    fire->status = obj->status;
+    fire->render_flags = self->render_flags;
+    fire->status = self->status;
 }
 
 // Returns false if the fireball hit a wall and was deleted (caller must
 // not touch it again).
-static bool Gar_AniFire(Object *obj) {
+static bool Gar_AniFire(Sst *self) {
     if (((uint8_t)frame_count & 7) == 0) // alternate fireball frame every 8th frame
-        obj->frame ^= 1;
+        self->mapping_frame ^= 1;
 
-    SpeedToPos(obj);
+    Sst_MoveSprite2(self);
 
     int16_t hit;
-    if (!obj->status.o.f.x_flip)
-        hit = ObjHitWallLeft(obj, -8);
+    if (!((self->status & SST_STATUS_X_FLIP) != 0))
+        hit = SstHitWallLeft(self, -8);
     else
-        hit = ObjHitWallRight(obj, 8);
+        hit = SstHitWallRight(self, 8);
 
     if (hit < 0) {
-        ObjectDelete(obj);
+        Sst_Delete(self);
         return false;
     }
     return true;
 }
 
-static bool Gar_FireBall(Object *obj) {
-    obj->routine += 2; // -> Gar_AniFire
-    obj->y_rad = 16 / 2;
-    obj->x_rad = 16 / 2;
-    obj->mappings = Mappings_Gargoyle;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Gargoyle); // (different palette line than head)
-    obj->render.b |= SPRITE_CAM_FIELD;
-    obj->priority = 4;
-    obj->col_type = 0x18 | 0x80; // col_8x8 | col_hurt
-    obj->width_pixels = 16 / 2;
-    obj->frame = 2;
-    obj->pos.l.y.f.u += 8;
+static bool Gar_FireBall(Sst *self) {
+    self->routine += 2; // -> Gar_AniFire
+    self->y_radius = 16 / 2;
+    self->x_radius = 16 / 2;
+    self->mappings = Mappings_Gargoyle;
+    self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Gargoyle); // (different palette line than head)
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
+    self->collision_flags = 0x18 | 0x80; // col_8x8 | col_hurt
+    self->width_pixels = 16 / 2;
+    self->mapping_frame = 2;
+    self->y_pos.f.u += 8;
 
-    obj->xsp = 0x200;
-    if (!obj->status.o.f.x_flip)
-        obj->xsp = (int16_t)-obj->xsp;
+    self->x_vel = 0x200;
+    if (!((self->status & SST_STATUS_X_FLIP) != 0))
+        self->x_vel = (int16_t)-self->x_vel;
 
     QueueSound2(sfx_Fireball);
 
-    return Gar_AniFire(obj); // falls straight into Gar_AniFire the same frame
+    return Gar_AniFire(self); // falls straight into Gar_AniFire the same frame
 }
 
-void Obj_Gargoyle(Object *obj) {
-    Scratch_Gargoyle *scratch = (Scratch_Gargoyle *)&obj->scratch;
+void Obj_Gargoyle(Sst *self) {
+    Own_Gargoyle *own = (Own_Gargoyle *)self->own.u8;
     bool alive = true;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        Gar_Main(obj, scratch);
+        Gar_Main(self, own);
         break;
     case 2:
-        Gar_MakeFire(obj, scratch);
+        Gar_MakeFire(self, own);
         break;
     case 4:
-        alive = Gar_FireBall(obj);
+        alive = Gar_FireBall(self);
         break;
     case 6:
-        alive = Gar_AniFire(obj);
+        alive = Gar_AniFire(self);
         break;
     }
 
     if (alive)
-        RememberState(obj);
+        SstOnScreenTest(self);
 }
