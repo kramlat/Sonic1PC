@@ -2,8 +2,17 @@
 
 #include "PLC.h"
 #include "Constants.h"
+#include "Level.h"
+#include "Object.h"
+#include "Object/Animal.h"
+#include "Object/PrisonCapsule.h"
+#include "Object/BossGreenHill.h"
+#include "SpecialStage.h"
+#include "Video.h"
 
 #include <stdbool.h>
+#include <string.h>
+#include "Backend/VDP.h"
 
 // Regression tests for the two PLC.c bugs found while debugging the
 // titlecard hang/crash (2026-08): the queue that GM_Level pushes for a GHZ
@@ -103,7 +112,124 @@ static void PLC_SLZLoadsBombArtAtBombTile(void) {
     ClearPLC();
 }
 
+// Diagnostic: the tile ranges that the pattern load cues of one level load into, and which of them overlap (Nemesis art: the first word's low 15 bits are the tile count)
+// Green Hill's act 3: what the animals' art in the video memory (tiles $580-$59F) looks like once the boss's lists have been loaded over the level's own: it must be what it was
+static void Drain(void) {
+    for (int i = 0; i < 4000 && plc_buffer[0].art != NULL; i++) {
+        RunPLC();
+        ProcessDPLC();
+    }
+}
+
+static void PLC_TheBossListsDoNotTouchTheAnimalsArt(void) {
+    uint8_t *tiles = VDP_TileSpace();
+    ClearPLC();
+    NewPLC(PlcId_Explode);
+    AddPLC(PlcId_GHZAnimals);
+    Drain();
+    static uint8_t before[0x20 * 32];
+    memcpy(before, tiles + 0x580 * 32, sizeof(before));
+    AddPLC(PlcId_Boss);
+    Drain();
+    CHECK(memcmp(before, tiles + 0x580 * 32, sizeof(before)) == 0);
+    AddPLC(PlcId_Signpost);
+    Drain();
+    CHECK(memcmp(before, tiles + 0x580 * 32, sizeof(before)) == 0);
+}
+
+// The animals that Green Hill's prison capsule lets out are ordinary animals: the zone's rabbit and flicky art, never the ending's
+static void PLC_PrisonAnimalsUseTheZonesAnimalArt(void) {
+    level_id = LEVEL_ID(ZoneId_GHZ, 2);
+    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
+    Object *prison = &level_objects[0];
+    prison->type = ObjId_PrisonCapsule;
+    prison->routine = 0xA;
+    prison->frame_time.w = 1;
+    prison->pos.l.x.f.u = 0x100;
+    prison->pos.l.y.f.u = 0x100;
+    Obj_PrisonCapsule(prison);
+    int animals = 0;
+    for (int i = 1; i < LEVEL_OBJECTS; i++) {
+        Object *a = &level_objects[i];
+        if (a->type != ObjId_Animal)
+            continue;
+        animals++;
+        Obj_Animals(a);
+        const int tile = a->tile & 0x7FF;
+        CHECK(tile == ArtTile_Animal_1 || tile == ArtTile_Animal_2);
+        CHECK(a->mappings != NULL);
+    }
+    CHECK(animals > 0);
+}
+
+// The special stage's background canvases live at the video memory addresses of the original's ($14000 on in this port's tile numbering): the scratch plane memory must reach them, or the planes are empty
+static void SS_BackgroundPlanesAreNotEmpty(void) {
+    Viewport_SetSize(SCREEN_WIDTH, SCREEN_HEIGHT, 64, 64);
+    SS_BGLoad();
+    for (int mode = 0; mode < 14; mode += 2) {
+        SS_BGSetMode((uint16_t)mode, ArtTile_SS_Plane_5);
+        int a = 0, b = 0;
+        for (size_t i = 0; i < screen1p.plane_a.count; i++)
+            a += TileEntry_Word(&screen1p.plane_a.entries[i]) != 0;
+        for (size_t i = 0; i < screen1p.plane_b.count; i++)
+            b += TileEntry_Word(&screen1p.plane_b.entries[i]) != 0;
+        CHECK(a > 0);
+        CHECK(b > 0);
+    }
+}
+
+// Green Hill's ship pieces (the face and the flame) go when the ship does: they used to stay and follow whatever took the ship's slot, which is where the prison capsule's animals land
+static void Boss_TheShipsPiecesGoWithTheShip(void) {
+    level_id = LEVEL_ID(ZoneId_GHZ, 2);
+    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
+    Object *ship = &level_objects[0];
+    ship->type = ObjId_BossGreenHill;
+    ship->pos.l.x.f.u = 0x2A60;
+    ship->pos.l.y.f.u = 0x200;
+    Obj_BossGreenHill(ship); // (its first frame makes the pieces)
+    int pieces = 0;
+    for (int i = 1; i < LEVEL_OBJECTS; i++)
+        pieces += level_objects[i].type == ObjId_BossGreenHill;
+    CHECK(pieces >= 2);
+    ObjectDelete(ship); // (the ship has left)
+    Object *animal = &level_objects[0];
+    animal->type = ObjId_Animal; // (and an animal takes its slot)
+    for (int i = 1; i < LEVEL_OBJECTS; i++) {
+        Object *o = &level_objects[i];
+        if (o->type == ObjId_BossGreenHill)
+            Obj_BossGreenHill(o);
+    }
+    for (int i = 1; i < LEVEL_OBJECTS; i++)
+        CHECK(level_objects[i].type != ObjId_BossGreenHill);
+}
+
+// The prison capsule's explosions are the fiery ones of Object 3F (a destroyed boss's, and the Walking Bomb's: the bomb's sound), not the badnik explosion
+static void Prison_ExplodesLikeABoss(void) {
+    level_id = LEVEL_ID(ZoneId_GHZ, 2);
+    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
+    Object *prison = &level_objects[0];
+    prison->type = ObjId_PrisonCapsule;
+    prison->routine = 0xA;
+    prison->frame_time.w = 100;
+    prison->pos.l.x.f.u = 0x100;
+    prison->pos.l.y.f.u = 0x100;
+    frame_count = 0; // (it makes one every 8th frame)
+    Obj_PrisonCapsule(prison);
+    int bombs = 0, badniks = 0;
+    for (int i = 1; i < LEVEL_OBJECTS; i++) {
+        bombs += level_objects[i].type == ObjId_ExplosionBomb;
+        badniks += level_objects[i].type == ObjId_Explosion;
+    }
+    CHECK_EQ(bombs, 1);
+    CHECK_EQ(badniks, 0);
+}
+
 void RegisterPLCTests(void) {
+    RUN_TEST(PLC_TheBossListsDoNotTouchTheAnimalsArt);
+    RUN_TEST(SS_BackgroundPlanesAreNotEmpty);
+    RUN_TEST(PLC_PrisonAnimalsUseTheZonesAnimalArt);
+    RUN_TEST(Boss_TheShipsPiecesGoWithTheShip);
+    RUN_TEST(Prison_ExplodesLikeABoss);
     RUN_TEST(PLC_DrainsExactlyFullQueue);
     RUN_TEST(PLC_AddPLCDoesNotOverflowWhenFull);
     RUN_TEST(PLC_LZLoadsWaterfallSplashArt);

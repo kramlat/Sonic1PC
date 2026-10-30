@@ -907,7 +907,93 @@ static void Rexon_RearsUpIntoFiveHeads(void) {
     CHECK_EQ(heads, 5);
 }
 
+// Two sound effects, the second started a few frames after the first (an effect already sounding through the noise generator, taken over on its
+// channel by another, left the noise at full volume for good: a hanging hiss that only another effect cleared): once both are done, nothing sounds
+static int64_t SfxEnergyAfter(int frames) {
+    for (int f = 0; f < frames; f++)
+        Sound_Frame();
+    static int32_t out[2 * 2048];
+    memset(out, 0, sizeof(out));
+    Sound_GenerateSfx(out, 2048, 44100); // (lets any decay finish)
+    memset(out, 0, sizeof(out));
+    Sound_GenerateSfx(out, 2048, 44100);
+    int64_t e = 0;
+    for (int i = 0; i < 2 * 2048; i++)
+        e += (int64_t)out[i] * out[i] >> 8;
+    return e;
+}
+
+static void Sound_NoEffectHangsAfterTwoOverlapS2(void) {
+    int ids[128], n = 0;
+    for (int id = game_sound_bank.sfx_first; id <= game_sound_bank.special_last && n < 128; id++)
+        if (game_sound_bank.songs[id] != NULL)
+            ids[n++] = id;
+    bool loops[128] = {false}; // (a continuous effect, the waterfall, never ends by itself: it is left out)
+    for (int a = 0; a < n; a++) {
+        Sound_Init();
+        memset(sound_sfx.queue, 0, sizeof(sound_sfx.queue));
+        PlaySound((uint8_t)ids[a]);
+        loops[a] = SfxEnergyAfter(800) != 0;
+    }
+    static const int gaps[] = { 2, 20 };
+    int hangs = 0;
+    for (int a = 0; a < n; a++)
+        for (int b = 0; b < n; b++) {
+            if (loops[a] || loops[b])
+                continue;
+            for (size_t g = 0; g < sizeof(gaps) / sizeof(gaps[0]); g++) {
+                Sound_Init();
+                memset(sound_sfx.queue, 0, sizeof(sound_sfx.queue));
+                PlaySound((uint8_t)ids[a]);
+                for (int f = 0; f < gaps[g]; f++)
+                    Sound_Frame();
+                PlaySound((uint8_t)ids[b]);
+                hangs += SfxEnergyAfter(800) != 0;
+            }
+        }
+    CHECK_EQ(hangs, 0);
+}
+
+// Hidden Palace's music: every track loops after the same 1296 ticks (2962 frames at its tempo), as the original's do. The converter used to turn a jump into the middle of
+// a loop (FM2, FM3 and FM5 jump to a label inside their smpsLoop) into a repeat of only the part after the label, so those tracks looped early and drifted out of step
+// with the rest for many loops. Each track's note starts repeat 2962 frames later (one frame either way: the tempo's skipped ticks fall a little differently)
+static void Sound_HiddenPalaceTracksLoopTogether(void) {
+    enum { FR = 9000, LOOP = 2962 };
+    static uint8_t onset[SOUND_CHANNELS][FR];
+    memset(onset, 0, sizeof(onset));
+    Sound_Init();
+    memset(sound_music.queue, 0, sizeof(sound_music.queue));
+    PlayMusic(mus_HPZ);
+    uint8_t prev[SOUND_CHANNELS] = {0};
+    for (int f = 0; f < FR; f++) {
+        Sound_Frame();
+        for (int c = 0; c < SOUND_CHANNELS; c++) {
+            const SoundChannel *ch = &sound_music.channels[c];
+            const uint8_t d = ch->active ? ch->duration_timeout : 0;
+            onset[c][f] = ch->active && ch->key_on && d > prev[c];
+            prev[c] = d;
+        }
+    }
+    int tracks = 0;
+    for (int c = 0; c < SOUND_CHANNELS; c++) {
+        int count = 0, match = 0;
+        for (int f = 3000; f < 6000; f++) {
+            if (!onset[c][f])
+                continue;
+            count++;
+            match += onset[c][f + LOOP - 1] || onset[c][f + LOOP] || onset[c][f + LOOP + 1];
+        }
+        if (count < 10)
+            continue;
+        tracks++;
+        CHECK(match * 100 >= count * 95);
+    }
+    CHECK(tracks >= 9);
+}
+
 void RegisterObjectCoverageTests(void) {
+    RUN_TEST(Sound_NoEffectHangsAfterTwoOverlapS2);
+    RUN_TEST(Sound_HiddenPalaceTracksLoopTogether);
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
     RUN_TEST(TailsTails_ShowWhileRollingAndDashing);
     RUN_TEST(TailsTails_WagWhileHePushes);

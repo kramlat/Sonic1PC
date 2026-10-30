@@ -16,7 +16,7 @@ static sprite_t sprite_table_p1[VIEWPORT_SPRITES + 1];
 static sprite_t sprite_table_p2[VIEWPORT_SPRITES + 1];
 static tile_entry_t window_p1[PLANE_ENTRIES];
 static tile_entry_t window_p2[PLANE_ENTRIES];
-static tile_entry_t scratch_planes[0x8000]; // the scratch plane memory (Plane_UseScratchAt)
+static tile_entry_t scratch_planes[0x10000]; // the scratch plane memory (Plane_UseScratchAt): a name table is addressed by the byte of the 128 KB the special stage's canvases are spread over ($14000-$1FFFF: tiles $A00-$FFF, 32 bytes each), two bytes an entry
 
 // A bank was freed: what names it shows nothing now
 static void PurgeBank(uint8_t id) {

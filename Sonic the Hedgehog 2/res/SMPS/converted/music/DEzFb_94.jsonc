@@ -1572,31 +1572,46 @@
     ],
     "End_Boss_PSG2": [
       {
-        "smpsLoop": [
-          "0x0",
-          "0xF",
-          {
-            "smpsPSGvoice": "fTone_08"
-          },
-          {
-            "smpsModSet": [
-              "0xC",
-              "0x1",
-              "0x2",
-              "0x1"
-            ]
-          },
-          {
-            "note": "Rst",
-            "duration": "0x60"
-          }
+        "smpsPSGvoice": "fTone_08"
+      },
+      {
+        "smpsModSet": [
+          "0xC",
+          "0x1",
+          "0x2",
+          "0x1"
         ]
       },
       {
-        "smpsCall": "End_Boss_Call04"
-      },
-      {
         "smpsJump": [
+          {
+            "note": "Rst",
+            "duration": "0x60"
+          },
+          {
+            "smpsLoop": [
+              "0x0",
+              "0xE",
+              {
+                "smpsPSGvoice": "fTone_08"
+              },
+              {
+                "smpsModSet": [
+                  "0xC",
+                  "0x1",
+                  "0x2",
+                  "0x1"
+                ]
+              },
+              {
+                "note": "Rst",
+                "duration": "0x60"
+              }
+            ]
+          },
+          {
+            "smpsCall": "End_Boss_Call04"
+          },
           {
             "note": "F4",
             "duration": "0x54"

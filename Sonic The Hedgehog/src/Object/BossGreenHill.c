@@ -259,6 +259,10 @@ static void BGHZ_Display(Object *obj, Scratch_BossGreenHill *scratch) {
 
 static void BGHZ_FaceMain(Object *obj, Scratch_BossGreenHill *scratch) {
     Object *parent = &objects[scratch->parent_index];
+    if (parent->type != obj->type) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
+        ObjectDelete(obj);
+        return;
+    }
     Scratch_BossGreenHill *pscratch = (Scratch_BossGreenHill *)&parent->scratch;
 
     int d0 = parent->routine_sec;
@@ -307,6 +311,10 @@ static void BGHZ_FlameMain(Object *obj, Scratch_BossGreenHill *scratch) {
     obj->anim = 7; // blank (default invisible state)
 
     Object *parent = &objects[scratch->parent_index];
+    if (parent->type != obj->type) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
+        ObjectDelete(obj);
+        return;
+    }
 
     if (parent->routine_sec == 12) { // Escape
         obj->anim = 0xB; // escapeflame -- thruster animation for takeoff

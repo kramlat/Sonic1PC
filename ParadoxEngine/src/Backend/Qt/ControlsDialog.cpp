@@ -181,11 +181,11 @@ private:
 		auto *page = new QWidget;
 		auto *layout = new QVBoxLayout(page);
 
-		if (Players() > 1) {
+		{ // (which gamepad is whose: a game with one player has the choice too, for his)
 			auto *who = new QGridLayout;
-			for (int pl = 0; pl < 2; pl++) {
+			for (int pl = 0; pl < Players(); pl++) {
 				pad_choice[pl] = new QComboBox;
-				who->addWidget(new QLabel(pl == 0 ? "Player 1's gamepad:" : "Player 2's gamepad:"), pl, 0);
+				who->addWidget(new QLabel(Players() == 1 ? QString("Gamepad:") : pl == 0 ? QString("Player 1's gamepad:") : QString("Player 2's gamepad:")), pl, 0);
 				who->addWidget(pad_choice[pl], pl, 1);
 				connect(pad_choice[pl], QOverload<int>::of(&QComboBox::activated), this, [this, pl](int index) {
 					Controls_ChoosePad(pl, pad_choice[pl]->itemData(index).toInt()); // (-1 is automatic)

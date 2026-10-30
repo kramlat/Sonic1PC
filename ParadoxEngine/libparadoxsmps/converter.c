@@ -477,6 +477,8 @@ static void free_flat_list(FlatList *fl) {
 typedef struct {
     char *name;
     size_t pos;
+    int loop_rec;     // >= 0: the label is inside the body of the smpsLoop that was folded (loop record index), `off` items from its start
+    size_t off;
 } LabelPos;
 typedef struct {
     LabelPos *items;
@@ -489,13 +491,15 @@ static bool labelpos_find(LabelPosTable *t, const char *name, size_t *pos_out) {
 }
 static void labelpos_set(LabelPosTable *t, const char *name, size_t pos) {
     for (size_t i = 0; i < t->count; i++)
-        if (strcmp(t->items[i].name, name) == 0) { t->items[i].pos = pos; return; }
+        if (strcmp(t->items[i].name, name) == 0) { t->items[i].pos = pos; t->items[i].loop_rec = -1; t->items[i].off = 0; return; }
     if (t->count == t->cap) {
         t->cap = t->cap ? t->cap * 2 : 32;
         t->items = (LabelPos *)realloc(t->items, t->cap * sizeof(LabelPos));
     }
     t->items[t->count].name = xstrdup(name);
     t->items[t->count].pos = pos;
+    t->items[t->count].loop_rec = -1;
+    t->items[t->count].off = 0;
     t->count++;
 }
 static void labelpos_free(LabelPosTable *t) {
@@ -505,9 +509,19 @@ static void labelpos_free(LabelPosTable *t) {
     t->count = t->cap = 0;
 }
 
+// A folded smpsLoop, kept so that a later smpsJump to a label INSIDE its body (SMPS allows jumping into the middle of a loop) can be turned into
+// structure that plays the same: the loop's counter is 0 then, so the loop runs from that point on to its end, goes back to its start, and
+// runs `count - 1` more whole passes before it goes on
+typedef struct {
+    size_t start;   // where the loop object is in `items`
+    PJValue *obj;   // it
+} LoopRec;
+
 static PJValue *fold_control_flow(FlatList *flat, const char *block_name) {
     PJValue **items = NULL;
     size_t items_len = 0, items_cap = 0;
+    LoopRec *loops = NULL;
+    size_t loops_len = 0, loops_cap = 0;
 #define ITEMS_PUSH(v)                                                                                                \
     do {                                                                                                             \
         if (items_len == items_cap) {                                                                               \
@@ -549,11 +563,32 @@ static PJValue *fold_control_flow(FlatList *flat, const char *block_name) {
                 fi->idx = NULL;
                 pj_array_append(loopArr, fi->cnt);
                 fi->cnt = NULL;
+                const size_t body_end = items_len;
                 for (size_t k = start; k < items_len; k++) pj_array_append(loopArr, items[k]);
                 items_len = start;
                 PJValue *loopObj = pj_new_object();
                 pj_object_set(loopObj, "smpsLoop", loopArr);
                 ITEMS_PUSH(loopObj);
+                // the labels that were inside the body now name a place in it; one at its end is after the loop
+                if (loops_len == loops_cap) {
+                    loops_cap = loops_cap ? loops_cap * 2 : 8;
+                    loops = (LoopRec *)realloc(loops, loops_cap * sizeof(LoopRec));
+                }
+                loops[loops_len].start = start;
+                loops[loops_len].obj = loopObj;
+                for (size_t li = 0; li < table.count; li++) {
+                    LabelPos *lp = &table.items[li];
+                    if (lp->loop_rec >= 0 || lp->pos <= start || lp->pos > body_end)
+                        continue;
+                    if (lp->pos == body_end) {
+                        lp->pos = start + 1;
+                    } else {
+                        lp->loop_rec = (int)loops_len;
+                        lp->off = lp->pos - start;
+                        lp->pos = start;
+                    }
+                }
+                loops_len++;
                 // table entry for fi->label intentionally left pointing at
                 // `start` -- a later re-reference should scoop up this fold
                 // result too (see the function-level correctness comment).
@@ -561,6 +596,47 @@ static PJValue *fold_control_flow(FlatList *flat, const char *block_name) {
         } else if (fi->kind == FI_JUMP) {
             size_t start;
             bool found = labelpos_find(&table, fi->label, &start);
+            int in_loop = -1;
+            size_t off = 0;
+            for (size_t li = 0; found && li < table.count; li++)
+                if (strcmp(table.items[li].name, fi->label) == 0) { in_loop = table.items[li].loop_rec; off = table.items[li].off; }
+            if (found && in_loop >= 0 && loops[in_loop].start < items_len && items[loops[in_loop].start] == loops[in_loop].obj) {
+                // a jump into the middle of a loop: A is the body before the label, B the rest and T what came after the loop. The first time through
+                // is A B ... (the loop) T; what repeats is B, the loop's other passes (A B each), T
+                PJValue *loopArr = pj_object_get(loops[in_loop].obj, "smpsLoop");
+                const size_t body = pj_array_size(loopArr) - 2;
+                const long cnt = strtol(pj_get_string(pj_array_get(loopArr, 1), "0x1"), NULL, 16);
+                const size_t first = loops[in_loop].start;
+                PJValue *rep = pj_new_array();
+                for (size_t k = off; k < body; k++) pj_array_append(rep, pj_clone(pj_array_get(loopArr, 2 + k)));
+                if (cnt > 1) {
+                    PJValue *passes = rep;
+                    if (cnt > 2) {
+                        passes = pj_new_array();
+                        pj_array_append(passes, pj_clone(pj_array_get(loopArr, 0)));
+                        char hex[16];
+                        snprintf(hex, sizeof(hex), "0x%lX", cnt - 1);
+                        pj_array_append(passes, pj_new_string(hex));
+                    }
+                    for (size_t k = 0; k < body; k++) pj_array_append(passes, pj_clone(pj_array_get(loopArr, 2 + k)));
+                    if (passes != rep) {
+                        PJValue *loopObj = pj_new_object();
+                        pj_object_set(loopObj, "smpsLoop", passes);
+                        pj_array_append(rep, loopObj);
+                    }
+                }
+                for (size_t k = first + 1; k < items_len; k++) { pj_array_append(rep, items[k]); items[k] = NULL; }
+                PJValue *head = pj_new_array(); // (A: it plays once, then B and the rest repeat)
+                for (size_t k = 0; k < off; k++) pj_array_append(head, pj_clone(pj_array_get(loopArr, 2 + k)));
+                pj_free(items[first]);
+                items_len = first;
+                for (size_t k = 0; k < pj_array_size(head); k++) ITEMS_PUSH(pj_clone(pj_array_get(head, k)));
+                pj_free(head);
+                PJValue *jumpObj = pj_new_object();
+                pj_object_set(jumpObj, "smpsJump", rep);
+                ITEMS_PUSH(jumpObj);
+                continue;
+            }
             if (!found || start > items_len) {
                 fprintf(stderr,
                         "WARNING: %s: smpsJump target '%s' has no matching label in this block "
@@ -583,6 +659,7 @@ static PJValue *fold_control_flow(FlatList *flat, const char *block_name) {
     PJValue *result = pj_new_array();
     for (size_t i = 0; i < items_len; i++) pj_array_append(result, items[i]);
     free(items);
+    free(loops);
     labelpos_free(&table);
 #undef ITEMS_PUSH
     return result;

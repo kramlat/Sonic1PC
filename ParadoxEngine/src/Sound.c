@@ -900,8 +900,18 @@ static uint16_t ReadWord(const uint8_t *p) { return (uint16_t)((p[0] << 8) | p[1
 
 static void ResetChannel(SoundChannel *ch) { memset(ch, 0, sizeof(*ch)); }
 
+// A new track taking over a channel that is playing through the noise generator (an effect that another one interrupts): the noise generator is
+// the chip's own and nothing else will switch it off, so what the old track left on (its attenuation) would sound for good once the new one ends,
+// a hanging noise that only another sound effect cleared. The new track writes its own volumes if it uses the noise too.
+static void SilenceIfPSG(SN76489 *psg, int psg_chan, int is_noise); // (defined with the track interpreter below)
+static void SilenceNoiseOfReplacedChannel(SoundChipSet *cs, const SoundChannel *ch) {
+    if (ch->active && ch->psg_noise)
+        SilenceIfPSG(&cs->psg, 3, 1);
+}
+
 static void StartChannel(SoundChipSet *cs, SoundChannel *ch, const uint8_t *song_base, const uint8_t *data,
                           int8_t transpose, uint8_t volume, const uint8_t *voice_bank) {
+    SilenceNoiseOfReplacedChannel(cs, ch);
     ResetChannel(ch);
     ch->song_base = song_base;
     ch->data_ptr = data;
@@ -922,6 +932,7 @@ static void StartChannel(SoundChipSet *cs, SoundChannel *ch, const uint8_t *song
 // SoundChannel::json_playlist's own comment.
 static void StartChannelJSON(SoundChipSet *cs, SoundChannel *ch, const PJValue *playlist, const PJValue *voices,
                               const PJValue *events, int8_t transpose, uint8_t volume) {
+    SilenceNoiseOfReplacedChannel(cs, ch);
     ResetChannel(ch);
     ch->json_active = 1;
     ch->json_playlist = playlist;

@@ -126,8 +126,8 @@ static void Pri_Explosion(Object *obj) {
     if (((uint8_t)frame_count & 7) == 0) { // only spawn an explosion every 8 frames
         Object *exp = FindFreeObj();
         if (exp != NULL) {
-            exp->type = ObjId_Explosion;
-            exp->routine = 2; // plain explosion -- no animal, no points
+            exp->type = ObjId_ExplosionBomb; // the fiery explosion (Object 3F, with the bomb's sound) a destroyed boss makes: not the badnik's, which lets an animal out
+            exp->routine = 0;
             exp->pos.l.x.f.u = obj->pos.l.x.f.u;
             exp->pos.l.y.f.u = obj->pos.l.y.f.u;
 

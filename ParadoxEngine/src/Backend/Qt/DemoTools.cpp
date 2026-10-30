@@ -347,7 +347,7 @@ void PlayDialog(QWidget *parent) {
 }
 
 // Developer hooks (automated checks), filing the same requests the dialogs do:
-//   SONIC_QT_RECORD=<zone>,<act>,<frames>,<file>   record (act 0-2) and stop after <frames>
+//   SONIC_QT_RECORD=<zone>,<act>,<frames>,<file>   record (act 0-2) and stop after <frames> (zone "special" and the stage 1-6 for a special stage)
 //   SONIC_QT_PLAY=<file>,<zone>,<act>              play a demo file
 static void RunEnvironmentHooks(int frame) {
 	if (frame != 120)
@@ -358,6 +358,12 @@ static void RunEnvironmentHooks(int frame) {
 			DemoRecordRequest r = {};
 			r.zone = a[0].toInt();
 			r.act = a[1].toInt();
+			if (a[0] == "special") { // "special,<stage 1-6>,<frames>,<file>": a special stage (for the automated checks)
+				r.zone = 0;
+				r.act = 0;
+				r.special = true;
+				r.special_stage = a[1].toInt() - 1;
+			}
 			r.start_x = r.start_y = -1;
 			r.frames = a[2].toInt();
 			snprintf(r.path, sizeof(r.path), "%s", a[3].toLocal8Bit().constData());

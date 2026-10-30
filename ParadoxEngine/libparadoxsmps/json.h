@@ -60,6 +60,9 @@ const char *pj_get_string(const PJValue *v, const char *fallback);
 double pj_get_number(const PJValue *v, double fallback);
 bool pj_get_bool(const PJValue *v, bool fallback);
 
+// A deep copy (the caller owns it)
+PJValue *pj_clone(const PJValue *v);
+
 // --- Parse/serialize ---
 // Strips // and /* */ comments (respecting quoted strings) before parsing,
 // same JSONC dialect as tools/paradoxsmps/json_to_header.py's own

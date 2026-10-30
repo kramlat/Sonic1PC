@@ -649,3 +649,24 @@ char *pj_serialize(const PJValue *v, bool pretty) {
     serialize_value(&sb, v, pretty, 0);
     return sb.buf;
 }
+
+PJValue *pj_clone(const PJValue *v) {
+    switch (pj_type(v)) {
+    case PJ_BOOL: return pj_new_bool(pj_get_bool(v, false));
+    case PJ_NUMBER: return pj_new_number(pj_get_number(v, 0));
+    case PJ_STRING: return pj_new_string(pj_get_string(v, ""));
+    case PJ_ARRAY: {
+        PJValue *copy = pj_new_array();
+        for (size_t i = 0; i < pj_array_size(v); i++)
+            pj_array_append(copy, pj_clone(pj_array_get(v, i)));
+        return copy;
+    }
+    case PJ_OBJECT: {
+        PJValue *copy = pj_new_object();
+        for (size_t i = 0; i < pj_object_size(v); i++)
+            pj_object_set(copy, pj_object_key_at(v, i), pj_clone(pj_object_value_at(v, i)));
+        return copy;
+    }
+    default: return pj_new_null();
+    }
+}

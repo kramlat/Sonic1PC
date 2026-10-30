@@ -322,6 +322,10 @@ static void BMZ_Display(Object *obj, Scratch_BossMarble *scratch) {
 
 static void BossMarble_FaceMain(Object *obj, Scratch_BossMarble *scratch) {
     Object *parent = &objects[scratch->parent_index];
+    if (parent->type != obj->type) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
+        ObjectDelete(obj);
+        return;
+    }
 
     int d0 = parent->routine_sec;
     int d1 = 1; // facenormal1
@@ -374,6 +378,10 @@ static void BossMarble_FlameMain(Object *obj, Scratch_BossMarble *scratch) {
     obj->anim = 7; // blank (default invisible state)
 
     Object *parent = &objects[scratch->parent_index];
+    if (parent->type != obj->type) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
+        ObjectDelete(obj);
+        return;
+    }
 
     if (parent->routine_sec >= 8) { // Escape
         obj->anim = 0xB; // escapeflame -- thruster animation for takeoff
@@ -393,6 +401,10 @@ static void BossMarble_FlameMain(Object *obj, Scratch_BossMarble *scratch) {
 
 static void BossMarble_TubeMain(Object *obj, Scratch_BossMarble *scratch) {
     Object *parent = &objects[scratch->parent_index];
+    if (parent->type != obj->type) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
+        ObjectDelete(obj);
+        return;
+    }
 
     if (parent->routine_sec == 8) { // Escape
         if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {

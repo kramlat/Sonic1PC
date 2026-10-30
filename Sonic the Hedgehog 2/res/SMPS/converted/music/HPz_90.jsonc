@@ -577,9 +577,195 @@
         "smpsSetvoice": "0x1"
       },
       {
-        "smpsLoop": [
-          "0x0",
-          "0x2",
+        "note": "Rst",
+        "duration": "0x18"
+      },
+      {
+        "note": "A1",
+        "duration": "0xC"
+      },
+      {
+        "note": "D2",
+        "duration": "0x6"
+      },
+      {
+        "note": "Rst",
+        "duration": "0x12"
+      },
+      {
+        "note": "A1",
+        "duration": "0xC"
+      },
+      {
+        "smpsJump": [
+          {
+            "note": "D2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "A1",
+            "duration": "0xC"
+          },
+          {
+            "note": "G1",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "G1",
+            "duration": "0xC"
+          },
+          {
+            "note": "D2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "A1",
+            "duration": "0xC"
+          },
+          {
+            "note": "D2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "A1",
+            "duration": "0xC"
+          },
+          {
+            "note": "D2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "A1",
+            "duration": "0xC"
+          },
+          {
+            "note": "G1",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "G1",
+            "duration": "0xC"
+          },
+          {
+            "note": "D2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "D2",
+            "duration": "0xC"
+          },
+          {
+            "note": "G1",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "D2",
+            "duration": "0xC"
+          },
+          {
+            "note": "G1",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "G1",
+            "duration": "0xC"
+          },
+          {
+            "note": "F1",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "C2",
+            "duration": "0xC"
+          },
+          {
+            "note": "F1",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "C2",
+            "duration": "0xC"
+          },
+          {
+            "note": "D2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "A1",
+            "duration": "0xC"
+          },
+          {
+            "note": "D2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "A1",
+            "duration": "0xC"
+          },
+          {
+            "note": "D2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "A1",
+            "duration": "0xC"
+          },
           {
             "note": "Rst",
             "duration": "0x18"
@@ -767,27 +953,23 @@
           {
             "note": "A1",
             "duration": "0xC"
-          }
-        ]
-      },
-      {
-        "note": "D2",
-        "duration": "0x6"
-      },
-      {
-        "note": "Rst",
-        "duration": "0x12"
-      },
-      {
-        "note": "A1",
-        "duration": "0xC"
-      },
-      {
-        "note": "Bb1",
-        "duration": "0x18"
-      },
-      {
-        "smpsJump": [
+          },
+          {
+            "note": "D2",
+            "duration": "0x6"
+          },
+          {
+            "note": "Rst",
+            "duration": "0x12"
+          },
+          {
+            "note": "A1",
+            "duration": "0xC"
+          },
+          {
+            "note": "Bb1",
+            "duration": "0x18"
+          },
           {
             "inheritedNote": true,
             "duration": "0xC"
@@ -858,9 +1040,103 @@
     ],
     "HPZ_Loop02": [
       {
-        "smpsLoop": [
-          "0x0",
-          "0x2",
+        "note": "D4",
+        "duration": "0xC"
+      },
+      {
+        "note": "A4"
+      },
+      {
+        "note": "F4"
+      },
+      {
+        "smpsJump": [
+          {
+            "note": "C5",
+            "duration": "0x24"
+          },
+          "smpsNoAttack",
+          {
+            "note": "C5"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "E5",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "C5",
+            "duration": "0x24"
+          },
+          "smpsNoAttack",
+          {
+            "note": "C5"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "D5"
+          },
+          {
+            "note": "Rst",
+            "duration": "0xC"
+          },
+          {
+            "note": "G4"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "B4",
+            "duration": "0x18"
+          },
+          {
+            "note": "A4",
+            "duration": "0xC"
+          },
+          {
+            "note": "Rst"
+          },
+          {
+            "note": "A4"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "C5"
+          },
+          {
+            "note": "B4"
+          },
+          {
+            "note": "C5"
+          },
+          {
+            "note": "D5",
+            "duration": "0x24"
+          },
+          "smpsNoAttack",
+          {
+            "tie": true,
+            "duration": "0x18"
+          },
+          {
+            "note": "E5",
+            "duration": "0xC"
+          },
+          {
+            "note": "D5",
+            "duration": "0x24"
+          },
           {
             "note": "D4",
             "duration": "0xC"
@@ -956,15 +1232,11 @@
           {
             "note": "D5",
             "duration": "0x24"
-          }
-        ]
-      },
-      {
-        "smpsAlterPitch": "0xC"
-      },
-      "smpsNoAttack",
-      {
-        "smpsJump": [
+          },
+          {
+            "smpsAlterPitch": "0xC"
+          },
+          "smpsNoAttack",
           {
             "note": "D4",
             "duration": "0x24"

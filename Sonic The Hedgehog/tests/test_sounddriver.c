@@ -488,7 +488,55 @@ static void Sound_OverlappingEffectKeepsNoiseMode(void) {
     CHECK_EQ(sound_sfx.psg.noise_fb_white, fb);
     CHECK_EQ(sound_sfx.psg.noise_shift_rate, rate);
 }
+// Two sound effects, the second started a few frames after the first (an effect already sounding through the noise generator, taken over on its
+// channel by another, left the noise at full volume for good: a hanging hiss that only another effect cleared): once both are done, nothing sounds
+static int64_t SfxEnergyAfter(int frames) {
+    for (int f = 0; f < frames; f++)
+        Sound_Frame();
+    static int32_t out[2 * 2048];
+    memset(out, 0, sizeof(out));
+    Sound_GenerateSfx(out, 2048, 44100); // (lets any decay finish)
+    memset(out, 0, sizeof(out));
+    Sound_GenerateSfx(out, 2048, 44100);
+    int64_t e = 0;
+    for (int i = 0; i < 2 * 2048; i++)
+        e += (int64_t)out[i] * out[i] >> 8;
+    return e;
+}
+
+static void Sound_NoEffectHangsAfterTwoOverlap(void) {
+    int ids[128], n = 0;
+    for (int id = game_sound_bank.sfx_first; id <= game_sound_bank.special_last && n < 128; id++)
+        if (game_sound_bank.songs[id] != NULL)
+            ids[n++] = id;
+    bool loops[128] = {false}; // (a continuous effect, the waterfall, never ends by itself: it is left out)
+    for (int a = 0; a < n; a++) {
+        Sound_Init();
+        memset(sound_sfx.queue, 0, sizeof(sound_sfx.queue));
+        PlaySound((uint8_t)ids[a]);
+        loops[a] = SfxEnergyAfter(800) != 0;
+    }
+    static const int gaps[] = { 2, 20 };
+    int hangs = 0;
+    for (int a = 0; a < n; a++)
+        for (int b = 0; b < n; b++) {
+            if (loops[a] || loops[b])
+                continue;
+            for (size_t g = 0; g < sizeof(gaps) / sizeof(gaps[0]); g++) {
+                Sound_Init();
+                memset(sound_sfx.queue, 0, sizeof(sound_sfx.queue));
+                PlaySound((uint8_t)ids[a]);
+                for (int f = 0; f < gaps[g]; f++)
+                    Sound_Frame();
+                PlaySound((uint8_t)ids[b]);
+                hangs += SfxEnergyAfter(800) != 0;
+            }
+        }
+    CHECK_EQ(hangs, 0);
+}
+
 void RegisterSoundDriverTests(void) {
+    RUN_TEST(Sound_NoEffectHangsAfterTwoOverlap);
     RUN_TEST(Sound_OverlappingEffectKeepsNoiseMode);
     RUN_TEST(Ring_CollectPlaysSound);
     RUN_TEST(Sound_SongChangeSilencesPreviousNotes);
