@@ -338,6 +338,9 @@ void Deform_SBZ(void) {
 	ScrollEngine_ApplyDeformation(heights, 48, pos, (int16_t)(bg_scrpos_y.f.u & 0x1FF), scrpos_x.f.u, true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
+// (for the tests: the zones' routines registered with the engine, as the first frame does)
+void LevelScroll_RegisterZones(void);
+
 // Each zone's background deformation, registered with the scrolling engine (ScrollEngine.h) as its background event: these are the old deformation routines, kept until each zone is written for the engine
 static void RegisterZones(void) {
     static bool done;
@@ -351,6 +354,10 @@ static void RegisterZones(void) {
     ScrollEngine_SetZone(ZoneId_SBZ, -1, &(ScrollZone){ .background_event = Deform_SBZ });
     ScrollEngine_SetZone(ZoneId_EndZ, -1, &(ScrollZone){ .background_event = Deform_GHZ });
     // (Labyrinth has none: its background scroll and its ripple are in LZWaterFeatures)
+}
+
+void LevelScroll_RegisterZones(void) {
+    RegisterZones();
 }
 
 

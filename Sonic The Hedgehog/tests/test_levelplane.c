@@ -578,10 +578,95 @@ static void ScrollEngine_ScrapBrainsBackgroundShowsWhatTheOriginalDid(void) {
     CHECK(hash == 0x2325db7b098c1528ull);
 }
 
+// ---- the rest of Sonic 1's zones: what each background plane shows through its scroll lines (and the foreground's lines) over 1200 frames of the camera ----
+
+void LevelScroll_RegisterZones(void);
+void LZWaterFeatures(void);
+#include "Object.h"
+
+static uint64_t SonicZoneHash(int zone, int act, int start_x, int start_y) {
+    uint64_t hash = 0xcbf29ce484222325ull;
+    level_id = LEVEL_ID(zone, act);
+    gamemode = GameMode_Level;
+    last_lamp = 0;
+    LevelScroll_RegisterZones();
+    Viewport_SetSize(320, 224, 64, 32);
+    LevelDataLoad();
+    Plane_Clear(&screen1p.plane_a);
+    Plane_Clear(&screen1p.plane_b);
+    int16_t x = (int16_t)start_x, y = (int16_t)start_y;
+    scrpos_x.v = (int32_t)x << 16;
+    scrpos_y.v = (int32_t)y << 16;
+    bg_scrpos_x.v = bg_scrpos_y.v = bg2_scrpos_x.v = bg2_scrpos_y.v = bg3_scrpos_x.v = bg3_scrpos_y.v = 0;
+    BgScrollSpeed(x, y);
+    bg1_xblock = bg2_xblock = bg3_xblock = 0;
+    bg1_yblock = bg2_yblock = bg3_yblock = 0;
+    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
+    scrshift_x = scrshift_y = 0;
+    memset(player, 0, sizeof(Object));
+    player->routine = 2;
+    vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
+    LoadTilesFromStart();
+    for (int frame = 0; frame < 1200; frame++) {
+        int sx, sy;
+        if (frame < 400) { sx = (frame / 25) % 9; sy = (frame / 20) % 7; }
+        else if (frame < 450) { sx = 0; sy = 0; }
+        else if (frame < 900) { sx = -((frame / 25) % 9); sy = -((frame / 20) % 7); }
+        else { sx = (frame % 7) - 3; sy = (frame % 11) - 5; }
+        if (scrpos_x.f.u + sx < 0) sx = 0;
+        if (scrpos_y.f.u + sy < 0) sy = 0;
+        scrshift_x = (int16_t)(sx << 8);
+        scrshift_y = (int16_t)(sy << 8);
+        scrpos_x.v += (int32_t)sx << 16;
+        scrpos_y.v += (int32_t)sy << 16;
+        bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
+        ScrollEngine_Events(zone, act);
+        if (zone == ZoneId_LZ)
+            LZWaterFeatures(); // (Labyrinth's background and its ripple are done there)
+        bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
+        bg2_scrpos_x_dup.v = bg2_scrpos_x.v; bg2_scrpos_y_dup.v = bg2_scrpos_y.v;
+        bg3_scrpos_x_dup.v = bg3_scrpos_x.v; bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
+        bg1_scroll_flags_dup = bg1_scroll_flags; bg2_scroll_flags_dup = bg2_scroll_flags; bg3_scroll_flags_dup = bg3_scroll_flags;
+        LoadTilesAsYouMove();
+        int vsy = vid_bg_scrpos_y_dup;
+        hash = (hash ^ (uint16_t)vsy) * 0x100000001b3ull;
+        for (int l = 0; l < SCREEN_HEIGHT; l++) {
+            hash = (hash ^ (uint16_t)hscroll_buffer[l][0]) * 0x100000001b3ull;
+            hash = (hash ^ (uint16_t)hscroll_buffer[l][1]) * 0x100000001b3ull;
+            int row = ((l + vsy) >> 3) & (PLANE_HEIGHT - 1);
+            int x0 = -hscroll_buffer[l][1];
+            for (int px = 0; px < SCREEN_WIDTH; px += 8) {
+                int col = ((x0 + px) >> 3) & (PLANE_WIDTH - 1);
+                uint16_t w = Plane_Word(&screen1p.plane_b, (size_t)(row * PLANE_WIDTH + col) * 2);
+                hash = (hash ^ (w & 0xFF)) * 0x100000001b3ull;
+                hash = (hash ^ (w >> 8)) * 0x100000001b3ull;
+            }
+        }
+    }
+    return hash;
+}
+
+typedef struct { int zone, act, x, y; uint64_t hash; } SonicZoneGolden;
+static const SonicZoneGolden sonic_zone_goldens[] = {
+    { ZoneId_LZ, 0, 0x60, 0x2F0, 0xf791c439a54182ccull }, { ZoneId_LZ, 1, 0x60, 0x400, 0x6668d7acbbf245c4ull }, { ZoneId_LZ, 2, 0x60, 0x700, 0xb3e4ca6bcf77c20eull },
+    { ZoneId_SLZ, 0, 0x60, 0x2F0, 0xb7ad68f694e0ca0eull }, { ZoneId_SLZ, 1, 0x60, 0x300, 0xd9412c000c015f12ull }, { ZoneId_SLZ, 2, 0x60, 0x300, 0xd9412c000c015f12ull },
+    { ZoneId_SYZ, 0, 0x60, 0x2F0, 0xd1e37f643c5a0a82ull }, { ZoneId_SYZ, 1, 0x60, 0x2F0, 0xd1e37f643c5a0a82ull }, { ZoneId_SYZ, 2, 0x60, 0x2F0, 0xd1e37f643c5a0a82ull },
+    { ZoneId_SBZ, 1, 0x60, 0x300, 0x94ff50a01ae7b40bull }, { ZoneId_SBZ, 2, 0x60, 0x300, 0x94ff50a01ae7b40bull },
+};
+
+static void ScrollEngine_TheRestOfSonic1sBackgroundsShowWhatTheOriginalsDid(void) {
+    for (size_t i = 0; i < sizeof(sonic_zone_goldens) / sizeof(sonic_zone_goldens[0]); i++) {
+        const SonicZoneGolden *g = &sonic_zone_goldens[i];
+        uint64_t h = SonicZoneHash(g->zone, g->act, g->x, g->y);
+        CHECK(h == g->hash);
+    }
+}
+
 void RegisterLevelPlaneTests(void) {
     RUN_TEST(ScrollEngine_GreenHillsBackgroundShowsWhatTheOriginalDid);
     RUN_TEST(ScrollEngine_MarblesBackgroundShowsWhatTheOriginalDid);
     RUN_TEST(ScrollEngine_ScrapBrainsBackgroundShowsWhatTheOriginalDid);
+    RUN_TEST(ScrollEngine_TheRestOfSonic1sBackgroundsShowWhatTheOriginalsDid);
     RUN_TEST(ScrollEngine_RunsAZonesRoutinesInTheOriginalsOrder);
     RUN_TEST(ScrollEngine_ALevelsMasksSetHowItWraps);
     RUN_TEST(ScrollEngine_GreenHillsLinesAreTheOriginalsBands);
