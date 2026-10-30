@@ -4,6 +4,9 @@
 #include <stdint.h>
 
 #include "Types.h"
+#include "TileBank.h"
+#include "Sprites.h"
+#include "Viewport.h"
 
 // The status table of Sonic 3 & Knuckles (sonic3k.constants.asm: object_size $4A, the fields at $0-$4A) as the engine's object, with the handler that runs it (sonic3k.asm: Process_Sprites, Draw_Sprite, Delete_Current_Sprite,
 // MoveSprite, Animate_Sprite). It is a table of its own beside the old `Object` one: a game's objects move over one at a time, and the old handler runs the old ones until the last has gone.
@@ -27,6 +30,12 @@ typedef void (*SstCode)(Sst *self);
 #define SST_STATUS_X_FLIP 0x01
 #define SST_STATUS_Y_FLIP 0x02
 
+#define SST_CHILDREN 16
+typedef struct {
+    int16_t x, y;
+    uint8_t frame;
+} SstChild;
+
 struct Sst {
     SstCode code;               // the object's routine: called once a frame; NULL is a free slot
     uint8_t render_flags;
@@ -36,6 +45,8 @@ struct Sst {
     uint16_t priority;          // in units of $80: the draw queue it goes in is priority >> 7 (0 in front)
     uint16_t art_tile;          // PCCVH AAAAAAAAAAA: priority, palette line, flips, first cell of its art
     const uint8_t *mappings;
+    const tilebank_t *bank;     // the tile bank its art is in (NULL: the main bank); with the palette group (this port's: the art_tile's palette line plus 4 times it) the cells a sprite names
+    uint8_t palette_group;
     dword_s x_pos, y_pos;       // .f.u the pixel, .f.l the sub-pixel
     int16_t x_vel, y_vel;
     int16_t ground_vel;
@@ -51,6 +62,8 @@ struct Sst {
     uint8_t routine_secondary;
     uint16_t parent;            // the slot of the object that owns or spawned this one (index + 1; 0: none)
     uint16_t respawn;           // the entry of this object's place in the respawn table (index + 1; 0: none)
+    uint8_t child_count;        // multi-draw (render_flags bit 6): the main sprite (mapping_frame, 0: none) and these children, placed in the level (or on the screen) and each a frame of the same mappings
+    SstChild children[SST_CHILDREN];
     union {                     // the rest of the table: each object's own (objoff_*)
         uint8_t u8[0x20];
         int8_t s8[0x20];
@@ -110,3 +123,6 @@ void Sst_MoveSpriteTestGravity2(Sst *obj);
 // the same codes (each its own pair)
 void Sst_Animate(Sst *obj, const uint8_t *table);
 void Sst_AnimateIrregular(Sst *obj, const uint8_t *table);
+
+// Render_Sprites for one draw queue of the Sonic 3 objects, into the sprite table the old objects are built into (Sprites.c: BuildSprites calls it for each queue, after the old objects of it, and empties the queues)
+void SstRenderQueue(int queue, sprite_t **sprite, uint8_t *sprite_i, const SpriteView *view, int16_t top, int view_w);

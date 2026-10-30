@@ -1,6 +1,8 @@
 #include "Sprites.h"
 
 #include "EngineObject.h"
+#include "Sst.h"
+#include "ScrollEngine.h"
 
 #include "Camera.h"
 #include "EngineConstants.h"
@@ -59,7 +61,9 @@ static const uint8_t sprite_sizes_2p[16] = { 0, 0, 1, 1, 4, 4, 5, 5, 8, 8, 9, 9,
 
 // Draws `count` consecutive sprite pieces (Mappings.h) with their origin at (x, y) in sprite coordinates. The flips mirror the whole sprite about that origin;
 // `base_tile` is added to every piece's tile; the 2-player form uses the pieces' second tile word and the half-height sizes.
-static void DrawPieces(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t base_tile, const tilebank_t *bank, uint8_t palette_group, bool x_flip, bool y_flip, bool two_p, const uint8_t *piece, unsigned count) {
+// `s3` reads Sonic 3's pieces (6 bytes: no second tile word). `cull_w` (not 0) skips a piece that is out of the view as Sonic 3's multi-draw does (sub_1B070): its sprite Y at or above -32 or at 224 and below, its X at or
+// above -32 or at `cull_w` and past (all in sprite coordinates, so +128), without using a sprite for it.
+static void DrawPiecesEx(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t base_tile, const tilebank_t *bank, uint8_t palette_group, bool x_flip, bool y_flip, bool two_p, const uint8_t *piece, unsigned count, bool s3, int cull_w) {
 	while (count-- > 0) {
 		//Don't overflow the sprite buffer
 		if (*sprite_i >= BUFFER_SPRITES)
@@ -68,13 +72,20 @@ static void DrawPieces(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 		//Read mappings
 		int8_t map_y = Mappings_PieceY(piece);
 		uint8_t map_size = Mappings_PieceSize(piece);
-		uint16_t map_tile = two_p ? Mappings_PieceTile2P(piece) : Mappings_PieceTile(piece);
-		int16_t map_x = Mappings_PieceX(piece);
-		piece += SPRITE_PIECE_SIZE;
+		uint16_t map_tile = s3 ? Mappings_PieceTileS3(piece) : two_p ? Mappings_PieceTile2P(piece) : Mappings_PieceTile(piece);
+		int16_t map_x = s3 ? Mappings_PieceXS3(piece) : Mappings_PieceX(piece);
+		piece += s3 ? SPRITE_PIECE_SIZE_S3 : SPRITE_PIECE_SIZE;
 
 		//The piece's size in pixels, for mirroring
 		int piece_height = ((map_size << 3) & 0x18) + 8;
 		int piece_width = ((map_size << 1) & 0x18) + 8;
+
+		if (cull_w) {
+			int16_t cy = y_flip ? (int16_t)(y - map_y - piece_height) : (int16_t)(y + map_y);
+			int16_t cx = x_flip ? (int16_t)(x - map_x - piece_width) : (int16_t)(x + map_x);
+			if (cy <= -32 + 128 || cy >= SCREEN_HEIGHT + 128 || cx <= -32 + 128 || cx >= cull_w + 128)
+				continue;
+		}
 
 		//Write sprite
 		sprite_t *out = (*sprite)++;
@@ -101,6 +112,9 @@ static void DrawPieces(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 		out->x = px;
 	}
 }
+
+#define DrawPieces(sprite, sprite_i, x, y, base_tile, bank, palette_group, x_flip, y_flip, two_p, piece, count) \
+	DrawPiecesEx(sprite, sprite_i, x, y, base_tile, bank, palette_group, x_flip, y_flip, two_p, piece, count, false, 0)
 
 void BuildSpr_Normal(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces) {
 	DrawPieces(sprite, sprite_i, x, y, tile, NULL, 0, false, false, false, mappings, (unsigned)pieces + 1);
@@ -163,6 +177,90 @@ static void DrawMultiSprite(sprite_t **sprite, uint8_t *sprite_i, Object *obj, c
 		if (wrap)
 			cy &= 0x7FF;
 		DrawFrame(sprite, sprite_i, (uint16_t)cx, (uint16_t)(cy + (top - SPRITE_TOP_1P)), obj, obj->children[i].frame, two_p);
+	}
+}
+
+// Render_Sprites for the Sonic 3 objects (Sst.h) of one draw queue (sonic3k.asm line 36348): the same culling and the same pieces, in the sprite pipeline's table. A level object is placed against the foreground camera, other
+// positions are sprite coordinates already; a multi-draw object has a main sprite (frame 0: none) and its children, each piece culled singly.
+void SstRenderQueue(int queue, sprite_t **sprite, uint8_t *sprite_i, const SpriteView *view, int16_t top, int view_w) {
+	const SpriteLayer *layer = &view->layer[1];
+	const int16_t cam_x = layer->x ? *layer->x : 0, cam_y = layer->y ? *layer->y : 0;
+	const int16_t y_base = (int16_t)(top - SPRITE_TOP_1P);
+	for (int j = 0; j < Sst_QueueCount(queue); j++) {
+		Sst *obj = Sst_QueueEntry(queue, j);
+		obj->render_flags &= 0x7F;
+		const uint8_t flags = obj->render_flags;
+		const bool level = (flags & SST_RENDER_LEVEL) != 0;
+		const bool x_flip = (flags & SST_RENDER_X_FLIP) != 0, y_flip = (flags & SST_RENDER_Y_FLIP) != 0;
+		int16_t x = obj->x_pos.f.u, y = obj->y_pos.f.u;
+		const int w = obj->width_pixels, h = obj->height_pixels;
+
+		if (flags & SST_RENDER_MULTI_DRAW) {
+			if (level) {
+				x = (int16_t)(x - cam_x);
+				if (x + w < 0 || x - w >= view_w)
+					continue;
+				x = (int16_t)(x + 128);
+				y = (int16_t)((y - cam_y + h) & level_screen_y_wrap);
+				if ((uint16_t)y >= (uint16_t)(2 * h + SCREEN_HEIGHT + SCREEN_TALLADD))
+					continue;
+				y = (int16_t)(y + 128 - h);
+			} else {
+				x = (int16_t)(x - 128);
+				if (x + w < 0 || x - w >= view_w)
+					continue;
+				x = (int16_t)(x + 128);
+				y = (int16_t)(y - 128);
+				if (y + h < 0 || y - h >= SCREEN_HEIGHT)
+					continue;
+				y = (int16_t)(y + 128);
+			}
+			obj->render_flags |= SST_RENDER_ON_SCREEN;
+			if (*sprite_i >= BUFFER_SPRITES)
+				continue;
+			if (obj->mapping_frame != 0) {
+				const uint8_t *pieces;
+				uint16_t count = Mappings_FramePieces(obj->mappings, obj->mapping_frame, &pieces);
+				if (count)
+					DrawPiecesEx(sprite, sprite_i, (uint16_t)x, (uint16_t)(y + y_base), obj->art_tile, obj->bank, obj->palette_group, x_flip, y_flip, false, pieces, count, true, view_w);
+			}
+			for (int c = 0; c < obj->child_count && c < SST_CHILDREN && *sprite_i < BUFFER_SPRITES; c++) {
+				int16_t cx = obj->children[c].x, cy = obj->children[c].y;
+				if (level) {
+					cx = (int16_t)(cx - cam_x + 128);
+					cy = (int16_t)((cy - cam_y + 128) & level_screen_y_wrap);
+				}
+				const uint8_t *pieces;
+				uint16_t count = Mappings_FramePieces(obj->mappings, obj->children[c].frame, &pieces);
+				if (count)
+					DrawPiecesEx(sprite, sprite_i, (uint16_t)cx, (uint16_t)(cy + y_base), obj->art_tile, obj->bank, obj->palette_group, x_flip, y_flip, false, pieces, count, true, view_w);
+			}
+			continue;
+		}
+
+		if (level) {
+			x = (int16_t)(x - cam_x);
+			if (x + w < 0 || x - w >= view_w)
+				continue;
+			x = (int16_t)(x + 128);
+			y = (int16_t)((y - cam_y + h) & level_screen_y_wrap);
+			if ((uint16_t)y >= (uint16_t)(2 * h + SCREEN_HEIGHT + SCREEN_TALLADD))
+				continue;
+			y = (int16_t)(y + 128 - h);
+		}
+		obj->render_flags |= SST_RENDER_ON_SCREEN;
+		if (*sprite_i >= BUFFER_SPRITES)
+			continue;
+		const uint8_t *pieces;
+		uint16_t count;
+		if (flags & SST_RENDER_STATIC) {
+			pieces = obj->mappings; // (one lone piece)
+			count = 1;
+		} else {
+			count = Mappings_FramePieces(obj->mappings, obj->mapping_frame, &pieces);
+		}
+		if (count)
+			DrawPiecesEx(sprite, sprite_i, (uint16_t)x, (uint16_t)(y + y_base), obj->art_tile, obj->bank, obj->palette_group, x_flip, y_flip, false, pieces, count, true, 0);
 	}
 }
 
@@ -241,6 +339,9 @@ static void BuildPass(sprite_t **sprite, uint8_t *sprite_i, const SpriteView *vi
 			}
 			obj->render.f.on_screen = true;
 		}
+		// The Sonic 3 objects of this queue come after the old ones of it
+		if (clear_on_screen)
+			SstRenderQueue(i, sprite, sprite_i, view, top, view_w);
 	}
 }
 
@@ -291,9 +392,11 @@ void BuildSprites(uint8_t *sprite_io) {
 	}
 
 	//Every queued object has been drawn (or left out): the queues start empty next frame (Sonic 2 keeps them while its Teleport_flag is set, in the split screen)
-	if (!(sprite_split_screen == SPRITE_SPLIT_STACKED && sprite_teleport_flag))
+	if (!(sprite_split_screen == SPRITE_SPLIT_STACKED && sprite_teleport_flag)) {
 		for (int i = 0; i < 8; i++)
 			sprite_queue[i].size = 0;
+		Sst_ClearQueues();
+	}
 
 	if (sprite_io != NULL)
 		*sprite_io = sprite_i;

@@ -31,3 +31,8 @@ static inline uint8_t Mappings_PieceSize(const uint8_t *piece) { return piece[1]
 static inline uint16_t Mappings_PieceTile(const uint8_t *piece) { return (uint16_t)((piece[2] << 8) | piece[3]); }
 static inline uint16_t Mappings_PieceTile2P(const uint8_t *piece) { return (uint16_t)((piece[4] << 8) | piece[5]); }
 static inline int16_t Mappings_PieceX(const uint8_t *piece) { return (int16_t)((piece[6] << 8) | piece[7]); }
+
+// Sonic 3 & Knuckles' format (Sst.h), the same but for its pieces: 6 bytes (y, size, the tile word, x as a word), without the second tile word of the 2-player mode. A frame is the same word count and its pieces.
+#define SPRITE_PIECE_SIZE_S3 6
+static inline uint16_t Mappings_PieceTileS3(const uint8_t *piece) { return (uint16_t)((piece[2] << 8) | piece[3]); }
+static inline int16_t Mappings_PieceXS3(const uint8_t *piece) { return (int16_t)((piece[4] << 8) | piece[5]); }

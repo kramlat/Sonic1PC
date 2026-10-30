@@ -123,8 +123,9 @@ game plays as before after each. Tests compare the new path with the old one (th
    * a. **The table and the handler** (DONE: `Sst.c/.h`): the struct, `Sst_Process` (Process_Sprites, with the frozen-level case), the 8 draw queues of 63 (`Sst_Draw`: Draw_Sprite, a full queue passes the object
      on), `Sst_Delete`, `Sst_Allocate`/`_AllocateAfter` as the original searches (it starts at the second dynamic slot and runs one slot past the last: kept), `MoveSprite`/`MoveSprite2` and the
      reverse-gravity versions, `Animate_Sprite` and `Animate_SpriteIrregularDelay` with all their codes. Tests: `test_sst.c`.
-   * b. **Rendering**: `Render_Sprites` over the queues into the sprite table (the S3&K mappings, 6-byte pieces; the cull tests with `Screen_Y_wrap_value`; multi-draw objects; the HUD and rings drawn first), DPLC
-     (`Perform_DPLC`) for the players, the on-screen flag; the existing `BuildSprites` stays for the old objects until the last has moved.
+   * b. **Rendering** (DONE except DPLC, the HUD and rings): `SstRenderQueue` (Sprites.c): `Render_Sprites` over the queues into the sprite table the old objects use (the S3&K mappings, 6-byte pieces; the cull tests
+     with `Screen_Y_wrap_value`; static mappings; multi-draw objects with their children, each piece culled singly; the on-screen flag). A queue's new objects come after its old ones. Still to come: DPLC
+     (`Perform_DPLC`) for the players, the sprite mask, and the HUD and rings drawn first (the rings are stage 5); the existing `BuildSprites` stays for the old objects until the last has moved.
    * c. **Loading**: `Load_Sprites` and the respawn table (`Sprite_Listing`: the object layout's 6-byte entries, ordered by X, the load window by `Camera_X_pos_coarse_back`, `Sprite_OnScreen_Test`), replacing
      `ObjectsManager.c`; the object layout files get converted to it.
    * d. **Moving the objects**: Sonic 1 has 235 object files (about 22,700 lines) and Sonic 2 99 (about 20,600): each is rewritten for the `Sst` (field names, `Sst_*` calls, the routine tables as code pointers)

@@ -3,6 +3,10 @@
 #include <string.h>
 
 #include "Sst.h"
+#include "Camera.h"
+#include "EngineObject.h"
+#include "Video.h"
+#include "Viewport.h"
 
 // The status table of Sonic 3 & Knuckles and its handler (engine/Sst.c), checked against the routines of sonic3k.asm they come from.
 
@@ -210,6 +214,143 @@ static void Sst_AnimateIrregularUsesEachFramesOwnDelay(void) {
     Sst_AnimateIrregular(o, irregular); CHECK_EQ(o->mapping_frame, 1); // (looped)
 }
 
+// ---- rendering: Render_Sprites for the status table ----
+
+// Sonic 3 mappings (6-byte pieces): frame 0 has no pieces, frame 1 one 2x2 piece at (-8,-8) with tile 1, frame 2 one 1x1 piece at (4,0) with tile 2
+static const uint8_t s3_mappings[] = {
+    0x00, 0x06, 0x00, 0x08, 0x00, 0x10,
+    0x00, 0x00,
+    0x00, 0x01, 0xF8, 0x05, 0x00, 0x01, 0xFF, 0xF8,
+    0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x04,
+};
+
+static void PrepareRender(void) {
+    Sst_Reset();
+    memset(screen1p.sprite_table, 0, (BUFFER_SPRITES + 1) * sizeof(sprite_t));
+    scrpos_x.f.u = 0;
+    scrpos_y.f.u = 0;
+}
+
+static Sst *Placed(int slot, int x, int y, int frame) {
+    Sst *o = &sst[slot];
+    o->code = Counter;
+    o->mappings = s3_mappings;
+    o->art_tile = 0x100;
+    o->x_pos.f.u = (int16_t)x;
+    o->y_pos.f.u = (int16_t)y;
+    o->mapping_frame = (uint8_t)frame;
+    o->width_pixels = 16;
+    o->height_pixels = 16;
+    o->render_flags = SST_RENDER_LEVEL;
+    return o;
+}
+
+static void Sst_RenderPlacesAPieceAgainstTheCamera(void) {
+    PrepareRender();
+    scrpos_x.f.u = 40;
+    scrpos_y.f.u = 20;
+    Sst *o = Placed(5, 100, 100, 1);
+    Sst_Draw(o);
+    BuildSprites(NULL);
+    CHECK_EQ(sprite_count, 1);
+    CHECK_EQ(screen1p.sprite_table[0].x, 128 + 100 - 40 - 8);
+    CHECK_EQ(screen1p.sprite_table[0].y, 128 + 100 - 20 - 8);
+    CHECK_EQ(screen1p.sprite_table[0].pattern, 0x101);
+    CHECK(o->render_flags & SST_RENDER_ON_SCREEN);
+    CHECK_EQ(Sst_QueueCount(0), 0); // (the queue is empty for the next frame)
+}
+
+static void Sst_RenderMirrorsAboutTheOriginForFlips(void) {
+    PrepareRender();
+    Sst *o = Placed(5, 100, 100, 2);
+    Sst_Draw(o);
+    BuildSprites(NULL);
+    const uint16_t plain_x = screen1p.sprite_table[0].x;
+    CHECK_EQ(plain_x, 128 + 100 + 4);
+    PrepareRender();
+    o = Placed(5, 100, 100, 2);
+    o->render_flags |= SST_RENDER_X_FLIP;
+    Sst_Draw(o);
+    BuildSprites(NULL);
+    CHECK_EQ(screen1p.sprite_table[0].x, 128 + 100 - 4 - 8);
+}
+
+static void Sst_RenderLeavesOutWhatIsOffScreen(void) {
+    PrepareRender();
+    Sst *o = Placed(5, -100, 100, 1);
+    o->render_flags |= SST_RENDER_ON_SCREEN;
+    Sst_Draw(o);
+    Sst *p = Placed(6, 100, 100 + 600, 1); // (far below)
+    Sst_Draw(p);
+    BuildSprites(NULL);
+    CHECK_EQ(sprite_count, 0);
+    CHECK(!(o->render_flags & SST_RENDER_ON_SCREEN)); // (cleared)
+}
+
+static void Sst_RenderUsesScreenPositionsWithoutTheLevelFlag(void) {
+    PrepareRender();
+    scrpos_x.f.u = 500;
+    Sst *o = Placed(5, 128 + 50, 128 + 60, 2);
+    o->render_flags = 0;
+    Sst_Draw(o);
+    BuildSprites(NULL);
+    CHECK_EQ(sprite_count, 1);
+    CHECK_EQ(screen1p.sprite_table[0].x, 128 + 50 + 4);
+    CHECK_EQ(screen1p.sprite_table[0].y, 128 + 60);
+}
+
+static void Sst_RenderDrawsAMultiDrawObjectsChildrenAndCullsTheirPieces(void) {
+    PrepareRender();
+    Sst *o = Placed(5, 100, 100, 1);
+    o->render_flags |= SST_RENDER_MULTI_DRAW;
+    o->child_count = 3;
+    o->children[0] = (SstChild){ 120, 100, 2 };
+    o->children[1] = (SstChild){ 80, 110, 1 };
+    o->children[2] = (SstChild){ 900, 100, 2 }; // (a piece far to the side: not drawn)
+    Sst_Draw(o);
+    BuildSprites(NULL);
+    CHECK_EQ(sprite_count, 3);
+    CHECK_EQ(screen1p.sprite_table[1].x, 128 + 120 + 4);
+}
+
+static void Sst_RenderStaticMappingsAreOneLonePiece(void) {
+    PrepareRender();
+    Sst *o = Placed(5, 100, 100, 0);
+    o->mappings = s3_mappings + 0x12; // (frame 2's piece, by itself)
+    o->render_flags |= SST_RENDER_STATIC;
+    Sst_Draw(o);
+    BuildSprites(NULL);
+    CHECK_EQ(sprite_count, 1);
+    CHECK_EQ(screen1p.sprite_table[0].pattern, 0x102);
+}
+
+static void Sst_RenderPutsTheNewObjectsOfAQueueAfterTheOldOnes(void) {
+    PrepareRender();
+    static const uint8_t old_mappings[] = { 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    static Object old;
+    memset(&old, 0, sizeof(old));
+    old.type = 1;
+    old.mappings = old_mappings;
+    old.tile = 0x200;
+    old.render.f.level_fg = 1;
+    old.width_pixels = 16;
+    old.pos.l.x.f.u = 50;
+    old.pos.l.y.f.u = 50;
+    old.priority = 2;
+    Sst *o = Placed(5, 100, 100, 1);
+    o->priority = 0x80 * 2;
+    Sst *front = Placed(6, 100, 100, 2);
+    front->priority = 0;
+    Sst_Draw(o);
+    Sst_Draw(front);
+    DisplaySprite(&old);
+    BuildSprites(NULL);
+    CHECK_EQ(sprite_count, 3);
+    CHECK_EQ(screen1p.sprite_table[0].pattern, 0x102);  // the new one of queue 0
+    CHECK(screen1p.sprite_table[1].pattern == 0x200);   // the old one of queue 2
+    CHECK_EQ(screen1p.sprite_table[2].pattern, 0x101);  // the new one of queue 2, after it
+}
+
 void RegisterSstTests(void) {
     RUN_TEST(Sst_ProcessRunsEverySlotInOrderAndSkipsFreeOnes);
     RUN_TEST(Sst_AFrozenLevelOnlyDrawsItsOnScreenObjects);
@@ -221,4 +362,11 @@ void RegisterSstTests(void) {
     RUN_TEST(Sst_AnimateWalksTheScript);
     RUN_TEST(Sst_AnimateCodes);
     RUN_TEST(Sst_AnimateIrregularUsesEachFramesOwnDelay);
+    RUN_TEST(Sst_RenderPlacesAPieceAgainstTheCamera);
+    RUN_TEST(Sst_RenderMirrorsAboutTheOriginForFlips);
+    RUN_TEST(Sst_RenderLeavesOutWhatIsOffScreen);
+    RUN_TEST(Sst_RenderUsesScreenPositionsWithoutTheLevelFlag);
+    RUN_TEST(Sst_RenderDrawsAMultiDrawObjectsChildrenAndCullsTheirPieces);
+    RUN_TEST(Sst_RenderStaticMappingsAreOneLonePiece);
+    RUN_TEST(Sst_RenderPutsTheNewObjectsOfAQueueAfterTheOldOnes);
 }
