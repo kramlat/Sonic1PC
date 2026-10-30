@@ -114,13 +114,23 @@ game plays as before after each. Tests compare the new path with the old one (th
      user's note).
 4. **Ring data format** (engine `RingsManager.c`, the editor's ring tools): the 4-byte entries and the status table; `Test_Ring_Collisions` and `Render_Rings` as the model; Sonic 2's `S2Rings/*`
    converted by expanding each group, and Sonic 1's `res/RingLayout/*` the same way. The editor keeps placing "a line of N rings" and writes N entries.
-5. **Object handler** (the user's stage 4, after the scrolling engine): the object format of Sonic 3 & Knuckles with its own status table, an SST of its own beside the old one (the games' objects keep
-   working until each moves over). The S3&K object is $4A bytes (`object_size`): the code address first (a long: 0 is a free slot), `render_flags` ($4), the routine ($5), the height and width in pixels ($6, $7),
-   the priority as a word in units of $80 ($8), the art tile word ($A), the mappings pointer ($C), the position ($10 and $14, words or longs with a sub-pixel word after), the speeds ($18 on), the animation
-   ($20, $23, $24), the mapping frame ($22), the collision flags and property ($28, $29), the status bytes ($2A, $2B, $37), the subtype ($2C), the secondary routine ($3C) and the respawn address ($48), the rest
-   free for each object's own use (`objoff_*`). The handler is `Process_Sprites` as the one loop, with `Draw_Sprite` and `Render_Sprites` over the 8 priority queues. The engine gets the new `Object` struct,
-   its slots (player 1, player 2, the reserved one, the 90 dynamic ones, the level's), the handler and the manager that reads the layout's ids into code addresses (`Sprite_Listing`); a game's objects are
-   moved over to it one at a time, and the old handler runs the old ones until the last has moved.
+5. **Object handler** (the user's stage 4, after the scrolling engine): the object format of Sonic 3 & Knuckles with its own status table, an SST of its own beside the old `Object` one (the games' objects keep
+   working until each moves over). The S3&K object is $4A bytes (`object_size`) with the code address first (0: a free slot), `render_flags` ($4), the routine ($5), the height and width in pixels ($6, $7), the
+   priority as a word in units of $80 ($8), the art tile word ($A), the mappings pointer ($C), the position ($10 and $14, words with a sub-pixel word after), the speeds ($18, $1A), the radii ($1E, $1F), the
+   animation ($20, $21, $23, $24), the mapping frame ($22), the angle ($26), the collision flags and property ($28, $29), the status bytes ($2A, $2B, $37), the subtype ($2C), the secondary routine ($3C) and the
+   respawn address ($48), the rest each object's own (`objoff_*`). In C it keeps the names and the meanings and not the byte offsets (the code is a function pointer). The slots are Object_RAM's: Player_1,
+   Player_2, the reserved one, 90 dynamic and 17 fixed ones of the level (110).
+   * a. **The table and the handler** (DONE: `Sst.c/.h`): the struct, `Sst_Process` (Process_Sprites, with the frozen-level case), the 8 draw queues of 63 (`Sst_Draw`: Draw_Sprite, a full queue passes the object
+     on), `Sst_Delete`, `Sst_Allocate`/`_AllocateAfter` as the original searches (it starts at the second dynamic slot and runs one slot past the last: kept), `MoveSprite`/`MoveSprite2` and the
+     reverse-gravity versions, `Animate_Sprite` and `Animate_SpriteIrregularDelay` with all their codes. Tests: `test_sst.c`.
+   * b. **Rendering**: `Render_Sprites` over the queues into the sprite table (the S3&K mappings, 6-byte pieces; the cull tests with `Screen_Y_wrap_value`; multi-draw objects; the HUD and rings drawn first), DPLC
+     (`Perform_DPLC`) for the players, the on-screen flag; the existing `BuildSprites` stays for the old objects until the last has moved.
+   * c. **Loading**: `Load_Sprites` and the respawn table (`Sprite_Listing`: the object layout's 6-byte entries, ordered by X, the load window by `Camera_X_pos_coarse_back`, `Sprite_OnScreen_Test`), replacing
+     `ObjectsManager.c`; the object layout files get converted to it.
+   * d. **Moving the objects**: Sonic 1 has 235 object files (about 22,700 lines) and Sonic 2 99 (about 20,600): each is rewritten for the `Sst` (field names, `Sst_*` calls, the routine tables as code pointers)
+     and its tests move with it, a group at a time (players first, then the objects every zone shares, then each zone's), with the old and new handlers both running every frame until the last one is over. Not
+     mechanical: the new `x_pos` is a word with a sub-pixel word, the radii are two fields, the status bits differ from the old ones, and the sprite pieces are drawn from different mappings.
+   * e. **The old handler goes**: `Object`, `ExecuteObjects`, `BuildSprites`, `ObjectsManager` removed.
 6. **The levels**: every zone of both games through the converters (Emerald Hill and Hill Top first: the one primary and two secondaries), the importers and the editor writing the new formats, the old
    readers removed (the camera limits and start positions stay in their tables, as in S3&K, unless the user wants them taken from the data).
 
