@@ -420,6 +420,7 @@ static void ScrollEngine_GreenHillsLinesAreTheOriginalsBands(void) {
 
 void LoadTilesAsYouMove(void);
 void Deform_MZ(void);
+void Deform_SBZ(void);
 void LoadTilesFromStart(void);
 extern uint8_t bg1_xblock, bg2_xblock, bg3_xblock, bg1_yblock, bg2_yblock, bg3_yblock;
 // What Green Hill's background plane shows (the plane's tile under every 8th pixel of every line, through the scroll lines), frame by frame over a run of 900 frames
@@ -521,9 +522,66 @@ static void ScrollEngine_MarblesBackgroundShowsWhatTheOriginalDid(void) {
     CHECK(hash == 0x8cda10e688630c02ull);
 }
 
+// Scrap Brain act 1's background plane over 1200 frames (right and down, a stop, left and up, then small moves both ways): what the plane shows under every 8th pixel of every line, through the
+// scroll lines. The hash is of what the original's flag-driven drawing showed.
+static void ScrollEngine_ScrapBrainsBackgroundShowsWhatTheOriginalDid(void) {
+    uint64_t hash = 0xcbf29ce484222325ull;
+    level_id = LEVEL_ID(ZoneId_SBZ, 0);
+    gamemode = GameMode_Level;
+    Viewport_SetSize(320, 224, 64, 32);
+    LevelDataLoad();
+    LoadLevelLayout();
+    Plane_Clear(&screen1p.plane_b);
+    scrpos_x.v = 0x60 << 16;
+    scrpos_y.v = 0x300 << 16;
+    bg_scrpos_x.v = bg_scrpos_y.v = bg2_scrpos_x.v = bg2_scrpos_y.v = bg3_scrpos_x.v = bg3_scrpos_y.v = 0;
+    bg1_xblock = bg2_xblock = bg3_xblock = 0;
+    bg1_yblock = bg2_yblock = bg3_yblock = 0;
+    bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
+    scrshift_x = scrshift_y = 0;
+    Deform_SBZ();
+    bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
+    bg2_scrpos_x_dup.v = bg2_scrpos_x.v; bg2_scrpos_y_dup.v = bg2_scrpos_y.v;
+    bg3_scrpos_x_dup.v = bg3_scrpos_x.v; bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
+    LoadTilesFromStart();
+    for (int frame = 0; frame < 1200; frame++) {
+        int sx, sy;
+        if (frame < 400) { sx = (frame / 25) % 9; sy = (frame / 20) % 13; }
+        else if (frame < 450) { sx = 0; sy = 0; }
+        else if (frame < 900) { sx = -((frame / 25) % 9); sy = -((frame / 20) % 13); }
+        else { sx = (frame % 7) - 3; sy = (frame % 11) - 5; }
+        if (bg_scrpos_x.v + (int32_t)((sx << 8) << 7) < 0) sx = 0; // (a background does not go left of its start, nor above it)
+        if (bg_scrpos_y.v + (int32_t)((sy << 8) << 5) < 0) sy = 0;
+        scrshift_x = (int16_t)(sx << 8);
+        scrshift_y = (int16_t)(sy << 8);
+        scrpos_x.v += (int32_t)sx << 16;
+        scrpos_y.v += (int32_t)sy << 16;
+        bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
+        Deform_SBZ();
+        bg_scrpos_x_dup.v = bg_scrpos_x.v; bg_scrpos_y_dup.v = bg_scrpos_y.v;
+        bg2_scrpos_x_dup.v = bg2_scrpos_x.v; bg2_scrpos_y_dup.v = bg2_scrpos_y.v;
+        bg3_scrpos_x_dup.v = bg3_scrpos_x.v; bg3_scrpos_y_dup.v = bg3_scrpos_y.v;
+        bg1_scroll_flags_dup = bg1_scroll_flags; bg2_scroll_flags_dup = bg2_scroll_flags; bg3_scroll_flags_dup = bg3_scroll_flags;
+        LoadTilesAsYouMove();
+        int vsy = vid_bg_scrpos_y_dup;
+        for (int l = 0; l < SCREEN_HEIGHT; l++) {
+            int row = ((l + vsy) >> 3) & (PLANE_HEIGHT - 1);
+            int x0 = -hscroll_buffer[l][1];
+            for (int px = 0; px < SCREEN_WIDTH; px += 8) {
+                int col = ((x0 + px) >> 3) & (PLANE_WIDTH - 1);
+                uint16_t w = Plane_Word(&screen1p.plane_b, (size_t)(row * PLANE_WIDTH + col) * 2);
+                hash = (hash ^ (w & 0xFF)) * 0x100000001b3ull;
+                hash = (hash ^ (w >> 8)) * 0x100000001b3ull;
+            }
+        }
+    }
+    CHECK(hash == 0x2325db7b098c1528ull);
+}
+
 void RegisterLevelPlaneTests(void) {
     RUN_TEST(ScrollEngine_GreenHillsBackgroundShowsWhatTheOriginalDid);
     RUN_TEST(ScrollEngine_MarblesBackgroundShowsWhatTheOriginalDid);
+    RUN_TEST(ScrollEngine_ScrapBrainsBackgroundShowsWhatTheOriginalDid);
     RUN_TEST(ScrollEngine_RunsAZonesRoutinesInTheOriginalsOrder);
     RUN_TEST(ScrollEngine_ALevelsMasksSetHowItWraps);
     RUN_TEST(ScrollEngine_GreenHillsLinesAreTheOriginalsBands);

@@ -7,10 +7,6 @@
 
 extern const uint8_t MZ_ScrollArray[], SBZ_ScrollArray[];
 extern int16_t scroll_block1_size, scroll_block2_size, scroll_block3_size, scroll_block4_size;
-extern const dword_s* bg_pos_table[];
-extern const dword_s* bg_pos_table_dup[];
-extern const dword_s* bg_pos_table_y[];
-extern const dword_s* bg_pos_table_y_dup[];
 
 void LoadTilesFromStart(void);
 void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane);

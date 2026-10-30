@@ -42,22 +42,20 @@ static void GetBlockData2_ReadsColumnsPast64(void) {
     LevelLayout_Resize(&layout, 0, 0); // (gives its memory back)
 }
 
-// SBZ act 1 (REV01) background scrolling: Draw_SBZ only looks at the redraw flags the real routines set --
-// block 1 at bits 2/3, block 2 at 4/5, block 3 at 6/7 (right-scroll = the upper bit of each pair) and the
-// top/bottom row at bits 0/1. Passing the wrong bit (or BGScroll_Y's bits 4/5 for the vertical move) left new
-// right-edge columns and new bottom rows undrawn or drawn from the wrong layer.
-static void SBZ1_BackgroundRedrawFlags(void) {
+// SBZ act 1's background is kept by the engine's band layers (ScrollBands, from the row map below): moving it raises no redraw flags, the layer sees the positions move.
+void Deform_SBZ(void);
+static void SBZ1_BackgroundRaisesNoRedrawFlags(void) {
     level_id = LEVEL_ID(ZoneId_SBZ, 0);
     bg_scrpos_x.v = bg2_scrpos_x.v = bg3_scrpos_x.v = bg_scrpos_y.v = 0;
     bg1_xblock = bg2_xblock = bg3_xblock = 0;
-    bg1_yblock = 0x10; // makes the first move count as crossing a 16px boundary
+    bg1_yblock = 0x10;
     bg1_scroll_flags = bg2_scroll_flags = bg3_scroll_flags = 0;
-    scrshift_x = 0x10; // moving right...
-    scrshift_y = 0x10; // ...and down
+    scrshift_x = 0x400; // moving right...
+    scrshift_y = 0x400; // ...and down
     scrpos_x.v = 0;
-    DeformLayers();
-    CHECK_EQ(bg2_scroll_flags & 0xFF, 0x08 | 0x20 | 0x80 | 0x02);
-    CHECK_EQ(bg1_scroll_flags & 0xFF, 0);
+    Deform_SBZ();
+    CHECK(bg_scrpos_x.v > 0 && bg_scrpos_y.v > 0 && bg2_scrpos_x.v > 0 && bg3_scrpos_x.v > 0);
+    CHECK_EQ(bg1_scroll_flags | bg2_scroll_flags | bg3_scroll_flags, 0);
 }
 
 // SBZ act 1's background row map must be the real BG_ScrollBlockMap_SBZ (which BG layer each 16px row follows).
@@ -75,5 +73,5 @@ static void SBZ_ScrollArrayMatchesDisassembly(void) {
 void RegisterLevelDrawTests(void) {
     RUN_TEST(GetBlockData2_ReadsColumnsPast64);
     RUN_TEST(SBZ_ScrollArrayMatchesDisassembly);
-    RUN_TEST(SBZ1_BackgroundRedrawFlags);
+    RUN_TEST(SBZ1_BackgroundRaisesNoRedrawFlags);
 }

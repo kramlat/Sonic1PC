@@ -313,29 +313,29 @@ void Deform_SBZ(void) {
 		return;
 	}
 
-	// The last argument is the left-redraw flag's bit mask (right is the next bit up): real moveq #2/#6/#4,d6.
-	// Block1 used to get SCROLL_FLAG_RIGHT and Block3 SCROLL_FLAG_DOWN2 -- one bit too high, so the redraw
-	// flags landed on the wrong blocks and new right-edge columns were drawn from the wrong layer.
-	BGScroll_Block1(scrshift_x << 7, SCROLL_FLAG_LEFT);        // bits 2/3
-	BGScroll_Block3(scrshift_x << 6, (uint8_t)(1 << 6));       // bits 6/7
-	BGScroll_Block2((scrshift_x << 5) * 3, SCROLL_FLAG_UP2);   // bits 4/5
-
-	BGScroll_YRelative(scrshift_y << 5);
+	// The three layers of buildings move by their own fractions of the camera's move, and the background down with it
+	bg_scrpos_x.v += scrshift_x << 7;
+	bg3_scrpos_x.v += scrshift_x << 6;
+	bg2_scrpos_x.v += (scrshift_x << 5) * 3;
+	bg_scrpos_y.v += scrshift_y << 5;
 	vid_bg_scrpos_y_dup = bg2_scrpos_y.f.u = bg3_scrpos_y.f.u = bg_scrpos_y.f.u;
 
-	bg2_scroll_flags |= (bg1_scroll_flags | bg3_scroll_flags);
-	bg1_scroll_flags = bg3_scroll_flags = 0;
-
-	int16_t *buf_ptr = (int16_t*)bgscroll_buffer;
+	// The background's lines: a position for each row of 16 (ScrollEngine_ApplyDeformation): the sky's gradient over four rows, ten of the third layer, seven of the second and
+	// eleven of the first. The rows past those are not set (the original reads whatever follows its table there: nothing, for it is cleared)
+	int16_t pos[48] = { 0 };
 	int16_t d2_w = (-scrpos_x.f.u) >> 2;
 	int32_t delta = (((int32_t)(d2_w >> 1) - d2_w) << 11) / 4;
-	FillGradient(4, d2_w, delta << 5, buf_ptr); buf_ptr += 4;
+	FillGradient(4, d2_w, delta << 5, pos);
+	for (int i = 0; i < 10; i++) pos[4 + i] = -bg3_scrpos_x.f.u;
+	for (int i = 0; i < 7; i++)  pos[14 + i] = -bg2_scrpos_x.f.u;
+	for (int i = 0; i < 11; i++) pos[21 + i] = -bg_scrpos_x.f.u;
+	for (int i = 0; i < 32; i++) pos[i] = (int16_t)-pos[i]; // (they are given as the scroll lines hold them)
 
-	for (int i = 0; i < 10; i++) *buf_ptr++ = -bg3_scrpos_x.f.u;
-	for (int i = 0; i < 7; i++)  *buf_ptr++ = -bg2_scrpos_x.f.u;
-	for (int i = 0; i < 11; i++) *buf_ptr++ = -bg_scrpos_x.f.u;
-
-	BGScroll_X(bg_scrpos_y.f.u, (bg_scrpos_y.f.u & 0x1F0) >> 3);
+	static const uint16_t heights[48] = {
+		16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+		16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16
+	};
+	ScrollEngine_ApplyDeformation(heights, 48, pos, (int16_t)(bg_scrpos_y.f.u & 0x1FF), scrpos_x.f.u, true, SCREEN_HEIGHT, hscroll_buffer);
 }
 
 // Each zone's background deformation, registered with the scrolling engine (ScrollEngine.h) as its background event: these are the old deformation routines, kept until each zone is written for the engine
@@ -711,6 +711,26 @@ static void BuildMarbleLayer(void)
 	mz_layer = (BandLayer){ mz_heights, mz_source, n, 3, 1 };
 }
 
+// Scrap Brain act 1's: BG_ScrollBlockMap_SBZ, the same way over the 32 rows of its 512-pixel layer, repeated down the plane (a fixed band's row comes into view at the second position)
+static uint16_t sbz_heights[SCROLL_MAX_BANDS];
+static uint8_t sbz_source[SCROLL_MAX_BANDS];
+static BandLayer sbz_layer;
+
+static void BuildScrapBrainLayer(void)
+{
+	int n = 0;
+	for (int row = 0; row < 128; row++) {
+		uint8_t v = SBZ_ScrollArray[1 + (row & 0x1F)] >> 1;
+		if (n > 0 && sbz_source[n - 1] == v)
+			sbz_heights[n - 1] += 16;
+		else if (n < SCROLL_MAX_BANDS) {
+			sbz_source[n] = v;
+			sbz_heights[n++] = 16;
+		}
+	}
+	sbz_layer = (BandLayer){ sbz_heights, sbz_source, n, 2, 1 };
+}
+
 static const BandLayer *band_layer;
 static ScrollBands bg_bands;
 static bool bands_redraw = true;
@@ -732,6 +752,14 @@ void LevelScroll_BackgroundReset(void)
 		if (mz_layer.count == 0)
 			BuildMarbleLayer();
 		band_layer = &mz_layer;
+		break;
+	case ZoneId_SBZ:
+		if (LEVEL_ACT(level_id) == 0) {
+			if (sbz_layer.count == 0)
+				BuildScrapBrainLayer();
+			band_layer = &sbz_layer;
+		} else
+			band_layer = NULL;
 		break;
 	default:
 		band_layer = NULL;

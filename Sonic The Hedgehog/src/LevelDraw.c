@@ -75,129 +75,11 @@ const uint8_t SBZ_ScrollArray[48] = {
     0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4        // wrap of $02-$0F
 };
 
-// Real ASM has TWO separate X-position tables: DrawBG_XPos_Ptrs (live vars
-// -- v_bgscreenposx/v_bg2screenposx/v_bg3screenposx) used only by the
-// one-shot initial full draw (DrawBG_RowForBGIndex, reached from
-// LoadTilesFromStart), and DrawBG_XPosCopy_Ptrs (the "_dup" vars) used only
-// by the incremental per-frame scroll-block redraw (DrawBG_ColumnForBGIndex,
-// and DrawBlocks_BG_2 when called from the incremental Draw_MZ/Draw_SBZ
-// paths). Using live vars in an incremental context would sample whatever
-// position the CURRENT (not-yet-fully-processed) frame has already reached,
-// instead of the frame-start snapshot every other incremental redraw uses.
-const dword_s* bg_pos_table[] = {
-    &bg_scrpos_x,  // Index 0
-    &bg_scrpos_x,  // Index 2
-    &bg2_scrpos_x, // Index 4
-    &bg3_scrpos_x  // Index 6
-};
-
-const dword_s* bg_pos_table_dup[] = {
-    &bg_scrpos_x_dup,  // Index 0
-    &bg_scrpos_x_dup,  // Index 2
-    &bg2_scrpos_x_dup, // Index 4
-    &bg3_scrpos_x_dup  // Index 6
-};
-
-// Real hardware's DrawBG_XPos_Ptrs/DrawBG_XPosCopy_Ptrs entries are pointers
-// to each layer's own {X,Y} position struct (X at offset 0, Y at +4) -- both
-// Calc_VRAM_Pos and GetBlockData read "4(a3)" to add the SELECTED layer's
-// own Y directly, raw/untransformed (its own internal masking handles plane
-// wraparound). These Y-position counterparts let us do the same.
-const dword_s* bg_pos_table_y[] = {
-    &bg_scrpos_y,  // Index 0
-    &bg_scrpos_y,  // Index 2
-    &bg2_scrpos_y, // Index 4
-    &bg3_scrpos_y  // Index 6
-};
-
-const dword_s* bg_pos_table_y_dup[] = {
-    &bg_scrpos_y_dup,  // Index 0
-    &bg_scrpos_y_dup,  // Index 2
-    &bg2_scrpos_y_dup, // Index 4
-    &bg3_scrpos_y_dup  // Index 6
-};
-
-void DrawBlocks_BG_2(plane_t *plane, int16_t sx, int16_t sy, int16_t index_bias, int16_t y, const LevelLayoutPlane *layout, const uint8_t *array, size_t entries, const dword_s *const *pos_table, const dword_s *const *pos_table_y) {
-	// Matches the disassembly's "move.w v_bgscreenposy,d0 ; add.w d4,d0 ;
-	// andi.w #$1F0,d0" (mask varies per table size): combine the camera
-	// position with the relative row offset (y can legitimately be
-	// negative, e.g. -16 for "one row above the screen"), then wrap via an
-	// unsigned mask rather than a signed shift -- plain "y >> 4" on a
-	// negative y indexed before the start of the array. index_bias is MZ's
-	// extra "subi.w #$200,d0" (its table is addressed 512px further along
-	// than its own BG camera position) -- zero for every other zone.
-	uint16_t mask = (uint16_t)((entries << 4) - 16);
-	uint8_t bg_pos_i = array[((uint16_t)(sy + y + index_bias) & mask) >> 4];
-	if (bg_pos_i != 0) {
-		sx = pos_table[bg_pos_i >> 1]->f.u;
-		// Real Calc_VRAM_Pos/GetBlockData add the SELECTED layer's own raw
-		// Y register directly (its own internal masking/wraparound handles
-		// the rest) -- NOT a transform of the generic sy this function was
-		// called with. Using (sy & ~0xF) % SCROLL_HEIGHT here sampled a
-		// wildly wrong Y (e.g. 518 -> 64), landing the row read far from
-		// where it should be.
-		sy = pos_table_y[bg_pos_i >> 1]->f.u;
-		// Real DrawBG_RowForBGIndex explicitly sets d5=-16 (the usual
-		// one-tile-left-margin convention used everywhere else in this
-		// file) before BOTH the VRAM-position calc and the draw call --
-		// this was passing x=0 for both instead.
-		DrawBlocks_LR(plane, CalcVRAMPos(sx, sy, -16, y), sx, sy, -16, y, layout);
-	}
-	else
-		// Matches the disassembly's ".bgXPos0" branch of DrawBG_RowForBGIndex
-		// exactly: DrawBlocks_LR_3 (REV01's VRAM-wrapping variant, matching
-		// every other "draw a full-width strip" call in this file) at
-		// PLANE_WIDTH/2 blocks (512px, the plane's real width) -- not plain
-		// DrawBlocks_LR_2 at a full PLANE_WIDTH (1024px, double the plane),
-		// which wrapped the destination VRAM position around twice per row
-		// and drew over itself with the wrong tiles.
-		DrawBlocks_LR_3(plane, CalcVRAMPos(sx, sy, 0, y), sx, sy, 0, y, layout, PLANE_WIDTH / 2);
-}
-
-void DrawBlocks_BG(plane_t *plane, int16_t sx, int16_t sy, int16_t y, const LevelLayoutPlane *layout, const uint8_t *array, size_t entries, const dword_s *const *pos_table, const dword_s *const *pos_table_y) {
-	DrawBlocks_BG_2(plane, sx, sy, 0, y, layout, array, entries, pos_table, pos_table_y);
-}
-
-// Matches DrawBG_ColumnForBGIndex in the disassembly: draws a full 16-row
-// vertical strip when more than one scroll-block redraw flag is pending at
-// once (diagonal scrolling in MZ/SBZ). Unlike DrawBlocks_BG (one row, one
-// table lookup derived from the camera position), this walks 16 consecutive
-// table entries -- one per row of the strip, starting from table[0] --
-// checking each directly against the shared redraw-flags byte. Only ever
-// reached from incremental (per-frame) redraw paths, so it always uses the
-// "_dup" position table (real ASM: DrawBG_XPosCopy_Ptrs), never the live one.
-void DrawBG_ColumnForBGIndex(plane_t *plane, int16_t x, int16_t y, int16_t sy, const LevelLayoutPlane *layout, const uint8_t *table, uint16_t *flag) {
-	for (size_t i = 0; i < SCROLL_ROWS; i++, y += 16) {
-		uint8_t bit = table[i];
-		if (*flag & (1 << bit)) {
-			const uint8_t *meta, *block;
-			int16_t row_sx = bg_pos_table_dup[bit >> 1]->f.u;
-			GetBlockData(&meta, &block, row_sx, sy, x, y, layout);
-			DrawBlock(meta, block, plane, CalcVRAMPos(row_sx, sy, x, y));
-		}
-	}
-	// Matches "clr.b (a2)" -- only the low (SBZ/MZ-specific) byte of the
-	// redraw-flags word is cleared, not the whole 16-bit value.
-	*flag &= 0xFF00;
-}
-
-void Draw_SBZ_Bg(int16_t sy, const LevelLayoutPlane *layout, plane_t *plane) {
-    // Matches Draw_SBZ_act1_BG in the disassembly: y = -16 (not 0), and
-    // SBZ_ScrollArray+1 (see BG_ScrollBlockMap_SBZ+1).
-    int16_t y = -16;
-    for (size_t i = 0; i < SCROLL_ROWS; i++) {
-        DrawBlocks_BG(plane, bg_scrpos_x.f.u, sy, y, layout, SBZ_ScrollArray + 1, 32, bg_pos_table, bg_pos_table_y);
-        y += 16;
-    }
-}
-
 // Level drawing functions
 void LoadTilesFromStart(void) {
     DrawChunks(scrpos_x.f.u, scrpos_y.f.u, LEVEL_LAYOUT_PLANE_FG, &screen1p.plane_a);
     if (LevelScroll_UsesBands())
         LevelScroll_DrawBands(&bg_scrpos_x, &bg2_scrpos_x, &bg3_scrpos_x, &bg_scrpos_y);
-    else if (level_id == ZoneId_SBZ << 8)
-        Draw_SBZ_Bg(bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
     else
     DrawChunks(bg_scrpos_x.f.u, bg_scrpos_y.f.u, LEVEL_LAYOUT_PLANE_BG, &screen1p.plane_b);
 }
@@ -237,54 +119,16 @@ void DrawBG_Top(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *
 }
 
 
-// Split out of DrawBG_Bottom's SBZ branch, named to match real ASM's own
-// Draw_SBZ label for easier cross-referencing: a full row above/below the
-// screen if the top/bottom flag is set, then any remaining flag bits
-// trigger a vertical strip via DrawBG_ColumnForBGIndex.
-static void Draw_SBZ(int16_t sx, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
-	int16_t vertical_offset = -16; // Margin for drawing new tiles
-	if (*flag & 0x01) {
-		*flag &= ~0x01;
-		DrawBlocks_BG(plane, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray + 1, 32, bg_pos_table_dup, bg_pos_table_y_dup);
-	} else if (*flag & 0x02) {
-		*flag &= ~0x02;
-		vertical_offset = SCREEN_HEIGHT; // Draw slice at the bottom of the screen
-		DrawBlocks_BG(plane, sx, bg_scrpos_y.f.u, vertical_offset, layout, SBZ_ScrollArray + 1, 32, bg_pos_table_dup, bg_pos_table_y_dup);
-	}
-	if (*flag & 0xFF) {
-		// Matches Draw_SBZ's ".more"/".doMore": any remaining flag bits
-		// trigger a full vertical strip via DrawBG_ColumnForBGIndex (not
-		// another single-row lookup -- unlike the top/bottom case above,
-		// no +1 table offset here), at the screen's left edge by default,
-		// or the right edge if any of bits 7/5/3 ($A8) are among those
-		// remaining (which also get folded down into bits 6/4/2 for the
-		// strip's own per-row bit tests).
-		int16_t col_x = -16;
-		uint8_t submask = (uint8_t)(*flag & 0xA8);
-		if (submask != 0) {
-			*flag = (*flag & 0xFF00) | (submask >> 1);
-			col_x = RIGHT_EDGE_X;
-		}
-		uint16_t idx = (uint16_t)bg_scrpos_y.f.u & 0x1F0;
-		DrawBG_ColumnForBGIndex(plane, col_x, -16, bg_scrpos_y.f.u, layout, SBZ_ScrollArray + (idx >> 4), flag);
-	}
-}
-
 void DrawBG_Bottom(int16_t sx, int16_t sy, uint16_t *flag, const LevelLayoutPlane *layout, plane_t *plane) {
 	if (*flag == 0)
 		return;
-		if (LEVEL_ZONE(level_id) != ZoneId_SBZ) {
-			if (*flag & SCROLL_FLAG_LEFT2) {
-				DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, -16, 0x70), sx, sy, -16, 0x70, layout, 3);
-				*flag &= ~SCROLL_FLAG_LEFT2;
-			}
-			if (*flag & SCROLL_FLAG_RIGHT2) {
-				DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, RIGHT_EDGE_X, 0x70), sx, sy, RIGHT_EDGE_X, 0x70, layout, 3);
-				*flag &= ~SCROLL_FLAG_RIGHT2;
-			}
-		} else {
-			Draw_SBZ(sx, flag, layout, plane);
-			return;
+		if (*flag & SCROLL_FLAG_LEFT2) {
+			DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, -16, 0x70), sx, sy, -16, 0x70, layout, 3);
+			*flag &= ~SCROLL_FLAG_LEFT2;
+		}
+		if (*flag & SCROLL_FLAG_RIGHT2) {
+			DrawBlocks_TB_2(plane, CalcVRAMPos(sx, sy, RIGHT_EDGE_X, 0x70), sx, sy, RIGHT_EDGE_X, 0x70, layout, 3);
+			*flag &= ~SCROLL_FLAG_RIGHT2;
 		}
 }
 
