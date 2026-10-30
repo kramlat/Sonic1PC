@@ -1,5 +1,7 @@
 #include "EditorLive.h"
 #include "Level.h"
+#include "SstLoad.h"
+#include "ScrollEngine.h"
 
 #include "Constants.h"
 #include "Enigma.h"
@@ -825,6 +827,15 @@ void SignpostArtLoad(void) {
 // original 320-pixel picture's, whatever the picture size: see IS_OFFSCREEN.
 ObjectsManager objects_manager;
 
+// The objects that have moved over to the status table of Sonic 3 & Knuckles (Sst.h) and are loaded by its loader (SstLoad.h) instead: an id's routine. The manager above leaves their entries alone.
+static const SstCode sst_object_codes[0x100];
+static const SstObjectIndex sst_object_index = {sst_object_codes, 0x100};
+
+static SstLoadCamera SstCamera(void) {
+    SstLoadCamera c = {scrpos_x.f.u, scrpos_y.f.u, (int16_t)limit_top1 < 0, level_screen_y_wrap};
+    return c;
+}
+
 void ObjPosLoad(void) {
     if (Editor_TakeReload()) { // (the level editor changed the layouts: the level's objects are made again from them)
         Editor_ClearLevelObjects();
@@ -839,8 +850,13 @@ void ObjPosLoad(void) {
 
         static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
         ObjectsManager_Init(&objects_manager, &config, objstate, sizeof(objstate), Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
+        Sst_Reset();
+        SstLoadCamera sst_camera = SstCamera();
+        SstLoad_Init(&sst_object_index, Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), false, &sst_camera);
         Rings_Init(Editor_RingLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_ring[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
     } else {
+        SstLoadCamera sst_camera = SstCamera();
+        SstLoad_Update(&sst_camera);
         ObjectsManager_Update(&objects_manager, scrpos_x.f.u);
         Rings_Update(scrpos_x.f.u);
     }

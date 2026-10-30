@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "SstLoad.h"
+
 // A line-by-line port of Sonic 2's ObjectsManager (1-player mode), ChkLoadObj included, with the original's RAM in a struct (ObjectsManager) and its constants
 // in a configuration. The respawn table's first two bytes (the two running indexes) are respawn_right / respawn_left, so marks is indexed by respawn index directly.
 
@@ -23,6 +25,10 @@ static bool Holds(const ObjectsManager *m, const uint8_t *entry) {
 // ChkLoadObj: loads the object at *entry unless it was already loaded. Returns true when the slots are full (nothing changed then, but for the loaded mark).
 static bool ChkLoadObj(ObjectsManager *m, const uint8_t **entry, uint8_t respawn_index) {
     const uint8_t *p = *entry;
+    if (SstLoad_Handles(p[4])) { // an object that has moved over to the status table: SstLoad.c loads it
+        *entry += ENTRY_SIZE;
+        return false;
+    }
     if (m->partner != NULL && Holds(m->partner, p)) { // the other camera's manager has this one out there already
         *entry += ENTRY_SIZE;
         return false;

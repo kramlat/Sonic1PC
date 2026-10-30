@@ -1,5 +1,7 @@
 #include "EditorLive.h"
 #include "Level.h"
+#include "SstLoad.h"
+#include "ScrollEngine.h"
 #include "BackgroundLayer.h"
 #include "HTZQuake.h"
 #include "Object/DHZBoss.h"
@@ -479,6 +481,15 @@ void SignpostArtLoad(void) {
 // Level object loading: the engine's objects manager (ObjectsManager.h) on Sonic 1's layouts. Its load range (0x280 pixels ahead of the camera, 0x80 behind) is the
 // original 320-pixel picture's, whatever the picture size: see IS_OFFSCREEN.
 ObjectsManager objects_manager;
+
+// The objects that have moved over to the status table of Sonic 3 & Knuckles (Sst.h) and are loaded by its loader (SstLoad.h) instead: an id's routine. The manager above leaves their entries alone.
+static const SstCode sst_object_codes[0x100];
+static const SstObjectIndex sst_object_index = {sst_object_codes, 0x100};
+
+static SstLoadCamera SstCamera(void) {
+    SstLoadCamera c = {scrpos_x.f.u, scrpos_y.f.u, (int16_t)limit_top1 < 0, level_screen_y_wrap};
+    return c;
+}
 static ObjectsManager2P objects_manager_2p; // (a split screen: one manager for each camera, on the same layout and marks)
 
 void ObjPosLoad(void) {
@@ -500,6 +511,9 @@ void ObjPosLoad(void) {
         } else {
             ObjectsManager_Init(&objects_manager, &config, objstate, sizeof(objstate), Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
         }
+        Sst_Reset();
+        SstLoadCamera sst_camera = SstCamera();
+        SstLoad_Init(&sst_object_index, Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), false, &sst_camera);
         Rings_Init(Editor_RingLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_ring[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
     } else {
         if (camera_split) {
@@ -508,6 +522,8 @@ void ObjPosLoad(void) {
         } else {
             ObjectsManager_Update(&objects_manager, scrpos_x.f.u);
         }
+        SstLoadCamera sst_camera = SstCamera();
+        SstLoad_Update(&sst_camera);
         Rings_Update(scrpos_x.f.u); // (the rings only load around the first camera)
     }
 }

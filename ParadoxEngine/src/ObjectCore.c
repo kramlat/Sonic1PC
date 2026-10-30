@@ -3,6 +3,7 @@
 #include "GameInterface.h"
 
 #include "Camera.h"
+#include "Sst.h"
 #include "EngineConstants.h"
 #include "Video.h"
 
@@ -96,6 +97,9 @@ void ExecuteObjects(void) {
 			obj++;
 		} while (ExecuteObjects_i-- > 0);
 	}
+
+	//The objects of the Sonic 3 & Knuckles status table (Sst.h), beside them
+	Sst_Process(player->routine >= 6);
 }
 
 //Object functions

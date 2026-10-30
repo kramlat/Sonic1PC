@@ -126,8 +126,11 @@ game plays as before after each. Tests compare the new path with the old one (th
    * b. **Rendering** (DONE except DPLC, the HUD and rings): `SstRenderQueue` (Sprites.c): `Render_Sprites` over the queues into the sprite table the old objects use (the S3&K mappings, 6-byte pieces; the cull tests
      with `Screen_Y_wrap_value`; static mappings; multi-draw objects with their children, each piece culled singly; the on-screen flag). A queue's new objects come after its old ones. Still to come: DPLC
      (`Perform_DPLC`) for the players, the sprite mask, and the HUD and rings drawn first (the rings are stage 5); the existing `BuildSprites` stays for the old objects until the last has moved.
-   * c. **Loading**: `Load_Sprites` and the respawn table (`Sprite_Listing`: the object layout's 6-byte entries, ordered by X, the load window by `Camera_X_pos_coarse_back`, `Sprite_OnScreen_Test`), replacing
-     `ObjectsManager.c`; the object layout files get converted to it.
+   * c. **Loading** (DONE: `SstLoad.c/.h`, `test_sstload.c`): `Load_Sprites` with the respawn table (a byte per entry, bit 7), the X window and the Y window (a row pass; bit 15 loads whatever the Y; the wrapping
+     versions), the held free slot, `Seek_Object_Manager`, `Clear_SpriteRingMem`'s object half, `Sprite_OnScreen_Test` / `_Test2` / `Delete_Sprite_If_Not_In_Range`. The layout files already are the 6-byte
+     format, so nothing is converted in bulk: the id's routine comes from a table in each game's `Level.c` (empty until objects move over); the old `ObjectsManager` skips ids the table has. Bit 15 is the old
+     remember and the new ignore-Y: step d clears it for the entries of an id as it moves. The old manager is removed in step e. Later with the objects: the collision-response variant of the on-screen
+     test, the split-screen second loader.
    * d. **Moving the objects**: Sonic 1 has 235 object files (about 22,700 lines) and Sonic 2 99 (about 20,600): each is rewritten for the `Sst` (field names, `Sst_*` calls, the routine tables as code pointers)
      and its tests move with it, a group at a time (players first, then the objects every zone shares, then each zone's), with the old and new handlers both running every frame until the last one is over. Not
      mechanical: the new `x_pos` is a word with a sub-pixel word, the radii are two fields, the status bits differ from the old ones, and the sprite pieces are drawn from different mappings.
