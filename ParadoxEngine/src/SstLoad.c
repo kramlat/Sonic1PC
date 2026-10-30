@@ -289,6 +289,10 @@ void SstLoad_Forget(const Sst *obj) {
         sst_respawn_table[obj->respawn - 1] &= 0x7F;
 }
 
+bool SstOutOfRange(int16_t x) {
+    return (uint16_t)((uint16_t)((uint16_t)x & 0xFF80) - (uint16_t)x_coarse_back) > 0x280;
+}
+
 void SstOnScreenTest2(Sst *obj, int16_t x) {
     uint16_t d0 = (uint16_t)((uint16_t)x & 0xFF80) - (uint16_t)x_coarse_back;
     if (d0 > 0x280) {

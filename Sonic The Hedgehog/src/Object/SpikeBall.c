@@ -1,4 +1,7 @@
 #include "SpikeBall.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include <string.h>
 #include "Level.h"
@@ -14,72 +17,71 @@
 // repositioned every frame along a circle by Sball_Twirl, using each
 // object's own radius to place it along the chain.
 
-static void Sball_Twirl(Object *obj, Scratch_SpikeBall *scratch) {
+static void Sball_Twirl(Sst *self, Own_SpikeBall *own) {
     // Real hardware does `add.w speed,obAngle(a0)` -- a 16-bit add into a
     // word straddling obAngle and the following (otherwise-unused) byte,
-    // with only the high byte (obj->angle) ever read back for CalcSine.
+    // with only the high byte (self->angle) ever read back for CalcSine.
     // That makes the effective turn rate speed/256 per frame rather than
     // the raw speed value.
-    uint16_t accum = (uint16_t)((obj->angle << 8) | scratch->angle_frac);
-    accum = (uint16_t)(accum + (uint16_t)scratch->speed);
-    obj->angle = (uint8_t)(accum >> 8);
-    scratch->angle_frac = (uint8_t)accum;
+    uint16_t accum = (uint16_t)((self->angle << 8) | own->angle_frac);
+    accum = (uint16_t)(accum + (uint16_t)own->speed);
+    self->angle = (uint8_t)(accum >> 8);
+    own->angle_frac = (uint8_t)accum;
 
     int16_t sin, cos;
-    CalcSine(obj->angle, &sin, &cos);
+    CalcSine(self->angle, &sin, &cos);
 
-    for (int i = 0; i <= scratch->children; i++) {
-        Object *link = &objects[scratch->child_idx[i]];
-        Scratch_SpikeBall *link_scratch = (Scratch_SpikeBall *)&link->scratch;
+    for (int i = 0; i <= own->children; i++) {
+        Sst *link = &sst[own->child_idx[i]];
+        Own_SpikeBall *link_scratch = (Own_SpikeBall *)link->own.u8;
 
         int16_t radius = link_scratch->radius;
-        link->pos.l.y.f.u = (int16_t)(scratch->orig_y + (((int32_t)radius * sin) >> 8));
-        link->pos.l.x.f.u = (int16_t)(scratch->orig_x + (((int32_t)radius * cos) >> 8));
+        link->y_pos.f.u = (int16_t)(own->orig_y + (((int32_t)radius * sin) >> 8));
+        link->x_pos.f.u = (int16_t)(own->orig_x + (((int32_t)radius * cos) >> 8));
     }
 }
 
-static void SBall_ChkDel(Object *obj, Scratch_SpikeBall *scratch) {
-    if (IS_OFFSCREEN(scratch->orig_x)) {
-        for (int i = 0; i <= scratch->children; i++) {
-            Object *link = &objects[scratch->child_idx[i]];
-            if (link != obj)
-                ObjectDelete(link);
+static void SBall_ChkDel(Sst *self, Own_SpikeBall *own) {
+    if (SstOutOfRange(own->orig_x)) {
+        for (int i = 0; i <= own->children; i++) {
+            Sst *link = &sst[own->child_idx[i]];
+            if (link != self)
+                Sst_Delete(link);
         }
-        ObjectDelete(obj);
+        SstOnScreenTest2(self, own->orig_x); // (forgets its place and goes)
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-static void SBall_Main(Object *obj, Scratch_SpikeBall *scratch) {
-    obj->routine += 2;
-    obj->mappings = Mappings_SpikeBallSYZ;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SYZ_Spikeball_Chain);
-    obj->render.b = 0;
-    obj->render.f.level_fg = true;
-    obj->priority = 4;
-    obj->width_pixels = 16 / 2;
-    scratch->orig_x = obj->pos.l.x.f.u;
-    scratch->orig_y = obj->pos.l.y.f.u;
+static void SBall_Main(Sst *self, Own_SpikeBall *own) {
+    self->routine += 2;
+    self->mappings = Mappings_SpikeBallSYZ;
+    self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_SYZ_Spikeball_Chain);
+    self->render_flags = SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
+    self->width_pixels = 16 / 2;
+    own->orig_x = self->x_pos.f.u;
+    own->orig_y = self->y_pos.f.u;
 
-    obj->col_type = 0x18 | 0x80; // col_8x8 | col_hurt -- SYZ: chain hurts Sonic
+    self->collision_flags = 0x18 | 0x80; // col_8x8 | col_hurt -- SYZ: chain hurts Sonic
     bool is_lz = LEVEL_ZONE(level_id) == ZoneId_LZ;
     if (is_lz) {
-        obj->col_type = 0; // col_none -- LZ: chain doesn't hurt Sonic
-        obj->mappings = Mappings_SpikeBallLZ;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Spikeball_Chain);
+        self->collision_flags = 0; // col_none -- LZ: chain doesn't hurt Sonic
+        self->mappings = Mappings_SpikeBallLZ;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_LZ_Spikeball_Chain);
     }
 
-    uint8_t subtype = obj->scratch.u8[0];
+    uint8_t subtype = self->subtype;
     int8_t speed = (int8_t)(subtype & 0xF0);
-    scratch->speed = (int16_t)(speed << 3);
+    own->speed = (int16_t)(speed << 3);
 
-    obj->angle = (uint8_t)(((obj->status.o.f.x_flip ? 1 : 0) << 6) | ((obj->status.o.f.y_flip ? 1 : 0) << 7));
+    self->angle = (uint8_t)(((((self->status & SST_STATUS_X_FLIP) != 0) ? 1 : 0) << 6) | ((((self->status & SST_STATUS_Y_FLIP) != 0) ? 1 : 0) << 7));
 
     int count = subtype & 7;
     int radius = count << 4;
-    scratch->children = 0;
-    scratch->radius = (uint8_t)radius;
+    own->children = 0;
+    own->radius = (uint8_t)radius;
 
     int loop_count = count - 1;
     if (loop_count >= 0 && (subtype & 8))
@@ -90,56 +92,55 @@ static void SBall_Main(Object *obj, Scratch_SpikeBall *scratch) {
         // FindNextFreeObj(parent), only looks after the ball's own slot and drops the whole chain
         // when none is free there -- a bare ball. A link placed before the ball only costs a stray
         // frame if it is deleted after being queued for display, which BuildSprites skips safely.
-        Object *link = FindFreeObj();
+        Sst *link = Sst_Allocate();
         if (link == NULL)
             break;
 
         // FindNextFreeObj returns slots with stale bytes (the original zeroes them on
         // delete): a leftover frame/anim made the chain links draw nothing.
-        memset(link, 0, sizeof(Object));
-        link->mappings = NULL;
+        memset(link, 0, sizeof(Sst));
 
-        scratch->children++;
-        scratch->child_idx[scratch->children - 1] = (uint8_t)(link - objects);
+        own->children++;
+        own->child_idx[own->children - 1] = (uint8_t)(link - sst);
 
         link->routine = 4; // SBall_Child
-        link->type = obj->type;
-        link->mappings = obj->mappings;
-        link->tile = obj->tile;
-        link->render = obj->render;
-        link->priority = obj->priority;
-        link->width_pixels = obj->width_pixels;
-        link->col_type = obj->col_type;
+        link->code = self->code;
+        link->mappings = self->mappings;
+        link->art_tile = self->art_tile;
+        link->render_flags = self->render_flags;
+        link->priority = self->priority;
+        link->width_pixels = self->width_pixels;
+        link->collision_flags = self->collision_flags;
 
         radius -= 0x10;
-        Scratch_SpikeBall *link_scratch = (Scratch_SpikeBall *)&link->scratch;
+        Own_SpikeBall *link_scratch = (Own_SpikeBall *)link->own.u8;
         link_scratch->radius = (uint8_t)radius;
 
         if (is_lz && radius == 0)
-            link->frame = 2; // LZ stem attached to floor
+            link->mapping_frame = 2; // LZ stem attached to floor
     }
 
-    scratch->child_idx[scratch->children] = (uint8_t)(obj - objects);
+    own->child_idx[own->children] = (uint8_t)(self - sst);
 
     if (is_lz) {
-        obj->col_type = 0x0B | 0x80; // col_16x16 | col_hurt -- tip of chain is harmful
-        obj->frame = 1; // larger spikeball frame for tip
+        self->collision_flags = 0x0B | 0x80; // col_16x16 | col_hurt -- tip of chain is harmful
+        self->mapping_frame = 1; // larger spikeball frame for tip
     }
 }
 
-void Obj_SpikeBall(Object *obj) {
-    Scratch_SpikeBall *scratch = (Scratch_SpikeBall *)&obj->scratch;
+void Obj_SpikeBall(Sst *self) {
+    Own_SpikeBall *own = (Own_SpikeBall *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        SBall_Main(obj, scratch);
+        SBall_Main(self, own);
         __attribute__((fallthrough));
     case 2:
-        Sball_Twirl(obj, scratch);
-        SBall_ChkDel(obj, scratch);
+        Sball_Twirl(self, own);
+        SBall_ChkDel(self, own);
         break;
     case 4: // SBall_Child -- rotation/deletion handled by parent, just display
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
     }
 }

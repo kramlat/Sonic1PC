@@ -1,4 +1,7 @@
 #include "LavaBall.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "Level.h"
 #include "LevelCollision.h"
@@ -24,124 +27,119 @@ static const int16_t lball_speeds[9] = {
     -0x400, -0x500, -0x600, -0x700, -0x200, 0x200, -0x200, 0x200, 0,
 };
 
-static void LBall_RiseAndFall(Object *obj, Scratch_LavaBall *scratch) {
-    obj->ysp += 0x18; // fall down faster than it rose
+static void LBall_RiseAndFall(Sst *self, Own_LavaBall *own) {
+    self->y_vel += 0x18; // fall down faster than it rose
 
-    if (scratch->orig_y < obj->pos.l.y.f.u) // fallen back past its spawn height
-        obj->routine += 2;                  // -> LBall_Delete
-    obj->status.o.f.y_flip = (obj->ysp < 0); // face up while still rising, down otherwise
+    if (own->orig_y < self->y_pos.f.u) // fallen back past its spawn height
+        self->routine += 2;                  // -> LBall_Delete
+    SST_STATUS_SET(self, SST_STATUS_Y_FLIP, (self->y_vel < 0)); // face up while still rising, down otherwise
 }
 
-static void LBall_Up(Object *obj) {
-    obj->status.o.f.y_flip = true; // face up
+static void LBall_Up(Sst *self) {
+    self->status |= SST_STATUS_Y_FLIP; // face up
 
-    if (ObjHitCeiling(obj) < 0) {
-        obj->scratch.u8[0] = 8; // -> LBall_DoNothing
-        obj->anim = 1;          // vertical collide animation
-        obj->ysp = 0;
+    if (SstHitCeiling(self) < 0) {
+        self->subtype = 8; // -> LBall_DoNothing
+        self->anim = 1;          // vertical collide animation
+        self->y_vel = 0;
     }
 }
 
-static void LBall_Down(Object *obj) {
-    obj->status.o.f.y_flip = false; // face down
+static void LBall_Down(Sst *self) {
+    SST_STATUS_SET(self, SST_STATUS_Y_FLIP, false); // face down
 
-    if (ObjFloorDist(obj, obj->pos.l.x.f.u) < 0) {
-        obj->scratch.u8[0] = 8; // -> LBall_DoNothing
-        obj->anim = 1;          // vertical collide animation
-        obj->ysp = 0;
+    if (SstFloorDist(self, self->x_pos.f.u) < 0) {
+        self->subtype = 8; // -> LBall_DoNothing
+        self->anim = 1;          // vertical collide animation
+        self->y_vel = 0;
     }
 }
 
-static void LBall_Left(Object *obj) {
-    obj->status.o.f.x_flip = true; // face left
+static void LBall_Left(Sst *self) {
+    self->status |= SST_STATUS_X_FLIP; // face left
 
-    if (ObjHitWallLeft(obj, -8) < 0) {
-        obj->scratch.u8[0] = 8; // -> LBall_DoNothing
-        obj->anim = 3;          // horizontal collide animation
-        obj->xsp = 0;
+    if (SstHitWallLeft(self, -8) < 0) {
+        self->subtype = 8; // -> LBall_DoNothing
+        self->anim = 3;          // horizontal collide animation
+        self->x_vel = 0;
     }
 }
 
-static void LBall_Right(Object *obj) {
-    obj->status.o.f.x_flip = false; // face right
+static void LBall_Right(Sst *self) {
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, false); // face right
 
-    if (ObjHitWallRight(obj, 8) < 0) {
-        obj->scratch.u8[0] = 8; // -> LBall_DoNothing
-        obj->anim = 3;          // horizontal collide animation
-        obj->xsp = 0;
+    if (SstHitWallRight(self, 8) < 0) {
+        self->subtype = 8; // -> LBall_DoNothing
+        self->anim = 3;          // horizontal collide animation
+        self->x_vel = 0;
     }
 }
 
-void Obj_LavaBall(Object *obj) {
-    Scratch_LavaBall *scratch = (Scratch_LavaBall *)&obj->scratch;
+void Obj_LavaBall(Sst *self) {
+    Own_LavaBall *own = (Own_LavaBall *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: { // Main
-        obj->routine += 2;
-        obj->y_rad = 16 / 2;
-        obj->x_rad = 16 / 2;
-        obj->mappings = Mappings_Fireballs;
-        obj->tile = (LEVEL_ZONE(level_id) == ZoneId_SLZ)
+        self->routine += 2;
+        self->y_radius = 16 / 2;
+        self->x_radius = 16 / 2;
+        self->mappings = Mappings_Fireballs;
+        self->art_tile = (LEVEL_ZONE(level_id) == ZoneId_SLZ)
             ? TILE_MAP(0, 0, 0, 0, ArtTile_SLZ_Fireball)
             : TILE_MAP(0, 0, 0, 0, ArtTile_MZ_Fireball);
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->priority = 3;
-        obj->col_type = 0x8B; // col_16x16 | col_hurt
-        scratch->orig_y = obj->pos.l.y.f.u;
+        self->render_flags = SST_RENDER_LEVEL;
+        self->priority = 3 * 0x80;
+        self->collision_flags = 0x8B; // col_16x16 | col_hurt
+        own->orig_y = self->y_pos.f.u;
 
-        if (scratch->from_boss)
-            obj->priority += 2;
+        if (own->from_boss)
+            self->priority += 2 * 0x80;
 
-        uint8_t subtype = obj->scratch.u8[0];
-        obj->ysp = lball_speeds[subtype];
-        obj->width_pixels = 16 / 2;
+        uint8_t subtype = self->subtype;
+        self->y_vel = lball_speeds[subtype];
+        self->width_pixels = 16 / 2;
 
         if (subtype >= 6) {
-            obj->width_pixels = 32 / 2;
-            obj->anim = 2; // horizontal animation
-            obj->xsp = obj->ysp;
-            obj->ysp = 0;
+            self->width_pixels = 32 / 2;
+            self->anim = 2; // horizontal animation
+            self->x_vel = self->y_vel;
+            self->y_vel = 0;
         }
 
         PlaySound(sfx_Fireball);
         __attribute__((fallthrough));
     }
     case 2: // Action
-        switch (obj->scratch.u8[0]) {
+        switch (self->subtype) {
         case 0:
         case 1:
         case 2:
         case 3:
-            LBall_RiseAndFall(obj, scratch);
+            LBall_RiseAndFall(self, own);
             break;
         case 4:
-            LBall_Up(obj);
+            LBall_Up(self);
             break;
         case 5:
-            LBall_Down(obj);
+            LBall_Down(self);
             break;
         case 6:
-            LBall_Left(obj);
+            LBall_Left(self);
             break;
         case 7:
-            LBall_Right(obj);
+            LBall_Right(self);
             break;
         case 8:
             break; // do nothing
         }
 
-        SpeedToPos(obj);
-        AnimateSprite(obj, Animation_Fireballs); // wall/ceiling/floor-collided balls advance obRoutine to LBall_Delete themselves
+        Sst_MoveSprite2(self);
+        Sst_Animate(self, Animation_Fireballs); // wall/ceiling/floor-collided balls advance obRoutine to LBall_Delete themselves
 
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
-            return;
-        }
-        DisplaySprite(obj);
+        SstOnScreenTest(self);
         break;
     case 4: // Delete
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     }
 }

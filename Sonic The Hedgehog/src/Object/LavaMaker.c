@@ -1,4 +1,7 @@
 #include "LavaMaker.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 
 #include "Game.h"
 #include "LavaBall.h"
@@ -38,29 +41,26 @@ static const uint8_t lavam_rates[16] = {
 // would actually be at its highest, not just at the spawn point.
 static const int16_t lavam_peak_height[4] = { 87, 136, 195, 265 };
 
-void Obj_LavaMaker(Object *obj) {
-    Scratch_LavaMaker *scratch = (Scratch_LavaMaker *)&obj->scratch;
+void Obj_LavaMaker(Sst *self) {
+    Own_LavaMaker *own = (Own_LavaMaker *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: { // Main
-        obj->routine += 2;
-        uint8_t subtype = obj->scratch.u8[0];
-        scratch->fire_interval = lavam_rates[(subtype >> 4) & 0xF];
-        obj->frame_time.b = (int8_t)scratch->fire_interval;
-        obj->scratch.u8[0] = subtype & 0xF;
+        self->routine += 2;
+        uint8_t subtype = self->subtype;
+        own->fire_interval = lavam_rates[(subtype >> 4) & 0xF];
+        self->anim_frame_timer = (int8_t)own->fire_interval;
+        self->subtype = subtype & 0xF;
         __attribute__((fallthrough));
     }
     case 2: // MakeLava
-        if (--obj->frame_time.b == 0) {
-            obj->frame_time.b = (int8_t)scratch->fire_interval;
+        if (--self->anim_frame_timer == 0) {
+            self->anim_frame_timer = (int8_t)own->fire_interval;
 
-            if (ChkObjectVisible(obj)) {
-                Object *ball = FindFreeObj();
+            if (SstChkObjectVisible(self)) {
+                Sst *ball = Sst_Spawn(ObjId_LavaBall, self->x_pos.f.u, self->y_pos.f.u);
                 if (ball != NULL) {
-                    ball->type = ObjId_LavaBall;
-                    ball->pos.l.x.f.u = obj->pos.l.x.f.u;
-                    ball->pos.l.y.f.u = obj->pos.l.y.f.u;
-                    ball->scratch.u8[0] = obj->scratch.u8[0]; // subtype
+                    ball->subtype = self->subtype; // subtype
                 }
             }
         }
@@ -68,58 +68,57 @@ void Obj_LavaMaker(Object *obj) {
     }
 
     if (debug_cheat) {
-        uint8_t subtype = obj->scratch.u8[0];
+        uint8_t subtype = self->subtype;
 
         // The marker moves to where the real fireball would actually be --
         // its own spawn position must stay untouched for the real spawn
-        // logic above (which reads obj->pos.l.x/y.f.u directly), so
+        // logic above (which reads self->pos.l.x/y.f.u directly), so
         // save/restore around the temporary move.
-        int16_t real_x = obj->pos.l.x.f.u;
-        int16_t real_y = obj->pos.l.y.f.u;
+        int16_t real_x = self->x_pos.f.u;
+        int16_t real_y = self->y_pos.f.u;
 
         if (subtype <= 3) {
-            obj->pos.l.y.f.u = (int16_t)(real_y - lavam_peak_height[subtype]); // exact peak height
+            self->y_pos.f.u = (int16_t)(real_y - lavam_peak_height[subtype]); // exact peak height
         } else if (subtype == 4) {
-            obj->pos.l.y.f.u = (int16_t)(real_y - SCREEN_HEIGHT); // straight up -- real distance depends on level geometry, so just go far
+            self->y_pos.f.u = (int16_t)(real_y - SCREEN_HEIGHT); // straight up -- real distance depends on level geometry, so just go far
         } else if (subtype == 5) {
-            obj->pos.l.y.f.u = (int16_t)(real_y + SCREEN_HEIGHT); // straight down
+            self->y_pos.f.u = (int16_t)(real_y + SCREEN_HEIGHT); // straight down
         } else if (subtype == 6) {
-            obj->pos.l.x.f.u = (int16_t)(real_x - SCREEN_WIDTH); // left -- same "just go far" reasoning
+            self->x_pos.f.u = (int16_t)(real_x - SCREEN_WIDTH); // left -- same "just go far" reasoning
         } else if (subtype == 7) {
-            obj->pos.l.x.f.u = (int16_t)(real_x + SCREEN_WIDTH); // right
+            self->x_pos.f.u = (int16_t)(real_x + SCREEN_WIDTH); // right
         }
         // subtype 8 (do nothing) stays put at the spawn point
 
         // This is only ever a marker (see LavaMaker.h's own comment on
         // this) -- the real fireballs spawned above still get LavaBall.c's
         // own real collision as normal, this doesn't touch them.
-        obj->col_type = 0;
-        obj->mappings = Mappings_Fireballs;
-        obj->tile = TILE_MAP(0, 0, 0, 0,
+        self->collision_flags = 0;
+        self->mappings = Mappings_Fireballs;
+        self->art_tile = TILE_MAP(0, 0, 0, 0,
             (LEVEL_ZONE(level_id) == ZoneId_SLZ) ? ArtTile_SLZ_Fireball : ArtTile_MZ_Fireball);
-        obj->render.b = SPRITE_CAM_FIELD;
+        self->render_flags = SST_RENDER_LEVEL;
 
         // Matches LavaBall.c's own Main-routine flip/anim setup exactly,
         // for each of the 9 launch patterns. A fixed frame, not
-        // AnimateSprite -- that reads/writes obj->frame_time, the exact
+        // AnimateSprite -- that reads/writes self->frame_time, the exact
         // same field this object's own real spawn-interval countdown uses
-        // (see Scratch_LavaMaker's own comment on this), so animating the
+        // (see Own_LavaMaker's own comment on this), so animating the
         // marker here would corrupt the real timer and make it fire far
         // more often than intended. One stationary marker at frame 0 is
         // enough to show orientation; the real spawns still animate
         // normally through LavaBall.c's own unrelated instances.
-        obj->status.o.f.y_flip = (subtype <= 4); // rise-and-fall types start facing up; so does subtype 4 (straight up)
-        obj->status.o.f.x_flip = (subtype == 6); // left
-        obj->frame = 0;
-        obj->width_pixels = (subtype >= 6) ? 32 / 2 : 16 / 2;
+        SST_STATUS_SET(self, SST_STATUS_Y_FLIP, (subtype <= 4)); // rise-and-fall types start facing up; so does subtype 4 (straight up)
+        SST_STATUS_SET(self, SST_STATUS_X_FLIP, (subtype == 6)); // left
+        self->mapping_frame = 0;
+        self->width_pixels = (subtype >= 6) ? 32 / 2 : 16 / 2;
 
-        DisplaySprite(obj);
+        Sst_Draw(self);
 
-        obj->pos.l.x.f.u = real_x;
-        obj->pos.l.y.f.u = real_y;
+        self->x_pos.f.u = real_x;
+        self->y_pos.f.u = real_y;
         return;
     }
 
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-        ObjectDelete(obj);
+    SstDeleteIfNotInRange(self);
 }

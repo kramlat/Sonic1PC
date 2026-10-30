@@ -18,11 +18,20 @@ for my $path (@ARGV) {
         $s =~ s/^\s*uint8_t\s+subtype;[^\n]*\n//mg;
         $s =~ s/\(Object\s*\*\s*(\w+)/(Sst *self/g;
         $s =~ s/#include "Object.h"/#include "Sst.h"/;
+        # the resource includes (they define the arrays) go to the .c: a header the object table includes must not
+        my @res = $s =~ /^(#include "Resource\/[^"]+"\n)/mg;
+        $s =~ s/^(?:\/\/[^\n]*assets[^\n]*\n)?#include "Resource\/[^"]+"\n//mg;
+        (my $cpath = $path) =~ s/\.h$/.c/;
+        if (@res && -f $cpath) {
+            my $c = slurp($cpath);
+            for my $r (@res) { $c =~ s/^(#include "[^"]+"\n)/$1$r/ unless index($c, $r) >= 0; }
+            spit($cpath, $c);
+        }
         spit($path, $s);
         next;
     }
     # scratch overlays
-    $s =~ s/Scratch_((?!Sonic\b|Tails\b)\w+)\s*\*\s*(\w+)\s*=\s*\(Scratch_\w+\s*\*\)\s*&\s*(\w+)->scratch;/Own_$1 *$2 = (Own_$1 *)self->own.u8;/g;
+    $s =~ s/Scratch_((?!Sonic\b|Tails\b)\w+)\s*\*\s*(\w+)\s*=\s*\(Scratch_\w+\s*\*\)\s*&\s*(\w+)->scratch;/Own_$1 *$2 = (Own_$1 *)$3->own.u8;/g;
     $s =~ s/\bScratch_((?!Sonic\b|Tails\b)\w+)\b/Own_$1/g;
     my $own_var = ($s =~ /Own_\w+\s*\*\s*scratch\b/) ? 1 : 0;
     # signatures
@@ -56,6 +65,7 @@ for my $path (@ARGV) {
     $s =~ s/(\w+)->render\.f\.on_screen\b/($1->render_flags & SST_RENDER_ON_SCREEN)/g;
     $s =~ s/(\w+)->render\.f\.level_fg\s*=\s*true;/$1->render_flags |= SST_RENDER_LEVEL;/g;
     # status flips
+    $s =~ s/(\w+)->status\.o\.f\.([xy])_flip\s*=\s*([^;]+);/"SST_STATUS_SET($1, SST_STATUS_".uc($2)."_FLIP, $3);"/ge;
     $s =~ s/(\w+)->status\.o\.f\.x_flip\s*\^=\s*1;/$1->status ^= SST_STATUS_X_FLIP;/g;
     $s =~ s/(\w+)->status\.o\.f\.x_flip\s*=\s*true;/$1->status |= SST_STATUS_X_FLIP;/g;
     $s =~ s/(\w+)->status\.o\.f\.y_flip\s*=\s*true;/$1->status |= SST_STATUS_Y_FLIP;/g;
@@ -70,6 +80,10 @@ for my $path (@ARGV) {
     $s =~ s/(\w+)->status\.o\.f\.flag7\b/(($1->status & 0x80) != 0)/g;
     # priority: 0-7 in the old, units of $80 in the new
     $s =~ s/(\w+)->priority\s*=\s*(\d+);/"$1->priority = $2 * 0x80;"/ge;
+    # other objects of the table, by index
+    $s =~ s/\bObject\s*\*\s*(\w+)\s*=\s*&objects\[/Sst *$1 = &sst[/g;
+    $s =~ s/\bObjectDelete\(\s*&objects\[([^\]]+)\]\s*\)/Sst_Delete(&sst[$1])/g;
+    $s =~ s/\(uint8_t\)\(\s*(\w+)\s*-\s*objects\s*\)/(uint8_t)($1 - sst)/g;
     # the handler's calls
     $s =~ s/\bAnimateSprite\(\s*(\w+)\s*,/Sst_Animate($1,/g;
     $s =~ s/\bDisplaySprite\(\s*(\w+)\s*\)/Sst_Draw($1)/g;
@@ -98,6 +112,8 @@ for my $path (@ARGV) {
         $s =~ s/\bscratch->/own->/g;
         $s =~ s/([(,]\s*)scratch(\s*[,)])/$1own$2/g;
     }
+    $s =~ s/\bObject\s*\*\s*(\w+)\s*=\s*FindNextFreeObj\(\s*(\w+)\s*\);/Sst *$1 = Sst_AllocateAfter($2);/g;
+    $s =~ s/\bObject\s*\*\s*(\w+)\s*=\s*FindFreeObj\(\s*\);/Sst *$1 = Sst_Allocate(); \/* SST-CHECK: made by hand: code and position *\//g;
     # the object's own name for itself in the bodies
     $s =~ s/\bobj\b/self/g;
     # includes

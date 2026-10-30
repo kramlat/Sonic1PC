@@ -6,68 +6,73 @@
 #include "LevelScroll.h"
 #include "Object.h"
 #include "Object/SpikeBall.h"
+#include "SstLoad.h"
 
-// Object 57 (spiked ball on a chain) spawns its chain links with
-// FindNextFreeObj, which hands back slots that may still hold stale bytes. Every
-// link must come out as a plain chain link (frame 0), except the LZ stem
-// (frame 2, radius 0) -- a stale frame made links invisible or wrong.
+// Object 57 (spiked ball on a chain) takes its chain links from free slots, which may still hold stale bytes. Every
+// link must come out as a plain chain link (frame 0), except the LZ stem (frame 2, radius 0) -- a stale frame made
+// links invisible or wrong.
 
 static void SpikeBall_LZChainLinksAreCleanInDirtySlots(void) {
     static const uint8_t subtypes[] = { 0x26, 0x65, 0xC4, 0xD5, 0x54, 0x2E };
     for (unsigned s = 0; s < sizeof(subtypes); s++) {
-        for (int i = 0; i < LEVEL_OBJECTS; i++) {
-            memset(&level_objects[i], 0xAB, sizeof(Object));
-            level_objects[i].type = ObjId_Null;
+        Sst_Reset();
+        for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++) {
+            memset(&sst[i], 0xAB, sizeof(Sst));
+            sst[i].code = NULL;
         }
         level_id = LEVEL_ID(ZoneId_LZ, 2);
         memset(player, 0, sizeof(Object));
         scrpos_x.f.u = 0;
+        SstLoadCamera camera = {0, 0, false, 0xFFF};
+        static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+        SstLoad_Init(&index_, NULL, false, &camera);
 
-        Object *ball = &level_objects[3];
-        memset(ball, 0, sizeof(Object));
-        ball->type = ObjId_SpikeBall;
-        ball->pos.l.x.f.u = 0x100;
-        ball->pos.l.y.f.u = 0x100;
-        ball->scratch.u8[0] = subtypes[s];
+        Sst *ball = &sst[SST_FIRST_LEVEL + 3];
+        memset(ball, 0, sizeof(Sst));
+        ball->code = sst_object_codes[ObjId_SpikeBall];
+        ball->x_pos.f.u = 0x100;
+        ball->y_pos.f.u = 0x100;
+        ball->subtype = subtypes[s];
         Obj_SpikeBall(ball);
 
-        Scratch_SpikeBall *sc = (Scratch_SpikeBall *)&ball->scratch;
+        Own_SpikeBall *sc = (Own_SpikeBall *)ball->own.u8;
         int expect = subtypes[s] & 7;
         if (expect > 0 && (subtypes[s] & 8)) expect--;
         CHECK_EQ(sc->children, expect);
-        CHECK_EQ(ball->frame, 1);
+        CHECK_EQ(ball->mapping_frame, 1);
         for (int i = 0; i < sc->children; i++) {
-            Object *link = &objects[sc->child_idx[i]];
-            Scratch_SpikeBall *ls = (Scratch_SpikeBall *)&link->scratch;
-            CHECK_EQ(link->type, ObjId_SpikeBall);
+            Sst *link = &sst[sc->child_idx[i]];
+            Own_SpikeBall *ls = (Own_SpikeBall *)link->own.u8;
+            CHECK(link->code == ball->code);
             CHECK_EQ(link->routine, 4);
-            CHECK_EQ(link->frame, ls->radius == 0 ? 2 : 0);
+            CHECK_EQ(link->mapping_frame, ls->radius == 0 ? 2 : 0);
             CHECK_EQ(link->anim, 0);
-            CHECK_EQ(link->col_type, 0);
+            CHECK_EQ(link->collision_flags, 0);
         }
     }
 }
 
-// The ball sits in a high slot with no free slot after it: its chain must still spawn (into the
-// free slots before it), instead of leaving a bare ball.
+// The chain is made from the free slots wherever they are, also when the ball sits after all of them.
 static void SpikeBall_ChainSpawnsWhenNoSlotFreeAfterParent(void) {
-    for (int i = 0; i < LEVEL_OBJECTS; i++) {
-        memset(&level_objects[i], 0, sizeof(Object));
-        level_objects[i].type = i < 10 ? ObjId_Null : ObjId_Ring; // only slots 0-9 are free
-    }
+    Sst_Reset();
+    for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++)
+        sst[i].code = i < SST_FIRST_DYNAMIC + 10 ? NULL : sst_object_codes[ObjId_Points]; // only the first ten are free
     level_id = LEVEL_ID(ZoneId_LZ, 0);
     memset(player, 0, sizeof(Object));
     scrpos_x.f.u = 0;
+    SstLoadCamera camera = {0, 0, false, 0xFFF};
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoad_Init(&index_, NULL, false, &camera);
 
-    Object *ball = &level_objects[LEVEL_OBJECTS - 1];
-    memset(ball, 0, sizeof(Object));
-    ball->type = ObjId_SpikeBall;
-    ball->pos.l.x.f.u = 0x100;
-    ball->pos.l.y.f.u = 0x100;
-    ball->scratch.u8[0] = 0xD4; // an LZ1 placement: 4 links
+    Sst *ball = &sst[SST_COUNT - 1];
+    memset(ball, 0, sizeof(Sst));
+    ball->code = sst_object_codes[ObjId_SpikeBall];
+    ball->x_pos.f.u = 0x100;
+    ball->y_pos.f.u = 0x100;
+    ball->subtype = 0xD4; // an LZ1 placement: 4 links
     Obj_SpikeBall(ball);
 
-    Scratch_SpikeBall *sc = (Scratch_SpikeBall *)&ball->scratch;
+    Own_SpikeBall *sc = (Own_SpikeBall *)ball->own.u8;
     CHECK_EQ(sc->children, 4);
 }
 

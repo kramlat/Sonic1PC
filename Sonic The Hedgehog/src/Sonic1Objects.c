@@ -4,6 +4,14 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/BossFire.h"
+#include "Object/LavaMaker.h"
+#include "Object/LavaBall.h"
+#include "Object/GrassFire.h"
+#include "Object/LargeGrass.h"
+#include "Object/Staircase.h"
+#include "Object/SpikeBall.h"
+#include "Object/Helix.h"
 #include "Object/Crabmeat.h"
 #include "Object/CirclingPlatform.h"
 #include "Object/Cannonball.h"
@@ -72,17 +80,12 @@ void Obj_Scenery(Object *obj);
 void Obj_CollapseLedge(Object *obj);
 void Obj_CollapseFloor(Object *obj);
 void Obj_VanishPlatform(Object *obj);
-void Obj_Helix(Object *obj);
 void Obj_MarbleBrick(Object *obj);
 void Obj_Button(Object *obj);
 void Obj_SmashBlock(Object *obj);
 void Obj_MovingBlock(Object *obj);
-void Obj_LargeGrass(Object *obj);
-void Obj_GrassFire(Object *obj);
 void Obj_LavaTag(Object *obj);
 void Obj_Caterkiller(Object *obj);
-void Obj_LavaMaker(Object *obj);
-void Obj_LavaBall(Object *obj);
 void Obj_GlassBlock(Object *obj);
 void Obj_Basaran(Object *obj);
 void Obj_ChainStomp(Object *obj);
@@ -90,7 +93,6 @@ void Obj_GeyserMaker(Object *obj);
 void Obj_LavaGeyser(Object *obj);
 void Obj_PushBlock(Object *obj);
 void Obj_Roller(Object *obj);
-void Obj_SpikeBall(Object *obj);
 void Obj_FloatingBlock(Object *obj);
 void Obj_SidewaysStomper(Object *obj);
 void Obj_LavaWall(Object *obj);
@@ -103,7 +105,6 @@ void Obj_Burrobot(Object *obj);
 void Obj_Orbinaut(Object *obj);
 void Obj_Bomb(Object *obj);
 void Obj_Elevator(Object *obj);
-void Obj_Staircase(Object *obj);
 void Obj_Fan(Object *obj);
 void Obj_Seesaw(Object *obj);
 void Obj_SmallDoor(Object *obj);
@@ -119,7 +120,6 @@ void Obj_Teleporter(Object *obj);
 void Obj_BossGreenHill(Object *obj);
 void Obj_BossBall(Object *obj);
 void Obj_BossMarble(Object *obj);
-void Obj_BossFire(Object *obj);
 void Obj_BossSpringYard(Object *obj);
 void Obj_BossLabyrinth(Object *obj);
 void Obj_BossStarLight(Object *obj);
@@ -158,11 +158,11 @@ const ObjectFunc game_objects[] = {
 	/* 10 ObjId_GHZTunnel           */ Obj_GHZTunnel,
 	/* 11 ObjId_GHZBridge           */ Obj_GHZBridge,
 	/* 12 ObjId_SpinningLight       */ NULL, // (moved to the status table: sst_object_codes)
-	/* 13 ObjId_LavaMaker           */ Obj_LavaMaker,
-	/* 14 ObjId_LavaBall            */ Obj_LavaBall,
+	/* 13 ObjId_LavaMaker           */ NULL, // (moved to the status table: sst_object_codes)
+	/* 14 ObjId_LavaBall            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 15 ObjId_SwingingPlatform    */ Obj_SwingingPlatform,
 	/* 16 ObjId_Harpoon             */ Obj_Harpoon,
-	/* 17 ObjId_Helix               */ Obj_Helix,
+	/* 17 ObjId_Helix               */ NULL, // (moved to the status table: sst_object_codes)
 	/* 18 ObjId_BasicPlatform       */ Obj_BasicPlatform,
 	/* 19 ObjId_19                  */ Obj_Null,
 	/* 1A ObjId_CollapseLedge       */ Obj_CollapseLedge,
@@ -186,13 +186,13 @@ const ObjectFunc game_objects[] = {
 	/* 2C ObjId_Jaws                */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2D ObjId_Burrobot            */ Obj_Burrobot,
 	/* 2E ObjId_MonitorItem         */ Obj_MonitorItem,
-	/* 2F ObjId_LargeGrass          */ Obj_LargeGrass,
+	/* 2F ObjId_LargeGrass          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 30 ObjId_GlassBlock          */ Obj_GlassBlock,
 	/* 31 ObjId_ChainStomp          */ Obj_ChainStomp,
 	/* 32 ObjId_Button              */ Obj_Button,
 	/* 33 ObjId_PushBlock           */ Obj_PushBlock,
 	/* 34 ObjId_TitleCard           */ Obj_TitleCard,
-	/* 35 ObjId_GrassFire           */ Obj_GrassFire,
+	/* 35 ObjId_GrassFire           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 36 ObjId_Spikes              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 37 ObjId_RingLoss            */ Obj_RingLoss,
 	/* 38 ObjId_ShieldInvincibility */ Obj_ShieldInvincibility,
@@ -226,11 +226,11 @@ const ObjectFunc game_objects[] = {
 	/* 54 ObjId_LavaTag             */ Obj_LavaTag,
 	/* 55 ObjId_Basaran             */ Obj_Basaran,
 	/* 56 ObjId_FloatingBlock       */ Obj_FloatingBlock,
-	/* 57 ObjId_SpikeBall           */ Obj_SpikeBall,
+	/* 57 ObjId_SpikeBall           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 58 ObjId_BigSpikeBall        */ Obj_BigSpikeBall,
 	/* 59 ObjId_Elevator            */ Obj_Elevator,
 	/* 5A ObjId_CirclingPlatform    */ NULL, // (moved to the status table: sst_object_codes)
-	/* 5B ObjId_Staircase           */ Obj_Staircase,
+	/* 5B ObjId_Staircase           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 5C ObjId_Pylon               */ NULL, // (moved to the status table: sst_object_codes)
 	/* 5D ObjId_Fan                 */ Obj_Fan,
 	/* 5E ObjId_Seesaw              */ Obj_Seesaw,
@@ -255,7 +255,7 @@ const ObjectFunc game_objects[] = {
 	/* 71 ObjId_InvisibleBarrier    */ Obj_InvisibleBarrier,
 	/* 72 ObjId_Teleporter          */ Obj_Teleporter,
 	/* 73 ObjId_BossMarble          */ Obj_BossMarble,
-	/* 74 ObjId_BossFire            */ Obj_BossFire,
+	/* 74 ObjId_BossFire            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 75 ObjId_BossSpringYard      */ Obj_BossSpringYard,
 	/* 76 ObjId_BossBlock           */ Obj_BossBlock,
 	/* 77 ObjId_BossLabyrinth      */ Obj_BossLabyrinth,
@@ -287,6 +287,14 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_BossFire] = Obj_BossFire,
+	[ObjId_LavaMaker] = Obj_LavaMaker,
+	[ObjId_LavaBall] = Obj_LavaBall,
+	[ObjId_GrassFire] = Obj_GrassFire,
+	[ObjId_LargeGrass] = Obj_LargeGrass,
+	[ObjId_Staircase] = Obj_Staircase,
+	[ObjId_SpikeBall] = Obj_SpikeBall,
+	[ObjId_Helix] = Obj_Helix,
 	[ObjId_Crabmeat] = Obj_Crabmeat,
 	[ObjId_CirclingPlatform] = Obj_CirclingPlatform,
 	[ObjId_Cannonball] = Obj_Cannonball,

@@ -1,4 +1,7 @@
 #include "BossFire.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
 #include "Constants.h"
 
 #include "LevelCollision.h"
@@ -19,174 +22,174 @@
 extern const uint8_t Mappings_Fireballs[];
 extern const uint8_t Animation_Fireballs[];
 
-static void BossFire_Action(Object *obj, Scratch_BossFire *scratch);
-static void BossFire_TempFire(Object *obj, Scratch_BossFire *scratch);
+static void BossFire_Action(Sst *self, Own_BossFire *own);
+static void BossFire_TempFire(Sst *self, Own_BossFire *own);
 
-static void BossFire_Main(Object *obj, Scratch_BossFire *scratch) {
-    obj->y_rad = 16 / 2;
-    obj->x_rad = 16 / 2;
-    obj->mappings = Mappings_Fireballs;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_MZ_Fireball);
-    obj->render.f.level_fg = true;
-    obj->priority = 5;
-    scratch->boss_y = obj->pos.l.y.f.u;
-    obj->width_pixels = 16 / 2;
-    obj->routine += 2;
+static void BossFire_Main(Sst *self, Own_BossFire *own) {
+    self->y_radius = 16 / 2;
+    self->x_radius = 16 / 2;
+    self->mappings = Mappings_Fireballs;
+    self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_MZ_Fireball);
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 5 * 0x80;
+    own->boss_y = self->y_pos.f.u;
+    self->width_pixels = 16 / 2;
+    self->routine += 2;
 
-    if (obj->scratch.u8[0] == 0) {
+    if (self->subtype == 0) {
         // Temp fire (floor warning) -- controls its own collision/routine
         // separately, so jump straight into TempFire this same frame.
-        obj->col_type = 0x8B; // col_16x16 | col_hurt
-        obj->routine += 2;
-        BossFire_TempFire(obj, scratch);
+        self->collision_flags = 0x8B; // col_16x16 | col_hurt
+        self->routine += 2;
+        BossFire_TempFire(self, own);
         return;
     }
 
     // Real fire, dropped by Eggman.
-    scratch->generic_timer = 30;
+    own->generic_timer = 30;
     QueueSound2(sfx_Fireball);
-    BossFire_Action(obj, scratch);
+    BossFire_Action(self, own);
 }
 
-static void BossFire_Drop(Object *obj, Scratch_BossFire *scratch) {
-    obj->status.o.f.y_flip = true; // face up while waiting to drop
+static void BossFire_Drop(Sst *self, Own_BossFire *own) {
+    self->status |= SST_STATUS_Y_FLIP; // face up while waiting to drop
 
-    if ((int8_t)(--scratch->generic_timer) >= 0)
+    if ((int8_t)(--own->generic_timer) >= 0)
         return;
 
-    obj->col_type = 0x8B; // col_16x16 | col_hurt
-    obj->scratch.u8[0] = 0; // clear subtype
-    obj->ysp += 0x18;
-    obj->status.o.f.y_flip = false; // now facing down
+    self->collision_flags = 0x8B; // col_16x16 | col_hurt
+    self->subtype = 0; // clear subtype
+    self->y_vel += 0x18;
+    SST_STATUS_SET(self, SST_STATUS_Y_FLIP, false); // now facing down
 
-    if (ObjFloorDist(obj, obj->pos.l.x.f.u) >= 0)
+    if (SstFloorDist(self, self->x_pos.f.u) >= 0)
         return;
-    obj->routine_sec += 2;
+    self->routine_secondary += 2;
 }
 
-static void BossFire_MakeFlame(Object *obj, Scratch_BossFire *scratch) {
-    obj->pos.l.y.f.u -= 2;
-    obj->tile |= 0x8000; // high priority (foreground)
-    obj->xsp = 0xA0;
-    obj->ysp = 0;
-    scratch->boss_x = obj->pos.l.x.f.u;
-    scratch->boss_y = obj->pos.l.y.f.u;
-    scratch->generic_timer = 3;
+static void BossFire_MakeFlame(Sst *self, Own_BossFire *own) {
+    self->y_pos.f.u -= 2;
+    self->art_tile |= 0x8000; // high priority (foreground)
+    self->x_vel = 0xA0;
+    self->y_vel = 0;
+    own->boss_x = self->x_pos.f.u;
+    own->boss_y = self->y_pos.f.u;
+    own->generic_timer = 3;
 
     // Clone the entire object (matches real ASM's literal 64-byte struct
     // copy) so the new flame starts identical, then spread the pair apart.
-    Object *clone = FindNextFreeObj(obj);
+    Sst *clone = Sst_AllocateAfter(self);
     if (clone != NULL) {
-        *clone = *obj;
-        clone->xsp = (int16_t)-clone->xsp;
-        clone->routine_sec += 2;
+        *clone = *self;
+        clone->x_vel = (int16_t)-clone->x_vel;
+        clone->routine_secondary += 2;
     }
 
-    obj->routine_sec += 2;
+    self->routine_secondary += 2;
 }
 
-static void BossFire_Duplicate2(Object *obj) {
-    Object *clone = FindNextFreeObj(obj);
+static void BossFire_Duplicate2(Sst *self) {
+    Sst *clone = Sst_AllocateAfter(self);
     if (clone == NULL)
         return;
-    clone->pos.l.x.f.u = obj->pos.l.x.f.u;
-    clone->pos.l.y.f.u = obj->pos.l.y.f.u;
-    clone->type = ObjId_BossFire;
-    clone->scratch.u8[0] = 0;   // subtype -- temp fire
-    clone->scratch.u8[1] = 103; // generic_timer
+    clone->x_pos.f.u = self->x_pos.f.u;
+    clone->y_pos.f.u = self->y_pos.f.u;
+    clone->code = self->code;
+    clone->subtype = 0;   // subtype -- temp fire
+    ((Own_BossFire *)clone->own.u8)->generic_timer = 103;
 }
 
-static void BossFire_Duplicate(Object *obj, Scratch_BossFire *scratch) {
-    if (ObjFloorDist(obj, obj->pos.l.x.f.u) >= 0) {
-        obj->routine_sec += 2;
+static void BossFire_Duplicate(Sst *self, Own_BossFire *own) {
+    if (SstFloorDist(self, self->x_pos.f.u) >= 0) {
+        self->routine_secondary += 2;
         return;
     }
 
-    int16_t x = obj->pos.l.x.f.u;
+    int16_t x = self->x_pos.f.u;
     if (x > (int16_t)(0x1800 + 0x140)) { // boss_mz_x+0x140 -- past the right edge (no left-edge check -- there's a gap there)
-        obj->routine += 2;
+        self->routine += 2;
         return;
     }
 
-    if (scratch->boss_x != x && (scratch->boss_x & 0x10) != (x & 0x10)) {
-        BossFire_Duplicate2(obj);
-        scratch->spread_x = x;
+    if (own->boss_x != x && (own->boss_x & 0x10) != (x & 0x10)) {
+        BossFire_Duplicate2(self);
+        own->spread_x = x;
     }
 
-    scratch->boss_x = x;
+    own->boss_x = x;
 }
 
-static void BossFire_FallEdge(Object *obj, Scratch_BossFire *scratch) {
-    obj->status.o.f.y_flip = false;
-    obj->ysp += 0x24;
+static void BossFire_FallEdge(Sst *self, Own_BossFire *own) {
+    SST_STATUS_SET(self, SST_STATUS_Y_FLIP, false);
+    self->y_vel += 0x24;
 
-    int16_t d0 = (int16_t)(obj->pos.l.x.f.u - scratch->spread_x);
+    int16_t d0 = (int16_t)(self->x_pos.f.u - own->spread_x);
     if (d0 < 0)
         d0 = (int16_t)-d0;
 
     if (d0 == 0x12)
-        obj->tile &= ~0x8000; // low priority (falls behind the foreground lip)
+        self->art_tile &= ~0x8000; // low priority (falls behind the foreground lip)
 
-    if (ObjFloorDist(obj, obj->pos.l.x.f.u) >= 0)
+    if (SstFloorDist(self, self->x_pos.f.u) >= 0)
         return;
 
-    if (--scratch->generic_timer == 0) {
-        ObjectDelete(obj);
+    if (--own->generic_timer == 0) {
+        Sst_Delete(self);
         return;
     }
-    obj->ysp = 0;
-    obj->pos.l.x.f.u = scratch->spread_x;
-    obj->pos.l.y.f.u = scratch->boss_y;
-    obj->tile |= 0x8000; // high priority again
-    obj->routine_sec -= 2; // -> BossFire_Duplicate, spawn another on top
+    self->y_vel = 0;
+    self->x_pos.f.u = own->spread_x;
+    self->y_pos.f.u = own->boss_y;
+    self->art_tile |= 0x8000; // high priority again
+    self->routine_secondary -= 2; // -> BossFire_Duplicate, spawn another on top
 }
 
-static void BossFire_Action(Object *obj, Scratch_BossFire *scratch) {
-    switch (obj->routine_sec) {
-    case 0: BossFire_Drop(obj, scratch); break;
-    case 2: BossFire_MakeFlame(obj, scratch); break;
-    case 4: BossFire_Duplicate(obj, scratch); break;
-    case 6: BossFire_FallEdge(obj, scratch); break;
+static void BossFire_Action(Sst *self, Own_BossFire *own) {
+    switch (self->routine_secondary) {
+    case 0: BossFire_Drop(self, own); break;
+    case 2: BossFire_MakeFlame(self, own); break;
+    case 4: BossFire_Duplicate(self, own); break;
+    case 6: BossFire_FallEdge(self, own); break;
     }
 
-    SpeedToPos(obj);
-    AnimateSprite(obj, Animation_Fireballs);
+    Sst_MoveSprite2(self);
+    Sst_Animate(self, Animation_Fireballs);
 
-    if ((uint16_t)obj->pos.l.y.f.u > (uint16_t)(0x210 + 0xD8)) { // boss_mz_y+0xD8 -- fallen into the lava
-        ObjectDelete(obj);
+    if ((uint16_t)self->y_pos.f.u > (uint16_t)(0x210 + 0xD8)) { // boss_mz_y+0xD8 -- fallen into the lava
+        Sst_Delete(self);
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-static void BossFire_TempFire(Object *obj, Scratch_BossFire *scratch) {
-    obj->tile |= 0x8000; // high priority
+static void BossFire_TempFire(Sst *self, Own_BossFire *own) {
+    self->art_tile |= 0x8000; // high priority
 
-    if (--scratch->generic_timer != 0) {
-        AnimateSprite(obj, Animation_Fireballs);
-        DisplaySprite(obj);
+    if (--own->generic_timer != 0) {
+        Sst_Animate(self, Animation_Fireballs);
+        Sst_Draw(self);
         return;
     }
 
-    obj->anim = 1; // "flame out"
-    obj->pos.l.y.f.u -= 4;
-    obj->col_type = 0;
+    self->anim = 1; // "flame out"
+    self->y_pos.f.u -= 4;
+    self->collision_flags = 0;
 
-    AnimateSprite(obj, Animation_Fireballs);
-    DisplaySprite(obj);
+    Sst_Animate(self, Animation_Fireballs);
+    Sst_Draw(self);
 }
 
-static void BossFire_TempFireDel(Object *obj) {
-    ObjectDelete(obj);
+static void BossFire_TempFireDel(Sst *self) {
+    Sst_Delete(self);
 }
 
-void Obj_BossFire(Object *obj) {
-    Scratch_BossFire *scratch = (Scratch_BossFire *)&obj->scratch;
+void Obj_BossFire(Sst *self) {
+    Own_BossFire *own = (Own_BossFire *)self->own.u8;
 
-    switch (obj->routine) {
-    case 0: BossFire_Main(obj, scratch); break;
-    case 2: BossFire_Action(obj, scratch); break;
-    case 4: BossFire_TempFire(obj, scratch); break;
-    case 6: BossFire_TempFireDel(obj); break;
+    switch (self->routine) {
+    case 0: BossFire_Main(self, own); break;
+    case 2: BossFire_Action(self, own); break;
+    case 4: BossFire_TempFire(self, own); break;
+    case 6: BossFire_TempFireDel(self); break;
     }
 }

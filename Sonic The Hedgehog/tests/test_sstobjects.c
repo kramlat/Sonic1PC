@@ -244,7 +244,26 @@ static void SstObjects_JawsTurnAfterTheirDelay(void) {
     CHECK(jaws->status & SST_STATUS_X_FLIP);
 }
 
+static void SstObjects_AHelixMakesItsSpikesAndTakesThemWhenItLeaves(void) {
+    Start();
+    Sst *helix = Sst_Spawn(ObjId_Helix, 0x100, 0x200);
+    helix->subtype = 8;                                  // eight spikes in all
+    Sst_Process(false);
+    int made = 0;
+    for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++)
+        made += sst[i].code == helix->code;
+    CHECK_EQ(made, 8);                                   // (the parent and seven others: the parent is one of the row)
+    SstLoadCamera far = {0x3000, 0, false, 0xFFF};
+    SstLoad_Update(&far);
+    Sst_Process(false);
+    made = 0;
+    for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++)
+        made += sst[i].code != NULL;
+    CHECK_EQ(made, 1);                                   // (the children go with the parent: the pylon, fixed to the screen, is all that stays)
+}
+
 void RegisterSstObjectsTests(void) {
+    RUN_TEST(SstObjects_AHelixMakesItsSpikesAndTakesThemWhenItLeaves);
     RUN_TEST(SstObjects_SonicRollingIntoABadnikOnTheTableDestroysItAndScores);
     RUN_TEST(SstObjects_SonicWalkingIntoABadnikOnTheTableIsHurt);
     RUN_TEST(SstObjects_AChopperJumpsInItsPlaceAndTurnsBackAtTheWater);

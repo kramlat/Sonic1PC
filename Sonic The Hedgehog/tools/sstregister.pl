@@ -18,6 +18,9 @@ for my $arg (@ARGV) {
         or die "$name: not in the table\n";
     my ($id, $idname) = ($2, $3);
     push @ids, hex($id);
+    if (-f '../Sonic the Hedgehog 2/src/Sonic2Objects.c' && slurp('../Sonic the Hedgehog 2/src/Sonic2Objects.c') =~ /^\t\/\* [0-9A-F]{2} ObjId_\w+\s*\*\/ Obj_\Q$name\E,/m) {
+        warn "$name: Sonic 2's table runs it too (shared): move it there as well (sst_object_codes, NULL in game_objects, its layouts in res/S2Objects)\n";
+    }
     $table =~ s/(const SstCode sst_object_codes\[0x100\] = \{\n)/$1\t[$idname] = Obj_$name,\n/ or die "no sst table\n";
     $table =~ s/(#include "Object\/Points.h"\n)/$1#include "Object\/$name.h"\n/ unless $table =~ /#include "Object\/\Q$name\E\.h"/;
     for my $m (@maps) {

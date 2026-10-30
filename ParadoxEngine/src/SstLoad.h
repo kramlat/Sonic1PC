@@ -62,6 +62,8 @@ void SstLoad_Forget(const Sst *obj);
 void SstOnScreenTest(Sst *obj);
 // Sprite_OnScreen_Test2: the same for an X the caller gives (the object's own position is somewhere else)
 void SstOnScreenTest2(Sst *obj, int16_t x);
+// Whether an X is more than 0x280 past the coarse back edge of the camera (the test the three above make)
+bool SstOutOfRange(int16_t x);
 // Delete_Sprite_If_Not_In_Range: the same without the drawing
 void SstDeleteIfNotInRange(Sst *obj);
 

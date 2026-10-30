@@ -1,5 +1,6 @@
 #include "SstLoad.h"
 #include "Object/Points.h"
+#include "Object/Helix.h"
 #include "Object/Explosion.h"
 #include "Object.h"
 
@@ -123,7 +124,6 @@ void Obj_DHZVerticalBridge(Object *obj);
 void Obj_CollapseLedge(Object *obj);
 void Obj_CollapseFloor(Object *obj);
 void Obj_VanishPlatform(Object *obj);
-void Obj_Helix(Object *obj);
 void Obj_MarbleBrick(Object *obj);
 void Obj_Button(Object *obj);
 void Obj_SmashBlock(Object *obj);
@@ -248,7 +248,7 @@ const ObjectFunc game_objects[] = {
 	/* 14 ObjId_LavaBall           */ Obj_HTZSeesaw,
 	/* 15 ObjId_SwingingPlatform    */ Obj_SwingDispatch, // (Neo Green Hill's swinging platform is the prototype's own: see NGHZObjects.c; the other zones keep the one they had)
 	/* 16 ObjId_Harpoon            */ Obj_HTZLift,
-	/* 17 ObjId_Helix               */ Obj_Helix,
+	/* 17 ObjId_Helix               */ NULL, // (moved to the status table: sst_object_codes)
 	/* 18 ObjId_BasicPlatform       */ Obj_BasicPlatform,
 	/* 19 ObjId_19                 */ Obj_CPZElevator, // (the prototype's elevator of Chemical Plant)
 	/* 1A ObjId_CollapseLedge       */ Obj_CollapsingLedge,
@@ -406,6 +406,7 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
 	[ObjId_Points] = Obj_Points,
+	[ObjId_Helix] = Obj_Helix,
 	[ObjId_Explosion] = Obj_Explosion,
 	[ObjId_ExplosionBomb] = Obj_ExplosionBomb, // (Sonic 1's, shared)
 };

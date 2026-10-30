@@ -237,19 +237,21 @@ static void BossSLZ_RealSeesawsDontHang(void) {
 
 
 #include "Object/LavaBall.h"
+#include "SstLoad.h"
 static void BossSLZ_OffscreenDeletes(void) {
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
     scrpos_x.f.u = 0x1000;
     int16_t xs[] = { 0x1000 + 320 + 200, 0x1000 + 700, 0x1000 + 900, 0x1000 - 400, 0x1000 - 700 };
+    static const int expect_alive[] = { 1, 0, 0, 0, 0 }; // (only within the 0x280 of the coarse back edge, 0x80 left of the camera)
     for (int k = 0; k < 5; k++) {
-        Object *o = &level_objects[5];
-        memset(o, 0, sizeof(Object));
-        o->type = ObjId_LavaBall;
-        o->scratch.u8[0] = 8;
-        o->pos.l.x.f.u = xs[k];
-        o->pos.l.y.f.u = 0x100;
-        Obj_LavaBall(o);
-        Obj_LavaBall(o);
-        printf("\n x=%+d from cam -> type %d", xs[k] - 0x1000, o->type);
+        Sst_Reset();
+        SstLoadCamera camera = {0x1000, 0, false, 0xFFF};
+        static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+        SstLoad_Init(&index_, NULL, false, &camera);
+        Sst *o = Sst_Spawn(ObjId_LavaBall, xs[k], 0x100);
+        o->subtype = 8;
+        o->code(o);
+        if (o->code != NULL)
+            o->code(o);
+        CHECK_EQ(o->code != NULL, expect_alive[k]);
     }
 }

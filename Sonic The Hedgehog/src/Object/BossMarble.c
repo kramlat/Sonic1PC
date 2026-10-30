@@ -2,6 +2,7 @@
 #include "Constants.h"
 
 #include "BossFire.h"
+#include "SstLoad.h"
 #include "LavaBall.h"
 #include "Level.h"
 #include "LevelScroll.h"
@@ -135,14 +136,11 @@ static void BMZ_ShipUpdate(Object *obj, Scratch_BossMarble *scratch) {
 
 static void BossMarble_MakeLava(Object *obj, Scratch_BossMarble *scratch) {
     if (scratch->lava_timer-- == 0) {
-        Object *ball = FindFreeObj();
+        uint32_t rand = RandomNumber();
+        Sst *ball = Sst_Spawn(ObjId_LavaBall, (int16_t)(0x1800 + 0x78 + ((uint16_t)rand % 0x50)), (int16_t)(0x210 + 0xD8)); // boss_mz_x+0x78, clamped to a 0x50-wide range; boss_mz_y+0xD8
         if (ball != NULL) {
-            ball->type = ObjId_LavaBall;
-            ball->pos.l.y.f.u = (int16_t)(0x210 + 0xD8); // boss_mz_y+0xD8
-            uint32_t rand = RandomNumber();
-            ball->pos.l.x.f.u = (int16_t)(0x1800 + 0x78 + ((uint16_t)rand % 0x50)); // boss_mz_x+0x78, clamped to a 0x50-wide range
-            ball->scratch.u8[0] = 0; // subtype -- LBall_RiseAndFall
-            ((Scratch_LavaBall *)&ball->scratch)->from_boss = 0xFF;
+            ball->subtype = 0; // subtype -- LBall_RiseAndFall
+            ((Own_LavaBall *)ball->own.u8)->from_boss = 0xFF;
         }
         scratch->lava_timer = (uint8_t)((RandomNumber() & 0x1F) + 0x40);
     }
@@ -202,12 +200,9 @@ static void BMZ_DropFire(Object *obj, Scratch_BossMarble *scratch) {
         scratch->generic_timer = 80;
         obj->status.o.f.x_flip = !obj->status.o.f.x_flip; // turn back to the screen bound
 
-        Object *fire = FindFreeObj();
+        Sst *fire = Sst_Spawn(ObjId_BossFire, scratch->boss_x.f.u, (int16_t)(scratch->boss_y.f.u + 0x18));
         if (fire != NULL) {
-            fire->pos.l.x.f.u = scratch->boss_x.f.u;
-            fire->pos.l.y.f.u = (int16_t)(scratch->boss_y.f.u + 0x18);
-            fire->type = ObjId_BossFire;
-            fire->scratch.u8[0] = 1; // subtype -- real fire, not a floor warning
+            fire->subtype = 1; // subtype -- real fire, not a floor warning
         }
     }
 
