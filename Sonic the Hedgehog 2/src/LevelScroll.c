@@ -415,6 +415,12 @@ static const BandLayer *LayerOfZone(void)
 	}
 }
 
+// No layer: a screen that is not a level (the title) has a background of its own, and the title's vblank would draw the last level's from its stale layout and chunks
+void LevelScroll_BackgroundOff(void)
+{
+	band_layer = NULL;
+}
+
 // A level begins (or its layout loads again): which layer the zone has
 void LevelScroll_BackgroundReset(void)
 {

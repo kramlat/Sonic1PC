@@ -372,6 +372,7 @@ static void Tit_ChkLevSel(bool level_select_cheat) {
 }
 
 void Deform_TitleScreen(void); // Sonic 2's LevelScroll.c
+void LevelScroll_BackgroundOff(void);
 
 // Copies a part of the background into plane B, row by row, wrapping at the plane's edge: the two 32-cell parts fill the whole 64-cell plane, so with the widescreen
 // margin the right part runs off the end of each row and has to come back round to its start (not spill into the next row)
@@ -415,6 +416,7 @@ void GM_Title(void) {
     VDP_SetBackgroundColour(0x20); // Line 2, entry 0
 
     VDPDisableWaterSplit();
+    LevelScroll_BackgroundOff(); // (the title's vblank draws a level's background layer: not the one of the demo that has just ended)
 
     // Clear screen
     ClearScreen();
