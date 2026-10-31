@@ -56,6 +56,7 @@ static Sst *FreeAfter(int from) {
 static bool Place(int entry, uint16_t y, uint16_t y_word) {
     const uint8_t *p = layout + entry * ENTRY_SIZE;
     Sst *o = slot;
+    memset(o, 0, sizeof(*o)); // (a free slot may hold what an earlier write left: the object starts clean)
     sst_respawn_table[entry] |= 0x80;
     o->x_pos.f.u = (int16_t)EntryX(entry);
     o->y_pos.f.u = (int16_t)(y & 0xFFF);

@@ -499,7 +499,7 @@ void ObjPosLoad(void) {
         memset(obj63_loaded, 0, sizeof(obj63_loaded));
         f_lz1tunnel_open = false; // doors respawn shut along with the remembered object state
 
-        Sst_Reset();
+        // (the slots were cleared as the level began, GM_Level: the objects made since, the title card above all, stay)
         SstLoadCamera sst_camera = SstCamera();
         SstLoad_Init(&sst_object_index, Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), false, &sst_camera);
         if (camera_split) {
