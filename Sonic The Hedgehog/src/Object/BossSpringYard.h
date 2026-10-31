@@ -1,7 +1,7 @@
 #ifndef _BOSSSPRINGYARD_H
 #define _BOSSSPRINGYARD_H
 
-#include "Object.h"
+#include "Sst.h"
 
 // Object 75 - Eggman (SYZ boss, "Egg Stinger"). One physical object doubles
 // as both the "controller" (boss_x/boss_y, generic timer, hit-flash, sine
@@ -13,7 +13,6 @@
 // block_index/has_block). See BossBlock.h for the separate object (76) the
 // spike attack grabs and breaks.
 typedef struct {
-    uint8_t pad0;           // 0x28 (subtype -- ship-only attack sub-state, read directly via obj->scratch.u8[0])
     uint8_t spike_disabled;  // 0x29 -- ship only: spike hurt-collision disabled while a block is grabbed or breaking (real ASM's BossSpringYard_ChildCmd, aliased onto the same offset the block object's own child_cmd uses -- see BossBlock.h)
 
     // 0x2A -- ShipMove-only: whether Eggman has already dropped down to
@@ -28,19 +27,17 @@ typedef struct {
     // BSYZ_Lift's shake-check -- reads generic_timer's own current low byte
     // directly in this port, not this field.)
     bool swept;
-    uint8_t pad1[5];         // 0x2B-0x2F
     dword_s boss_x;          // 0x30-0x33 -- ship/controller only: fixed-point base X (see obBossX)
     uint8_t parent_index;    // 0x34 -- face/flame/spike only: index into objects[] for the ship/controller
                               //         (ship only: doubles as which 32px-wide block column Eggman is currently over -- real ASM's BossSpringYard_BlockIndex, same offset, different alias)
-    uint8_t pad2;            // 0x35
     uint8_t block_index;     // 0x36 -- ship only: object-slot index of the currently grabbed/targeted block (real ASM's BossSpringYard_ObjPointer, a raw pointer there -- an index here, see has_block)
     bool has_block;          // 0x37 -- ship only: whether block_index above is currently valid
     dword_s boss_y;          // 0x38-0x3B -- ship/controller only: fixed-point base Y (see obBossY)
     int16_t generic_timer;   // 0x3C-0x3D -- ship/controller only
     uint8_t flash;           // 0x3E -- ship/controller only: remaining hit-flash frames
     uint8_t sine_counter;    // 0x3F -- ship/controller only: bobbing motion phase
-} Scratch_BossSpringYard;
+} Own_BossSpringYard;
 
-void Obj_BossSpringYard(Object *obj);
+void Obj_BossSpringYard(Sst *self);
 
 #endif //_BOSSSPRINGYARD_H

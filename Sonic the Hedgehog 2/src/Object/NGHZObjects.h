@@ -1,12 +1,12 @@
 #ifndef _NGHZOBJECTS_H
 #define _NGHZOBJECTS_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_ArrowShooter(Object *obj);
-void Obj_NGHZLeaves(Object *obj);
-void Obj_NGHZSwing(Object *obj);
-void Obj_NGHZRotator(Object *obj);
-void Obj_SwingDispatch(Object *obj);
+void Obj_ArrowShooter(Sst *self);
+void Obj_NGHZLeaves(Sst *self);
+void Obj_NGHZSwing(Sst *self);
+void Obj_NGHZRotator(Sst *self);
+void Obj_SwingDispatch(Sst *self);
 
 #endif //_NGHZOBJECTS_H

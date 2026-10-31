@@ -183,26 +183,26 @@ static void SS_BackgroundPlanesAreNotEmpty(void) {
 // Green Hill's ship pieces (the face and the flame) go when the ship does: they used to stay and follow whatever took the ship's slot, which is where the prison capsule's animals land
 static void Boss_TheShipsPiecesGoWithTheShip(void) {
     level_id = LEVEL_ID(ZoneId_GHZ, 2);
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
-    Object *ship = &level_objects[0];
-    ship->type = ObjId_BossGreenHill;
-    ship->pos.l.x.f.u = 0x2A60;
-    ship->pos.l.y.f.u = 0x200;
+    Sst_Reset();
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {0x2A00, 0, false, 0xFFF};
+    scrpos_x.f.u = 0x2A00;
+    SstLoad_Init(&index_, NULL, false, &camera);
+    Sst *ship = Sst_Spawn(ObjId_BossGreenHill, 0x2A60, 0x200);
     Obj_BossGreenHill(ship); // (its first frame makes the pieces)
     int pieces = 0;
-    for (int i = 1; i < LEVEL_OBJECTS; i++)
-        pieces += level_objects[i].type == ObjId_BossGreenHill;
+    for (int i = 0; i < SST_COUNT; i++)
+        pieces += &sst[i] != ship && sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_BossGreenHill];
     CHECK(pieces >= 2);
-    ObjectDelete(ship); // (the ship has left)
-    Object *animal = &level_objects[0];
-    animal->type = ObjId_Animal; // (and an animal takes its slot)
-    for (int i = 1; i < LEVEL_OBJECTS; i++) {
-        Object *o = &level_objects[i];
-        if (o->type == ObjId_BossGreenHill)
+    Sst_Delete(ship); // (the ship has left)
+    ship->code = sst_object_codes[ObjId_Animal]; // (and an animal takes its slot)
+    for (int i = 0; i < SST_COUNT; i++) {
+        Sst *o = &sst[i];
+        if (o->code != NULL && o->code == sst_object_codes[ObjId_BossGreenHill])
             Obj_BossGreenHill(o);
     }
-    for (int i = 1; i < LEVEL_OBJECTS; i++)
-        CHECK(level_objects[i].type != ObjId_BossGreenHill);
+    for (int i = 0; i < SST_COUNT; i++)
+        CHECK(sst[i].code == NULL || sst[i].code != sst_object_codes[ObjId_BossGreenHill]);
 }
 
 // The prison capsule's explosions are the fiery ones of Object 3F (a destroyed boss's, and the Walking Bomb's: the bomb's sound), not the badnik explosion

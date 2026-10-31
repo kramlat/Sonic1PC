@@ -1,7 +1,7 @@
 #ifndef _BOSSFINAL_H
 #define _BOSSFINAL_H
 
-#include "Object.h"
+#include "Sst.h"
 
 // Object 85 - Eggman (Final Zone boss) and its 5 helper objects (panel, legs, cockpit, empty ship, flame);
 // Object 84 - the 4 cylinders he hides in; Object 86 - the plasma launcher and its energy balls.
@@ -21,7 +21,7 @@ typedef struct {
     uint8_t pad2;            // 0x37
     uint8_t cylinders[4];    // 0x38-0x3B -- boss: the 4 cylinders (top-left, top-right, bottom-left, bottom-right)
     uint8_t pad3[4];         // 0x3C-0x3F
-} Scratch_BossFinal;
+} Own_BossFinal;
 
 typedef struct {
     uint8_t number;          // 0x28 -- cylinder number x2 (obSubtype): 0/2 floor cylinders, 4/6 ceiling ones
@@ -33,7 +33,7 @@ typedef struct {
     uint8_t pad2[3];         // 0x35-0x37
     dword_s base_y;          // 0x38-0x3B -- resting Y as a fixed-point value
     dword_s displacement;    // 0x3C-0x3F -- how far it has extended (pixels.fraction); negative = up
-} Scratch_EggmanCylinder;
+} Own_EggmanCylinder;
 
 typedef struct {
     uint8_t pad0;            // 0x28
@@ -46,10 +46,10 @@ typedef struct {
     int16_t balls_alive;     // 0x38 -- launcher: balls still in the air
     int16_t timer;           // 0x3A -- ball: frames left in the current phase
     uint8_t pad3[4];         // 0x3C-0x3F
-} Scratch_BossPlasma;
+} Own_BossPlasma;
 
-void Obj_BossFinal(Object *obj);
-void Obj_EggmanCylinder(Object *obj);
-void Obj_BossPlasma(Object *obj);
+void Obj_BossFinal(Sst *self);
+void Obj_EggmanCylinder(Sst *self);
+void Obj_BossPlasma(Sst *self);
 
 #endif //_BOSSFINAL_H

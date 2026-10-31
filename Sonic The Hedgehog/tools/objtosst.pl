@@ -14,8 +14,8 @@ for my $path (@ARGV) {
     my $s = slurp($path);
     if ($path =~ /\.h$/) {
         $s =~ s/\bScratch_(\w+)\b/Own_$1/g;
-        $s =~ s/^\s*u?int\d+_t\s+pad\d*(\[\w+\])?;[^\n]*\n//mg;           # the pad down to 0x2F
-        $s =~ s/^\s*uint8_t\s+subtype;[^\n]*\n//mg;
+        # only the pad at the top of a struct (down to 0x2F) and the subtype go: a pad in the middle keeps the fields after it where objects that read each other's memory (Boss Final) expect them
+        $s =~ s/(typedef struct\s*\{\n)((?:[ \t]*(?:u?int\d+_t\s+pad\d*(?:\[\w+\])?|uint8_t\s+subtype);[^\n]*\n)+)/$1/g;
         $s =~ s/\(Object\s*\*\s*(\w+)/(Sst *self/g;
         $s =~ s/#include "Object.h"/#include "Sst.h"/;
         # the resource includes (they define the arrays) go to the .c: a header the object table includes must not

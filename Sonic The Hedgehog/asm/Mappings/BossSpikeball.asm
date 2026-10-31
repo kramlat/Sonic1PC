@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - exploding spikeys that the SLZ boss	drops
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_BSBall_internal:	mappingsTable
 	mappingsTableEntry.w	@fireball1

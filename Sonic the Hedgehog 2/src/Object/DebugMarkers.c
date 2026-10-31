@@ -6,6 +6,7 @@
 #include "Level.h"
 
 #include "Macros.h"
+#include "ObjectSst.h"
 
 // What an object that has nothing to show (the lava boxes and the leaves, which are never drawn, and the objects not built yet) shows in the debug list, and in the corners of its box: the "?" of the monitor art
 // (tile 52 from the monitors' own, the icon of subtype 8), as three identical frames so that the subtype's frame still picks one. The prototype's own mapping for them
@@ -17,6 +18,33 @@ const uint8_t Mappings_DebugUnknown[] = {
     UNKNOWN_FRAME,
     UNKNOWN_FRAME,
 };
+
+// ... in Sonic 3's mapping format, for the objects of the status table
+#define UNKNOWN_FRAME_S3 0, 1, 0xF8, 5, 0, 52, 0xFF, 0xF8
+const uint8_t Mappings_DebugUnknownS3[] = {
+    0, 6, 0, 14, 0, 22,
+    UNKNOWN_FRAME_S3,
+    UNKNOWN_FRAME_S3,
+    UNKNOWN_FRAME_S3,
+};
+
+void DebugMarkersSst_Show(Sst *obj, int16_t half_width, int16_t half_height) {
+    if (!debug_cheat)
+        return;
+    obj->mappings = Mappings_DebugUnknownS3;
+    obj->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_Monitor);
+    obj->render_flags = SST_RENDER_LEVEL | SST_RENDER_MULTI_DRAW;
+    obj->width_pixels = (uint8_t)(half_width > 0xFF ? 0xFF : half_width);
+    obj->height_pixels = (uint8_t)(half_height > 0xFF ? 0xFF : half_height);
+    obj->mapping_frame = 0; // (no main sprite: the corners are all there is)
+    obj->child_count = 4;
+    for (int i = 0; i < 4; i++) {
+        obj->children[i].x = (int16_t)(obj->x_pos.f.u + ((i & 1) ? half_width - 8 : 8 - half_width));
+        obj->children[i].y = (int16_t)(obj->y_pos.f.u + ((i & 2) ? half_height - 8 : 8 - half_height));
+        obj->children[i].frame = 0;
+    }
+    Sst_Draw(obj);
+}
 
 void DebugMarkers_Show(Object *obj, int16_t half_width, int16_t half_height) {
     if (!debug_cheat)

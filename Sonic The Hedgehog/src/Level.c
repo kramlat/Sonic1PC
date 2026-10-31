@@ -405,12 +405,7 @@ void DynamicLevelEvents(void) {
                 if ((uint16_t)scrpos_x.f.u < (0x2960 - SCREEN_WIDEADD2))
                     break;
                 {
-                    Object *boss = FindFreeObj();
-                    if (boss != NULL) {
-                        boss->type = ObjId_BossGreenHill;
-                        boss->pos.l.x.f.u = 0x2960 + 0x100;
-                        boss->pos.l.y.f.u = 0x300 - 0x80;
-                    }
+                    Sst_Spawn(ObjId_BossGreenHill, 0x2960 + 0x100, 0x300 - 0x80);
                 }
                 QueueSound1(bgm_Boss);
                 lock_screen = true;
@@ -452,12 +447,7 @@ void DynamicLevelEvents(void) {
 #endif
                 if ((uint16_t)scrpos_x.f.u >= (uint16_t)(boss_cam_x - SCREEN_WIDEADD2) &&
                     (uint16_t)scrpos_y.f.u < 0xC0 + 0x540) { // boss_lz_y+$540
-                    Object *boss = FindFreeObj();
-                    if (boss != NULL) {
-                        memset(boss, 0, sizeof(Object)); // don't inherit a stale slot
-                        boss->mappings = NULL;
-                        boss->type = ObjId_BossLabyrinth;
-                    }
+                    Sst_Spawn(ObjId_BossLabyrinth, 0, 0);
                     QueueSound1(bgm_Boss);
                     lock_screen = true;
                     dle_routine += 2;
@@ -569,12 +559,7 @@ void DynamicLevelEvents(void) {
                 if ((uint16_t)scrpos_x.f.u < (0x17F0 - SCREEN_WIDEADD2)) // boss_mz_x-0x10
                     break;
                 {
-                    Object *boss = FindFreeObj();
-                    if (boss != NULL) {
-                        boss->type = ObjId_BossMarble;
-                        boss->pos.l.x.f.u = 0x1800 + 0x1F0; // boss_mz_x+0x1F0
-                        boss->pos.l.y.f.u = 0x210 + 0x1C;   // boss_mz_y+0x1C
-                    }
+                    Sst_Spawn(ObjId_BossMarble, 0x1800 + 0x1F0, 0x210 + 0x1C); // boss_mz_x+0x1F0, boss_mz_y+0x1C
                 }
                 QueueSound1(bgm_Boss);
                 lock_screen = true;
@@ -602,9 +587,7 @@ void DynamicLevelEvents(void) {
             if ((uint16_t)scrpos_x.f.u < (0x2000 - SCREEN_WIDEADD2)) // boss_slz_x
                 break;
             {
-                Object *boss = FindFreeObj();
-                if (boss != NULL)
-                    boss->type = ObjId_BossStarLight;
+                Sst_Spawn(ObjId_BossStarLight, 0, 0);
             }
             QueueSound1(bgm_Boss);
             lock_screen = true;
@@ -635,9 +618,7 @@ void DynamicLevelEvents(void) {
                 if ((uint16_t)scrpos_x.f.u < (0x2AC0 - SCREEN_WIDEADD2)) // boss_syz_x-0x140
                     break;
                 {
-                    Object *blocks = FindFreeObj();
-                    if (blocks != NULL)
-                        blocks->type = ObjId_BossBlock;
+                    Sst_Spawn(ObjId_BossBlock, 0, 0);
                 }
                 dle_routine += 2;
                 break;
@@ -646,9 +627,7 @@ void DynamicLevelEvents(void) {
                     break;
                 limit_btm1 = 0x4CC - SCREEN_TALLADD; // boss_syz_y
                 {
-                    Object *boss = FindFreeObj();
-                    if (boss != NULL)
-                        boss->type = ObjId_BossSpringYard;
+                    Sst_Spawn(ObjId_BossSpringYard, 0, 0);
                 }
                 QueueSound1(bgm_Boss);
                 lock_screen = true;
@@ -730,9 +709,7 @@ void DynamicLevelEvents(void) {
                 break;
             case 2: // DLE_FZ_Boss
                 if ((uint16_t)scrpos_x.f.u >= (0x2450 - 0x150 - SCREEN_WIDEADD2)) { // boss_fz_x-$150
-                    Object *boss = FindFreeObj();
-                    if (boss != NULL) {
-                        boss->type = ObjId_BossFinal;
+                    if (Sst_Spawn(ObjId_BossFinal, 0, 0) != NULL) {
                         dle_routine += 2;
                         lock_screen = true;
                     }

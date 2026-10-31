@@ -1,4 +1,7 @@
 #include "BossSpringYard.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include <string.h>
@@ -39,358 +42,359 @@ static const struct { uint8_t routine, anim, priority; } BSYZ_ObjData[4] = {
     { 8, 0, 5 }, // spike
 };
 
-static void BossSpringYard_ShipMain(Object *obj, Scratch_BossSpringYard *scratch);
-static void BSYZ_CalcSine(Object *obj, Scratch_BossSpringYard *scratch);
-static void BSYZ_MoveUpdate(Object *obj, Scratch_BossSpringYard *scratch);
-static void BSYZ_StatusUpdate(Object *obj, Scratch_BossSpringYard *scratch);
-static void BSYZ_Display(Object *obj, Scratch_BossSpringYard *scratch);
+static void BossSpringYard_ShipMain(Sst *self, Own_BossSpringYard *own);
+static void BSYZ_CalcSine(Sst *self, Own_BossSpringYard *own);
+static void BSYZ_MoveUpdate(Sst *self, Own_BossSpringYard *own);
+static void BSYZ_StatusUpdate(Sst *self, Own_BossSpringYard *own);
+static void BSYZ_Display(Sst *self, Own_BossSpringYard *own);
 
-static void BossSpringYard_Main(Object *obj, Scratch_BossSpringYard *scratch) {
-    obj->pos.l.x.f.u = SYZ_BOSS_X + 0x1B0;
-    obj->pos.l.y.f.u = SYZ_BOSS_Y + 0xE;
-    obj->status.o.f.x_flip = false;
+static void BossSpringYard_Main(Sst *self, Own_BossSpringYard *own) {
+    self->x_pos.f.u = SYZ_BOSS_X + 0x1B0;
+    self->y_pos.f.u = SYZ_BOSS_Y + 0xE;
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, false);
 
-    uint8_t self_index = (uint8_t)(obj - objects);
+    uint8_t self_index = (uint8_t)(self - sst);
 
     for (int i = 0; i < 4; i++) {
-        Object *sub;
+        Sst *sub;
         if (i == 0) {
-            sub = obj;
+            sub = self;
         } else {
-            sub = FindNextFreeObj(obj);
+            sub = Sst_AllocateAfter(self);
             if (sub == NULL)
                 break;
-            sub->pos.l.x.f.u = obj->pos.l.x.f.u;
-            sub->pos.l.y.f.u = obj->pos.l.y.f.u;
+            sub->x_pos.f.u = self->x_pos.f.u;
+            sub->y_pos.f.u = self->y_pos.f.u;
         }
 
-        // A freshly-FindNextFreeObj()'d slot can carry a stale scratch
+        // A freshly-Sst_AllocateAfter()'d slot can carry a stale scratch
         // region from whatever object previously lived there. The spike
-        // (routine 8) in particular reuses scratch->generic_timer directly
+        // (routine 8) in particular reuses own->generic_timer directly
         // as its own vertical-extension counter (BossSpringYard_SpikeMain)
         // -- a stale garbage value there would offset its Y position off-
         // screen from the very first frame, rendering every call but never
         // visibly. Clearing the whole scratch region up front (parent_index
         // gets (re)written right after) closes that off for every field,
         // not just the ones this file happens to read today.
-        memset(&sub->scratch, 0, sizeof(sub->scratch));
+        memset(sub->own.u8, 0, sizeof(sub->own));
 
-        sub->routine_sec = 0;
+        sub->routine_secondary = 0;
         sub->routine = BSYZ_ObjData[i].routine;
         sub->anim = BSYZ_ObjData[i].anim;
-        // AnimateSprite only resets anim_frame/frame_time when obj->anim !=
-        // obj->prev_anim -- setting anim above isn't enough on its own: if
+        // AnimateSprite only resets anim_frame/frame_time when self->anim !=
+        // self->prev_anim -- setting anim above isn't enough on its own: if
         // a pooled slot's stale prev_anim already happens to equal it, that
         // reset guard never fires, and anim_frame stays stale, indexing
         // Animation_Eggman out of bounds. All four fields the guard depends
         // on need to be reset here (same root cause identified for
-        // Electrocuter.c's own obj->anim fix, applied thoroughly this time).
+        // Electrocuter.c's own self->anim fix, applied thoroughly this time).
         sub->prev_anim = (uint8_t)(BSYZ_ObjData[i].anim + 1); // deliberately != anim, forces the reset guard on the very first AnimateSprite call
         sub->anim_frame = 0;
-        sub->frame_time.w = 0;
-        sub->frame = 0;
+        sub->anim_frame_timer = 0;
+        sub->mapping_frame = 0;
         sub->priority = BSYZ_ObjData[i].priority;
-        sub->type = ObjId_BossSpringYard;
+        sub->code = sst_object_codes[ObjId_BossSpringYard];
         sub->mappings = Mappings_Eggman;
-        sub->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman);
-        sub->render.f.level_fg = true;
+        sub->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman);
+        sub->render_flags |= SST_RENDER_LEVEL;
         sub->width_pixels = 64 / 2;
 
-        ((Scratch_BossSpringYard *)&sub->scratch)->parent_index = self_index;
+        ((Own_BossSpringYard *)sub->own.u8)->parent_index = self_index;
     }
 
-    scratch->boss_x.f.u = obj->pos.l.x.f.u;
-    scratch->boss_x.f.l = 0;
-    scratch->boss_y.f.u = obj->pos.l.y.f.u;
-    scratch->boss_y.f.l = 0;
-    obj->col_type = 0x0F;  // col_48x48 | col_boss
-    obj->col_property = 8; // obBossHits
+    own->boss_x.f.u = self->x_pos.f.u;
+    own->boss_x.f.l = 0;
+    own->boss_y.f.u = self->y_pos.f.u;
+    own->boss_y.f.l = 0;
+    self->collision_flags = 0x0F;  // col_48x48 | col_boss
+    self->collision_property = 8; // obBossHits
 
-    BossSpringYard_ShipMain(obj, scratch);
+    BossSpringYard_ShipMain(self, own);
 }
 
-static void BSYZ_CalcSine(Object *obj, Scratch_BossSpringYard *scratch) {
-    uint8_t angle = scratch->sine_counter;
-    scratch->sine_counter = (uint8_t)(scratch->sine_counter + 2);
+static void BSYZ_CalcSine(Sst *self, Own_BossSpringYard *own) {
+    uint8_t angle = own->sine_counter;
+    own->sine_counter = (uint8_t)(own->sine_counter + 2);
 
     int16_t sin, cos;
     CalcSine(angle, &sin, &cos);
-    obj->ysp = (int16_t)(sin >> 2);
+    self->y_vel = (int16_t)(sin >> 2);
 
-    BSYZ_MoveUpdate(obj, scratch);
+    BSYZ_MoveUpdate(self, own);
 }
 
-static void BSYZ_MoveUpdate(Object *obj, Scratch_BossSpringYard *scratch) {
-    BossMove(obj, &scratch->boss_x, &scratch->boss_y);
-    obj->pos.l.y.f.u = scratch->boss_y.f.u;
-    obj->pos.l.x.f.u = scratch->boss_x.f.u;
-    BSYZ_StatusUpdate(obj, scratch);
+static void BSYZ_MoveUpdate(Sst *self, Own_BossSpringYard *own) {
+    SstBossMove(self, &own->boss_x, &own->boss_y);
+    self->y_pos.f.u = own->boss_y.f.u;
+    self->x_pos.f.u = own->boss_x.f.u;
+    BSYZ_StatusUpdate(self, own);
 }
 
-static void BSYZ_Defeated(Object *obj, Scratch_BossSpringYard *scratch) {
+static void BSYZ_Defeated(Sst *self, Own_BossSpringYard *own) {
     AddPoints(100); // 1000 points (AddPoints counts in tens, like the score)
-    obj->routine_sec = 6; // -> BSYZ_Explode
-    scratch->generic_timer = 180;
-    obj->xsp = 0;
+    self->routine_secondary = 6; // -> BSYZ_Explode
+    own->generic_timer = 180;
+    self->x_vel = 0;
 }
 
-static void BSYZ_StatusUpdate(Object *obj, Scratch_BossSpringYard *scratch) {
+static void BSYZ_StatusUpdate(Sst *self, Own_BossSpringYard *own) {
     // Which 32px-wide floor block column Eggman is currently over --
     // shares parent_index's own byte on the ship instance (real ASM's own
     // BlockIndex/ParentObj offset aliasing, see BossSpringYard.h).
-    scratch->parent_index = (uint8_t)((uint16_t)(int16_t)(obj->pos.l.x.f.u - SYZ_BOSS_X) >> 5);
+    own->parent_index = (uint8_t)((uint16_t)(int16_t)(self->x_pos.f.u - SYZ_BOSS_X) >> 5);
 
-    if (obj->routine_sec >= 6) // exploding, recovering, or escaping -- skip hit detection
+    if (self->routine_secondary >= 6) // exploding, recovering, or escaping -- skip hit detection
         return;
 
-    if (obj->status.o.f.flag7) { // defeated flag
-        BSYZ_Defeated(obj, scratch);
+    if (((self->status & 0x80) != 0)) { // defeated flag
+        BSYZ_Defeated(self, own);
         return;
     }
-    if (obj->col_type != 0)
+    if (self->collision_flags != 0)
         return; // not currently hittable
 
-    if (scratch->flash == 0) {
-        scratch->flash = 0x20;
+    if (own->flash == 0) {
+        own->flash = 0x20;
         QueueSound2(sfx_HitBoss);
     }
 
     dry_palette[1][1] = (dry_palette[1][1] == 0) ? 0x0EEE : 0;
-    if (--scratch->flash != 0)
+    if (--own->flash != 0)
         return;
-    obj->col_type = 0x0F; // col_48x48 | col_boss -- restore collision
+    self->collision_flags = 0x0F; // col_48x48 | col_boss -- restore collision
 }
 
-static void BossSpringYard_FindBlocks(Scratch_BossSpringYard *scratch) {
-    scratch->has_block = false;
-    uint8_t target_col = scratch->parent_index; // block_index alias -- see BossSpringYard.h
+static void BossSpringYard_FindBlocks(Own_BossSpringYard *own) {
+    own->has_block = false;
+    uint8_t target_col = own->parent_index; // block_index alias -- see BossSpringYard.h
 
     for (int i = RESERVED_OBJECTS; i < OBJECTS; i++) {
         if (objects[i].type == ObjId_BossBlock && objects[i].scratch.u8[0] == target_col) {
-            scratch->block_index = (uint8_t)i;
-            scratch->has_block = true;
+            own->block_index = (uint8_t)i;
+            own->has_block = true;
             break;
         }
     }
 }
 
-static void BSYZ_DropSetup(Object *obj, Scratch_BossSpringYard *scratch) {
-    int16_t d0 = (int16_t)(scratch->boss_x.f.u - (SYZ_BOSS_X + 0x10));
+static void BSYZ_DropSetup(Sst *self, Own_BossSpringYard *own) {
+    int16_t d0 = (int16_t)(own->boss_x.f.u - (SYZ_BOSS_X + 0x10));
     d0 = (int16_t)(d0 & 0x1F);
     d0 = (int16_t)(d0 - 0x1F);
     if (d0 < 0)
         d0 = (int16_t)-d0;
     d0 -= 1;
 
-    if (d0 <= 0 && !scratch->swept) {
+    if (d0 <= 0 && !own->swept) {
         int8_t player_col = (int8_t)((player->x_pos.f.u - SYZ_BOSS_X) >> 5);
-        if (player_col == (int8_t)scratch->parent_index) {
-            scratch->boss_x.f.u = (int16_t)(((int16_t)(int8_t)scratch->parent_index << 5) + SYZ_BOSS_X + 0x10);
-            BossSpringYard_FindBlocks(scratch);
-            obj->routine_sec += 2; // -> BSYZ_Attack
-            obj->scratch.u8[0] = 0;       // subtype -- attack substate (Descend)
-            scratch->spike_disabled = 0;  // cleared by the same word write real ASM does here
-            obj->xsp = 0;
+        if (player_col == (int8_t)own->parent_index) {
+            own->boss_x.f.u = (int16_t)(((int16_t)(int8_t)own->parent_index << 5) + SYZ_BOSS_X + 0x10);
+            BossSpringYard_FindBlocks(own);
+            self->routine_secondary += 2; // -> BSYZ_Attack
+            self->subtype = 0;       // subtype -- attack substate (Descend)
+            own->spike_disabled = 0;  // cleared by the same word write real ASM does here
+            self->x_vel = 0;
         }
     }
 
-    BSYZ_CalcSine(obj, scratch);
+    BSYZ_CalcSine(self, own);
 }
 
-static void BSYZ_ShipStart(Object *obj, Scratch_BossSpringYard *scratch) {
-    obj->xsp = (int16_t)-0x100;
-    if ((uint16_t)scratch->boss_x.f.u >= (uint16_t)(SYZ_BOSS_X + 0x138)) {
-        BSYZ_CalcSine(obj, scratch);
+static void BSYZ_ShipStart(Sst *self, Own_BossSpringYard *own) {
+    self->x_vel = (int16_t)-0x100;
+    if ((uint16_t)own->boss_x.f.u >= (uint16_t)(SYZ_BOSS_X + 0x138)) {
+        BSYZ_CalcSine(self, own);
         return;
     }
-    obj->routine_sec += 2;
-    BSYZ_CalcSine(obj, scratch);
+    self->routine_secondary += 2;
+    BSYZ_CalcSine(self, own);
 }
 
-static void BSYZ_ShipMove(Object *obj, Scratch_BossSpringYard *scratch) {
-    int16_t bx = scratch->boss_x.f.u;
-    obj->xsp = 0x140;
+static void BSYZ_ShipMove(Sst *self, Own_BossSpringYard *own) {
+    int16_t bx = own->boss_x.f.u;
+    self->x_vel = 0x140;
 
-    if (!obj->status.o.f.x_flip) {
-        obj->xsp = (int16_t)-obj->xsp;
+    if (!((self->status & SST_STATUS_X_FLIP) != 0)) {
+        self->x_vel = (int16_t)-self->x_vel;
         if (bx > (int16_t)(SYZ_BOSS_X + 8)) {
-            BSYZ_DropSetup(obj, scratch);
+            BSYZ_DropSetup(self, own);
             return;
         }
     } else {
         if (bx < (int16_t)(SYZ_BOSS_X + 0x138)) {
-            BSYZ_DropSetup(obj, scratch);
+            BSYZ_DropSetup(self, own);
             return;
         }
     }
 
     // Reached a bound -- flip direction and allow another attack sweep,
     // then fall straight into DropSetup (real ASM's own fallthrough).
-    obj->status.o.f.x_flip = !obj->status.o.f.x_flip;
-    scratch->swept = false;
-    BSYZ_DropSetup(obj, scratch);
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, !((self->status & SST_STATUS_X_FLIP) != 0));
+    own->swept = false;
+    BSYZ_DropSetup(self, own);
 }
 
-static void BSYZ_Descend(Object *obj, Scratch_BossSpringYard *scratch) {
-    obj->ysp = 0x180;
-    if ((uint16_t)scratch->boss_y.f.u < (uint16_t)(SYZ_BOSS_Y + 0x8A)) {
-        BSYZ_MoveUpdate(obj, scratch);
+static void BSYZ_Descend(Sst *self, Own_BossSpringYard *own) {
+    self->y_vel = 0x180;
+    if ((uint16_t)own->boss_y.f.u < (uint16_t)(SYZ_BOSS_Y + 0x8A)) {
+        BSYZ_MoveUpdate(self, own);
         return;
     }
 
-    scratch->boss_y.f.u = SYZ_BOSS_Y + 0x8A;
-    scratch->generic_timer = 0;
+    own->boss_y.f.u = SYZ_BOSS_Y + 0x8A;
+    own->generic_timer = 0;
 
-    if (scratch->has_block) {
-        Object *block = &objects[scratch->block_index];
-        Scratch_BossBlock *bscratch = (Scratch_BossBlock *)&block->scratch;
+    if (own->has_block) {
+        Sst *block = &sst[own->block_index];
+        Own_BossBlock *bscratch = (Own_BossBlock *)block->own.u8;
         bscratch->child_cmd = -1; // grabbed
-        bscratch->parent_index = (uint8_t)(obj - objects);
-        scratch->spike_disabled = 1;
-        scratch->generic_timer = 50;
+        bscratch->parent_index = (uint8_t)(self - sst);
+        own->spike_disabled = 1;
+        own->generic_timer = 50;
     }
 
-    obj->ysp = 0;
-    obj->scratch.u8[0] += 2; // -> Lift
-    BSYZ_MoveUpdate(obj, scratch);
+    self->y_vel = 0;
+    self->subtype += 2; // -> Lift
+    BSYZ_MoveUpdate(self, own);
 }
 
-static void BSYZ_Lift(Object *obj, Scratch_BossSpringYard *scratch) {
-    scratch->generic_timer -= 1;
+static void BSYZ_Lift(Sst *self, Own_BossSpringYard *own) {
+    own->generic_timer -= 1;
     int16_t d0;
 
-    if (scratch->generic_timer >= 0) {
+    if (own->generic_timer >= 0) {
         d0 = 0;
-        if (scratch->generic_timer <= 30) {
+        if (own->generic_timer <= 30) {
             d0 = 2;
-            if (((uint8_t)scratch->generic_timer) & 2)
+            if (((uint8_t)own->generic_timer) & 2)
                 d0 = -2;
         }
     } else {
-        obj->scratch.u8[0] += 2; // -> LiftStop
-        obj->ysp = (int16_t)-0x800;
-        if (!scratch->has_block)
-            obj->ysp = (int16_t)(obj->ysp >> 1);
+        self->subtype += 2; // -> LiftStop
+        self->y_vel = (int16_t)-0x800;
+        if (!own->has_block)
+            self->y_vel = (int16_t)(self->y_vel >> 1);
         d0 = 0;
     }
 
-    obj->pos.l.y.f.u = (int16_t)(scratch->boss_y.f.u + d0);
-    obj->pos.l.x.f.u = scratch->boss_x.f.u;
-    BSYZ_StatusUpdate(obj, scratch);
+    self->y_pos.f.u = (int16_t)(own->boss_y.f.u + d0);
+    self->x_pos.f.u = own->boss_x.f.u;
+    BSYZ_StatusUpdate(self, own);
 }
 
-static void BSYZ_LiftStop(Object *obj, Scratch_BossSpringYard *scratch) {
+static void BSYZ_LiftStop(Sst *self, Own_BossSpringYard *own) {
     int16_t target = (int16_t)(SYZ_BOSS_Y + 0xE);
-    if (scratch->has_block)
+    if (own->has_block)
         target = (int16_t)(target - 0x18);
 
-    if (target < scratch->boss_y.f.u) {
-        if (obj->ysp < (int16_t)-0x40)
-            obj->ysp = (int16_t)(obj->ysp + 0xC);
-        BSYZ_MoveUpdate(obj, scratch);
+    if (target < own->boss_y.f.u) {
+        if (self->y_vel < (int16_t)-0x40)
+            self->y_vel = (int16_t)(self->y_vel + 0xC);
+        BSYZ_MoveUpdate(self, own);
         return;
     }
 
-    scratch->generic_timer = 8;
-    if (scratch->has_block)
-        scratch->generic_timer = 45;
-    obj->scratch.u8[0] += 2; // -> BreakBlock
-    obj->ysp = 0;
-    BSYZ_MoveUpdate(obj, scratch);
+    own->generic_timer = 8;
+    if (own->has_block)
+        own->generic_timer = 45;
+    self->subtype += 2; // -> BreakBlock
+    self->y_vel = 0;
+    BSYZ_MoveUpdate(self, own);
 }
 
-static void BSYZ_BreakBlock(Object *obj, Scratch_BossSpringYard *scratch) {
-    scratch->generic_timer -= 1;
+static void BSYZ_BreakBlock(Sst *self, Own_BossSpringYard *own) {
+    own->generic_timer -= 1;
 
-    if (scratch->generic_timer == 0) {
-        if (scratch->has_block) {
-            Object *block = &objects[scratch->block_index];
-            ((Scratch_BossBlock *)&block->scratch)->child_cmd = 0xA; // start breaking
+    if (own->generic_timer == 0) {
+        if (own->has_block) {
+            Sst *block = &sst[own->block_index];
+            ((Own_BossBlock *)block->own.u8)->child_cmd = 0xA; // start breaking
         }
-        scratch->has_block = false;
-    } else if (scratch->generic_timer < 0 && scratch->generic_timer == -30) {
-        scratch->spike_disabled = 0; // spike dangerous again
-        obj->routine_sec -= 2;       // -> BSYZ_ShipMove
-        scratch->swept = true;
-        BSYZ_StatusUpdate(obj, scratch);
+        own->has_block = false;
+    } else if (own->generic_timer < 0 && own->generic_timer == -30) {
+        own->spike_disabled = 0; // spike dangerous again
+        self->routine_secondary -= 2;       // -> BSYZ_ShipMove
+        own->swept = true;
+        BSYZ_StatusUpdate(self, own);
         return;
     }
 
-    int16_t d0 = scratch->has_block ? 2 : 1;
+    int16_t d0 = own->has_block ? 2 : 1;
     int16_t rest = (int16_t)(SYZ_BOSS_Y + 0xE);
-    if (scratch->boss_y.f.u != rest) {
-        if (scratch->boss_y.f.u > rest)
+    if (own->boss_y.f.u != rest) {
+        if (own->boss_y.f.u > rest)
             d0 = (int16_t)-d0;
-        scratch->boss_y.f.u = (int16_t)(scratch->boss_y.f.u + d0);
+        own->boss_y.f.u = (int16_t)(own->boss_y.f.u + d0);
     }
 
     int16_t shake = 0;
-    if (scratch->has_block) {
+    if (own->has_block) {
         shake = 2;
-        if (((uint8_t)scratch->generic_timer) & 1)
+        if (((uint8_t)own->generic_timer) & 1)
             shake = -2;
     }
-    obj->pos.l.y.f.u = (int16_t)(scratch->boss_y.f.u + shake);
-    obj->pos.l.x.f.u = scratch->boss_x.f.u;
-    BSYZ_StatusUpdate(obj, scratch);
+    self->y_pos.f.u = (int16_t)(own->boss_y.f.u + shake);
+    self->x_pos.f.u = own->boss_x.f.u;
+    BSYZ_StatusUpdate(self, own);
 }
 
-static void BSYZ_Attack(Object *obj, Scratch_BossSpringYard *scratch) {
-    switch (obj->scratch.u8[0]) {
-    case 0: BSYZ_Descend(obj, scratch); break;
-    case 2: BSYZ_Lift(obj, scratch); break;
-    case 4: BSYZ_LiftStop(obj, scratch); break;
-    case 6: BSYZ_BreakBlock(obj, scratch); break;
+static void BSYZ_Attack(Sst *self, Own_BossSpringYard *own) {
+    switch (self->subtype) {
+    case 0: BSYZ_Descend(self, own); break;
+    case 2: BSYZ_Lift(self, own); break;
+    case 4: BSYZ_LiftStop(self, own); break;
+    case 6: BSYZ_BreakBlock(self, own); break;
     }
 }
 
-static void BSYZ_Explode(Object *obj, Scratch_BossSpringYard *scratch) {
-    if (--scratch->generic_timer >= 0) {
-        BossDefeated(obj);
+static void BSYZ_Explode(Sst *self, Own_BossSpringYard *own) {
+    if (--own->generic_timer >= 0) {
+        SstBossDefeated(self);
         return;
     }
 
-    obj->status.o.f.x_flip = true;
-    obj->status.o.f.flag7 = false; // clear defeated flag (set in ReactToItem)
-    obj->xsp = 0;
-    obj->routine_sec += 2; // -> BSYZ_Recover
-    scratch->generic_timer = -1;
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, true);
+    self->status &= (uint8_t)~0x80; // clear defeated flag (set in ReactToItem)
+    self->x_vel = 0;
+    self->routine_secondary += 2; // -> BSYZ_Recover
+    own->generic_timer = -1;
 
     if (!boss_status)
         boss_status = 1;
 
-    BSYZ_StatusUpdate(obj, scratch);
+    BSYZ_StatusUpdate(self, own);
 }
 
-static void BSYZ_Recover(Object *obj, Scratch_BossSpringYard *scratch) {
-    scratch->generic_timer++;
+static void BSYZ_Recover(Sst *self, Own_BossSpringYard *own) {
+    own->generic_timer++;
 
-    if (scratch->generic_timer == 0) {
-        obj->ysp = 0; // done falling
-    } else if (scratch->generic_timer < 0) {
-        obj->ysp = (int16_t)(obj->ysp + 0x18); // fall a little
-    } else if (scratch->generic_timer < 32) {
-        obj->ysp = (int16_t)(obj->ysp - 8); // rise
-    } else if (scratch->generic_timer == 32) {
-        obj->ysp = 0;
+    if (own->generic_timer == 0) {
+        self->y_vel = 0; // done falling
+    } else if (own->generic_timer < 0) {
+        self->y_vel = (int16_t)(self->y_vel + 0x18); // fall a little
+    } else if (own->generic_timer < 32) {
+        self->y_vel = (int16_t)(self->y_vel - 8); // rise
+    } else if (own->generic_timer == 32) {
+        self->y_vel = 0;
         QueueSound1(bgm_SYZ);
-    } else if (scratch->generic_timer < 42) {
+    } else if (own->generic_timer < 42) {
         // wait
     } else {
-        obj->routine_sec += 2; // -> BSYZ_Escape
+        self->routine_secondary += 2; // -> BSYZ_Escape
     }
 
-    BSYZ_MoveUpdate(obj, scratch);
+    BSYZ_MoveUpdate(self, own);
 }
 
-static void BSYZ_Escape(Object *obj, Scratch_BossSpringYard *scratch) {
-    obj->xsp = 0x400;          // move right quickly
-    obj->ysp = (int16_t)-0x40; // move up a little
+static void BSYZ_Escape(Sst *self, Own_BossSpringYard *own) {
+    self->x_vel = 0x400;          // move right quickly
+    self->y_vel = (int16_t)-0x40; // move up a little
 
     if (limit_right2 != (uint16_t)SYZ_BOSS_END) {
         limit_right2 += 2; // keep unlocking the screen bounds
-    } else if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        ObjectDelete(obj); // has Eggman left the screen?
+    } else if (SstOutOfRange(self->x_pos.f.u)) {
+        SstLoad_Forget(self);
+        Sst_Delete(self); // has Eggman left the screen?
         return;
     }
 
@@ -398,54 +402,54 @@ static void BSYZ_Escape(Object *obj, Scratch_BossSpringYard *scratch) {
     // which itself calls BossMove again via MoveUpdate. Not a mistake to
     // "fix": both calls are real, applying the escape velocity and then an
     // extra sine-bob pass on top of it in the same frame.
-    BossMove(obj, &scratch->boss_x, &scratch->boss_y);
-    BSYZ_CalcSine(obj, scratch);
+    SstBossMove(self, &own->boss_x, &own->boss_y);
+    BSYZ_CalcSine(self, own);
 }
 
-static void BossSpringYard_ShipMain(Object *obj, Scratch_BossSpringYard *scratch) {
-    switch (obj->routine_sec) {
-    case 0:  BSYZ_ShipStart(obj, scratch); break;
-    case 2:  BSYZ_ShipMove(obj, scratch); break;
-    case 4:  BSYZ_Attack(obj, scratch); break;
-    case 6:  BSYZ_Explode(obj, scratch); break;
-    case 8:  BSYZ_Recover(obj, scratch); break;
-    case 10: BSYZ_Escape(obj, scratch); break;
+static void BossSpringYard_ShipMain(Sst *self, Own_BossSpringYard *own) {
+    switch (self->routine_secondary) {
+    case 0:  BSYZ_ShipStart(self, own); break;
+    case 2:  BSYZ_ShipMove(self, own); break;
+    case 4:  BSYZ_Attack(self, own); break;
+    case 6:  BSYZ_Explode(self, own); break;
+    case 8:  BSYZ_Recover(self, own); break;
+    case 10: BSYZ_Escape(self, own); break;
     }
 
-    AnimateSprite(obj, Animation_Eggman);
+    Sst_Animate(self, Animation_Eggman);
 
-    uint8_t flip = obj->status.b & 3;
-    obj->render.b = (uint8_t)((obj->render.b & ~3) | flip);
-    DisplaySprite(obj);
+    uint8_t flip = self->status & 3;
+    self->render_flags = (uint8_t)((self->render_flags & ~3) | flip);
+    Sst_Draw(self);
 }
 
 // Shared tail for the face/flame sub-objects: syncs position/status
 // from the ship and displays, animating first (both are Animation_Eggman
 // driven, unlike the spike -- see BossSpringYard_SpikeMain's own comment).
-static void BSYZ_SetBits(Object *obj, Scratch_BossSpringYard *scratch) {
-    Object *parent = &objects[scratch->parent_index];
-    obj->pos.l.x.f.u = parent->pos.l.x.f.u;
-    obj->pos.l.y.f.u = parent->pos.l.y.f.u;
-    obj->status.b = parent->status.b;
+static void BSYZ_SetBits(Sst *self, Own_BossSpringYard *own) {
+    Sst *parent = &sst[own->parent_index];
+    self->x_pos.f.u = parent->x_pos.f.u;
+    self->y_pos.f.u = parent->y_pos.f.u;
+    self->status = parent->status;
 
-    uint8_t flip = obj->status.b & 3;
-    obj->render.b = (uint8_t)((obj->render.b & ~3) | flip);
-    DisplaySprite(obj);
+    uint8_t flip = self->status & 3;
+    self->render_flags = (uint8_t)((self->render_flags & ~3) | flip);
+    Sst_Draw(self);
 }
 
-static void BSYZ_Display(Object *obj, Scratch_BossSpringYard *scratch) {
-    AnimateSprite(obj, Animation_Eggman);
-    BSYZ_SetBits(obj, scratch);
+static void BSYZ_Display(Sst *self, Own_BossSpringYard *own) {
+    Sst_Animate(self, Animation_Eggman);
+    BSYZ_SetBits(self, own);
 }
 
-static void BossSpringYard_FaceMain(Object *obj, Scratch_BossSpringYard *scratch) {
-    Object *parent = &objects[scratch->parent_index];
+static void BossSpringYard_FaceMain(Sst *self, Own_BossSpringYard *own) {
+    Sst *parent = &sst[own->parent_index];
     uint8_t anim = 1; // facenormal1
 
-    switch (parent->routine_sec) {
+    switch (parent->routine_secondary) {
     case 0: // ShipStart -- Face_ChkHit
     case 2: // ShipMove -- Face_ChkHit
-        if (parent->col_type == 0) {
+        if (parent->collision_flags == 0) {
             anim = 5; // facehit
         } else if (player->routine >= 4) {
             anim = 4; // facelaugh
@@ -453,9 +457,9 @@ static void BossSpringYard_FaceMain(Object *obj, Scratch_BossSpringYard *scratch
         break;
 
     case 4: // Attack -- Face_Attack, sub-dispatched on the ship's own attack substate
-        if (parent->scratch.u8[0] == 2) // Lift
+        if (parent->subtype == 2) // Lift
             anim = 6; // lifting
-        if (parent->col_type == 0) {
+        if (parent->collision_flags == 0) {
             anim = 5; // facehit -- overrides the Lift anim above, matching real ASM's own fallthrough
         } else if (player->routine >= 4) {
             anim = 4; // facelaugh
@@ -472,68 +476,71 @@ static void BossSpringYard_FaceMain(Object *obj, Scratch_BossSpringYard *scratch
         break;
     }
 
-    obj->anim = anim;
+    self->anim = anim;
 
-    if (parent->routine_sec == 10) { // Escape -- extra on-screen-delete check once fully escaping
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
+    if (parent->routine_secondary == 10) { // Escape -- extra on-screen-delete check once fully escaping
+        if (SstOutOfRange(self->x_pos.f.u)) {
+            SstLoad_Forget(self);
+            Sst_Delete(self);
             return;
         }
     }
-    BSYZ_Display(obj, scratch);
+    BSYZ_Display(self, own);
 }
 
-static void BossSpringYard_FlameMain(Object *obj, Scratch_BossSpringYard *scratch) {
-    obj->anim = 7; // blank (default invisible state)
+static void BossSpringYard_FlameMain(Sst *self, Own_BossSpringYard *own) {
+    self->anim = 7; // blank (default invisible state)
 
-    Object *parent = &objects[scratch->parent_index];
+    Sst *parent = &sst[own->parent_index];
 
-    if (parent->routine_sec == 10) { // Escape
-        obj->anim = 0xB; // escapeflame -- thruster animation for takeoff
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
+    if (parent->routine_secondary == 10) { // Escape
+        self->anim = 0xB; // escapeflame -- thruster animation for takeoff
+        if (SstOutOfRange(self->x_pos.f.u)) {
+            SstLoad_Forget(self);
+            Sst_Delete(self);
             return;
         }
-        BSYZ_Display(obj, scratch);
+        BSYZ_Display(self, own);
         return;
     }
 
-    if (parent->xsp != 0)
-        obj->anim = 8; // flame
+    if (parent->x_vel != 0)
+        self->anim = 8; // flame
 
-    BSYZ_Display(obj, scratch);
+    BSYZ_Display(self, own);
 }
 
-static void BossSpringYard_SpikeMain(Object *obj, Scratch_BossSpringYard *scratch) {
-    obj->mappings = Mappings_BossItems;
-    obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Eggman_Weapons); // | Tile_Pal2
-    obj->frame = 5;
+static void BossSpringYard_SpikeMain(Sst *self, Own_BossSpringYard *own) {
+    self->mappings = Mappings_BossItems;
+    self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Eggman_Weapons); // | Tile_Pal2
+    self->mapping_frame = 5;
 
-    Object *parent = &objects[scratch->parent_index];
-    Scratch_BossSpringYard *pscratch = (Scratch_BossSpringYard *)&parent->scratch;
+    Sst *parent = &sst[own->parent_index];
+    Own_BossSpringYard *pscratch = (Own_BossSpringYard *)parent->own.u8;
 
-    if (parent->routine_sec == 10) { // Escape
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
+    if (parent->routine_secondary == 10) { // Escape
+        if (SstOutOfRange(self->x_pos.f.u)) {
+            SstLoad_Forget(self);
+            Sst_Delete(self);
             return;
         }
     }
 
-    obj->pos.l.x.f.u = parent->pos.l.x.f.u;
-    obj->pos.l.y.f.u = parent->pos.l.y.f.u;
+    self->x_pos.f.u = parent->x_pos.f.u;
+    self->y_pos.f.u = parent->y_pos.f.u;
 
     // Vertical extension amount -- this object's OWN generic_timer,
     // repurposed here purely as the spike's extension counter (real ASM's
     // own BossSpringYard_GenericTimer aliasing, spike-instance-only use).
-    int16_t d0 = scratch->generic_timer;
+    int16_t d0 = own->generic_timer;
 
     bool retract = false;
-    if (parent->routine_sec != 4) {
+    if (parent->routine_secondary != 4) {
         retract = true;
-    } else if (parent->scratch.u8[0] == 6) { // BreakBlock
+    } else if (parent->subtype == 6) { // BreakBlock
         if (pscratch->generic_timer < 0)
             retract = true;
-    } else if (parent->scratch.u8[0] == 0) { // Descend
+    } else if (parent->subtype == 0) { // Descend
         if (d0 < 0x94)
             d0 = (int16_t)(d0 + 7);
     }
@@ -542,37 +549,37 @@ static void BossSpringYard_SpikeMain(Object *obj, Scratch_BossSpringYard *scratc
     if (retract && d0 > 0)
         d0 = (int16_t)(d0 - 5);
 
-    scratch->generic_timer = d0;
-    obj->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + (d0 >> 2));
-    obj->width_pixels = 16 / 2;
-    obj->render.f.explicit_height = true;
-    obj->y_rad = 24 / 2;
-    obj->col_type = 0;
+    own->generic_timer = d0;
+    self->y_pos.f.u = (int16_t)(self->y_pos.f.u + (d0 >> 2));
+    self->width_pixels = 16 / 2;
+    self->height_pixels = self->y_radius;
+    self->y_radius = 24 / 2;
+    self->collision_flags = 0;
 
-    if (parent->col_type != 0 && !pscratch->spike_disabled)
-        obj->col_type = 0x04 | 0x80; // col_8x32 | col_hurt
+    if (parent->collision_flags != 0 && !pscratch->spike_disabled)
+        self->collision_flags = 0x04 | 0x80; // col_8x32 | col_hurt
 
     // Display direct -- the spike sets its own frame/mappings/tile above
     // (it is NOT Animation_Eggman-driven, unlike the face/flame), so it
     // must not route through BSYZ_Display/BSYZ_SetBits: AnimateSprite
-    // would overwrite obj->frame from Animation_Eggman, and SetBits would
-    // reset obj->pos.l.y.f.u back to the parent's own Y, wiping out the
+    // would overwrite self->mapping_frame from Animation_Eggman, and SetBits would
+    // reset self->y_pos.f.u back to the parent's own Y, wiping out the
     // d0>>2 extension offset applied just above. Sync the x_flip bits the
     // same way SetBits does, then display with position/frame intact.
-    uint8_t flip = parent->status.b & 3;
-    obj->status.b = parent->status.b;
-    obj->render.b = (uint8_t)((obj->render.b & ~3) | flip);
-    DisplaySprite(obj);
+    uint8_t flip = parent->status & 3;
+    self->status = parent->status;
+    self->render_flags = (uint8_t)((self->render_flags & ~3) | flip);
+    Sst_Draw(self);
 }
 
-void Obj_BossSpringYard(Object *obj) {
-    Scratch_BossSpringYard *scratch = (Scratch_BossSpringYard *)&obj->scratch;
+void Obj_BossSpringYard(Sst *self) {
+    Own_BossSpringYard *own = (Own_BossSpringYard *)self->own.u8;
 
-    switch (obj->routine) {
-    case 0: BossSpringYard_Main(obj, scratch); break;
-    case 2: BossSpringYard_ShipMain(obj, scratch); break;
-    case 4: BossSpringYard_FaceMain(obj, scratch); break;
-    case 6: BossSpringYard_FlameMain(obj, scratch); break;
-    case 8: BossSpringYard_SpikeMain(obj, scratch); break;
+    switch (self->routine) {
+    case 0: BossSpringYard_Main(self, own); break;
+    case 2: BossSpringYard_ShipMain(self, own); break;
+    case 4: BossSpringYard_FaceMain(self, own); break;
+    case 6: BossSpringYard_FlameMain(self, own); break;
+    case 8: BossSpringYard_SpikeMain(self, own); break;
     }
 }

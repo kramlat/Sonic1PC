@@ -1,6 +1,8 @@
 #include "ObjectSst.h"
 
 #include "Level.h"
+#include "SstLoad.h"
+#include "MathUtil.h"
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
 #include "LevelCollision.h"
@@ -379,4 +381,25 @@ void SstFragmentatePlatform(Sst *obj, int count, const uint8_t *delays) {
     }
     Sst_Draw(obj);
     PlaySound(sfx_Collapse);
+}
+
+// BossMove for the status table: the boss's own position (kept apart from the object's, in 16.16) moves by the object's velocity
+void SstBossMove(const Sst *obj, dword_s *boss_x, dword_s *boss_y) {
+	boss_x->v += (int32_t)obj->x_vel << 8;
+	boss_y->v += (int32_t)obj->y_vel << 8;
+}
+
+// BossDefeated for the status table: every 8th frame the wrecked boss makes a fiery explosion (Object 3F) somewhere on it
+void SstBossDefeated(const Sst *obj) {
+	if ((uint8_t)frame_count & 7)
+		return;
+
+	Sst *exp = Sst_Spawn(ObjId_ExplosionBomb, obj->x_pos.f.u, obj->y_pos.f.u);
+	if (exp == NULL)
+		return;
+
+	uint32_t rand = RandomNumber();
+	exp->x_pos.f.u = (int16_t)(exp->x_pos.f.u + (int16_t)(((uint8_t)rand >> 2) - 0x20));
+	// (no shift is made for the Y: all the explosions are biased downwards, as in the original)
+	exp->y_pos.f.u = (int16_t)(exp->y_pos.f.u + (int16_t)((uint8_t)(rand >> 8) >> 3));
 }

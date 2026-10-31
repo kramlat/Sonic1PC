@@ -6,6 +6,7 @@
 #include "LevelScroll.h"
 #include "Object.h"
 #include "Object/BossLabyrinth.h"
+#include "SstLoad.h"
 
 // Object 77 (LZ boss) flight script, from "_incObj/77 Boss - LZ Main.asm":
 // start at (boss_lz_x+$30, boss_lz_y+$500), rise through two fixed corners,
@@ -16,25 +17,25 @@
 #define LZ_BOSS_X 0x1DE0
 #define LZ_BOSS_Y 0xC0
 
-static Object *boss;
+static Sst *boss;
 
 static void RunBossFrame(void) {
-    for (int i = 0; i < LEVEL_OBJECTS; i++)
-        if (level_objects[i].type == ObjId_BossLabyrinth)
-            Obj_BossLabyrinth(&level_objects[i]);
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_BossLabyrinth])
+            Obj_BossLabyrinth(&sst[i]);
     frame_count++;
 }
 
 static int CountBossParts(void) {
     int n = 0;
-    for (int i = 0; i < LEVEL_OBJECTS; i++)
-        if (level_objects[i].type == ObjId_BossLabyrinth)
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_BossLabyrinth])
             n++;
     return n;
 }
 
 static void SpawnBoss(void) {
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
+    Sst_Reset();
     memset(player, 0, sizeof(Sst));
     player->routine = 2;
     player->x_pos.f.u = LZ_BOSS_X - 0x80; // not in the shaft yet
@@ -43,8 +44,10 @@ static void SpawnBoss(void) {
     lock_screen = true;
     frame_count = 0;
 
-    boss = &level_objects[0];
-    boss->type = ObjId_BossLabyrinth;
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {0, 0, false, 0xFFF};
+    SstLoad_Init(&index_, NULL, false, &camera);
+    boss = Sst_Spawn(ObjId_BossLabyrinth, 0, 0);
     RunBossFrame();
 }
 
@@ -52,9 +55,9 @@ static void SpawnBoss(void) {
 // below him. Returns frames taken, or -1 on timeout.
 static int RunUntil(uint8_t routine_sec, int max_frames) {
     for (int f = 0; f < max_frames; f++) {
-        if (boss->routine_sec == routine_sec)
+        if (boss->routine_secondary == routine_sec)
             return f;
-        player->y_pos.f.u = (int16_t)(boss->pos.l.y.f.u + 0x20);
+        player->y_pos.f.u = (int16_t)(boss->y_pos.f.u + 0x20);
         RunBossFrame();
     }
     return -1;
@@ -63,19 +66,19 @@ static int RunUntil(uint8_t routine_sec, int max_frames) {
 static void BossLZ_FullFlight(void) {
     SpawnBoss();
     CHECK_EQ(CountBossParts(), 3); // ship, face, flame
-    CHECK_EQ(boss->pos.l.x.f.u, LZ_BOSS_X + 0x30);
-    CHECK_EQ(boss->pos.l.y.f.u, LZ_BOSS_Y + 0x500);
-    CHECK_EQ(boss->col_property, 8);
+    CHECK_EQ(boss->x_pos.f.u, LZ_BOSS_X + 0x30);
+    CHECK_EQ(boss->y_pos.f.u, LZ_BOSS_Y + 0x500);
+    CHECK_EQ(boss->collision_property, 8);
 
     // Waits until Sonic enters the shaft.
     for (int i = 0; i < 60; i++)
         RunBossFrame();
-    CHECK_EQ(boss->routine_sec, 0);
-    CHECK_EQ(boss->pos.l.y.f.u, LZ_BOSS_Y + 0x500);
+    CHECK_EQ(boss->routine_secondary, 0);
+    CHECK_EQ(boss->y_pos.f.u, LZ_BOSS_Y + 0x500);
 
     player->x_pos.f.u = LZ_BOSS_X;
     CHECK(RunUntil(0x8, 3000) >= 0); // climbed the shaft
-    Scratch_BossLabyrinth *s = (Scratch_BossLabyrinth *)&boss->scratch;
+    Own_BossLabyrinth *s = (Own_BossLabyrinth *)boss->own.u8;
     // Clamped to boss_lz_y+$40, then moved half a pixel by the new -$80 Y
     // speed in the same frame (real ASM branches to BLZ_MoveBoss after the
     // clamp).
@@ -84,23 +87,23 @@ static void BossLZ_FullFlight(void) {
     CHECK(RunUntil(0xA, 600) >= 0); // reached the top corner
     CHECK_EQ(s->boss_x.f.u, LZ_BOSS_X + 0x16C);
     CHECK_EQ(s->boss_y.f.u, LZ_BOSS_Y);
-    CHECK(!boss->status.o.f.x_flip); // facing left, waiting
+    CHECK(!(boss->status & SST_STATUS_X_FLIP)); // facing left, waiting
 
     // Doesn't leave until Sonic catches up at the top.
     for (int i = 0; i < 60; i++)
         RunBossFrame();
-    CHECK_EQ(boss->routine_sec, 0xA);
+    CHECK_EQ(boss->routine_secondary, 0xA);
 
     player->x_pos.f.u = LZ_BOSS_X + 0xE8;
     player->y_pos.f.u = LZ_BOSS_Y + 0x30;
     RunBossFrame();
-    CHECK_EQ(boss->routine_sec, 0xC);
+    CHECK_EQ(boss->routine_secondary, 0xC);
     CHECK_EQ(s->generic_timer, 50);
 
     for (int i = 0; i < 50; i++)
         RunBossFrame();
-    CHECK_EQ(boss->routine_sec, 0xE);
-    CHECK_EQ(boss->xsp, 0x400);
+    CHECK_EQ(boss->routine_secondary, 0xE);
+    CHECK_EQ(boss->x_vel, 0x400);
 
     // Unlocks the right boundary 2px/frame, then deletes itself (and the
     // face/flame) once off screen -- on_screen is never set here since
@@ -120,14 +123,14 @@ static void BossLZ_ClimbWaitsForSonic(void) {
     player->x_pos.f.u = LZ_BOSS_X;
     CHECK(RunUntil(0x6, 600) >= 0);
     for (int i = 0; i < 30; i++) { // let him start climbing
-        player->y_pos.f.u = (int16_t)(boss->pos.l.y.f.u + 0x20);
+        player->y_pos.f.u = (int16_t)(boss->y_pos.f.u + 0x20);
         RunBossFrame();
     }
-    player->y_pos.f.u = (int16_t)(boss->pos.l.y.f.u + 200);
-    int16_t y = boss->pos.l.y.f.u;
+    player->y_pos.f.u = (int16_t)(boss->y_pos.f.u + 200);
+    int16_t y = boss->y_pos.f.u;
     for (int i = 0; i < 30; i++)
         RunBossFrame();
-    CHECK_EQ(boss->pos.l.y.f.u, y);
+    CHECK_EQ(boss->y_pos.f.u, y);
 }
 
 // 8 hits before the top: early-defeat flag, 1000 points, trailing explosions.
@@ -137,10 +140,10 @@ static void BossLZ_EarlyDefeat(void) {
     CHECK(RunUntil(0x6, 600) >= 0);
 
     uint32_t before = score;
-    boss->status.o.f.flag7 = true; // touch response sets this on the last hit
-    boss->col_type = 0;
+    boss->status |= 0x80; // touch response sets this on the last hit
+    boss->collision_flags = 0;
     RunBossFrame();
-    Scratch_BossLabyrinth *s = (Scratch_BossLabyrinth *)&boss->scratch;
+    Own_BossLabyrinth *s = (Own_BossLabyrinth *)boss->own.u8;
     CHECK_EQ(s->early_defeat, 0xFF);
     CHECK(score > before);
 

@@ -1,4 +1,5 @@
 #include "SstLoad.h"
+#include "Object/NGHZObjects.h"
 #include "Object/TitleCard.h"
 #include "Object/Animals.h"
 #include "Object/Monitor.h"
@@ -112,7 +113,6 @@ void Obj_Grounder(Object *obj);
 void Obj_GrounderWall(Object *obj);
 void Obj_GrounderRock(Object *obj);
 void Obj_ChopChop(Object *obj);
-void Obj_NGHZRotator(Object *obj);
 void Obj_Spiny(Object *obj);
 void Obj_SpinyVertical(Object *obj);
 void Obj_Grabber(Object *obj);
@@ -175,9 +175,6 @@ void Obj_CPZElevator(Object *obj);
 void Obj_CPZBooster(Object *obj);
 void Obj_CPZPipeTipper(Object *obj);
 void Obj_CPZBlock(Object *obj);
-void Obj_ArrowShooter(Object *obj);
-void Obj_NGHZLeaves(Object *obj);
-void Obj_SwingDispatch(Object *obj);
 void Obj_CPZWorm(Object *obj);
 void Obj_FloatingPlatform(Object *obj);
 void Obj_CPZBarrier(Object *obj);
@@ -243,7 +240,7 @@ const ObjectFunc game_objects[] = {
 	/* 12 ObjId_SpinningLight      */ Obj_HPZEmerald,
 	/* 13 ObjId_LavaMaker          */ Obj_HPZWaterfall,
 	/* 14 ObjId_LavaBall           */ Obj_HTZSeesaw,
-	/* 15 ObjId_SwingingPlatform    */ Obj_SwingDispatch, // (Neo Green Hill's swinging platform is the prototype's own: see NGHZObjects.c; the other zones keep the one they had)
+	/* 15 ObjId_SwingingPlatform    */ NULL, // (moved to the status table: sst_object_codes)
 	/* 16 ObjId_Harpoon            */ Obj_HTZLift,
 	/* 17 ObjId_Helix               */ NULL, // (moved to the status table: sst_object_codes)
 	/* 18 ObjId_BasicPlatform       */ Obj_BasicPlatform,
@@ -256,7 +253,7 @@ const ObjectFunc game_objects[] = {
 	/* 1F ObjId_Crabmeat            */ Obj_CollapsingPlatform, // (the prototype's collapsing platform of Dust Hill and Oil Ocean)
 	/* 20 ObjId_Cannonball         */ Obj_HTZFireball, // (the prototype's fireball of Hill Top: the lava bubble)
 	/* 21 ObjId_HUD                 */ NULL, // (moved to the status table: sst_object_codes)
-	/* 22 ObjId_BuzzBomber          */ Obj_ArrowShooter, // (the prototype's arrow shooter of Neo Green Hill)
+	/* 22 ObjId_BuzzBomber          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 23 ObjId_BuzzMissile         */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 24 ObjId_BuzzExplode         */ Obj_OxygenBubbles, // (the alpha's vents of bubbles, where the prototype has Sonic 1's Buzz Bomber explosion that nothing makes)
 	/* 25 ObjId_Ring                */ NULL, // (moved to the status table: sst_object_codes)
@@ -266,7 +263,7 @@ const ObjectFunc game_objects[] = {
 	/* 29 ObjId_Points              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2A ObjId_SmallDoor           */ Obj_DHZStomper, // (the prototype's stomper of Dust Hill)
 	/* 2B ObjId_Chopper             */ Obj_Null, // (the prototype's object here is not ported yet)
-	/* 2C ObjId_Jaws                */ Obj_NGHZLeaves, // (the prototype's leaves of Neo Green Hill)
+	/* 2C ObjId_Jaws                */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2D ObjId_Burrobot           */ Obj_CPZBarrier, // (the prototype's one way barrier of Chemical Plant)
 	/* 2E ObjId_MonitorItem         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2F ObjId_LargeGrass         */ Obj_HTZBreakFloor, // (the prototype's breakable floor of Hill Top)
@@ -353,7 +350,7 @@ const ObjectFunc game_objects[] = {
 	/* 80 ObjId_80                 */ Obj_DHZVines, // (the alpha's roots that carry: Nick Arcade removed it)
 	/* 81 ObjId_81                 */ Obj_DHZVerticalBridge, // (the alpha's bridge that swings: Nick Arcade removed it)
 	/* 82 ObjId_ScrapEggman        */ Obj_Null, // removed in Nick Arcade
-	/* 83 ObjId_FalseFloor         */ Obj_NGHZRotator, // (the alpha's three turning platforms of Neo Green Hill: Nick Arcade removed it)
+	/* 83 ObjId_FalseFloor         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 84 ObjId_EggmanCylinder     */ Obj_AutoSpin, // (the alpha's: Hill Top's, Hidden Palace's and Casino Night's rolling box; no layout places it)
 	/* 85 ObjId_BossFinal          */ Obj_Null, // removed in Nick Arcade
 	/* 86 ObjId_BossPlasma         */ Obj_Null, // removed in Nick Arcade
@@ -402,6 +399,10 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_FalseFloor] = Obj_NGHZRotator,
+	[ObjId_SwingingPlatform] = Obj_SwingDispatch,
+	[ObjId_Jaws] = Obj_NGHZLeaves,
+	[ObjId_BuzzBomber] = Obj_ArrowShooter,
 	[ObjId_HUD] = Obj_HUD,
 	[ObjId_GotThroughCard] = Obj_GotThroughCard,
 	[ObjId_TitleCard] = Obj_TitleCard,

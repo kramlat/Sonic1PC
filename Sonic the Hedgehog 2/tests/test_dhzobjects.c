@@ -351,33 +351,37 @@ static void DHZ_AFlippedPlatformWithSpikesSlidesRight(void) {
 
 // --- 15, the swinging platform (Dust Hill's Newton's cradle: three side by side, the first swinging out to the left only, the middle hanging still, the third out to the right only) ---
 
-void Obj_SwingDispatch(Object *obj);
+#include "Object/NGHZObjects.h"
+#include "SstLoad.h"
 
-static void RunSwing(Object *obj, int frames, int16_t *min_x, int16_t *max_x, int16_t *min_y, int16_t *max_y) {
+static void RunSwing(Sst *obj, int frames, int16_t *min_x, int16_t *max_x, int16_t *min_y, int16_t *max_y) {
     *min_x = *min_y = 0x7FFF;
     *max_x = *max_y = -0x7FFF;
     for (int i = 0; i < frames; i++) {
         player->routine = 2;
         OscillateNumDo();
         Obj_SwingDispatch(obj);
-        if (obj->pos.l.x.f.u < *min_x) *min_x = obj->pos.l.x.f.u;
-        if (obj->pos.l.x.f.u > *max_x) *max_x = obj->pos.l.x.f.u;
-        if (obj->pos.l.y.f.u < *min_y) *min_y = obj->pos.l.y.f.u;
-        if (obj->pos.l.y.f.u > *max_y) *max_y = obj->pos.l.y.f.u;
+        if (obj->x_pos.f.u < *min_x) *min_x = obj->x_pos.f.u;
+        if (obj->x_pos.f.u > *max_x) *max_x = obj->x_pos.f.u;
+        if (obj->y_pos.f.u < *min_y) *min_y = obj->y_pos.f.u;
+        if (obj->y_pos.f.u > *max_y) *max_y = obj->y_pos.f.u;
     }
 }
 
 static void DHZ_TheCradleSwingsOutOnOneSideOnlyAndTheMiddleHangsStill(void) {
     Reset(ZoneId_MCZ);
     OscillateNumInit();
-    Object *left = Spawn(0x15, 0x18, 0x100, 0x600);
-    Object *mid = &objects[0x28];
-    memset(mid, 0, sizeof(Object));
-    mid->type = 0x15; mid->scratch.u8[0] = 0x28; mid->pos.l.x.f.u = 0x130; mid->pos.l.y.f.u = 0x600;
-    Object *right = &objects[0x30];
-    memset(right, 0, sizeof(Object));
-    right->type = 0x15; right->scratch.u8[0] = 0x38; right->pos.l.x.f.u = 0x160; right->pos.l.y.f.u = 0x600;
+    Sst_Reset();
     scrpos_x.f.u = 0x80;
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {0x80, 0x500, false, 0xFFF};
+    SstLoad_Init(&index_, NULL, false, &camera);
+    Sst *left = Sst_Spawn(0x15, 0x100, 0x600);
+    left->subtype = 0x18;
+    Sst *mid = Sst_Spawn(0x15, 0x130, 0x600);
+    mid->subtype = 0x28;
+    Sst *right = Sst_Spawn(0x15, 0x160, 0x600);
+    right->subtype = 0x38;
     int16_t lx0, lx1, ly0, ly1, mx0, mx1, my0, my1, rx0, rx1, ry0, ry1;
     // (the platform hangs 8 links of 16, and 8, below its hub: at rest it is straight under it)
     Obj_SwingDispatch(left); Obj_SwingDispatch(mid); Obj_SwingDispatch(right);
@@ -385,13 +389,13 @@ static void DHZ_TheCradleSwingsOutOnOneSideOnlyAndTheMiddleHangsStill(void) {
     for (int i = 0; i < 300; i++) {
         OscillateNumDo();
         Obj_SwingDispatch(left); Obj_SwingDispatch(mid); Obj_SwingDispatch(right);
-        if (i == 0) { lx0 = lx1 = left->pos.l.x.f.u; ly0 = ly1 = left->pos.l.y.f.u; mx0 = mx1 = mid->pos.l.x.f.u; my0 = my1 = mid->pos.l.y.f.u; rx0 = rx1 = right->pos.l.x.f.u; ry0 = ry1 = right->pos.l.y.f.u; }
-        if (left->pos.l.x.f.u < lx0) lx0 = left->pos.l.x.f.u;
-        if (left->pos.l.x.f.u > lx1) lx1 = left->pos.l.x.f.u;
-        if (right->pos.l.x.f.u < rx0) rx0 = right->pos.l.x.f.u;
-        if (right->pos.l.x.f.u > rx1) rx1 = right->pos.l.x.f.u;
-        if (mid->pos.l.x.f.u < mx0) mx0 = mid->pos.l.x.f.u;
-        if (mid->pos.l.x.f.u > mx1) mx1 = mid->pos.l.x.f.u;
+        if (i == 0) { lx0 = lx1 = left->x_pos.f.u; ly0 = ly1 = left->y_pos.f.u; mx0 = mx1 = mid->x_pos.f.u; my0 = my1 = mid->y_pos.f.u; rx0 = rx1 = right->x_pos.f.u; ry0 = ry1 = right->y_pos.f.u; }
+        if (left->x_pos.f.u < lx0) lx0 = left->x_pos.f.u;
+        if (left->x_pos.f.u > lx1) lx1 = left->x_pos.f.u;
+        if (right->x_pos.f.u < rx0) rx0 = right->x_pos.f.u;
+        if (right->x_pos.f.u > rx1) rx1 = right->x_pos.f.u;
+        if (mid->x_pos.f.u < mx0) mx0 = mid->x_pos.f.u;
+        if (mid->x_pos.f.u > mx1) mx1 = mid->x_pos.f.u;
         (void)ly0; (void)ly1; (void)my0; (void)my1; (void)ry0; (void)ry1;
     }
     CHECK_EQ(mx0, mx1); // (the middle one does not move)

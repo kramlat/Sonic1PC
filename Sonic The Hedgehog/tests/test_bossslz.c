@@ -7,6 +7,7 @@
 #include "Object.h"
 #include "Object/BossStarLight.h"
 #include "Object/Seesaw.h"
+#include "SstLoad.h"
 
 // Objects 7A/7B (SLZ boss + spike balls), from "_incObj/7A, 7B Boss - SLZ
 // Main and Spike Balls.asm". boss_slz_x = 0x2000, boss_slz_y = 0x210.
@@ -14,15 +15,17 @@
 #define SLZ_X 0x2000
 #define SLZ_Y 0x210
 
-static Object *boss;
-static Object *saw;
+static Sst *boss;
+static Sst *saw;
 
 static void RunFrame(void) {
-    for (int i = 0; i < LEVEL_OBJECTS; i++) {
-        Object *o = &level_objects[i];
-        if (o->type == ObjId_BossStarLight)
+    for (int i = 0; i < SST_COUNT; i++) {
+        Sst *o = &sst[i];
+        if (o->code == NULL)
+            continue;
+        if (o->code == sst_object_codes[ObjId_BossStarLight])
             Obj_BossStarLight(o);
-        else if (o->type == ObjId_BossSpikeball)
+        else if (o->code == sst_object_codes[ObjId_BossSpikeball])
             Obj_BossSpikeball(o);
     }
     frame_count++;
@@ -30,22 +33,25 @@ static void RunFrame(void) {
 
 static int Count(uint8_t type) {
     int n = 0;
-    for (int i = 0; i < LEVEL_OBJECTS; i++)
-        if (level_objects[i].type == type)
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[type])
             n++;
     return n;
 }
 
-static Object *FindBall(void) {
-    for (int i = 0; i < LEVEL_OBJECTS; i++)
-        if (level_objects[i].type == ObjId_BossSpikeball)
-            return &level_objects[i];
+static Sst *FindBall(void) {
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_BossSpikeball])
+            return &sst[i];
     return NULL;
 }
 
 static void Spawn(void) {
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
+    Sst_Reset();
     memset(player, 0, sizeof(Sst));
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {SLZ_X + 0x80, 0, false, 0xFFF};
+    SstLoad_Init(&index_, NULL, false, &camera);
     player->routine = 2;
     player->x_pos.f.u = SLZ_X;
     player->y_pos.f.u = SLZ_Y;
@@ -58,23 +64,20 @@ static void Spawn(void) {
     // Three boss-fight seesaws (subtype != 0), flat, at the arena's floor.
     static const int16_t xs[3] = { 0x20F0, 0x2160, 0x21D0 };
     for (int i = 0; i < 3; i++) {
-        Object *s = &level_objects[10 + i];
-        s->type = ObjId_Seesaw;
-        s->scratch.u8[0] = 1;
-        s->frame = 1;
-        s->pos.l.x.f.u = xs[i];
-        s->pos.l.y.f.u = 0x2F0;
+        Sst *s = Sst_Spawn(ObjId_Seesaw, xs[i], 0x2F0);
+        s->subtype = 1;
+        s->mapping_frame = 1;
+        if (i == 0)
+            saw = s;
     }
-    saw = &level_objects[10];
 
-    boss = &level_objects[0];
-    boss->type = ObjId_BossStarLight;
+    boss = Sst_Spawn(ObjId_BossStarLight, 0, 0);
     RunFrame();
 }
 
 static int RunUntil(uint8_t routine_sec, int max) {
     for (int f = 0; f < max; f++) {
-        if (boss->routine_sec == routine_sec)
+        if (boss->routine_secondary == routine_sec)
             return f;
         RunFrame();
     }
@@ -84,24 +87,24 @@ static int RunUntil(uint8_t routine_sec, int max) {
 static void BossSLZ_Spawn(void) {
     Spawn();
     CHECK_EQ(Count(ObjId_BossStarLight), 4); // ship, face, flame, pipe
-    CHECK_EQ(boss->pos.l.x.f.u, SLZ_X + 0x188 - 1); // 1px left after the first frame at -0x100
-    CHECK_EQ(boss->col_property, 8);
-    Scratch_BossStarLight *s = (Scratch_BossStarLight *)&boss->scratch;
+    CHECK_EQ(boss->x_pos.f.u, SLZ_X + 0x188 - 1); // 1px left after the first frame at -0x100
+    CHECK_EQ(boss->collision_property, 8);
+    Own_BossStarLight *s = (Own_BossStarLight *)boss->own.u8;
     CHECK_EQ(s->seesaw_count, 3);
-    CHECK_EQ(boss->routine_sec, 0);
+    CHECK_EQ(boss->routine_secondary, 0);
 }
 
 static void BossSLZ_DropsBallOnSeesaw(void) {
     Spawn();
     CHECK(RunUntil(0x2, 400) >= 0); // reached the left bound, pacing
     CHECK(RunUntil(0x4, 400) >= 0); // lined up over a seesaw's drop point
-    Scratch_BossStarLight *s = (Scratch_BossStarLight *)&boss->scratch;
+    Own_BossStarLight *s = (Own_BossStarLight *)boss->own.u8;
     CHECK_EQ(s->generic_timer, 40);
     CHECK(s->pick >= 0);
     CHECK(Count(ObjId_BossSpikeball) == 0);
 
     RunFrame();
-    Object *ball = FindBall();
+    Sst *ball = FindBall();
     CHECK(ball != NULL);
     if (ball == NULL)
         return;
@@ -115,13 +118,13 @@ static void BossSLZ_DropsBallOnSeesaw(void) {
     if (ball == NULL)
         return;
     CHECK_EQ(ball->routine, 4);
-    CHECK(ball->pos.l.y.f.u >= 0x2F0 - 0x2F && ball->pos.l.y.f.u <= 0x2F0 - 8);
+    CHECK(ball->y_pos.f.u >= 0x2F0 - 0x2F && ball->y_pos.f.u <= 0x2F0 - 8);
     // Only one ball per seesaw.
     for (int i = 0; i < 300; i++)
         RunFrame();
     int balls = 0;
-    for (int i = 0; i < LEVEL_OBJECTS; i++)
-        if (level_objects[i].type == ObjId_BossSpikeball && level_objects[i].routine != 0xA)
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_BossSpikeball] && sst[i].routine != 0xA)
             balls++;
     CHECK(balls <= 3);
 }
@@ -130,14 +133,14 @@ static void BossSLZ_DropsBallOnSeesaw(void) {
 static void BossSLZ_DefeatAndEscape(void) {
     Spawn();
     uint32_t before = score;
-    boss->status.o.f.flag7 = true;
+    boss->status |= 0x80;
     RunFrame();
-    CHECK_EQ(boss->routine_sec, 6);
+    CHECK_EQ(boss->routine_secondary, 6);
     CHECK_EQ(score - before, 100); // 1000 points: the score counts in tens
 
     CHECK(RunUntil(0x8, 400) >= 0);
-    CHECK(boss->status.o.f.x_flip);
-    CHECK(!boss->status.o.f.flag7);
+    CHECK((boss->status & SST_STATUS_X_FLIP));
+    CHECK(!(boss->status & 0x80));
     CHECK_EQ(boss_status, 1);
 
     CHECK(RunUntil(0xA, 400) >= 0);
@@ -154,46 +157,40 @@ static void BossSLZ_DefeatAndEscape(void) {
 static void BossSLZ_BallHitsBoss(void) {
     Spawn();
     RunUntil(0x2, 400);
-    Object *ball = &level_objects[30];
-    ball->type = ObjId_BossSpikeball;
+    Sst *ball = Sst_Spawn(ObjId_BossSpikeball, boss->x_pos.f.u, boss->y_pos.f.u);
     ball->routine = 6;
-    ball->pos.l.x.f.u = boss->pos.l.x.f.u;
-    ball->pos.l.y.f.u = boss->pos.l.y.f.u;
-    ball->ysp = -0x100;
-    Scratch_BossSpikeball *bs = (Scratch_BossSpikeball *)&ball->scratch;
-    bs->seesaw_index = (uint8_t)(saw - objects);
-    bs->base_x = saw->pos.l.x.f.u;
+    ball->y_vel = -0x100;
+    Own_BossSpikeball *bs = (Own_BossSpikeball *)ball->own.u8;
+    bs->seesaw_index = (uint8_t)(saw - sst);
+    bs->base_x = saw->x_pos.f.u;
     bs->seesaw_y = 0x2F0;
     bs->timer = 32;
     RunFrame();
-    CHECK_EQ(boss->col_property, 7);
+    CHECK_EQ(boss->collision_property, 7);
     CHECK_EQ(ball->routine, 8);
 }
 
 // A ball that's counted down explodes into 4 fragments that fly off and clean up.
 static void BossSLZ_ExplodeFragments(void) {
     Spawn();
-    Object *ball = &level_objects[30];
-    ball->type = ObjId_BossSpikeball;
+    Sst *ball = Sst_Spawn(ObjId_BossSpikeball, 0x20F0 + 0x28, 0x2D0);
     ball->routine = 8;
-    ball->pos.l.x.f.u = 0x20F0 + 0x28;
-    ball->pos.l.y.f.u = 0x2D0;
-    Scratch_BossSpikeball *bs = (Scratch_BossSpikeball *)&ball->scratch;
+    Own_BossSpikeball *bs = (Own_BossSpikeball *)ball->own.u8;
     bs->timer = 32;
     bs->base_x = 0x20F0;
     bs->seesaw_y = 0x2F0;
     RunFrame();
-    CHECK_EQ(ball->type, ObjId_ExplosionBomb);
+    CHECK(ball->code == sst_object_codes[ObjId_ExplosionBomb]);
     int frags = 0;
-    for (int i = 0; i < LEVEL_OBJECTS; i++)
-        if (level_objects[i].type == ObjId_BossSpikeball && level_objects[i].routine == 0xA)
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_BossSpikeball] && sst[i].routine == 0xA)
             frags++;
     CHECK_EQ(frags, 4);
     for (int i = 0; i < 10; i++)
         RunFrame();
-    for (int i = 0; i < LEVEL_OBJECTS; i++)
-        if (level_objects[i].type == ObjId_BossSpikeball && level_objects[i].routine == 0xA)
-            CHECK(level_objects[i].ysp > -0x340 + 0x18 * 5);
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_BossSpikeball] && sst[i].routine == 0xA)
+            CHECK(sst[i].y_vel > -0x340 + 0x18 * 5);
 }
 
 static void BossSLZ_RealSeesawsDontHang(void);
@@ -213,11 +210,15 @@ void RegisterBossSLZTests(void) {
 
 static void BossSLZ_RealSeesawsDontHang(void) {
     Spawn();
+    Sst *saws[3];
+    for (int i = 0, n = 0; i < SST_COUNT && n < 3; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_Seesaw])
+            saws[n++] = &sst[i];
     for (int i = 0; i < 3; i++) {
-        Object *s = &level_objects[10 + i];
-        s->scratch.u8[0] = 0xFF;
-        s->pos.l.x.f.u = (int16_t)(0x203C + i * 0x64);
-        s->pos.l.y.f.u = 0x2D4;
+        Sst *s = saws[i];
+        s->subtype = 0xFF;
+        s->x_pos.f.u = (int16_t)(0x203C + i * 0x64);
+        s->y_pos.f.u = 0x2D4;
     }
     player->code = sst_object_codes[1];
     player->x_radius = 9; player->y_radius = 19;
@@ -226,8 +227,8 @@ static void BossSLZ_RealSeesawsDontHang(void) {
     player->status |= SST_PSTATUS_IN_AIR;
     alarm(10);
     for (int f = 0; f < 3000; f++) {
-        for (int i = 10; i < 13; i++)
-            Obj_Seesaw(&level_objects[i]);
+        for (int i = 0; i < 3; i++)
+            Obj_Seesaw(saws[i]);
         player->y_vel += 0x38;
         RunFrame();
     }
@@ -237,7 +238,6 @@ static void BossSLZ_RealSeesawsDontHang(void) {
 
 
 #include "Object/LavaBall.h"
-#include "SstLoad.h"
 static void BossSLZ_OffscreenDeletes(void) {
     scrpos_x.f.u = 0x1000;
     int16_t xs[] = { 0x1000 + 320 + 200, 0x1000 + 700, 0x1000 + 900, 0x1000 - 400, 0x1000 - 700 };

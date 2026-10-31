@@ -1,4 +1,7 @@
 #include "Seesaw.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -38,31 +41,31 @@ static const uint8_t See_DataFlat[48] = {
 // (seesaw frame) + (2 if the ball is on the left side).
 static const int16_t See_Spikeball_YOffsets[5] = { -8, -28, -47, -28, -8 };
 
-static void See_Spikeball_Action(Object *obj, Scratch_Seesaw *scratch);
-static void See_Spikeball_InAir(Object *obj, Scratch_Seesaw *scratch);
+static void See_Spikeball_Action(Sst *self, Own_Seesaw *own);
+static void See_Spikeball_InAir(Sst *self, Own_Seesaw *own);
 
 // Updates the seesaw's own frame/tilt-state (0=descending,1=flat,2=ascending).
 // Also called (indirectly, via see_state_see being written into by the
 // spikeball) to sync the seesaw's visuals to state changes the spikeball
 // itself drove.
-static void See_ChgFrame(Object *obj, Scratch_Seesaw *scratch, int8_t new_state) {
-    int8_t frame = (int8_t)obj->frame;
+static void See_ChgFrame(Sst *self, Own_Seesaw *own, int8_t new_state) {
+    int8_t frame = (int8_t)self->mapping_frame;
     if (frame == new_state)
         return;
     if (frame < new_state)
         frame = (int8_t)(frame + 2);
     frame = (int8_t)(frame - 1);
-    obj->frame = (uint8_t)frame;
-    scratch->state = new_state;
+    self->mapping_frame = (uint8_t)frame;
+    own->state = new_state;
 
-    obj->render.f.x_flip = false;
+    SST_RENDER_SET(self, SST_RENDER_X_FLIP, false);
     if (frame & 2)
-        obj->render.f.x_flip = true;
+        SST_RENDER_SET(self, SST_RENDER_X_FLIP, true);
 }
 
 // Sets the seesaw tilt based on what side of it Sonic is standing on.
-static void See_ChkSide(Object *obj, Scratch_Seesaw *scratch) {
-    int16_t d0 = (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
+static void See_ChkSide(Sst *self, Own_Seesaw *own) {
+    int16_t d0 = (int16_t)(self->x_pos.f.u - player->x_pos.f.u);
     int8_t new_state;
     if (d0 >= 0) {
         new_state = 2; // Sonic on the left side -- ascending
@@ -72,103 +75,103 @@ static void See_ChkSide(Object *obj, Scratch_Seesaw *scratch) {
     }
     if ((uint16_t)d0 < 8)
         new_state = 1; // within 8px of center -- flat
-    See_ChgFrame(obj, scratch, new_state);
+    See_ChgFrame(self, own, new_state);
 }
 
-static void See_Seesaw_Platform(Object *obj, Scratch_Seesaw *scratch) {
-    See_ChgFrame(obj, scratch, scratch->state);
+static void See_Seesaw_Platform(Sst *self, Own_Seesaw *own) {
+    See_ChgFrame(self, own, own->state);
 
-    const uint8_t *heightmap = (obj->frame & 1) ? See_DataFlat : See_DataSlope;
+    const uint8_t *heightmap = (self->mapping_frame & 1) ? See_DataFlat : See_DataSlope;
 
-    scratch->landspeed = player->y_vel;
+    own->landspeed = player->y_vel;
 
-    SlopeObject(obj, 96 / 2, heightmap); // may set obj->routine = 4
+    SstSlopeObject(self, 96 / 2, heightmap); // may set self->routine = 4
 }
 
-static void See_Seesaw_StoodOn(Object *obj, Scratch_Seesaw *scratch) {
-    See_ChkSide(obj, scratch);
+static void See_Seesaw_StoodOn(Sst *self, Own_Seesaw *own) {
+    See_ChkSide(self, own);
 
-    const uint8_t *heightmap = (obj->frame & 1) ? See_DataFlat : See_DataSlope;
+    const uint8_t *heightmap = (self->mapping_frame & 1) ? See_DataFlat : See_DataSlope;
 
-    ExitPlatform(obj, 96 / 2, 96 / 2, NULL); // may set obj->routine = 2
-    SlopeObject_AssumeStoodOn(obj, 96 / 2, heightmap, obj->pos.l.x.f.u);
+    SstExitPlatform(self, 96 / 2, 96 / 2, NULL); // may set self->routine = 2
+    SstSlopeObject_AssumeStoodOn(self, 96 / 2, heightmap, self->x_pos.f.u);
 }
 
-static void See_Main(Object *obj, Scratch_Seesaw *scratch) {
-    obj->routine = 2; // advance to See_Seesaw_Platform
-    obj->mappings = Mappings_Seesaw;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SLZ_Seesaw);
-    obj->render.b |= SPRITE_CAM_FIELD;
-    obj->priority = 4;
-    obj->width_pixels = 96 / 2;
-    scratch->orig_x = obj->pos.l.x.f.u;
+static void See_Main(Sst *self, Own_Seesaw *own) {
+    self->routine = 2; // advance to See_Seesaw_Platform
+    self->mappings = Mappings_Seesaw;
+    self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_SLZ_Seesaw);
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
+    self->width_pixels = 96 / 2;
+    own->orig_x = self->x_pos.f.u;
 
-    uint8_t self_index = (uint8_t)(obj - objects);
+    uint8_t self_index = (uint8_t)(self - sst);
 
-    if (obj->scratch.u8[0] == 0) { // spawn a spikeball? (boss-fight seesaws don't)
-        Object *ball = FindNextFreeObj(obj);
+    if (self->subtype == 0) { // spawn a spikeball? (boss-fight seesaws don't)
+        Sst *ball = Sst_AllocateAfter(self);
         if (ball != NULL) {
-            ball->type = ObjId_Seesaw;
+            ball->code = sst_object_codes[ObjId_Seesaw];
             ball->routine = 6; // See_Spikeball_Setup
-            ball->pos.l.x.f.u = obj->pos.l.x.f.u;
-            ball->pos.l.y.f.u = obj->pos.l.y.f.u;
-            ball->status.b = obj->status.b;
-            Scratch_Seesaw *bscratch = (Scratch_Seesaw *)&ball->scratch;
+            ball->x_pos.f.u = self->x_pos.f.u;
+            ball->y_pos.f.u = self->y_pos.f.u;
+            ball->status = self->status;
+            Own_Seesaw *bscratch = (Own_Seesaw *)ball->own.u8;
             bscratch->parent_index = self_index;
         }
     }
 
-    if (obj->status.o.f.x_flip) // never actually happens anywhere in the game
-        obj->frame = 2;
+    if (((self->status & SST_STATUS_X_FLIP) != 0)) // never actually happens anywhere in the game
+        self->mapping_frame = 2;
 
-    scratch->state = (int8_t)obj->frame;
+    own->state = (int8_t)self->mapping_frame;
 
-    See_Seesaw_Platform(obj, scratch);
+    See_Seesaw_Platform(self, own);
 }
 
-static void See_Spikeball_Action_Align(Object *obj, Scratch_Seesaw *scratch, Object *parent) {
-    int idx = parent->frame;
+static void See_Spikeball_Action_Align(Sst *self, Own_Seesaw *own, Sst *parent) {
+    int idx = parent->mapping_frame;
     int16_t x_off = 40; // align to the right side
-    if ((int16_t)(obj->pos.l.x.f.u - scratch->orig_x) < 0) {
+    if ((int16_t)(self->x_pos.f.u - own->orig_x) < 0) {
         x_off = -40; // align to the left side
         idx += 2;
     }
 
-    obj->pos.l.y.f.u = (int16_t)(scratch->orig_y + See_Spikeball_YOffsets[idx]);
-    obj->pos.l.x.f.u = (int16_t)(scratch->orig_x + x_off);
-    obj->pos.l.y.f.l = 0;
-    obj->pos.l.x.f.l = 0;
+    self->y_pos.f.u = (int16_t)(own->orig_y + See_Spikeball_YOffsets[idx]);
+    self->x_pos.f.u = (int16_t)(own->orig_x + x_off);
+    self->y_pos.f.l = 0;
+    self->x_pos.f.l = 0;
 }
 
-static void See_Spikeball_Setup(Object *obj, Scratch_Seesaw *scratch) {
-    obj->routine = 8; // advance to See_Spikeball_Action
-    obj->mappings = Mappings_SeesawBall;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SLZ_Spikeball);
-    obj->render.b |= SPRITE_CAM_FIELD;
-    obj->priority = 4;
-    obj->col_type = 0x0B | 0x80; // col_16x16 | col_hurt
-    obj->width_pixels = 24 / 2;
+static void See_Spikeball_Setup(Sst *self, Own_Seesaw *own) {
+    self->routine = 8; // advance to See_Spikeball_Action
+    self->mappings = Mappings_SeesawBall;
+    self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_SLZ_Spikeball);
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
+    self->collision_flags = 0x0B | 0x80; // col_16x16 | col_hurt
+    self->width_pixels = 24 / 2;
 
-    scratch->orig_x = obj->pos.l.x.f.u;
-    obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + 40);
-    scratch->orig_y = obj->pos.l.y.f.u;
-    obj->frame = 1; // silver spikeball
+    own->orig_x = self->x_pos.f.u;
+    self->x_pos.f.u = (int16_t)(self->x_pos.f.u + 40);
+    own->orig_y = self->y_pos.f.u;
+    self->mapping_frame = 1; // silver spikeball
 
-    if (obj->status.o.f.x_flip) {
-        obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u - 80); // move to the left side instead
-        scratch->state = 2; // on right side (i.e. mirrored -- see comment on Scratch_Seesaw::state)
+    if (((self->status & SST_STATUS_X_FLIP) != 0)) {
+        self->x_pos.f.u = (int16_t)(self->x_pos.f.u - 80); // move to the left side instead
+        own->state = 2; // on right side (i.e. mirrored -- see comment on Own_Seesaw::state)
     }
 
-    See_Spikeball_Action(obj, scratch);
+    See_Spikeball_Action(self, own);
 }
 
-static void See_Spikeball_Action(Object *obj, Scratch_Seesaw *scratch) {
-    Object *parent = &objects[scratch->parent_index];
-    Scratch_Seesaw *pscratch = (Scratch_Seesaw *)&parent->scratch;
+static void See_Spikeball_Action(Sst *self, Own_Seesaw *own) {
+    Sst *parent = &sst[own->parent_index];
+    Own_Seesaw *pscratch = (Own_Seesaw *)parent->own.u8;
 
-    int8_t d0 = (int8_t)(scratch->state - pscratch->state);
+    int8_t d0 = (int8_t)(own->state - pscratch->state);
     if (d0 == 0) {
-        See_Spikeball_Action_Align(obj, scratch, parent);
+        See_Spikeball_Action_Align(self, own, parent);
         return;
     }
     if (d0 < 0)
@@ -183,39 +186,39 @@ static void See_Spikeball_Action(Object *obj, Scratch_Seesaw *scratch) {
         vy = -0xE00; vx = -0xA0; // fastest catapult (Sonic landed very fast)
     }
 
-    obj->ysp = vy;
-    obj->xsp = vx;
-    if ((int16_t)(obj->pos.l.x.f.u - scratch->orig_x) < 0)
-        obj->xsp = (int16_t)-obj->xsp;
+    self->y_vel = vy;
+    self->x_vel = vx;
+    if ((int16_t)(self->x_pos.f.u - own->orig_x) < 0)
+        self->x_vel = (int16_t)-self->x_vel;
 
-    obj->routine = 0xA; // See_Spikeball_InAir
-    See_Spikeball_InAir(obj, scratch);
+    self->routine = 0xA; // See_Spikeball_InAir
+    See_Spikeball_InAir(self, own);
 }
 
-static void See_Spikeball_InAir_FallingDown(Object *obj, Scratch_Seesaw *scratch) {
-    ObjectFall(obj);
+static void See_Spikeball_InAir_FallingDown(Sst *self, Own_Seesaw *own) {
+    Sst_MoveSprite(self);
 
-    Object *parent = &objects[scratch->parent_index];
-    Scratch_Seesaw *pscratch = (Scratch_Seesaw *)&parent->scratch;
+    Sst *parent = &sst[own->parent_index];
+    Own_Seesaw *pscratch = (Own_Seesaw *)parent->own.u8;
 
-    int idx = parent->frame;
-    if ((int16_t)(obj->pos.l.x.f.u - scratch->orig_x) < 0)
+    int idx = parent->mapping_frame;
+    if ((int16_t)(self->x_pos.f.u - own->orig_x) < 0)
         idx += 2;
 
-    int16_t landing_y = (int16_t)(scratch->orig_y + See_Spikeball_YOffsets[idx]);
-    if (landing_y > obj->pos.l.y.f.u)
+    int16_t landing_y = (int16_t)(own->orig_y + See_Spikeball_YOffsets[idx]);
+    if (landing_y > self->y_pos.f.u)
         return; // hasn't reached landing height yet
 
-    int8_t new_state = (obj->xsp < 0) ? 2 : 0; // bounce side based on ball's horizontal direction
+    int8_t new_state = (self->x_vel < 0) ? 2 : 0; // bounce side based on ball's horizontal direction
     pscratch->state = new_state;
-    scratch->state = new_state;
+    own->state = new_state;
 
-    if (new_state != parent->frame) { // is the seesaw NOT already lowered on this side?
-        bool was_standing = parent->status.o.f.player_stand;
-        parent->status.o.f.player_stand = false;
+    if (new_state != parent->mapping_frame) { // is the seesaw NOT already lowered on this side?
+        bool was_standing = ((parent->status & SST_STATUS_PLAYER_STAND) != 0);
+        parent->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;
         if (was_standing) {
             parent->routine = 2; // reset seesaw back to See_Seesaw_Platform
-            player->y_vel = (int16_t)-obj->ysp; // bounce Sonic based on the ball's landing speed
+            player->y_vel = (int16_t)-self->y_vel; // bounce Sonic based on the ball's landing speed
             player->status |= SST_PSTATUS_IN_AIR;
             Sonic_CancelSpindash(); // reset the charge so landing doesn't release it like a drop dash
             player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
@@ -226,49 +229,39 @@ static void See_Spikeball_InAir_FallingDown(Object *obj, Scratch_Seesaw *scratch
         }
     }
 
-    obj->xsp = 0;
-    obj->ysp = 0;
-    obj->routine = 8; // See_Spikeball_Action
+    self->x_vel = 0;
+    self->y_vel = 0;
+    self->routine = 8; // See_Spikeball_Action
 }
 
-static void See_Spikeball_InAir(Object *obj, Scratch_Seesaw *scratch) {
-    if (obj->ysp >= 0) {
-        See_Spikeball_InAir_FallingDown(obj, scratch);
+static void See_Spikeball_InAir(Sst *self, Own_Seesaw *own) {
+    if (self->y_vel >= 0) {
+        See_Spikeball_InAir_FallingDown(self, own);
         return;
     }
 
     // Ball is still going up
-    ObjectFall(obj);
-    int16_t threshold = (int16_t)(scratch->orig_y - 47);
-    if (threshold > obj->pos.l.y.f.u)
+    Sst_MoveSprite(self);
+    int16_t threshold = (int16_t)(own->orig_y - 47);
+    if (threshold > self->y_pos.f.u)
         return; // more than 47px above the seesaw -- single gravity only
-    ObjectFall(obj); // double gravity while within 47px of the seesaw
+    Sst_MoveSprite(self); // double gravity while within 47px of the seesaw
 }
 
-static bool See_OutOfRange(int16_t x) {
-    // Real disasm's out_of_range macro call here also has a "bmi" check,
-    // but per its own comment that check is redundant with the unsigned
-    // distance-threshold check below (a negative distance always wraps to
-    // an unsigned value well past the threshold anyway).
-    uint16_t obj_pos = (uint16_t)x & 0xFF80;
-    uint16_t cam_pos = (uint16_t)(scrpos_x.f.u - 128) & 0xFF80;
-    return (uint16_t)(obj_pos - cam_pos) > (128 + 320 + 192);
-}
+void Obj_Seesaw(Sst *self) {
+    Own_Seesaw *own = (Own_Seesaw *)self->own.u8;
 
-void Obj_Seesaw(Object *obj) {
-    Scratch_Seesaw *scratch = (Scratch_Seesaw *)&obj->scratch;
-
-    switch (obj->routine) {
-    case 0: See_Main(obj, scratch); break;
-    case 2: See_Seesaw_Platform(obj, scratch); break;
-    case 4: See_Seesaw_StoodOn(obj, scratch); break;
-    case 6: See_Spikeball_Setup(obj, scratch); break;
-    case 8: See_Spikeball_Action(obj, scratch); break;
-    case 0xA: See_Spikeball_InAir(obj, scratch); break;
+    switch (self->routine) {
+    case 0: See_Main(self, own); break;
+    case 2: See_Seesaw_Platform(self, own); break;
+    case 4: See_Seesaw_StoodOn(self, own); break;
+    case 6: See_Spikeball_Setup(self, own); break;
+    case 8: See_Spikeball_Action(self, own); break;
+    case 0xA: See_Spikeball_InAir(self, own); break;
     }
 
-    if (See_OutOfRange(scratch->orig_x))
-        ObjectDelete(obj);
+    if (SstOutOfRange(own->orig_x))
+        Sst_Delete(self);
     else
-        DisplaySprite(obj);
+        Sst_Draw(self);
 }

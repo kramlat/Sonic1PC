@@ -1,4 +1,6 @@
 #include "BossMarble.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "BossFire.h"
@@ -30,307 +32,308 @@ static const struct { uint8_t routine, anim, priority; } BMZ_ObjData[4] = {
     { 2, 0, 4 }, { 4, 1, 4 }, { 6, 7, 4 }, { 8, 0, 3 },
 };
 
-static void BossMarble_ShipMain(Object *obj, Scratch_BossMarble *scratch);
-static void BMZ_ShipUpdate(Object *obj, Scratch_BossMarble *scratch);
-static void BMZ_Display(Object *obj, Scratch_BossMarble *scratch);
+static void BossMarble_ShipMain(Sst *self, Own_BossMarble *own);
+static void BMZ_ShipUpdate(Sst *self, Own_BossMarble *own);
+static void BMZ_Display(Sst *self, Own_BossMarble *own);
 
-static void BossMarble_Main(Object *obj, Scratch_BossMarble *scratch) {
-    obj->status.o.f.x_flip = false; // bclr #0,obStatus(a0) -- start facing left
+static void BossMarble_Main(Sst *self, Own_BossMarble *own) {
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, false); // bclr #0,obStatus(a0) -- start facing left
 
-    uint8_t self_index = (uint8_t)(obj - objects);
+    uint8_t self_index = (uint8_t)(self - sst);
 
     for (int i = 0; i < 4; i++) {
-        Object *sub;
+        Sst *sub;
         if (i == 0) {
-            sub = obj;
+            sub = self;
         } else {
-            sub = FindNextFreeObj(obj);
+            sub = Sst_AllocateAfter(self);
             if (sub == NULL)
                 break;
         }
 
-        sub->routine_sec = 0;
+        sub->routine_secondary = 0;
         sub->routine = BMZ_ObjData[i].routine;
         sub->anim = BMZ_ObjData[i].anim;
         sub->priority = BMZ_ObjData[i].priority;
-        sub->type = ObjId_BossMarble;
-        sub->pos.l.x.f.u = obj->pos.l.x.f.u;
-        sub->pos.l.y.f.u = obj->pos.l.y.f.u;
+        sub->code = sst_object_codes[ObjId_BossMarble];
+        sub->x_pos.f.u = self->x_pos.f.u;
+        sub->y_pos.f.u = self->y_pos.f.u;
         sub->mappings = Mappings_Eggman;
-        sub->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman);
-        sub->render.f.level_fg = true;
+        sub->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman);
+        sub->render_flags |= SST_RENDER_LEVEL;
         sub->width_pixels = 64 / 2;
 
-        ((Scratch_BossMarble *)&sub->scratch)->parent_index = self_index;
+        ((Own_BossMarble *)sub->own.u8)->parent_index = self_index;
     }
 
-    scratch->boss_x.f.u = obj->pos.l.x.f.u;
-    scratch->boss_x.f.l = 0;
-    scratch->boss_y.f.u = obj->pos.l.y.f.u;
-    scratch->boss_y.f.l = 0;
-    obj->col_type = 0x0F;     // col_48x48 | col_boss
-    obj->col_property = 8;    // obBossHits
+    own->boss_x.f.u = self->x_pos.f.u;
+    own->boss_x.f.l = 0;
+    own->boss_y.f.u = self->y_pos.f.u;
+    own->boss_y.f.l = 0;
+    self->collision_flags = 0x0F;     // col_48x48 | col_boss
+    self->collision_property = 8;    // obBossHits
 
-    BossMarble_ShipMain(obj, scratch);
+    BossMarble_ShipMain(self, own);
 }
 
-static void BMZ_ShipStart(Object *obj, Scratch_BossMarble *scratch) {
-    uint8_t angle = scratch->sine_counter;
-    scratch->sine_counter = (uint8_t)(scratch->sine_counter + 2);
+static void BMZ_ShipStart(Sst *self, Own_BossMarble *own) {
+    uint8_t angle = own->sine_counter;
+    own->sine_counter = (uint8_t)(own->sine_counter + 2);
 
     int16_t sin, cos;
     CalcSine(angle, &sin, &cos);
-    obj->ysp = (int16_t)(sin >> 2);
-    obj->xsp = (int16_t)-0x100;
-    BossMove(obj, &scratch->boss_x, &scratch->boss_y);
+    self->y_vel = (int16_t)(sin >> 2);
+    self->x_vel = (int16_t)-0x100;
+    SstBossMove(self, &own->boss_x, &own->boss_y);
 
-    if (scratch->boss_x.f.u == (int16_t)(0x1800 + 0x110)) { // boss_mz_x+0x110
-        obj->routine_sec += 2;
-        obj->scratch.u8[0] = 0; // clear subtype
-        obj->xsp = 0;
+    if (own->boss_x.f.u == (int16_t)(0x1800 + 0x110)) { // boss_mz_x+0x110
+        self->routine_secondary += 2;
+        self->subtype = 0; // clear subtype
+        self->x_vel = 0;
     }
 
     // Unlike GHZ's own bobbing (an overlay applied continuously in
     // ShipUpdate), MZ only uses CalcSine here during entry -- the lava
     // timer below is re-randomized every frame regardless, matching real
     // hardware exactly even though it looks redundant while still moving.
-    scratch->lava_timer = (uint8_t)RandomNumber();
+    own->lava_timer = (uint8_t)RandomNumber();
 
-    BMZ_ShipUpdate(obj, scratch);
+    BMZ_ShipUpdate(self, own);
 }
 
-static void BMZ_Defeated(Object *obj, Scratch_BossMarble *scratch) {
+static void BMZ_Defeated(Sst *self, Own_BossMarble *own) {
     AddPoints(100); // 1000 points (AddPoints counts in tens, like the score)
     // Real ASM's own comment here claims this sets "BMZ_Recover", but the
     // value actually written (4) selects BMZ_Explode -- BMZ_Explode is what
     // advances to Recover (6) once its own countdown finishes.
-    obj->routine_sec = 4; // BMZ_Explode
-    scratch->generic_timer = 180;
-    obj->xsp = 0;
+    self->routine_secondary = 4; // BMZ_Explode
+    own->generic_timer = 180;
+    self->x_vel = 0;
 }
 
-static void BMZ_ShipUpdate(Object *obj, Scratch_BossMarble *scratch) {
-    obj->pos.l.y.f.u = scratch->boss_y.f.u;
-    obj->pos.l.x.f.u = scratch->boss_x.f.u;
+static void BMZ_ShipUpdate(Sst *self, Own_BossMarble *own) {
+    self->y_pos.f.u = own->boss_y.f.u;
+    self->x_pos.f.u = own->boss_x.f.u;
 
-    if (obj->routine_sec >= 4)
+    if (self->routine_secondary >= 4)
         return; // exploding, recovering, or escaping -- skip hit detection
 
-    if (obj->status.o.f.flag7) { // defeated flag
-        BMZ_Defeated(obj, scratch);
+    if (((self->status & 0x80) != 0)) { // defeated flag
+        BMZ_Defeated(self, own);
         return;
     }
-    if (obj->col_type != 0)
+    if (self->collision_flags != 0)
         return; // not currently hittable
 
-    if (scratch->flash == 0) {
-        scratch->flash = 0x28;
+    if (own->flash == 0) {
+        own->flash = 0x28;
         QueueSound2(sfx_HitBoss);
     }
 
     dry_palette[1][1] = (dry_palette[1][1] == 0) ? 0x0EEE : 0;
-    if (--scratch->flash != 0)
+    if (--own->flash != 0)
         return;
-    obj->col_type = 0x0F; // col_48x48 | col_boss -- restore collision
+    self->collision_flags = 0x0F; // col_48x48 | col_boss -- restore collision
 }
 
-static void BossMarble_MakeLava(Object *obj, Scratch_BossMarble *scratch) {
-    if (scratch->lava_timer-- == 0) {
+static void BossMarble_MakeLava(Sst *self, Own_BossMarble *own) {
+    if (own->lava_timer-- == 0) {
         uint32_t rand = RandomNumber();
         Sst *ball = Sst_Spawn(ObjId_LavaBall, (int16_t)(0x1800 + 0x78 + ((uint16_t)rand % 0x50)), (int16_t)(0x210 + 0xD8)); // boss_mz_x+0x78, clamped to a 0x50-wide range; boss_mz_y+0xD8
         if (ball != NULL) {
             ball->subtype = 0; // subtype -- LBall_RiseAndFall
             ((Own_LavaBall *)ball->own.u8)->from_boss = 0xFF;
         }
-        scratch->lava_timer = (uint8_t)((RandomNumber() & 0x1F) + 0x40);
+        own->lava_timer = (uint8_t)((RandomNumber() & 0x1F) + 0x40);
     }
 
-    if (obj->status.o.f.x_flip) {
-        if (scratch->boss_x.f.u < (int16_t)(0x1800 + 0x110)) // boss_mz_x+0x110
+    if (((self->status & SST_STATUS_X_FLIP) != 0)) {
+        if (own->boss_x.f.u < (int16_t)(0x1800 + 0x110)) // boss_mz_x+0x110
             return;
-        scratch->boss_x.f.u = 0x1800 + 0x110;
+        own->boss_x.f.u = 0x1800 + 0x110;
     } else {
-        if (scratch->boss_x.f.u > (int16_t)(0x1800 + 0x30)) // boss_mz_x+0x30
+        if (own->boss_x.f.u > (int16_t)(0x1800 + 0x30)) // boss_mz_x+0x30
             return;
-        scratch->boss_x.f.u = 0x1800 + 0x30;
+        own->boss_x.f.u = 0x1800 + 0x30;
     }
 
-    obj->xsp = 0;
-    obj->ysp = (int16_t)-0x180;
-    if ((uint16_t)scratch->boss_y.f.u < (uint16_t)(0x210 + 0x1C)) // boss_mz_y+0x1C
-        obj->ysp = 0x180;
-    obj->scratch.u8[0] += 2;
+    self->x_vel = 0;
+    self->y_vel = (int16_t)-0x180;
+    if ((uint16_t)own->boss_y.f.u < (uint16_t)(0x210 + 0x1C)) // boss_mz_y+0x1C
+        self->y_vel = 0x180;
+    self->subtype += 2;
 }
 
-static void BMZ_ChgDir(Object *obj, Scratch_BossMarble *scratch) {
-    if (obj->xsp == 0) {
+static void BMZ_ChgDir(Sst *self, Own_BossMarble *own) {
+    if (self->x_vel == 0) {
         uint16_t target = (uint16_t)(0x210 + 0x1C); // boss_mz_y+0x1C
-        uint16_t by = (uint16_t)scratch->boss_y.f.u;
+        uint16_t by = (uint16_t)own->boss_y.f.u;
         if (by != target) {
-            obj->ysp = (by < target) ? 0x40 : (int16_t)-0x40;
-            BossMove(obj, &scratch->boss_x, &scratch->boss_y);
+            self->y_vel = (by < target) ? 0x40 : (int16_t)-0x40;
+            SstBossMove(self, &own->boss_x, &own->boss_y);
             return;
         }
         // Swoop -- start a horizontal+vertical dash in whichever direction
         // Eggman's currently facing.
-        obj->xsp = 0x200;
-        obj->ysp = 0x100;
-        if (!obj->status.o.f.x_flip)
-            obj->xsp = (int16_t)-obj->xsp;
+        self->x_vel = 0x200;
+        self->y_vel = 0x100;
+        if (!((self->status & SST_STATUS_X_FLIP) != 0))
+            self->x_vel = (int16_t)-self->x_vel;
     }
 
-    if (scratch->flash >= 0x18) {
+    if (own->flash >= 0x18) {
         // Recently hit -- freeze movement, but still keep dropping lava.
-        BossMarble_MakeLava(obj, scratch);
+        BossMarble_MakeLava(self, own);
         return;
     }
-    BossMove(obj, &scratch->boss_x, &scratch->boss_y);
-    obj->ysp -= 4; // curve the swoop into a U shape
-    BossMarble_MakeLava(obj, scratch);
+    SstBossMove(self, &own->boss_x, &own->boss_y);
+    self->y_vel -= 4; // curve the swoop into a U shape
+    BossMarble_MakeLava(self, own);
 }
 
-static void BMZ_DropFire(Object *obj, Scratch_BossMarble *scratch) {
-    BossMove(obj, &scratch->boss_x, &scratch->boss_y);
+static void BMZ_DropFire(Sst *self, Own_BossMarble *own) {
+    SstBossMove(self, &own->boss_x, &own->boss_y);
 
-    if (scratch->boss_y.f.u > (int16_t)(0x210 + 0x1C)) // boss_mz_y+0x1C -- still rising
+    if (own->boss_y.f.u > (int16_t)(0x210 + 0x1C)) // boss_mz_y+0x1C -- still rising
         return;
 
-    if (obj->ysp != 0) {
-        obj->ysp = 0;
-        scratch->generic_timer = 80;
-        obj->status.o.f.x_flip = !obj->status.o.f.x_flip; // turn back to the screen bound
+    if (self->y_vel != 0) {
+        self->y_vel = 0;
+        own->generic_timer = 80;
+        SST_STATUS_SET(self, SST_STATUS_X_FLIP, !((self->status & SST_STATUS_X_FLIP) != 0)); // turn back to the screen bound
 
-        Sst *fire = Sst_Spawn(ObjId_BossFire, scratch->boss_x.f.u, (int16_t)(scratch->boss_y.f.u + 0x18));
+        Sst *fire = Sst_Spawn(ObjId_BossFire, own->boss_x.f.u, (int16_t)(own->boss_y.f.u + 0x18));
         if (fire != NULL) {
             fire->subtype = 1; // subtype -- real fire, not a floor warning
         }
     }
 
-    if (--scratch->generic_timer != 0)
+    if (--own->generic_timer != 0)
         return;
-    obj->scratch.u8[0] += 2;
+    self->subtype += 2;
 }
 
-static void BMZ_ShipMove(Object *obj, Scratch_BossMarble *scratch) {
-    switch (obj->scratch.u8[0] & 6) {
-    case 0: BMZ_ChgDir(obj, scratch); break;
-    case 2: BMZ_DropFire(obj, scratch); break;
-    case 4: BMZ_ChgDir(obj, scratch); break;
-    case 6: BMZ_DropFire(obj, scratch); break;
+static void BMZ_ShipMove(Sst *self, Own_BossMarble *own) {
+    switch (self->subtype & 6) {
+    case 0: BMZ_ChgDir(self, own); break;
+    case 2: BMZ_DropFire(self, own); break;
+    case 4: BMZ_ChgDir(self, own); break;
+    case 6: BMZ_DropFire(self, own); break;
     }
-    obj->scratch.u8[0] &= 6;
-    BMZ_ShipUpdate(obj, scratch);
+    self->subtype &= 6;
+    BMZ_ShipUpdate(self, own);
 }
 
-static void BMZ_Explode(Object *obj, Scratch_BossMarble *scratch) {
-    if (--scratch->generic_timer >= 0) {
-        BossDefeated(obj);
+static void BMZ_Explode(Sst *self, Own_BossMarble *own) {
+    if (--own->generic_timer >= 0) {
+        SstBossDefeated(self);
         return;
     }
 
-    obj->status.o.f.x_flip = true;
-    obj->status.o.f.flag7 = false; // clear defeated flag (set in ReactToItem)
-    obj->xsp = 0;
-    obj->routine_sec += 2;
-    scratch->generic_timer = -38;
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, true);
+    self->status &= (uint8_t)~0x80; // clear defeated flag (set in ReactToItem)
+    self->x_vel = 0;
+    self->routine_secondary += 2;
+    own->generic_timer = -38;
 
     if (!boss_status)
         boss_status = 1;
 }
 
-static void BMZ_Recover(Object *obj, Scratch_BossMarble *scratch) {
-    scratch->generic_timer++;
+static void BMZ_Recover(Sst *self, Own_BossMarble *own) {
+    own->generic_timer++;
 
-    if (scratch->generic_timer == 0) {
-        obj->ysp = 0; // done falling
-    } else if (scratch->generic_timer < 0) {
-        if ((uint16_t)scratch->boss_y.f.u >= (uint16_t)(0x210 + 0x60)) { // boss_mz_y+0x60
-            obj->ysp = 0;
+    if (own->generic_timer == 0) {
+        self->y_vel = 0; // done falling
+    } else if (own->generic_timer < 0) {
+        if ((uint16_t)own->boss_y.f.u >= (uint16_t)(0x210 + 0x60)) { // boss_mz_y+0x60
+            self->y_vel = 0;
         } else {
-            obj->ysp = (int16_t)(obj->ysp + 0x18); // fall a little
+            self->y_vel = (int16_t)(self->y_vel + 0x18); // fall a little
         }
-    } else if (scratch->generic_timer < 48) {
-        obj->ysp = (int16_t)(obj->ysp - 8); // rise
-    } else if (scratch->generic_timer == 48) {
-        obj->ysp = 0;
+    } else if (own->generic_timer < 48) {
+        self->y_vel = (int16_t)(self->y_vel - 8); // rise
+    } else if (own->generic_timer == 48) {
+        self->y_vel = 0;
         QueueSound1(bgm_MZ);
-    } else if (scratch->generic_timer < 56) {
+    } else if (own->generic_timer < 56) {
         // wait
     } else {
-        obj->routine_sec += 2; // -> BMZ_Escape
+        self->routine_secondary += 2; // -> BMZ_Escape
     }
 
-    BossMove(obj, &scratch->boss_x, &scratch->boss_y);
-    BMZ_ShipUpdate(obj, scratch);
+    SstBossMove(self, &own->boss_x, &own->boss_y);
+    BMZ_ShipUpdate(self, own);
 }
 
-static void BMZ_Escape(Object *obj, Scratch_BossMarble *scratch) {
-    obj->xsp = 0x500;          // move right quickly
-    obj->ysp = (int16_t)-0x40; // move up a little
+static void BMZ_Escape(Sst *self, Own_BossMarble *own) {
+    self->x_vel = 0x500;          // move right quickly
+    self->y_vel = (int16_t)-0x40; // move up a little
 
     if (limit_right2 != (uint16_t)(0x1800 + 0x160)) { // boss_mz_end
         limit_right2 += 2; // keep unlocking the screen bounds
-    } else if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        ObjectDelete(obj); // has Eggman left the screen?
+    } else if (SstOutOfRange(self->x_pos.f.u)) {
+        SstLoad_Forget(self);
+        Sst_Delete(self); // has Eggman left the screen?
         return;
     }
 
-    BossMove(obj, &scratch->boss_x, &scratch->boss_y);
-    BMZ_ShipUpdate(obj, scratch);
+    SstBossMove(self, &own->boss_x, &own->boss_y);
+    BMZ_ShipUpdate(self, own);
 }
 
-static void BossMarble_ShipMain(Object *obj, Scratch_BossMarble *scratch) {
-    switch (obj->routine_sec) {
-    case 0: BMZ_ShipStart(obj, scratch); break;
-    case 2: BMZ_ShipMove(obj, scratch); break;
-    case 4: BMZ_Explode(obj, scratch); break;
-    case 6: BMZ_Recover(obj, scratch); break;
-    case 8: BMZ_Escape(obj, scratch); break;
+static void BossMarble_ShipMain(Sst *self, Own_BossMarble *own) {
+    switch (self->routine_secondary) {
+    case 0: BMZ_ShipStart(self, own); break;
+    case 2: BMZ_ShipMove(self, own); break;
+    case 4: BMZ_Explode(self, own); break;
+    case 6: BMZ_Recover(self, own); break;
+    case 8: BMZ_Escape(self, own); break;
     }
 
-    AnimateSprite(obj, Animation_Eggman);
+    Sst_Animate(self, Animation_Eggman);
 
-    uint8_t flip = obj->status.b & 3;
-    obj->render.b = (uint8_t)((obj->render.b & ~3) | flip);
-    DisplaySprite(obj);
+    uint8_t flip = self->status & 3;
+    self->render_flags = (uint8_t)((self->render_flags & ~3) | flip);
+    Sst_Draw(self);
 }
 
 // Shared tail for the face/flame/tube sub-objects: syncs status/render flip
 // bits from the ship and displays. Tube uses this directly (it never
 // animates); face/flame go through BMZ_Display, which adds the animation
 // step first.
-static void BMZ_SetBits(Object *obj, Scratch_BossMarble *scratch) {
-    Object *parent = &objects[scratch->parent_index];
-    obj->pos.l.x.f.u = parent->pos.l.x.f.u;
-    obj->pos.l.y.f.u = parent->pos.l.y.f.u;
-    obj->status.b = parent->status.b;
+static void BMZ_SetBits(Sst *self, Own_BossMarble *own) {
+    Sst *parent = &sst[own->parent_index];
+    self->x_pos.f.u = parent->x_pos.f.u;
+    self->y_pos.f.u = parent->y_pos.f.u;
+    self->status = parent->status;
 
-    uint8_t flip = obj->status.b & 3;
-    obj->render.b = (uint8_t)((obj->render.b & ~3) | flip);
-    DisplaySprite(obj);
+    uint8_t flip = self->status & 3;
+    self->render_flags = (uint8_t)((self->render_flags & ~3) | flip);
+    Sst_Draw(self);
 }
 
-static void BMZ_Display(Object *obj, Scratch_BossMarble *scratch) {
-    AnimateSprite(obj, Animation_Eggman);
-    BMZ_SetBits(obj, scratch);
+static void BMZ_Display(Sst *self, Own_BossMarble *own) {
+    Sst_Animate(self, Animation_Eggman);
+    BMZ_SetBits(self, own);
 }
 
-static void BossMarble_FaceMain(Object *obj, Scratch_BossMarble *scratch) {
-    Object *parent = &objects[scratch->parent_index];
-    if (parent->type != obj->type) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
-        ObjectDelete(obj);
+static void BossMarble_FaceMain(Sst *self, Own_BossMarble *own) {
+    Sst *parent = &sst[own->parent_index];
+    if (parent->code != self->code) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
+        Sst_Delete(self);
         return;
     }
 
-    int d0 = parent->routine_sec;
+    int d0 = parent->routine_secondary;
     int d1 = 1; // facenormal1
 
     d0 -= 2;
     if (d0 != 0)
         goto checkSpecial;
-    if (!(parent->scratch.u8[0] & 2))
+    if (!(parent->subtype & 2))
         goto checkHitState;
-    if (parent->ysp != 0)
+    if (parent->y_vel != 0)
         goto checkHitState;
     d1 = 4; // facelaugh
     goto writeAnim;
@@ -343,7 +346,7 @@ checkSpecial:
     goto writeAnim;
 
 checkHitState:
-    if (parent->col_type != 0)
+    if (parent->collision_flags != 0)
         goto checkSonicState;
     d1 = 5; // facehit
     goto writeAnim;
@@ -354,74 +357,77 @@ checkSonicState:
     d1 = 4; // facelaugh
 
 writeAnim:
-    obj->anim = (uint8_t)d1;
+    self->anim = (uint8_t)d1;
 
     d0 -= 4;
     if (d0 != 0) {
-        BMZ_Display(obj, scratch);
+        BMZ_Display(self, own);
         return;
     }
-    obj->anim = 6; // facepanic
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        ObjectDelete(obj);
+    self->anim = 6; // facepanic
+    if (SstOutOfRange(self->x_pos.f.u)) {
+        SstLoad_Forget(self);
+        Sst_Delete(self);
         return;
     }
-    BMZ_Display(obj, scratch);
+    BMZ_Display(self, own);
 }
 
-static void BossMarble_FlameMain(Object *obj, Scratch_BossMarble *scratch) {
-    obj->anim = 7; // blank (default invisible state)
+static void BossMarble_FlameMain(Sst *self, Own_BossMarble *own) {
+    self->anim = 7; // blank (default invisible state)
 
-    Object *parent = &objects[scratch->parent_index];
-    if (parent->type != obj->type) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
-        ObjectDelete(obj);
+    Sst *parent = &sst[own->parent_index];
+    if (parent->code != self->code) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
+        Sst_Delete(self);
         return;
     }
 
-    if (parent->routine_sec >= 8) { // Escape
-        obj->anim = 0xB; // escapeflame -- thruster animation for takeoff
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
+    if (parent->routine_secondary >= 8) { // Escape
+        self->anim = 0xB; // escapeflame -- thruster animation for takeoff
+        if (SstOutOfRange(self->x_pos.f.u)) {
+            SstLoad_Forget(self);
+            Sst_Delete(self);
             return;
         }
-        BMZ_Display(obj, scratch);
+        BMZ_Display(self, own);
         return;
     }
 
-    if (parent->xsp != 0)
-        obj->anim = 8; // flame
+    if (parent->x_vel != 0)
+        self->anim = 8; // flame
 
-    BMZ_Display(obj, scratch);
+    BMZ_Display(self, own);
 }
 
-static void BossMarble_TubeMain(Object *obj, Scratch_BossMarble *scratch) {
-    Object *parent = &objects[scratch->parent_index];
-    if (parent->type != obj->type) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
-        ObjectDelete(obj);
+static void BossMarble_TubeMain(Sst *self, Own_BossMarble *own) {
+    Sst *parent = &sst[own->parent_index];
+    if (parent->code != self->code) { // the ship has been deleted: so are its pieces (they would follow whatever takes its slot, such as the prison capsule's animals)
+        Sst_Delete(self);
         return;
     }
 
-    if (parent->routine_sec == 8) { // Escape
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
+    if (parent->routine_secondary == 8) { // Escape
+        if (SstOutOfRange(self->x_pos.f.u)) {
+            SstLoad_Forget(self);
+            Sst_Delete(self);
             return;
         }
     }
 
-    obj->mappings = Mappings_BossItems;
-    obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Eggman_Weapons); // | Tile_Pal2
-    obj->frame = 4; // tube frame (Boss Items.asm)
-    BMZ_SetBits(obj, scratch);
+    self->mappings = Mappings_BossItems;
+    self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Eggman_Weapons); // | Tile_Pal2
+    self->mapping_frame = 4; // tube frame (Boss Items.asm)
+    BMZ_SetBits(self, own);
 }
 
-void Obj_BossMarble(Object *obj) {
-    Scratch_BossMarble *scratch = (Scratch_BossMarble *)&obj->scratch;
+void Obj_BossMarble(Sst *self) {
+    Own_BossMarble *own = (Own_BossMarble *)self->own.u8;
 
-    switch (obj->routine) {
-    case 0: BossMarble_Main(obj, scratch); break;
-    case 2: BossMarble_ShipMain(obj, scratch); break;
-    case 4: BossMarble_FaceMain(obj, scratch); break;
-    case 6: BossMarble_FlameMain(obj, scratch); break;
-    case 8: BossMarble_TubeMain(obj, scratch); break;
+    switch (self->routine) {
+    case 0: BossMarble_Main(self, own); break;
+    case 2: BossMarble_ShipMain(self, own); break;
+    case 4: BossMarble_FaceMain(self, own); break;
+    case 6: BossMarble_FlameMain(self, own); break;
+    case 8: BossMarble_TubeMain(self, own); break;
     }
 }

@@ -1,5 +1,8 @@
 #define SwingingPlatform_Build
 #include "SwingingPlatform.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Level.h"
 #include "LevelScroll.h"
 #include "MathUtil.h"
@@ -13,54 +16,55 @@
 extern const uint8_t Mappings_BigSpikedBall[];
 
 // Forward declarations
-void Obj_SwingingPlatform_Move(Object *obj);
-void Obj_SwingingPlatform_Move2(Object *obj, int16_t sin, int16_t cos);
+void Obj_SwingingPlatform_Move(Sst *self);
+void Obj_SwingingPlatform_Move2(Sst *self, int16_t sin, int16_t cos);
 
-static void Obj_SwingingPlatform_ChkDel(Object *obj) {
-    Scratch_Swing *scratch = (Scratch_Swing*)&obj->scratch;
+static void Obj_SwingingPlatform_ChkDel(Sst *self) {
+    Own_Swing *own = (Own_Swing *)self->own.u8;
 
-    if (IS_OFFSCREEN(scratch->orig_x)) {
-        uint8_t count = scratch->child_count;
+    if (SstOutOfRange(own->orig_x)) {
+        uint8_t count = own->child_count;
         for (int i = 0; i <= count; i++) {
-            Object *child = objects + scratch->child_idx[i];
-            if (child != obj) {
-                ObjectDelete(child);
+            Sst *child = sst + own->child_idx[i];
+            if (child != self) {
+                Sst_Delete(child);
             }
         }
-        ObjectDelete(obj);
+        SstLoad_Forget(self);
+        Sst_Delete(self);
     }
 }
 
-void Obj_SwingingPlatform(Object *obj) {
-    Scratch_Swing *scratch = (Scratch_Swing*)&obj->scratch;
+void Obj_SwingingPlatform(Sst *self) {
+    Own_Swing *own = (Own_Swing *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
         case 0: { // Swing_Main
-            obj->routine += 2;
-            obj->mappings = Mappings_GHZSwing;
-            obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_MZ_Swing);
-            obj->render.b = SPRITE_CAM_FIELD;
-            obj->priority = 3;
-            obj->width_pixels = 0x18;
-            obj->y_rad = 8;
-            scratch->orig_y = obj->pos.l.y.f.u;
-            scratch->orig_x = obj->pos.l.x.f.u;
+            self->routine += 2;
+            self->mappings = Mappings_GHZSwing;
+            self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_GHZ_MZ_Swing);
+            self->render_flags = SST_RENDER_LEVEL;
+            self->priority = 3 * 0x80;
+            self->width_pixels = 0x18;
+            self->y_radius = 8;
+            own->orig_y = self->y_pos.f.u;
+            own->orig_x = self->x_pos.f.u;
 
             if (LEVEL_ZONE(level_id) == ZoneId_SLZ) {
-                obj->mappings = Mappings_SLZSwing;
-                obj->tile = TILE_MAP(0, 2, 0, 0, ArtTile_SLZ_Swing);
-                obj->width_pixels = 0x20;
-                obj->y_rad = 0x10;
-                obj->col_type = 0x99;
+                self->mappings = Mappings_SLZSwing;
+                self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_SLZ_Swing);
+                self->width_pixels = 0x20;
+                self->y_radius = 0x10;
+                self->collision_flags = 0x99;
             }
 
             if (LEVEL_ZONE(level_id) == ZoneId_SBZ) {
-                obj->mappings = Mappings_BigSpikedBall;
-                obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Swing); // (Art_SYZSpike1, reused for SBZ)
-                obj->width_pixels = 0x18;
-                obj->y_rad = 0x18;
-                obj->col_type = 0x86;
-                obj->routine = 12; // Swing_Action
+                self->mappings = Mappings_BigSpikedBall;
+                self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_SBZ_Swing); // (Art_SYZSpike1, reused for SBZ)
+                self->width_pixels = 0x18;
+                self->y_radius = 0x18;
+                self->collision_flags = 0x86;
+                self->routine = 12; // Swing_Action
             }
 
             // Chain Creation
@@ -68,47 +72,47 @@ void Obj_SwingingPlatform(Object *obj) {
             // 0 (obSubtype), aliased here as child_count -- read it BEFORE
             // clearing it to 0 just below, matching the original's own
             // read-then-reuse-the-same-byte pattern.
-            uint8_t subtype = scratch->child_count;
+            uint8_t subtype = own->child_count;
             uint8_t count = subtype & 0xF;
             uint8_t d3 = (count << 4) + 8;
-            scratch->chain_length = d3;
+            own->chain_length = d3;
             d3 -= 8;
 
-            if (obj->frame != 0) {
+            if (self->mapping_frame != 0) {
                 d3 += 8;
                 count--;
             }
 
-            scratch->child_count = 0;
+            own->child_count = 0;
             for (int i = count; i >= 0; i--) {
-                Object *link = FindFreeObj();
+                Sst *link = Sst_Allocate();
                 if (!link) break;
 
                 // Store link index in parent's scratch
-                scratch->child_idx[scratch->child_count++] = (uint8_t)(link - objects);
+                own->child_idx[own->child_count++] = (uint8_t)(link - sst);
 
                 link->routine = 10; // Swing_Display
-                link->type = obj->type;
-                link->mappings = obj->mappings;
-                link->tile = obj->tile & ~(1 << 14); // bclr #6 on the high byte -> bit 14 of the full word (palette line 3 -> 1)
-                link->render.b = SPRITE_CAM_FIELD;
-                link->priority = 4;
+                link->code = self->code;
+                link->mappings = self->mappings;
+                link->art_tile = self->art_tile & ~(1 << 14); // bclr #6 on the high byte -> bit 14 of the full word (palette line 3 -> 1)
+                link->render_flags = SST_RENDER_LEVEL;
+                link->priority = 4 * 0x80;
                 link->width_pixels = 8;
-                link->frame = 1;
+                link->mapping_frame = 1;
 
-                Scratch_Swing *link_scratch = (Scratch_Swing*)&link->scratch;
+                Own_Swing *link_scratch = (Own_Swing *)link->own.u8;
                 link_scratch->chain_length = d3;
 
                 d3 -= 0x10;
                 if ((int8_t)d3 < 0) {
-                    link->frame = 2;
-                    link->priority = 3;
-                    link->tile |= (1 << 14); // bset #6 on the high byte -> bit 14 (palette line 1 -> 3)
+                    link->mapping_frame = 2;
+                    link->priority = 3 * 0x80;
+                    link->art_tile |= (1 << 14); // bset #6 on the high byte -> bit 14 (palette line 1 -> 3)
                 }
             }
 
             // Set parent as the last entry in the list
-            scratch->child_idx[scratch->child_count] = (uint8_t)(obj - objects);
+            own->child_idx[own->child_count] = (uint8_t)(self - sst);
             // Note: the original also sets obAngle and GBall_Swing_Speed
             // here, but both are explicitly commented as "GHZ wrecking ball
             // boss only" -- that's separate, later work (the boss isn't
@@ -118,11 +122,11 @@ void Obj_SwingingPlatform(Object *obj) {
             // replicate for the general swinging-platform case).
 
             if (subtype & 0x10) { // is object type $1X? (unused in real levels)
-                obj->mappings = Mappings_GHZBall;
-                obj->tile = TILE_MAP(0, 2, 0, 0, (ArtTile_GHZ_Giant_Ball));
-                obj->frame = 1;
-                obj->priority = 2;
-                obj->col_type = 0x81;
+                self->mappings = Mappings_GHZBall;
+                self->art_tile = TILE_MAP(0, 2, 0, 0, (ArtTile_GHZ_Giant_Ball));
+                self->mapping_frame = 1;
+                self->priority = 2 * 0x80;
+                self->collision_flags = 0x81;
             }
 
             if (LEVEL_ZONE(level_id) == ZoneId_SBZ) break;
@@ -130,70 +134,70 @@ void Obj_SwingingPlatform(Object *obj) {
         }
 
         case 2: { // Swing_SetSolid / Swing_Platform
-            PlatformObject_CustomHeight(obj, obj->width_pixels, obj->y_rad);
-            Obj_SwingingPlatform_Move(obj);
-            DisplaySprite(obj);
-            Obj_SwingingPlatform_ChkDel(obj);
+            SstPlatformObject_CustomHeight(self, self->width_pixels, self->y_radius);
+            Obj_SwingingPlatform_Move(self);
+            Sst_Draw(self);
+            Obj_SwingingPlatform_ChkDel(self);
             break;
         }
 
         case 4: { // Swing_Action2 (Sonic on top)
             int16_t x_off;
-            if (!ExitPlatform(obj, obj->width_pixels, obj->width_pixels, &x_off)) {
-                int16_t prev_x = obj->pos.l.x.f.u;
-                Obj_SwingingPlatform_Move(obj);
+            if (!SstExitPlatform(self, self->width_pixels, self->width_pixels, &x_off)) {
+                int16_t prev_x = self->x_pos.f.u;
+                Obj_SwingingPlatform_Move(self);
                 // Move Sonic with platform -- y is the pre-computed top
                 // surface (post-move platform Y minus custom height + 1px)
-                MvSonicOnPtfm(obj, obj->pos.l.y.f.u - (obj->y_rad + 1), prev_x);
+                SstMvSonicOnPtfm(self, self->y_pos.f.u - (self->y_radius + 1), prev_x);
             }
-            DisplaySprite(obj);
-            Obj_SwingingPlatform_ChkDel(obj);
+            Sst_Draw(self);
+            Obj_SwingingPlatform_ChkDel(self);
             break;
         }
 
         case 6: // Swing_Delete
         case 8:
-            ObjectDelete(obj);
+            Sst_Delete(self);
             break;
 
         case 10: // Swing_Display (Chain links)
-            DisplaySprite(obj);
+            Sst_Draw(self);
             break;
 
         case 12: // Swing_Action
-            Obj_SwingingPlatform_Move(obj);
-            DisplaySprite(obj);
-            Obj_SwingingPlatform_ChkDel(obj);
+            Obj_SwingingPlatform_Move(self);
+            Sst_Draw(self);
+            Obj_SwingingPlatform_ChkDel(self);
             break;
     }
 }
 
-void Obj_SwingingPlatform_Move(Object *obj) {
+void Obj_SwingingPlatform_Move(Sst *self) {
     // GHZ/MZ/SLZ logic using oscillation table (entry 6: frequency 8, middle
     // value $40). The value field is a 16-bit fixed-point accumulator; only
     // its high byte (the integer part) is meaningful here.
     int16_t angle = (uint8_t)(oscillatory.state[6][0] >> 8);
-    if (obj->status.o.f.x_flip) {
+    if (((self->status & SST_STATUS_X_FLIP) != 0)) {
         angle = -angle + 0x80;
     }
 
     int16_t sin, cos;
     CalcSine(angle, &sin, &cos);
-    Obj_SwingingPlatform_Move2(obj, sin, cos);
+    Obj_SwingingPlatform_Move2(self, sin, cos);
 }
 
-void Obj_SwingingPlatform_Move2(Object *obj, int16_t sin, int16_t cos) {
-    Scratch_Swing *scratch = (Scratch_Swing*)&obj->scratch;
+void Obj_SwingingPlatform_Move2(Sst *self, int16_t sin, int16_t cos) {
+    Own_Swing *own = (Own_Swing *)self->own.u8;
 
     // Update all children (links and the platform itself)
-    for (int i = 0; i <= scratch->child_count; i++) {
-        Object *child = objects + scratch->child_idx[i];
-        Scratch_Swing *child_scratch = (Scratch_Swing*)&child->scratch;
+    for (int i = 0; i <= own->child_count; i++) {
+        Sst *child = sst + own->child_idx[i];
+        Own_Swing *child_scratch = (Own_Swing *)child->own.u8;
 
         int32_t length = child_scratch->chain_length;
 
         // ASM: muls.w d0,d4 -> asr.l #8,d4
-        child->pos.l.y.f.u = scratch->orig_y + ((length * sin) >> 8);
-        child->pos.l.x.f.u = scratch->orig_x + ((length * cos) >> 8);
+        child->y_pos.f.u = own->orig_y + ((length * sin) >> 8);
+        child->x_pos.f.u = own->orig_x + ((length * cos) >> 8);
     }
 }

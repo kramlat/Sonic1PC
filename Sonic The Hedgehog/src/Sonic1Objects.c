@@ -4,6 +4,16 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/SwingingPlatform.h"
+#include "Object/Seesaw.h"
+#include "Object/BossFinal.h"
+#include "Object/BossStarLight.h"
+#include "Object/BossLabyrinth.h"
+#include "Object/BossBlock.h"
+#include "Object/BossSpringYard.h"
+#include "Object/BossMarble.h"
+#include "Object/BossBall.h"
+#include "Object/BossGreenHill.h"
 #include "Object/HUD.h"
 #include "Object/TitleCard.h"
 #include "Object/Monitor.h"
@@ -110,19 +120,6 @@
 #include "Object/Splash.h"
 #include "Object/WaterSurface.h"
 
-void Obj_SwingingPlatform(Object *obj);
-void Obj_Seesaw(Object *obj);
-void Obj_BossGreenHill(Object *obj);
-void Obj_BossBall(Object *obj);
-void Obj_BossMarble(Object *obj);
-void Obj_BossSpringYard(Object *obj);
-void Obj_BossLabyrinth(Object *obj);
-void Obj_BossStarLight(Object *obj);
-void Obj_BossSpikeball(Object *obj);
-void Obj_BossFinal(Object *obj);
-void Obj_EggmanCylinder(Object *obj);
-void Obj_BossPlasma(Object *obj);
-void Obj_BossBlock(Object *obj);
 
 // Sonic 1's objects by object id. The engine (EngineObject.h) runs whichever one an object slot's type names; an id that is not listed, or a NULL entry,
 // runs as the null object.
@@ -148,7 +145,7 @@ const ObjectFunc game_objects[] = {
 	/* 12 ObjId_SpinningLight       */ NULL, // (moved to the status table: sst_object_codes)
 	/* 13 ObjId_LavaMaker           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 14 ObjId_LavaBall            */ NULL, // (moved to the status table: sst_object_codes)
-	/* 15 ObjId_SwingingPlatform    */ Obj_SwingingPlatform,
+	/* 15 ObjId_SwingingPlatform    */ NULL, // (moved to the status table: sst_object_codes)
 	/* 16 ObjId_Harpoon             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 17 ObjId_Helix               */ NULL, // (moved to the status table: sst_object_codes)
 	/* 18 ObjId_BasicPlatform       */ NULL, // (moved to the status table: sst_object_codes)
@@ -188,7 +185,7 @@ const ObjectFunc game_objects[] = {
 	/* 3A ObjId_GotThroughCard      */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3B ObjId_GHZRock             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3C ObjId_SmashWall           */ NULL, // (moved to the status table: sst_object_codes)
-	/* 3D ObjId_BossGreenHill       */ Obj_BossGreenHill,
+	/* 3D ObjId_BossGreenHill       */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3E ObjId_PrisonCapsule       */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBombObject,
 	/* 40 ObjId_Motobug             */ NULL, // (moved to the status table: sst_object_codes)
@@ -199,7 +196,7 @@ const ObjectFunc game_objects[] = {
 	/* 45 ObjId_SidewaysStomper     */ NULL, // (moved to the status table: sst_object_codes)
 	/* 46 ObjId_MarbleBrick         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 47 ObjId_Bumper              */ NULL, // (moved to the status table: sst_object_codes)
-	/* 48 ObjId_BossBall            */ Obj_BossBall,
+	/* 48 ObjId_BossBall            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 49 ObjId_Waterfall           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 4A ObjId_VanishSonic         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 4B ObjId_GiantRing           */ NULL, // (moved to the status table: sst_object_codes)
@@ -221,7 +218,7 @@ const ObjectFunc game_objects[] = {
 	/* 5B ObjId_Staircase           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 5C ObjId_Pylon               */ NULL, // (moved to the status table: sst_object_codes)
 	/* 5D ObjId_Fan                 */ NULL, // (moved to the status table: sst_object_codes)
-	/* 5E ObjId_Seesaw              */ Obj_Seesaw,
+	/* 5E ObjId_Seesaw              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 5F ObjId_Bomb                */ NULL, // (moved to the status table: sst_object_codes)
 	/* 60 ObjId_Orbinaut            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 61 ObjId_LabyrinthBlock      */ NULL, // (moved to the status table: sst_object_codes)
@@ -242,15 +239,15 @@ const ObjectFunc game_objects[] = {
 	/* 70 ObjId_GirderBlock         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 71 ObjId_InvisibleBarrier    */ NULL, // (moved to the status table: sst_object_codes)
 	/* 72 ObjId_Teleporter          */ NULL, // (moved to the status table: sst_object_codes)
-	/* 73 ObjId_BossMarble          */ Obj_BossMarble,
+	/* 73 ObjId_BossMarble          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 74 ObjId_BossFire            */ NULL, // (moved to the status table: sst_object_codes)
-	/* 75 ObjId_BossSpringYard      */ Obj_BossSpringYard,
-	/* 76 ObjId_BossBlock           */ Obj_BossBlock,
-	/* 77 ObjId_BossLabyrinth      */ Obj_BossLabyrinth,
+	/* 75 ObjId_BossSpringYard      */ NULL, // (moved to the status table: sst_object_codes)
+	/* 76 ObjId_BossBlock           */ NULL, // (moved to the status table: sst_object_codes)
+	/* 77 ObjId_BossLabyrinth      */ NULL, // (moved to the status table: sst_object_codes)
 	/* 78 ObjId_Caterkiller         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 79 ObjId_Checkpoint          */ NULL, // (moved to the status table: sst_object_codes)
-	/* 7A ObjId_BossStarLight       */ Obj_BossStarLight,
-	/* 7B ObjId_BossSpikeball       */ Obj_BossSpikeball,
+	/* 7A ObjId_BossStarLight       */ NULL, // (moved to the status table: sst_object_codes)
+	/* 7B ObjId_BossSpikeball       */ NULL, // (moved to the status table: sst_object_codes)
 	/* 7C ObjId_RingFlash           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 7D ObjId_HiddenBonus         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 7E ObjId_SSResult            */ NULL, // (moved to the status table: sst_object_codes)
@@ -259,9 +256,9 @@ const ObjectFunc game_objects[] = {
 	/* 81 ObjId_81                  */ NULL, // (moved to the status table: sst_object_codes)
 	/* 82 ObjId_ScrapEggman         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 83 ObjId_FalseFloor          */ NULL, // (moved to the status table: sst_object_codes)
-	/* 84 ObjId_EggmanCylinder      */ Obj_EggmanCylinder,
-	/* 85 ObjId_BossFinal           */ Obj_BossFinal,
-	/* 86 ObjId_BossPlasma          */ Obj_BossPlasma,
+	/* 84 ObjId_EggmanCylinder      */ NULL, // (moved to the status table: sst_object_codes)
+	/* 85 ObjId_BossFinal           */ NULL, // (moved to the status table: sst_object_codes)
+	/* 86 ObjId_BossPlasma          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 87 ObjId_87                  */ NULL, // (moved to the status table: sst_object_codes)
 	/* 88 ObjId_88                  */ NULL, // (moved to the status table: sst_object_codes)
 	/* 89 ObjId_89                  */ NULL, // (moved to the status table: sst_object_codes)
@@ -275,6 +272,19 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_SwingingPlatform] = Obj_SwingingPlatform,
+	[ObjId_Seesaw] = Obj_Seesaw,
+	[ObjId_BossPlasma] = Obj_BossPlasma,
+	[ObjId_EggmanCylinder] = Obj_EggmanCylinder,
+	[ObjId_BossFinal] = Obj_BossFinal,
+	[ObjId_BossSpikeball] = Obj_BossSpikeball,
+	[ObjId_BossStarLight] = Obj_BossStarLight,
+	[ObjId_BossLabyrinth] = Obj_BossLabyrinth,
+	[ObjId_BossBlock] = Obj_BossBlock,
+	[ObjId_BossSpringYard] = Obj_BossSpringYard,
+	[ObjId_BossMarble] = Obj_BossMarble,
+	[ObjId_BossBall] = Obj_BossBall,
+	[ObjId_BossGreenHill] = Obj_BossGreenHill,
 	[ObjId_Splash] = Obj_Splash,
 	[ObjId_Bubble] = Obj_Bubble,
 	[ObjId_DrownCount] = Obj_DrownCount,

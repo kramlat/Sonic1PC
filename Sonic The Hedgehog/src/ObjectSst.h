@@ -11,6 +11,10 @@ void SstPlatformObject(Sst *obj, uint16_t x_rad);
 void SstPlatformObject_CustomHeight(Sst *obj, uint16_t x_rad, int16_t height);
 void SstPlatform3(Sst *obj, int16_t top);
 void SstPlatform_SetStand(Sst *obj);
+
+// BossMove and BossDefeated (Object.h) for the status table
+void SstBossMove(const Sst *obj, dword_s *boss_x, dword_s *boss_y);
+void SstBossDefeated(const Sst *obj);
 bool SstExitPlatform(Sst *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p);
 void SstSlopeObject(Sst *obj, uint16_t x_rad, const uint8_t *heightmap);
 void SstSlopeObject_AssumeStoodOn(Sst *obj, uint16_t x_rad, const uint8_t *heightmap, int16_t prev_x);

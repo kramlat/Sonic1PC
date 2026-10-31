@@ -1,4 +1,7 @@
 #include "BossStarLight.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include <string.h>
@@ -46,345 +49,344 @@ static const int16_t BSB_FragSpeed[4][2] = {
     { -0x100, -0x340 }, { -0xA0, -0x240 }, { 0x100, -0x340 }, { 0xA0, -0x240 },
 };
 
-static bool BossStarLight_ShipMain(Object *obj, Scratch_BossStarLight *scratch);
+static bool BossStarLight_ShipMain(Sst *self, Own_BossStarLight *own);
 
 // The real ASM scans only part of object RAM for seesaws and the boss, and
 // pointers into that range; the port's slots differ, so FixBugs-style full
 // scans of the level objects are forced on.
-static void BossStarLight_Main(Object *obj, Scratch_BossStarLight *scratch) {
-    memset(&obj->scratch, 0, sizeof(obj->scratch));
+static void BossStarLight_Main(Sst *self, Own_BossStarLight *own) {
+    memset(self->own.u8, 0, sizeof(self->own));
 
-    obj->pos.l.x.f.u = SLZ_BOSS_X + 0x188;
-    obj->pos.l.y.f.u = SLZ_BOSS_Y + 0x18;
-    scratch->boss_x.f.u = obj->pos.l.x.f.u;
-    scratch->boss_x.f.l = 0;
-    scratch->boss_y.f.u = obj->pos.l.y.f.u;
-    scratch->boss_y.f.l = 0;
-    obj->col_type = SLZ_COL_BOSS;
-    obj->col_property = 8; // obBossHits
+    self->x_pos.f.u = SLZ_BOSS_X + 0x188;
+    self->y_pos.f.u = SLZ_BOSS_Y + 0x18;
+    own->boss_x.f.u = self->x_pos.f.u;
+    own->boss_x.f.l = 0;
+    own->boss_y.f.u = self->y_pos.f.u;
+    own->boss_y.f.l = 0;
+    self->collision_flags = SLZ_COL_BOSS;
+    self->collision_property = 8; // obBossHits
 
-    uint8_t self_index = (uint8_t)(obj - objects);
+    uint8_t self_index = (uint8_t)(self - sst);
 
     for (int i = 0; i < 4; i++) {
-        Object *sub;
+        Sst *sub;
         if (i == 0) {
-            sub = obj;
+            sub = self;
         } else {
-            sub = FindNextFreeObj(obj);
+            sub = Sst_AllocateAfter(self);
             if (sub == NULL)
                 break;
-            memset(&sub->scratch, 0, sizeof(sub->scratch));
-            sub->type = ObjId_BossStarLight;
-            sub->pos.l.x.f.u = obj->pos.l.x.f.u;
-            sub->pos.l.y.f.u = obj->pos.l.y.f.u;
+            memset(sub->own.u8, 0, sizeof(sub->own));
+            sub->code = sst_object_codes[ObjId_BossStarLight];
+            sub->x_pos.f.u = self->x_pos.f.u;
+            sub->y_pos.f.u = self->y_pos.f.u;
         }
 
-        obj->status.o.f.x_flip = false;
-        sub->routine_sec = 0;
+        SST_STATUS_SET(self, SST_STATUS_X_FLIP, false);
+        sub->routine_secondary = 0;
         sub->routine = BSLZ_ObjData[i].routine;
         sub->anim = BSLZ_ObjData[i].anim;
         sub->priority = BSLZ_ObjData[i].priority;
         // Force AnimateSprite's reset guard on the first call (see BossSpringYard.c).
         sub->prev_anim = (uint8_t)(BSLZ_ObjData[i].anim + 1);
         sub->anim_frame = 0;
-        sub->frame_time.w = 0;
-        sub->frame = 0;
+        sub->anim_frame_timer = 0;
+        sub->mapping_frame = 0;
         sub->mappings = Mappings_Eggman;
-        sub->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman);
-        sub->render.b = 0;
-        sub->render.f.level_fg = true;
+        sub->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman);
+        sub->render_flags = SST_RENDER_LEVEL;
         sub->width_pixels = 64 / 2;
-        ((Scratch_BossStarLight *)&sub->scratch)->parent_index = self_index;
+        ((Own_BossStarLight *)sub->own.u8)->parent_index = self_index;
     }
 
     // Collect the seesaws without a ball (subtype != 0): the three drop points.
-    scratch->seesaw_count = 0;
-    for (int i = 0; i < LEVEL_OBJECTS && scratch->seesaw_count < 3; i++) {
-        Object *saw = &level_objects[i];
-        if (saw->type == ObjId_Seesaw && saw->scratch.u8[0] != 0)
-            scratch->seesaws[scratch->seesaw_count++] = (uint8_t)(saw - objects);
+    own->seesaw_count = 0;
+    for (int i = 0; i < SST_COUNT && own->seesaw_count < 3; i++) {
+        Sst *saw = &sst[i];
+        if (saw->code == sst_object_codes[ObjId_Seesaw] && saw->subtype != 0)
+            own->seesaws[own->seesaw_count++] = (uint8_t)(saw - sst);
     }
 
-    BossStarLight_ShipMain(obj, scratch);
+    BossStarLight_ShipMain(self, own);
 }
 
-static void BSLZ_StatusUpdate(Object *obj, Scratch_BossStarLight *scratch) {
-    if (obj->routine_sec >= 6)
+static void BSLZ_StatusUpdate(Sst *self, Own_BossStarLight *own) {
+    if (self->routine_secondary >= 6)
         return; // exploding or beyond
-    if (obj->status.o.f.flag7) { // defeated flag, set by the spike ball on the last hit
+    if (((self->status & 0x80) != 0)) { // defeated flag, set by the spike ball on the last hit
         AddPoints(100); // 1000 points (AddPoints counts in tens, like the score)
-        obj->routine_sec = 6;
-        scratch->generic_timer = 120;
-        obj->xsp = 0;
+        self->routine_secondary = 6;
+        own->generic_timer = 120;
+        self->x_vel = 0;
         return;
     }
-    if (obj->col_type != 0)
+    if (self->collision_flags != 0)
         return; // not currently being hit
 
-    if (scratch->flash == 0) {
-        scratch->flash = 0x20;
+    if (own->flash == 0) {
+        own->flash = 0x20;
         QueueSound2(sfx_HitBoss);
     }
 
     dry_palette[1][1] = (dry_palette[1][1] == 0) ? 0x0EEE : 0;
-    if (--scratch->flash != 0)
+    if (--own->flash != 0)
         return;
-    obj->col_type = SLZ_COL_BOSS; // restore collision
+    self->collision_flags = SLZ_COL_BOSS; // restore collision
 }
 
 // BSLZ_ShipUpdate: move, bob up and down, then status.
-static void BSLZ_ShipUpdate(Object *obj, Scratch_BossStarLight *scratch) {
-    BossMove(obj, &scratch->boss_x, &scratch->boss_y);
+static void BSLZ_ShipUpdate(Sst *self, Own_BossStarLight *own) {
+    SstBossMove(self, &own->boss_x, &own->boss_y);
     int16_t sin, cos;
-    CalcSine(scratch->sine_counter, &sin, &cos);
-    scratch->sine_counter = (uint8_t)(scratch->sine_counter + 2);
-    obj->pos.l.y.f.u = (int16_t)((sin >> 6) + scratch->boss_y.f.u);
-    obj->pos.l.x.f.u = scratch->boss_x.f.u;
-    BSLZ_StatusUpdate(obj, scratch);
+    CalcSine(own->sine_counter, &sin, &cos);
+    own->sine_counter = (uint8_t)(own->sine_counter + 2);
+    self->y_pos.f.u = (int16_t)((sin >> 6) + own->boss_y.f.u);
+    self->x_pos.f.u = own->boss_x.f.u;
+    BSLZ_StatusUpdate(self, own);
 }
 
 // BSLZ_MoveUpdate: move without bobbing, then status.
-static void BSLZ_MoveUpdate(Object *obj, Scratch_BossStarLight *scratch) {
-    BossMove(obj, &scratch->boss_x, &scratch->boss_y);
-    obj->pos.l.y.f.u = scratch->boss_y.f.u;
-    obj->pos.l.x.f.u = scratch->boss_x.f.u;
-    BSLZ_StatusUpdate(obj, scratch);
+static void BSLZ_MoveUpdate(Sst *self, Own_BossStarLight *own) {
+    SstBossMove(self, &own->boss_x, &own->boss_y);
+    self->y_pos.f.u = own->boss_y.f.u;
+    self->x_pos.f.u = own->boss_x.f.u;
+    BSLZ_StatusUpdate(self, own);
 }
 
-static void BSLZ_ShipStart(Object *obj, Scratch_BossStarLight *scratch) {
-    obj->xsp = -0x100;
-    if ((uint16_t)scratch->boss_x.f.u < SLZ_BOSS_X + 0x120)
-        obj->routine_sec += 2;
-    BSLZ_ShipUpdate(obj, scratch);
+static void BSLZ_ShipStart(Sst *self, Own_BossStarLight *own) {
+    self->x_vel = -0x100;
+    if ((uint16_t)own->boss_x.f.u < SLZ_BOSS_X + 0x120)
+        self->routine_secondary += 2;
+    BSLZ_ShipUpdate(self, own);
 }
 
-static void BSLZ_ShipMove(Object *obj, Scratch_BossStarLight *scratch) {
-    int16_t bx = scratch->boss_x.f.u;
-    obj->xsp = 0x200;
+static void BSLZ_ShipMove(Sst *self, Own_BossStarLight *own) {
+    int16_t bx = own->boss_x.f.u;
+    self->x_vel = 0x200;
     int16_t offset = 0x28;
-    if (!obj->status.o.f.x_flip) {
-        obj->xsp = -0x200;
+    if (!((self->status & SST_STATUS_X_FLIP) != 0)) {
+        self->x_vel = -0x200;
         offset = -0x28;
         if (bx <= SLZ_BOSS_X + 8)
-            obj->status.o.f.x_flip = !obj->status.o.f.x_flip;
+            SST_STATUS_SET(self, SST_STATUS_X_FLIP, !((self->status & SST_STATUS_X_FLIP) != 0));
     } else if (bx >= SLZ_BOSS_X + 0x138) {
-        obj->status.o.f.x_flip = !obj->status.o.f.x_flip;
+        SST_STATUS_SET(self, SST_STATUS_X_FLIP, !((self->status & SST_STATUS_X_FLIP) != 0));
     }
 
     // Is a seesaw's drop point (its X +/- 0x28 on the side we're heading
     // for) directly under us, with Sonic not standing on it?
-    scratch->pick = -1;
-    for (int i = 0; i < scratch->seesaw_count; i++) {
-        Object *saw = &objects[scratch->seesaws[i]];
-        if (saw->status.o.f.player_stand)
+    own->pick = -1;
+    for (int i = 0; i < own->seesaw_count; i++) {
+        Sst *saw = &sst[own->seesaws[i]];
+        if (((saw->status & SST_STATUS_PLAYER_STAND) != 0))
             continue;
-        if ((int16_t)(saw->pos.l.x.f.u + offset) == obj->pos.l.x.f.u) {
-            scratch->pick = (int8_t)i;
-            obj->routine_sec += 2;
-            scratch->generic_timer = 40;
+        if ((int16_t)(saw->x_pos.f.u + offset) == self->x_pos.f.u) {
+            own->pick = (int8_t)i;
+            self->routine_secondary += 2;
+            own->generic_timer = 40;
             break;
         }
     }
-    BSLZ_ShipUpdate(obj, scratch);
+    BSLZ_ShipUpdate(self, own);
 }
 
-static void BSLZ_MakeBall(Object *obj, Scratch_BossStarLight *scratch) {
-    if (scratch->generic_timer == 40) {
-        bool abort_drop = scratch->pick < 0;
-        Object *saw = NULL;
+static void BSLZ_MakeBall(Sst *self, Own_BossStarLight *own) {
+    if (own->generic_timer == 40) {
+        bool abort_drop = own->pick < 0;
+        Sst *saw = NULL;
         uint8_t saw_index = 0;
         if (!abort_drop) {
-            saw_index = scratch->seesaws[scratch->pick];
-            saw = &objects[saw_index];
+            saw_index = own->seesaws[own->pick];
+            saw = &sst[saw_index];
             // Is there already a ball linked to this seesaw?
-            for (int i = 0; i < LEVEL_OBJECTS; i++) {
-                Object *ball = &level_objects[i];
-                if (ball->type == ObjId_BossSpikeball && ball->routine != 0xA &&
-                    ((Scratch_BossSpikeball *)&ball->scratch)->seesaw_index == saw_index) {
+            for (int i = 0; i < SST_COUNT; i++) {
+                Sst *ball = &sst[i];
+                if (ball->code == sst_object_codes[ObjId_BossSpikeball] && ball->routine != 0xA &&
+                    ((Own_BossSpikeball *)ball->own.u8)->seesaw_index == saw_index) {
                     abort_drop = true;
                     break;
                 }
             }
         }
         if (!abort_drop) {
-            Object *ball = FindFreeObj();
+            Sst *ball = Sst_Allocate();
             if (ball == NULL) {
                 abort_drop = true;
             } else {
-                ball->type = ObjId_BossSpikeball;
-                ball->pos.l.x.f.u = obj->pos.l.x.f.u;
-                ball->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + 0x20); // out of the ball launcher
-                ball->status.b = saw->status.b;
-                ((Scratch_BossSpikeball *)&ball->scratch)->seesaw_index = saw_index;
+                ball->code = sst_object_codes[ObjId_BossSpikeball];
+                ball->x_pos.f.u = self->x_pos.f.u;
+                ball->y_pos.f.u = (int16_t)(self->y_pos.f.u + 0x20); // out of the ball launcher
+                ball->status = saw->status;
+                ((Own_BossSpikeball *)ball->own.u8)->seesaw_index = saw_index;
             }
         }
         if (abort_drop) {
-            obj->routine_sec -= 2;
-            BSLZ_ShipUpdate(obj, scratch);
+            self->routine_secondary -= 2;
+            BSLZ_ShipUpdate(self, own);
             return;
         }
     }
 
-    if (--scratch->generic_timer == 0) {
-        obj->routine_sec -= 2; // time to start moving again
-        BSLZ_ShipUpdate(obj, scratch);
+    if (--own->generic_timer == 0) {
+        self->routine_secondary -= 2; // time to start moving again
+        BSLZ_ShipUpdate(self, own);
         return;
     }
-    BSLZ_StatusUpdate(obj, scratch);
+    BSLZ_StatusUpdate(self, own);
 }
 
-static void BSLZ_Explode(Object *obj, Scratch_BossStarLight *scratch) {
-    if ((int8_t)--scratch->generic_timer >= 0) {
-        BossDefeated(obj);
+static void BSLZ_Explode(Sst *self, Own_BossStarLight *own) {
+    if ((int8_t)--own->generic_timer >= 0) {
+        SstBossDefeated(self);
         return;
     }
-    obj->routine_sec += 2;
-    obj->ysp = 0;
-    obj->xsp = 0;
-    obj->status.o.f.x_flip = true; // face right
-    obj->status.o.f.flag7 = false; // clear the defeated flag
-    scratch->generic_timer = (uint8_t)-24;
+    self->routine_secondary += 2;
+    self->y_vel = 0;
+    self->x_vel = 0;
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, true); // face right
+    self->status &= (uint8_t)~0x80; // clear the defeated flag
+    own->generic_timer = (uint8_t)-24;
     if (boss_status == 0)
         boss_status = 1; // defeated, capsule not opened yet
-    BSLZ_StatusUpdate(obj, scratch);
+    BSLZ_StatusUpdate(self, own);
 }
 
-static void BSLZ_Recover(Object *obj, Scratch_BossStarLight *scratch) {
-    int8_t t = (int8_t)(++scratch->generic_timer);
+static void BSLZ_Recover(Sst *self, Own_BossStarLight *own) {
+    int8_t t = (int8_t)(++own->generic_timer);
     if (t == 0) {
-        obj->ysp = 0; // done falling
+        self->y_vel = 0; // done falling
     } else if (t < 0) {
-        obj->ysp = (int16_t)(obj->ysp + 0x18); // fall a little faster
+        self->y_vel = (int16_t)(self->y_vel + 0x18); // fall a little faster
     } else if (t < 32) {
-        obj->ysp = (int16_t)(obj->ysp - 8); // slow down, then rise
+        self->y_vel = (int16_t)(self->y_vel - 8); // slow down, then rise
     } else if (t == 32) {
-        obj->ysp = 0;
+        self->y_vel = 0;
         QueueSound1(bgm_SLZ);
     } else if (t >= 42) {
-        obj->routine_sec += 2;
+        self->routine_secondary += 2;
     }
-    BSLZ_MoveUpdate(obj, scratch);
+    BSLZ_MoveUpdate(self, own);
 }
 
 // Returns true if the ship deleted itself.
-static bool BSLZ_Escape(Object *obj, Scratch_BossStarLight *scratch) {
-    obj->xsp = 0x400;
-    obj->ysp = -0x40;
+static bool BSLZ_Escape(Sst *self, Own_BossStarLight *own) {
+    self->x_vel = 0x400;
+    self->y_vel = -0x40;
     if (limit_right2 < SLZ_BOSS_END) {
         limit_right2 += 2; // keep unlocking the screen's right boundary
-    } else if (!obj->render.f.on_screen) {
+    } else if (!(self->render_flags & SST_RENDER_ON_SCREEN)) {
         // FixBugs forced on (crash-class display-and-delete under C rules).
-        ObjectDelete(obj);
+        Sst_Delete(self);
         return true;
     }
-    BSLZ_ShipUpdate(obj, scratch);
+    BSLZ_ShipUpdate(self, own);
     return false;
 }
 
-static void BSLZ_Display(Object *obj, Object *parent) {
-    obj->pos.l.x.f.u = parent->pos.l.x.f.u;
-    obj->pos.l.y.f.u = parent->pos.l.y.f.u;
-    obj->status.b = parent->status.b;
-    uint8_t flip = obj->status.b & 3;
-    obj->render.b = (uint8_t)((obj->render.b & ~3) | flip);
-    DisplaySprite(obj);
+static void BSLZ_Display(Sst *self, Sst *parent) {
+    self->x_pos.f.u = parent->x_pos.f.u;
+    self->y_pos.f.u = parent->y_pos.f.u;
+    self->status = parent->status;
+    uint8_t flip = self->status & 3;
+    self->render_flags = (uint8_t)((self->render_flags & ~3) | flip);
+    Sst_Draw(self);
 }
 
-static bool BossStarLight_ShipMain(Object *obj, Scratch_BossStarLight *scratch) {
-    switch (obj->routine_sec) {
-    case 0x0: BSLZ_ShipStart(obj, scratch); break;
-    case 0x2: BSLZ_ShipMove(obj, scratch); break;
-    case 0x4: BSLZ_MakeBall(obj, scratch); break;
-    case 0x6: BSLZ_Explode(obj, scratch); break;
-    case 0x8: BSLZ_Recover(obj, scratch); break;
+static bool BossStarLight_ShipMain(Sst *self, Own_BossStarLight *own) {
+    switch (self->routine_secondary) {
+    case 0x0: BSLZ_ShipStart(self, own); break;
+    case 0x2: BSLZ_ShipMove(self, own); break;
+    case 0x4: BSLZ_MakeBall(self, own); break;
+    case 0x6: BSLZ_Explode(self, own); break;
+    case 0x8: BSLZ_Recover(self, own); break;
     case 0xA:
-        if (BSLZ_Escape(obj, scratch))
+        if (BSLZ_Escape(self, own))
             return true;
         break;
     }
 
-    AnimateSprite(obj, Animation_Eggman);
-    uint8_t flip = obj->status.b & 3;
-    obj->render.b = (uint8_t)((obj->render.b & ~3) | flip);
-    DisplaySprite(obj);
+    Sst_Animate(self, Animation_Eggman);
+    uint8_t flip = self->status & 3;
+    self->render_flags = (uint8_t)((self->render_flags & ~3) | flip);
+    Sst_Draw(self);
     return false;
 }
 
-static void BossStarLight_FaceMain(Object *obj, Scratch_BossStarLight *scratch) {
-    Object *parent = &objects[scratch->parent_index];
-    if (parent->type != obj->type) { // ship already deleted
-        ObjectDelete(obj);
+static void BossStarLight_FaceMain(Sst *self, Own_BossStarLight *own) {
+    Sst *parent = &sst[own->parent_index];
+    if (parent->code != self->code) { // ship already deleted
+        Sst_Delete(self);
         return;
     }
 
-    uint8_t phase = parent->routine_sec;
+    uint8_t phase = parent->routine_secondary;
     uint8_t anim = 1; // facenormal1
     if (phase >= 6)
         anim = 0xA; // facedefeat
-    else if (parent->col_type == 0)
+    else if (parent->collision_flags == 0)
         anim = 5; // facehit
     else if (player->routine >= 4)
         anim = 4; // facelaugh
 
-    obj->anim = anim;
+    self->anim = anim;
     if (phase == 0xA) {
-        obj->anim = 6; // facepanic
-        if (!obj->render.f.on_screen) {
-            ObjectDelete(obj);
+        self->anim = 6; // facepanic
+        if (!(self->render_flags & SST_RENDER_ON_SCREEN)) {
+            Sst_Delete(self);
             return;
         }
     }
-    AnimateSprite(obj, Animation_Eggman);
-    BSLZ_Display(obj, parent);
+    Sst_Animate(self, Animation_Eggman);
+    BSLZ_Display(self, parent);
 }
 
-static void BossStarLight_FlameMain(Object *obj, Scratch_BossStarLight *scratch) {
-    obj->anim = 8;
-    Object *parent = &objects[scratch->parent_index];
-    if (parent->type != obj->type) {
-        ObjectDelete(obj);
+static void BossStarLight_FlameMain(Sst *self, Own_BossStarLight *own) {
+    self->anim = 8;
+    Sst *parent = &sst[own->parent_index];
+    if (parent->code != self->code) {
+        Sst_Delete(self);
         return;
     }
 
-    uint8_t phase = parent->routine_sec;
+    uint8_t phase = parent->routine_secondary;
     if (phase == 0xA) {
-        if (!obj->render.f.on_screen) {
-            ObjectDelete(obj);
+        if (!(self->render_flags & SST_RENDER_ON_SCREEN)) {
+            Sst_Delete(self);
             return;
         }
-        obj->anim = 0xB; // escape flame
+        self->anim = 0xB; // escape flame
     } else if (phase >= 4 && phase <= 8) {
-        obj->anim = 7; // not moving, hide the flame
+        self->anim = 7; // not moving, hide the flame
     }
-    AnimateSprite(obj, Animation_Eggman);
-    BSLZ_Display(obj, parent);
+    Sst_Animate(self, Animation_Eggman);
+    BSLZ_Display(self, parent);
 }
 
-static void BossStarLight_PipeMain(Object *obj, Scratch_BossStarLight *scratch) {
-    Object *parent = &objects[scratch->parent_index];
-    if (parent->type != obj->type) {
-        ObjectDelete(obj);
+static void BossStarLight_PipeMain(Sst *self, Own_BossStarLight *own) {
+    Sst *parent = &sst[own->parent_index];
+    if (parent->code != self->code) {
+        Sst_Delete(self);
         return;
     }
-    if (parent->routine_sec == 0xA && !obj->render.f.on_screen) {
-        ObjectDelete(obj);
+    if (parent->routine_secondary == 0xA && !(self->render_flags & SST_RENDER_ON_SCREEN)) {
+        Sst_Delete(self);
         return;
     }
-    obj->mappings = Mappings_BossItems;
-    obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Eggman_Weapons); // | Tile_Pal2
-    obj->frame = 3;           // wide pipe
-    BSLZ_Display(obj, parent);
+    self->mappings = Mappings_BossItems;
+    self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Eggman_Weapons); // | Tile_Pal2
+    self->mapping_frame = 3;           // wide pipe
+    BSLZ_Display(self, parent);
 }
 
-void Obj_BossStarLight(Object *obj) {
-    Scratch_BossStarLight *scratch = (Scratch_BossStarLight *)&obj->scratch;
+void Obj_BossStarLight(Sst *self) {
+    Own_BossStarLight *own = (Own_BossStarLight *)self->own.u8;
 
-    switch (obj->routine) {
-    case 0: BossStarLight_Main(obj, scratch); break;
-    case 2: BossStarLight_ShipMain(obj, scratch); break;
-    case 4: BossStarLight_FaceMain(obj, scratch); break;
-    case 6: BossStarLight_FlameMain(obj, scratch); break;
-    case 8: BossStarLight_PipeMain(obj, scratch); break;
+    switch (self->routine) {
+    case 0: BossStarLight_Main(self, own); break;
+    case 2: BossStarLight_ShipMain(self, own); break;
+    case 4: BossStarLight_FaceMain(self, own); break;
+    case 6: BossStarLight_FlameMain(self, own); break;
+    case 8: BossStarLight_PipeMain(self, own); break;
     }
 }
 
@@ -392,38 +394,38 @@ void Obj_BossStarLight(Object *obj) {
 // Object 7B - spike balls
 // ---------------------------------------------------------------------------
 
-static void BSB_CheckFlicker(Object *obj, Scratch_BossSpikeball *scratch) {
-    if (scratch->timer == 120)
-        scratch->delay = 5;
-    if (scratch->timer == 60)
-        scratch->delay = 2;
-    if ((int8_t)--scratch->time_frame > 0)
+static void BSB_CheckFlicker(Sst *self, Own_BossSpikeball *own) {
+    if (own->timer == 120)
+        own->delay = 5;
+    if (own->timer == 60)
+        own->delay = 2;
+    if ((int8_t)--own->time_frame > 0)
         return;
-    obj->frame ^= 1;
-    scratch->time_frame = scratch->delay;
+    self->mapping_frame ^= 1;
+    own->time_frame = own->delay;
 }
 
-static int BSB_YOffsetIndex(Object *obj, Scratch_BossSpikeball *scratch, Object *saw) {
-    int idx = saw->frame;
-    if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)scratch->base_x)
+static int BSB_YOffsetIndex(Sst *self, Own_BossSpikeball *own, Sst *saw) {
+    int idx = saw->mapping_frame;
+    if ((uint16_t)self->x_pos.f.u < (uint16_t)own->base_x)
         idx += 2; // left side of the seesaw
     return idx;
 }
 
 // Tells the seesaw which side the ball is on and, if Sonic is on the
 // opposite end, launches him. Then moves on to the next routine.
-static void BSB_LaunchSonic(Object *obj, Scratch_BossSpikeball *scratch, Object *saw, int8_t side) {
-    ((Scratch_Seesaw *)&saw->scratch)->state = side; // tell the seesaw which side the ball is on
-    scratch->side = side;
+static void BSB_LaunchSonic(Sst *self, Own_BossSpikeball *own, Sst *saw, int8_t side) {
+    ((Own_Seesaw *)saw->own.u8)->state = side; // tell the seesaw which side the ball is on
+    own->side = side;
 
-    if (side != (int8_t)saw->frame) { // is the seesaw NOT already lowered on this side?
-        bool was_standing = saw->status.o.f.player_stand;
-        saw->status.o.f.player_stand = false;
+    if (side != (int8_t)saw->mapping_frame) { // is the seesaw NOT already lowered on this side?
+        bool was_standing = ((saw->status & SST_STATUS_PLAYER_STAND) != 0);
+        saw->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;
         if (was_standing) {
-            saw->routine_sec = 0;
+            saw->routine_secondary = 0;
             saw->routine = 2;
-            player->y_vel = (int16_t)-obj->ysp;
-            if (saw->frame == 1)
+            player->y_vel = (int16_t)-self->y_vel;
+            if (saw->mapping_frame == 1)
                 player->y_vel >>= 1; // seesaw was flat -- half the launch
             player->status |= SST_PSTATUS_IN_AIR;
             Sonic_CancelSpindash(); // same drop-dash fix as the seesaw's own ball
@@ -435,54 +437,54 @@ static void BSB_LaunchSonic(Object *obj, Scratch_BossSpikeball *scratch, Object 
         }
     }
 
-    obj->xsp = 0;
-    obj->ysp = 0;
-    obj->routine += 2;
-    BSB_CheckFlicker(obj, scratch);
+    self->x_vel = 0;
+    self->y_vel = 0;
+    self->routine += 2;
+    BSB_CheckFlicker(self, own);
 }
 
-static void BSB_HitBoss(Object *obj, Scratch_BossSpikeball *scratch);
+static void BSB_HitBoss(Sst *self, Own_BossSpikeball *own);
 
-static void BSB_Fall(Object *obj, Scratch_BossSpikeball *scratch) {
-    ObjectFall(obj);
-    Object *saw = &objects[scratch->seesaw_index];
-    int idx = BSB_YOffsetIndex(obj, scratch, saw);
-    if ((int16_t)(scratch->seesaw_y + BSB_SeesawYOffset[idx]) > obj->pos.l.y.f.u)
+static void BSB_Fall(Sst *self, Own_BossSpikeball *own) {
+    Sst_MoveSprite(self);
+    Sst *saw = &sst[own->seesaw_index];
+    int idx = BSB_YOffsetIndex(self, own, saw);
+    if ((int16_t)(own->seesaw_y + BSB_SeesawYOffset[idx]) > self->y_pos.f.u)
         return; // hasn't reached the seesaw yet
 
-    int8_t side = obj->status.o.f.x_flip ? 0 : 2;
-    scratch->timer = 240;
-    scratch->delay = 10;
-    scratch->time_frame = 10;
-    BSB_LaunchSonic(obj, scratch, saw, side);
+    int8_t side = ((self->status & SST_STATUS_X_FLIP) != 0) ? 0 : 2;
+    own->timer = 240;
+    own->delay = 10;
+    own->time_frame = 10;
+    BSB_LaunchSonic(self, own, saw, side);
 }
 
-static void BSB_Main(Object *obj, Scratch_BossSpikeball *scratch) {
-    obj->mappings = Mappings_SeesawBall;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman_Spikeball);
-    obj->frame = 1;
-    obj->render.b |= SPRITE_CAM_FIELD;
-    obj->priority = 4;
-    obj->col_type = 0x17 | 0x80; // col_16x16 | col_hurt
-    obj->width_pixels = 24 / 2;
+static void BSB_Main(Sst *self, Own_BossSpikeball *own) {
+    self->mappings = Mappings_SeesawBall;
+    self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman_Spikeball);
+    self->mapping_frame = 1;
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 4 * 0x80;
+    self->collision_flags = 0x17 | 0x80; // col_16x16 | col_hurt
+    self->width_pixels = 24 / 2;
 
-    Object *saw = &objects[scratch->seesaw_index];
-    scratch->base_x = saw->pos.l.x.f.u;
-    scratch->seesaw_y = saw->pos.l.y.f.u;
-    obj->status.o.f.x_flip = true;
-    scratch->side = 0;
-    if (obj->pos.l.x.f.u <= saw->pos.l.x.f.u) {
-        obj->status.o.f.x_flip = false;
-        scratch->side = 2;
+    Sst *saw = &sst[own->seesaw_index];
+    own->base_x = saw->x_pos.f.u;
+    own->seesaw_y = saw->y_pos.f.u;
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, true);
+    own->side = 0;
+    if (self->x_pos.f.u <= saw->x_pos.f.u) {
+        SST_STATUS_SET(self, SST_STATUS_X_FLIP, false);
+        own->side = 2;
     }
-    obj->routine += 2;
-    BSB_Fall(obj, scratch);
+    self->routine += 2;
+    BSB_Fall(self, own);
 }
 
-static void BSB_Bounce(Object *obj, Scratch_BossSpikeball *scratch) {
-    Object *saw = &objects[scratch->seesaw_index];
-    int8_t saw_side = ((Scratch_Seesaw *)&saw->scratch)->state;
-    int diff = scratch->side - saw_side;
+static void BSB_Bounce(Sst *self, Own_BossSpikeball *own) {
+    Sst *saw = &sst[own->seesaw_index];
+    int8_t saw_side = ((Own_Seesaw *)saw->own.u8)->state;
+    int diff = own->side - saw_side;
 
     if (diff != 0) {
         // The seesaw tipped under the ball: launch it.
@@ -493,54 +495,54 @@ static void BSB_Bounce(Object *obj, Scratch_BossSpikeball *scratch) {
             vy = -0x818; vx = -0x114;
         } else {
             vy = -0x960; vx = -0xF4;
-            if (((Scratch_Seesaw *)&saw->scratch)->landspeed >= 0x9C0) {
+            if (((Own_Seesaw *)saw->own.u8)->landspeed >= 0x9C0) {
                 vy = -0xA20; vx = -0x80;
             }
         }
-        obj->ysp = vy;
-        obj->xsp = vx;
-        if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)scratch->base_x)
-            obj->xsp = (int16_t)-obj->xsp; // left side: travel right
-        obj->frame = 1;
-        scratch->timer = 32;
-        obj->routine += 2;
-        BSB_HitBoss(obj, scratch);
+        self->y_vel = vy;
+        self->x_vel = vx;
+        if ((uint16_t)self->x_pos.f.u < (uint16_t)own->base_x)
+            self->x_vel = (int16_t)-self->x_vel; // left side: travel right
+        self->mapping_frame = 1;
+        own->timer = 32;
+        self->routine += 2;
+        BSB_HitBoss(self, own);
         return;
     }
 
     // Ball rides the seesaw end.
-    int idx = saw->frame;
+    int idx = saw->mapping_frame;
     int16_t off = 40;
-    if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)scratch->base_x) {
+    if ((uint16_t)self->x_pos.f.u < (uint16_t)own->base_x) {
         off = -40;
         idx += 2;
     }
-    obj->pos.l.y.f.u = (int16_t)(scratch->seesaw_y + BSB_SeesawYOffset[idx]);
-    obj->pos.l.x.f.u = (int16_t)(scratch->base_x + off);
-    obj->pos.l.y.f.l = 0;
-    obj->pos.l.x.f.l = 0;
-    if (--scratch->timer != 0) {
-        BSB_CheckFlicker(obj, scratch);
+    self->y_pos.f.u = (int16_t)(own->seesaw_y + BSB_SeesawYOffset[idx]);
+    self->x_pos.f.u = (int16_t)(own->base_x + off);
+    self->y_pos.f.l = 0;
+    self->x_pos.f.l = 0;
+    if (--own->timer != 0) {
+        BSB_CheckFlicker(self, own);
         return;
     }
-    scratch->timer = 32;
-    obj->routine = 8; // explode
+    own->timer = 32;
+    self->routine = 8; // explode
 }
 
 // Is the ball's centre inside Eggman's hitbox? Mirrors the 4 unsigned word
 // compares of BossSpikeball_CheckCollision (boss hitbox {-0x18,0x30,-0x18,0x30},
 // ball hitbox {8,-16,8,-16}).
-static bool BSB_HitsBoss(Object *obj, Object *boss) {
-    uint16_t bl = (uint16_t)(boss->pos.l.x.f.u - 0x18);
-    uint16_t ox = (uint16_t)(obj->pos.l.x.f.u + 8);
+static bool BSB_HitsBoss(Sst *self, Sst *boss) {
+    uint16_t bl = (uint16_t)(boss->x_pos.f.u - 0x18);
+    uint16_t ox = (uint16_t)(self->x_pos.f.u + 8);
     if (ox < bl)
         return false;
     uint16_t br = (uint16_t)(bl + 0x30);
     ox = (uint16_t)(ox - 16);
     if (br < ox)
         return false;
-    uint16_t bt = (uint16_t)(boss->pos.l.y.f.u - 0x18);
-    uint16_t oy = (uint16_t)(obj->pos.l.y.f.u + 8);
+    uint16_t bt = (uint16_t)(boss->y_pos.f.u - 0x18);
+    uint16_t oy = (uint16_t)(self->y_pos.f.u + 8);
     if (oy < bt)
         return false;
     uint16_t bb = (uint16_t)(bt + 0x30);
@@ -548,109 +550,105 @@ static bool BSB_HitsBoss(Object *obj, Object *boss) {
     return bb >= oy;
 }
 
-static void BSB_HitBoss(Object *obj, Scratch_BossSpikeball *scratch) {
-    Object *boss = NULL;
-    for (int i = 0; i < LEVEL_OBJECTS; i++) {
-        Object *o = &level_objects[i];
-        if (o->type == ObjId_BossStarLight && o->routine == 2) { // the ship, not its face/flame/pipe
+static void BSB_HitBoss(Sst *self, Own_BossSpikeball *own) {
+    Sst *boss = NULL;
+    for (int i = 0; i < SST_COUNT; i++) {
+        Sst *o = &sst[i];
+        if (o->code == sst_object_codes[ObjId_BossStarLight] && o->routine == 2) { // the ship, not its face/flame/pipe
             boss = o;
             break;
         }
     }
 
-    if (boss != NULL && BSB_HitsBoss(obj, boss)) {
-        obj->routine += 2;
-        scratch->timer = 0;
-        boss->col_type = 0;
-        if (--boss->col_property == 0) {
-            boss->status.o.f.flag7 = true; // defeated
-            obj->xsp = 0;
-            obj->ysp = 0;
+    if (boss != NULL && BSB_HitsBoss(self, boss)) {
+        self->routine += 2;
+        own->timer = 0;
+        boss->collision_flags = 0;
+        if (--boss->collision_property == 0) {
+            boss->status |= 0x80; // defeated
+            self->x_vel = 0;
+            self->y_vel = 0;
         }
     }
 
     // Check physics.
-    if (obj->ysp < 0) { // still rising
-        ObjectFall(obj);
-        if (scratch->seesaw_y - 0x2F <= obj->pos.l.y.f.u)
-            ObjectFall(obj); // original quirk: extra gravity once below the apex line
-        BSB_CheckFlicker(obj, scratch);
+    if (self->y_vel < 0) { // still rising
+        Sst_MoveSprite(self);
+        if (own->seesaw_y - 0x2F <= self->y_pos.f.u)
+            Sst_MoveSprite(self); // original quirk: extra gravity once below the apex line
+        BSB_CheckFlicker(self, own);
         return;
     }
 
-    ObjectFall(obj);
-    Object *saw = &objects[scratch->seesaw_index];
-    int idx = BSB_YOffsetIndex(obj, scratch, saw);
-    if ((int16_t)(scratch->seesaw_y + BSB_SeesawYOffset[idx]) > obj->pos.l.y.f.u) {
-        BSB_CheckFlicker(obj, scratch);
+    Sst_MoveSprite(self);
+    Sst *saw = &sst[own->seesaw_index];
+    int idx = BSB_YOffsetIndex(self, own, saw);
+    if ((int16_t)(own->seesaw_y + BSB_SeesawYOffset[idx]) > self->y_pos.f.u) {
+        BSB_CheckFlicker(self, own);
         return;
     }
-    int8_t side = (obj->xsp < 0) ? 2 : 0;
-    scratch->timer = 0;
-    BSB_LaunchSonic(obj, scratch, saw, side);
+    int8_t side = (self->x_vel < 0) ? 2 : 0;
+    own->timer = 0;
+    BSB_LaunchSonic(self, own, saw, side);
 }
 
-static void BSB_Explode(Object *obj, Scratch_BossSpikeball *scratch) {
-    obj->type = ObjId_ExplosionBomb; // real id_Explosion (Object 3F)
-    obj->routine = 0;
-    if (scratch->timer != 32)
+static void BSB_Explode(Sst *self, Own_BossSpikeball *own) {
+    self->code = sst_object_codes[ObjId_ExplosionBomb]; // real id_Explosion (Object 3F)
+    self->routine = 0;
+    if (own->timer != 32)
         return;
 
-    obj->pos.l.y.f.u = scratch->seesaw_y;
+    self->y_pos.f.u = own->seesaw_y;
     int n = 0;
     for (int i = 0; i < 4; i++) {
-        Object *frag = FindFreeObj();
+        Sst *frag = Sst_Allocate();
         if (frag == NULL)
             continue; // the real loop doesn't consume a table entry here either
-        frag->type = ObjId_BossSpikeball;
+        frag->code = sst_object_codes[ObjId_BossSpikeball];
         frag->routine = 0xA;
         frag->mappings = Mappings_BossSpikeball;
-        frag->priority = 3;
-        frag->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman_Spikeball);
-        frag->pos.l.x.f.u = obj->pos.l.x.f.u;
-        frag->pos.l.y.f.u = obj->pos.l.y.f.u;
-        frag->xsp = BSB_FragSpeed[n][0];
-        frag->ysp = BSB_FragSpeed[n][1];
+        frag->priority = 3 * 0x80;
+        frag->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman_Spikeball);
+        frag->x_pos.f.u = self->x_pos.f.u;
+        frag->y_pos.f.u = self->y_pos.f.u;
+        frag->x_vel = BSB_FragSpeed[n][0];
+        frag->y_vel = BSB_FragSpeed[n][1];
         n++;
-        frag->col_type = 0x18 | 0x80; // col_8x8 | col_hurt
-        frag->render.b |= SPRITE_CAM_FIELD;
-        frag->render.f.on_screen = true; // display immediately
+        frag->collision_flags = 0x18 | 0x80; // col_8x8 | col_hurt
+        frag->render_flags |= SST_RENDER_LEVEL;
+        frag->render_flags |= SST_RENDER_ON_SCREEN; // display immediately
         frag->width_pixels = 24 / 2;
     }
 }
 
 // Returns true if the fragment deleted itself.
-static bool BSB_MoveFrag(Object *obj, Scratch_BossSpikeball *scratch) {
-    SpeedToPos(obj);
-    scratch->base_x = obj->pos.l.x.f.u;
-    scratch->seesaw_y = obj->pos.l.y.f.u;
-    obj->ysp = (int16_t)(obj->ysp + 0x18);
-    obj->frame = (uint8_t)((frame_count & 4) >> 2);
-    if (!obj->render.f.on_screen) {
-        ObjectDelete(obj); // FixBugs forced on: no display-and-delete
+static bool BSB_MoveFrag(Sst *self, Own_BossSpikeball *own) {
+    Sst_MoveSprite2(self);
+    own->base_x = self->x_pos.f.u;
+    own->seesaw_y = self->y_pos.f.u;
+    self->y_vel = (int16_t)(self->y_vel + 0x18);
+    self->mapping_frame = (uint8_t)((frame_count & 4) >> 2);
+    if (!(self->render_flags & SST_RENDER_ON_SCREEN)) {
+        Sst_Delete(self); // FixBugs forced on: no display-and-delete
         return true;
     }
     return false;
 }
 
-void Obj_BossSpikeball(Object *obj) {
-    Scratch_BossSpikeball *scratch = (Scratch_BossSpikeball *)&obj->scratch;
+void Obj_BossSpikeball(Sst *self) {
+    Own_BossSpikeball *own = (Own_BossSpikeball *)self->own.u8;
 
-    switch (obj->routine) {
-    case 0: BSB_Main(obj, scratch); break;
-    case 2: BSB_Fall(obj, scratch); break;
-    case 4: BSB_Bounce(obj, scratch); break;
-    case 6: BSB_HitBoss(obj, scratch); break;
-    case 8: BSB_Explode(obj, scratch); break;
+    switch (self->routine) {
+    case 0: BSB_Main(self, own); break;
+    case 2: BSB_Fall(self, own); break;
+    case 4: BSB_Bounce(self, own); break;
+    case 6: BSB_HitBoss(self, own); break;
+    case 8: BSB_Explode(self, own); break;
     case 0xA:
-        if (BSB_MoveFrag(obj, scratch))
+        if (BSB_MoveFrag(self, own))
             return;
         break;
     }
 
-    if (IS_OFFSCREEN(scratch->base_x)) {
-        ObjectDelete(obj);
-        return;
-    }
-    DisplaySprite(obj);
+    SstOnScreenTest2(self, own->base_x);
 }

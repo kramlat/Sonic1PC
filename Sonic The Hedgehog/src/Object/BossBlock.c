@@ -1,4 +1,7 @@
 #include "BossBlock.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 
 #include "BossSpringYard.h"
 #include "Level.h"
@@ -36,39 +39,39 @@ static const int16_t bblock_frag_pos[4][2] = {
     { 0x10, 0x10 }, // bottom-right
 };
 
-static void BossBlock_Main(Object *obj) {
+static void BossBlock_Main(Sst *self) {
     int16_t x = SYZ_BOSS_X + 0x10;
 
     for (int i = 0; i < 10; i++) {
-        Object *block = obj;
+        Sst *block = self;
         if (i > 0) {
-            block = FindFreeObj();
+            block = Sst_Allocate();
             if (block == NULL)
                 break;
         }
 
-        Scratch_BossBlock *bscratch = (Scratch_BossBlock *)&block->scratch;
+        Own_BossBlock *bscratch = (Own_BossBlock *)block->own.u8;
 
-        block->type = ObjId_BossBlock;
+        block->code = sst_object_codes[ObjId_BossBlock];
         block->mappings = Mappings_SYZBossBlocks;
-        block->tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // | Tile_Pal3
-        // A freshly-FindFreeObj()'d slot can carry a stale obj->frame from
+        block->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // | Tile_Pal3
+        // A freshly-Sst_Allocate()'d slot can carry a stale self->mapping_frame from
         // whatever object previously lived there. BuildSprites indexes
-        // Mappings_SYZBossBlocks's 5-frame offset table by obj->frame with
+        // Mappings_SYZBossBlocks's 5-frame offset table by self->mapping_frame with
         // no bounds checking (see Object.c's own BuildSprites) -- an
         // out-of-range leftover value reads garbage as the piece count,
         // which can come out as 0 and silently draw nothing at all for
         // that block, letting the background chunk underneath show through
         // untouched. Explicit reset closes that off.
-        block->frame = 0;
-        block->render.f.level_fg = true;
+        block->mapping_frame = 0;
+        block->render_flags |= SST_RENDER_LEVEL;
         block->width_pixels = 32 / 2;
-        block->render.f.explicit_height = true;
-        block->y_rad = 32 / 2;
-        block->priority = 3;
-        block->pos.l.x.f.u = x;
-        block->pos.l.y.f.u = 0x582;
-        block->scratch.u8[0] = (uint8_t)i; // subtype -- this block's own column index
+        block->height_pixels = block->y_radius;
+        block->y_radius = 32 / 2;
+        block->priority = 3 * 0x80;
+        block->x_pos.f.u = x;
+        block->y_pos.f.u = 0x582;
+        block->subtype = (uint8_t)i; // subtype -- this block's own column index
         bscratch->child_cmd = (int8_t)i;   // seeded equal to subtype -- see file header comment
         block->routine = 2;
 
@@ -76,80 +79,81 @@ static void BossBlock_Main(Object *obj) {
     }
 }
 
-static void BossBlock_Break(Object *obj) {
-    obj->routine += 2; // -> BossBlock_Frag
-    obj->width_pixels = 16 / 2;
-    obj->y_rad = 16 / 2;
+static void BossBlock_Break(Sst *self) {
+    self->routine += 2; // -> BossBlock_Frag
+    self->width_pixels = 16 / 2;
+    self->y_radius = 16 / 2;
 
-    Object *prev = obj;
+    Sst *prev = self;
     for (int i = 0; i < 4; i++) {
-        Object *frag = obj;
+        Sst *frag = self;
         if (i > 0) {
-            frag = FindNextFreeObj(prev);
+            frag = Sst_AllocateAfter(prev);
             if (frag == NULL)
                 break;
-            *frag = *obj; // clone the original block's full state (mappings/tile/render/priority/pos/width/y_rad)
+            *frag = *self; // clone the original block's full state (mappings/tile/render/priority/pos/width/y_rad)
         }
-        frag->xsp = bblock_frag_speed[i][0];
-        frag->ysp = bblock_frag_speed[i][1];
-        frag->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + bblock_frag_pos[i][0]);
-        frag->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + bblock_frag_pos[i][1]);
-        frag->frame = (uint8_t)(1 + i);
+        frag->x_vel = bblock_frag_speed[i][0];
+        frag->y_vel = bblock_frag_speed[i][1];
+        frag->x_pos.f.u = (int16_t)(self->x_pos.f.u + bblock_frag_pos[i][0]);
+        frag->y_pos.f.u = (int16_t)(self->y_pos.f.u + bblock_frag_pos[i][1]);
+        frag->mapping_frame = (uint8_t)(1 + i);
         prev = frag;
     }
     PlaySound(sfx_WallSmash);
 }
 
-static void BossBlock_Action(Object *obj, Scratch_BossBlock *scratch) {
-    if (scratch->child_cmd == (int8_t)obj->scratch.u8[0]) {
+static void BossBlock_Action(Sst *self, Own_BossBlock *own) {
+    if (own->child_cmd == (int8_t)self->subtype) {
         // Normal/untouched -- solid, standable block.
-        SolidObject(obj, 16 + 11 /* sonic_solid_width */, 16, 17, obj->pos.l.x.f.u, NULL, NULL);
-        DisplaySprite(obj);
+        SstSolidObject(self, 16 + 11 /* sonic_solid_width */, 16, 17, self->x_pos.f.u, NULL, NULL);
+        Sst_Draw(self);
         return;
     }
 
-    if (scratch->child_cmd < 0) {
+    if (own->child_cmd < 0) {
         // Grabbed -- track the boss's position (44px below it), predicting
         // its Y motion if the boss hasn't been processed yet this frame
         // (i.e. sits later in objects[] than this block).
-        Object *parentObj = &objects[scratch->parent_index];
-        if (parentObj->col_property == 0) { // obBossHits ran out mid-grab
-            BossBlock_Break(obj);
-            DisplaySprite(obj);
+        Sst *parentObj = &sst[own->parent_index];
+        if (parentObj->collision_property == 0) { // obBossHits ran out mid-grab
+            BossBlock_Break(self);
+            Sst_Draw(self);
             return;
         }
 
-        obj->pos.l.x.f.u = parentObj->pos.l.x.f.u;
-        obj->pos.l.y.f.u = (int16_t)(parentObj->pos.l.y.f.u + 44);
+        self->x_pos.f.u = parentObj->x_pos.f.u;
+        self->y_pos.f.u = (int16_t)(parentObj->y_pos.f.u + 44);
 
-        if (scratch->parent_index >= (uint8_t)(obj - objects)) {
+        if (own->parent_index >= (uint8_t)(self - sst)) {
             // Boss hasn't run yet this frame -- predict where it'll end up.
-            obj->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + (parentObj->ysp >> 8));
+            self->y_pos.f.u = (int16_t)(self->y_pos.f.u + (parentObj->y_vel >> 8));
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
         return;
     }
 
     // Breaking (child_cmd == 0xA).
-    BossBlock_Break(obj);
-    DisplaySprite(obj);
+    BossBlock_Break(self);
+    Sst_Draw(self);
 }
 
-static void BossBlock_Frag(Object *obj) {
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        ObjectDelete(obj);
+static void BossBlock_Frag(Sst *self) {
+    if (SstOutOfRange(self->x_pos.f.u)) {
+        SstLoad_Forget(self);
+        Sst_Delete(self);
         return;
     }
-    ObjectFall(obj);
-    DisplaySprite(obj);
+    Sst_MoveSprite(self);
+    Sst_Draw(self);
 }
 
-void Obj_BossBlock(Object *obj) {
-    Scratch_BossBlock *scratch = (Scratch_BossBlock *)&obj->scratch;
+void Obj_BossBlock(Sst *self) {
+    Own_BossBlock *own = (Own_BossBlock *)self->own.u8;
 
-    switch (obj->routine) {
-    case 0: BossBlock_Main(obj); break;
-    case 2: BossBlock_Action(obj, scratch); break;
-    case 4: BossBlock_Frag(obj); break;
+    switch (self->routine) {
+    case 0: BossBlock_Main(self); break;
+    case 2: BossBlock_Action(self, own); break;
+    case 4: BossBlock_Frag(self); break;
     }
 }

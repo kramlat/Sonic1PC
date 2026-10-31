@@ -1,7 +1,7 @@
 #ifndef _BOSSBALL_H
 #define _BOSSBALL_H
 
-#include "Object.h"
+#include "Sst.h"
 
 // Object 48 - wrecking ball on a chain that Eggman swings (GHZ boss)
 typedef struct {
@@ -19,8 +19,8 @@ typedef struct {
                                                       // unused adjacent byte -- only the high byte/obj->angle feeds
                                                       // CalcSine, so the effective turn rate is speed/256 per frame,
                                                       // not the raw speed value)
-} Scratch_BossBall;
+} Own_BossBall;
 
-void Obj_BossBall(Object *obj);
+void Obj_BossBall(Sst *self);
 
 #endif //_BOSSBALL_H
