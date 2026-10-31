@@ -1,7 +1,7 @@
 #ifndef _ANIMALS_H
 #define _ANIMALS_H
 
-#include "Object.h"
+#include "Sst.h"
 #include "Macros.h"
 
 typedef struct {
@@ -15,12 +15,12 @@ typedef struct {
     uint16_t timer;      // 0x36: frames to wait (the end of a level)
     uint8_t pad2[6];
     uint16_t points;     // 0x3E: the points of the badnik that let it out, twice the frame of the points
-} Scratch_Flicky;
+} Own_Flicky;
 
-STATIC_ASSERT(sizeof(Scratch_Flicky) == 0x18, "Scratch_Flicky must fill the scratch memory");
+STATIC_ASSERT(sizeof(Own_Flicky) == 0x18, "Own_Flicky must fill the scratch memory");
 
 // Object 28 as the alpha has it: the animals that jump out of a destroyed badnik (and, with a subtype, those of the end of a level). Twelve kinds now (Sonic 1 has seven), two for each zone, whose art
 // the zone's pattern load cue (Level_AnimalsPlc, in Level.h) brings in after the title cards, at tiles $580 and $594.
-void Obj_FlickyAnimals(Object *obj);
+void Obj_FlickyAnimals(Sst *self);
 
 #endif //_ANIMALS_H

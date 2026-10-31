@@ -4,6 +4,9 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/Monitor.h"
+#include "Object/PrisonCapsule.h"
+#include "Object/Animal.h"
 #include "Object/Ring.h"
 #include "Object/Ending.h"
 #include "Object/SpecialResult.h"
@@ -106,11 +109,8 @@
 #include "Object/WaterSurface.h"
 
 void Obj_HUD(Object *obj);
-void Obj_Monitor(Object *obj);
-void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
 void Obj_GotThroughCard(Object *obj);
-void Obj_Animals(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_Seesaw(Object *obj);
 void Obj_BossGreenHill(Object *obj);
@@ -124,7 +124,6 @@ void Obj_BossFinal(Object *obj);
 void Obj_EggmanCylinder(Object *obj);
 void Obj_BossPlasma(Object *obj);
 void Obj_BossBlock(Object *obj);
-void Obj_PrisonCapsule(Object *obj);
 
 // Sonic 1's objects by object id. The engine (EngineObject.h) runs whichever one an object slot's type names; an id that is not listed, or a NULL entry,
 // runs as the null object.
@@ -167,15 +166,15 @@ const ObjectFunc game_objects[] = {
 	/* 23 ObjId_BuzzMissile         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 24 ObjId_BuzzExplode         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 25 ObjId_Ring                */ NULL, // (moved to the status table: sst_object_codes)
-	/* 26 ObjId_Monitor             */ Obj_Monitor,
+	/* 26 ObjId_Monitor             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 27 ObjId_Explosion           */ Obj_ExplosionObject, // (an old object that turns into one: the explosion is on the status table)
-	/* 28 ObjId_Animal              */ Obj_Animals,
+	/* 28 ObjId_Animal              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 29 ObjId_Points              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2A ObjId_SmallDoor           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2B ObjId_Chopper             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2C ObjId_Jaws                */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2D ObjId_Burrobot            */ NULL, // (moved to the status table: sst_object_codes)
-	/* 2E ObjId_MonitorItem         */ Obj_MonitorItem,
+	/* 2E ObjId_MonitorItem         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2F ObjId_LargeGrass          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 30 ObjId_GlassBlock          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 31 ObjId_ChainStomp          */ NULL, // (moved to the status table: sst_object_codes)
@@ -191,7 +190,7 @@ const ObjectFunc game_objects[] = {
 	/* 3B ObjId_GHZRock             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3C ObjId_SmashWall           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3D ObjId_BossGreenHill       */ Obj_BossGreenHill,
-	/* 3E ObjId_PrisonCapsule       */ Obj_PrisonCapsule,
+	/* 3E ObjId_PrisonCapsule       */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBombObject,
 	/* 40 ObjId_Motobug             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 41 ObjId_Spring              */ NULL, // (moved to the status table: sst_object_codes)
@@ -277,6 +276,10 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_MonitorItem] = Obj_MonitorItem,
+	[ObjId_Monitor] = Obj_Monitor,
+	[ObjId_PrisonCapsule] = Obj_PrisonCapsule,
+	[ObjId_Animal] = Obj_Animals,
 	[ObjId_RingLoss] = Obj_RingLoss,
 	[ObjId_Ring] = Obj_Ring,
 	[ObjId_8D] = Obj_EndEggmobile,

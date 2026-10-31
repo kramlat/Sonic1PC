@@ -1,5 +1,7 @@
 #define Animals_Build
 #include "Animal.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include <stdio.h>
 #include "SstLoad.h"
 
@@ -71,452 +73,452 @@ const int16_t AnimalEndSpeed[][2] = {
 	{-0x280, -0x380}
 };
 
-bool Obj_Animals_CheckInRange(Object *obj) {
-    return ((player->x_pos.v - obj->pos.l.x.v - 0xB8) >= 0 && (player->x_pos.v - obj->pos.l.x.v - 0xB8) <= 0x100);
+bool Obj_Animals_CheckInRange(Sst *self) {
+    return ((player->x_pos.v - self->x_pos.v - 0xB8) >= 0 && (player->x_pos.v - self->x_pos.v - 0xB8) <= 0x100);
 }
 
-void Obj_Animals_UpdateFrame(Object *obj, Scratch_Animals* scratch) {
-    obj->frame = 1;
-    if (obj->ysp >= 0) {
-        obj->frame = 0;
-        int16_t floordist = ObjFloorDist(obj,obj->pos.l.x.f.u);
+void Obj_Animals_UpdateFrame(Sst *self, Own_Animals *own) {
+    self->mapping_frame = 1;
+    if (self->y_vel >= 0) {
+        self->mapping_frame = 0;
+        int16_t floordist = SstFloorDist(self,self->x_pos.f.u);
         if (floordist < 0) {
-            obj->pos.l.y.v += floordist;
-            obj->ysp = scratch->ysp;
+            self->y_pos.v += floordist;
+            self->y_vel = own->ysp;
         }
     }
 }
 
-void Obj_Animals_UpdateRender(Object *obj) {
-    obj->render.b |= 1;
-    if (obj->pos.l.x.v <= player->x_pos.v) {
-        obj->render.b &= ~1;
+void Obj_Animals_UpdateRender(Sst *self) {
+    self->render_flags |= 1;
+    if (self->x_pos.v <= player->x_pos.v) {
+        self->render_flags &= ~1;
     }
 }
 
-void Obj_Animals_FlickyJump(Object *obj, Scratch_Animals *scratch) {
-    if (!Obj_Animals_CheckInRange(obj)) {
-        obj->xsp = 0;
-        scratch->xsp = 0;
-        SpeedToPos(obj);
-        obj->ysp += 0x18;
-        Obj_Animals_UpdateFrame(obj,scratch);
-        Obj_Animals_UpdateRender(obj);
+void Obj_Animals_FlickyJump(Sst *self, Own_Animals *own) {
+    if (!Obj_Animals_CheckInRange(self)) {
+        self->x_vel = 0;
+        own->xsp = 0;
+        Sst_MoveSprite2(self);
+        self->y_vel += 0x18;
+        Obj_Animals_UpdateFrame(self,own);
+        Obj_Animals_UpdateRender(self);
 
-        if (--(obj->frame_time.b) < 0) {
-            obj->frame_time.b = 1;
-            obj->frame = (obj->frame + 1) & 1;
+        if (--(self->anim_frame_timer) < 0) {
+            self->anim_frame_timer = 1;
+            self->mapping_frame = (self->mapping_frame + 1) & 1;
         }
     }
 
-    int16_t dx = obj->pos.l.x.v - player->x_pos.v;
+    int16_t dx = self->x_pos.v - player->x_pos.v;
     if (dx < 0) {
         dx = -dx;
     }
-    if (dx > 0x180 || (obj->render.b & 0x80) == 0) {
-        ObjectDelete(obj);
+    if (dx > 0x180 || (self->render_flags & 0x80) == 0) {
+        Sst_Delete(self);
     }
 
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-void Obj_Animals_Walk(Object *obj, const Scratch_Animals *scratch) {
-    ObjectFall(obj);
-    obj->frame = 1;
+void Obj_Animals_Walk(Sst *self, const Own_Animals *own) {
+    Sst_MoveSprite(self);
+    self->mapping_frame = 1;
 
-    if (obj->ysp >= 0) {
-        obj->frame = 0;
-        int16_t floordist = ObjFloorDist(obj,obj->pos.l.x.f.u);
+    if (self->y_vel >= 0) {
+        self->mapping_frame = 0;
+        int16_t floordist = SstFloorDist(self,self->x_pos.f.u);
         if (floordist <= 0) {
-            obj->pos.l.y.v += floordist;
-            obj->ysp = scratch->ysp;
+            self->y_pos.v += floordist;
+            self->y_vel = own->ysp;
         }
     }
 
-    if (scratch->subtype == 0) {
-        if ((int8_t)(obj->render.b) < 0) {
-            DisplaySprite(obj);
+    if (self->subtype == 0) {
+        if ((int8_t)(self->render_flags) < 0) {
+            Sst_Draw(self);
         } else {
-            ObjectDelete(obj);
+            Sst_Delete(self);
         }
     }
 }
 
-void Obj_Animals_Fly(Object *obj, const Scratch_Animals *scratch) {
-    SpeedToPos(obj);
-    obj->ysp += 0x18;
+void Obj_Animals_Fly(Sst *self, const Own_Animals *own) {
+    Sst_MoveSprite2(self);
+    self->y_vel += 0x18;
 
-    if (obj->ysp >= 0) {
-        int16_t floordist = ObjFloorDist(obj,obj->pos.l.x.f.u);
+    if (self->y_vel >= 0) {
+        int16_t floordist = SstFloorDist(self,self->x_pos.f.u);
         if (floordist < 0) {
-            obj->pos.l.y.v += floordist;
-            obj->ysp = scratch->ysp;
-            if (scratch->subtype != 0 && scratch->subtype != 0xA) {
-                obj->xsp = -obj->xsp;
-                obj->render.b ^= 1;
+            self->y_pos.v += floordist;
+            self->y_vel = own->ysp;
+            if (self->subtype != 0 && self->subtype != 0xA) {
+                self->x_vel = -self->x_vel;
+                self->render_flags ^= 1;
             }
         }
     }
 
-    (obj->frame_time.b)--;
-    if ((obj->frame_time.b) < 0) {
-        obj->frame_time.b = 1;
-        obj->frame++;
-        obj->frame &= 1;
+    (self->anim_frame_timer)--;
+    if ((self->anim_frame_timer) < 0) {
+        self->anim_frame_timer = 1;
+        self->mapping_frame++;
+        self->mapping_frame &= 1;
     }
 
-    if (scratch->subtype == 0) {
-        if ((int8_t)(obj->render.b) >= 0) {
-            ObjectDelete(obj);
+    if (self->subtype == 0) {
+        if ((int8_t)(self->render_flags) >= 0) {
+            Sst_Delete(self);
             return;
         }
     } else {
-        if ((obj->pos.l.y.v - player->y_pos.v) < 0 || (obj->pos.l.y.v - player->y_pos.v) > 0x180) {
-            if ((int8_t)(obj->render.b) >= 0) {
-                ObjectDelete(obj);
+        if ((self->y_pos.v - player->y_pos.v) < 0 || (self->y_pos.v - player->y_pos.v) > 0x180) {
+            if ((int8_t)(self->render_flags) >= 0) {
+                Sst_Delete(self);
                 return;
             }
         }
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-void Obj_Animals_FlickyWait(Object *obj, const Scratch_Animals *scratch) {
-    if (Obj_Animals_CheckInRange(obj)) {
-        obj->xsp = scratch->xsp;
-        obj->ysp = scratch->ysp;
-        obj->routine = 0xE;
-        Obj_Animals_Fly(obj,scratch);
+void Obj_Animals_FlickyWait(Sst *self, const Own_Animals *own) {
+    if (Obj_Animals_CheckInRange(self)) {
+        self->x_vel = own->xsp;
+        self->y_vel = own->ysp;
+        self->routine = 0xE;
+        Obj_Animals_Fly(self,own);
     } else {
-        if ((obj->pos.l.x.v - player->x_pos.v) >= 0 || (obj->pos.l.x.v - player->x_pos.v) > -0x180) {
-            if (!(obj->render.b & 0x80)) {
-                ObjectDelete(obj);
+        if ((self->x_pos.v - player->x_pos.v) >= 0 || (self->x_pos.v - player->x_pos.v) > -0x180) {
+            if (!(self->render_flags & 0x80)) {
+                Sst_Delete(self);
                 return;
             }
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
     }
 }
 
-void Obj_Animals_FromEnemy(Object *obj, Scratch_Animals *scratch) {
-    obj->routine += 2;
-    scratch->routine = AnimalVarIndex[LEVEL_ZONE(level_id)][RandomNumber() & 1];
-    scratch->xsp = AnimalVariables[scratch->routine].xsp;
-    scratch->ysp = AnimalVariables[scratch->routine].ysp;
-    obj->mappings = AnimalVariables[scratch->routine].mappings;
+void Obj_Animals_FromEnemy(Sst *self, Own_Animals *own) {
+    self->routine += 2;
+    own->routine = AnimalVarIndex[LEVEL_ZONE(level_id)][RandomNumber() & 1];
+    own->xsp = AnimalVariables[own->routine].xsp;
+    own->ysp = AnimalVariables[own->routine].ysp;
+    self->mappings = AnimalVariables[own->routine].mappings;
 
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Animal_1);
-    if (scratch->routine & 1) {
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Animal_2);
+    self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Animal_1);
+    if (own->routine & 1) {
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Animal_2);
     }
 
-    obj->x_rad = 0xC;
-    obj->render.b = 4;
-    obj->render.b |= 1;
-    obj->priority = 6;
-    obj->width_pixels = 8;
-    obj->frame_time.b = 7;
-    obj->frame = 2;
-    obj->ysp = -0x400;
+    self->x_radius = 0xC;
+    self->render_flags = 4;
+    self->render_flags |= 1;
+    self->priority = 6 * 0x80;
+    self->width_pixels = 8;
+    self->anim_frame_timer = 7;
+    self->mapping_frame = 2;
+    self->y_vel = -0x400;
 
     if (boss_status == 0) {
-        Sst* newObj = Sst_Spawn(ObjId_Points, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
+        Sst* newObj = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
         if (newObj != NULL) {
-            newObj->x_pos.v = obj->pos.l.x.v;
-            newObj->y_pos.v = obj->pos.l.y.v;
-            newObj->mapping_frame = (scratch->points) >> 1;
+            newObj->x_pos.v = self->x_pos.v;
+            newObj->y_pos.v = self->y_pos.v;
+            newObj->mapping_frame = (own->points) >> 1;
         }
     } else {
-        obj->routine = 0x12;
-        obj->xsp = 0;
+        self->routine = 0x12;
+        self->x_vel = 0;
     }
 
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-void Obj_Animals_Construct(Object *obj, Scratch_Animals *scratch) {
-    if (scratch->subtype == 0) {
-        Obj_Animals_FromEnemy(obj,scratch);
+void Obj_Animals_Construct(Sst *self, Own_Animals *own) {
+    if (self->subtype == 0) {
+        Obj_Animals_FromEnemy(self,own);
         return;
     }
 
-    scratch->subtype *= 2;
-    obj->routine = scratch->subtype;
-    scratch->subtype -= 0x14;
+    self->subtype *= 2;
+    self->routine = self->subtype;
+    self->subtype -= 0x14;
 
-    obj->tile =     AnimalEndVram[scratch->subtype / 2];
-    obj->mappings = AnimalEndMap[scratch->subtype / 2];
-    scratch->xsp =  AnimalEndSpeed[scratch->subtype / 2][0];
-    obj->xsp =      AnimalEndSpeed[scratch->subtype / 2][0];
-    scratch->ysp = AnimalEndSpeed[scratch->subtype / 2][1];
-    obj->ysp =     AnimalEndSpeed[scratch->subtype / 2][1];
+    self->art_tile =     AnimalEndVram[self->subtype / 2];
+    self->mappings = AnimalEndMap[self->subtype / 2];
+    own->xsp =  AnimalEndSpeed[self->subtype / 2][0];
+    self->x_vel =      AnimalEndSpeed[self->subtype / 2][0];
+    own->ysp = AnimalEndSpeed[self->subtype / 2][1];
+    self->y_vel =     AnimalEndSpeed[self->subtype / 2][1];
 
-    obj->x_rad = 0xC;
-    obj->render.b = 4;
-    obj->render.b |= 1;
-    obj->priority = 6;
-    obj->width_pixels = 8;
-    obj->frame_time.b = 7;
+    self->x_radius = 0xC;
+    self->render_flags = 4;
+    self->render_flags |= 1;
+    self->priority = 6 * 0x80;
+    self->width_pixels = 8;
+    self->anim_frame_timer = 7;
 
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-void Obj_Animals_Main(Object *obj, const Scratch_Animals *scratch) {
-    if (!(obj->render.b & 0x80)) {
-        ObjectDelete(obj);
+void Obj_Animals_Main(Sst *self, const Own_Animals *own) {
+    if (!(self->render_flags & 0x80)) {
+        Sst_Delete(self);
         return;
     }
 
-    ObjectFall(obj);
+    Sst_MoveSprite(self);
 
-    if (obj->ysp >= 0) {
-        int16_t floorDist = ObjFloorDist(obj,obj->pos.l.x.f.u);
+    if (self->y_vel >= 0) {
+        int16_t floorDist = SstFloorDist(self,self->x_pos.f.u);
         if (floorDist < 0) {
-            obj->pos.l.y.v += floorDist;
-            obj->xsp = scratch->xsp;
-            obj->ysp = scratch->ysp;
-            obj->frame = 1;
-            uint8_t routineOffset = scratch->routine;
+            self->y_pos.v += floorDist;
+            self->x_vel = own->xsp;
+            self->y_vel = own->ysp;
+            self->mapping_frame = 1;
+            uint8_t routineOffset = own->routine;
             routineOffset = (routineOffset << 1) + 4;
-            obj->routine = routineOffset;
+            self->routine = routineOffset;
 
             if (boss_status != 0 && (vbla_routine & 0x10)) {
-                obj->xsp = -obj->xsp;
-                obj->render.b ^= 0x01;
+                self->x_vel = -self->x_vel;
+                self->render_flags ^= 0x01;
             }
         }
     }
 
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-void Obj_Animals_Prison(Object *obj, Scratch_Animals *scratch) {
-    if (!(obj->render.b & 0x80)) {
-        ObjectDelete(obj);
+void Obj_Animals_Prison(Sst *self, Own_Animals *own) {
+    if (!(self->render_flags & 0x80)) {
+        Sst_Delete(self);
         return;
     }
 
-    scratch->timer--;
-    if (scratch->timer == 0) {
-        obj->routine = 2;
-        obj->priority = 3;
+    own->timer--;
+    if (own->timer == 0) {
+        self->routine = 2;
+        self->priority = 3 * 0x80;
     }
 
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-void Obj_Animals_RabbitWait(Object *obj, const Scratch_Animals *scratch) {
-    if (!Obj_Animals_CheckInRange(obj)) {
-        int16_t dx = obj->pos.l.x.v - player->x_pos.v;
+void Obj_Animals_RabbitWait(Sst *self, const Own_Animals *own) {
+    if (!Obj_Animals_CheckInRange(self)) {
+        int16_t dx = self->x_pos.v - player->x_pos.v;
         if (dx >= 0) {
             dx -= 0x180;
             if (dx < 0) {
-                if (!(obj->render.b & 0x80)) {
-                    ObjectDelete(obj);
+                if (!(self->render_flags & 0x80)) {
+                    Sst_Delete(self);
                     return;
                 }
             }
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
     } else {
-        obj->xsp = scratch->xsp;
-        obj->ysp = scratch->ysp;
-        obj->routine = 4;
-        Obj_Animals_Walk(obj,scratch);
+        self->x_vel = own->xsp;
+        self->y_vel = own->ysp;
+        self->routine = 4;
+        Obj_Animals_Walk(self,own);
     }
 }
 
-void Obj_Animals_LandJump(Object *obj, Scratch_Animals *scratch) {
-    if (Obj_Animals_CheckInRange(obj)) {
-        obj->xsp = 0;
-        scratch->xsp = 0;
-        ObjectFall(obj);
+void Obj_Animals_LandJump(Sst *self, Own_Animals *own) {
+    if (Obj_Animals_CheckInRange(self)) {
+        self->x_vel = 0;
+        own->xsp = 0;
+        Sst_MoveSprite(self);
 
-        obj->frame = 1;
-        if (obj->ysp >= 0) {
-            obj->frame = 0;
-            int floorDist = ObjFloorDist(obj,obj->pos.l.x.f.u);
+        self->mapping_frame = 1;
+        if (self->y_vel >= 0) {
+            self->mapping_frame = 0;
+            int floorDist = SstFloorDist(self,self->x_pos.f.u);
             if (floorDist <= 0) {
-                obj->pos.l.y.v += floorDist;
-                obj->ysp = scratch->ysp;
+                self->y_pos.v += floorDist;
+                self->y_vel = own->ysp;
             }
         }
 
-        obj->render.b |= 1;
-        int dx = obj->pos.l.x.v - player->x_pos.v;
+        self->render_flags |= 1;
+        int dx = self->x_pos.v - player->x_pos.v;
         if (dx < 0) {
-            obj->render.b &= ~1;
+            self->render_flags &= ~1;
         }
     }
 
-    int d = obj->pos.l.x.v - player->x_pos.v;
+    int d = self->x_pos.v - player->x_pos.v;
     if (d < 0) {
         d -= 0x180;
         if (d >= 0) {
-            if ((obj->render.b & 0x80) == 0) {
-                ObjectDelete(obj);
+            if ((self->render_flags & 0x80) == 0) {
+                Sst_Delete(self);
                 return;
             }
         }
     }
 
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-void Obj_Animals_SingleBounce(Object *obj, const Scratch_Animals *scratch) {
+void Obj_Animals_SingleBounce(Sst *self, const Own_Animals *own) {
     int floorDist;
 
-    if (Obj_Animals_CheckInRange(obj)) {
-        ObjectFall(obj);
-        obj->frame = 1;
+    if (Obj_Animals_CheckInRange(self)) {
+        Sst_MoveSprite(self);
+        self->mapping_frame = 1;
 
-        if (obj->ysp >= 0) {
-            obj->frame = 0;
-            floorDist = ObjFloorDist(obj,obj->pos.l.x.f.u);
+        if (self->y_vel >= 0) {
+            self->mapping_frame = 0;
+            floorDist = SstFloorDist(self,self->x_pos.f.u);
 
             if (floorDist <= 0) {
-                obj->xsp = -obj->xsp;
-                obj->render.b ^= 1;
-                obj->pos.l.y.v += floorDist;
-                obj->ysp = scratch->ysp;
+                self->x_vel = -self->x_vel;
+                self->render_flags ^= 1;
+                self->y_pos.v += floorDist;
+                self->y_vel = own->ysp;
             }
         }
     }
 
-    int dx = obj->pos.l.x.v - player->x_pos.v;
+    int dx = self->x_pos.v - player->x_pos.v;
     if (dx < 0) {
         dx = -dx;
     }
     dx -= 0x180;
-    if (dx <= 0 && !(obj->render.b & 0x80)) {
-        ObjectDelete(obj);
+    if (dx <= 0 && !(self->render_flags & 0x80)) {
+        Sst_Delete(self);
     }
 
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-void Obj_Animals_FlyBounce(Object *obj, Scratch_Animals *scratch) {
+void Obj_Animals_FlyBounce(Sst *self, Own_Animals *own) {
     int floorDist;
 
-    if (Obj_Animals_CheckInRange(obj)) {
-        SpeedToPos(obj);
-        obj->ysp += 0x18;
+    if (Obj_Animals_CheckInRange(self)) {
+        Sst_MoveSprite2(self);
+        self->y_vel += 0x18;
 
-        if (obj->ysp >= 0) {
-            floorDist = ObjFloorDist(obj,obj->pos.l.x.f.u);
+        if (self->y_vel >= 0) {
+            floorDist = SstFloorDist(self,self->x_pos.f.u);
             if (floorDist < 0) {
-                scratch->reverse = ~scratch->reverse;
-                if (scratch->reverse == 0) {
-                    obj->xsp = -obj->xsp;
-                    obj->render.b ^= 1;
+                own->reverse = ~own->reverse;
+                if (own->reverse == 0) {
+                    self->x_vel = -self->x_vel;
+                    self->render_flags ^= 1;
                 }
-                obj->pos.l.y.v += floorDist;
-                obj->ysp = scratch->ysp;
+                self->y_pos.v += floorDist;
+                self->y_vel = own->ysp;
             }
         }
 
-        (obj->frame_time.b)--;
-        if ((obj->frame_time.b) < 0) {
-            obj->frame_time.b = 1;
-            obj->frame++;
-            obj->frame &= 1;
+        (self->anim_frame_timer)--;
+        if ((self->anim_frame_timer) < 0) {
+            self->anim_frame_timer = 1;
+            self->mapping_frame++;
+            self->mapping_frame &= 1;
         }
 
-        int dx = obj->pos.l.x.v - player->x_pos.v;
+        int dx = self->x_pos.v - player->x_pos.v;
         if (dx >= 0) {
             dx -= 0x180;
-            if (dx < 0 && !(obj->render.b & 0x80)) {
-                ObjectDelete(obj);
+            if (dx < 0 && !(self->render_flags & 0x80)) {
+                Sst_Delete(self);
                 return;
             }
         }
 
-        DisplaySprite(obj);
+        Sst_Draw(self);
     }
 }
 
-void Obj_Animals_DoubleBounce(Object* obj, Scratch_Animals *scratch) {
-    ObjectFall(obj);
-    obj->frame = 1;
+void Obj_Animals_DoubleBounce(Sst *self, Own_Animals *own) {
+    Sst_MoveSprite(self);
+    self->mapping_frame = 1;
 
-    if (obj->ysp >= 0) {
-        obj->frame = 0;
-        int16_t floorDist = ObjFloorDist(obj,obj->pos.l.x.f.u);
+    if (self->y_vel >= 0) {
+        self->mapping_frame = 0;
+        int16_t floorDist = SstFloorDist(self,self->x_pos.f.u);
 
         if (floorDist <= 0) {
-            scratch->reverse = !scratch->reverse;
-            if (scratch->reverse == 0) {
-                obj->xsp = -obj->xsp;
-                obj->render.b ^= 1;
+            own->reverse = !own->reverse;
+            if (own->reverse == 0) {
+                self->x_vel = -self->x_vel;
+                self->render_flags ^= 1;
             }
-            obj->pos.l.y.v += floorDist;
-            obj->ysp = scratch->ysp;
+            self->y_pos.v += floorDist;
+            self->y_vel = own->ysp;
         }
     }
 
-    int distToPlayer = obj->pos.l.x.v - player->x_pos.v;
+    int distToPlayer = self->x_pos.v - player->x_pos.v;
     if (distToPlayer < 0) {
         distToPlayer = -distToPlayer;
     }
 
-    if (distToPlayer > 0x180 || (obj->render.b & 0x80)) {
-        ObjectDelete(obj);
+    if (distToPlayer > 0x180 || (self->render_flags & 0x80)) {
+        Sst_Delete(self);
     } else {
-        DisplaySprite(obj);
+        Sst_Draw(self);
     }
 }
 
-void Obj_Animals(Object* obj) {
-Scratch_Animals *scratch = (Scratch_Animals*)&obj->scratch;
+void Obj_Animals(Sst *self) {
+Own_Animals *own = (Own_Animals *)self->own.u8;
 
-	switch (obj->routine) {
+	switch (self->routine) {
 		case 0:
-			Obj_Animals_Construct(obj,scratch);
+			Obj_Animals_Construct(self,own);
 			break;
 		case 2:
-			Obj_Animals_Main(obj,scratch);
+			Obj_Animals_Main(self,own);
 			break;
 		case 4:
 		case 8:
 		case 10:
 		case 12:
 		case 16:
-			Obj_Animals_Walk(obj,scratch);
+			Obj_Animals_Walk(self,own);
 			break;
 		case 6:
 		case 14:
-			Obj_Animals_Fly(obj,scratch);
+			Obj_Animals_Fly(self,own);
 			break;
 		case 18:
-			Obj_Animals_Prison(obj,scratch);
+			Obj_Animals_Prison(self,own);
 			break;
 		case 20:
 		case 22:
-			Obj_Animals_FlickyWait(obj,scratch);
+			Obj_Animals_FlickyWait(self,own);
 			break;
 		case 24:
-			Obj_Animals_FlickyJump(obj,scratch);
+			Obj_Animals_FlickyJump(self,own);
 			break;
 		case 26:
-			Obj_Animals_RabbitWait(obj,scratch);
+			Obj_Animals_RabbitWait(self,own);
 			break;
 		case 28:
 		case 32:
 		case 36:
-			Obj_Animals_LandJump(obj,scratch);
+			Obj_Animals_LandJump(self,own);
 			break;
 		case 30:
 		case 34:
-			Obj_Animals_SingleBounce(obj,scratch);
+			Obj_Animals_SingleBounce(self,own);
 			break;
 		case 38:
-			Obj_Animals_FlyBounce(obj,scratch);
+			Obj_Animals_FlyBounce(self,own);
 			break;
 		case 40:
-			Obj_Animals_DoubleBounce(obj,scratch);
+			Obj_Animals_DoubleBounce(self,own);
 			break;
 		default:
-			ObjectDelete(obj);
+			Sst_Delete(self);
 			break;
 	}
 }

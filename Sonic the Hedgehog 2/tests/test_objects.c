@@ -337,37 +337,33 @@ static void Animals_ZonesHaveTheirPairAndEndAnimalsTheirOwnMovement(void) {
     level_id = (uint16_t)(ZoneId_CPZ << 8);
     CHECK_EQ(Level_AnimalsPlc(), PlcId_Flicky3A);
 
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    Sst_Reset();
     boss_status = 0;
     level_id = (uint16_t)(ZoneId_HPZ << 8); // (Mouse $08 at $580, Seal $03 at $594)
-    Object *animal = &objects[0x20];
-    animal->type = ObjId_Animal;
+    Sst *animal = Sst_Spawn(ObjId_Animal, 0, 0);
     Obj_FlickyAnimals(animal);
     CHECK_EQ(animal->routine, 2);
-    CHECK_EQ(animal->frame, 2);
-    CHECK_EQ(animal->ysp, -0x400);
-    const unsigned tile = animal->tile & 0x7FF;
+    CHECK_EQ(animal->mapping_frame, 2);
+    CHECK_EQ(animal->y_vel, -0x400);
+    const unsigned tile = animal->art_tile & 0x7FF;
     CHECK(tile == 0x580 || tile == 0x594);
-    const Scratch_Flicky *a = (const Scratch_Flicky *)&animal->scratch;
+    const Own_Flicky *a = (const Own_Flicky *)animal->own.u8;
     CHECK(tile == 0x580 ? a->kind == 8 : a->kind == 3);
 
     boss_status = 1; // (after a boss they wait for the capsule instead)
-    Object *waiting = &objects[0x21];
-    waiting->type = ObjId_Animal;
+    Sst *waiting = Sst_Spawn(ObjId_Animal, 0, 0);
     Obj_FlickyAnimals(waiting);
     CHECK_EQ(waiting->routine, 0x1C);
-    CHECK_EQ(waiting->xsp, 0);
+    CHECK_EQ(waiting->x_vel, 0);
     boss_status = 0;
 
-    Object *prison = &objects[0x22];
-    prison->type = ObjId_Animal;
-    ((Scratch_Flicky *)&prison->scratch)->subtype = 15; // (the Penguin that waits for the player, art at $573)
+    Sst *prison = Sst_Spawn(ObjId_Animal, 0, 0);
+    prison->subtype = 15; // (the Penguin that waits for the player, art at $573)
     Obj_FlickyAnimals(prison);
     CHECK_EQ(prison->routine, 30);
-    CHECK_EQ(prison->tile & 0x7FF, 0x573);
-    CHECK_EQ(prison->xsp, -0x180);
-    CHECK_EQ(prison->ysp, -0x300);
+    CHECK_EQ(prison->art_tile & 0x7FF, 0x573);
+    CHECK_EQ(prison->x_vel, -0x180);
+    CHECK_EQ(prison->y_vel, -0x300);
 }
 
 
@@ -384,7 +380,7 @@ static void Coconuts_ThrowACoconutWhenSonicIsNear(void) {
     monkey->type = ObjId_Coconuts;
     monkey->pos.l.x.f.u = 0x440;
     monkey->pos.l.y.f.u = 0x300;
-    ((Scratch_Flicky *)&monkey->scratch)->subtype = 0x1E;
+    monkey->scratch.u8[0] = 0x1E; // (its subtype)
     Obj_Coconuts(monkey);
     CHECK_EQ(monkey->routine, 2);
     CHECK_EQ(monkey->tile & 0x7FF, 0x3EE);

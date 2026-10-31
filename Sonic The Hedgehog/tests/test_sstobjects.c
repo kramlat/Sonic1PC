@@ -142,21 +142,22 @@ static void SstObjects_AnOldObjectThatTurnsIntoAnExplosionLeavesOneOnTheTableAnd
     CHECK_EQ(boom->own.u16[0xB], 4);
     CHECK_EQ(old->type, ObjId_Explosion);              // (the marker the objects it was parent of look for)
     int frames = 0;
+    int animals = 0;
     while (boom->code != NULL && frames < 200) {       // (the explosion runs: an animal first, then 5 frames of 8)
         Sst_Process(false);
         frames++;
+        if (frames == 1)
+            for (int i = 0; i < SST_COUNT; i++)
+                animals += sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_Animal];
     }
     CHECK(frames > 35 && frames < 50);
+    CHECK_EQ(animals, 1);
     int marker_frames = 0;
     while (old->type == ObjId_Explosion && marker_frames < 100) {
         Obj_ExplosionObject(old);
         marker_frames++;
     }
     CHECK(marker_frames > 30 && marker_frames < 60);
-    int animals = 0;
-    for (int i = 0; i < LEVEL_OBJECTS; i++)
-        animals += level_objects[i].type == ObjId_Animal;
-    CHECK_EQ(animals, 1);
 }
 
 signed int ReactToItem(Sst *obj); // Sonic.c: the touch response

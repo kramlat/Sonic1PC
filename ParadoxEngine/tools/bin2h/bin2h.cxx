@@ -180,12 +180,13 @@ std::string format_obj(std::string s)
 }
 
 /* Sonic 2's sprite mappings (a table of frame offsets, then per frame a word piece count and 8-byte pieces: y and size, tile, the 2-player tile, x) to Sonic 3 & Knuckles' (6-byte pieces without the
-   2-player tile): `bin2h in out pad mappings-s3-from SonicTheHedgehog2` (the project whose format the input is in). A frame the table names more than once is written once. Returns the new size; the input is left alone when it does not look like a table. */
-static unsigned char* mappings_s2_to_s3(const unsigned char* in, long size, long* out_size)
+   2-player tile): `bin2h in out pad mappings-s3-from SonicTheHedgehog2 [BYTESxFRAMES]` (the project whose format the input is in; a file of several tables of the same size and number of frames, one after the other,
+   is converted table by table, and the tables come out as large as the first). A frame the table names more than once is written once. Returns the new size; the input is left alone when it does not look like a table. */
+static unsigned char* mappings_s2_to_s3(const unsigned char* in, long size, long* out_size, long force_frames = 0)
 {
     if (size < 2)
         return NULL;
-    long frames = ((in[0] << 8) | in[1]) / 2;
+    long frames = force_frames ? force_frames : ((in[0] << 8) | in[1]) / 2;
     if (frames < 1 || frames * 2 > size)
         return NULL;
     std::vector<long> new_offset(size, -1);
@@ -260,7 +261,28 @@ int main(int argc, char* argv[])
                     return -1;
                 }
                 long converted_size = 0;
-                unsigned char* converted = mappings_s2_to_s3(in_file_buffer, in_file_size, &converted_size);
+                unsigned char* converted = NULL;
+                long set_bytes = 0, set_frames = 0;
+                if (argc > 6 && sscanf(argv[6], "%ldx%ld", &set_bytes, &set_frames) == 2 && set_bytes > 0 && set_frames > 0) {
+                    std::vector<unsigned char> all;
+                    long first = -1;
+                    for (long at = 0; at + set_bytes <= in_file_size; at += set_bytes) {
+                        long part_size = 0;
+                        unsigned char* part = mappings_s2_to_s3(in_file_buffer + at, set_bytes, &part_size, set_frames);
+                        if (part == NULL) { all.clear(); first = -2; break; }
+                        if (first < 0) first = part_size;
+                        if (part_size != first) { free(part); all.clear(); first = -2; break; }
+                        all.insert(all.end(), part, part + part_size);
+                        free(part);
+                    }
+                    if (first >= 0 && !all.empty()) {
+                        converted = (unsigned char*)malloc(all.size());
+                        memcpy(converted, all.data(), all.size());
+                        converted_size = (long)all.size();
+                    }
+                } else {
+                    converted = mappings_s2_to_s3(in_file_buffer, in_file_size, &converted_size);
+                }
                 if (converted == NULL) {
                     printf("'%s' is not a table of Sonic 2 sprite mappings\n", argv[1]);
                     return -1;

@@ -101,7 +101,6 @@ resources:
   - "Art/Shield"
   - "Art/Invincibility"
   - "Mappings/HUD"
-  - "Mappings/Monitor"
   - "Mappings/Spikes"
   - "Mappings/Points"
   - "Art/HUD"
@@ -117,7 +116,6 @@ resources:
   - "Animation/Countdown"
   - "Animation/CountdownWobble"
   - "Mappings/Countdown"
-  - "Mappings/Animals"
   - "Mappings/Coconuts"
   - "Mappings/Slicer"
   - "Animation/Slicer"
@@ -711,6 +709,8 @@ mappings_SonicTheHedgehog2:
   - "Mappings/Checkpoint"
   - "Mappings/Signpost"
   - "Mappings/RingREV01"
+  - "Mappings/Monitor"
+  - "Mappings/Animals|36x3" # (five tables, one after the other)
 
 assemble:
   - "Mappings/TitleCharacters"

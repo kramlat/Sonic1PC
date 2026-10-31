@@ -1,6 +1,8 @@
 // Object 28 of the alpha (Aug 21st 1992): the animals that jump out of a destroyed badnik. It is Sonic 1's (Sonic 1's Animal.c) with twelve kinds of animal, a pair for each zone (the alpha's Offset_0x00A42A),
 // the speeds and frames of each, and the routine of each kind of movement by number as the alpha numbers them: its own table, not Sonic 1's (where the routines of the end of a level are 18 and up).
 #include "Object/Animals.h"
+#include "ObjectSst.h"
+#include "Object.h"
 
 #include "Level.h"
 #include "SstLoad.h"
@@ -68,7 +70,7 @@ static const struct { int16_t xsp, ysp; uint8_t frames; uint16_t tile; } end_ani
 };
 
 static const uint8_t *FrameSet(uint8_t index) {
-    return Mappings_Animals + (size_t)index * 0x24; // (five sets of three frames, $24 bytes each)
+    return Mappings_Animals + (size_t)index * 0x1E; // (five sets of three frames, $1E bytes each in Sonic 3's format: the build converts the alpha's $24 of Sonic 2's, see mappings_SonicTheHedgehog2)
 }
 
 // What each routine number does (the alpha's table at Offset_0x00A3F6, by the number over two)
@@ -86,294 +88,294 @@ uint8_t Level_AnimalsPlc(void) {
     return (uint8_t)(PlcId_Flicky32 + (by_zone[zone < 18 ? zone : 0] - 0x32));
 }
 
-static bool IsOnScreen(const Object *obj) {
-    return (obj->render.b & 0x80) != 0;
+static bool IsOnScreen(const Sst *self) {
+    return (self->render_flags & 0x80) != 0;
 }
 
 // Offset_0x00A734: the one set free goes when it is off the screen and in the stretch ahead of the player
-static void Gone(Object *obj) {
-    const uint16_t ahead = (uint16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
-    if (obj->pos.l.x.f.u >= player->x_pos.f.u && ahead < 0x180 && !IsOnScreen(obj)) {
-        ObjectDelete(obj);
+static void Gone(Sst *self) {
+    const uint16_t ahead = (uint16_t)(self->x_pos.f.u - player->x_pos.f.u);
+    if (self->x_pos.f.u >= player->x_pos.f.u && ahead < 0x180 && !IsOnScreen(self)) {
+        Sst_Delete(self);
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
 // Offset_0x00A914: how far the player is, less $B8; the alpha tests it by its sign (Reach) and the flickies by the carry (PlayerClose)
-static int16_t Reach(const Object *obj) {
-    return (int16_t)(player->x_pos.f.u - obj->pos.l.x.f.u - 0xB8);
+static int16_t Reach(const Sst *self) {
+    return (int16_t)(player->x_pos.f.u - self->x_pos.f.u - 0xB8);
 }
 
-static bool PlayerClose(const Object *obj) {
-    return (uint16_t)(player->x_pos.f.u - obj->pos.l.x.f.u) < 0xB8;
+static bool PlayerClose(const Sst *self) {
+    return (uint16_t)(player->x_pos.f.u - self->x_pos.f.u) < 0xB8;
 }
 
 // Offset_0x00A8D4: the frame, and the landing, of a jump
-static void JumpFrame(Object *obj, const Scratch_Flicky *a) {
-    obj->frame = 1;
-    if (obj->ysp < 0)
+static void JumpFrame(Sst *self, const Own_Flicky *a) {
+    self->mapping_frame = 1;
+    if (self->y_vel < 0)
         return;
-    obj->frame = 0;
-    const int16_t d = ObjFloorDist(obj, obj->pos.l.x.f.u);
+    self->mapping_frame = 0;
+    const int16_t d = SstFloorDist(self, self->x_pos.f.u);
     if (d < 0) {
-        obj->pos.l.y.f.u += d;
-        obj->ysp = a->ysp;
+        self->y_pos.f.u += d;
+        self->y_vel = a->ysp;
     }
 }
 
 // Offset_0x00A8FC: it turns to the player
-static void FacePlayer(Object *obj) {
-    obj->render.b |= 1;
-    if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)player->x_pos.f.u)
-        obj->render.b &= (uint8_t)~1;
+static void FacePlayer(Sst *self) {
+    self->render_flags |= 1;
+    if ((uint16_t)self->x_pos.f.u < (uint16_t)player->x_pos.f.u)
+        self->render_flags &= (uint8_t)~1;
 }
 
-static void Flap(Object *obj) {
-    if (--obj->frame_time.b < 0) {
-        obj->frame_time.b = 1;
-        obj->frame = (obj->frame + 1) & 1;
+static void Flap(Sst *self) {
+    if (--self->anim_frame_timer < 0) {
+        self->anim_frame_timer = 1;
+        self->mapping_frame = (self->mapping_frame + 1) & 1;
     }
 }
 
-static void Turn(Object *obj) {
-    obj->xsp = -obj->xsp;
-    obj->render.b ^= 1;
+static void Turn(Sst *self) {
+    self->x_vel = -self->x_vel;
+    self->render_flags ^= 1;
 }
 
 // A bounce that lands (A7E6, A880): it turns round every other time
-static void BounceTurn(Object *obj, Scratch_Flicky *a, int16_t d) {
+static void BounceTurn(Sst *self, Own_Flicky *a, int16_t d) {
     a->flip_flag = (uint8_t)~a->flip_flag;
     if (!a->flip_flag)
-        Turn(obj);
-    obj->pos.l.y.f.u += d;
-    obj->ysp = a->ysp;
+        Turn(self);
+    self->y_pos.f.u += d;
+    self->y_vel = a->ysp;
 }
 
-static void Init(Object *obj, Scratch_Flicky *a) {
-    obj->x_rad = 0xC;
-    obj->render.b = 4;
-    obj->render.b |= 1;
-    obj->priority = 6;
-    obj->width_pixels = 8;
-    obj->frame_time.b = 7;
+static void Init(Sst *self, Own_Flicky *a) {
+    self->x_radius = 0xC;
+    self->render_flags = 4;
+    self->render_flags |= 1;
+    self->priority = 6 * 0x80;
+    self->width_pixels = 8;
+    self->anim_frame_timer = 7;
 
-    if (a->subtype != 0) { // the end of a level: the kind of movement is the subtype
-        const unsigned i = (unsigned)a->subtype - 10;
-        obj->routine = (uint8_t)(a->subtype * 2);
+    if (self->subtype != 0) { // the end of a level: the kind of movement is the subtype
+        const unsigned i = (unsigned)self->subtype - 10;
+        self->routine = (uint8_t)(self->subtype * 2);
         if (i >= 11) {
-            ObjectDelete(obj);
+            Sst_Delete(self);
             return;
         }
-        obj->tile = TILE_MAP(0, 0, 0, 0, end_animals[i].tile);
-        obj->mappings = FrameSet(end_animals[i].frames);
-        a->xsp = obj->xsp = end_animals[i].xsp;
-        a->ysp = obj->ysp = end_animals[i].ysp;
-        DisplaySprite(obj);
+        self->art_tile = TILE_MAP(0, 0, 0, 0, end_animals[i].tile);
+        self->mappings = FrameSet(end_animals[i].frames);
+        a->xsp = self->x_vel = end_animals[i].xsp;
+        a->ysp = self->y_vel = end_animals[i].ysp;
+        Sst_Draw(self);
         return;
     }
 
-    obj->routine += 2; // from a badnik: one of the zone's two
+    self->routine += 2; // from a badnik: one of the zone's two
     const unsigned pick = RandomNumber() & 1;
     const unsigned zone = LEVEL_ZONE(level_id);
-    obj->tile = TILE_MAP(0, 0, 0, 0, pick ? ANIMAL_TILE_2 : ANIMAL_TILE_1);
+    self->art_tile = TILE_MAP(0, 0, 0, 0, pick ? ANIMAL_TILE_2 : ANIMAL_TILE_1);
     a->kind = zone_animals[zone < 17 ? zone : 0][pick];
     a->xsp = kinds[a->kind].xsp;
     a->ysp = kinds[a->kind].ysp;
-    obj->mappings = FrameSet(kinds[a->kind].frames);
-    obj->frame = 2;
-    obj->ysp = -0x400;
+    self->mappings = FrameSet(kinds[a->kind].frames);
+    self->mapping_frame = 2;
+    self->y_vel = -0x400;
 
     if (boss_status) { // after a boss they wait where they are
-        obj->routine = 0x1C;
-        obj->xsp = 0;
+        self->routine = 0x1C;
+        self->x_vel = 0;
     } else {
-        Sst *points = Sst_Spawn(ObjId_Points, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
+        Sst *points = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
         if (points != NULL) {
             points->mapping_frame = (uint8_t)(a->points >> 1);
         }
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
 // Offset_0x00A63A: falling out of the badnik until it lands, and then moving off as its kind does
-static void Land(Object *obj, Scratch_Flicky *a) {
-    if (!IsOnScreen(obj)) {
-        ObjectDelete(obj);
+static void Land(Sst *self, Own_Flicky *a) {
+    if (!IsOnScreen(self)) {
+        Sst_Delete(self);
         return;
     }
-    ObjectFall(obj);
-    if (obj->ysp >= 0) {
-        const int16_t d = ObjFloorDist(obj, obj->pos.l.x.f.u);
+    Sst_MoveSprite(self);
+    if (self->y_vel >= 0) {
+        const int16_t d = SstFloorDist(self, self->x_pos.f.u);
         if (d < 0) {
-            obj->pos.l.y.f.u += d;
-            obj->xsp = a->xsp;
-            obj->ysp = a->ysp;
-            obj->frame = 1;
-            obj->routine = (uint8_t)(a->kind * 2 + 4);
+            self->y_pos.f.u += d;
+            self->x_vel = a->xsp;
+            self->y_vel = a->ysp;
+            self->mapping_frame = 1;
+            self->routine = (uint8_t)(a->kind * 2 + 4);
             if (boss_status && (frame_count & 0x10))
-                Turn(obj);
+                Turn(self);
         }
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
 // Offset_0x00A694: running along, jumping when it lands
-static void Walk(Object *obj, Scratch_Flicky *a) {
-    ObjectFall(obj);
-    obj->frame = 1;
-    if (obj->ysp >= 0) {
-        obj->frame = 0;
-        const int16_t d = ObjFloorDist(obj, obj->pos.l.x.f.u);
+static void Walk(Sst *self, Own_Flicky *a) {
+    Sst_MoveSprite(self);
+    self->mapping_frame = 1;
+    if (self->y_vel >= 0) {
+        self->mapping_frame = 0;
+        const int16_t d = SstFloorDist(self, self->x_pos.f.u);
         if (d < 0) {
-            obj->pos.l.y.f.u += d;
-            obj->ysp = a->ysp;
+            self->y_pos.f.u += d;
+            self->y_vel = a->ysp;
         }
     }
-    if (a->subtype != 0) {
-        Gone(obj);
-    } else if (IsOnScreen(obj)) {
-        DisplaySprite(obj);
+    if (self->subtype != 0) {
+        Gone(self);
+    } else if (IsOnScreen(self)) {
+        Sst_Draw(self);
     } else {
-        ObjectDelete(obj);
+        Sst_Delete(self);
     }
 }
 
 // Offset_0x00A6D0: flying, flapping as it goes
-static void Fly(Object *obj, Scratch_Flicky *a) {
-    SpeedToPos(obj);
-    obj->ysp += 0x18;
-    if (obj->ysp >= 0) {
-        const int16_t d = ObjFloorDist(obj, obj->pos.l.x.f.u);
+static void Fly(Sst *self, Own_Flicky *a) {
+    Sst_MoveSprite2(self);
+    self->y_vel += 0x18;
+    if (self->y_vel >= 0) {
+        const int16_t d = SstFloorDist(self, self->x_pos.f.u);
         if (d < 0) {
-            obj->pos.l.y.f.u += d;
-            obj->ysp = a->ysp;
-            if (a->subtype != 0 && a->subtype != 0x0A)
-                Turn(obj);
+            self->y_pos.f.u += d;
+            self->y_vel = a->ysp;
+            if (self->subtype != 0 && self->subtype != 0x0A)
+                Turn(self);
         }
     }
-    Flap(obj);
-    if (a->subtype != 0)
-        Gone(obj);
-    else if (IsOnScreen(obj))
-        DisplaySprite(obj);
+    Flap(self);
+    if (self->subtype != 0)
+        Gone(self);
+    else if (IsOnScreen(self))
+        Sst_Draw(self);
     else
-        ObjectDelete(obj);
+        Sst_Delete(self);
 }
 
-void Obj_FlickyAnimals(Object *obj) {
-    Scratch_Flicky *a = (Scratch_Flicky *)&obj->scratch;
-    const unsigned index = obj->routine >> 1;
+void Obj_FlickyAnimals(Sst *self) {
+    Own_Flicky *a = (Own_Flicky *)self->own.u8;
+    const unsigned index = self->routine >> 1;
     if (index >= sizeof(routine_kinds)) {
-        ObjectDelete(obj);
+        Sst_Delete(self);
         return;
     }
 
     switch (routine_kinds[index]) {
     case K_INIT:
-        Init(obj, a);
+        Init(self, a);
         break;
     case K_LAND:
-        Land(obj, a);
+        Land(self, a);
         break;
     case K_WALK:
-        Walk(obj, a);
+        Walk(self, a);
         break;
     case K_FLY:
-        Fly(obj, a);
+        Fly(self, a);
         break;
     case K_WAIT: // (Offset_0x00A750: they wait where they are, after a boss, until the capsule counts down)
-        if (!IsOnScreen(obj)) {
-            ObjectDelete(obj);
+        if (!IsOnScreen(self)) {
+            Sst_Delete(self);
             return;
         }
         if (--a->timer == 0) {
-            obj->routine = 2;
-            obj->priority = 3;
+            self->routine = 2;
+            self->priority = 3 * 0x80;
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
     case K_FLICKY_WAIT: // (they fly off when the player is close)
-        if (PlayerClose(obj)) {
-            obj->xsp = a->xsp;
-            obj->ysp = a->ysp;
-            obj->routine = 0xE;
-            Fly(obj, a);
+        if (PlayerClose(self)) {
+            self->x_vel = a->xsp;
+            self->y_vel = a->ysp;
+            self->routine = 0xE;
+            Fly(self, a);
         } else {
-            Gone(obj);
+            Gone(self);
         }
         break;
     case K_FLICKY_JUMP: // (it jumps on the spot, facing the player, when he is near)
-        if (Reach(obj) < 0) {
-            obj->xsp = 0;
+        if (Reach(self) < 0) {
+            self->x_vel = 0;
             a->xsp = 0;
-            SpeedToPos(obj);
-            obj->ysp += 0x18;
-            JumpFrame(obj, a);
-            FacePlayer(obj);
-            Flap(obj);
+            Sst_MoveSprite2(self);
+            self->y_vel += 0x18;
+            JumpFrame(self, a);
+            FacePlayer(self);
+            Flap(self);
         }
-        Gone(obj);
+        Gone(self);
         break;
     case K_RABBIT_WAIT: // (it runs when the player is near)
-        if (Reach(obj) < 0) {
-            obj->xsp = a->xsp;
-            obj->ysp = a->ysp;
-            obj->routine = 4;
-            Walk(obj, a);
+        if (Reach(self) < 0) {
+            self->x_vel = a->xsp;
+            self->y_vel = a->ysp;
+            self->routine = 4;
+            Walk(self, a);
         } else {
-            Gone(obj);
+            Gone(self);
         }
         break;
     case K_DOUBLE_BOUNCE: // (Offset_0x00A7E6: no check of the player's nearness)
-        ObjectFall(obj);
-        obj->frame = 1;
-        if (obj->ysp >= 0) {
-            obj->frame = 0;
-            const int16_t d = ObjFloorDist(obj, obj->pos.l.x.f.u);
+        Sst_MoveSprite(self);
+        self->mapping_frame = 1;
+        if (self->y_vel >= 0) {
+            self->mapping_frame = 0;
+            const int16_t d = SstFloorDist(self, self->x_pos.f.u);
             if (d < 0)
-                BounceTurn(obj, a, d);
+                BounceTurn(self, a, d);
         }
-        Gone(obj);
+        Gone(self);
         break;
     case K_LAND_JUMP: // (it jumps in place once the player is near)
-        if (Reach(obj) < 0) {
-            obj->xsp = 0;
+        if (Reach(self) < 0) {
+            self->x_vel = 0;
             a->xsp = 0;
-            ObjectFall(obj);
-            JumpFrame(obj, a);
-            FacePlayer(obj);
+            Sst_MoveSprite(self);
+            JumpFrame(self, a);
+            FacePlayer(self);
         }
-        Gone(obj);
+        Gone(self);
         break;
     case K_SINGLE_BOUNCE:
-        if (Reach(obj) < 0) {
-            ObjectFall(obj);
-            obj->frame = 1;
-            if (obj->ysp >= 0) {
-                obj->frame = 0;
-                const int16_t d = ObjFloorDist(obj, obj->pos.l.x.f.u);
+        if (Reach(self) < 0) {
+            Sst_MoveSprite(self);
+            self->mapping_frame = 1;
+            if (self->y_vel >= 0) {
+                self->mapping_frame = 0;
+                const int16_t d = SstFloorDist(self, self->x_pos.f.u);
                 if (d < 0) {
-                    Turn(obj);
-                    obj->pos.l.y.f.u += d;
-                    obj->ysp = a->ysp;
+                    Turn(self);
+                    self->y_pos.f.u += d;
+                    self->y_vel = a->ysp;
                 }
             }
         }
-        Gone(obj);
+        Gone(self);
         break;
     case K_FLY_BOUNCE:
-        if (Reach(obj) < 0) {
-            SpeedToPos(obj);
-            obj->ysp += 0x18;
-            if (obj->ysp >= 0) {
-                const int16_t d = ObjFloorDist(obj, obj->pos.l.x.f.u);
+        if (Reach(self) < 0) {
+            Sst_MoveSprite2(self);
+            self->y_vel += 0x18;
+            if (self->y_vel >= 0) {
+                const int16_t d = SstFloorDist(self, self->x_pos.f.u);
                 if (d < 0)
-                    BounceTurn(obj, a, d);
+                    BounceTurn(self, a, d);
             }
-            Flap(obj);
+            Flap(self);
         }
-        Gone(obj);
+        Gone(self);
         break;
     }
 }

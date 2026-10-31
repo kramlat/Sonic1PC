@@ -17,7 +17,9 @@ for my $arg (@ARGV) {
     my @maps = $maps ? split(/,/, $maps) : ($obj);
     $src =~ s/^void Obj_\Q$obj\E\(Object \*obj\);\n//m;
     $src =~ s/^(#include "Object\/\Q$obj\E\.h"\n)//m;
-    $src =~ s/^(#include "SstLoad\.h"\n)/$1#include "Object\/$obj.h"\n/m or die "no SstLoad.h include";
+    if (-f "src/Object/$obj.h" || -f "../Sonic The Hedgehog/src/Object/$obj.h") {
+        $src =~ s/^(#include "SstLoad\.h"\n)/$1#include "Object\/$obj.h"\n/m or die "no SstLoad.h include";
+    }
     my $id;
     $src =~ s{(/\* ([0-9A-F]{2}) \w+\s*\*/ )Obj_\Q$obj\E,[^\n]*}{$id = hex($2); "$1NULL, // (moved to the status table: sst_object_codes)"}me or die "$obj: no row in game_objects[]";
     my ($name) = $src =~ m{/\* [0-9A-F]{2} (ObjId_\w+)\s*\*/ NULL, // \(moved to the status table: sst_object_codes\)(?!.*\n.*\Q$obj\E)}m;

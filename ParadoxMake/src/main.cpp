@@ -163,7 +163,8 @@ static std::string cmakeName(const Project &p) { return p.type == "shared-librar
 static bool convertedMappings(const Project &p, const std::string &name)
 {
 	for (const auto &from : p.mappingsFrom)
-		if (std::find(from.second.begin(), from.second.end(), name) != from.second.end()) return true;
+		for (const auto &m : from.second)
+			if (m.substr(0, m.find('|')) == name) return true; // ("name|BYTESxFRAMES": a file of several tables)
 	return false;
 }
 

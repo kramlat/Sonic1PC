@@ -1,6 +1,9 @@
 #include "SstLoad.h"
+#include "Object/Animals.h"
+#include "Object/Monitor.h"
 #include "Object/Signpost.h"
 #include "Object/Points.h"
+#include "Object/PrisonCapsule.h"
 #include "Object/Ring.h"
 #include "Object/GameOverCard.h"
 #include "Object/Credits.h"
@@ -39,12 +42,9 @@ void Obj_BuzzMissile(Object *obj);
 void Obj_BuzzExplode(Object *obj);
 void Obj_Spikes(Object *obj);
 void Obj_Spring(Object *obj);
-void Obj_Monitor(Object *obj);
 void Obj_Chopper(Object *obj);
-void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
 void Obj_GotThroughCard(Object *obj);
-void Obj_FlickyAnimals(Object *obj);
 void Obj_Coconuts(Object *obj);
 void Obj_Shellcracker(Object *obj);
 void Obj_ShellcrackerClaw(Object *obj);
@@ -215,7 +215,6 @@ void Obj_SpecialResultEmerald(Object *obj);
 void Obj_EggmanCylinder(Object *obj);
 void Obj_BossPlasma(Object *obj);
 void Obj_BossBlock(Object *obj);
-void Obj_PrisonCapsule(Object *obj);
 void Obj_VanishSonic(Object *obj);
 void Obj_MagicSwitch(Object *obj);
 void Obj_BallHog(Object *obj);
@@ -262,15 +261,15 @@ const ObjectFunc game_objects[] = {
 	/* 23 ObjId_BuzzMissile         */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 24 ObjId_BuzzExplode         */ Obj_OxygenBubbles, // (the alpha's vents of bubbles, where the prototype has Sonic 1's Buzz Bomber explosion that nothing makes)
 	/* 25 ObjId_Ring                */ NULL, // (moved to the status table: sst_object_codes)
-	/* 26 ObjId_Monitor             */ Obj_Monitor,
+	/* 26 ObjId_Monitor             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 27 ObjId_Explosion           */ Obj_ExplosionObject, // (an old object that turns into one: the explosion is on the status table)
-	/* 28 ObjId_Animal              */ Obj_FlickyAnimals,
+	/* 28 ObjId_Animal              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 29 ObjId_Points              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2A ObjId_SmallDoor           */ Obj_DHZStomper, // (the prototype's stomper of Dust Hill)
 	/* 2B ObjId_Chopper             */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 2C ObjId_Jaws                */ Obj_NGHZLeaves, // (the prototype's leaves of Neo Green Hill)
 	/* 2D ObjId_Burrobot           */ Obj_CPZBarrier, // (the prototype's one way barrier of Chemical Plant)
-	/* 2E ObjId_MonitorItem         */ Obj_MonitorItem,
+	/* 2E ObjId_MonitorItem         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 2F ObjId_LargeGrass         */ Obj_HTZBreakFloor, // (the prototype's breakable floor of Hill Top)
 	/* 30 ObjId_GlassBlock         */ Obj_HTZQuakeBlock, // (the prototype's solid ground of Hill Top's earthquake)
 	/* 31 ObjId_ChainStomp         */ Obj_HTZLavaBox, // (the prototype's lava boxes of Hill Top)
@@ -286,7 +285,7 @@ const ObjectFunc game_objects[] = {
 	/* 3B ObjId_GHZRock             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3C ObjId_SmashWall           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3D ObjId_BossGreenHill       */ Obj_Null, // (the prototype's object here is not ported yet)
-	/* 3E ObjId_PrisonCapsule       */ Obj_PrisonCapsule,
+	/* 3E ObjId_PrisonCapsule       */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3F ObjId_ExplosionBomb       */ Obj_ExplosionBombObject,
 	/* 40 ObjId_Motobug             */ Obj_DiagSpring, // (the prototype's diagonal springs)
 	/* 41 ObjId_Spring              */ Obj_Spring,
@@ -404,6 +403,10 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_Animal] = Obj_FlickyAnimals,
+	[ObjId_MonitorItem] = Obj_MonitorItem,
+	[ObjId_Monitor] = Obj_Monitor,
+	[ObjId_PrisonCapsule] = Obj_PrisonCapsule,
 	[ObjId_RingLoss] = Obj_RingLoss,
 	[ObjId_Ring] = Obj_Ring,
 	[ObjId_Signpost] = Obj_Signpost,

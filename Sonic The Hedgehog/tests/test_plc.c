@@ -1,4 +1,5 @@
 #include "test.h"
+#include "SstLoad.h"
 
 #include "PLC.h"
 #include "Constants.h"
@@ -140,22 +141,23 @@ static void PLC_TheBossListsDoNotTouchTheAnimalsArt(void) {
 // The animals that Green Hill's prison capsule lets out are ordinary animals: the zone's rabbit and flicky art, never the ending's
 static void PLC_PrisonAnimalsUseTheZonesAnimalArt(void) {
     level_id = LEVEL_ID(ZoneId_GHZ, 2);
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
-    Object *prison = &level_objects[0];
-    prison->type = ObjId_PrisonCapsule;
+    Sst_Reset();
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {0x80, 0, false, 0xFFF};
+    scrpos_x.f.u = 0x80;
+    SstLoad_Init(&index_, NULL, false, &camera);
+    Sst *prison = Sst_Spawn(ObjId_PrisonCapsule, 0x100, 0x100);
     prison->routine = 0xA;
-    prison->frame_time.w = 1;
-    prison->pos.l.x.f.u = 0x100;
-    prison->pos.l.y.f.u = 0x100;
+    ((Own_PrisonCapsule *)prison->own.u8)->timer = 1;
     Obj_PrisonCapsule(prison);
     int animals = 0;
-    for (int i = 1; i < LEVEL_OBJECTS; i++) {
-        Object *a = &level_objects[i];
-        if (a->type != ObjId_Animal)
+    for (int i = 0; i < SST_COUNT; i++) {
+        Sst *a = &sst[i];
+        if (a->code == NULL || a->code != sst_object_codes[ObjId_Animal])
             continue;
         animals++;
         Obj_Animals(a);
-        const int tile = a->tile & 0x7FF;
+        const int tile = a->art_tile & 0x7FF;
         CHECK(tile == ArtTile_Animal_1 || tile == ArtTile_Animal_2);
         CHECK(a->mappings != NULL);
     }
@@ -206,19 +208,20 @@ static void Boss_TheShipsPiecesGoWithTheShip(void) {
 // The prison capsule's explosions are the fiery ones of Object 3F (a destroyed boss's, and the Walking Bomb's: the bomb's sound), not the badnik explosion
 static void Prison_ExplodesLikeABoss(void) {
     level_id = LEVEL_ID(ZoneId_GHZ, 2);
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
-    Object *prison = &level_objects[0];
-    prison->type = ObjId_PrisonCapsule;
+    Sst_Reset();
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {0x80, 0, false, 0xFFF};
+    scrpos_x.f.u = 0x80;
+    SstLoad_Init(&index_, NULL, false, &camera);
+    Sst *prison = Sst_Spawn(ObjId_PrisonCapsule, 0x100, 0x100);
     prison->routine = 0xA;
-    prison->frame_time.w = 100;
-    prison->pos.l.x.f.u = 0x100;
-    prison->pos.l.y.f.u = 0x100;
+    ((Own_PrisonCapsule *)prison->own.u8)->timer = 100;
     frame_count = 0; // (it makes one every 8th frame)
     Obj_PrisonCapsule(prison);
     int bombs = 0, badniks = 0;
-    for (int i = 1; i < LEVEL_OBJECTS; i++) {
-        bombs += level_objects[i].type == ObjId_ExplosionBomb;
-        badniks += level_objects[i].type == ObjId_Explosion;
+    for (int i = 0; i < SST_COUNT; i++) {
+        bombs += sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_ExplosionBomb];
+        badniks += sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_Explosion];
     }
     CHECK_EQ(bombs, 1);
     CHECK_EQ(badniks, 0);

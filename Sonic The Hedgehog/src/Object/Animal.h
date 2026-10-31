@@ -1,7 +1,7 @@
 #ifndef _ANIMAL_H
 #define _ANIMAL_H
 
-#include "Object.h"
+#include "Sst.h"
 #include "MathUtil.h"
 #include "Level.h"
 #include "Video.h"
@@ -43,28 +43,28 @@ typedef struct {
 	uint16_t timer;  //0x36
 	uint8_t pad3[6];
 	uint16_t points; //0x3E
-} Scratch_Animals;
+} Own_Animals;
 
-STATIC_ASSERT(offsetof(Scratch_Animals, routine) == 0x30 - 0x28, "Scratch_Animals.routine must be at 0x30");
-STATIC_ASSERT(offsetof(Scratch_Animals, timer) == 0x36 - 0x28, "Scratch_Animals.timer must be at 0x36");
-STATIC_ASSERT(offsetof(Scratch_Animals, points) == 0x3E - 0x28, "Scratch_Animals.points must be at 0x3E");
+STATIC_ASSERT(offsetof(Own_Animals, routine) == 0x30 - 0x28, "Own_Animals.routine must be at 0x30");
+STATIC_ASSERT(offsetof(Own_Animals, timer) == 0x36 - 0x28, "Own_Animals.timer must be at 0x36");
+STATIC_ASSERT(offsetof(Own_Animals, points) == 0x3E - 0x28, "Own_Animals.points must be at 0x3E");
 
-void Obj_Animals_Construct(Object* obj, Scratch_Animals *scratch);
-void Obj_Animals_FromEnemy(Object* obj, Scratch_Animals *scratch);
-void Obj_Animals_Main(Object* obj, const Scratch_Animals *scratch);
-void Obj_Animals_Walk(Object* obj, const Scratch_Animals *scratch);
-void Obj_Animals_Fly(Object* obj, const Scratch_Animals *scratch);
-void Obj_Animals_Prison(Object* obj, Scratch_Animals *scratch);
-bool Obj_Animals_CheckInRange(Object *obj);
-void Obj_Animals_FlickyWait(Object *obj, const Scratch_Animals *scratch);
-void Obj_Animals_UpdateRender(Object *obj);
-void Obj_Animals_UpdateFrame(Object *obj, Scratch_Animals *scratch);
-void Obj_Animals_FlickyJump(Object *obj, Scratch_Animals *scratch);
-void Obj_Animals_RabbitWait(Object *obj, const Scratch_Animals *scratch);
-void Obj_Animals_LandJump(Object *obj, Scratch_Animals *scratch);
-void Obj_Animals_SingleBounce(Object *obj, const Scratch_Animals *scratch);
-void Obj_Animals_FlyBounce(Object *obj, Scratch_Animals *scratch);
-void Obj_Animals_DoubleBounce(Object *obj, Scratch_Animals *scratch);
-void Obj_Animals(Object *obj);
+void Obj_Animals_Construct(Sst *self, Own_Animals *scratch);
+void Obj_Animals_FromEnemy(Sst *self, Own_Animals *scratch);
+void Obj_Animals_Main(Sst *self, const Own_Animals *scratch);
+void Obj_Animals_Walk(Sst *self, const Own_Animals *scratch);
+void Obj_Animals_Fly(Sst *self, const Own_Animals *scratch);
+void Obj_Animals_Prison(Sst *self, Own_Animals *scratch);
+bool Obj_Animals_CheckInRange(Sst *self);
+void Obj_Animals_FlickyWait(Sst *self, const Own_Animals *scratch);
+void Obj_Animals_UpdateRender(Sst *self);
+void Obj_Animals_UpdateFrame(Sst *self, Own_Animals *scratch);
+void Obj_Animals_FlickyJump(Sst *self, Own_Animals *scratch);
+void Obj_Animals_RabbitWait(Sst *self, const Own_Animals *scratch);
+void Obj_Animals_LandJump(Sst *self, Own_Animals *scratch);
+void Obj_Animals_SingleBounce(Sst *self, const Own_Animals *scratch);
+void Obj_Animals_FlyBounce(Sst *self, Own_Animals *scratch);
+void Obj_Animals_DoubleBounce(Sst *self, Own_Animals *scratch);
+void Obj_Animals(Sst *self);
 
 #endif

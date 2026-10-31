@@ -15,13 +15,9 @@
 #include "Resource/Mappings/ExplodeBomb.h"
 
 static void Explosion_Animal(Sst *self) {
-    Object *animal = FindFreeObj();
-    if (animal != NULL) {
-        animal->type = ObjId_Animal;
-        animal->pos.l.x.f.u = self->x_pos.f.u;
-        animal->pos.l.y.f.u = self->y_pos.f.u;
-        animal->scratch.u16[0xB] = self->own.u16[0xB];
-    }
+    Sst *animal = Sst_Spawn(ObjId_Animal, self->x_pos.f.u, self->y_pos.f.u);
+    if (animal != NULL)
+        animal->own.u16[0xB] = self->own.u16[0xB];
 }
 
 static void Explosion_Construct(Sst *self, const uint8_t *mappings, uint8_t sound) {
