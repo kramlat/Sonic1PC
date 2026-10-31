@@ -51,7 +51,8 @@ struct Project {
 	std::vector<Reuse> reuse;   // projects whose code and resources this one starts from (the in-between games: Sonic 2 begins as Sonic 1)
 	bool reuseOnly = false;     // loaded only to be reused from: not built as a target of its own
 	std::string songDir;
-	std::vector<std::string> depends, include, sources, resources, assemble, mappingsS2;
+	std::vector<std::string> depends, include, sources, resources, assemble;
+	std::map<std::string, std::vector<std::string>> mappingsFrom; // binary sprite mappings in another project's format (mappings_<Project>:): their headers are written in the format of Sonic 3 & Knuckles
 	std::vector<std::pair<std::string, std::string>> songs; // {jsonc file, C array name}
 };
 
@@ -91,7 +92,10 @@ static bool loadProject(const fs::path &dir, Project &p)
 	p.sources = strList(y["sources"]);
 	p.resources = strList(y["resources"]);
 	p.assemble = strList(y["assemble"]);
-	p.mappingsS2 = strList(y["mappings_s2"]); // binary sprite mappings in Sonic 2's format: their headers are written in the format of Sonic 3 & Knuckles
+	for (const auto &kv : y) {
+		const std::string key = kv.first.as<std::string>();
+		if (key.rfind("mappings_", 0) == 0) p.mappingsFrom[key.substr(9)] = strList(kv.second);
+	}
 	p.songDir = str(y, "song_dir", "res/SMPS/converted");
 	if (y["reuse"]) for (const auto &n : y["reuse"]) {
 		Project::Reuse r;
@@ -154,6 +158,14 @@ static void emitList(std::ostream &o, const fs::path &base, const std::vector<st
 }
 
 static std::string cmakeName(const Project &p) { return p.type == "shared-library" ? p.name : (p.coreLibrary.empty() ? p.name : p.coreLibrary); }
+
+// whether a name is converted by a mappings_<Project>: list
+static bool convertedMappings(const Project &p, const std::string &name)
+{
+	for (const auto &from : p.mappingsFrom)
+		if (std::find(from.second.begin(), from.second.end(), name) != from.second.end()) return true;
+	return false;
+}
 
 static void emitProject(std::ostream &o, const Project &p, const std::map<std::string, Project> &all)
 {
@@ -221,14 +233,14 @@ static void emitProject(std::ostream &o, const Project &p, const std::map<std::s
 	if (!p.cmakeFragment.empty()) o << "include(" << qp(p.dir / p.cmakeFragment) << ")\n";
 	for (const auto &sg : p.songs)
 		o << "pm_add_song(" << tgt << " " << qp(p.dir / p.songDir) << " " << qp(p.dir / p.resourceOut / "Music") << " " << q(sg.first) << " " << sg.second << ")\n";
-	// what a project assembles (asm -> res) is converted to its Resource headers as well, unless it lists the name in resources: itself (or in mappings_s2:, which converts it in its own way)
+	// what a project assembles (asm -> res) is converted to its Resource headers as well, unless it lists the name in resources: itself (or in mappings_<Project>:, which converts it in its own way)
 	o << "pm_convert_resources(" << tgt << " " << qp(p.dir / p.resourceDir) << " " << qp(p.dir / p.resourceOut) << " ${PM_RESOURCES}";
 	for (const auto &a : p.assemble)
-		if (std::find(p.resources.begin(), p.resources.end(), a) == p.resources.end() && std::find(p.mappingsS2.begin(), p.mappingsS2.end(), a) == p.mappingsS2.end()) o << "\n  " << q(a);
+		if (std::find(p.resources.begin(), p.resources.end(), a) == p.resources.end() && !convertedMappings(p, a)) o << "\n  " << q(a);
 	o << ")\n";
-	if (!p.mappingsS2.empty()) {
-		o << "pm_convert_mappings(" << tgt << " " << qp(p.dir / p.resourceDir) << " " << qp(p.dir / p.resourceOut);
-		for (const auto &m : p.mappingsS2) o << "\n  " << q(m);
+	for (const auto &from : p.mappingsFrom) {
+		o << "pm_convert_mappings(" << tgt << " " << qp(p.dir / p.resourceDir) << " " << qp(p.dir / p.resourceOut) << " " << from.first;
+		for (const auto &m : from.second) o << "\n  " << q(m);
 		o << ")\n";
 	}
 	if (!p.assemble.empty()) {

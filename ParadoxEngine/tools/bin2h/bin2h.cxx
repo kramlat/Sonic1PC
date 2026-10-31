@@ -180,7 +180,7 @@ std::string format_obj(std::string s)
 }
 
 /* Sonic 2's sprite mappings (a table of frame offsets, then per frame a word piece count and 8-byte pieces: y and size, tile, the 2-player tile, x) to Sonic 3 & Knuckles' (6-byte pieces without the
-   2-player tile): `bin2h in out pad mappings-s3`. A frame the table names more than once is written once. Returns the new size; the input is left alone when it does not look like a table. */
+   2-player tile): `bin2h in out pad mappings-s3-from SonicTheHedgehog2` (the project whose format the input is in). A frame the table names more than once is written once. Returns the new size; the input is left alone when it does not look like a table. */
 static unsigned char* mappings_s2_to_s3(const unsigned char* in, long size, long* out_size)
 {
     if (size < 2)
@@ -254,7 +254,11 @@ int main(int argc, char* argv[])
                 return -1;
             }
             fclose(in_file);
-            if (argc > 4 && std::string(argv[4]) == "mappings-s3") {
+            if (argc > 4 && std::string(argv[4]) == "mappings-s3-from") {
+                if (argc < 6 || std::string(argv[5]) != "SonicTheHedgehog2") {
+                    printf("No mappings of the format of project '%s' are known\n", argc < 6 ? "" : argv[5]);
+                    return -1;
+                }
                 long converted_size = 0;
                 unsigned char* converted = mappings_s2_to_s3(in_file_buffer, in_file_size, &converted_size);
                 if (converted == NULL) {

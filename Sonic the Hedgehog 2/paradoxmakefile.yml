@@ -706,7 +706,7 @@ sources:
   - "src/Sonic2Objects.c"
   - "src/Object/TitleCharacters.c"
 # binary sprite mappings in Sonic 2's format (the importer's output): their headers are written in Sonic 3 & Knuckles' format
-mappings_s2:
+mappings_SonicTheHedgehog2:
   - "Mappings/Sonic"
   - "Mappings/Tails"
   - "Mappings/SuperSonicStars"
@@ -716,7 +716,7 @@ assemble:
   - "Mappings/TitleCharacters"
   - "Mappings/Points"
   - "Mappings/Checkpoint"
-  - "Mappings/ShieldInvincibility" # (Sonic 2 format: the build converts it, see mappings_s2)
+  - "Mappings/ShieldInvincibility" # (Sonic 2 format: the build converts it, see mappings_SonicTheHedgehog2)
   - "Mappings/RingREV01"
   - "Mappings/HUD"
   - "Mappings/Spring"

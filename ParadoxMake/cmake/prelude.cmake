@@ -61,14 +61,14 @@ function(pm_convert_resources TARGET IN_DIR OUT_DIR)
   endforeach()
 endfunction()
 
-# pm_convert_mappings(TARGET IN_DIR OUT_DIR files...): binary sprite mappings in Sonic 2's format become headers in the format of Sonic 3 & Knuckles (bin2h's mappings-s3), added to TARGET.
-function(pm_convert_mappings TARGET IN_DIR OUT_DIR)
+# pm_convert_mappings(TARGET IN_DIR OUT_DIR PROJECT files...): binary sprite mappings in the format of the project PROJECT (bin2h knows SonicTheHedgehog2) become headers in the format of Sonic 3 & Knuckles (bin2h's mappings-s3), added to TARGET.
+function(pm_convert_mappings TARGET IN_DIR OUT_DIR FROM_PROJECT)
   foreach(FILENAME IN LISTS ARGN)
     get_filename_component(DIRECTORY "${FILENAME}" DIRECTORY)
     add_custom_command(
       OUTPUT "${OUT_DIR}/${FILENAME}.h"
       COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}/${DIRECTORY}"
-      COMMAND bin2h_tool "${IN_DIR}/${FILENAME}" "${OUT_DIR}/${FILENAME}.h" 8 mappings-s3
+      COMMAND bin2h_tool "${IN_DIR}/${FILENAME}" "${OUT_DIR}/${FILENAME}.h" 8 mappings-s3-from ${FROM_PROJECT}
       DEPENDS bin2h_tool "${IN_DIR}/${FILENAME}"
       VERBATIM)
     target_sources(${TARGET} PRIVATE "${OUT_DIR}/${FILENAME}.h")
