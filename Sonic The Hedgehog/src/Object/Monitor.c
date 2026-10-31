@@ -2,6 +2,7 @@
 #include "Constants.h"
 
 #include "InvisibleBarrier.h"
+#include "ShieldInvincibility.h"
 #include "Level.h"
 #include "LevelCollision.h"
 #include "LevelScroll.h"
@@ -274,20 +275,16 @@ void Obj_MonitorItem(Object *obj) {
                 break;
             case 4: // Shield
                 shield = true;
-                objects[6].type = ObjId_ShieldInvincibility;
+                ShieldInvincibility_Make(0);
                 PlaySound(sfx_Shield);
                 break;
             case 5: // Invincibility
                 invincibility = true;
                 scratch->invincibility_time = 1200;
-                objects[8].type = ObjId_ShieldInvincibility;
-                objects[8].anim = 1;
-                objects[9].type = ObjId_ShieldInvincibility;
-                objects[9].anim = 2;
-                objects[10].type = ObjId_ShieldInvincibility;
-                objects[10].anim = 3;
-                objects[11].type = ObjId_ShieldInvincibility;
-                objects[11].anim = 4;
+                ShieldInvincibility_Make(1);
+                ShieldInvincibility_Make(2);
+                ShieldInvincibility_Make(3);
+                ShieldInvincibility_Make(4);
                 if (!lock_screen) {
                     PlayMusic(bgm_Invincible);
                 }

@@ -221,10 +221,10 @@ static void emitProject(std::ostream &o, const Project &p, const std::map<std::s
 	if (!p.cmakeFragment.empty()) o << "include(" << qp(p.dir / p.cmakeFragment) << ")\n";
 	for (const auto &sg : p.songs)
 		o << "pm_add_song(" << tgt << " " << qp(p.dir / p.songDir) << " " << qp(p.dir / p.resourceOut / "Music") << " " << q(sg.first) << " " << sg.second << ")\n";
-	// what a project assembles (asm -> res) is converted to its Resource headers as well, unless it lists the name in resources: itself
+	// what a project assembles (asm -> res) is converted to its Resource headers as well, unless it lists the name in resources: itself (or in mappings_s2:, which converts it in its own way)
 	o << "pm_convert_resources(" << tgt << " " << qp(p.dir / p.resourceDir) << " " << qp(p.dir / p.resourceOut) << " ${PM_RESOURCES}";
 	for (const auto &a : p.assemble)
-		if (std::find(p.resources.begin(), p.resources.end(), a) == p.resources.end()) o << "\n  " << q(a);
+		if (std::find(p.resources.begin(), p.resources.end(), a) == p.resources.end() && std::find(p.mappingsS2.begin(), p.mappingsS2.end(), a) == p.mappingsS2.end()) o << "\n  " << q(a);
 	o << ")\n";
 	if (!p.mappingsS2.empty()) {
 		o << "pm_convert_mappings(" << tgt << " " << qp(p.dir / p.resourceDir) << " " << qp(p.dir / p.resourceOut);

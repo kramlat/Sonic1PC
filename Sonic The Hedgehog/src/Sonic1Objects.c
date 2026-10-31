@@ -4,6 +4,7 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/ShieldInvincibility.h"
 #include "Object/EndingSonic.h"
 #include "Object/ContinueSonic.h"
 #include "Object/SpecialSonic.h"
@@ -101,7 +102,6 @@ void Obj_TitleCard(Object *obj);
 void Obj_GotThroughCard(Object *obj);
 void Obj_Animals(Object *obj);
 void Obj_RingLoss(Object *obj);
-void Obj_ShieldInvincibility(Object *obj);
 void Obj_GameOverCard(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_Credits(Object *obj);
@@ -193,7 +193,7 @@ const ObjectFunc game_objects[] = {
 	/* 35 ObjId_GrassFire           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 36 ObjId_Spikes              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 37 ObjId_RingLoss            */ Obj_RingLoss,
-	/* 38 ObjId_ShieldInvincibility */ Obj_ShieldInvincibility,
+	/* 38 ObjId_ShieldInvincibility */ NULL, // (moved to the status table: sst_object_codes)
 	/* 39 ObjId_GameOverCard        */ Obj_GameOverCard,
 	/* 3A ObjId_GotThroughCard      */ Obj_GotThroughCard,
 	/* 3B ObjId_GHZRock             */ NULL, // (moved to the status table: sst_object_codes)
@@ -285,6 +285,7 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_ShieldInvincibility] = Obj_ShieldInvincibility,
 	[ObjId_87] = Obj_EndSonic,
 	[ObjId_81] = Obj_ContSonic,
 	[ObjId_SpecialSonic] = Obj_SpecialSonic,

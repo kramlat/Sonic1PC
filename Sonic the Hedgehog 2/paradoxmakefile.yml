@@ -106,7 +106,6 @@ resources:
   - "Mappings/Spikes"
   - "Mappings/Points"
   - "Mappings/Checkpoint"
-  - "Mappings/ShieldInvincibility"
   - "Art/HUD"
   - "Art/HUDLife"
   - "Art/HUDNum"
@@ -117,7 +116,6 @@ resources:
   - "Animation/DustSplash"
   - "Mappings/DustSplash"
   - "Mappings/DustSplashDPLC"
-  - "Mappings/SuperSonicStars"
   - "Animation/Countdown"
   - "Animation/CountdownWobble"
   - "Mappings/Countdown"
@@ -711,12 +709,14 @@ sources:
 mappings_s2:
   - "Mappings/Sonic"
   - "Mappings/Tails"
+  - "Mappings/SuperSonicStars"
+  - "Mappings/ShieldInvincibility"
 
 assemble:
   - "Mappings/TitleCharacters"
   - "Mappings/Points"
   - "Mappings/Checkpoint"
-  - "Mappings/ShieldInvincibility"
+  - "Mappings/ShieldInvincibility" # (Sonic 2 format: the build converts it, see mappings_s2)
   - "Mappings/RingREV01"
   - "Mappings/HUD"
   - "Mappings/Spring"

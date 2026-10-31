@@ -8,6 +8,7 @@
 #include "SstLoad.h"
 #include "Object/Explosion.h"
 #include "Object/Sonic.h"
+#include "Object/ShieldInvincibility.h"
 #include "Mappings.h"
 
 // The Sonic 1 objects that have moved to the status table, loaded from a layout by the loader of that table and run by its handler.
@@ -310,6 +311,51 @@ static void SstObjects_ABuzzBomberFiresAMissileThatGoesWhenItsParentExplodes(voi
     CHECK(missile->code == NULL);                        // (the missile goes with it)
 }
 
+static int CountPowerups(void) {
+    int n = 0;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_ShieldInvincibility)
+            n++;
+    return n;
+}
+
+static void SstObjects_TheShieldFollowsSonicAndGoesWhenHeLosesIt(void) {
+    Start();
+    player->x_pos.f.u = 0x180;
+    player->y_pos.f.u = 0x90;
+    shield = true;
+    invincibility = false;
+    ShieldInvincibility_Make(0);
+    ShieldInvincibility_Make(0);                       // (he takes a second shield monitor: there is still the one)
+    CHECK_EQ(CountPowerups(), 1);
+    Sst_Process(false);
+    Sst_Process(false);
+    Sst *obj = NULL;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_ShieldInvincibility)
+            obj = &sst[i];
+    CHECK(obj != NULL);
+    CHECK_EQ(obj->x_pos.f.u, 0x180);
+    CHECK_EQ(obj->y_pos.f.u, 0x90);
+    shield = false;
+    Sst_Process(false);
+    CHECK_EQ(CountPowerups(), 0);
+}
+
+static void SstObjects_TheFourStarsTrailSonicAndGoWhenInvincibilityEnds(void) {
+    Start();
+    invincibility = true;
+    for (uint8_t a = 1; a <= 4; a++)
+        ShieldInvincibility_Make(a);
+    CHECK_EQ(CountPowerups(), 4);
+    for (int i = 0; i < 4; i++)
+        Sst_Process(false);
+    CHECK_EQ(CountPowerups(), 4);
+    invincibility = false;
+    Sst_Process(false);
+    CHECK_EQ(CountPowerups(), 0);
+}
+
 // Every mapping that the status table draws is in its format: 6-byte pieces whose size byte has only its low four bits (the build had stale headers once: the arrays were the old 8-byte data)
 static void CheckMappings(const uint8_t *m, int frames) {
     for (int f = 0; f < frames; f++) {
@@ -324,15 +370,19 @@ static void CheckMappings(const uint8_t *m, int frames) {
 extern const uint8_t Mappings_Sonic[];
 extern const uint8_t Mappings_Pylon[];
 extern const uint8_t Mappings_Points[];
+extern const uint8_t Mappings_ShieldInvincibility[];
 
 static void SstObjects_TheMappingsOfTheTableAreInItsFormat(void) {
     CheckMappings(Mappings_Sonic, 0x40);
     CheckMappings(Mappings_Pylon, 1);
     CheckMappings(Mappings_Points, 7);
+    CheckMappings(Mappings_ShieldInvincibility, 8);
 }
 
 void RegisterSstObjectsTests(void) {
     RUN_TEST(SstObjects_TheMappingsOfTheTableAreInItsFormat);
+    RUN_TEST(SstObjects_TheShieldFollowsSonicAndGoesWhenHeLosesIt);
+    RUN_TEST(SstObjects_TheFourStarsTrailSonicAndGoWhenInvincibilityEnds);
     RUN_TEST(SstObjects_ABuzzBomberFiresAMissileThatGoesWhenItsParentExplodes);
     RUN_TEST(SstObjects_AnOrbinautCarriesFourSpikeballsAndTakesThemWhenItLeaves);
     RUN_TEST(SstObjects_AHelixMakesItsSpikesAndTakesThemWhenItLeaves);

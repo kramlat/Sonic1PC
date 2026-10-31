@@ -3,33 +3,47 @@
 // level's top left corner and, but for the invincibility itself, nothing shows.
 #include "Object/ShieldInvincibility.h"
 #include "Constants.h"
+#include "Object.h"
+#include "ObjectSst.h"
+#include "SstLoad.h"
+#include "Resource/Animation/ShieldInvincibility.h"
+#include "Resource/Mappings/ShieldInvincibility.h"
+extern const uint8_t Mappings_Sonic[];
 
 #include "Level.h"
 #include "Object/Sonic.h"
 
-void Obj_ShieldInvincibility(Object* obj) {
-    switch (obj->routine) {
+void ShieldInvincibility_Make(uint8_t anim) {
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_ShieldInvincibility && sst[i].anim == anim)
+            return;
+    Sst *self = Sst_Spawn(ObjId_ShieldInvincibility, 0, 0);
+    if (self != NULL)
+        self->anim = anim;
+}
+
+void Obj_ShieldInvincibility(Sst *self) {
+    switch (self->routine) {
     case 0: // Initialiation
         // Increment routine
-        obj->routine += 2;
+        self->routine += 2;
 
         // Set object drawing information
-        obj->mappings = Mappings_ShieldInvincibility;
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->priority = 1;
-        obj->width_pixels = 0x18;
+        self->mappings = Mappings_ShieldInvincibility;
+        self->render_flags = SST_RENDER_LEVEL;
+        self->priority = 1 * 0x80;
+        self->width_pixels = 0x18;
 
         // Check if invincibility or shield
-        if (!obj->anim) {
+        if (!self->anim) {
             // Shield
-            obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Shield);
+            self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Shield);
         } else {
             // Invincibility: Sonic's own mappings, with the stars' tiles
-            obj->routine += 2;
-            obj->mappings = Mappings_Sonic;
-            obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Invincibility);
-            obj->priority = 2;
+            self->routine += 2;
+            self->mappings = Mappings_Sonic;
+            self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Invincibility);
+            self->priority = 2 * 0x80;
         }
         break;
     case 2: // Shield
@@ -37,33 +51,33 @@ void Obj_ShieldInvincibility(Object* obj) {
         if (invincibility)
             break;
         if (!shield) {
-            ObjectDelete(obj);
+            Sst_Delete(self);
             break;
         }
 
         // Update shield position
-        obj->pos.l.x.f.u = player->x_pos.f.u;
-        obj->pos.l.y.f.u = player->y_pos.f.u;
-        obj->status.b = player->status;
+        self->x_pos.f.u = player->x_pos.f.u;
+        self->y_pos.f.u = player->y_pos.f.u;
+        self->status = player->status;
 
         // Animate and draw shield
-        AnimateSprite(obj, Animation_ShieldInvincibility);
-        DisplaySprite(obj);
+        Sst_Animate(self, Animation_ShieldInvincibility);
+        Sst_Draw(self);
         break;
     case 4: // Invincibility
         // Check if invincibility should exist
         if (!invincibility) {
-            ObjectDelete(obj);
+            Sst_Delete(self);
             break;
         }
 
         // The star trail buffer (never filled in): the corner of the level
-        obj->pos.l.x.f.u = 0;
-        obj->pos.l.y.f.u = 0;
-        obj->status.b = player->status;
-        obj->frame = player->mapping_frame;
-        obj->render.b = player->render_flags;
-        DisplaySprite(obj);
+        self->x_pos.f.u = 0;
+        self->y_pos.f.u = 0;
+        self->status = player->status;
+        self->mapping_frame = player->mapping_frame;
+        self->render_flags = SST_RENDER_LEVEL | (player->render_flags & (SST_RENDER_X_FLIP | SST_RENDER_Y_FLIP));
+        Sst_Draw(self);
         break;
     }
 }

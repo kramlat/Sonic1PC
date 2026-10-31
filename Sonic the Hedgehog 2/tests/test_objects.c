@@ -12,6 +12,9 @@
 #include "Object/Tails.h"
 #include "Object/Sonic.h"
 #include "Object/SuperSonic.h"
+#include "Object/SuperSonicStars.h"
+#include "Object/ShieldInvincibility.h"
+#include "SstLoad.h"
 #include "Object/DustSplash.h"
 #include "Object/Countdown.h"
 #include "Object/Animals.h"
@@ -991,7 +994,51 @@ static void Sound_HiddenPalaceTracksLoopTogether(void) {
     CHECK(tracks >= 9);
 }
 
+static int PowerupsOnTheTable(SstCode code) {
+    int n = 0;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == code)
+            n++;
+    return n;
+}
+
+static void Powerups_TheShieldFollowsSonicAndGoesWithIt(void) {
+    Sst_Reset();
+    shield = true;
+    invincibility = false;
+    player->x_pos.f.u = 0x240;
+    player->y_pos.f.u = 0x130;
+    ShieldInvincibility_Make(0);
+    ShieldInvincibility_Make(0);
+    CHECK_EQ(PowerupsOnTheTable(Obj_ShieldInvincibility), 1);
+    Sst_Process(false);
+    Sst_Process(false);
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_ShieldInvincibility) {
+            CHECK_EQ(sst[i].x_pos.f.u, 0x240);
+            CHECK_EQ(sst[i].y_pos.f.u, 0x130);
+            CHECK_EQ(sst[i].width_pixels, 0x18);
+        }
+    shield = false;
+    Sst_Process(false);
+    CHECK_EQ(PowerupsOnTheTable(Obj_ShieldInvincibility), 0);
+}
+
+static void Powerups_SuperSonicsStarsGoWithTheFlag(void) {
+    Sst_Reset();
+    super_sonic_flag = true;
+    Sst *stars = Sst_Spawn(ObjId_SSResult, 0, 0);
+    CHECK(stars != NULL);
+    Sst_Process(false);
+    CHECK_EQ(PowerupsOnTheTable(Obj_SuperSonicStars), 1);
+    super_sonic_flag = false;
+    Sst_Process(false);
+    CHECK_EQ(PowerupsOnTheTable(Obj_SuperSonicStars), 0);
+}
+
 void RegisterObjectCoverageTests(void) {
+    RUN_TEST(Powerups_TheShieldFollowsSonicAndGoesWithIt);
+    RUN_TEST(Powerups_SuperSonicsStarsGoWithTheFlag);
     RUN_TEST(Sound_NoEffectHangsAfterTwoOverlapS2);
     RUN_TEST(Sound_HiddenPalaceTracksLoopTogether);
     RUN_TEST(DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat);
