@@ -135,7 +135,7 @@ const ObjectFunc game_objects[] = {
 	/* 05 ObjId_05                  */ Obj_Null,
 	/* 06 ObjId_06                  */ Obj_Null,
 	/* 07 ObjId_07                  */ Obj_Null,
-	/* 08 ObjId_Splash              */ Obj_Splash,
+	/* 08 ObjId_Splash              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 09 ObjId_SpecialSonic        */ NULL, // (moved to the status table: sst_object_codes)
 	/* 0A ObjId_DrownCount          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 0B ObjId_Pole                */ NULL, // (moved to the status table: sst_object_codes)
@@ -275,6 +275,7 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_Splash] = Obj_Splash,
 	[ObjId_Bubble] = Obj_Bubble,
 	[ObjId_DrownCount] = Obj_DrownCount,
 	[ObjId_HUD] = Obj_HUD,

@@ -1,4 +1,5 @@
 #include "SstLoad.h"
+#include "Object/Splash.h"
 #include "GM_Level.h"
 #include "Viewport.h"
 #include "GameInterface.h"
@@ -328,7 +329,10 @@ GM_Level_Branch:;
 
     // Create player and HUD objects
     player->code = sst_object_codes[ObjId_Sonic];
-    objects[0x1B].type = ObjId_Splash; // Spin Dash dust / skid dust / water splash companion
+    if (sst_object_codes[ObjId_Splash] != NULL)
+        Splash_Make(); // Spin Dash dust / skid dust / water splash companion
+    else
+        objects[0x1B].type = ObjId_Splash; // (a game whose companion has not moved over yet)
     if (demo >= 0)
         Sst_Spawn(ObjId_HUD, 0, 0);
     Game_LevelObjects();

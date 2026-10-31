@@ -1,7 +1,7 @@
 #ifndef _SPLASH_H
 #define _SPLASH_H
 
-#include "Object.h"
+#include "Sst.h"
 
 // VRAM tile base for the dynamically-loaded splash/dust art window
 // ($F400, 18 tiles -- see PLC.c's PLC_Main for the neighbouring layout).
@@ -17,7 +17,12 @@
 extern uint8_t splashdust_gfx_buffer[SPLASHDUST_GFX_SIZE];
 extern uint8_t splashdust_frame_chg;
 
-void Obj_Splash(Object *obj);
+void Obj_Splash(Sst *self);
 void Splash_SpawnSkidDust(Sst *parent);
+
+// The companion of the level (the fixed one that shows the splash and the dust): made when the level starts, told what to show
+void Splash_Make(void);
+void Splash_SetAnim(uint8_t anim);
+uint8_t Splash_GetAnim(void);
 
 #endif

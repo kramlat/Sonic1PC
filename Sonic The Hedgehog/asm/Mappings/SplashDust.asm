@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - water splash and spin dash dust (Obj_Splash)
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_SplashDust_internal:	mappingsTable
 	mappingsTableEntry.w	@dust_0

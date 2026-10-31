@@ -1,4 +1,7 @@
 #include "Splash.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 
 #include "Level.h"
 #include "Object/Sonic.h"
@@ -17,8 +20,8 @@ uint8_t splashdust_gfx_buffer[SPLASHDUST_GFX_SIZE];
 uint8_t splashdust_frame_chg;
 static uint8_t splashdust_frame_num = 0xFF;
 
-static void Splash_LoadGfx(Object *obj) {
-    uint8_t frame = obj->frame;
+static void Splash_LoadGfx(Sst *self) {
+    uint8_t frame = self->mapping_frame;
     if (frame == splashdust_frame_num)
         return;
     splashdust_frame_num = frame;
@@ -53,12 +56,12 @@ static void Splash_LoadGfx(Object *obj) {
     } while (entries-- > 0);
 }
 
-static void Splash_Construct(Object *obj) {
-    obj->mappings = Mappings_SplashDust;
-    obj->render.b |= SPRITE_CAM_FIELD;
-    obj->priority = 1;
-    obj->width_pixels = 0x10;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SplashDust);
+static void Splash_Construct(Sst *self) {
+    self->mappings = Mappings_SplashDust;
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 1 * 0x80;
+    self->width_pixels = 0x10;
+    self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_SplashDust);
 }
 
 // Spawns a short-lived skid dust puff at the given position. Self-deletes
@@ -66,28 +69,52 @@ static void Splash_Construct(Object *obj) {
 // once its 4-frame animation finishes -- matches Sonic 2's own Obj08_SkidDust
 // (a fresh temporary object per puff, not a mode on the fixed companion).
 void Splash_SpawnSkidDust(Sst *parent) {
-    Object *puff = FindFreeObj();
+    Sst *puff = Sst_Allocate();
     if (puff == NULL)
         return;
 
-    puff->type = ObjId_Splash;
+    puff->code = sst_object_codes[ObjId_Splash];
     puff->routine = 2; // Main -- skip Init, set up directly below
     Splash_Construct(puff);
-    puff->pos.l.x.f.u = parent->x_pos.f.u;
-    puff->pos.l.y.f.u = (int16_t)(parent->y_pos.f.u + 0x10);
-    puff->status.o.f.x_flip = (parent->status & SST_PSTATUS_X_FLIP) != 0; // see SplashAnim_Dash's comment in Obj_Splash
+    puff->x_pos.f.u = parent->x_pos.f.u;
+    puff->y_pos.f.u = (int16_t)(parent->y_pos.f.u + 0x10);
+    SST_STATUS_SET(puff, SST_STATUS_X_FLIP, (parent->status & SST_PSTATUS_X_FLIP) != 0); // see SplashAnim_Dash's comment in Obj_Splash
     puff->anim = SplashAnim_Skid;
     puff->prev_anim = 0xFF; // force AnimateSprite to restart from frame 0
 }
 
-void Obj_Splash(Object *obj) {
-    switch (obj->routine) {
+// The companion that Sonic shows the splash and the dust with (made when the level starts)
+static Sst *splash_companion;
+
+void Splash_Make(void) {
+    splash_companion = Sst_Spawn(ObjId_Splash, 0, 0);
+    if (splash_companion != NULL)
+        splash_companion->subtype = 1;
+}
+
+static Sst *Companion(void) {
+    return splash_companion != NULL && splash_companion->code == sst_object_codes[ObjId_Splash] && splash_companion->subtype == 1 ? splash_companion : NULL;
+}
+
+void Splash_SetAnim(uint8_t anim) {
+    Sst *c = Companion();
+    if (c != NULL)
+        c->anim = anim;
+}
+
+uint8_t Splash_GetAnim(void) {
+    const Sst *c = Companion();
+    return c != NULL ? c->anim : SplashAnim_Null;
+}
+
+void Obj_Splash(Sst *self) {
+    switch (self->routine) {
     case 0: // Init
-        obj->routine = 2;
-        Splash_Construct(obj);
+        self->routine = 2;
+        Splash_Construct(self);
         // Fallthrough
     case 2: // Main
-        switch (obj->anim) {
+        switch (self->anim) {
         case SplashAnim_Null:
             return; // nothing to display
 
@@ -95,9 +122,9 @@ void Obj_Splash(Object *obj) {
             // Follow the water surface every frame, but only snap to
             // Sonic's X position on the first frame of a new splash --
             // afterwards it just animates in place.
-            obj->pos.l.y.f.u = wtr_pos1;
-            if (obj->prev_anim != SplashAnim_Splash)
-                obj->pos.l.x.f.u = player->x_pos.f.u;
+            self->y_pos.f.u = wtr_pos1;
+            if (self->prev_anim != SplashAnim_Splash)
+                self->x_pos.f.u = player->x_pos.f.u;
             break;
 
         case SplashAnim_Dash:
@@ -107,22 +134,22 @@ void Obj_Splash(Object *obj) {
             // every frame-advancing tick, so writing render.f.x_flip here
             // would only "stick" on the ticks where the animation doesn't
             // advance, producing a flip that alternates frame to frame.
-            obj->pos.l.x.f.u = player->x_pos.f.u;
-            obj->pos.l.y.f.u = player->y_pos.f.u;
-            obj->status.o.f.x_flip = ((player->status & SST_PSTATUS_X_FLIP) != 0);
+            self->x_pos.f.u = player->x_pos.f.u;
+            self->y_pos.f.u = player->y_pos.f.u;
+            SST_STATUS_SET(self, SST_STATUS_X_FLIP, ((player->status & SST_PSTATUS_X_FLIP) != 0));
             break;
 
         case SplashAnim_Skid:
             break; // positioned once at spawn, doesn't move afterwards
         }
 
-        AnimateSprite(obj, Animation_SplashDust);
-        Splash_LoadGfx(obj);
-        DisplaySprite(obj);
+        Sst_Animate(self, Animation_SplashDust);
+        Splash_LoadGfx(self);
+        Sst_Draw(self);
         break;
 
     case 4: // Delete (self-destructing skid dust puffs only)
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     }
 }

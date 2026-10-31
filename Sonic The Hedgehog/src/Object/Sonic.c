@@ -966,7 +966,7 @@ signed int HurtSonicFrom(Sst *self, int16_t src_x, bool spikes)
     // Set Sonic state
     self->routine = 4;
     spindash_flag &= ~1;
-    objects[0x1B].anim = SplashAnim_Null;
+    Splash_SetAnim(SplashAnim_Null);
     Sonic_ResetOnFloor(self);
     self->status |= SST_PSTATUS_IN_AIR;
 
@@ -1628,7 +1628,7 @@ static void Sonic_ReleaseSpindash(Sst *self) {
     self->anim = SonAnimId_Roll;
     self->status |= SST_PSTATUS_IN_BALL;
     PlaySound(sfx_Teleport);
-    objects[0x1B].anim = SplashAnim_Null;
+    Splash_SetAnim(SplashAnim_Null);
 
     // Get release speed from number of revs performed
     int16_t rev = (int16_t)(spindash_count >> 1);
@@ -1676,8 +1676,8 @@ void Sonic_CancelSpindash(void) {
         return;
     spindash_flag &= ~1;
     spindash_count = 0;
-    if (objects[0x1B].anim == SplashAnim_Dash)
-        objects[0x1B].anim = SplashAnim_Null;
+    if (Splash_GetAnim() == SplashAnim_Dash)
+        Splash_SetAnim(SplashAnim_Null);
 }
 
 static bool Sonic_SpinDash(Sst *self) {
@@ -1696,7 +1696,7 @@ static bool Sonic_SpinDash(Sst *self) {
     spindash_flag |= 1;
     spindash_count = 0;
     if (air >= 12)
-        objects[0x1B].anim = SplashAnim_Dash;
+        Splash_SetAnim(SplashAnim_Dash);
 
     // Because we're skipping the rest of the normal-movement case
     Sonic_LevelBound(self);
@@ -1733,7 +1733,7 @@ static void Sonic_Water(Sst *self) {
         if (self->y_vel < -0x1000)
             self->y_vel = -0x1000; // cap max speed on leaving water
 
-        objects[0x1B].anim = SplashAnim_Splash;
+        Splash_SetAnim(SplashAnim_Splash);
         PlaySound(sfx_Splash);
     } else {
         // Underwater
@@ -1758,7 +1758,7 @@ static void Sonic_Water(Sst *self) {
         if (self->y_vel == 0)
             return;
 
-        objects[0x1B].anim = SplashAnim_Splash;
+        Splash_SetAnim(SplashAnim_Splash);
         PlaySound(sfx_Splash);
     }
 }
