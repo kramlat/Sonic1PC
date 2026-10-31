@@ -403,7 +403,7 @@ static void Boss_Part(Sst *self) {
                     self->y_pos.f.u += d1;
             }
             self->y_vel = 0x100;
-            if (self->priority == 1)
+            if (self->priority == 1 * 0x80) // (the front wheels; priority is in units of $80)
                 ((Own_Boss *)ship->own.u8)->height += self->y_pos.f.u;
             Sst_Animate(self, Animation_BossEHZWheels);
             Sst_Draw(self);
@@ -416,7 +416,7 @@ static void Boss_Part(Sst *self) {
             self->routine_secondary += 2;
             own->timer = 0xA;
             self->y_vel = -0x300;
-            if (self->priority != 1)
+            if (self->priority != 1 * 0x80)
                 self->x_vel = -self->x_vel;
             Sst_Draw(self);
             break;
