@@ -1,5 +1,9 @@
 #include <libgen.h>
 #include <string>
+#include <vector>
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
 
 using namespace std;
 
@@ -175,6 +179,44 @@ std::string format_obj(std::string s)
     return fo;
 }
 
+/* Sonic 2's sprite mappings (a table of frame offsets, then per frame a word piece count and 8-byte pieces: y and size, tile, the 2-player tile, x) to Sonic 3 & Knuckles' (6-byte pieces without the
+   2-player tile): `bin2h in out pad mappings-s3`. A frame the table names more than once is written once. Returns the new size; the input is left alone when it does not look like a table. */
+static unsigned char* mappings_s2_to_s3(const unsigned char* in, long size, long* out_size)
+{
+    if (size < 2)
+        return NULL;
+    long frames = ((in[0] << 8) | in[1]) / 2;
+    if (frames < 1 || frames * 2 > size)
+        return NULL;
+    std::vector<long> new_offset(size, -1);
+    std::vector<unsigned char> out(frames * 2, 0);
+    for (long f = 0; f < frames; f++) {
+        long old = (in[f * 2] << 8) | in[f * 2 + 1];
+        if (old + 2 > size)
+            return NULL;
+        if (new_offset[old] < 0) {
+            long count = (in[old] << 8) | in[old + 1];
+            if (old + 2 + count * 8 > size)
+                return NULL;
+            new_offset[old] = (long)out.size();
+            out.push_back(in[old]);
+            out.push_back(in[old + 1]);
+            for (long p = 0; p < count; p++) {
+                const unsigned char* piece = in + old + 2 + p * 8;
+                out.push_back(piece[0]); out.push_back(piece[1]); // y, size
+                out.push_back(piece[2]); out.push_back(piece[3]); // tile
+                out.push_back(piece[6]); out.push_back(piece[7]); // x (the 2-player tile, piece[4..5], is left out)
+            }
+        }
+        out[f * 2] = (unsigned char)(new_offset[old] >> 8);
+        out[f * 2 + 1] = (unsigned char)new_offset[old];
+    }
+    unsigned char* result = (unsigned char*)malloc(out.size());
+    memcpy(result, out.data(), out.size());
+    *out_size = (long)out.size();
+    return result;
+}
+
 int main(int argc, char* argv[])
 {
     int result = 1;
@@ -212,6 +254,17 @@ int main(int argc, char* argv[])
                 return -1;
             }
             fclose(in_file);
+            if (argc > 4 && std::string(argv[4]) == "mappings-s3") {
+                long converted_size = 0;
+                unsigned char* converted = mappings_s2_to_s3(in_file_buffer, in_file_size, &converted_size);
+                if (converted == NULL) {
+                    printf("'%s' is not a table of Sonic 2 sprite mappings\n", argv[1]);
+                    return -1;
+                }
+                free(in_file_buffer);
+                in_file_buffer = converted;
+                in_file_size = converted_size;
+            }
             in_file_pointer = in_file_buffer;
 
             setvbuf(out_file, NULL, _IOFBF, 0x10000);

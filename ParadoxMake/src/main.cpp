@@ -51,7 +51,7 @@ struct Project {
 	std::vector<Reuse> reuse;   // projects whose code and resources this one starts from (the in-between games: Sonic 2 begins as Sonic 1)
 	bool reuseOnly = false;     // loaded only to be reused from: not built as a target of its own
 	std::string songDir;
-	std::vector<std::string> depends, include, sources, resources, assemble;
+	std::vector<std::string> depends, include, sources, resources, assemble, mappingsS2;
 	std::vector<std::pair<std::string, std::string>> songs; // {jsonc file, C array name}
 };
 
@@ -91,6 +91,7 @@ static bool loadProject(const fs::path &dir, Project &p)
 	p.sources = strList(y["sources"]);
 	p.resources = strList(y["resources"]);
 	p.assemble = strList(y["assemble"]);
+	p.mappingsS2 = strList(y["mappings_s2"]); // binary sprite mappings in Sonic 2's format: their headers are written in the format of Sonic 3 & Knuckles
 	p.songDir = str(y, "song_dir", "res/SMPS/converted");
 	if (y["reuse"]) for (const auto &n : y["reuse"]) {
 		Project::Reuse r;
@@ -225,6 +226,11 @@ static void emitProject(std::ostream &o, const Project &p, const std::map<std::s
 	for (const auto &a : p.assemble)
 		if (std::find(p.resources.begin(), p.resources.end(), a) == p.resources.end()) o << "\n  " << q(a);
 	o << ")\n";
+	if (!p.mappingsS2.empty()) {
+		o << "pm_convert_mappings(" << tgt << " " << qp(p.dir / p.resourceDir) << " " << qp(p.dir / p.resourceOut);
+		for (const auto &m : p.mappingsS2) o << "\n  " << q(m);
+		o << ")\n";
+	}
 	if (!p.assemble.empty()) {
 		o << "pm_assemble(" << tgt << " " << qp(p.dir / p.asmDir) << " " << qp(p.dir / p.asmOut);
 		for (const auto &a : p.assemble) o << "\n  " << q(a);

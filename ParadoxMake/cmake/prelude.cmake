@@ -14,6 +14,7 @@ ExternalProject_Add(
   DOWNLOAD_COMMAND ""
   UPDATE_COMMAND ""
   BUILD_BYPRODUCTS "<INSTALL_DIR>/bin/bin2h"
+  BUILD_ALWAYS 1 # (a change to the tool must reach the headers: it is a second to build)
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=Release
   INSTALL_COMMAND ${CMAKE_COMMAND} --build . --config Release --target install)
 
@@ -54,6 +55,20 @@ function(pm_convert_resources TARGET IN_DIR OUT_DIR)
       OUTPUT "${OUT_DIR}/${FILENAME}.h"
       COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}/${DIRECTORY}"
       COMMAND bin2h_tool "${IN_DIR}/${FILENAME}" "${OUT_DIR}/${FILENAME}.h" 8
+      DEPENDS bin2h_tool "${IN_DIR}/${FILENAME}"
+      VERBATIM)
+    target_sources(${TARGET} PRIVATE "${OUT_DIR}/${FILENAME}.h")
+  endforeach()
+endfunction()
+
+# pm_convert_mappings(TARGET IN_DIR OUT_DIR files...): binary sprite mappings in Sonic 2's format become headers in the format of Sonic 3 & Knuckles (bin2h's mappings-s3), added to TARGET.
+function(pm_convert_mappings TARGET IN_DIR OUT_DIR)
+  foreach(FILENAME IN LISTS ARGN)
+    get_filename_component(DIRECTORY "${FILENAME}" DIRECTORY)
+    add_custom_command(
+      OUTPUT "${OUT_DIR}/${FILENAME}.h"
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${OUT_DIR}/${DIRECTORY}"
+      COMMAND bin2h_tool "${IN_DIR}/${FILENAME}" "${OUT_DIR}/${FILENAME}.h" 8 mappings-s3
       DEPENDS bin2h_tool "${IN_DIR}/${FILENAME}"
       VERBATIM)
     target_sources(${TARGET} PRIVATE "${OUT_DIR}/${FILENAME}.h")

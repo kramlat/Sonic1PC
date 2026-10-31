@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-# NOTE: the mappings it writes are in Sonic 2's format; run tools/mappings_s2_to_s3.pl on res/Mappings/Sonic and res/Mappings/Tails afterwards (the characters are on the status table of Sonic 3 & Knuckles, which draws its format).
 # Imports Sonic's and Tails' art, mappings, DPLC and animation data from the Sonic 2 alpha (Aug 21st 1992; Clownacy's disassembly and its built ROM, sonic2alpha.bin) into the
 # port's res folder. The data is sliced from the ROM at the addresses the disassembly's labels give (the sizes are those of the .asm data, checked here against the label that follows), the
 # art is the disassembly's uncompressed file.

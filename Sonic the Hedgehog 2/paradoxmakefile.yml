@@ -170,10 +170,8 @@ resources:
   - "Art/OxygenBubbles"
   - "Art/CountdownBubbles"
   - "Animation/OxygenBubbles"
-  - "Mappings/Tails"
   - "Mappings/TailsDPLC"
   - "Animation/Sonic"
-  - "Mappings/Sonic"
   - "Mappings/SonicDPLC"
   - "S2Collision/Angle"
   - "S2Collision/HeightMap"
@@ -709,6 +707,11 @@ sources:
   - "src/Object/Tails.c"
   - "src/Sonic2Objects.c"
   - "src/Object/TitleCharacters.c"
+# binary sprite mappings in Sonic 2's format (the importer's output): their headers are written in Sonic 3 & Knuckles' format
+mappings_s2:
+  - "Mappings/Sonic"
+  - "Mappings/Tails"
+
 assemble:
   - "Mappings/TitleCharacters"
   - "Mappings/Points"
