@@ -137,7 +137,7 @@ const ObjectFunc game_objects[] = {
 	/* 07 ObjId_07                  */ Obj_Null,
 	/* 08 ObjId_Splash              */ Obj_Splash,
 	/* 09 ObjId_SpecialSonic        */ NULL, // (moved to the status table: sst_object_codes)
-	/* 0A ObjId_DrownCount          */ Obj_DrownCount,
+	/* 0A ObjId_DrownCount          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 0B ObjId_Pole                */ NULL, // (moved to the status table: sst_object_codes)
 	/* 0C ObjId_FlapDoor            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 0D ObjId_Signpost            */ NULL, // (moved to the status table: sst_object_codes)
@@ -227,7 +227,7 @@ const ObjectFunc game_objects[] = {
 	/* 61 ObjId_LabyrinthBlock      */ NULL, // (moved to the status table: sst_object_codes)
 	/* 62 ObjId_Gargoyle            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 63 ObjId_LabyrinthConvey     */ NULL, // (moved to the status table: sst_object_codes)
-	/* 64 ObjId_Bubble              */ Obj_Bubble,
+	/* 64 ObjId_Bubble              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 65 ObjId_LZWaterfall         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 66 ObjId_Junction            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 67 ObjId_RunningDisc         */ NULL, // (moved to the status table: sst_object_codes)
@@ -275,6 +275,8 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_Bubble] = Obj_Bubble,
+	[ObjId_DrownCount] = Obj_DrownCount,
 	[ObjId_HUD] = Obj_HUD,
 	[ObjId_GotThroughCard] = Obj_GotThroughCard,
 	[ObjId_TitleCard] = Obj_TitleCard,

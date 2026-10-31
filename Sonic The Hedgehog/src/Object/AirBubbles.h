@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Object.h"
+#include "Sst.h"
 
 // Object 0x64 - LZ air bubbles: individual rising bubbles (small/medium/
 // large, with a bursting animation once they reach the water surface) and
@@ -27,4 +27,4 @@
 extern const uint8_t Mappings_Bubbles[];
 extern const uint8_t Animation_Bubbles[];
 
-void Obj_Bubble(Object *obj);
+void Obj_Bubble(Sst *self);

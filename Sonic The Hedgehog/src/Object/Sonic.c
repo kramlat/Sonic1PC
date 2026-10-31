@@ -1742,9 +1742,7 @@ static void Sonic_Water(Sst *self) {
         self->status |= SST_PSTATUS_UNDERWATER;
         ResumeMusic(); // replenish air (music won't resume here, we've only just entered water)
 
-        objects[DROWNCOUNT_SLOT].type = ObjId_DrownCount;
-        objects[DROWNCOUNT_SLOT].routine = 0;
-        objects[DROWNCOUNT_SLOT].scratch.u8[0] = DROWNCOUNT_MASTER_BIT | 1; // subtype -- selects the master tracker path
+        DrownCount_StartMaster();
 
         sonspeed_max = 0x300;
         sonspeed_acc = 0x6;

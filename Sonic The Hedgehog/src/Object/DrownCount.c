@@ -1,4 +1,7 @@
 #include "DrownCount.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -23,7 +26,7 @@ typedef struct {
     uint16_t extra_bub_flag; // drown_extrabubflag, 0x36
     int16_t num_time;        // drown_numtime, 0x38 -- time between each number change
     int16_t delay_time;      // drown_delaytime, 0x3A -- delay between bubbles
-} Scratch_DrownCount;
+} Own_DrownCount;
 
 void ResumeMusic(void) {
     if (air <= 12) {
@@ -35,82 +38,102 @@ void ResumeMusic(void) {
             ResumeLevelMusic();
     }
     air = 30;
-    ((Scratch_DrownCount*)&objects[DROWNCOUNT_SLOT].scratch)->display_time = 0;
+    Sst *master = DrownCount_Master();
+    if (master != NULL)
+        ((Own_DrownCount *)master->own.u8)->display_time = 0;
 }
 
-static void DrownCount_Construct(Object *obj) {
-    obj->mappings = Mappings_Bubbles;
-    obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_LZ_Bubbles);
-    obj->render.f.level_fg = true;
-    obj->priority = 1;
-    obj->width_pixels = 32 / 2;
+// The tracker that rides along while Sonic is underwater (the one with the master bit)
+Sst *DrownCount_Master(void) {
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_DrownCount] && (sst[i].subtype & DROWNCOUNT_MASTER_BIT))
+            return &sst[i];
+    return NULL;
+}
+
+void DrownCount_StartMaster(void) {
+    Sst *master = DrownCount_Master();
+    if (master == NULL)
+        master = Sst_Spawn(ObjId_DrownCount, 0, 0);
+    if (master == NULL)
+        return;
+    master->routine = 0;
+    master->subtype = DROWNCOUNT_MASTER_BIT | 1; // selects the master tracker path
+}
+
+static void DrownCount_Construct(Sst *self) {
+    self->mappings = Mappings_Bubbles;
+    self->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_LZ_Bubbles);
+    self->render_flags |= SST_RENDER_LEVEL;
+    self->priority = 1 * 0x80;
+    self->width_pixels = 32 / 2;
 }
 
 // Handles a countdown number bubble's screen-fixed display once it's close
 // enough to flashing to matter -- switches it from playfield-positioned to
 // screen-fixed (HUD-style) so it stays put once Drown_AirLeft takes over.
-static void Drown_ShowNumber(Object *obj, Scratch_DrownCount *scratch) {
-    if (scratch->num_time == 0)
+static void Drown_ShowNumber(Sst *self, Own_DrownCount *own) {
+    if (own->num_time == 0)
         return;
-    if (--scratch->num_time != 0)
+    if (--own->num_time != 0)
         return;
-    if (obj->anim >= 7)
+    if (self->anim >= 7)
         return; // already flashing
 
-    scratch->num_time = 15;
-    obj->ysp = 0;
+    own->num_time = 15;
+    self->y_vel = 0;
 
-    int16_t x = (int16_t)(obj->pos.l.x.f.u - scrpos_x.f.u + 0x80);
-    int16_t y = (int16_t)(obj->pos.l.y.f.u - scrpos_y.f.u + 0x80);
-    obj->render.f.level_fg = false;
-    obj->pos.s.x = x;
-    obj->pos.s.y = y;
+    int16_t x = (int16_t)(self->x_pos.f.u - scrpos_x.f.u + 0x80);
+    int16_t y = (int16_t)(self->y_pos.f.u - scrpos_y.f.u + 0x80);
+    self->render_flags &= (uint8_t)~SST_RENDER_LEVEL;
+    self->x_pos.f.u = x;
+    self->y_pos.f.u = y;
 
-    obj->routine = 0xC; // Drown_AirLeft next
+    self->routine = 0xC; // Drown_AirLeft next
 }
 
-void Obj_DrownCount(Object *obj) {
-    Scratch_DrownCount *scratch = (Scratch_DrownCount*)&obj->scratch;
+void Obj_DrownCount(Sst *self) {
+    Own_DrownCount *own = (Own_DrownCount *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Drown_Main
-        obj->routine = 2;
-        DrownCount_Construct(obj);
+        self->routine = 2;
+        DrownCount_Construct(self);
 
-        if (scratch->subtype & DROWNCOUNT_MASTER_BIT) {
-            obj->routine = 0xA;
-            scratch->type = scratch->subtype & 0x7F;
+        if (self->subtype & DROWNCOUNT_MASTER_BIT) {
+            self->routine = 0xA;
+            own->type = self->subtype & 0x7F;
             goto countdown;
         }
 
-        obj->anim = scratch->subtype;
-        scratch->orig_x = obj->pos.l.x.f.u;
-        obj->ysp = -0x88;
+        self->anim = self->subtype;
+        own->orig_x = self->x_pos.f.u;
+        self->y_vel = -0x88;
         // Fallthrough
     case 2: // Drown_Animate -- always falls into Drown_ChkWater, see AirBubbles.c
-        AnimateSprite(obj, Animation_DrowningCountdown);
+        Sst_Animate(self, Animation_DrowningCountdown);
         // Fallthrough
     case 4: // Drown_ChkWater
-        if (obj->pos.l.y.f.u <= wtr_pos1) {
+        if (self->y_pos.f.u <= wtr_pos1) {
             // Reached the surface -- switch to the flashing animation.
-            obj->routine = 6;
-            obj->anim += 7;
+            self->routine = 6;
+            self->anim += 7;
             goto display;
         }
 
         {
             if (tunnel_mode)
-                scratch->orig_x += 4; // drift with Sonic while he's in a wind tunnel
+                own->orig_x += 4; // drift with Sonic while he's in a wind tunnel
 
-            uint8_t a = obj->angle;
-            obj->angle++;
+            uint8_t a = self->angle;
+            self->angle++;
             a &= 0x7F;
-            obj->pos.l.x.f.u = (int16_t)(scratch->orig_x + Drown_WobbleData[a]);
+            self->x_pos.f.u = (int16_t)(own->orig_x + Drown_WobbleData[a]);
         }
 
-        Drown_ShowNumber(obj, scratch);
+        Drown_ShowNumber(self, own);
 
-        SpeedToPos(obj);
+        Sst_MoveSprite2(self);
         // Delete gate uses IS_OFFSCREEN (direct position test), not
         // on_screen (cached flag set only AFTER the object is drawn by
         // BuildSprites). On a freshly-spawned bubble on_screen is false,
@@ -120,11 +143,11 @@ void Obj_DrownCount(Object *obj) {
         // AirBubbles.c; same reasoning.
         // (Only while it still has a world position: a number that has just become screen-fixed holds its screen position in those
         // bytes, see Drown_AirLeft.)
-        if (obj->render.f.level_fg && IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
+        if ((self->render_flags & SST_RENDER_LEVEL) && SstOutOfRange(self->x_pos.f.u)) {
+            Sst_Delete(self);
             return;
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
 
     display:
@@ -133,46 +156,46 @@ void Obj_DrownCount(Object *obj) {
         // Fixes an out-of-bounds animation read when a medium bubble
         // (anim 14) reaches the surface: 14+7=21 is past the table's
         // last entry (13, blank) -- clamp back to blank instead.
-        if (obj->anim >= 14)
-            obj->anim = 13;
-        Drown_ShowNumber(obj, scratch);
-        AnimateSprite(obj, Animation_DrowningCountdown);
-        DisplaySprite(obj);
+        if (self->anim >= 14)
+            self->anim = 13;
+        Drown_ShowNumber(self, own);
+        Sst_Animate(self, Animation_DrowningCountdown);
+        Sst_Draw(self);
         break;
 
     case 8: // Drown_Delete
     case 0x10:
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
 
     case 0xC: // Drown_AirLeft
         if (air > 12 || air == 0) {
-            ObjectDelete(obj);
+            Sst_Delete(self);
             return;
         }
 
-        if (--scratch->num_time != 0) {
-            AnimateSprite(obj, Animation_DrowningCountdown);
+        if (--own->num_time != 0) {
+            Sst_Animate(self, Animation_DrowningCountdown);
             // A number stuck to the screen keeps its screen position in the same bytes that hold a world X, so IS_OFFSCREEN would
             // read the screen Y as an X and delete it at once wherever the camera is not near the left edge. It has been drawn
             // already (this is not a fresh bubble), so the drawn flag is valid here, as in the original.
-            if (!obj->render.f.on_screen) {
-                ObjectDelete(obj);
+            if (!(self->render_flags & SST_RENDER_ON_SCREEN)) {
+                Sst_Delete(self);
                 return;
             }
-            DisplaySprite(obj);
+            Sst_Draw(self);
             break;
         }
 
-        obj->routine = 0xE;
-        obj->anim += 7;
+        self->routine = 0xE;
+        self->anim += 7;
         goto display;
 
     countdown:
     case 0xA: { // Drown_Countdown -- the master tracker, never displays
-            if (scratch->restart_time) {
+            if (own->restart_time) {
                 // Sonic is already drowning -- count down to the death state.
-                if (--scratch->restart_time != 0) {
+                if (--own->restart_time != 0) {
                     Sst_MoveSprite2(player);
                     player->y_vel += 0x10; // sink faster
                     goto checkSpawnExtraBubbles;
@@ -184,12 +207,12 @@ void Obj_DrownCount(Object *obj) {
             if (player->routine >= 6 || !((player->status & SST_PSTATUS_UNDERWATER) != 0))
                 return;
 
-            if (--scratch->num_time >= 0)
+            if (--own->num_time >= 0)
                 goto checkSpawnExtraBubbles;
-            scratch->num_time = 59;
+            own->num_time = 59;
 
-            scratch->extra_bub_flag = 1;
-            scratch->extra_bubbles = (uint8_t)(RandomNumber() & 1);
+            own->extra_bub_flag = 1;
+            own->extra_bubbles = (uint8_t)(RandomNumber() & 1);
 
             if (air == 25 || air == 20 || air == 15) {
                 PlaySound(sfx_Warning);
@@ -197,9 +220,9 @@ void Obj_DrownCount(Object *obj) {
                 if (air == 12)
                     QueueSound1(bgm_Drowning);
 
-                if (--scratch->display_time < 0) {
-                    scratch->display_time = scratch->type;
-                    scratch->extra_bub_flag |= 0x80;
+                if (--own->display_time < 0) {
+                    own->display_time = own->type;
+                    own->extra_bub_flag |= 0x80;
                 }
             }
 
@@ -214,9 +237,9 @@ void Obj_DrownCount(Object *obj) {
                 ResumeMusic();
                 lock_multi = 0x81;
                 PlaySound(sfx_Drown);
-                scratch->extra_bubbles = 10;
-                scratch->extra_bub_flag = 1;
-                scratch->restart_time = 2 * 60;
+                own->extra_bubbles = 10;
+                own->extra_bub_flag = 1;
+                own->restart_time = 2 * 60;
 
                 Sonic_ResetOnFloor(player);
                 player->anim = SonAnimId_Drown;
@@ -231,59 +254,59 @@ void Obj_DrownCount(Object *obj) {
             }
 
         checkSpawnExtraBubbles:
-            if (!scratch->extra_bub_flag)
+            if (!own->extra_bub_flag)
                 return;
-            if (scratch->restart_time == 0) {
-                if (--scratch->delay_time >= 0)
+            if (own->restart_time == 0) {
+                if (--own->delay_time >= 0)
                     return;
             }
 
             {
-                scratch->delay_time = (int16_t)(RandomNumber() & 0xF);
+                own->delay_time = (int16_t)(RandomNumber() & 0xF);
 
-                Object *bub = FindFreeObj();
+                Sst *bub = Sst_Allocate();
                 if (bub != NULL) {
-                    bub->type = ObjId_DrownCount;
-                    Scratch_DrownCount *bubScratch = (Scratch_DrownCount*)&bub->scratch;
+                    bub->code = sst_object_codes[ObjId_DrownCount];
+                    Own_DrownCount *bubScratch = (Own_DrownCount *)bub->own.u8;
 
                     int16_t off = 6;
                     if (((player->status & SST_PSTATUS_X_FLIP) != 0)) {
                         off = -6;
                         bub->angle = 0x40;
                     }
-                    bub->pos.l.x.f.u = (int16_t)(player->x_pos.f.u + off);
-                    bub->pos.l.y.f.u = player->y_pos.f.u;
-                    bubScratch->subtype = 6; // small bubble
+                    bub->x_pos.f.u = (int16_t)(player->x_pos.f.u + off);
+                    bub->y_pos.f.u = player->y_pos.f.u;
+                    bub->subtype = 6; // small bubble
 
-                    if (scratch->restart_time) {
-                        scratch->delay_time &= 7;
-                        bub->pos.l.y.f.u = (int16_t)(player->y_pos.f.u - 12);
+                    if (own->restart_time) {
+                        own->delay_time &= 7;
+                        bub->y_pos.f.u = (int16_t)(player->y_pos.f.u - 12);
                         bub->angle = (uint8_t)RandomNumber();
                         if ((frame_count & 3) == 0)
-                            bubScratch->subtype = 0xE; // medium bubble
-                    } else if (scratch->extra_bub_flag & 0x80) {
+                            bub->subtype = 0xE; // medium bubble
+                    } else if (own->extra_bub_flag & 0x80) {
                         uint16_t air_anim = air >> 1;
                         bool spawnNumber = false;
                         if ((RandomNumber() & 3) == 0) {
-                            if (!(scratch->extra_bub_flag & 0x40)) {
-                                scratch->extra_bub_flag |= 0x40;
+                            if (!(own->extra_bub_flag & 0x40)) {
+                                own->extra_bub_flag |= 0x40;
                                 spawnNumber = true;
                             }
-                        } else if (!scratch->extra_bubbles) {
-                            if (!(scratch->extra_bub_flag & 0x40)) {
-                                scratch->extra_bub_flag |= 0x40;
+                        } else if (!own->extra_bubbles) {
+                            if (!(own->extra_bub_flag & 0x40)) {
+                                own->extra_bub_flag |= 0x40;
                                 spawnNumber = true;
                             }
                         }
                         if (spawnNumber) {
-                            bubScratch->subtype = (uint8_t)air_anim;
+                            bub->subtype = (uint8_t)air_anim;
                             bubScratch->num_time = 28;
                         }
                     }
                 }
 
-                if (--scratch->extra_bubbles == 0xFF)
-                    scratch->extra_bub_flag = 0;
+                if (--own->extra_bubbles == 0xFF)
+                    own->extra_bub_flag = 0;
                 return;
             }
         }

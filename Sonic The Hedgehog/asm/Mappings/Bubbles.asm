@@ -2,7 +2,7 @@
 ; Sprite mappings - bubbles, small/medium/large + bursting + countdown
 ; number digits (partial and full) + bubble maker (LZ)
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_Bub_internal:	mappingsTable
 	mappingsTableEntry.w	@bubble1
