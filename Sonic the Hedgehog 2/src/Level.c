@@ -195,11 +195,11 @@ void AddPoints(uint16_t points) {
 // Level loading
 void LoadLevelMaps(void) {
     // Get header
-    const LevelHeader* header = &level_header[LEVEL_ZONE(level_id)];
+    const LevelLoadBlock* header = LEVEL_LOAD_BLOCK(level_id);
 
     // Load chunk maps and tile map
-    KosDec(header->map128, level_map128);
-    KosDec(header->map16, level_map16);
+    LevelLoadBlock_Unpack(header->map128, level_map128);
+    LevelLoadBlock_Unpack(header->map16, level_map16);
 }
 
 void LoadLevelLayout(void) {
@@ -300,18 +300,18 @@ static uint8_t level_art_scratch[0x8000]; // (Sonic 1's is 0x7000: Nick Arcade's
 
 void LevelDataLoad(void) {
     // Get header
-    const LevelHeader* header = &level_header[LEVEL_ZONE(level_id)];
+    const LevelLoadBlock* header = LEVEL_LOAD_BLOCK(level_id);
 
     // Load chunk maps and tile map
-    Editor_NoteChunks((size_t)(KosDec(header->map128, level_map128) - level_map128));
-    Editor_NoteBlocks((size_t)(KosDec(header->map16, level_map16) - level_map16));
+    Editor_NoteChunks((size_t)(LevelLoadBlock_Unpack(header->map128, level_map128) - level_map128));
+    Editor_NoteBlocks((size_t)(LevelLoadBlock_Unpack(header->map16, level_map16) - level_map16));
 
     // Load the main terrain tileset at VRAM tile 0 -- the block/chunk tile
     // indices read directly from here. Each zone's PLC decoration list
     // starts well clear of the real tile counts involved (checked against
     // SonLVL's real per-zone tile limits when this was wired up), so this
     // never collides with PLC_GHZ/PLC_LZ/etc's own art.
-    uint8_t *art_end = KosDec(header->art, level_art_scratch);
+    uint8_t *art_end = LevelLoadBlock_Unpack(header->art, level_art_scratch);
     Editor_NoteArt(level_art_scratch, (size_t)(art_end - level_art_scratch));
     VDP_SeekVRAM(0x0000);
     VDP_WriteVRAM(level_art_scratch, (size_t)(art_end - level_art_scratch));
@@ -333,10 +333,7 @@ void LevelDataLoad(void) {
     LoadLevelLayout();
 
     // Load level palette
-    PaletteId pal = header->pal;
-    if (LEVEL_ZONE(level_id) == ZoneId_CNZ && LEVEL_ACT(level_id) == 1)
-        pal = PalId_CNZ2; // (the alpha's Casino Night has a palette for each act)
-    PalLoad1(pal);
+    PalLoad1(header->pal);
 
     // Load level art
     if (header->plc2 != 0)

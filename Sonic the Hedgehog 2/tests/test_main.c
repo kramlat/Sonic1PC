@@ -13,6 +13,7 @@ void RegisterVdp8bppTests(void);
 void RegisterTileBankTests(void);
 void RegisterVDPWindowTests(void);
 void RegisterRingsTests(void);
+void RegisterLevelLoadBlockTests(void);
 void RegisterLevelDataTests(void);
 void RegisterObjectCoverageTests(void);
 void RegisterSolidTests(void);
@@ -46,6 +47,7 @@ int main(void) {
     RegisterTileBankTests();
     RegisterVDPWindowTests();
     RegisterRingsTests();
+    RegisterLevelLoadBlockTests();
     printf("Level data tests:\n");
     RegisterLevelDataTests();
     printf("Object coverage tests:\n");

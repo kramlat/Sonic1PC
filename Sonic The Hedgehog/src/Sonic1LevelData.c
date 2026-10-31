@@ -251,15 +251,26 @@ const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
     { 0x70, 0x100, 0x100, 0x100 },
 };
 
-// Level headers
-const LevelHeader level_header[ZoneId_Num] = {
-    { PlcId_GHZ, Art_GHZ2, PlcId_GHZ2, Map16_GHZ, PalId_GHZ, Map128_GHZ },
-    { PlcId_LZ, Art_LZ, PlcId_LZ2, Map16_LZ, PalId_LZ, Map128_LZ },
-    { PlcId_MZ, Art_MZ, PlcId_MZ2, Map16_MZ, PalId_MZ, Map128_MZREV01 },
-    { PlcId_SLZ, Art_SLZ, PlcId_SLZ2, Map16_SLZ, PalId_SLZ, Map128_SLZ },
-    { PlcId_SYZ, Art_SYZ, PlcId_SYZ2, Map16_SYZ, PalId_SYZ, Map128_SYZ },
-    { PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, PalId_SBZ1, Map128_SBZREV01 },
-    { 0, Art_GHZ2, 0, Map16_GHZ, PalId_Ending, Map128_GHZ },
+// The load block table: one entry for each zone and act (LevelLoadBlock.h). The zone's art, blocks and chunks are one group each so far, so LLB() names a group twice (the second
+// load is skipped); an act with a secondary of its own writes the entry out. The palette of an act that is not the zone's own is here too (it was a test in LevelDataLoad).
+const LevelLoadBlock level_load_block[ZoneId_Num][4] = {
+    LLB_ACTS(LLB(PlcId_GHZ, Art_GHZ2, PlcId_GHZ2, Map16_GHZ, PalId_GHZ, Map128_GHZ)),
+    {
+        LLB(PlcId_LZ, Art_LZ, PlcId_LZ2, Map16_LZ, PalId_LZ, Map128_LZ),
+        LLB(PlcId_LZ, Art_LZ, PlcId_LZ2, Map16_LZ, PalId_LZ, Map128_LZ),
+        LLB(PlcId_LZ, Art_LZ, PlcId_LZ2, Map16_LZ, PalId_LZ, Map128_LZ),
+        LLB(PlcId_LZ, Art_LZ, PlcId_LZ2, Map16_LZ, PalId_SBZ3, Map128_LZ), // (act 3 is Scrap Brain act 3 and has its palette)
+    },
+    LLB_ACTS(LLB(PlcId_MZ, Art_MZ, PlcId_MZ2, Map16_MZ, PalId_MZ, Map128_MZREV01)),
+    LLB_ACTS(LLB(PlcId_SLZ, Art_SLZ, PlcId_SLZ2, Map16_SLZ, PalId_SLZ, Map128_SLZ)),
+    LLB_ACTS(LLB(PlcId_SYZ, Art_SYZ, PlcId_SYZ2, Map16_SYZ, PalId_SYZ, Map128_SYZ)),
+    {
+        LLB(PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, PalId_SBZ1, Map128_SBZREV01),
+        LLB(PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, PalId_SBZ2, Map128_SBZREV01), // (Scrap Brain act 2)
+        LLB(PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, PalId_SBZ2, Map128_SBZREV01), // (Final Zone)
+        LLB(PlcId_SBZ, Art_SBZ, PlcId_SBZ2, Map16_SBZ, PalId_SBZ1, Map128_SBZREV01),
+    },
+    LLB_ACTS(LLB(0, Art_GHZ2, 0, Map16_GHZ, PalId_Ending, Map128_GHZ)),
 };
 
 // Level collision indices, one file per path (real data, not a

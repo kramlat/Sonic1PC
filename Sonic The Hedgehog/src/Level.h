@@ -5,6 +5,7 @@
 #include "LevelData.h"
 #include "SstLoad.h" // the objects' loader (ObjPosLoad runs it)
 #include "PLC.h"
+#include "LevelLoadBlock.h" // the load block table
 #include "Video.h" // wtr_state, hblank_pal, doupdatesinhblank
 
 //Level macros
@@ -35,22 +36,6 @@ typedef struct {
 	uint8_t frame;
 	int8_t time;
 } LevelAnim;
-
-// 3 longs per zone, matching s2disasm's LevelArtPointers (12 bytes/zone,
-// zone_id*12): each long's upper byte is a small metadata value, the lower
-// 3 bytes are (conceptually) a pointer to the actual data. Kept as plain
-// separate C fields rather than literally bit-packed -- there's no ROM-space
-// benefit to packing a real pointer with metadata on a PC target, only the
-// conceptual 3-pair grouping is preserved. (music/pad/pal_dup from the old
-// 9-field struct were dead fields, never read anywhere -- dropped.)
-typedef struct {
-	uint8_t plc1;
-	const uint8_t *art;
-	uint8_t plc2;
-	const uint8_t *map16;
-	uint8_t pal;
-	const uint8_t *map128;
-} LevelHeader;
 
 typedef struct {
 	uint8_t pad, min, sec, frame;
@@ -90,8 +75,9 @@ typedef struct {
 	uint8_t lives;
 } CheckpointState;
 
-//Level headers
-extern const LevelHeader level_header[ZoneId_Num];
+//The load block table: one entry for each zone and act (LevelLoadBlock.h), as Sonic 3 & Knuckles has it
+extern const LevelLoadBlock level_load_block[ZoneId_Num][4];
+#define LEVEL_LOAD_BLOCK(id) (&level_load_block[LEVEL_ZONE(id)][LEVEL_ACT(id)])
 
 //The level data tables (Sonic1LevelData.c: the game's own; Level.c's loading reads them)
 struct LevelLayout { const uint8_t *layout; }; // one combined (interleaved FG+BG, Kosinski) blob per act

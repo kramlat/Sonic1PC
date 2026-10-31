@@ -291,20 +291,25 @@ const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
     [0x0F] = { 0x800, 0x100, 0x100, 0 },
 };
 
-// Level headers (sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's (and its chunks, which were Emerald Hill's until that came from the alpha)
-const LevelHeader level_header[ZoneId_Num] = {
-    [0x00] = { PlcId_SLZ, S2Art_EHZ, 0, S2Map16_EHZ, PalId_EHZ, S2Map128_EHZ },
-    [0x02] = { 0, S2Art_WZ, PlcId_SLZ2, S2Map16_WZ, PalId_WZ, S2Map128_WZ },
-    [0x03] = { PlcId_SSZ, S2Art_SSZ, PlcId_SSZ2, S2Map16_SSZ, PalId_SSZ, S2Map128_SSZ },
-    [0x04] = { PlcId_MTZ, S2Art_MTZ, PlcId_MTZ2, S2Map16_MTZ, PalId_MTZ, S2Map128_MTZ },
-    [0x07] = { PlcId_SBZ, S2Art_HTZ, PlcId_SBZ2, S2Map16_HTZ, PalId_HTZ, S2Map128_HTZ },
-    [0x08] = { PlcId_SYZ, S2Art_HPZ, 0, S2Map16_HPZ, PalId_HPZ, S2Map128_HPZ },
-    [0x0A] = { PlcId_OOZ, S2Art_OOZ, PlcId_OOZ2, S2Map16_OOZ, PalId_OOZ, S2Map128_OOZ },
-    [0x0B] = { PlcId_DHZ, S2Art_DHZ, PlcId_DHZ2, S2Map16_DHZ, PalId_DHZ, S2Map128_DHZ },
-    [0x0C] = { PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ },
-    [0x0D] = { PlcId_MZ, S2Art_CPZ, PlcId_MZ2, S2Map16_CPZ, PalId_CPZ, S2Map128_CPZ },
-    [0x0E] = { 0, S2Art_GCZ, 0, S2Map16_GCZ, PalId_GCZ, S2Map128_GCZ },
-    [0x0F] = { PlcId_GHZ, S2Art_NGHZ, PlcId_GHZ2, S2Map16_NGHZ, PalId_NGHZ, S2Map128_NGHZ },
+// The load block table, one entry for each zone and act (LevelLoadBlock.h; each is written out with its sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's (and its chunks, which were Emerald Hill's until that came from the alpha)
+const LevelLoadBlock level_load_block[ZoneId_Num][4] = {
+    [0x00] = LLB_ACTS(LLB(PlcId_SLZ, S2Art_EHZ, 0, S2Map16_EHZ, PalId_EHZ, S2Map128_EHZ)),
+    [0x02] = LLB_ACTS(LLB(0, S2Art_WZ, PlcId_SLZ2, S2Map16_WZ, PalId_WZ, S2Map128_WZ)),
+    [0x03] = LLB_ACTS(LLB(PlcId_SSZ, S2Art_SSZ, PlcId_SSZ2, S2Map16_SSZ, PalId_SSZ, S2Map128_SSZ)),
+    [0x04] = LLB_ACTS(LLB(PlcId_MTZ, S2Art_MTZ, PlcId_MTZ2, S2Map16_MTZ, PalId_MTZ, S2Map128_MTZ)),
+    [0x07] = LLB_ACTS(LLB(PlcId_SBZ, S2Art_HTZ, PlcId_SBZ2, S2Map16_HTZ, PalId_HTZ, S2Map128_HTZ)),
+    [0x08] = LLB_ACTS(LLB(PlcId_SYZ, S2Art_HPZ, 0, S2Map16_HPZ, PalId_HPZ, S2Map128_HPZ)),
+    [0x0A] = LLB_ACTS(LLB(PlcId_OOZ, S2Art_OOZ, PlcId_OOZ2, S2Map16_OOZ, PalId_OOZ, S2Map128_OOZ)),
+    [0x0B] = LLB_ACTS(LLB(PlcId_DHZ, S2Art_DHZ, PlcId_DHZ2, S2Map16_DHZ, PalId_DHZ, S2Map128_DHZ)),
+    [0x0C] = { // (the alpha's Casino Night has a palette for each act)
+        LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ),
+        LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ2, S2Map128_CNZ),
+        LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ),
+        LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ),
+    },
+    [0x0D] = LLB_ACTS(LLB(PlcId_MZ, S2Art_CPZ, PlcId_MZ2, S2Map16_CPZ, PalId_CPZ, S2Map128_CPZ)),
+    [0x0E] = LLB_ACTS(LLB(0, S2Art_GCZ, 0, S2Map16_GCZ, PalId_GCZ, S2Map128_GCZ)),
+    [0x0F] = LLB_ACTS(LLB(PlcId_GHZ, S2Art_NGHZ, PlcId_GHZ2, S2Map16_NGHZ, PalId_NGHZ, S2Map128_NGHZ)),
 };
 
 // Level collision indices, one file per path

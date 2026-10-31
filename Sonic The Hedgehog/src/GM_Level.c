@@ -244,8 +244,8 @@ GM_Level_Branch:;
             NewPLC(PlcId_TitleCard);
 
         // Load level art and general art
-        if (level_header[LEVEL_ZONE(level_id)].plc1 != 0)
-            AddPLC(level_header[LEVEL_ZONE(level_id)].plc1);
+        if (LEVEL_LOAD_BLOCK(level_id)->plc1 != 0)
+            AddPLC(LEVEL_LOAD_BLOCK(level_id)->plc1);
         AddPLC(PlcId_Main2);
     }
 

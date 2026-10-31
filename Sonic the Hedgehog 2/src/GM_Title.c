@@ -100,7 +100,7 @@ static const uint16_t levsel_levels[LEVSEL_SS_ROW] = {
 };
 
 static bool LevSelZoneBuilt(uint16_t level) {
-    return LEVEL_ZONE(level) < ZoneId_Num && level_header[LEVEL_ZONE(level)].art != NULL;
+    return LEVEL_ZONE(level) < ZoneId_Num && level_load_block[LEVEL_ZONE(level)][LEVEL_ACT(level)].art[0] != NULL;
 }
 
 // The sound test number (0-$7F, shown as $80-$FF) and the highlighted line persist across visits, as the prototype's RAM variables do

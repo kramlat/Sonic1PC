@@ -49,22 +49,22 @@ static void LevelData_LevelSizesMatchThePrototype(void) {
 
 static void LevelData_ArtListsAreThePrototypes(void) {
     // levartptrs: each zone's first and second sprite art list (the zones not built yet share Hill Top's first)
-    CHECK_EQ(level_header[ZoneId_EHZ].plc1, PlcId_SLZ);
-    CHECK_EQ(level_header[ZoneId_WZ].plc1, 0); // (Wood_Sprites_1 is only the zone's own art)
-    CHECK_EQ(level_header[ZoneId_WZ].plc2, PlcId_SLZ2);
-    CHECK_EQ(level_header[ZoneId_MCZ].plc1, PlcId_DHZ); // (Dust Hill: Dust_Hill_Sprites_1 and 2: the crate, collapsing platform, pull switch and vine; the spikes, gate log and springs)
-    CHECK_EQ(level_header[ZoneId_MCZ].plc2, PlcId_DHZ2);
+    CHECK_EQ(level_load_block[ZoneId_EHZ][0].plc1, PlcId_SLZ);
+    CHECK_EQ(level_load_block[ZoneId_WZ][0].plc1, 0); // (Wood_Sprites_1 is only the zone's own art)
+    CHECK_EQ(level_load_block[ZoneId_WZ][0].plc2, PlcId_SLZ2);
+    CHECK_EQ(level_load_block[ZoneId_MCZ][0].plc1, PlcId_DHZ); // (Dust Hill: Dust_Hill_Sprites_1 and 2: the crate, collapsing platform, pull switch and vine; the spikes, gate log and springs)
+    CHECK_EQ(level_load_block[ZoneId_MCZ][0].plc2, PlcId_DHZ2);
     CHECK_EQ(plcs[PlcId_DHZ]->plcs, 6);
     CHECK_EQ(plcs[PlcId_DHZ2]->plcs, 6);
     CHECK_EQ(plcs[PlcId_SLZ2]->plcs, 3); // Wood_Sprites_2: spikes, diagonal and up springs
-    CHECK_EQ(level_header[ZoneId_HTZ].plc1, PlcId_SBZ);
-    CHECK_EQ(level_header[ZoneId_HTZ].plc2, PlcId_SBZ2);
-    CHECK_EQ(level_header[ZoneId_CPZ].plc1, PlcId_MZ);
-    CHECK_EQ(level_header[ZoneId_CPZ].plc2, PlcId_MZ2);
-    CHECK_EQ(level_header[ZoneId_CNZ].plc1, PlcId_LZ);
-    CHECK_EQ(level_header[ZoneId_CNZ].plc2, PlcId_LZ2);
-    CHECK_EQ(level_header[ZoneId_ARZ].plc1, PlcId_GHZ);
-    CHECK_EQ(level_header[ZoneId_ARZ].plc2, PlcId_GHZ2);
+    CHECK_EQ(level_load_block[ZoneId_HTZ][0].plc1, PlcId_SBZ);
+    CHECK_EQ(level_load_block[ZoneId_HTZ][0].plc2, PlcId_SBZ2);
+    CHECK_EQ(level_load_block[ZoneId_CPZ][0].plc1, PlcId_MZ);
+    CHECK_EQ(level_load_block[ZoneId_CPZ][0].plc2, PlcId_MZ2);
+    CHECK_EQ(level_load_block[ZoneId_CNZ][0].plc1, PlcId_LZ);
+    CHECK_EQ(level_load_block[ZoneId_CNZ][0].plc2, PlcId_LZ2);
+    CHECK_EQ(level_load_block[ZoneId_ARZ][0].plc1, PlcId_GHZ);
+    CHECK_EQ(level_load_block[ZoneId_ARZ][0].plc2, PlcId_GHZ2);
 }
 
 // The rings manager walks a layout as the camera goes, so each must be in order of X (the prototypes and the alpha keep theirs in the order they were made in and sort them in RAM; the importer sorts ours)
@@ -184,8 +184,8 @@ static void LevelData_HillTopsSupplementStartsWhereTheSymbolsSay(void) {
     CHECK(!Peek_LevelSupplement(ZoneId_EHZ, &other_tile, &other_block)); // (the base has none)
     static uint8_t base[0x20000], top[0x20000];
     for (int kind = 0; kind < 2; kind++) {
-        const uint8_t *base_data = kind ? level_header[ZoneId_EHZ].map16 : level_header[ZoneId_EHZ].art;
-        const uint8_t *top_data = kind ? level_header[ZoneId_HTZ].map16 : level_header[ZoneId_HTZ].art;
+        const uint8_t *base_data = kind ? level_load_block[ZoneId_EHZ][0].map16[0] : level_load_block[ZoneId_EHZ][0].art[0];
+        const uint8_t *top_data = kind ? level_load_block[ZoneId_HTZ][0].map16[0] : level_load_block[ZoneId_HTZ][0].art[0];
         const int unit = kind ? 8 : 32, start = kind ? block_start : tile_start;
         memset(base, 0, sizeof(base));
         memset(top, 0, sizeof(top));

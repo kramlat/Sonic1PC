@@ -439,11 +439,17 @@ for my $s (@slots) {
 }
 $c .= "};\n\n// Level scroll block sizes\nconst int16_t BGScrollBlockSizes[ZoneId_Num][4] = {\n";
 $c .= sprintf("    [%s] = { 0x800, 0x100, 0x100, 0 },\n", zid($_)) for @slots;
-$c .= "};\n\n// Level headers (sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's (and its chunks, which were Emerald Hill's until that came from the alpha)\nconst LevelHeader level_header[ZoneId_Num] = {\n";
+$c .= "};\n\n// The load block table, one entry for each zone and act (LevelLoadBlock.h; each is written out with its sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's (and its chunks, which were Emerald Hill's until that came from the alpha)\nconst LevelLoadBlock level_load_block[ZoneId_Num][4] = {\n";
 for my $s (@slots) {
     my $z = $slot{$s}{0}{zone};
     my $chunks = $z;
-    $c .= sprintf("    [%s] = { %s, S2Art_%s, %s, S2Map16_%s, %s, S2Map128_%s },\n", zid($s), $plc{$z} // 'PlcId_SBZ', $z, $plc2{$z} // '0', $z, $pal{$z}, $chunks);
+    if ($z eq 'CNZ') { # (the alpha's Casino Night has a palette for each act)
+        $c .= sprintf("    [%s] = { // (the alpha's Casino Night has a palette for each act)\n", zid($s));
+        $c .= sprintf("        LLB(%s, S2Art_%s, %s, S2Map16_%s, %s, S2Map128_%s),\n", $plc{$z} // 'PlcId_SBZ', $z, $plc2{$z} // '0', $z, $_ == 1 ? 'PalId_CNZ2' : $pal{$z}, $chunks) for 0 .. 3;
+        $c .= "    },\n";
+        next;
+    }
+    $c .= sprintf("    [%s] = LLB_ACTS(LLB(%s, S2Art_%s, %s, S2Map16_%s, %s, S2Map128_%s)),\n", zid($s), $plc{$z} // 'PlcId_SBZ', $z, $plc2{$z} // '0', $z, $pal{$z}, $chunks);
 }
 $c .= "};\n\n// Level collision indices, one file per path\nconst uint8_t* level_coli[ZoneId_Num - 1][2] = {\n";
 $c .= sprintf("    [%s] = { S2Collision_%s1, S2Collision_%s2 },\n", zid($_), $slot{$_}{0}{zone}, $slot{$_}{0}{zone}) for @slots;

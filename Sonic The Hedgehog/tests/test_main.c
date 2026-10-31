@@ -19,6 +19,7 @@ void RegisterPrisonTests(void);
 void RegisterLZ3WallTests(void);
 void RegisterFMAlgorithmTests(void);
 void RegisterRingsTests(void);
+void RegisterLevelLoadBlockTests(void);
 void RegisterSpritesTests(void);
 void RegisterVDPSplitTests(void);
 void RegisterLevelPlaneTests(void);
@@ -81,6 +82,7 @@ int main(void) {
     RegisterLZ3WallTests();
     RegisterFMAlgorithmTests();
     RegisterRingsTests();
+    RegisterLevelLoadBlockTests();
     RegisterSpritesTests();
     RegisterVDPSplitTests();
     RegisterLevelPlaneTests();

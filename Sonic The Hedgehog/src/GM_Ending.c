@@ -317,8 +317,8 @@ void GM_Credits(void) {
     EndingDemoLoad();
 
     // The next demo's level art, loaded while the page is up
-    if (level_header[LEVEL_ZONE(level_id)].plc1 != 0)
-        AddPLC(level_header[LEVEL_ZONE(level_id)].plc1);
+    if (LEVEL_LOAD_BLOCK(level_id)->plc1 != 0)
+        AddPLC(LEVEL_LOAD_BLOCK(level_id)->plc1);
     AddPLC(PlcId_Main2);
 
     demo_length = 120; // a page shows for two seconds
