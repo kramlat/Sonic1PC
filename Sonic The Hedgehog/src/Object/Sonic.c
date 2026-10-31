@@ -653,93 +653,8 @@ static const uint8_t obj_sizes[][2] = {
     { 0x48, 0x8 },
 };
 
-static signed int React_ChkHurt(Sst *self, Object *hit) {
-    Scratch_Sonic* scratch = (Scratch_Sonic *)self->own.u8;
-
-    // Check for invincibility or invulnerability
-    if (invincibility)
-        return -1;
-    if (scratch->flash_time)
-        return -1;
-
-    // Hurt Sonic
-    return HurtSonic(self, hit);
-}
-
-static signed int React_Enemy(Sst *self, Object *hit)
-{
-    // Check if we can hurt the enemy
-    if (!(invincibility || self->anim == SonAnimId_Roll))
-        return React_ChkHurt(self, hit);
-
-    // Check if enemy is a boss
-    if (hit->col_property) {
-        // Hit boss
-        self->x_vel = -self->x_vel >> 1;
-        self->y_vel = -self->y_vel >> 1;
-        hit->col_type = 0;
-        if (!(--hit->col_property))
-            hit->status.o.f.flag7 = true;
-    } else {
-        // Mark enemy touch flag
-        hit->status.o.f.flag7 = true;
-
-        // Increment bonus
-        uint8_t bonus = item_bonus;
-        item_bonus += 2;
-
-        // Handle score bonus
-        if (bonus >= 6)
-            bonus = bonus;
-        hit->scratch.u16[0xB] = bonus;
-
-        static const uint16_t points[] = { 10, 20, 50, 100 };
-        uint16_t point_bonus = points[bonus >> 1];
-        if (item_bonus >= 32) {
-            point_bonus = 1000;
-            hit->scratch.u16[0xB] = 10;
-        }
-
-        AddPoints(point_bonus);
-
-        // Explode object and bounce
-        hit->type = ObjId_Explosion;
-        hit->routine = 0;
-
-        if (self->y_vel >= 0) {
-            if (self->y_pos.f.u < hit->pos.l.y.f.u)
-                self->y_vel = -self->y_vel;
-            else
-                self->y_vel -= 0x100;
-        } else {
-            self->y_vel += 0x100;
-        }
-    }
-    return 0; // d0 not set
-}
-
-static signed int React_Monitor(Sst *self, Object *hit) {
-    if (self->y_vel < 0) {
-        // Check if we're below the monitor
-        uint16_t chky = self->y_pos.f.u - 0x10;
-        if ((uint16_t)hit->pos.l.y.f.u < chky) {
-            // Bump monitor
-            self->y_vel = -self->y_vel;
-            hit->ysp = -0x180;
-            if (!hit->routine_sec)
-                hit->routine_sec += 4;
-        }
-    } else if (self->anim == SonAnimId_Roll) {
-        // Break monitor
-        self->y_vel = -self->y_vel;
-        hit->routine += 2;
-    }
-    return 0; // d0 not set
-}
-
-// The same reactions to an object on the status table of Sonic 3 & Knuckles (Sst.h): its collision flags and property, status bit 7 (the touch flag) and own words stand where the old object's col_type, col_property,
-// flag7 and scratch did.
-static signed int ReactSst_ChkHurt(Sst *self, Sst *hit) {
+// The reactions to an object on the status table of Sonic 3 & Knuckles (Sst.h): its collision flags and property, status bit 7 (the touch flag) and own word 0xB (the points' index)
+static signed int React_ChkHurt(Sst *self, Sst *hit) {
     Scratch_Sonic* scratch = (Scratch_Sonic *)self->own.u8;
     if (invincibility)
         return -1;
@@ -748,26 +663,15 @@ static signed int ReactSst_ChkHurt(Sst *self, Sst *hit) {
     return HurtSonicFrom(self, hit->x_pos.f.u, sst_object_codes[ObjId_Spikes] != NULL && hit->code == sst_object_codes[ObjId_Spikes]);
 }
 
-// An object made into another one: on the table when the other has moved there too, else the other is made as an old object where it was and this one goes
+// An object made into another one (a badnik into its explosion)
 static void Sst_BecomeObject(Sst *hit, ObjectId id) {
-    if (sst_object_codes[id] != NULL) {
-        hit->code = sst_object_codes[id];
-        hit->routine = 0;
-        return;
-    }
-    Object *made = FindFreeObj();
-    if (made != NULL) {
-        made->type = id;
-        made->pos.l.x.f.u = hit->x_pos.f.u;
-        made->pos.l.y.f.u = hit->y_pos.f.u;
-        made->scratch.u16[0xB] = hit->own.u16[0xB];
-    }
-    Sst_Delete(hit);
+    hit->code = sst_object_codes[id];
+    hit->routine = 0;
 }
 
-static signed int ReactSst_Enemy(Sst *self, Sst *hit) {
+static signed int React_Enemy(Sst *self, Sst *hit) {
     if (!(invincibility || self->anim == SonAnimId_Roll))
-        return ReactSst_ChkHurt(self, hit);
+        return React_ChkHurt(self, hit);
 
     if (hit->collision_property) { // a boss
         self->x_vel = -self->x_vel >> 1;
@@ -800,7 +704,7 @@ static signed int ReactSst_Enemy(Sst *self, Sst *hit) {
     return 0;
 }
 
-static signed int ReactSst_Monitor(Sst *self, Sst *hit) {
+static signed int React_Monitor(Sst *self, Sst *hit) {
     if (self->y_vel < 0) {
         uint16_t chky = self->y_pos.f.u - 0x10;
         if ((uint16_t)hit->y_pos.f.u < chky) {
@@ -832,61 +736,7 @@ signed int ReactToItem(Sst *self) {
     width = 16;
     height <<= 1;
 
-    // Iterate through level objects
-    Object *hit = level_objects;
-    for (int i = 0; i < LEVEL_OBJECTS; i++, hit++) {
-        // Check if object is collidable
-        if (!(hit->render.f.on_screen && hit->col_type))
-            continue;
-
-        // Get object's size
-        const uint8_t *sizep = obj_sizes[hit->col_type & 0x3F];
-        uint8_t hit_width = *sizep++;
-        uint8_t hit_height = *sizep++;
-
-        // Check if we're touching (same overlap test as the original's React_CheckHitboxOverlap)
-        int16_t x_diff = x - (hit->pos.l.x.f.u - hit_width);
-        int16_t y_diff = y - (hit->pos.l.y.f.u - hit_height);
-
-        if (x_diff >= -width && x_diff <= hit_width * 2 && y_diff >= -height && y_diff <= hit_height * 2) {
-            // Made contact
-            switch (hit->col_type & 0xC0) {
-            case 0x00: // Enemy
-                return React_Enemy(self, hit);
-            case 0xC0: // Special
-                if ((hit->col_type & 0x3F) == 0x0B) { // Caterkiller spiked body segment
-                    hit->status.o.f.flag7 = true; // mark segment touched -- read by Obj_Caterkiller to fragmentate
-                    return React_ChkHurt(self, hit);
-                }
-                if ((hit->col_type & 0x3F) == 0x0C) { // Yadrin -- narrow "face" hitbox at the top only
-                    int16_t penetration = (int16_t)((y + height) - (hit->pos.l.y.f.u - hit_height));
-                    if (penetration < 8) {
-                        int16_t face_left = (int16_t)(hit->pos.l.x.f.u - 4);
-                        if (hit->status.o.f.x_flip)
-                            face_left -= 16;
-                        if (x < (int16_t)(face_left + 24) && (int16_t)(x + width) > face_left)
-                            return React_ChkHurt(self, hit);
-                    }
-                    return React_Enemy(self, hit);
-                }
-                if ((hit->col_type & 0x3F) == 0x17 || (hit->col_type & 0x3F) == 0x21) { // SYZ bumper / LZ pole -- own routine reads/clears col_property each frame
-                    hit->col_property++;
-                    return 0;
-                }
-                break;
-            case 0x80: // Hurt
-                return React_ChkHurt(self, hit);
-            case 0x40: // Other
-                if ((hit->col_type & 0x3F) == 6)
-                    return React_Monitor(self, hit);
-                if (scratch->flash_time < 90)
-                    hit->routine = 4;
-                break;
-            }
-        }
-    }
-
-    // ... and the objects on the status table of Sonic 3 & Knuckles
+    // Iterate through the objects
     for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++) {
         Sst *hit = &sst[i];
         if (hit->code == NULL || !(hit->render_flags & SST_RENDER_ON_SCREEN) || !hit->collision_flags)
@@ -899,11 +749,11 @@ signed int ReactToItem(Sst *self) {
         if (x_diff >= -width && x_diff <= hit_width * 2 && y_diff >= -height && y_diff <= hit_height * 2) {
             switch (hit->collision_flags & 0xC0) {
             case 0x00: // Enemy
-                return ReactSst_Enemy(self, hit);
+                return React_Enemy(self, hit);
             case 0xC0: // Special
                 if ((hit->collision_flags & 0x3F) == 0x0B) { // Caterkiller spiked body segment
                     hit->status |= 0x80;
-                    return ReactSst_ChkHurt(self, hit);
+                    return React_ChkHurt(self, hit);
                 }
                 if ((hit->collision_flags & 0x3F) == 0x0C) { // Yadrin
                     int16_t penetration = (int16_t)((y + height) - (hit->y_pos.f.u - hit_height));
@@ -912,9 +762,9 @@ signed int ReactToItem(Sst *self) {
                         if (hit->status & SST_STATUS_X_FLIP)
                             face_left -= 16;
                         if (x < (int16_t)(face_left + 24) && (int16_t)(x + width) > face_left)
-                            return ReactSst_ChkHurt(self, hit);
+                            return React_ChkHurt(self, hit);
                     }
-                    return ReactSst_Enemy(self, hit);
+                    return React_Enemy(self, hit);
                 }
                 if ((hit->collision_flags & 0x3F) == 0x17 || (hit->collision_flags & 0x3F) == 0x21) { // SYZ bumper / LZ pole
                     hit->collision_property++;
@@ -922,10 +772,10 @@ signed int ReactToItem(Sst *self) {
                 }
                 break;
             case 0x80: // Hurt
-                return ReactSst_ChkHurt(self, hit);
+                return React_ChkHurt(self, hit);
             case 0x40: // Other
                 if ((hit->collision_flags & 0x3F) == 6)
-                    return ReactSst_Monitor(self, hit);
+                    return React_Monitor(self, hit);
                 if (scratch->flash_time < 90)
                     hit->routine = 4;
                 break;
@@ -936,11 +786,7 @@ signed int ReactToItem(Sst *self) {
 }
 
 // Sonic functions
-signed int HurtSonic(Sst *self, Object *src) {
-    return HurtSonicFrom(self, src->pos.l.x.f.u, src->type == ObjId_Spikes);
-}
-
-// HurtSonic for whatever hurt him: the X it was at (he is thrown away from it) and whether it was spikes (the sound); `src` only if it is an old object (the death routine takes it)
+// HurtSonic for whatever hurt him: the X it was at (he is thrown away from it) and whether it was spikes (the sound)
 signed int HurtSonicFrom(Sst *self, int16_t src_x, bool spikes)
 {
     Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
@@ -982,10 +828,6 @@ signed int HurtSonicFrom(Sst *self, int16_t src_x, bool spikes)
     // LZ harpoon isn't ported yet -- only checking for Spikes here.
     PlaySound(spikes ? sfx_HitSpikes : sfx_Death);
     return -1;
-}
-
-int32_t KillSonic(Sst *self, Object *src) {
-    return KillSonicFrom(self, src != NULL && src->type == ObjId_Spikes);
 }
 
 int32_t KillSonicFrom(Sst *self, bool spikes) {
@@ -1889,45 +1731,11 @@ static void DebugMode_BuildStack(Sst *self, const uint8_t *base_mappings, const 
 // that forgot to set mappings) shows a Ring instead of nothing/garbage --
 // purely a safety fallback, since spawning is still blocked by type ==
 // ObjId_Null regardless of what the preview sprite looks like.
-// The preview is drawn by the character (the status table's renderer: Sonic 3 & Knuckles' 6-byte pieces); the mappings of an object that has not moved yet are in the old format (8-byte pieces with the 2-player tile word).
-// Those are converted into a buffer, once for each item selected. (Goes with the last old object.)
-static uint8_t debug_s3_buffer[0x2000];
-static const uint8_t *debug_s3_source;
-
-static const uint8_t *DebugMode_PreviewMappings(const void *mappings, int type) {
-    const uint8_t *m = (const uint8_t *)mappings;
-    if (m == NULL || (type >= 0 && type < 0x100 && sst_object_codes[type] != NULL))
-        return m;
-    if (debug_s3_source == m)
-        return debug_s3_buffer;
-    const int frames = ((m[0] << 8) | m[1]) / 2;
-    size_t at = (size_t)frames * 2;
-    for (int f = 0; f < frames; f++) {
-        const uint8_t *pieces;
-        const uint16_t count = Mappings_FramePieces(m, (unsigned)f, &pieces);
-        if (at + SPRITE_FRAME_HEADER_SIZE + (size_t)count * SPRITE_PIECE_SIZE_S3 > sizeof(debug_s3_buffer))
-            return NULL;
-        debug_s3_buffer[f * 2] = (uint8_t)(at >> 8);
-        debug_s3_buffer[f * 2 + 1] = (uint8_t)at;
-        debug_s3_buffer[at++] = (uint8_t)(count >> 8);
-        debug_s3_buffer[at++] = (uint8_t)count;
-        for (uint16_t p = 0; p < count; p++, pieces += SPRITE_PIECE_SIZE) {
-            debug_s3_buffer[at++] = pieces[0];
-            debug_s3_buffer[at++] = pieces[1];
-            debug_s3_buffer[at++] = pieces[2];
-            debug_s3_buffer[at++] = pieces[3];
-            debug_s3_buffer[at++] = pieces[6]; // (the 2-player tile word, pieces[4..5], is left out)
-            debug_s3_buffer[at++] = pieces[7];
-        }
-    }
-    debug_s3_source = m;
-    return debug_s3_buffer;
-}
-
+// The preview is drawn by the character (the status table's renderer: Sonic 3 & Knuckles' 6-byte pieces), so every entry's mappings are in that format.
 static void DebugMode_RefreshPreview(Sst *self, const DebugListEntry *item) {
-    const uint8_t *preview_mappings = DebugMode_PreviewMappings(item->mappings, (int)item->type);
+    const uint8_t *preview_mappings = (const uint8_t *)item->mappings;
     if (preview_mappings == NULL) {
-        self->mappings = DebugMode_PreviewMappings(Mappings_RingREV01, ObjId_Ring);
+        self->mappings = Mappings_RingREV01;
         self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
         self->mapping_frame = 0;
         self->render_flags &= (uint8_t)~SST_RENDER_STATIC;
@@ -2108,16 +1916,8 @@ void Sonic_DebugMode(Sst *self) {
         const DebugListEntry *item = &list[debug_item];
         if (item->type != ObjId_Null) {
             Sst *made = sst_object_codes[item->type] != NULL ? Sst_Spawn(item->type, self->x_pos.f.u, self->y_pos.f.u) : NULL;
-            if (made != NULL) {
-                made->subtype = debug_subtype; // (an object that has moved to the status table)
-            }
-            Object *spawned = sst_object_codes[item->type] != NULL ? NULL : FindFreeObj();
-            if (spawned != NULL) {
-                spawned->pos.l.x.f.u = self->x_pos.f.u;
-                spawned->pos.l.y.f.u = self->y_pos.f.u;
-                spawned->scratch.u8[0] = debug_subtype; // obSubtype -- read by each object's own Init routine
-                spawned->type = item->type;
-            }
+            if (made != NULL)
+                made->subtype = debug_subtype; // read by each object's own Init routine
         }
     } else if (jpad1_press_ext & (JPAD_EXT_SUBTYPE_DEC | JPAD_EXT_SUBTYPE_INC)) {
         // Adjust the selected item's subtype before spawning -- not a real

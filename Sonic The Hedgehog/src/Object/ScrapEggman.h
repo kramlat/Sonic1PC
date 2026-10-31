@@ -15,7 +15,7 @@ typedef struct {
 // away one by one into 4 fragments each (routine $A).
 typedef struct {
     uint16_t cmd;          // 0x28 -- manager: waits for "GO"; blocks: "GO" = break up now
-    uint8_t blocks[8];     // 0x30-0x37 -- manager only: objects[] index of each block
+    uint8_t blocks[8];     // 0x30-0x37 -- manager only: sst[] index of each block
     uint8_t time_frame;    // 0x38 -- manager only: break pacing counter (obTimeFrame)
     uint8_t break_count;   // 0x39 -- manager only: blocks broken so far (obFrame)
 } Own_FalseFloor;

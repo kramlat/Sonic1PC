@@ -99,7 +99,7 @@ static void Ring_Spawn(void *user, const RingSpawn *spawn) {
 }
 
 void Rings_Init(const uint8_t *layout, int16_t camera_x) {
-    static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
+    static const RingsManagerConfig config = RINGS_MANAGER_DEFAULT_CONFIG;
     RingsManager_Init(&rings_manager, &config, ring_status, sizeof(ring_status), layout, camera_x, Ring_Spawn, NULL);
 }
 

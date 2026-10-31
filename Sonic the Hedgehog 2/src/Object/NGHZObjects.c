@@ -11,7 +11,8 @@
 #include "MathUtil.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
+#include "Standing.h"
 #include "Sound.h"
 
 #include "Object/DebugMarkers.h"
@@ -191,7 +192,7 @@ void Obj_NGHZLeaves(Sst *self) {
         {
             int16_t box_w, box_h;
             if (DebugMarkers_TouchBox(self->collision_flags, &box_w, &box_h))
-                DebugMarkersSst_Show(self, box_w, box_h); // (the debug cheat shows its corners)
+                DebugMarkers_Show(self, box_w, box_h); // (the debug cheat shows its corners)
         }
         if (self->collision_property == 0) {
             own->touched = 0;
@@ -258,7 +259,7 @@ void Obj_NGHZLeaves(Sst *self) {
 // ---------------------------------------------------------------------------------------------------------------------------------------
 #include "Game.h"
 #include "Object/Sonic.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Oscillatory Routines.h"
 
 #include "Resource/Mappings/DHZSwing.h"
@@ -377,7 +378,7 @@ static void Swing_Move(Sst *self, Own_NGHZSwing *own) {
 
 static void Swing_Platform(Sst *self, int16_t old_x) {
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Platform(self, chr, who, self->width_pixels, (int16_t)(self->y_radius + 1), old_x);
+        Solid_Platform(self, chr, who, self->width_pixels, (int16_t)(self->y_radius + 1), old_x);
 }
 
 static void Swing_Display(Sst *self, Own_NGHZSwing *own) {
@@ -442,7 +443,7 @@ void Obj_NGHZSwing(Sst *self) {
             chain->width_pixels = 0x48;
             chain->y_radius = 0x50;
             chain->priority = 2 * 0x80;
-            chain->child_count = (uint8_t)(links < OBJECT_CHILDREN ? links : OBJECT_CHILDREN);
+            chain->child_count = (uint8_t)(links < SST_CHILDREN ? links : SST_CHILDREN);
             for (int i = 0; i < chain->child_count; i++) {
                 chain->children[i].x = self->x_pos.f.u;
                 chain->children[i].y = y;
@@ -477,7 +478,7 @@ void Obj_NGHZSwing(Sst *self) {
                 raft->routine = (uint8_t)(LEVEL_ZONE(level_id) == ZoneId_ARZ ? SwingRoutine_Raft : SwingRoutine_Fall);
                 raft->x_vel = ((self->status & SST_STATUS_X_FLIP) != 0) ? -0x200 : 0x200;
                 raft->status |= 2; // (falling)
-                const uint8_t old_slot = (uint8_t)(self - sst), new_slot = (uint8_t)(raft - sst);
+                const uint8_t old_slot = Standing_IdOfSst(self), new_slot = Standing_IdOfSst(raft);
                 Scratch_Sonic *sonic = (Scratch_Sonic *)player->own.u8;
                 if (sonic->standing_obj == old_slot)
                     sonic->standing_obj = new_slot;
@@ -578,7 +579,7 @@ enum { RotatorRoutine_Init = 0, RotatorRoutine_Leader = 2, RotatorRoutine_Follow
 
 static void Rotator_Platform(Sst *self, int16_t old_x) {
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Platform(self, chr, who, (int16_t)(self->width_pixels + 0xB), 9, old_x);
+        Solid_Platform(self, chr, who, (int16_t)(self->width_pixels + 0xB), 9, old_x);
 }
 
 // The alpha's loop of positions (Offset_0x01F4B6): `count` steps of the arm from `first`, stored as child sprites from `*child`

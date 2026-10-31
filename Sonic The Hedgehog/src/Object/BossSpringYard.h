@@ -28,7 +28,7 @@ typedef struct {
     // directly in this port, not this field.)
     bool swept;
     dword_s boss_x;          // 0x30-0x33 -- ship/controller only: fixed-point base X (see obBossX)
-    uint8_t parent_index;    // 0x34 -- face/flame/spike only: index into objects[] for the ship/controller
+    uint8_t parent_index;    // 0x34 -- face/flame/spike only: index into sst[] for the ship/controller
                               //         (ship only: doubles as which 32px-wide block column Eggman is currently over -- real ASM's BossSpringYard_BlockIndex, same offset, different alias)
     uint8_t block_index;     // 0x36 -- ship only: object-slot index of the currently grabbed/targeted block (real ASM's BossSpringYard_ObjPointer, a raw pointer there -- an index here, see has_block)
     bool has_block;          // 0x37 -- ship only: whether block_index above is currently valid

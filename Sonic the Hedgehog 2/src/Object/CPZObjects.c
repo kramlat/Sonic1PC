@@ -14,7 +14,7 @@
 #include "Object/Tails.h"
 #include "MathUtil.h"
 #include "Oscillatory Routines.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -158,7 +158,7 @@ void Obj_CPZElevator(Sst *self) {
     int16_t old_x = self->x_pos.f.u;
     Elevator_Move(self, own);
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Platform(self, chr, who, self->width_pixels, 0x10, old_x);
+        Solid_Platform(self, chr, who, self->width_pixels, 0x10, old_x);
 
     if (SstOutOfRange(own->base_x)) {
         GoneIfOffscreen(self, own->base_x);
@@ -278,7 +278,7 @@ void Obj_CPZPipeTipper(Sst *self) {
 
     if (self->mapping_frame == 0) { // upright: a platform
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Platform(self, chr, who, 0x10, 0x11, self->x_pos.f.u);
+            Solid_Platform(self, chr, who, 0x10, 0x11, self->x_pos.f.u);
     } else { // tipped: whoever stands on it falls
         FOR_EACH_CHARACTER(chr, who) {
             if (self->status & (1 << (3 + who))) {
@@ -412,7 +412,7 @@ void Obj_CPZBlock(Sst *self) {
     CPZBlock_Move(self, own);
     if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
+            Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
     }
     if (SstOutOfRange(own->base_x)) {
         GoneIfOffscreen(self, own->base_x);
@@ -543,7 +543,7 @@ void Obj_CPZBarrier(Sst *self) {
         const int16_t shift = (LEVEL_ZONE(level_id) == ZoneId_SSZ) ? 0x10 : 0;
         self->x_pos.f.u = (int16_t)(self->x_pos.f.u + shift);
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x20, 0x21, (int16_t)(x + shift), NULL);
+            Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x20, 0x21, (int16_t)(x + shift), NULL);
         self->x_pos.f.u = (int16_t)(self->x_pos.f.u - shift);
     }
     SstOnScreenTest(self);
@@ -650,7 +650,7 @@ void Obj_TubeCover(Sst *self) {
     const bool sonic_rolls = player->anim == SonAnimId_Roll, tails_rolls = sidekick != NULL && sidekick->anim == SonAnimId_Roll;
     if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x10, 0x11, self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x10, 0x11, self->x_pos.f.u, NULL);
     }
     const uint8_t stand = self->status & 0x18;
     bool broken = false;
@@ -798,7 +798,7 @@ void Obj_CPZRotor(Sst *self) {
     self->y_pos.f.u = (int16_t)(own->base_y + fs->off[(own->index - 0x34) >> 1]);
     if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         FOR_EACH_CHARACTER(chr, who) {
-            int32_t hit = SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x10, 0x11, self->x_pos.f.u, NULL);
+            int32_t hit = Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x10, 0x11, self->x_pos.f.u, NULL);
             if (hit == -1)
                 fs->touched |= (uint8_t)(0x10 << who);
             else if (hit == -2)
@@ -855,7 +855,7 @@ static void Slider_Move(Sst *self, Own_CPZSlider *own) {
     }
     self->x_pos.f.u = x;
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Platform(self, chr, who, self->width_pixels, 8, old_x);
+        Solid_Platform(self, chr, who, self->width_pixels, 8, old_x);
 }
 
 void Obj_CPZSlider(Sst *self) {
@@ -937,7 +937,7 @@ void Obj_CPZInvisibleBlock(Sst *self) {
     const int16_t dx = (int16_t)(self->x_pos.f.u - scrpos_x.f.u), dy = (int16_t)(self->y_pos.f.u - scrpos_y.f.u);
     if (dx >= 0 && dx < 0x140 && dy >= 0 && dy < 0xE0) {
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), self->x_pos.f.u, NULL);
     }
     if (SstOutOfRange(self->x_pos.f.u)) {
         GoneIfOffscreen(self, self->x_pos.f.u);
@@ -1089,6 +1089,6 @@ void Obj_FloatingPlatform(Sst *self) {
         self->y_pos.f.u = (int16_t)(own->base_y + ((cos + 8) >> 4));
     }
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Platform(self, chr, who, self->width_pixels, 9, self->x_pos.f.u);
+        Solid_Platform(self, chr, who, self->width_pixels, 9, self->x_pos.f.u);
     SstOnScreenTest(self);
 }

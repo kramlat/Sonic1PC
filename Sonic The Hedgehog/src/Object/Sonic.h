@@ -103,9 +103,7 @@ void Sonic_DebugMode(Sst *obj); // object placement mode (debug_use != 0); share
 void Sonic_ResetOnFloor(Sst *obj);
 void Sonic_ChkRoll(Sst *obj);
 void Sonic_CancelSpindash(void); // drops a charging spin dash (flag, rev count, dust), e.g. when a seesaw launches Sonic
-int32_t HurtSonic(Sst *obj, Object *src);
 int32_t HurtSonicFrom(Sst *obj, int16_t src_x, bool spikes);
-int32_t KillSonic(Sst *obj, Object *src);
 int32_t KillSonicFrom(Sst *obj, bool spikes);
 
 #endif //_SONIC_H

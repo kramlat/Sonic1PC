@@ -11,7 +11,7 @@
 #include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -83,7 +83,7 @@ void Obj_DHZStomper(Sst *self) {
     self->y_pos.f.u = (int16_t)(own->base_y - own->lift);
 
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x40, 0x41, self->x_pos.f.u, NULL);
+        Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x40, 0x41, self->x_pos.f.u, NULL);
     if (SstOutOfRange(self->x_pos.f.u)) {
         if (self->respawn)
             (*SstLoad_State(self)) &= 0x7F;
@@ -124,7 +124,7 @@ void Obj_Switch(Sst *self) {
     const bool sand_shower = LEVEL_ZONE(level_id) == ZoneId_SSZ;
     if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, 0x1B, 4, 5, self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, 0x1B, 4, 5, self->x_pos.f.u, NULL);
         self->mapping_frame = 0;
         if (sand_shower)
             self->children[1].frame = 0;
@@ -265,7 +265,7 @@ void Obj_RotatingBoxes(Sst *self) {
         }
         if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
             FOR_EACH_CHARACTER(chr, who)
-                SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
+                Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
         }
         GoneIfOffscreen(self, own->base_x);
         return;
@@ -278,7 +278,7 @@ void Obj_RotatingBoxes(Sst *self) {
 
     if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
+            Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
     }
     GoneIfOffscreen(self, own->base_x);
 }
@@ -349,7 +349,7 @@ void Obj_SpikeballChain(Sst *self) {
             chain->priority = 5 * 0x80;
             chain->mapping_frame = 0;
             chain->child_count = (uint8_t)links;
-            for (int i = 0; i < links && i < OBJECT_CHILDREN; i++) {
+            for (int i = 0; i < links && i < SST_CHILDREN; i++) {
                 chain->children[i].x = self->x_pos.f.u;
                 chain->children[i].y = self->y_pos.f.u;
                 chain->children[i].frame = 1;
@@ -369,7 +369,7 @@ void Obj_SpikeballChain(Sst *self) {
         // (a link a step of 16 pixels along the angle from the pivot, as 16.16 sums that are cut to whole pixels each)
         const int32_t step_y = (int32_t)(int16_t)(sin * 16) << 8, step_x = (int32_t)(int16_t)(cos * 16) << 8;
         int32_t acc_y = 0, acc_x = 0;
-        for (int i = 0; i < links && i < OBJECT_CHILDREN; i++) {
+        for (int i = 0; i < links && i < SST_CHILDREN; i++) {
             chain->children[i].x = (int16_t)((acc_x >> 16) + own->pivot_x);
             chain->children[i].y = (int16_t)((acc_y >> 16) + own->pivot_y);
             acc_x += step_x;
@@ -392,7 +392,7 @@ void Obj_SpikeballChain(Sst *self) {
     }
     case ChainRoutine_Block:
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x10, 0x11, self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x10, 0x11, self->x_pos.f.u, NULL);
         if (SstOutOfRange(self->x_pos.f.u)) {
             if (self->respawn)
                 (*SstLoad_State(self)) &= 0x7F;
@@ -457,7 +457,7 @@ void Obj_PlatformSpikes(Sst *self) {
 
     if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         FOR_EACH_CHARACTER(chr, who) {
-            int32_t side = SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
+            int32_t side = Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
             if (side == 1) {
                 Spikes_HurtCharacter(self, chr, who);
                 self->status &= (uint8_t)~(1 << (5 + who));
@@ -504,7 +504,7 @@ void Obj_DHZGate(Sst *self) {
 
     if (self->mapping_frame == 0) {
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, 0x4B, 8, 9, self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, 0x4B, 8, 9, self->x_pos.f.u, NULL);
     } else {
         FOR_EACH_CHARACTER(chr, who) {
             if (self->status & (1 << (3 + who)))

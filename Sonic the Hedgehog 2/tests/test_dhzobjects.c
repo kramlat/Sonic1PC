@@ -25,7 +25,6 @@ void Obj_CollapsingPlatform(Sst *obj);
 static void SstTestFiller(Sst *self) { (void)self; }
 
 static void Reset(int zone) {
-    memset(objects, 0, sizeof(Object) * 0x60);
     Sst_Reset();
     sst_load_everything_in_range = true;
     for (int i = 4; i < 0x20; i++)

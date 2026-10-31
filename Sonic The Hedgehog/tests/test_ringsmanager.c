@@ -30,7 +30,7 @@ static RingsManager mgr;
 static uint8_t status[16];
 
 static void Reset(int16_t camera_x) {
-    static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
+    static const RingsManagerConfig config = RINGS_MANAGER_DEFAULT_CONFIG;
     spawn_count = 0;
     RingsManager_Init(&mgr, &config, status, sizeof(status), layout, camera_x, Spawn, NULL);
 }
@@ -103,7 +103,7 @@ static void RingsManager_ReloadsWhatLeftAndReturns(void) {
 }
 
 static void RingsManager_NoLayoutIsNoRings(void) {
-    static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
+    static const RingsManagerConfig config = RINGS_MANAGER_DEFAULT_CONFIG;
     spawn_count = 0;
     RingsManager_Init(&mgr, &config, status, sizeof(status), NULL, 0, Spawn, NULL);
     RingsManager_Update(&mgr, 0x400, Spawn, NULL);
@@ -111,7 +111,7 @@ static void RingsManager_NoLayoutIsNoRings(void) {
 }
 
 static void RingsManager_EntriesPastTheTableAreNotRemembered(void) {
-    static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
+    static const RingsManagerConfig config = RINGS_MANAGER_DEFAULT_CONFIG;
     spawn_count = 0;
     RingsManager_Init(&mgr, &config, status, 2, layout, 0, Spawn, NULL); // a table of two entries
     RingsManager_Collect(&mgr, 3, 0);

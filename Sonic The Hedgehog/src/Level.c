@@ -795,11 +795,7 @@ void SignpostArtLoad(void) {
     }
 }
 
-// Level object loading: the engine's objects manager (ObjectsManager.h) on Sonic 1's layouts. Its load range (0x280 pixels ahead of the camera, 0x80 behind) is the
-// original 320-pixel picture's, whatever the picture size: see IS_OFFSCREEN.
-ObjectsManager objects_manager;
-
-// The objects that have moved over to the status table of Sonic 3 & Knuckles (Sst.h) are loaded by its loader (SstLoad.h): an id's routine is in the table. The manager above leaves their entries alone.
+// Level object loading: the loader of the status table of Sonic 3 & Knuckles (SstLoad.h) on Sonic 1's layouts; an id's routine is in the table (Sonic1Objects.c).
 static const SstObjectIndex sst_object_index = {sst_object_codes, 0x100};
 
 static SstLoadCamera SstCamera(void) {
@@ -819,8 +815,6 @@ void ObjPosLoad(void) {
         memset(obj63_loaded, 0, sizeof(obj63_loaded));
         f_lz1tunnel_open = false; // doors respawn shut along with the remembered object state
 
-        static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
-        ObjectsManager_Init(&objects_manager, &config, objstate, sizeof(objstate), Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
         Sst_Reset();
         SstLoadCamera sst_camera = SstCamera();
         SstLoad_Init(&sst_object_index, Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), false, &sst_camera);
@@ -828,7 +822,6 @@ void ObjPosLoad(void) {
     } else {
         SstLoadCamera sst_camera = SstCamera();
         SstLoad_Update(&sst_camera);
-        ObjectsManager_Update(&objects_manager, scrpos_x.f.u);
         Rings_Update(scrpos_x.f.u);
     }
 }

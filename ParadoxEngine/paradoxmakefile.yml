@@ -26,8 +26,6 @@ sources:
   - "src/LevelDrawCore.h"
   - "src/Sprites.c"
   - "src/Sprites.h"
-  - "src/ObjectsManager.c"
-  - "src/ObjectsManager.h"
   - "src/LevelCollision.c"
   - "src/LevelCollision.h"
   - "src/LevelData.c"

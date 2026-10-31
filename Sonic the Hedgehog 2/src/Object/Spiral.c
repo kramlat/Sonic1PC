@@ -10,7 +10,7 @@
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 
 #include "MathUtil.h"
 #include "Macros.h"
@@ -73,7 +73,7 @@ static void Spiral_Character(Sst *self, Sst *chr, int who) {
         int16_t d1 = chr->y_pos.f.u - self->y_pos.f.u - 0x10;
         if ((uint16_t)d1 >= 0x30)
             return;
-        SolidSst_Ride(self, chr, who);
+        Solid_Ride(self, chr, who);
         return;
     }
 
@@ -127,7 +127,7 @@ static void Cylinder_Character(Sst *self, Sst *chr, int who) {
         if (chr->routine >= 6)
             return;
         chr->y_pos.f.u = (int16_t)(chr->y_pos.f.u + (int16_t)d0 + 3);
-        SolidSst_Ride(self, chr, who);
+        Solid_Ride(self, chr, who);
         chr->anim = 0;
         chr->prev_anim = 1;
         *angle = 0;

@@ -18,8 +18,8 @@ static void Hel_RotateSpikes(Sst *self, Own_Helix *own) {
 
 // Deletes every child spike this parent spawned (parent itself is deleted
 // separately by the caller) -- real hardware's DeleteChild is just a
-// plain object-memory clear (see ObjectDelete's own comment: no
-// respawn-index bookkeeping to worry about, safe on any object).
+// plain object-memory clear (no respawn-index bookkeeping to worry
+// about, safe on any object).
 static void Hel_DeleteChildren(Own_Helix *own) {
     for (int i = 0; i < own->children_count - 1; i++)
         Sst_Delete(&sst[own->children[i]]);

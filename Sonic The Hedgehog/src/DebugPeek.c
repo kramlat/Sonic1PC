@@ -30,28 +30,38 @@ int Peek_DebugToolsAvailable(void) {
 }
 
 int Peek_ObjectCount(void) {
-	return OBJECTS;
+	return SST_COUNT;
+}
+
+// The object id a slot runs (the table's id whose routine is the slot's; 0 for a free slot)
+static uint8_t SlotId(const Sst *o) {
+	if (o->code == NULL)
+		return 0;
+	for (int id = 1; id < 0x100; id++)
+		if (sst_object_codes[id] == o->code)
+			return (uint8_t)id;
+	return 0;
 }
 
 void Peek_GetObject(int slot, ObjectPeek *out) {
-	const Object *o = &objects[slot];
-	out->type = o->type;
+	const Sst *o = &sst[slot];
+	out->type = SlotId(o);
 	out->routine = o->routine;
-	out->routine_sec = o->routine_sec;
-	out->frame = o->frame;
+	out->routine_sec = o->routine_secondary;
+	out->frame = o->mapping_frame;
 	out->anim = o->anim;
-	out->render = o->render.b;
-	out->status = o->status.b;
-	out->subtype = o->scratch.u8[0];
-	out->x = o->pos.l.x.f.u;
-	out->y = o->pos.l.y.f.u;
-	out->xsp = o->xsp;
-	out->ysp = o->ysp;
+	out->render = o->render_flags;
+	out->status = o->status;
+	out->subtype = o->subtype;
+	out->x = o->x_pos.f.u;
+	out->y = o->y_pos.f.u;
+	out->xsp = o->x_vel;
+	out->ysp = o->y_vel;
 }
 
 const uint8_t *Peek_ObjectBytes(int slot, int *size) {
-	*size = (int)sizeof(Object);
-	return (const uint8_t *)&objects[slot];
+	*size = (int)sizeof(Sst);
+	return (const uint8_t *)&sst[slot];
 }
 
 void Peek_EditorState(EditorPeek *out) {

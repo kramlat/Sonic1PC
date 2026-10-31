@@ -29,7 +29,7 @@ typedef struct {
     int16_t stomp_distance;      // 0x36 -- type 3 only: pixels left to descend from the current stomp
     uint8_t stomp_delay;           // 0x38 -- type 3 only: frames to wait before a stomp starts moving the pillar down
     uint8_t parent_index;            // 0x3C on real hardware (pointer there) -- index
-                                      // into objects[] of the pillar this object
+                                      // into sst[] of the pillar this object
                                       // belongs to (every spawned piece, pillar
                                       // included, points at the original pillar)
 } Own_GlassBlock;

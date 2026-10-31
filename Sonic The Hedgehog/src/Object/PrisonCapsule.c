@@ -59,12 +59,10 @@ static void Pri_BodyMain(Sst *self) {
     SstSolidObject(self, (uint16_t)x_rad, 48 / 2, 48 / 2, self->x_pos.f.u, NULL, NULL);
 }
 
-// A FindFreeObj() slot can still carry stale bytes from whatever last lived
-// there (see BossSpringYard.c). Obj_Animals_Construct branches on the
-// subtype byte, and a leftover nonzero value sends a prison animal down the
-// ending-sequence path with the wrong art (the "bouncing Eggman cockpit").
-// Start every animal from a fully cleared slot, like the real DeleteObject
-// guarantees.
+// Obj_Animals_Construct branches on the subtype byte, and a leftover nonzero
+// value sends a prison animal down the ending-sequence path with the wrong art
+// (the "bouncing Eggman cockpit"). Start every animal from a fully cleared
+// slot, like the real DeleteObject guarantees.
 static Sst *Pri_NewAnimal(void) {
     Sst *animal = Sst_Allocate();
     if (animal != NULL) {

@@ -15,7 +15,7 @@
 //   1. groupid aliased the subtype byte, so once the spawner turned itself
 //      into the first platform its group ID was gone -- the group's
 //      "loaded" flag was never cleared on despawn and it never came back.
-//   2. Platforms 2..N went into FindNextFreeObj() slots without clearing;
+//   2. Platforms 2..N went into free slots without clearing;
 //      a stale nonzero routine skipped init and a garbage points pointer
 //      was dereferenced at the first corner (crash).
 

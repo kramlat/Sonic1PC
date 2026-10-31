@@ -10,7 +10,7 @@
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -39,7 +39,7 @@ void Obj_HPZEmerald(Sst *self) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = Character(who);
         if (chr != NULL)
-            SolidSst_Character(self, chr, who, 0x20, 0x10, 0x10, self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, 0x20, 0x10, 0x10, self->x_pos.f.u, NULL);
     }
     SstOnScreenTest2(self, self->x_pos.f.u);
 }
@@ -188,7 +188,7 @@ static void Ledge_Platform(Sst *self) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = Character(who);
         if (chr != NULL)
-            SolidSst_SlopedPlatform(self, chr, who, self->width_pixels, slope, self->x_pos.f.u);
+            Solid_SlopedPlatform(self, chr, who, self->width_pixels, slope, self->x_pos.f.u);
     }
 }
 

@@ -41,7 +41,6 @@ void GM_Continue(void) {
     VDP_SetBackgroundColour(0);
     VDPDisableWaterSplit();
     ClearScreen();
-    memset(objects, 0, sizeof(objects));
 
     VDP_SeekVRAM(ART_VRAM(ArtTile_Title_Card)); // the "CONTINUE" letters
     NemDec(Art_TitleCard);

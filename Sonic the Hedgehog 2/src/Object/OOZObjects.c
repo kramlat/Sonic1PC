@@ -16,7 +16,7 @@
 #include "Object/CharThrow.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -87,7 +87,7 @@ void Obj_OilSurface(Sst *self) {
             (*depth)++;
         }
         self->x_pos.f.u = chr->x_pos.f.u;
-        SolidSst_Platform(self, chr, who, 0x20, *depth, chr->x_pos.f.u);
+        Solid_Platform(self, chr, who, 0x20, *depth, chr->x_pos.f.u);
     }
 }
 
@@ -241,7 +241,7 @@ void Obj_OOZLauncher(Sst *self) {
     }
 
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 8, 9, old_x, NULL);
+        Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 8, 9, old_x, NULL);
     SstOnScreenTest(self);
 }
 
@@ -505,7 +505,7 @@ void Obj_OOZPushSpring(Sst *self) {
         const int16_t offset = (int16_t)(own->press * 2);
         self->y_pos.f.u += offset; // (the top is lower, pressed)
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, 0x1B, 0x14, 0x14, self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, 0x1B, 0x14, 0x14, self->x_pos.f.u, NULL);
         self->y_pos.f.u -= offset;
         SstOnScreenTest(self);
         return;
@@ -515,7 +515,7 @@ void Obj_OOZPushSpring(Sst *self) {
     own->moved = 0;
     FOR_EACH_CHARACTER(chr, who) {
         const int16_t before = chr->x_pos.f.u;
-        if (SolidSst_Character(self, chr, who, 0x1F, 0xC, 0xD, self->x_pos.f.u, NULL) != 1)
+        if (Solid_Character(self, chr, who, 0x1F, 0xC, 0xD, self->x_pos.f.u, NULL) != 1)
             continue;
         const int16_t penetration = (int16_t)(before - chr->x_pos.f.u);
         uint8_t d1 = self->status;
@@ -689,7 +689,7 @@ void Obj_OOZSpringBall(Sst *self) {
             return;
         }
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x10, 0x11, old_x, NULL);
+            Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x10, 0x11, old_x, NULL);
         SpringBall_Animate(self);
         SstOnScreenTest(self);
         break;
@@ -741,8 +741,8 @@ static void Cannon_Char(Sst *self, Own_Cannon *own, Sst *chr, int who) {
             return;
         if ((uint16_t)(chr->y_pos.f.u - self->y_pos.f.u + 0x10) >= 0x20)
             return;
-        if (((chr->status & SST_PSTATUS_OBJECT_STAND) != 0) && sscratch->standing_obj < STANDING_SST) { // (it was on another cannon: that one lets go of it)
-            Sst *prev = &sst[sscratch->standing_obj];
+        if (((chr->status & SST_PSTATUS_OBJECT_STAND) != 0) && sscratch->standing_obj >= STANDING_SST) { // (it was on another cannon: that one lets go of it)
+            Sst *prev = &sst[(sscratch->standing_obj - STANDING_SST) % SST_COUNT];
             if (prev != self && prev->code == self->code) {
                 Own_Cannon *other = (Own_Cannon *)prev->own.u8;
                 if (who == SolidChar_Sonic)

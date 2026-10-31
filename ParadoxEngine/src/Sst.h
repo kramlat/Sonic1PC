@@ -9,7 +9,7 @@
 #include "Viewport.h"
 
 // The status table of Sonic 3 & Knuckles (sonic3k.constants.asm: object_size $4A, the fields at $0-$4A) as the engine's object, with the handler that runs it (sonic3k.asm: Process_Sprites, Draw_Sprite, Delete_Current_Sprite,
-// MoveSprite, Animate_Sprite). It is a table of its own beside the old `Object` one: a game's objects move over one at a time, and the old handler runs the old ones until the last has gone.
+// MoveSprite, Animate_Sprite). It is the engine's only object table.
 //
 // What S3&K calls a field keeps its name and its meaning here, in the same order; only the code pointer is a C function pointer (so the table is not $4A bytes, and nothing here depends on a byte offset). An
 // object whose `code` is NULL is a free slot. The 68000 keeps a position as a word with a sub-pixel word after it (or a long when it needs the precision): a dword_s (Types.h) is both.
@@ -111,7 +111,7 @@ extern Sst *const player;
 // Process_Sprites: runs every slot's code in order. With `freeze_level` (the first player's routine is 6 or more and it is not a competition: it has died) the players and the dynamic objects still run but the level's
 // fixed objects only draw themselves (those that are on screen)
 void Sst_Process(bool freeze_level);
-// ... the characters' two slots first (they ran first in the old object table, ahead of everything the old handler runs), and then the rest (Sst_Process after it skips them)
+// ... the characters' two slots first (they run first, ahead of everything else), and then the rest (Sst_Process after it skips them)
 void Sst_ProcessPlayers(bool run);
 
 // Draw_Sprite: queues the object in its priority's draw queue (8 queues of 63 objects; a full one passes the object on to the next, and the last one drops it)
@@ -148,5 +148,5 @@ void Sst_MoveSpriteTestGravity2(Sst *obj);
 void Sst_Animate(Sst *obj, const uint8_t *table);
 void Sst_AnimateIrregular(Sst *obj, const uint8_t *table);
 
-// Render_Sprites for one draw queue of the Sonic 3 objects, into the sprite table the old objects are built into (Sprites.c: BuildSprites calls it for each queue, after the old objects of it, and empties the queues)
-void SstRenderQueue(int queue, sprite_t **sprite, uint8_t *sprite_i, const SpriteView *view, int16_t top, int view_w);
+// Render_Sprites for one draw queue of the Sonic 3 objects, into the sprite table (Sprites.c: BuildSprites calls it for each queue of each view, and empties the queues; `clear_on_screen` is for the first view: the on-screen flag then says whether the object was in either)
+void SstRenderQueue(int queue, sprite_t **sprite, uint8_t *sprite_i, const SpriteView *view, int16_t top, int view_w, bool clear_on_screen);

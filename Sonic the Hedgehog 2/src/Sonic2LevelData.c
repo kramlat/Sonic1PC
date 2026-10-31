@@ -323,7 +323,7 @@ const uint8_t* level_coli[ZoneId_Num - 1][2] = {
     [0x0F] = { S2Collision_NGHZ1, S2Collision_NGHZ2 },
 };
 
-// Level object layouts (Sonic 2 format: ObjectsManager.h), and the ring layouts in the same places
+// Level object layouts (Sonic 2 format: SstLoad.h), and the ring layouts in the same places
 const uint8_t* level_obj[ZoneId_Num][4] = {
     [0x00] = { S2Objects_EHZ1, S2Objects_EHZ2, S2Objects_Null, S2Objects_Null }, // EHZ
     [0x02] = { obj_null, obj_null, obj_null, obj_null }, // WZ

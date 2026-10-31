@@ -11,7 +11,7 @@
 #include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 
 #include "Macros.h"
 
@@ -22,7 +22,7 @@ static void Platforms_Carry(Sst *self, int16_t x_rad, int16_t y_walk, int16_t ol
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
         if (chr != NULL)
-            SolidSst_Platform(self, chr, who, x_rad, y_walk, old_x);
+            Solid_Platform(self, chr, who, x_rad, y_walk, old_x);
     }
 }
 

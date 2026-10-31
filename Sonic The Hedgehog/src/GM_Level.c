@@ -84,9 +84,6 @@ void ResumeLevelMusic(void) {
 // Wipes the per-level state (objects, scroll, camera, timers...): what the original clears at the start of a level, the
 // ending sequence and the special stage's entry. Deliberately leaves the lamppost counter alone, see below.
 void Level_ClearState(void) {
-    // Clear object memory
-    memset(objects, 0, sizeof(objects));
-
     // Clear F628 to F680
     vbla_routine = 0;
     pcyc_num = 0;
@@ -330,10 +327,7 @@ GM_Level_Branch:;
 
     // Create player and HUD objects
     player->code = sst_object_codes[ObjId_Sonic];
-    if (sst_object_codes[ObjId_Splash] != NULL)
-        Splash_Make(); // Spin Dash dust / skid dust / water splash companion
-    else
-        objects[0x1B].type = ObjId_Splash; // (a game whose companion has not moved over yet)
+    Splash_Make(); // Spin Dash dust / skid dust / water splash companion
     if (demo >= 0)
         Sst_Spawn(ObjId_HUD, 0, 0);
     Game_LevelObjects();

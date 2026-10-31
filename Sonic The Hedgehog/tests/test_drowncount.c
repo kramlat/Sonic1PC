@@ -14,7 +14,6 @@
 
 static void DrownCount_NumbersAreShownAndStayShown(void) {
     level_id = LEVEL_ID(ZoneId_LZ, 0);
-    memset(objects, 0, sizeof(objects));
     Sst_Reset();
     memset(player, 0, sizeof(Sst));
     player->code = sst_object_codes[ObjId_Sonic];

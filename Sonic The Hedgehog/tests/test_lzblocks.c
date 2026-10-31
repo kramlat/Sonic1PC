@@ -22,7 +22,7 @@ static void LZBlocks_PlatformsRiseToTheCeilingAndStopThere(void) {
     level_id = LEVEL_ID(ZoneId_LZ, 0);
     LevelDataLoad();
     ColIndexLoad();
-    memset(objects, 0, sizeof(objects));
+    Sst_Reset();
     memset(player, 0, sizeof(Sst));
     player->routine = 2;
     player->x_pos.f.u = 0xA60;

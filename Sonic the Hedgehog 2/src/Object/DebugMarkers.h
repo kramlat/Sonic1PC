@@ -9,13 +9,9 @@
 extern const uint8_t Mappings_DebugUnknown[];
 
 // The "?" at the corners of the box of `half_width` and `half_height` around the object (does nothing without the cheat). Call it where the object would be drawn, after it has set its render flags.
-void DebugMarkers_Show(Object *obj, int16_t half_width, int16_t half_height);
+void DebugMarkers_Show(Sst *obj, int16_t half_width, int16_t half_height);
 
 // The half sizes of the box a collision type touches (the first six of the touch sizes the hurt boxes use), or false when the type is not one of those
-// ... for an object of the status table
-void DebugMarkersSst_Show(Sst *obj, int16_t half_width, int16_t half_height);
-extern const uint8_t Mappings_DebugUnknownS3[];
-
 bool DebugMarkers_TouchBox(uint8_t col_type, int16_t *half_width, int16_t *half_height);
 
 #endif //_DEBUGMARKERS_H

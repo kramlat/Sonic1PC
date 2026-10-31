@@ -114,7 +114,7 @@ static void BossBlock_Action(Sst *self, Own_BossBlock *own) {
     if (own->child_cmd < 0) {
         // Grabbed -- track the boss's position (44px below it), predicting
         // its Y motion if the boss hasn't been processed yet this frame
-        // (i.e. sits later in objects[] than this block).
+        // (i.e. sits later in sst[] than this block).
         Sst *parentObj = &sst[own->parent_index];
         if (parentObj->collision_property == 0) { // obBossHits ran out mid-grab
             BossBlock_Break(self);

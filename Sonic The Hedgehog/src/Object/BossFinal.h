@@ -8,7 +8,7 @@
 // Ported from s1disasm's "_incObj/85,84,86 Boss - FZ Main, Cylinders, and Plasma Balls.asm".
 //
 // The original passes pointers between these objects through a few shared offsets; here every pointer is an
-// objects[] index (parent_index), and offsets that the original reuses for different jobs are named for the job.
+// sst[] index (parent_index), and offsets that the original reuses for different jobs are named for the job.
 typedef struct {
     uint8_t pad0;            // 0x28
     uint8_t child_cmd;       // 0x29 -- command sent to a cylinder / the launcher, one-shot (BossFinal_ChildCmd)

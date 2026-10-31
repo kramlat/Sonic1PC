@@ -912,10 +912,6 @@ signed int ReactToItem(Sst *self) {
 }
 
 // Sonic functions
-signed int HurtSonic(Sst *self, Object *src) {
-    return HurtSonicFrom(self, src->pos.l.x.f.u, src->type == ObjId_Spikes);
-}
-
 // HurtSonic for whatever hurt him: the X it was at (he is thrown away from it) and whether it was spikes (the sound). The objects on the status table of Sonic 3 & Knuckles come this way.
 signed int HurtSonicFrom(Sst *self, int16_t src_x, bool spikes)
 {
@@ -958,10 +954,6 @@ signed int HurtSonicFrom(Sst *self, int16_t src_x, bool spikes)
     // LZ harpoon isn't ported yet -- only checking for Spikes here.
     PlaySound(spikes ? sfx_HitSpikes : sfx_Death);
     return -1;
-}
-
-int32_t KillSonic(Sst *self, Object *src) {
-    return KillSonicFrom(self, src != NULL && src->type == ObjId_Spikes);
 }
 
 int32_t KillSonicFrom(Sst *self, bool spikes) {
@@ -1932,45 +1924,11 @@ static void DebugMode_BuildStack(Sst *self, const uint8_t *base_mappings, const 
 // that forgot to set mappings) shows a Ring instead of nothing/garbage --
 // purely a safety fallback, since spawning is still blocked by type ==
 // ObjId_Null regardless of what the preview sprite looks like.
-// The preview is drawn by the character (the status table's renderer: Sonic 3 & Knuckles' 6-byte pieces); the mappings of an object that has not moved yet are in the old format (8-byte pieces with the 2-player tile word).
-// Those are converted into a buffer, once for each item selected. (Goes with the last old object.)
-static uint8_t debug_s3_buffer[0x2000];
-static const uint8_t *debug_s3_source;
-
-static const uint8_t *DebugMode_PreviewMappings(const void *mappings, int type) {
-    const uint8_t *m = (const uint8_t *)mappings;
-    if (m == NULL || (type >= 0 && type < 0x100 && sst_object_codes[type] != NULL))
-        return m;
-    if (debug_s3_source == m)
-        return debug_s3_buffer;
-    const int frames = ((m[0] << 8) | m[1]) / 2;
-    size_t at = (size_t)frames * 2;
-    for (int f = 0; f < frames; f++) {
-        const uint8_t *pieces;
-        const uint16_t count = Mappings_FramePieces(m, (unsigned)f, &pieces);
-        if (at + SPRITE_FRAME_HEADER_SIZE + (size_t)count * SPRITE_PIECE_SIZE_S3 > sizeof(debug_s3_buffer))
-            return NULL;
-        debug_s3_buffer[f * 2] = (uint8_t)(at >> 8);
-        debug_s3_buffer[f * 2 + 1] = (uint8_t)at;
-        debug_s3_buffer[at++] = (uint8_t)(count >> 8);
-        debug_s3_buffer[at++] = (uint8_t)count;
-        for (uint16_t p = 0; p < count; p++, pieces += SPRITE_PIECE_SIZE) {
-            debug_s3_buffer[at++] = pieces[0];
-            debug_s3_buffer[at++] = pieces[1];
-            debug_s3_buffer[at++] = pieces[2];
-            debug_s3_buffer[at++] = pieces[3];
-            debug_s3_buffer[at++] = pieces[6]; // (the 2-player tile word, pieces[4..5], is left out)
-            debug_s3_buffer[at++] = pieces[7];
-        }
-    }
-    debug_s3_source = m;
-    return debug_s3_buffer;
-}
-
+// The preview is drawn by the character (the status table's renderer: Sonic 3 & Knuckles' 6-byte pieces), so every entry's mappings are in that format.
 static void DebugMode_RefreshPreview(Sst *self, const DebugListEntry *item) {
-    const uint8_t *preview_mappings = DebugMode_PreviewMappings(item->mappings, (int)item->type);
+    const uint8_t *preview_mappings = (const uint8_t *)item->mappings;
     if (preview_mappings == NULL) {
-        self->mappings = DebugMode_PreviewMappings(Mappings_RingREV01, ObjId_Ring);
+        self->mappings = Mappings_RingREV01;
         self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
         self->mapping_frame = 0;
         self->render_flags &= (uint8_t)~SST_RENDER_STATIC;
@@ -2153,13 +2111,6 @@ void Sonic_DebugMode(Sst *self) {
             Sst *made = sst_object_codes[item->type] != NULL ? Sst_Spawn(item->type, self->x_pos.f.u, self->y_pos.f.u) : NULL;
             if (made != NULL)
                 made->subtype = debug_subtype; // (an object that has moved to the status table)
-            Object *spawned = sst_object_codes[item->type] != NULL ? NULL : FindFreeObj();
-            if (spawned != NULL) {
-                spawned->pos.l.x.f.u = self->x_pos.f.u;
-                spawned->pos.l.y.f.u = self->y_pos.f.u;
-                spawned->scratch.u8[0] = debug_subtype; // obSubtype -- read by each object's own Init routine
-                spawned->type = item->type;
-            }
         }
     } else if (jpad1_press_ext & (JPAD_EXT_SUBTYPE_DEC | JPAD_EXT_SUBTYPE_INC)) {
         // Adjust the selected item's subtype before spawning -- not a real

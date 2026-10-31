@@ -14,7 +14,7 @@
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
 #include "Oscillatory Routines.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -430,7 +430,7 @@ void Obj_MTZMovingPlatform(Sst *self) {
     const int16_t old_x = self->x_pos.f.u;
     MovingPlatform_Move(self, own);
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Platform(self, chr, who, 0x10, 8, old_x);
+        Solid_Platform(self, chr, who, 0x10, 8, old_x);
 
     if (SstOutOfRange(own->base_x)) { // (it is not forgotten: it is gone for good)
         Sst_Delete(self);
@@ -498,7 +498,7 @@ void Obj_MTZMachine(Sst *self) {
         Machine_Place(self, own, (int16_t)(int8_t)(Osc(0x20) - 0x38), (int16_t)(int8_t)(Osc(0x24) - 0x38));
         if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
             FOR_EACH_CHARACTER(chr, who)
-                SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
+                Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
         }
     } else {
         Machine_Place(self, own, (int16_t)(int8_t)((uint8_t)(Osc(0x20) >> 1) - 0x1C), (int16_t)(int8_t)((uint8_t)(Osc(0x24) >> 1) - 0x1C));
@@ -570,7 +570,7 @@ void Obj_MTZElevator(Sst *self) {
         break;
     }
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_CharacterDouble(self, chr, who, self->width_pixels, old_x, elevator_slope);
+        Solid_CharacterDouble(self, chr, who, self->width_pixels, old_x, elevator_slope);
 
     if (!SstOutOfRange(self->x_pos.f.u)) {
         Sst_Draw(self);
@@ -657,7 +657,7 @@ void Obj_MTZGear(Sst *self) {
     const int size = (self->mapping_frame * 2) & 0x1E;
     const int16_t width = gear_sizes[size], height = gear_sizes[size + 1];
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Character(self, chr, who, width, height, height, old_x, NULL);
+        Solid_Character(self, chr, who, width, height, height, old_x, NULL);
 
     SstOnScreenTest2(self, own->base_x);
 }

@@ -48,7 +48,7 @@ static const int16_t cat_frag_speed[4] = { -0x200, -0x180, 0x180, 0x200 };
 // Real hardware's own Cat_Despawn: clears this object's own respawn-block
 // flag (if any) and marks it for deletion NEXT frame via the plain
 // Cat_Delete routine, rather than deleting immediately -- same idea as
-// RememberState's own offscreen cleanup (see Object.c).
+// RememberState's own offscreen cleanup (SstOnScreenTest here).
 static void Cat_Despawn(Sst *self) {
     if (self->respawn)
         (*SstLoad_State(self)) &= 0x7F;

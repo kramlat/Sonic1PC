@@ -88,16 +88,16 @@ static void SBall_Main(Sst *self, Own_SpikeBall *own) {
         loop_count--;
 
     for (int i = 0; loop_count >= 0 && i <= loop_count; i++) {
-        // The original's default is FindFreeObj (a free slot anywhere). Its optional FixBugs variant,
-        // FindNextFreeObj(parent), only looks after the ball's own slot and drops the whole chain
-        // when none is free there -- a bare ball. A link placed before the ball only costs a stray
-        // frame if it is deleted after being queued for display, which BuildSprites skips safely.
+        // The original's default is a free slot anywhere. Its optional FixBugs variant (the slots
+        // after the ball's own) drops the whole chain when none is free there -- a bare ball. A
+        // link placed before the ball only costs a stray frame if it is deleted after being queued
+        // for display, which BuildSprites skips safely.
         Sst *link = Sst_Allocate();
         if (link == NULL)
             break;
 
-        // FindNextFreeObj returns slots with stale bytes (the original zeroes them on
-        // delete): a leftover frame/anim made the chain links draw nothing.
+        // (The original zeroes a slot on delete; a leftover frame/anim made the chain links
+        // draw nothing, so a link starts from a clean slot.)
         memset(link, 0, sizeof(Sst));
 
         own->children++;

@@ -82,7 +82,7 @@ static void ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace(void) {
         for (int act = 0; act < 3; act++) {
             for (const uint8_t *e = level_obj[p->zone][act]; e != NULL && !(e[0] == 0xFF && e[1] == 0xFF); e += 6) {
                 const uint8_t id = e[4];
-                const bool ported = (id < game_object_count && game_objects[id] != NULL && game_objects[id] != Obj_Null) || sst_object_codes[id] != NULL;
+                const bool ported = sst_object_codes[id] != NULL;
                 if (!ported && !IsPending(p, id)) {
                     printf("\n    zone %d act %d places object %02X, which is not ported", p->zone, act, id);
                     CHECK(ported);
@@ -112,7 +112,7 @@ static void ObjectCoverage_NoPlacedObjectIsFalselyPending(void) {
         const Pending *p = &pending[z];
         for (int i = 0; i < p->count; i++) {
             const uint8_t id = p->ids[i];
-            CHECK(!((id < game_object_count && game_objects[id] != NULL && game_objects[id] != Obj_Null) || sst_object_codes[id] != NULL)); // (it was ported: take it off the list)
+            CHECK(sst_object_codes[id] == NULL); // (it was ported: take it off the list)
         }
     }
 }
@@ -131,7 +131,7 @@ static void DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects(void) {
         for (int e = 0; e < count; e++) {
             if (list[e].type == ObjId_Null)
                 continue;
-            const bool ported = ((int)list[e].type < game_object_count && game_objects[list[e].type] != NULL && game_objects[list[e].type] != Obj_Null) || sst_object_codes[list[e].type] != NULL;
+            const bool ported = sst_object_codes[list[e].type] != NULL;
             if (!ported) {
                 printf("\n    zone %d entry %d places object %02X, which is not ported", expect[i].zone, e, (int)list[e].type);
                 CHECK(ported);
@@ -148,10 +148,10 @@ static void DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat(void) {
     box.x_pos.f.u = 0x1000;
     box.y_pos.f.u = 0x400;
     debug_cheat = false;
-    DebugMarkersSst_Show(&box, 0x40, 0x20);
+    DebugMarkers_Show(&box, 0x40, 0x20);
     CHECK_EQ(box.child_count, 0);
     debug_cheat = true;
-    DebugMarkersSst_Show(&box, 0x40, 0x20);
+    DebugMarkers_Show(&box, 0x40, 0x20);
     CHECK_EQ(box.child_count, 4);
     CHECK(box.render_flags & SST_RENDER_MULTI_DRAW);
     CHECK_EQ(box.children[0].x, 0x1000 - 0x40 + 8);

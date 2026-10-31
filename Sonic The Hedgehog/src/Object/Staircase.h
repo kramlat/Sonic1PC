@@ -10,7 +10,7 @@ typedef struct {
     int8_t touch;                  // 0x36 -- parent only: touch state written by children (0 = none, >0 = from above, <0 = from below)
     uint8_t parent_y_index;          // 0x37 -- child only: which of parent's children_y[] slots this block reads
     uint8_t children_y[4];             // 0x38-0x3B -- parent only: relative Y-positions for the 4 child blocks
-    uint8_t parent_index;                // 0x3C on real hardware (pointer there) -- child only: index into objects[] for the parent (also set on the parent itself, pointing to itself -- the parent runs Stair_Solid too)
+    uint8_t parent_index;                // 0x3C on real hardware (pointer there) -- child only: index into sst[] for the parent (also set on the parent itself, pointing to itself -- the parent runs Stair_Solid too)
 } Own_Staircase;
 
 void Obj_Staircase(Sst *self);

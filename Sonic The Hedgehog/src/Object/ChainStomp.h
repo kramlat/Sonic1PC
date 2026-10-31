@@ -13,7 +13,7 @@ typedef struct {
     int16_t delay;               // 0x38 -- auto-stomp types only: frames left to wait before rising again
     uint8_t switch_id;              // 0x3A -- switch-activated type only: which f_switch entry triggers it
     uint8_t parent_index;             // 0x3C on real hardware (pointer there) -- children only: index
-                                       // into objects[] of the main block this piece belongs to
+                                       // into sst[] of the main block this piece belongs to
 } Own_ChainStomp;
 
 void Obj_ChainStomp(Sst *self);

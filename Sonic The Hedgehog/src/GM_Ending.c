@@ -263,7 +263,6 @@ static void CreditsScreenSetup(void) {
     VDP_SetBackgroundColour(0x20);
     VDPDisableWaterSplit();
     ClearScreen();
-    memset(objects, 0, sizeof(objects));
     Sst_Reset();
 }
 

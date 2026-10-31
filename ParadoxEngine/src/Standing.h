@@ -3,14 +3,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "EngineObject.h"
 #include "Sst.h"
 
-// What a character is standing on, as the characters remember it (Scratch_Sonic::standing_obj, a byte): a slot of the old object table (0 to 0x7F), or 0x80 plus a slot of the status table of Sonic 3 &
-// Knuckles (Sst.h). The objects that move over keep working with the characters that have not (and the other way round) through these.
+// What a character is standing on, as the characters remember it (Scratch_Sonic::standing_obj, a byte): 0x80 plus a slot of the status table of Sonic 3 & Knuckles (Sst.h); 0 is nothing.
 #define STANDING_SST 0x80
 
-static inline uint8_t Standing_IdOfObject(const Object *obj) { return (uint8_t)(obj - objects); }
 static inline uint8_t Standing_IdOfSst(const Sst *obj) { return (uint8_t)(STANDING_SST + (obj - sst)); }
 
 // The part of the object under the character that the animation needs (balancing on the edge): its X, half its width and its touch flag (status bit 7)

@@ -144,8 +144,8 @@ static void SpinC_Main_Spawner(Sst *self, uint8_t subtype) {
             break;
 
         if (plat != self) {
-            // FixBugs forced on (crash-class under C): a FindNextFreeObj()
-            // slot can carry stale bytes. A leftover nonzero routine skipped
+            // FixBugs forced on (crash-class under C): a slot can carry stale
+            // bytes. A leftover nonzero routine skipped
             // platform init, so the stale host pointer in own->points
             // got dereferenced at the first corner. Start from a clean slot.
             memset(plat, 0, sizeof(Sst));

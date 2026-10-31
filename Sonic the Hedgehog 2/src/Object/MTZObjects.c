@@ -14,7 +14,7 @@
 #include "Object/CharThrow.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -132,7 +132,7 @@ void Obj_MTZSteamVent(Sst *self) {
     }
 
     FOR_EACH_CHARACTER(chr, who) {
-        SolidSst_Character(self, chr, who, 0x1B, 0x10, 0x10, self->x_pos.f.u, NULL);
+        Solid_Character(self, chr, who, 0x1B, 0x10, 0x10, self->x_pos.f.u, NULL);
         if (self->status & (8 << who))
             SteamVent_Throw(self, own, chr);
     }
@@ -239,7 +239,7 @@ void Obj_MTZPiston(Sst *self) {
 
     if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), own->height, (int16_t)(own->height + 1), old_x, NULL);
+            Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), own->height, (int16_t)(own->height + 1), old_x, NULL);
     }
     SstOnScreenTest2(self, own->base_x);
 }
@@ -469,7 +469,7 @@ void Obj_MTZPlatform(Sst *self) {
     }
 
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
+        Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
     if (SstOutOfRange(own->base_x)) {
         ForgetIfRemembered(self);
         Sst_Delete(self);
@@ -525,7 +525,7 @@ void Obj_MTZSpringWall(Sst *self) {
 
     FOR_EACH_CHARACTER(chr, who) {
         const uint8_t height = (uint8_t)self->y_radius;
-        if (SolidSst_Character(self, chr, who, 0x13, height, (int16_t)(height + 1), self->x_pos.f.u, NULL) != 1)
+        if (Solid_Character(self, chr, who, 0x13, height, (int16_t)(height + 1), self->x_pos.f.u, NULL) != 1)
             continue;
         if (!((chr->status & SST_PSTATUS_IN_AIR) != 0))
             continue;
@@ -641,7 +641,7 @@ void Obj_MTZBlockArrow(Sst *self) {
     }
 
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Character(self, chr, who, 0x1B, 0x10, 0x11, self->x_pos.f.u, NULL);
+        Solid_Character(self, chr, who, 0x1B, 0x10, 0x11, self->x_pos.f.u, NULL);
     SstOnScreenTest(self);
 }
 
@@ -802,6 +802,6 @@ void Obj_MTZScrewNut(Sst *self) {
         break;
     }
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Character(self, chr, who, 0x2B, 0x0C, 0x0D, self->x_pos.f.u, NULL);
+        Solid_Character(self, chr, who, 0x2B, 0x0C, 0x0D, self->x_pos.f.u, NULL);
     SstOnScreenTest(self);
 }

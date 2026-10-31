@@ -18,7 +18,7 @@
 #include "Macros.h"
 
 #include "Object/TubeData.h"
-#include "SolidSst.h"
+#include "Solid.h"
 
 #include "Resource/Mappings/TubeSpring.h"
 
@@ -322,7 +322,7 @@ void Obj_CPZTubeSpring(Sst *self) {
             Sst *chr = who == SolidChar_Sonic ? player : TAILS_OBJ;
             if (who == SolidChar_Tails && chr->code == NULL)
                 continue;
-            SolidSst_Character(self, chr, who, 0x1B, 8, 0x10, self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, 0x1B, 8, 0x10, self->x_pos.f.u, NULL);
             if (self->status & (1 << (3 + who)))
                 TubeSpring_Launch(self, chr, own->power, self->subtype);
         }

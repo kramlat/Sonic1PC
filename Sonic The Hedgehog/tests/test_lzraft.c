@@ -54,7 +54,7 @@ static void LZRaft_AppearsWhenSwitch2Pressed(void) {
 }
 
 // The real spawn path: ObjPosLoad into free slots full of stale bytes (as
-// left by writes after ObjectDelete). A stale nonzero routine meant the raft
+// left by writes after a deletion). A stale nonzero routine meant the raft
 // skipped MBlock_Main and matched no routine at all -- never visible, never
 // reacting to the switch.
 extern uint16_t opl_routine;

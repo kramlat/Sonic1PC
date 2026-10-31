@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-// The built-in level editor's model of a level's objects and rings: plain data the editor changes and writes out in the engine's own layout formats (ObjectsManager.h and RingsManager.h), the files a game keeps under
+// The built-in level editor's model of a level's objects and rings: plain data the editor changes and writes out in the engine's own layout formats (SstLoad.h and RingsManager.h), the files a game keeps under
 // res/. Nothing here knows a game, a file path or a user interface: the Qt tools and the game's hooks work on it.
 //
 // Entries are kept in layout order (sorted by X, entries with the same X in the order they were added), which is what the managers need, so what is written out loads back unchanged.

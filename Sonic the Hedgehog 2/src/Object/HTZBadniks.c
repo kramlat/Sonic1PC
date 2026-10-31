@@ -11,7 +11,7 @@
 #include "MathUtil.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 
 #include "Macros.h"
 
@@ -316,7 +316,7 @@ static void RexonSolid(Sst *self, int16_t d2, int16_t d3, int16_t old_x) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = Character(who);
         if (chr != NULL)
-            SolidSst_Character(self, chr, who, 0x1B, d2, d3, old_x, NULL);
+            Solid_Character(self, chr, who, 0x1B, d2, d3, old_x, NULL);
     }
 }
 

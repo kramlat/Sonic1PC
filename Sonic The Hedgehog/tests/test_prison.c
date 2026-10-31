@@ -13,7 +13,7 @@
 // as a bouncing Eggman cockpit (2026-09). Two bugs combined:
 //   1. Scratch_Animals was laid out 2 bytes off the original offsets, so the
 //      subtype was read from 0x29 instead of 0x28.
-//   2. The capsule took slots from FindFreeObj() without clearing them, so
+//   2. The capsule took free slots without clearing them, so
 //      a stale nonzero byte there sent the animal down the ending-sequence
 //      path (AnimalEndVram/AnimalEndMap) with the wrong art.
 // Poison every free slot, open the capsule, and check that every animal

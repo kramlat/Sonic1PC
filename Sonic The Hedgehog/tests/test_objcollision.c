@@ -7,10 +7,11 @@
 #include "LevelDraw.h"
 #include "LevelScroll.h"
 #include "Object.h"
+#include "ObjectSst.h"
 
 #include "SstLoad.h"
 
-// Regression test (2026-09): ObjHitCeiling/ObjHitWallRight/ObjHitWallLeft
+// Regression test (2026-09): SstHitCeiling/SstHitWallRight/SstHitWallLeft
 // probed the top-solid bit instead of the left/right/bottom bit P128
 // hardcodes ($D). LZ1's rising platform near the first tunnel, nudged 4px
 // down by Sonic standing on it (y=$34C), got a bogus -32 "ceiling hit" on its
@@ -46,12 +47,12 @@ static void LZ1Rise_NoBogusCeilingHit(void) {
     };
     for (size_t i = 0; i < sizeof(plat) / sizeof(plat[0]); i++) {
         for (int nudge = 0; nudge <= 4; nudge++) {
-            Object probe;
+            Sst probe;
             memset(&probe, 0, sizeof(probe));
-            probe.pos.l.x.f.u = plat[i].x;
-            probe.pos.l.y.f.u = (int16_t)(plat[i].y + nudge);
-            probe.y_rad = 24 / 2;
-            CHECK(ObjHitCeiling(&probe) >= 0);
+            probe.x_pos.f.u = plat[i].x;
+            probe.y_pos.f.u = (int16_t)(plat[i].y + nudge);
+            probe.y_radius = 24 / 2;
+            CHECK(SstHitCeiling(&probe) >= 0);
         }
     }
 }

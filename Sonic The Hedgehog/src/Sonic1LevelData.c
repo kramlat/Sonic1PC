@@ -274,7 +274,7 @@ const uint8_t* level_coli[ZoneId_Num - 1][2] = {
     { Collision_SBZ1, Collision_SBZ2 },
 };
 
-// Level object layouts (Sonic 2 format: ObjectsManager.h)
+// Level object layouts (Sonic 2 format: SstLoad.h)
 static const uint8_t obj_null[] = { 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00 };
 
 const uint8_t* level_obj[ZoneId_Num][4] = {

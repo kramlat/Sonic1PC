@@ -475,9 +475,6 @@ void GM_Title(void) {
     // Clear screen
     ClearScreen();
 
-    // Clear object memory
-    memset(objects, 0, sizeof(objects));
-
     // Load Japanese credits
     VDP_SeekVRAM(0x0000);
     NemDec(Art_JapaneseCredits);
@@ -540,7 +537,6 @@ void GM_Title(void) {
 
     // Run title screen for 376 frames
     demo_length = 376;
-    memset(&objects[2], 0, sizeof(Object));
 
     // Load title objects
     Sst_Reset();

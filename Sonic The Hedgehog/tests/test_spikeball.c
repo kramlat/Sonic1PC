@@ -21,7 +21,7 @@ static void SpikeBall_LZChainLinksAreCleanInDirtySlots(void) {
             sst[i].code = NULL;
         }
         level_id = LEVEL_ID(ZoneId_LZ, 2);
-        memset(player, 0, sizeof(Object));
+        memset(player, 0, sizeof(Sst));
         scrpos_x.f.u = 0;
         SstLoadCamera camera = {0, 0, false, 0xFFF};
         static const SstObjectIndex index_ = {sst_object_codes, 0x100};
@@ -58,7 +58,7 @@ static void SpikeBall_ChainSpawnsWhenNoSlotFreeAfterParent(void) {
     for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++)
         sst[i].code = i < SST_FIRST_DYNAMIC + 10 ? NULL : sst_object_codes[ObjId_Points]; // only the first ten are free
     level_id = LEVEL_ID(ZoneId_LZ, 0);
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     scrpos_x.f.u = 0;
     SstLoadCamera camera = {0, 0, false, 0xFFF};
     static const SstObjectIndex index_ = {sst_object_codes, 0x100};

@@ -16,7 +16,7 @@
 #include "Game.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include <string.h>
@@ -265,7 +265,7 @@ static void Launcher_Solid(Sst *self) {
     self->x_pos.f.u = 0x2A68;
     self->y_pos.f.u = 0x498;
     FOR_EACH_CHARACTER(chr, who)
-        SolidSst_Character(self, chr, who, 0x1B, 8, 0x11, 0x2A68, NULL);
+        Solid_Character(self, chr, who, 0x1B, 8, 0x11, 0x2A68, NULL);
     self->x_pos.f.u = saved_x;
     self->y_pos.f.u = saved_y;
 }

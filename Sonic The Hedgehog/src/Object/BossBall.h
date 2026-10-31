@@ -8,7 +8,7 @@ typedef struct {
     uint8_t child_count;   // 0x28 -- controller only: number of chain links (not counting the ball or self)
     uint8_t child_idx[6];    // 0x29+ -- controller only: RAM indices of [self, links..., ball]
     int16_t anchor_pos;         // 0x32 -- controller only: chain anchor's offset below the ship, drops to 32
-    uint8_t parent_index;          // 0x34 -- all: index into objects[] for the GHZ boss ship
+    uint8_t parent_index;          // 0x34 -- all: index into sst[] for the GHZ boss ship
     int16_t orig_y;                   // 0x38 -- controller only (swing_origY)
     int16_t orig_x;                      // 0x3A -- controller only (swing_origX)
     uint8_t chain_length;                   // 0x3C -- link/ball only: current distance from the swing pivot

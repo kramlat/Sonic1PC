@@ -98,7 +98,6 @@ static void SstObjects_PointsRiseAndSlowAndAreDeletedWhenTheySettle(void) {
 
 static void SstObjects_ABumperThrowsSonicAwayAndPaysTenPointsTenTimes(void) {
     Start();
-    memset(objects, 0, sizeof(Object) * 0x20);
     player->code = sst_object_codes[1];
     player->x_pos.f.u = 0x100;
     player->y_pos.f.u = 0x120;
@@ -121,43 +120,6 @@ static void SstObjects_ABumperThrowsSonicAwayAndPaysTenPointsTenTimes(void) {
                 Sst_Delete(&sst[i]);                     // (the points that rose)
     }
     CHECK_EQ(sst_respawn_table[0], 0x80 + 10);
-}
-
-static void SstObjects_AnOldObjectThatTurnsIntoAnExplosionLeavesOneOnTheTableAndStaysAsItsMarker(void) {
-    Start();
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
-    Object *old = &level_objects[3];
-    old->type = ObjId_Explosion;                       // (what a badnik that was hit sets)
-    old->pos.l.x.f.u = 0x180;
-    old->pos.l.y.f.u = 0x90;
-    old->scratch.u16[0xB] = 4;                         // (its score)
-    Obj_ExplosionObject(old);
-    Sst *boom = NULL;
-    for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++)
-        if (sst[i].code == sst_object_codes[ObjId_Explosion])
-            boom = &sst[i];
-    CHECK(boom != NULL);
-    CHECK_EQ(boom->x_pos.f.u, 0x180);
-    CHECK_EQ(boom->y_pos.f.u, 0x90);
-    CHECK_EQ(boom->own.u16[0xB], 4);
-    CHECK_EQ(old->type, ObjId_Explosion);              // (the marker the objects it was parent of look for)
-    int frames = 0;
-    int animals = 0;
-    while (boom->code != NULL && frames < 200) {       // (the explosion runs: an animal first, then 5 frames of 8)
-        Sst_Process(false);
-        frames++;
-        if (frames == 1)
-            for (int i = 0; i < SST_COUNT; i++)
-                animals += sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_Animal];
-    }
-    CHECK(frames > 35 && frames < 50);
-    CHECK_EQ(animals, 1);
-    int marker_frames = 0;
-    while (old->type == ObjId_Explosion && marker_frames < 100) {
-        Obj_ExplosionObject(old);
-        marker_frames++;
-    }
-    CHECK(marker_frames > 30 && marker_frames < 60);
 }
 
 signed int ReactToItem(Sst *obj); // Sonic.c: the touch response
@@ -427,7 +389,6 @@ void RegisterSstObjectsTests(void) {
     RUN_TEST(SstObjects_SonicWalkingIntoABadnikOnTheTableIsHurt);
     RUN_TEST(SstObjects_AChopperJumpsInItsPlaceAndTurnsBackAtTheWater);
     RUN_TEST(SstObjects_JawsTurnAfterTheirDelay);
-    RUN_TEST(SstObjects_AnOldObjectThatTurnsIntoAnExplosionLeavesOneOnTheTableAndStaysAsItsMarker);
     RUN_TEST(SstObjects_ABumperThrowsSonicAwayAndPaysTenPointsTenTimes);
     RUN_TEST(SstObjects_PointsRiseAndSlowAndAreDeletedWhenTheySettle);
     RUN_TEST(SstObjects_TheLoaderMakesThemFromTheLayout);

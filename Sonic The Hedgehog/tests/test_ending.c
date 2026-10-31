@@ -15,7 +15,6 @@
 // "_incObj/8B, 8C Try Again, End Eggman, End Emeralds.asm".
 
 static void Reset(void) {
-    memset(objects, 0, sizeof(objects));
     Sst_Reset();
     emeralds = 0;
     memset(emerald_list, 0, sizeof(emerald_list));

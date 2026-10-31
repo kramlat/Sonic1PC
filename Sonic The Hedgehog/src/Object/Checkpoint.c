@@ -58,11 +58,6 @@ void Obj_Checkpoint(Sst *self) {
                 /* Spawn the twirling ball object */
                 Sst *ball = Sst_Allocate();
                 if (ball) {
-                    // FindFreeObj() slots can hold stale bytes (see BossSpringYard.c): a
-                    // leftover angle changes where the twirl starts, and a leftover respawn
-                    // index makes RememberState corrupt another object's respawn flags.
-                    memset(ball, 0, sizeof(Object));
-                    ball->mappings = NULL;
                     Own_Checkpoint *ball_scratch = (Own_Checkpoint *)ball->own.u8;
                     ball->code = sst_object_codes[ObjId_Checkpoint];
                     ball->routine = 6; /* Lamp_Twirl */

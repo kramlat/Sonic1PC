@@ -32,6 +32,6 @@ int16_t SstHitCeiling(Sst *obj);
 bool SstChkObjectVisible(const Sst *obj);
 bool SstChkPartiallyVisible(const Sst *obj);
 
-// Status bits of an object that a character stands on or pushes (the same as the old ObjectStatus)
+// Status bits of an object that a character stands on or pushes (the character's stand and push flags)
 #define SST_STATUS_PLAYER_STAND 0x08
 #define SST_STATUS_PLAYER_PUSH  0x20

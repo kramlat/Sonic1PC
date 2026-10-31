@@ -18,7 +18,7 @@
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
 #include "PLC.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 #include "Video.h"
 
@@ -514,7 +514,7 @@ void Obj_HTZQuakeBlock(Sst *self) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = Char(who);
         if (chr != NULL)
-            SolidSst_Character(self, chr, who, x_rad, y_rad, (int16_t)(y_rad + 1), x, ((self->subtype >> 1) % 5) == 4 ? (const int8_t *)quake_slope : NULL);
+            Solid_Character(self, chr, who, x_rad, y_rad, (int16_t)(y_rad + 1), x, ((self->subtype >> 1) % 5) == 4 ? (const int8_t *)quake_slope : NULL);
     }
     // loc_FBF4: whoever stands on it is let go when the level's own floor is at or under his feet (the ground moves up through him)
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
@@ -526,7 +526,7 @@ void Obj_HTZQuakeBlock(Sst *self) {
             self->status &= (uint8_t)~(1 << (3 + who));
         }
     }
-    DebugMarkersSst_Show(self, (int16_t)(x_rad - 0xB), y_rad); // (the debug cheat shows the corners of its box)
+    DebugMarkers_Show(self, (int16_t)(x_rad - 0xB), y_rad); // (the debug cheat shows the corners of its box)
     const int kind = (self->subtype >> 1) % 5;
     if (kind == 2 || kind == 3) { // the lava's top (kinds 4 and 6) hurts whoever stands on it (Touch_ChkHurt: not while invincible or flashing)
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {

@@ -10,7 +10,7 @@
 // writes to steer it (child_cmd).
 typedef struct {
     int8_t child_cmd;     // 0x29 -- command from the boss controller: 0 = normal/solid, -1 = grabbed, 0xA = breaking (real ASM's BossSpringYard_ChildCmd)
-    uint8_t parent_index; // 0x34 -- index into objects[] for the boss controller (only meaningful while grabbed -- real ASM's BossSpringYard_ParentObj)
+    uint8_t parent_index; // 0x34 -- index into sst[] for the boss controller (only meaningful while grabbed -- real ASM's BossSpringYard_ParentObj)
 } Own_BossBlock;
 
 void Obj_BossBlock(Sst *self);

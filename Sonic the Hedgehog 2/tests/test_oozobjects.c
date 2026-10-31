@@ -19,13 +19,12 @@
 static void SstTestFiller(Sst *self) { (void)self; }
 
 static void Reset(void) {
-    memset(objects, 0, sizeof(Object) * 0x60);
     Sst_Reset();
     sst_load_everything_in_range = true;
     for (int i = 4; i < 0x20; i++)
         sst[i].code = SstTestFiller;
     memset(f_switch, 0, sizeof(f_switch));
-    memset(objstate, 0, sizeof(objstate));
+    memset(sst_respawn_table, 0, sizeof(sst_respawn_table));
     level_id = LEVEL_ID(ZoneId_OOZ, 0);
     scrpos_x.v = scrpos_y.v = 0;
     scrpos_x.f.u = 0;
@@ -47,7 +46,7 @@ static void Reset(void) {
 }
 
 static Sst *Spawn(Sst *slot, uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
-    memset(slot, 0, sizeof(Object));
+    memset(slot, 0, sizeof(Sst));
     slot->code = sst_object_codes[type];
     slot->subtype = subtype;
     slot->x_pos.f.u = x;

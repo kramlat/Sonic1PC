@@ -26,5 +26,4 @@ void GetDistance_Right(Sst *obj, int16_t *dist0, int16_t *dist1, uint8_t *hit_an
 void GetDistanceBelowAngle(Sst *obj, uint8_t angle, int16_t *dist0, int16_t *dist1, uint8_t *hit_angle);
 
 int16_t SstFloorDist(Sst *obj, int16_t x);   // (the object's own collision path: the characters')
-int16_t ObjFloorDist(Object *obj, int16_t x); // an old object's
 Sst *Collision_Proxy(void);

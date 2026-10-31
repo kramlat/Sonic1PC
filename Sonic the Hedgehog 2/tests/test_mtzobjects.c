@@ -13,7 +13,7 @@
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
 #include "Oscillatory Routines.h"
-#include "SolidSst.h"
+#include "Solid.h"
 
 // Metropolis' objects: the teleporter, the platforms that go round a path, the machinery, the elevators, the gears, the conveyor belts and the boxes that wait to be stepped off.
 
@@ -24,13 +24,12 @@ extern const uint8_t Mappings_MTZPlatformA[];
 static void SstTestFiller(Sst *self) { (void)self; }
 
 static void Reset(void) {
-    memset(objects, 0, sizeof(Object) * 0x60);
     Sst_Reset();
     sst_load_everything_in_range = true;
     for (int i = 4; i < 0x20; i++)
         sst[i].code = SstTestFiller;
     memset(f_switch, 0, sizeof(f_switch));
-    memset(objstate, 0, sizeof(objstate));
+    memset(sst_respawn_table, 0, sizeof(sst_respawn_table));
     level_id = LEVEL_ID(ZoneId_MTZ, 0);
     scrpos_x.v = scrpos_y.v = 0;
     scrpos_x.f.u = 0xE00;
@@ -54,7 +53,7 @@ static void Reset(void) {
 }
 
 static Sst *Spawn(Sst *slot, uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
-    memset(slot, 0, sizeof(Object));
+    memset(slot, 0, sizeof(Sst));
     slot->code = sst_object_codes[type];
     slot->subtype = subtype;
     slot->x_pos.f.u = x;
@@ -297,7 +296,7 @@ static void MTZ_TheElevatorTopIsASlopeOfItsOwn(void) {
     player->y_pos.f.u = (int16_t)(0x300 - 0x20 - player->y_radius + 2);
     player->status |= SST_PSTATUS_IN_AIR;
     player->y_vel = 0x100;
-    const int32_t r = SolidSst_CharacterDouble(e, player, SolidChar_Sonic, 0x80, 0x1000, elevator_middle);
+    const int32_t r = Solid_CharacterDouble(e, player, SolidChar_Sonic, 0x80, 0x1000, elevator_middle);
     CHECK_EQ(r, -1);
     CHECK(((player->status & SST_PSTATUS_OBJECT_STAND) != 0));
 }

@@ -13,7 +13,7 @@
 #include "MathUtil.h"
 #include "Object/CharControl.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -329,7 +329,7 @@ void Obj_DHZVerticalBridge(Sst *self) {
             d3 = 9;
         }
         FOR_EACH_CHARACTER(chr, who)
-            SolidSst_Character(self, chr, who, d1, d2, d3, self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, d1, d2, d3, self->x_pos.f.u, NULL);
         if (SstOutOfRange(own->foot_x)) {
             Sst_Delete(&sst[own->chain]);
             SstLoad_Forget(self);

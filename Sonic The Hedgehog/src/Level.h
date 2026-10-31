@@ -3,7 +3,7 @@
 #include "Oscillator.h"
 #include "Object.h"
 #include "LevelData.h"
-#include "ObjectsManager.h" // the layout, chunk and collision data, and the collision flags: the engine's
+#include "SstLoad.h" // the objects' loader (ObjPosLoad runs it)
 #include "PLC.h"
 #include "Video.h" // wtr_state, hblank_pal, doupdatesinhblank
 
@@ -226,4 +226,3 @@ void ObjPosLoad(void);
 // The rings' manager (Object/Ring.c): started with the level, given the camera's X once a frame, by ObjPosLoad
 void Rings_Init(const uint8_t *layout, int16_t camera_x);
 void Rings_Update(int16_t camera_x);
-extern ObjectsManager objects_manager; // Sonic 1's object loader (ObjPosLoad runs it)

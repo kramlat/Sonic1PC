@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EngineObject.h" // the object slots, the Object type and the core: Sonic 1 keeps its ids and its subroutines here
+#include "EngineObject.h" // the objects (Sst.h) and the sprite pipeline: Sonic 1 keeps its object ids and the end-of-act routine here
 #include "Macros.h"
 
 //Object IDs
@@ -149,26 +149,4 @@ typedef enum {
 	/*8D*/ ObjId_8D, //Eggman's wrecked Eggmobile in the ending's background (restored; see Object/EndingEggmobile.c)
 } ObjectId;
 
-//Boss subroutines (shared by all bosses)
-void BossMove(Object *obj, dword_s *boss_x, dword_s *boss_y);
-void BossDefeated(Object *obj);
-
-void MvSonicOnPtfm(Object *obj, int16_t y, int16_t prev_x);
-void PlatformObject(Object *obj, uint16_t x_rad);
-void PlatformObject_CustomHeight(Object *obj, uint16_t x_rad, int16_t height);
-void Platform3(Object *obj, int16_t top);
-void Platform_SetStand(Object *obj);
-bool ExitPlatform(Object *obj, uint16_t x_rad, uint16_t x_rad2, int16_t *x_off_p);
 void GotThroughAct(void);
-void SmashObject(Object *obj, int count, const int16_t *frag_speeds);
-void FragmentatePlatform(Object *obj, int count, const uint8_t *delays);
-void SlopeObject(Object *obj, uint16_t x_rad, const uint8_t *heightmap);
-void SlopeObject_AssumeStoodOn(Object *obj, uint16_t x_rad, const uint8_t *heightmap, int16_t prev_x);
-int16_t ObjHitWallRight(Object *obj, int16_t x_off);
-int16_t ObjHitWallLeft(Object *obj, int16_t x_off);
-int16_t ObjHitCeiling(Object *obj);
-bool ChkObjectVisible(Object *obj);
-bool ChkPartiallyVisible(Object *obj);
-int32_t Solid_ChkEnter(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off);
-int32_t SolidObject(Object *obj, uint16_t x_rad, uint16_t y_rad1, uint16_t y_rad2, int16_t prev_x, int16_t *x_off, int16_t *y_off);
-int32_t SolidObject_Heightmap(Object *obj, uint16_t x_rad, uint16_t y_rad, const uint8_t *heightmap);

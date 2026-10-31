@@ -10,7 +10,7 @@
 #include "Level.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -142,7 +142,7 @@ void Obj_DiagSpring(Sst *self) {
         Sst *chr = who == SolidChar_Sonic ? player : TAILS_OBJ;
         if (who == SolidChar_Tails && chr->code == NULL)
             continue;
-        SolidSst_Character(self, chr, who, 0x27, 8, 8, self->x_pos.f.u, slope);
+        Solid_Character(self, chr, who, 0x27, 8, 8, self->x_pos.f.u, slope);
         if (self->status & (1 << (3 + who)))
             DiagSpring_Stand(self, chr, self->subtype);
     }

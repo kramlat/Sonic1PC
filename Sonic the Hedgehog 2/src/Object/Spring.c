@@ -13,7 +13,7 @@
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -262,7 +262,7 @@ void Obj_Spring(Sst *self) {
     }
     case SpringRoutine_Up:
         FOR_CHARACTERS(chr, who) {
-            SolidSst_Character(self, chr, who, 0x1B, 8, 0x10, self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, 0x1B, 8, 0x10, self->x_pos.f.u, NULL);
             if (self->status & (1 << (3 + who)))
                 Spring_LaunchUp(self, chr, own->power, self->subtype);
         }
@@ -270,7 +270,7 @@ void Obj_Spring(Sst *self) {
         break;
     case SpringRoutine_Side:
         FOR_CHARACTERS(chr, who) {
-            SolidSst_Character(self, chr, who, 0x13, 0xE, 0xF, self->x_pos.f.u, NULL);
+            Solid_Character(self, chr, who, 0x13, 0xE, 0xF, self->x_pos.f.u, NULL);
             if (self->status & (1 << (5 + who))) {
                 // (only from the side it faces)
                 uint8_t flip = ((self->status & SST_STATUS_X_FLIP) != 0);
@@ -290,14 +290,14 @@ void Obj_Spring(Sst *self) {
         break;
     case SpringRoutine_Down:
         FOR_CHARACTERS(chr, who) {
-            if (SolidSst_Character(self, chr, who, 0x1B, 8, 0x10, self->x_pos.f.u, NULL) == -2)
+            if (Solid_Character(self, chr, who, 0x1B, 8, 0x10, self->x_pos.f.u, NULL) == -2)
                 Spring_LaunchDown(self, chr, own->power, self->subtype);
         }
         Sst_Animate(self, Animation_Spring);
         break;
     case SpringRoutine_DiagUp:
         FOR_CHARACTERS(chr, who) {
-            SolidSst_Character(self, chr, who, 0x1B, 0x10, 0x10, self->x_pos.f.u, slope_diag_up);
+            Solid_Character(self, chr, who, 0x1B, 0x10, 0x10, self->x_pos.f.u, slope_diag_up);
             if (self->status & (1 << (3 + who)))
                 Spring_LaunchDiagUp(self, chr, own->power, self->subtype);
         }
@@ -305,7 +305,7 @@ void Obj_Spring(Sst *self) {
         break;
     case SpringRoutine_DiagDown:
         FOR_CHARACTERS(chr, who) {
-            if (SolidSst_Character(self, chr, who, 0x1B, 0x10, 0x10, self->x_pos.f.u, slope_diag_down) == -2)
+            if (Solid_Character(self, chr, who, 0x1B, 0x10, 0x10, self->x_pos.f.u, slope_diag_down) == -2)
                 Spring_LaunchDiagDown(self, chr, own->power, self->subtype);
         }
         Sst_Animate(self, Animation_Spring);

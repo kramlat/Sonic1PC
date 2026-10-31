@@ -12,7 +12,7 @@
 // this one directly parallels.
 typedef struct {
     dword_s boss_x;         // 0x30-0x33 -- ship/controller only: fixed-point base X (see obBossX)
-    uint8_t parent_index;   // 0x34 -- face/flame/tube only: index into objects[] for the ship/controller
+    uint8_t parent_index;   // 0x34 -- face/flame/tube only: index into sst[] for the ship/controller
     uint8_t lava_timer;     // real ASM aliases this onto the same byte as
                              // parent_index's pointer (BossMarble_LavaTimer);
                              // kept separate here since the ship/main

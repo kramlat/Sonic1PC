@@ -160,7 +160,7 @@ bool Editor_TakeReload(void) {
 }
 
 void Editor_ClearLevelObjects(void) {
-    memset(level_objects, 0, LEVEL_OBJECTS * sizeof(Object));
+    Sst_Reset(); // (the dynamic objects and the level's go; the characters stay)
 }
 
 // ---- The terrain ----

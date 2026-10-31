@@ -12,7 +12,7 @@
 #include "LevelScroll.h"
 #include "MathUtil.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 
 #include "Macros.h"
 
@@ -174,7 +174,7 @@ static void Bridge_Characters(Sst *self, int16_t x_rad, int16_t width) {
             int log = d0 >> 4;
             *log_of = (uint8_t)log;
             chr->y_pos.f.u = Bridge_Log(own, log)->y - 8 - chr->y_radius;
-        } else if (SolidSst_PlatformLand(self, chr, who, x_rad, width, 8) || (self->status & stand_bit)) {
+        } else if (Solid_PlatformLand(self, chr, who, x_rad, width, 8) || (self->status & stand_bit)) {
             int16_t d0 = chr->x_pos.f.u - self->x_pos.f.u + x_rad;
             *log_of = (uint8_t)(d0 >> 4);
         }

@@ -12,7 +12,6 @@
 
 
 static inline uint8_t RenderFlags_AfterFirstRun(int id) {
-    memset(objects, 0, sizeof(Object) * 0x60);
     level_id = LEVEL_ID(0, 0);
     scrpos_x.v = scrpos_y.v = 0;
     player->code = sst_object_codes[1];
@@ -30,11 +29,5 @@ static inline uint8_t RenderFlags_AfterFirstRun(int id) {
         self->code(self);
         return self->code != NULL ? (uint8_t)(self->render_flags & 3) : 0xFF;
     }
-    Object *obj = &objects[0x20];
-    obj->type = (uint8_t)id;
-    obj->render.b = 3;
-    obj->pos.l.x.f.u = 0x100;
-    obj->pos.l.y.f.u = 0x100;
-    game_objects[id](obj);
-    return obj->type == id ? (uint8_t)(obj->render.b & 3) : 0xFF; // (0xFF: it deleted itself)
+    return 0xFF; // (no routine: the loader leaves its entries alone)
 }

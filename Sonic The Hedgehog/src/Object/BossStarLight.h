@@ -10,7 +10,7 @@
 typedef struct {
     int8_t pick;             // 0x28 -- ship only: seesaw list index chosen for the next drop (-1 = none) (obSubtype)
     uint8_t seesaw_count;    // 0x29 -- ship only: seesaws found in the list
-    uint8_t seesaws[3];      // 0x2A-0x2C -- ship only: objects[] indexes of the boss-fight seesaws
+    uint8_t seesaws[3];      // 0x2A-0x2C -- ship only: sst[] indexes of the boss-fight seesaws
     dword_s boss_x;          // 0x30-0x33 -- ship only: fixed-point base X (obBossX)
     uint8_t parent_index;    // 0x34 -- face/flame/pipe only: index of the ship
     dword_s boss_y;          // 0x38-0x3B -- ship only: fixed-point base Y (obBossY)
@@ -28,7 +28,7 @@ typedef struct {
     int16_t base_x;          // 0x30 -- seesaw X (obBossX); fragments: their own X
     int16_t seesaw_y;        // 0x34 -- seesaw Y; fragments: their own Y
     int8_t side;             // 0x3A -- 0 = right of the seesaw, 2 = left
-    uint8_t seesaw_index;    // 0x3C -- objects[] index of the linked seesaw
+    uint8_t seesaw_index;    // 0x3C -- sst[] index of the linked seesaw
 } Own_BossSpikeball;
 
 void Obj_BossStarLight(Sst *self);

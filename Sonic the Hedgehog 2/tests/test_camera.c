@@ -19,7 +19,6 @@ extern void ScrollVertical(void);
 enum { Follow = 144 };
 
 static void Setup(bool split) {
-    memset(objects, 0, sizeof(Object) * 0x40);
     level_id = LEVEL_ID(ZoneId_EHZ, 0);
     limit_left1 = limit_left2 = 0;
     limit_right1 = limit_right2 = 0x2000;

@@ -14,7 +14,7 @@
 //     Console.h                 the debug console
 //     Demo.h                    demo recording and playback
 //   Identity                  game_info: the settings file name and its heading (GameInterface.h)
-//   Objects                   game_objects, game_object_count: what runs for each object id (EngineObject.h); a missing id runs as the null object
+//   Objects                   sst_object_codes: what runs for each object id (Sst.h); an id with NULL has no object
 //   Terrain                   Collision_Angle, Collision_HeightMap, Collision_WidthMap: the collision maps (LevelData.h); the level arrays and collision code are the engine's
 //   Screens                   game_screens, game_screen_count, game_boot_screen: the game's screens by game mode (Screen.h)
 //   Run-time state
@@ -82,11 +82,11 @@ void Game_EditorRedraw(void);
 void Game_EditorLamp(int action);
 
 // While the built-in level editor has the level, the objects this says yes to do not run or show: the players (EditorLive.h). A weak default holds back only the first player.
-bool Game_EditorSkipObject(const void *obj); // (an Object *)
+bool Game_EditorSkipObject(const void *obj); // (an Sst *)
 
 // Which of the two collision paths (the primary or the secondary 16x16 collision index, and the solid bits that go with it) an object collides with: 0 or 1. A weak default gives them all the one global path
 // `collision_path` (what Sonic 1's path swapper sets); Sonic 2 gives Sonic and Tails each their own and everything else the primary.
-uint8_t Game_CollisionPath(const void *obj); // (an Object *)
+uint8_t Game_CollisionPath(const void *obj); // (an Sst *)
 
 extern uint16_t frame_count;
 extern int32_t cli_start_level;

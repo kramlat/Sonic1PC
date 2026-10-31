@@ -517,7 +517,6 @@ sources:
   - "src/Sonic2EditorNames.c"
   - "src/Sonic2PLC.c"
   - "src/Solid.c"
-  - "src/SolidSst.c"
   - "src/Sonic2Palettes.c"
   - "src/PaletteCycle.c"
   - "src/LevelScroll.c"

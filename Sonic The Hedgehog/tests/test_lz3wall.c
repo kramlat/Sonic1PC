@@ -34,7 +34,7 @@ static void LZ3Wall_SplashFollowsSwitch(void) {
     level_id = LEVEL_ID(ZoneId_LZ, 2);
     LoadLevelLayout();
     memset(f_switch, 0, sizeof(f_switch));
-    scrpos_x.f.u = 0x5C0; // camera over the wall so RememberState keeps the splash
+    scrpos_x.f.u = 0x5C0; // camera over the wall so the splash stays in range
 
     // Closed wall as shipped in the layout.
     CHECK_EQ(LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, 12, 5), 0xF8);

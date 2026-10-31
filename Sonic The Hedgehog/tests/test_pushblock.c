@@ -27,7 +27,6 @@ static int RunBlock(int act, int16_t start_x, int16_t start_y, int16_t speed, in
     level_id = LEVEL_ID(ZoneId_MZ, act);
     LevelDataLoad();
     ColIndexLoad();
-    memset(objects, 0, sizeof(objects));
     memset(player, 0, sizeof(Sst));
     player->routine = 2;
     Sst_Reset();

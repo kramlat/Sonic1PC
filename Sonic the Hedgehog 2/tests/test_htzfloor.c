@@ -12,7 +12,6 @@
 // bit 7 for any roller; whoever stands on it and does not break it is put back on the first path ($C/$D).
 
 static Sst *Floor(uint8_t subtype) {
-    memset(objects, 0, sizeof(Object) * 0x40);
     scrpos_x.v = scrpos_y.v = 0; // (the camera at the level's start: the floor is near it, so it is not forgotten for being out of range)
     Sst *obj = &sst[0x20];
     obj->code = sst_object_codes[0x2F];
@@ -79,7 +78,6 @@ static void HTZFloor_AWalkerOnTheSecondPathIsPutBackOnTheFirst(void) {
 
 // The see-saw's ball is the Sol badnik (the prototype's Obj14_Ball_Init: tile $3DE, over the art the zone's art list loads at $7BC0), not drawn from the see-saw's own tiles ($3C6)
 static void HTZSeesaw_TheBallIsTheBadniksArt(void) {
-    memset(objects, 0, sizeof(Object) * 0x40);
     scrpos_x.v = scrpos_y.v = 0;
     Sst *seesaw = &sst[0x20];
     seesaw->code = sst_object_codes[0x14];

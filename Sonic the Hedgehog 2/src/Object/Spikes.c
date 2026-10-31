@@ -10,7 +10,7 @@
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -108,7 +108,7 @@ void Obj_Spikes(Sst *self) {
         Sst *chr = Character(who);
         if (chr == NULL)
             continue;
-        int32_t solid = SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), x, NULL);
+        int32_t solid = Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), x, NULL);
         switch (self->routine) {
         case 2: // upright: hurts whoever stands on it
             if (self->status & (1 << (3 + who)))

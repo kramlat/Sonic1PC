@@ -19,14 +19,8 @@
 
 static int Count(uint8_t type) {
     int n = 0;
-    if (sst_object_codes[type] != NULL) {
-        for (int i = 0; i < SST_COUNT; i++)
-            if (sst[i].code != NULL && sst[i].code == sst_object_codes[type])
-                n++;
-        return n;
-    }
-    for (int i = 0; i < LEVEL_OBJECTS; i++)
-        if (level_objects[i].type == type)
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[type])
             n++;
     return n;
 }
@@ -45,7 +39,6 @@ static void RunObjects(void) {
 }
 
 static void Reset(uint16_t id) {
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
     Sst_Reset();
     memset(player, 0, sizeof(Sst));
     player->routine = 2;

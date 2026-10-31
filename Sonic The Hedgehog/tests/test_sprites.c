@@ -6,43 +6,48 @@
 
 #include "Camera.h"
 #include "EngineObject.h"
+#include "ScrollEngine.h"
 #include "Video.h"
 
-// The sprite pipeline (engine/Sprites.c): multi-sprite objects and the Y wrap of the on-screen check.
+// The sprite pipeline (engine/Sprites.c): multi-draw objects, the Y wrap of the on-screen check and the split screen's two tables.
 
-// A table of 3 frames in Sonic 2 mapping format (Mappings.h): frame 0 has no pieces, frame 1 one 2x2 piece at (-8,-8) with tile 1, frame 2 one 1x1 piece at (0,0) with tile 2
+// A table of 3 frames in Sonic 3 mapping format (Mappings.h): frame 0 has no pieces, frame 1 one 2x2 piece at (-8,-8) with tile 1, frame 2 one 1x1 piece at (0,0) with tile 2
 static const uint8_t mappings[] = {
-    0x00, 0x06, 0x00, 0x08, 0x00, 0x12,                                                // the frame offsets
+    0x00, 0x06, 0x00, 0x08, 0x00, 0x10,                                                // the frame offsets
     0x00, 0x00,                                                                        // frame 0: no pieces
-    0x00, 0x01, 0xF8, 0x05, 0x00, 0x01, 0x00, 0x00, 0xFF, 0xF8,                        // frame 1
-    0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00,                        // frame 2
+    0x00, 0x01, 0xF8, 0x05, 0x00, 0x01, 0xFF, 0xF8,                                    // frame 1
+    0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00,                                    // frame 2
 };
 
-static Object o;
+static Sst o;
+static void Idle(Sst *self) { (void)self; } // (the objects here are drawn by the test, not run)
 
 static void Prepare(void) {
     memset(screen1p.sprite_table, 0, (BUFFER_SPRITES + 1) * sizeof(sprite_t));
+    Sst_ClearQueues();
     memset(&o, 0, sizeof(o));
-    o.type = 1;
+    o.code = Idle;
     o.mappings = mappings;
-    o.tile = 0x100;
+    o.art_tile = 0x100;
     o.priority = 0;
-    o.render.f.level_fg = 1;
+    o.render_flags = SST_RENDER_LEVEL;
     o.width_pixels = 16;
+    o.height_pixels = 16;
     scrpos_x.f.u = 0;
     scrpos_y.f.u = 0;
+    level_screen_y_wrap = 0x7FF;
 }
 
 static void Build(void) {
-    DisplaySprite(&o);
+    Sst_Draw(&o);
     BuildSprites(NULL);
 }
 
 static void Sprites_AnObjectsSpritesNameTheBankOfItsArt(void) {
     Prepare();
-    o.pos.l.x.f.u = 100;
-    o.pos.l.y.f.u = 100;
-    o.frame = 1;
+    o.x_pos.f.u = 100;
+    o.y_pos.f.u = 100;
+    o.mapping_frame = 1;
     Build();
     CHECK_EQ(TileAttr_Bank(screen1p.sprite_table[0].attr), 0); // (no bank given: the main bank)
     CHECK_EQ(screen1p.sprite_table[0].generation, 0);
@@ -55,19 +60,19 @@ static void Sprites_AnObjectsSpritesNameTheBankOfItsArt(void) {
     TileBank_Free(bank);
 }
 
-static void Sprites_MultiSpriteDrawsMainAndChildren(void) {
+static void Sprites_MultiDrawDrawsMainAndChildren(void) {
     Prepare();
-    o.render.f.multi_sprite = 1;
-    o.pos.l.x.f.u = 100;
-    o.pos.l.y.f.u = 100;
-    o.frame = 1;
+    o.render_flags |= SST_RENDER_MULTI_DRAW;
+    o.x_pos.f.u = 100;
+    o.y_pos.f.u = 100;
+    o.mapping_frame = 1;
     o.child_count = 2;
-    o.children[0] = (ObjectChild){ 120, 100, 2 };
-    o.children[1] = (ObjectChild){ 80, 110, 1 };
+    o.children[0] = (SstChild){ 120, 100, 2 };
+    o.children[1] = (SstChild){ 80, 110, 1 };
     Build();
 
     CHECK_EQ(sprite_count, 3);
-    CHECK(o.render.f.on_screen);
+    CHECK(o.render_flags & SST_RENDER_ON_SCREEN);
     // The main sprite: its piece at (-8,-8) from (128 + 100, 128 + 100)
     CHECK_EQ(screen1p.sprite_table[0].y, 128 + 100 - 8);
     CHECK_EQ(screen1p.sprite_table[0].size_link, (0x05 << 8) | 1);
@@ -86,70 +91,67 @@ static void Sprites_MultiSpriteDrawsMainAndChildren(void) {
 
 static void Sprites_MainFrameZeroIsNoMainSprite(void) {
     Prepare();
-    o.render.f.multi_sprite = 1;
-    o.pos.l.x.f.u = 100;
-    o.pos.l.y.f.u = 100;
-    o.frame = 0; // only the children
+    o.render_flags |= SST_RENDER_MULTI_DRAW;
+    o.x_pos.f.u = 100;
+    o.y_pos.f.u = 100;
+    o.mapping_frame = 0; // only the children
     o.child_count = 1;
-    o.children[0] = (ObjectChild){ 100, 100, 2 };
+    o.children[0] = (SstChild){ 100, 100, 2 };
     Build();
     CHECK_EQ(sprite_count, 1);
-    CHECK(o.render.f.on_screen);
+    CHECK(o.render_flags & SST_RENDER_ON_SCREEN);
 }
 
-static void Sprites_MultiSpriteOutOfViewDrawsNothing(void) {
+static void Sprites_MultiDrawOutOfViewDrawsNothing(void) {
     Prepare();
-    o.render.f.multi_sprite = 1;
-    o.pos.l.x.f.u = -500; // far to the left of the camera
-    o.pos.l.y.f.u = 100;
-    o.frame = 1;
+    o.render_flags |= SST_RENDER_MULTI_DRAW;
+    o.x_pos.f.u = (uint16_t)-500; // far to the left of the camera
+    o.y_pos.f.u = 100;
+    o.mapping_frame = 1;
     o.child_count = 1;
-    o.children[0] = (ObjectChild){ 100, 100, 2 }; // (even a child that would be in view is not drawn: the main sprite decides)
+    o.children[0] = (SstChild){ 100, 100, 2 }; // (even a child that would be in view is not drawn: the main sprite decides)
     Build();
     CHECK_EQ(sprite_count, 0);
-    CHECK(!o.render.f.on_screen);
+    CHECK(!(o.render_flags & SST_RENDER_ON_SCREEN));
 }
 
-static void Sprites_YWrapIsASwitch(void) {
+static void Sprites_YWrapIsTheLevelsHeight(void) {
     // An object 0x780 above a camera at 0x7C0: its distance is -0x700 (+0x80), which is 0x100 once it wraps to 11 bits, a place on screen
-    int saved = sprite_view.wrap_y;
     Prepare();
-    o.frame = 1;
-    o.pos.l.x.f.u = 100;
+    o.mapping_frame = 1;
+    o.x_pos.f.u = 100;
     scrpos_y.f.u = 0x7C0;
-    o.pos.l.y.f.u = 0x40;
+    o.y_pos.f.u = 0x40;
 
-    sprite_view.wrap_y = 0;
+    level_screen_y_wrap = 0xFFFF; // (a level that does not wrap)
     Build();
     CHECK_EQ(sprite_count, 0);
-    CHECK(!o.render.f.on_screen);
+    CHECK(!(o.render_flags & SST_RENDER_ON_SCREEN));
 
-    sprite_view.wrap_y = 1;
+    level_screen_y_wrap = 0x7FF;
     Build();
     CHECK_EQ(sprite_count, 1);
-    CHECK(o.render.f.on_screen);
-
-    sprite_view.wrap_y = saved;
+    CHECK(o.render_flags & SST_RENDER_ON_SCREEN);
 }
 
 static void Sprites_SplitScreenBuildsTwoTables(void) {
-    Object a, b, c;
+    Sst a, b, c;
     memset(screen2p.sprite_table, 0, (BUFFER_SPRITES + 1) * sizeof(sprite_t));
     Prepare();
     a = b = c = o;
-    a.tile = b.tile = c.tile = 0x80;
-    a.frame = b.frame = c.frame = 1;
-    a.pos.l.y.f.u = b.pos.l.y.f.u = c.pos.l.y.f.u = 100;
-    a.pos.l.x.f.u = 100;   // in player 1's view (camera 0)
-    b.pos.l.x.f.u = 1100;  // in player 2's view (camera 1000)
-    c.pos.l.x.f.u = 5000;  // in neither
+    a.art_tile = b.art_tile = c.art_tile = 0x80;
+    a.mapping_frame = b.mapping_frame = c.mapping_frame = 1;
+    a.y_pos.f.u = b.y_pos.f.u = c.y_pos.f.u = 100;
+    a.x_pos.f.u = 100;   // in player 1's view (camera 0)
+    b.x_pos.f.u = 1100;  // in player 2's view (camera 1000)
+    c.x_pos.f.u = 5000;  // in neither
 
     sprite_split_screen = SPRITE_SPLIT_STACKED;
     scrpos_x_p2.f.u = 1000;
     scrpos_y_p2.f.u = 0;
-    DisplaySprite(&a);
-    DisplaySprite(&b);
-    DisplaySprite(&c);
+    Sst_Draw(&a);
+    Sst_Draw(&b);
+    Sst_Draw(&c);
     BuildSprites(NULL);
     sprite_split_screen = 0;
 
@@ -169,45 +171,29 @@ static void Sprites_SplitScreenBuildsTwoTables(void) {
     CHECK_EQ(sprite_count, 1);
 
     // On screen means in either view
-    CHECK(a.render.f.on_screen);
-    CHECK(b.render.f.on_screen);
-    CHECK(!c.render.f.on_screen);
-}
-
-static void Sprites_Adjust2PArtPointerLeavesTheTile(void) {
-    Object obj;
-    memset(&obj, 0, sizeof(obj));
-    obj.tile = 0x8000 | 0x4000 | 0x0123; // priority, palette 2, tile $123
-    sprite_split_screen = 0;
-    Object_Adjust2PArtPointer(&obj);
-    CHECK_EQ(obj.tile, 0xC123); // not in the split screen: untouched
-    sprite_split_screen = SPRITE_SPLIT_SIDE;
-    Object_Adjust2PArtPointer(&obj);
-    CHECK_EQ(obj.tile, 0xC123); // the side-by-side split uses the art as it is
-    sprite_split_screen = SPRITE_SPLIT_STACKED;
-    Object_Adjust2PArtPointer(&obj);
-    CHECK_EQ(obj.tile, 0xC123); // so does the stacked one (two ordinary views: no halved tiles)
-    sprite_split_screen = 0;
+    CHECK(a.render_flags & SST_RENDER_ON_SCREEN);
+    CHECK(b.render_flags & SST_RENDER_ON_SCREEN);
+    CHECK(!(c.render_flags & SST_RENDER_ON_SCREEN));
 }
 
 static void Sprites_SideBySideUsesOrdinaryTilesAndHalfWidthViews(void) {
-    Object a, b, d;
+    Sst a, b, d;
     memset(screen2p.sprite_table, 0, (BUFFER_SPRITES + 1) * sizeof(sprite_t));
     Prepare();
     a = b = d = o;
-    a.tile = b.tile = d.tile = 0x80;
-    a.frame = b.frame = d.frame = 1;
-    a.pos.l.y.f.u = b.pos.l.y.f.u = d.pos.l.y.f.u = 100;
-    a.pos.l.x.f.u = 100;   // in player 1's half (camera 0, 160 wide)
-    d.pos.l.x.f.u = 200;   // past it: the stacked layout would show it, a half-width view does not
-    b.pos.l.x.f.u = 1100;  // in player 2's half (camera 1000)
+    a.art_tile = b.art_tile = d.art_tile = 0x80;
+    a.mapping_frame = b.mapping_frame = d.mapping_frame = 1;
+    a.y_pos.f.u = b.y_pos.f.u = d.y_pos.f.u = 100;
+    a.x_pos.f.u = 100;   // in player 1's half (camera 0, 160 wide)
+    d.x_pos.f.u = 200;   // past it: the stacked layout would show it, a half-width view does not
+    b.x_pos.f.u = 1100;  // in player 2's half (camera 1000)
 
     sprite_split_screen = SPRITE_SPLIT_SIDE;
     scrpos_x_p2.f.u = 1000;
     scrpos_y_p2.f.u = 0;
-    DisplaySprite(&a);
-    DisplaySprite(&d);
-    DisplaySprite(&b);
+    Sst_Draw(&a);
+    Sst_Draw(&d);
+    Sst_Draw(&b);
     BuildSprites(NULL);
     sprite_split_screen = 0;
 
@@ -217,22 +203,21 @@ static void Sprites_SideBySideUsesOrdinaryTilesAndHalfWidthViews(void) {
     CHECK_EQ(screen1p.sprite_table[0].pattern, 0x80 + 0x0001);
     CHECK_EQ(screen1p.sprite_table[0].x, 128 + 100 - 8);
     CHECK_EQ(screen1p.sprite_table[1].y, 0);                   // d was out of the half-width view
-    CHECK(a.render.f.on_screen);
-    CHECK(!d.render.f.on_screen);
+    CHECK(a.render_flags & SST_RENDER_ON_SCREEN);
+    CHECK(!(d.render_flags & SST_RENDER_ON_SCREEN));
     // Player 2's table: b, against the second camera, at the same top
     CHECK_EQ(screen2p.sprite_table[0].y, 128 + 100 - 8);
     CHECK_EQ(screen2p.sprite_table[0].size_link, (0x05 << 8) | 1);
     CHECK_EQ(screen2p.sprite_table[0].x, 128 + 100 - 8);
-    CHECK(b.render.f.on_screen);
+    CHECK(b.render_flags & SST_RENDER_ON_SCREEN);
 }
 
 void RegisterSpritesTests(void) {
     RUN_TEST(Sprites_AnObjectsSpritesNameTheBankOfItsArt);
     RUN_TEST(Sprites_SideBySideUsesOrdinaryTilesAndHalfWidthViews);
     RUN_TEST(Sprites_SplitScreenBuildsTwoTables);
-    RUN_TEST(Sprites_Adjust2PArtPointerLeavesTheTile);
-    RUN_TEST(Sprites_MultiSpriteDrawsMainAndChildren);
+    RUN_TEST(Sprites_MultiDrawDrawsMainAndChildren);
     RUN_TEST(Sprites_MainFrameZeroIsNoMainSprite);
-    RUN_TEST(Sprites_MultiSpriteOutOfViewDrawsNothing);
-    RUN_TEST(Sprites_YWrapIsASwitch);
+    RUN_TEST(Sprites_MultiDrawOutOfViewDrawsNothing);
+    RUN_TEST(Sprites_YWrapIsTheLevelsHeight);
 }

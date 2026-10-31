@@ -324,33 +324,6 @@ static void Sst_RenderStaticMappingsAreOneLonePiece(void) {
     CHECK_EQ(screen1p.sprite_table[0].pattern, 0x102);
 }
 
-static void Sst_RenderPutsTheNewObjectsOfAQueueAfterTheOldOnes(void) {
-    PrepareRender();
-    static const uint8_t old_mappings[] = { 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    static Object old;
-    memset(&old, 0, sizeof(old));
-    old.type = 1;
-    old.mappings = old_mappings;
-    old.tile = 0x200;
-    old.render.f.level_fg = 1;
-    old.width_pixels = 16;
-    old.pos.l.x.f.u = 50;
-    old.pos.l.y.f.u = 50;
-    old.priority = 2;
-    Sst *o = Placed(5, 100, 100, 1);
-    o->priority = 0x80 * 2;
-    Sst *front = Placed(6, 100, 100, 2);
-    front->priority = 0;
-    Sst_Draw(o);
-    Sst_Draw(front);
-    DisplaySprite(&old);
-    BuildSprites(NULL);
-    CHECK_EQ(sprite_count, 3);
-    CHECK_EQ(screen1p.sprite_table[0].pattern, 0x102);  // the new one of queue 0
-    CHECK(screen1p.sprite_table[1].pattern == 0x200);   // the old one of queue 2
-    CHECK_EQ(screen1p.sprite_table[2].pattern, 0x101);  // the new one of queue 2, after it
-}
-
 void RegisterSstTests(void) {
     RUN_TEST(Sst_ProcessRunsEverySlotInOrderAndSkipsFreeOnes);
     RUN_TEST(Sst_AFrozenLevelOnlyDrawsItsOnScreenObjects);
@@ -368,5 +341,4 @@ void RegisterSstTests(void) {
     RUN_TEST(Sst_RenderUsesScreenPositionsWithoutTheLevelFlag);
     RUN_TEST(Sst_RenderDrawsAMultiDrawObjectsChildrenAndCullsTheirPieces);
     RUN_TEST(Sst_RenderStaticMappingsAreOneLonePiece);
-    RUN_TEST(Sst_RenderPutsTheNewObjectsOfAQueueAfterTheOldOnes);
 }

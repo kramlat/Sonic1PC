@@ -10,7 +10,6 @@
 // Hill Top's fireball (Obj_0x20, the lava bubble): subtype $44 makes balls that go up and out at $200, and waits $40 frames between throws.
 
 static Sst *Bubble(uint8_t subtype) {
-    memset(objects, 0, sizeof(Object) * 0x60);
     scrpos_x.v = scrpos_y.v = 0;
     limit_btm2 = 0x720;
     Sst *obj = &sst[0x20];

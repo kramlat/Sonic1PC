@@ -82,28 +82,3 @@ void Obj_ExplosionBomb(Sst *self) {
         break;
     }
 }
-
-// The old objects that turn into one (see Explosion.h): 5 frames of 8 is how long the explosion lasts
-static void Explosion_Stand(Object *obj, ObjectId id) {
-    if (obj->render.b != 0xFF) { // (first run)
-        Sst *made = Sst_Spawn(id, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
-        if (made != NULL) {
-            made->routine = obj->routine;
-            made->own.u16[0xB] = obj->scratch.u16[0xB];
-        }
-        obj->render.b = 0xFF; // (it is only a marker now: invisible, and it does nothing)
-        obj->frame_time.b = 5 * 8;
-        obj->routine = 2;
-        return;
-    }
-    if (--obj->frame_time.b < 0)
-        ObjectDelete(obj);
-}
-
-void Obj_ExplosionObject(Object *obj) {
-    Explosion_Stand(obj, ObjId_Explosion);
-}
-
-void Obj_ExplosionBombObject(Object *obj) {
-    Explosion_Stand(obj, ObjId_ExplosionBomb);
-}

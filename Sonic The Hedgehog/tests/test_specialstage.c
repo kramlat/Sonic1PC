@@ -198,7 +198,7 @@ static void SSonic_GhostBlocksTurnSolidAfterTheTrigger(void) {
 // ---------------------------------------------------------------------------
 
 static void SSResult_TalliesTheRingBonusThenSignalsExit(void) {
-    memset(objects, 0, sizeof(objects));
+    Sst_Reset();
     plc_buffer[0].art = NULL;
     rings = 7;
     ring_bonus = rings * 10;
@@ -235,7 +235,6 @@ static void SSResult_TalliesTheRingBonusThenSignalsExit(void) {
 // with the next level already picked for afterwards; without it the next level just loads.
 static void GiantRing_EndCardLeadsToTheSpecialStage(void) {
     for (int ring = 0; ring < 2; ring++) {
-        memset(objects, 0, sizeof(objects));
         Sst_Reset();
         plc_buffer[0].art = NULL;
         level_id = LEVEL_ID(ZoneId_GHZ, 0);

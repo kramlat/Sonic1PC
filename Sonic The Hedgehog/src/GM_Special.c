@@ -40,9 +40,6 @@ static void SS_RunStage(void) {
 	SS_BGLoad();
 	QuickPLC(PlcId_SpecialStage);
 	
-	//Clear object memory
-	memset(objects, 0, sizeof(objects));
-	
 	//Clear F700 to F800
 	scrpos_x.v = 0;
 	scrpos_y.v = 0;
@@ -283,7 +280,6 @@ void SS_Results(void) {
 	ring_bonus = rings * 10; //100 points for each ring collected in the stage
 	PlaySound(bgm_GotThrough);
 
-	memset(objects, 0, sizeof(objects));
 	Sst_Reset();
 	Sst_Spawn(ObjId_SSResult, 0, 0);
 	restart = false;

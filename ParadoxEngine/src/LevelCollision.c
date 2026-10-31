@@ -421,6 +421,3 @@ int16_t SstFloorDist(Sst *obj, int16_t x) {
     return FindFloor(obj, x, obj->y_pos.f.u + (int8_t)obj->y_radius, META_SOLID_TOP, 0, 0x10, &angle_buffer0);
 }
 
-int16_t ObjFloorDist(Object *obj, int16_t x) {
-    return FindFloor(&collision_proxy, x, obj->pos.l.y.f.u + obj->y_rad, META_SOLID_TOP, 0, 0x10, &angle_buffer0);
-}

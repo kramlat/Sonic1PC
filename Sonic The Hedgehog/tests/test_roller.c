@@ -16,7 +16,7 @@ static void Roller_JumpComesDownSmoothlyAndLands(void) {
     level_id = LEVEL_ID(ZoneId_SYZ, 0);
     LevelDataLoad();
     ColIndexLoad();
-    memset(objects, 0, sizeof(objects));
+    Sst_Reset();
     memset(player, 0, sizeof(Sst));
     player->routine = 2;
     player->x_pos.f.u = 0x100; // far away

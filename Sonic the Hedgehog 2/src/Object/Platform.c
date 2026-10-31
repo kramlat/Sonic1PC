@@ -12,7 +12,7 @@
 #include "MathUtil.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 
 #include "Macros.h"
 
@@ -178,7 +178,7 @@ void Obj_BasicPlatform(Sst *self) {
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) { // (even on the frame it starts to fall)
             Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
             if (chr != NULL)
-                SolidSst_Platform(self, chr, who, self->width_pixels, 8, x);
+                Solid_Platform(self, chr, who, self->width_pixels, 8, x);
         }
         Platform_Display(self, own);
         break;
@@ -198,7 +198,7 @@ void Obj_BasicPlatform(Sst *self) {
             for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
                 Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
                 if (chr != NULL)
-                    SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), x, NULL);
+                    Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), x, NULL);
             }
         }
         Platform_Display(self, own);

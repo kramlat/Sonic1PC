@@ -17,8 +17,7 @@
 // (bit 15 of the entry's Y word loads it whatever its Y is). A level that wraps vertically (its minimum camera Y is negative) has the Y window wrap too. When the table is full (no free dynamic slot) the loader
 // stops where it is and goes on when slots are free.
 //
-// Which routine an id runs is a table the game gives (Sprite_Listing). An id with no routine (NULL, or past the table) is left alone: the old objects still load through ObjectsManager.c, and the entry
-// goes on being skipped by this loader.
+// Which routine an id runs is a table the game gives (Sprite_Listing). An id with no routine (NULL, or past the table) is skipped: no object is made for the entry.
 
 #define SST_RESPAWN_COUNT 0x300
 extern uint8_t sst_respawn_table[SST_RESPAWN_COUNT];

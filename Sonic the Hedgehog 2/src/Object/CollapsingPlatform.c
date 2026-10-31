@@ -9,7 +9,7 @@
 #include "Level.h"
 #include "Mappings.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 
 #include "Macros.h"
 
@@ -53,7 +53,7 @@ static void Platform(Sst *self) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = Character(who);
         if (chr != NULL)
-            SolidSst_Platform(self, chr, who, self->width_pixels, 0x10, self->x_pos.f.u);
+            Solid_Platform(self, chr, who, self->width_pixels, 0x10, self->x_pos.f.u);
     }
 }
 

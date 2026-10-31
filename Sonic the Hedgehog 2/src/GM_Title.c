@@ -418,9 +418,6 @@ void GM_Title(void) {
     // Clear screen
     ClearScreen();
 
-    // Clear object memory
-    memset(objects, 0, sizeof(objects));
-
     // (Sonic 1 shows its "SONIC TEAM PRESENTS" screen here, with the hidden Japanese credits. Sonic 2 skips it; "MILES TAILS PROWER IN" is to take its place later.)
     memset(dry_palette_dup, 0, sizeof(dry_palette_dup));
     PalLoad1(PalId_Sonic);
@@ -466,7 +463,6 @@ void GM_Title(void) {
 
     // Run title screen for 376 frames
     demo_length = 376;
-    memset(&objects[2], 0, sizeof(Object));
 
     // Load title objects
     Sst_Reset();

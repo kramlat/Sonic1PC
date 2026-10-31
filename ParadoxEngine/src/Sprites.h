@@ -2,12 +2,12 @@
 
 #include <stdint.h>
 
-// The sprite pipeline (Sonic 2's: priority display lists, built into the VDP sprite table once a frame). The functions (DisplaySprite, BuildSprites,
-// BuildSpr_Normal) are declared with the object type in EngineObject.h; this is the data they are configured with.
+// The sprite pipeline (priority display lists, built into the VDP sprite table once a frame). The functions (BuildSprites, BuildSpr_Normal) are declared in
+// EngineObject.h; this is the data they are configured with.
 //
-// An object that wants drawing this frame calls DisplaySprite (the object code does it itself, or RememberState does). BuildSprites then walks the 8 priority
-// queues, the front one (0) first, and writes each visible object's sprite pieces (Mappings.h) to sprite_buffer. It sets the object's render.on_screen flag for
-// the objects it drew, and clears it for the others: that is what PlaySoundLocal and the objects' own checks read.
+// An object that wants drawing this frame queues itself (Sst_Draw, Sst.h). BuildSprites then walks the 8 priority queues, the front one (0) first, and writes
+// each visible object's sprite pieces (Mappings.h) to sprite_buffer. It sets the object's on-screen render flag for the objects it drew, and clears it for the
+// others: that is what the objects' own checks read.
 
 // Where a sprite is placed: against these screen positions (the camera, in pixels)
 typedef struct {
@@ -18,12 +18,9 @@ typedef struct {
 // The camera layers sprites are placed against, by an object's render flags (level_bg << 1 | level_fg): [0] none (the object's position already is a screen
 // position, so the pointers are not used), [1] the foreground, [2] the background, [3] both (Sonic 1: the third scroll layer). Plain data a game assigns.
 // The three scroll layers stay as they are: Sonic 1 uses the third (Sonic 2 has it too, unused). Sonic 3 keeps its scrolling as plain data (PODs) instead of
-// code-based layers, which will replace them when its drawing code comes; the Sonic 2 drawing and physics are ported first.
+// code-based layers, which will replace them when its scrolling code comes.
 typedef struct {
 	SpriteLayer layer[4];
-	// Does the on-screen check wrap the Y distance to 11 bits (& 0x7FF), as the original Sonic 1 and Sonic 2 do? With it, an object a level's height away from the
-	// camera can show up on screen; this port's Sonic 1 never did that, so it is off there (it keeps its output exactly), and on for Sonic 2.
-	int wrap_y;
 } SpriteView;
 extern SpriteView sprite_view;
 

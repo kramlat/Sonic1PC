@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-// The window logic is the ObjectsManager's (Sonic 2's rings manager is its twin), on 4-byte entries and with a callback instead of an object slot. There are no
+// The window logic is the objects' loader's (SstLoad.c; Sonic 2's rings manager is its twin), on 4-byte entries and with a callback instead of an object slot. There are no
 // respawn indexes: an entry's index is where it sits in the layout.
 
 #define ENTRY_SIZE 4
@@ -29,7 +29,7 @@ static void LoadEntry(RingsManager *m, const uint8_t *entry, RingSpawnFunc spawn
     }
 }
 
-void RingsManager_Init(RingsManager *m, const ObjectsManagerConfig *config, uint8_t *status, uint16_t status_count, const uint8_t *layout, int16_t camera_x,
+void RingsManager_Init(RingsManager *m, const RingsManagerConfig *config, uint8_t *status, uint16_t status_count, const uint8_t *layout, int16_t camera_x,
                        RingSpawnFunc spawn, void *user) {
     static const uint8_t empty[ENTRY_SIZE] = {0xFF, 0xFF, 0, 0};
     memset(m, 0, sizeof(*m));

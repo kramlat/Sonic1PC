@@ -258,16 +258,7 @@ static void CmdSpawn(char *args) {
             LogLine("spawned %s at player", name);
             return;
         }
-        Object *spawned = FindFreeObj();
-        if (spawned == NULL) {
-            LogLine("no free object slot");
-            return;
-        }
-        spawned->pos.l.x.f.u = player->x_pos.f.u;
-        spawned->pos.l.y.f.u = player->y_pos.f.u - 32;
-        spawned->scratch.u8[0] = 0;
-        spawned->type = spawn_names[i].id;
-        LogLine("spawned %s at player", name);
+        LogLine("'%s' is not built yet", name);
         return;
     }
     LogLine("unknown object '%s' (try 'help' for the list)", name);

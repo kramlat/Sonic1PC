@@ -12,7 +12,7 @@
 #include "Object/CPZObjects.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "SolidSst.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include "Object/DebugMarkers.h"
@@ -136,7 +136,7 @@ static void Seesaw_Main(Sst *self, Own_Seesaw *scratch) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = Character(who);
         if (chr != NULL)
-            SolidSst_SlopedPlatform(self, chr, who, self->width_pixels, slope, x);
+            Solid_SlopedPlatform(self, chr, who, self->width_pixels, slope, x);
     }
 }
 
@@ -371,7 +371,7 @@ void Obj_HTZLift(Sst *self) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = Character(who);
         if (chr != NULL)
-            SolidSst_Platform(self, chr, who, self->width_pixels, -0x28, old_x);
+            Solid_Platform(self, chr, who, self->width_pixels, -0x28, old_x);
     }
     SstOnScreenTest(self);
 }
@@ -445,7 +445,7 @@ void Obj_HTZBreakFloor(Sst *self) {
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
             Sst *chr = Character(who);
             if (chr != NULL)
-                SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), self->x_pos.f.u, NULL);
+                Solid_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), self->x_pos.f.u, NULL);
         }
     }
     const uint8_t stand = self->status & 0x18;
@@ -506,7 +506,7 @@ void Obj_HTZLavaBox(Sst *self) {
     self->render_flags = 0x84; // (never drawn, but the touch response has to find it "on screen")
     int16_t box_w, box_h;
     if (DebugMarkers_TouchBox(self->collision_flags, &box_w, &box_h))
-        DebugMarkersSst_Show(self, box_w, box_h); // (the debug cheat shows its corners)
+        DebugMarkers_Show(self, box_w, box_h); // (the debug cheat shows its corners)
     SstDeleteIfNotInRange2(self, self->x_pos.f.u); // (the prototype does not forget its mark here either)
 }
 
