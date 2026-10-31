@@ -1,4 +1,5 @@
 #include "SstLoad.h"
+#include "Object/Signpost.h"
 #include "Object/Points.h"
 #include "Object/GameOverCard.h"
 #include "Object/Credits.h"
@@ -23,7 +24,6 @@
 #include "Object/WaterSurface.h"
 
 void Obj_Sonic(Sst *obj);
-void Obj_Signpost(Object *obj);
 void Obj_TitleCharacters(Object *obj); // Sonic 2's: Sonic and Tails from the title screen
 void Obj_Tails(Sst *obj);
 void Obj_TailsTails(Sst *obj);
@@ -238,7 +238,7 @@ const ObjectFunc game_objects[] = {
 	/* 0A ObjId_DrownCount          */ Obj_Countdown, // (the alpha's: the bubbles and the counting of the air, for Sonic and for Tails)
 	/* 0B ObjId_Pole               */ Obj_CPZPipeTipper, // (the prototype's section of pipe that tips you off)
 	/* 0C ObjId_FlapDoor           */ Obj_FloatingPlatform, // (the prototype's small floating platform: none in its levels)
-	/* 0D ObjId_Signpost            */ Obj_Signpost,
+	/* 0D ObjId_Signpost            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 0E ObjId_TitleSonic          */ Obj_TitleCharacters,
 	/* 0F ObjId_PSB                */ Obj_Null, // Nick Arcade's Unknown0F: not ported yet
 	/* 10 ObjId_GHZTunnel          */ Obj_Null, // Nick Arcade's SonAniTest: not ported yet
@@ -405,6 +405,7 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_Signpost] = Obj_Signpost,
 	[ObjId_GameOverCard] = Obj_GameOverCard,
 	[ObjId_Credits] = Obj_Credits,
 	[ObjId_HiddenBonus] = Obj_HiddenBonus,

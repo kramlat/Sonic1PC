@@ -1,7 +1,6 @@
 #include "Monitor.h"
 #include "Constants.h"
 
-#include "InvisibleBarrier.h"
 #include "ShieldInvincibility.h"
 #include "Level.h"
 #include "LevelCollision.h"
@@ -51,19 +50,8 @@ static int32_t Mon_SolidSides(Object *obj, uint16_t x_rad, uint16_t y_rad, int16
 void Obj_Monitor(Object *obj) {
     switch (obj->routine) {
     case 0: // Initialization
-        // Convert monitors with invalid subtypes (above 8, i.e. past the
-        // last real icon "goggles") into solid barriers, preserving the
-        // subtype byte as the barrier's width/height setting. SBZ2 has a
-        // handful of these broken monitors hidden in walls in the real
-        // ROM data, all matching properly sized invisible solid barriers
-        // -- likely an artifact of improper data conversion late in
-        // development (matches the real "FixBugs" disassembly patch).
-        if (obj->scratch.u8[0] > 8) {
-            obj->type = ObjId_InvisibleBarrier;
-            Obj_InvisibleBarrier(obj);
-            return;
-        }
-
+        // (Monitors with invalid subtypes, above 8, are barriers in the object layout now: SBZ2 has a handful of these broken monitors hidden in walls in the real
+        // ROM data, all matching properly sized invisible solid barriers; the converted layout names the barrier, see res/ObjectLayout/SBZ2.)
         // Increment routine
         obj->routine += 2;
 

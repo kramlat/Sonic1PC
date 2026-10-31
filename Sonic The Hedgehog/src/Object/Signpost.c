@@ -1,4 +1,9 @@
 #include "Signpost.h"
+#include "Resource/Mappings/Signpost.h"
+#include "Resource/Animation/Signpost.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 
 #include "Game.h"
 #include "Level.h"
@@ -19,66 +24,64 @@ static const int8_t sparkle_pos[8][2] = {
     { 24, 16 },
 };
 
-void Obj_Signpost(Object* obj) {
-    Scratch_Signpost* scratch = (Scratch_Signpost*)&obj->scratch;
+void Obj_Signpost(Sst *self) {
+    Own_Signpost *own = (Own_Signpost *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Initialization
         // Increment routine
-        obj->routine += 2;
+        self->routine += 2;
 
         // Set object drawing information
-        obj->mappings = Mappings_Signpost;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Signpost);
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->width_pixels = 24;
-        obj->priority = 4;
+        self->mappings = Mappings_Signpost;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Signpost);
+        self->render_flags = SST_RENDER_LEVEL;
+        self->width_pixels = 24;
+        self->priority = 4 * 0x80;
         // Fallthrough
     case 2: // Wait for contact
         // Check if player is touching signpost
-        if ((uint16_t)(player->x_pos.f.u - obj->pos.l.x.f.u) < 0x20) {
+        if ((uint16_t)(player->x_pos.f.u - self->x_pos.f.u) < 0x20) {
             // Start spinning
             PlaySound(sfx_Signpost);
             time_count = false;
             limit_left2 = limit_right2;
-            obj->routine += 2;
+            self->routine += 2;
         }
         break;
     case 4: // Spinning
         // Handle spinning animation
-        if (--scratch->spin_time < 0) {
+        if (--own->spin_time < 0) {
             // Do next animation and increment routine when stopped spinning
-            scratch->spin_time = 60;
-            if (++obj->anim == 3)
-                obj->routine += 2;
+            own->spin_time = 60;
+            if (++self->anim == 3)
+                self->routine += 2;
         }
 
         // Handle sparkling
-        if (--scratch->sparkle_time < 0) {
+        if (--own->sparkle_time < 0) {
             // Update sparkle time and ID
-            scratch->sparkle_time = 11;
-            uint8_t sparkle_id = scratch->sparkle_id;
-            scratch->sparkle_id = (scratch->sparkle_id + 2) & 0xE;
+            own->sparkle_time = 11;
+            uint8_t sparkle_id = own->sparkle_id;
+            own->sparkle_id = (own->sparkle_id + 2) & 0xE;
 
             // Spawn sparkle
             const int8_t* spawn_pos = sparkle_pos[sparkle_id >> 1];
-            Object* sparkle = FindFreeObj();
+            Sst *sparkle = Sst_Allocate();
             if (sparkle != NULL) {
                 // Set sparkle type and routine
-                sparkle->type = ObjId_Ring;
+                sparkle->code = sst_object_codes[ObjId_Ring];
                 sparkle->routine = 6;
 
                 // Set sparkle position
-                sparkle->pos.l.x.f.u = obj->pos.l.x.f.u + *spawn_pos++;
-                sparkle->pos.l.y.f.u = obj->pos.l.y.f.u + *spawn_pos++;
+                sparkle->x_pos.f.u = self->x_pos.f.u + *spawn_pos++;
+                sparkle->y_pos.f.u = self->y_pos.f.u + *spawn_pos++;
 
                 // Set sparkle drawing information
                 sparkle->mappings = Mappings_RingREV01;
-                sparkle->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
-                sparkle->render.b = 0;
-                sparkle->render.f.level_fg = true;
-                sparkle->priority = 2;
+                sparkle->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
+                sparkle->render_flags = SST_RENDER_LEVEL;
+                sparkle->priority = 2 * 0x80;
                 sparkle->width_pixels = 8;
             }
         }
@@ -98,7 +101,7 @@ void Obj_Signpost(Object* obj) {
             break;
 
         // Start level end sequence
-        obj->routine += 2;
+        self->routine += 2;
         GotThroughAct();
         break;
     case 8: // Level end
@@ -106,8 +109,7 @@ void Obj_Signpost(Object* obj) {
     }
 
     // Animate, draw, and delete signpost(??) when off-screen
-    AnimateSprite(obj, Animation_Signpost);
-    DisplaySprite(obj);
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-        ObjectDelete(obj);
+    Sst_Animate(self, Animation_Signpost);
+    Sst_Draw(self);
+    SstDeleteIfNotInRange2(self, self->x_pos.f.u);
 }

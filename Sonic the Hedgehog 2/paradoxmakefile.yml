@@ -451,7 +451,6 @@ resources:
   - "Demo/NAHPZ"
   - "Demo/NAHTZ"
   - "Demo/NASS"
-  - "Mappings/Signpost"
   - "Animation/Signpost"
   - "Animation/BossEHZ"
   - "Animation/BossEHZParts"
@@ -711,6 +710,7 @@ mappings_SonicTheHedgehog2:
   - "Mappings/SuperSonicStars"
   - "Mappings/ShieldInvincibility"
   - "Mappings/Checkpoint"
+  - "Mappings/Signpost"
 
 assemble:
   - "Mappings/TitleCharacters"

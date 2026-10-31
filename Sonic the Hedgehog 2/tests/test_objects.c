@@ -36,7 +36,7 @@
 #include "Backend/VDP.h"
 
 void Obj_TailsTails(Sst *obj);
-void Obj_Signpost(Object *obj);
+#include "Object/Signpost.h"
 void ScrollVertical(void);
 
 // The prototype's levels place objects by id; every id a built zone places has to run something (Obj_Null just deletes itself). The zones that are built are checked completely: the ids that are still not
@@ -550,14 +550,14 @@ static void Cylinder_TakesACharacterAndLetsGoAtTheEnd(void) {
 
 // The end of an act: the characters that run on to the right are despawned when they leave the screen (not before), so they do not fall out of the level and die under the results card
 static void Signpost_LevelEndDespawnsCharactersThatLeaveTheScreen(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    Sst_Reset();
     player->code = sst_object_codes[ObjId_Sonic];
     scrpos_x.f.u = 0x1000;
-    Object *sign = &objects[0x20];
-    sign->type = ObjId_Signpost;
+    static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+    SstLoadCamera camera = {0x1000, 0, false, 0xFFF};
+    SstLoad_Init(&index_, NULL, false, &camera);
+    Sst *sign = Sst_Spawn(ObjId_Signpost, 0x1000 + 0x80, 0);
     sign->routine = 8;
-    sign->pos.l.x.f.u = 0x1000 + 0x80;
     player->x_pos.f.u = 0x1000 + SCREEN_WIDTH - 8; // (still on the screen)
     Obj_Signpost(sign);
     CHECK(player->code == sst_object_codes[ObjId_Sonic]);

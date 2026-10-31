@@ -6,7 +6,7 @@
 ; Frame 0 (.solid) is the only one placed in real levels; frames 1/2 are
 ; wider-spread unused variants, kept for completeness.
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_Invis_internal:	mappingsTable
 	mappingsTableEntry.w	@solid
