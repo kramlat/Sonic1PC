@@ -1,9 +1,9 @@
 #ifndef _CPZTUBES_H
 #define _CPZTUBES_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_CPZTube(Object *obj);
-void Obj_CPZTubeSpring(Object *obj);
+void Obj_CPZTube(Sst *self);
+void Obj_CPZTubeSpring(Sst *self);
 
 #endif //_CPZTUBES_H

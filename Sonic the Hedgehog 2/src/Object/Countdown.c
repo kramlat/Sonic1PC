@@ -2,6 +2,9 @@
 // DrownCount.c) as Sonic 2 has it, with the air in each player's own object so that Tails counts too, mappings for each of them, and the numbers' art brought into VRAM a frame at a time instead of being
 // there. See Countdown.h for why it is not in the object table.
 #include "Object/Countdown.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -42,7 +45,7 @@ typedef struct {
     uint8_t pad3;          // 0x3D
     uint8_t pad4;          // 0x3E
     uint8_t tails;         // 0x3F (var 13): the player is Tails
-} Scratch_Countdown;
+} Own_Countdown;
 
 const uint8_t *Countdown_BubbleMappings(void) {
     return Mappings_Countdown;
@@ -71,18 +74,18 @@ void Countdown_ResumeMusic(Sst *player) {
 }
 
 void Countdown_Make(uint8_t slot, bool tails) {
-    Object *counter = &objects[slot];
+    Sst *counter = &sst[slot];
     memset(counter, 0, sizeof(*counter));
-    counter->type = ObjId_DrownCount;
-    Scratch_Countdown *c = (Scratch_Countdown *)&counter->scratch;
+    counter->code = sst_object_codes[ObjId_DrownCount];
+    Own_Countdown *c = (Own_Countdown *)counter->own.u8;
     c->subtype = COUNTDOWN_MASTER_BIT | 1;
     c->owner = tails ? 1 : 0; // (the character: 0 is Sonic, 1 Tails)
     c->tails = tails;
 }
 
 // The art of a number frame (frames 8 to 13 of the mappings) into the window of the player's dust (loaded a frame at a time: Load_Oxygen_Numbers_Dynamic_PLC)
-static void LoadNumber(Object *obj, Scratch_Countdown *c) {
-    const uint8_t frame = obj->frame;
+static void LoadNumber(Sst *self, Own_Countdown *c) {
+    const uint8_t frame = self->mapping_frame;
     if (frame < 8 || frame >= 14 || frame == c->last_number)
         return;
     c->last_number = frame;
@@ -91,30 +94,30 @@ static void LoadNumber(Object *obj, Scratch_Countdown *c) {
 }
 
 // Offset_0x0126A0: a number that has risen long enough stops where it is on the screen and counts its last moments there
-static void FixNumber(Object *obj, Scratch_Countdown *c) {
+static void FixNumber(Sst *self, Own_Countdown *c) {
     if (c->timer == 0)
         return;
     if (--c->timer != 0)
         return;
-    if (obj->anim >= 7)
+    if (self->anim >= 7)
         return;
     c->timer = 15;
-    obj->ysp = 0;
-    const int16_t x = (int16_t)(obj->pos.l.x.f.u - scrpos_x.f.u + 0x80);
-    const int16_t y = (int16_t)(obj->pos.l.y.f.u - scrpos_y.f.u + 0x80);
-    obj->render.f.level_fg = false; // (on the screen: x and y are places in it now)
-    obj->pos.s.x = x;
-    obj->pos.s.y = y;
-    obj->routine = 0xC;
+    self->y_vel = 0;
+    const int16_t x = (int16_t)(self->x_pos.f.u - scrpos_x.f.u + 0x80);
+    const int16_t y = (int16_t)(self->y_pos.f.u - scrpos_y.f.u + 0x80);
+    self->render_flags &= (uint8_t)~SST_RENDER_LEVEL; // (on the screen: x and y are places in it now)
+    self->x_pos.f.u = x;
+    self->y_pos.f.u = y;
+    self->routine = 0xC;
 }
 
-static void ShowBubble(Object *obj) {
-    AnimateSprite(obj, Animation_Countdown);
-    DisplaySprite(obj);
+static void ShowBubble(Sst *self) {
+    Sst_Animate(self, Animation_Countdown);
+    Sst_Draw(self);
 }
 
 // The counter (routine $A): every second of a player's underwater air it counts one, warns at 25, 20 and 15, plays the drowning music at 12, makes the bubbles (and, from 12 down, the numbers), and drowns him at 0
-static void Count(Object *obj, Scratch_Countdown *c) {
+static void Count(Sst *self, Own_Countdown *c) {
     Sst *chr = c->owner ? SST_PLAYER_2 : player;
     Scratch_Sonic *p = PlayerScratch(chr);
     bool spawn_now = false; // (the alpha's branch past the wait for the next bubble)
@@ -188,12 +191,12 @@ static void Count(Object *obj, Scratch_Countdown *c) {
 
     // A bubble comes out of the player
     c->gap = (int16_t)(RandomNumber() & 0xF);
-    Object *bubble = FindFreeObj();
+    Sst *bubble = Sst_Allocate();
     if (bubble == NULL)
         return;
     memset(bubble, 0, sizeof(*bubble));
-    bubble->type = obj->type;
-    Scratch_Countdown *b = (Scratch_Countdown *)&bubble->scratch;
+    bubble->code = self->code;
+    Own_Countdown *b = (Own_Countdown *)bubble->own.u8;
     b->owner = c->owner;
     b->tails = c->tails; // (the alpha does not hand this on: its Tails' bubbles would use Sonic's mappings and window)
     int16_t side = 6;
@@ -201,13 +204,13 @@ static void Count(Object *obj, Scratch_Countdown *c) {
         side = -6;
         bubble->angle = 0x40;
     }
-    bubble->pos.l.x.f.u = (int16_t)(chr->x_pos.f.u + side);
-    bubble->pos.l.y.f.u = chr->y_pos.f.u;
+    bubble->x_pos.f.u = (int16_t)(chr->x_pos.f.u + side);
+    bubble->y_pos.f.u = chr->y_pos.f.u;
     b->subtype = 6; // a small bubble
 
     if (c->drown_timer) {
         c->gap &= 7;
-        bubble->pos.l.y.f.u = (int16_t)(chr->y_pos.f.u - 12);
+        bubble->y_pos.f.u = (int16_t)(chr->y_pos.f.u - 12);
         bubble->angle = (uint8_t)RandomNumber();
         if (!(frame_count & 3))
             b->subtype = 0xE; // a medium one
@@ -235,96 +238,95 @@ static void Count(Object *obj, Scratch_Countdown *c) {
         c->flags = 0;
 }
 
-void Obj_Countdown(Object *obj) {
-    Scratch_Countdown *c = (Scratch_Countdown *)&obj->scratch;
+void Obj_Countdown(Sst *self) {
+    Own_Countdown *c = (Own_Countdown *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0:
-        obj->routine += 2;
-        obj->mappings = c->tails ? Mappings_Countdown + MAPPINGS_TAILS : Mappings_Countdown;
-        obj->tile = TILE_MAP(1, 0, 0, 0, COUNTDOWN_TILE);
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
-        obj->width_pixels = 0x10;
-        obj->priority = 1;
+        self->routine += 2;
+        self->mappings = c->tails ? Mappings_Countdown + MAPPINGS_TAILS : Mappings_Countdown;
+        self->art_tile = TILE_MAP(1, 0, 0, 0, COUNTDOWN_TILE);
+        self->render_flags = SST_RENDER_LEVEL;
+        self->width_pixels = 0x10;
+        self->priority = 1 * 0x80;
         if (c->subtype & COUNTDOWN_MASTER_BIT) {
-            obj->routine = 0xA;
+            self->routine = 0xA;
             c->pause_reload = c->subtype & 0x7F;
-            Count(obj, c);
+            Count(self, c);
             return;
         }
-        obj->anim = c->subtype;
-        c->base_x = obj->pos.l.x.f.u;
-        obj->ysp = -0x88;
+        self->anim = c->subtype;
+        c->base_x = self->x_pos.f.u;
+        self->y_vel = -0x88;
         // Fallthrough
     case 2:
-        AnimateSprite(obj, Animation_Countdown);
+        Sst_Animate(self, Animation_Countdown);
         // Fallthrough
     case 4:
-        if ((uint16_t)wtr_pos1 >= (uint16_t)obj->pos.l.y.f.u) {
+        if ((uint16_t)wtr_pos1 >= (uint16_t)self->y_pos.f.u) {
             // Up at the surface: the bubble bursts (its animation 7 on)
-            obj->routine = 6;
-            obj->anim += 7;
-            if (obj->anim > 0xD)
-                obj->anim = 0xD;
-            FixNumber(obj, c);
-            ShowBubble(obj);
+            self->routine = 6;
+            self->anim += 7;
+            if (self->anim > 0xD)
+                self->anim = 0xD;
+            FixNumber(self, c);
+            ShowBubble(self);
             return;
         }
         if (tunnel_mode)
             c->base_x += 4; // (it drifts with a player in a wind tunnel)
         {
-            const uint8_t a = obj->angle++ & 0x7F;
-            obj->pos.l.x.f.u = (int16_t)(c->base_x + (int8_t)Animation_CountdownWobble[a]);
+            const uint8_t a = self->angle++ & 0x7F;
+            self->x_pos.f.u = (int16_t)(c->base_x + (int8_t)Animation_CountdownWobble[a]);
         }
-        FixNumber(obj, c);
-        SpeedToPos(obj);
-        if (obj->render.f.level_fg && IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ObjectDelete(obj);
+        FixNumber(self, c);
+        Sst_MoveSprite2(self);
+        if ((self->render_flags & SST_RENDER_LEVEL) && SstOutOfRange(self->x_pos.f.u)) {
+            Sst_Delete(self);
             return;
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
     case 6:
-        FixNumber(obj, c);
-        ShowBubble(obj);
+        FixNumber(self, c);
+        ShowBubble(self);
         break;
     case 8:
     case 0x10:
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     case 0xA:
-        Count(obj, c);
+        Count(self, c);
         break;
     case 0xC: { // a number fixed on the screen: its last moments
         Sst *chr = c->owner ? SST_PLAYER_2 : player;
         if (PlayerScratch(chr)->air > 12) {
-            ObjectDelete(obj);
+            Sst_Delete(self);
             return;
         }
         if (--c->timer == 0) {
-            obj->routine = 0xE;
-            obj->anim += 7;
-            ShowBubble(obj);
+            self->routine = 0xE;
+            self->anim += 7;
+            ShowBubble(self);
             return;
         }
-        AnimateSprite(obj, Animation_Countdown);
-        LoadNumber(obj, c);
-        if (!obj->render.f.on_screen) {
-            ObjectDelete(obj);
+        Sst_Animate(self, Animation_Countdown);
+        LoadNumber(self, c);
+        if (!(self->render_flags & SST_RENDER_ON_SCREEN)) {
+            Sst_Delete(self);
             return;
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
     }
     case 0xE: {
         Sst *chr = c->owner ? SST_PLAYER_2 : player;
         if (PlayerScratch(chr)->air > 12) {
-            ObjectDelete(obj);
+            Sst_Delete(self);
             return;
         }
-        FixNumber(obj, c);
-        ShowBubble(obj);
+        FixNumber(self, c);
+        ShowBubble(self);
         break;
     }
     }

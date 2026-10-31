@@ -3,6 +3,9 @@
 // turn. Each character has a state of his own: 0 free, 2 along an entry path, 4 along an exit path, 6 let go (waiting to be out of reach before the object may take him again).
 // Subtype: bits 0-1 how far from the object he is taken ($A0, $100 or $120 pixels: the wider ones from the other side), bits 2-5 how he enters (loc_167EC), bits 2-7 which exit paths follow (loc_1693C).
 #include "Object/CPZTubes.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Game.h"
@@ -15,7 +18,7 @@
 #include "Macros.h"
 
 #include "Object/TubeData.h"
-#include "Solid.h"
+#include "SolidSst.h"
 
 #include "Resource/Mappings/TubeSpring.h"
 
@@ -33,7 +36,7 @@ typedef struct {
     uint8_t pad;
     uint16_t range; // $2A: how close he has to be along x to be taken
     TubeChar chr[2];
-} Scratch_Tube;
+} Own_Tube;
 
 #define TUBE_SPEED 0x800
 
@@ -74,8 +77,8 @@ static void TubeAim(Sst *chr, TubeChar *tc, int16_t tx, int16_t ty) {
 }
 
 // The character goes on to the point at the path's current word (plus the object's place, for an entry path) and takes the speed to get there (loc_16860's end)
-static void TubeStart(Object *obj, Sst *chr, TubeChar *tc, int16_t tx, int16_t ty) {
-    obj->status.b &= (uint8_t)~0x20;
+static void TubeStart(Sst *self, Sst *chr, TubeChar *tc, int16_t tx, int16_t ty) {
+    self->status &= (uint8_t)~0x20;
     chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
     chr->status |= SST_PSTATUS_IN_AIR;
     ((Scratch_Sonic *)chr->own.u8)->jumping = 0;
@@ -117,16 +120,16 @@ static void TubeExitStart(Sst *chr, TubeChar *tc, int n) {
 }
 
 // One character against one tube (loc_16770): his state picks what happens
-static void TubeStep(Object *obj, Scratch_Tube *scratch, Sst *chr, TubeChar *tc) {
+static void TubeStep(Sst *self, Own_Tube *own, Sst *chr, TubeChar *tc) {
     switch (tc->state) {
     case 0: { // free: taken when he is near the mouth
         if (debug_use)
             return;
-        int16_t range = (int16_t)scratch->range;
-        int16_t d0 = (int16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u);
+        int16_t range = (int16_t)own->range;
+        int16_t d0 = (int16_t)(chr->x_pos.f.u - self->x_pos.f.u);
         if ((uint16_t)d0 >= (uint16_t)range)
             return;
-        int16_t d1 = (int16_t)(chr->y_pos.f.u - obj->pos.l.y.f.u);
+        int16_t d1 = (int16_t)(chr->y_pos.f.u - self->y_pos.f.u);
         if ((uint16_t)d1 >= 0x80)
             return;
         int d3 = 0;
@@ -139,7 +142,7 @@ static void TubeStep(Object *obj, Scratch_Tube *scratch, Sst *chr, TubeChar *tc)
         }
         int d2;
         if ((uint16_t)d0 >= 0x80) {
-            d2 = tube_side_by_subtype[(scratch->subtype >> 2) & 0xF];
+            d2 = tube_side_by_subtype[(self->subtype >> 2) & 0xF];
             if (d2 == 2)
                 d2 = frame_count & 1;
         } else {
@@ -153,14 +156,14 @@ static void TubeStep(Object *obj, Scratch_Tube *scratch, Sst *chr, TubeChar *tc)
             return; // (the prototype's table only has twelve: the rest is not an entry)
         const uint16_t *p = PathData(tc->path);
         tc->count = (int16_t)(p[0] - 4);
-        chr->x_pos.f.u = (int16_t)(p[1] + obj->pos.l.x.f.u);
-        chr->y_pos.f.u = (int16_t)(p[2] + obj->pos.l.y.f.u);
+        chr->x_pos.f.u = (int16_t)(p[1] + self->x_pos.f.u);
+        chr->y_pos.f.u = (int16_t)(p[2] + self->y_pos.f.u);
         tc->pos = 3;
         tc->state += 2;
         OBJ_CONTROL(chr) = 0x81;
         chr->anim = SonAnimId_Roll;
         chr->ground_vel = TUBE_SPEED;
-        TubeStart(obj, chr, tc, (int16_t)(p[3] + obj->pos.l.x.f.u), (int16_t)(p[4] + obj->pos.l.y.f.u));
+        TubeStart(self, chr, tc, (int16_t)(p[3] + self->x_pos.f.u), (int16_t)(p[4] + self->y_pos.f.u));
         PlaySound(sfx_Roll); // ($BE: his spin sound as he is taken in and as he turns on to an exit path)
         return;
     }
@@ -170,13 +173,13 @@ static void TubeStep(Object *obj, Scratch_Tube *scratch, Sst *chr, TubeChar *tc)
             return;
         }
         const uint16_t *p = PathData(tc->path);
-        chr->x_pos.f.u = (int16_t)(p[tc->pos] + obj->pos.l.x.f.u);
-        chr->y_pos.f.u = (int16_t)(p[tc->pos + 1] + obj->pos.l.y.f.u);
+        chr->x_pos.f.u = (int16_t)(p[tc->pos] + self->x_pos.f.u);
+        chr->y_pos.f.u = (int16_t)(p[tc->pos + 1] + self->y_pos.f.u);
         tc->pos += tc->side < 0 ? -2 : 2;
         tc->count -= 4;
         if (tc->count == 0) { // the end of the path (loc_16902)
             if ((uint8_t)tc->side < 4) {
-                int row = (scratch->subtype & 0xFC) + tc->side;
+                int row = (self->subtype & 0xFC) + tc->side;
                 tc->side = 4;
                 int n = tube_exit_by_subtype[row];
                 if (n != 0) {
@@ -190,7 +193,7 @@ static void TubeStep(Object *obj, Scratch_Tube *scratch, Sst *chr, TubeChar *tc)
             PlaySound(sfx_Teleport); // ($BC: the sound of the spin dash's release, as he leaves the tube)
             return;
         }
-        TubeAim(chr, tc, (int16_t)(p[tc->pos] + obj->pos.l.x.f.u), (int16_t)(p[tc->pos + 1] + obj->pos.l.y.f.u));
+        TubeAim(chr, tc, (int16_t)(p[tc->pos] + self->x_pos.f.u), (int16_t)(p[tc->pos + 1] + self->y_pos.f.u));
         return;
     }
     case 4: { // along an exit path (absolute points)
@@ -213,9 +216,9 @@ static void TubeStep(Object *obj, Scratch_Tube *scratch, Sst *chr, TubeChar *tc)
         return;
     }
     case 6: { // let go: waits until he is out of reach
-        int16_t d0 = (int16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u);
-        int16_t d1 = (int16_t)(chr->y_pos.f.u - obj->pos.l.y.f.u);
-        if ((uint16_t)d0 < scratch->range && (uint16_t)d1 < 0x80)
+        int16_t d0 = (int16_t)(chr->x_pos.f.u - self->x_pos.f.u);
+        int16_t d1 = (int16_t)(chr->y_pos.f.u - self->y_pos.f.u);
+        if ((uint16_t)d0 < own->range && (uint16_t)d1 < 0x80)
             return;
         tc->state = 0;
         return;
@@ -223,25 +226,25 @@ static void TubeStep(Object *obj, Scratch_Tube *scratch, Sst *chr, TubeChar *tc)
     }
 }
 
-void Obj_CPZTube(Object *obj) {
-    Scratch_Tube *scratch = (Scratch_Tube *)&obj->scratch;
+void Obj_CPZTube(Sst *self) {
+    Own_Tube *own = (Own_Tube *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
+    if (self->routine == 0) {
+        self->routine += 2;
         static const uint16_t ranges[4] = { 0xA0, 0x100, 0x120, 0xA0 };
-        scratch->range = ranges[(scratch->subtype << 1 & 6) >> 1];
+        own->range = ranges[(self->subtype << 1 & 6) >> 1];
     }
-    TubeStep(obj, scratch, player, &scratch->chr[0]);
+    TubeStep(self, own, player, &own->chr[0]);
     Sst *tails = TAILS_OBJ;
     if (tails->code != NULL)
-        TubeStep(obj, scratch, tails, &scratch->chr[1]);
+        TubeStep(self, own, tails, &own->chr[1]);
 
     // MarkObjGone3: once neither character is in it, it goes when out of range, and forgets that it was loaded (the tubes remember their state in the layout:
     // a tube deleted with its mark still set never came back, and a character whose exit path ended at its mouth was left frozen there)
-    if (scratch->chr[0].state == 0 && scratch->chr[1].state == 0 && IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        if (obj->respawn_index)
-            objstate[obj->respawn_index] &= 0x7F;
-        ObjectDelete(obj);
+    if (own->chr[0].state == 0 && own->chr[1].state == 0 && SstOutOfRange(self->x_pos.f.u)) {
+        if (self->respawn)
+            (*SstLoad_State(self)) &= 0x7F;
+        Sst_Delete(self);
     }
 }
 
@@ -260,13 +263,13 @@ typedef struct {
     uint8_t subtype;
     uint8_t pad[7];
     int16_t power;
-} Scratch_TubeSpring;
+} Own_TubeSpring;
 
-static void TubeSpring_Launch(Object *obj, Sst *chr, int16_t power, uint8_t subtype) {
+static void TubeSpring_Launch(Sst *self, Sst *chr, int16_t power, uint8_t subtype) {
     Scratch_Sonic *sscratch = (Scratch_Sonic *)chr->own.u8;
 
-    obj->anim = 1;
-    obj->prev_anim = 0;
+    self->anim = 1;
+    self->prev_anim = 0;
     chr->y_pos.f.u += 4;
     chr->y_vel = power;
     chr->status |= SST_PSTATUS_IN_AIR;
@@ -301,42 +304,42 @@ static void TubeSpring_Launch(Object *obj, Sst *chr, int16_t power, uint8_t subt
     PlaySound(sfx_Spring);
 }
 
-void Obj_CPZTubeSpring(Object *obj) {
-    Scratch_TubeSpring *scratch = (Scratch_TubeSpring *)&obj->scratch;
+void Obj_CPZTubeSpring(Sst *self) {
+    Own_TubeSpring *own = (Own_TubeSpring *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        obj->mappings = Mappings_TubeSpring;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ARTTILE_TUBE_SPRING);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 0x10;
-        obj->priority = 1;
-        scratch->power = (scratch->subtype & 2) ? -0xA00 : -0x1000;
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_TubeSpring;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ARTTILE_TUBE_SPRING);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x10;
+        self->priority = 1 * 0x80;
+        own->power = (self->subtype & 2) ? -0xA00 : -0x1000;
     }
 
-    if (obj->frame != 1) { // (shut while it is open)
+    if (self->mapping_frame != 1) { // (shut while it is open)
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
             Sst *chr = who == SolidChar_Sonic ? player : TAILS_OBJ;
             if (who == SolidChar_Tails && chr->code == NULL)
                 continue;
-            Solid_Character(obj, chr, who, 0x1B, 8, 0x10, obj->pos.l.x.f.u, NULL);
-            if (obj->status.b & (1 << (3 + who)))
-                TubeSpring_Launch(obj, chr, scratch->power, scratch->subtype);
+            SolidSst_Character(self, chr, who, 0x1B, 8, 0x10, self->x_pos.f.u, NULL);
+            if (self->status & (1 << (3 + who)))
+                TubeSpring_Launch(self, chr, own->power, self->subtype);
         }
     }
 
     // It opens while a character is in the box over the tube: animation 2 for Sonic, 3 for Tails
-    const uint16_t x0 = (uint16_t)(obj->pos.l.x.f.u - 0x10), x1 = (uint16_t)(obj->pos.l.x.f.u + 0x10);
-    const uint16_t y0 = (uint16_t)obj->pos.l.y.f.u, y1 = (uint16_t)(obj->pos.l.y.f.u + 0x30);
+    const uint16_t x0 = (uint16_t)(self->x_pos.f.u - 0x10), x1 = (uint16_t)(self->x_pos.f.u + 0x10);
+    const uint16_t y0 = (uint16_t)self->y_pos.f.u, y1 = (uint16_t)(self->y_pos.f.u + 0x30);
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = who == SolidChar_Sonic ? player : TAILS_OBJ;
         if (who == SolidChar_Tails && chr->code == NULL)
             continue;
         uint16_t cx = (uint16_t)chr->x_pos.f.u, cy = (uint16_t)chr->y_pos.f.u;
         if (cx >= x0 && cx < x1 && cy >= y0 && cy < y1)
-            obj->anim = (uint8_t)(2 + who);
+            self->anim = (uint8_t)(2 + who);
     }
-    AnimateSprite(obj, Animation_TubeSpring);
+    Sst_Animate(self, Animation_TubeSpring);
 
-    RememberState(obj); // (MarkObjGone: drawn, or gone when out of range, letting it come back)
+    SstOnScreenTest(self); // (MarkObjGone: drawn, or gone when out of range, letting it come back)
 }

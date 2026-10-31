@@ -1,4 +1,5 @@
 #include "SstLoad.h"
+#include "Object/TitleCard.h"
 #include "Object/Splash.h"
 #include "GM_Level.h"
 #include "Viewport.h"
@@ -311,7 +312,7 @@ GM_Level_Branch:;
             ExecuteObjects();
             BuildSprites(NULL);
             RunPLC();
-        } while ((!game_info.no_title_card && objects[4].pos.s.x != objects[4].scratch.u16[4]) || plc_buffer[0].art != NULL);
+        } while ((!game_info.no_title_card && !TitleCard_Arrived()) || plc_buffer[0].art != NULL);
 
         // Initialize HUD
         HUD_Base();
@@ -414,10 +415,7 @@ GM_Level_Branch:;
     PaletteFadeIn_At(0x10, 0x30);
 
     // Tell title card to move away
-    objects[2].routine += 2;
-    objects[3].routine += 4;
-    objects[4].routine += 4;
-    objects[5].routine += 4;
+    TitleCard_Leave();
 
     // Load missing art in credits demos
     if (demo < 0) {

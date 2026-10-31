@@ -1,9 +1,9 @@
 #ifndef _DHZBADNIKS_H
 #define _DHZBADNIKS_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_Crawlton(Object *obj);
-void Obj_Flasher(Object *obj);
+void Obj_Crawlton(Sst *self);
+void Obj_Flasher(Sst *self);
 
 #endif //_DHZBADNIKS_H

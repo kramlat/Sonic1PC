@@ -380,13 +380,9 @@ void DynamicLevelEvents(void) {
             limit_btm1 = 0x390 - SCREEN_TALLADD;
             dle_routine += 2;
             {
-                Object *boss = FindFreeObj();
-                if (boss != NULL) {
-                    boss->type = 0x56; // the EHZ boss
-                    boss->scratch.u8[0] = 0x81; // (the subtype)
-                    boss->pos.l.x.f.u = 0x29D0;
-                    boss->pos.l.y.f.u = 0x426;
-                }
+                Sst *boss = Sst_Spawn(0x56, 0x29D0, 0x426); // the EHZ boss
+                if (boss != NULL)
+                    boss->subtype = 0x81;
             }
             QueueSound1(bgm_Boss);
             lock_screen = true;
@@ -570,16 +566,16 @@ void Level_LoadWaterPalettes(bool sonic) {
 // Two surfaces (Nick Arcade's), each as wide as the screen was ($80 each side of its place), and a third for pictures wider than the original; their places follow the camera
 void Level_MakeWaterSurfaces(void) {
     // (the extra one has a slot of its own here: Sonic 1's, 28, is Tails' in Sonic 2, and 27 is the splash's and the spin dash dust's (it was there, which kept the splash from ever showing))
-    objects[WATERSURFACE_SLOT_LEFT].type = 0x04;
-    objects[WATERSURFACE_SLOT_LEFT].scratch.u8[0] = 0;
-    objects[WATERSURFACE_SLOT_RIGHT].type = 0x04;
-    objects[WATERSURFACE_SLOT_RIGHT].scratch.u8[0] = 1;
-    objects[22].type = 0x04;
-    objects[22].scratch.u8[0] = 2;
+    for (uint8_t subtype = 0; subtype < 3; subtype++) {
+        Sst *surface = Sst_Spawn(0x04, 0, 0);
+        if (surface != NULL)
+            surface->subtype = subtype;
+    }
     if (camera_split) { // the second view has its own three, along its own camera
-        for (int i = 0; i < 3; i++) {
-            objects[26 - i].type = 0x04;
-            objects[26 - i].scratch.u8[0] = (uint8_t)(3 + i);
+        for (uint8_t i = 0; i < 3; i++) {
+            Sst *surface = Sst_Spawn(0x04, 0, 0);
+            if (surface != NULL)
+                surface->subtype = (uint8_t)(3 + i);
         }
     }
 }

@@ -24,5 +24,6 @@ void Splash_SpawnSkidDust(Sst *parent);
 void Splash_Make(void);
 void Splash_SetAnim(uint8_t anim);
 uint8_t Splash_GetAnim(void);
+Sst *Splash_Companion(void); // (NULL when there is none)
 
 #endif

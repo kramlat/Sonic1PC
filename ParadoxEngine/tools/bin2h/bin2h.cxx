@@ -1,6 +1,7 @@
 #include <libgen.h>
 #include <string>
 #include <vector>
+#include <map>
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
@@ -180,37 +181,81 @@ std::string format_obj(std::string s)
 }
 
 /* Sonic 2's sprite mappings (a table of frame offsets, then per frame a word piece count and 8-byte pieces: y and size, tile, the 2-player tile, x) to Sonic 3 & Knuckles' (6-byte pieces without the
-   2-player tile): `bin2h in out pad mappings-s3-from SonicTheHedgehog2 [BYTESxFRAMES]` (the project whose format the input is in; a file of several tables of the same size and number of frames, one after the other,
-   is converted table by table, and the tables come out as large as the first). A frame the table names more than once is written once. Returns the new size; the input is left alone when it does not look like a table. */
-static unsigned char* mappings_s2_to_s3(const unsigned char* in, long size, long* out_size, long force_frames = 0)
+   2-player tile): `bin2h in out pad mappings-s3-from SonicTheHedgehog2 [SPEC]` (the project whose format the input is in). A frame the tables name more than once is written once. SPEC says what the file holds:
+     nothing        one table at the start; its length is found from the offsets (the table ends where the lowest offset starts)
+     BYTESxFRAMES   several tables of the same size and number of frames, one after the other (converted one by one)
+     tables=S:N,... tables that share their frames, each starting at byte S with N entries (the offsets are from the table's own start, as in the ROM); the new tables come first, one after the other
+   Returns NULL when the input does not look like mappings. A frame that runs past the end of the file is completed with zeros. */
+typedef std::pair<long, long> MapTable;
+
+static unsigned char* mappings_s2_to_s3(const unsigned char* in, long size, long* out_size, std::vector<MapTable> tables = std::vector<MapTable>())
 {
     if (size < 2)
         return NULL;
-    long frames = force_frames ? force_frames : ((in[0] << 8) | in[1]) / 2;
-    if (frames < 1 || frames * 2 > size)
-        return NULL;
-    std::vector<long> new_offset(size, -1);
-    std::vector<unsigned char> out(frames * 2, 0);
-    for (long f = 0; f < frames; f++) {
-        long old = (in[f * 2] << 8) | in[f * 2 + 1];
-        if (old + 2 > size)
-            return NULL;
-        if (new_offset[old] < 0) {
-            long count = (in[old] << 8) | in[old + 1];
-            if (old + 2 + count * 8 > size)
-                return NULL;
-            new_offset[old] = (long)out.size();
-            out.push_back(in[old]);
-            out.push_back(in[old + 1]);
-            for (long p = 0; p < count; p++) {
-                const unsigned char* piece = in + old + 2 + p * 8;
-                out.push_back(piece[0]); out.push_back(piece[1]); // y, size
-                out.push_back(piece[2]); out.push_back(piece[3]); // tile
-                out.push_back(piece[6]); out.push_back(piece[7]); // x (the 2-player tile, piece[4..5], is left out)
-            }
+    if (tables.empty()) {
+        long limit = size, n = 0;
+        while (n * 2 + 2 <= size && n * 2 < limit) {
+            long v = (in[n * 2] << 8) | in[n * 2 + 1];
+            if (v != 0 && v < limit)
+                limit = v;
+            n++;
         }
-        out[f * 2] = (unsigned char)(new_offset[old] >> 8);
-        out[f * 2 + 1] = (unsigned char)new_offset[old];
+        tables.push_back(MapTable(0, n));
+    }
+    long entries = 0;
+    for (size_t t = 0; t < tables.size(); t++)
+        entries += tables[t].second;
+    if (entries < 1)
+        return NULL;
+    std::vector<unsigned char> out(entries * 2, 0);
+    std::map<long, long> new_offset; // old absolute offset -> new
+    long at = 0;
+    for (size_t t = 0; t < tables.size(); t++) {
+        long start = tables[t].first, count = tables[t].second;
+        if (start + count * 2 > size)
+            return NULL;
+        for (long f = 0; f < count; f++) {
+            long old = start + ((in[start + f * 2] << 8) | in[start + f * 2 + 1]);
+            if (old + 2 > size)
+                return NULL;
+            if (!new_offset.count(old)) {
+                long pieces = (in[old] << 8) | in[old + 1];
+                new_offset[old] = (long)out.size();
+                out.push_back(in[old]);
+                out.push_back(in[old + 1]);
+                for (long p = 0; p < pieces; p++) {
+                    unsigned char piece[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+                    for (int b = 0; b < 8; b++) {
+                        long o = old + 2 + p * 8 + b;
+                        if (o < size)
+                            piece[b] = in[o];
+                    }
+                    out.push_back(piece[0]); out.push_back(piece[1]); // y, size
+                    out.push_back(piece[2]); out.push_back(piece[3]); // tile
+                    out.push_back(piece[6]); out.push_back(piece[7]); // x (the 2-player tile, piece[4..5], is left out)
+                }
+            }
+            long rel = new_offset[old] - at;
+            out[(at + f) * 2] = (unsigned char)(rel >> 8);
+            out[(at + f) * 2 + 1] = (unsigned char)rel;
+        }
+        at += count;
+    }
+    // (the entry offsets are from the table's own start: the table `t` begins at the sum of the sizes before it)
+    {
+        long base = 0;
+        std::vector<unsigned char> fixed = out;
+        for (size_t t = 0; t < tables.size(); t++) {
+            long start = tables[t].first, count = tables[t].second;
+            for (long f = 0; f < count; f++) {
+                long old = start + ((in[start + f * 2] << 8) | in[start + f * 2 + 1]);
+                long rel = new_offset[old] - base * 2;
+                fixed[(base + f) * 2] = (unsigned char)(rel >> 8);
+                fixed[(base + f) * 2 + 1] = (unsigned char)rel;
+            }
+            base += count;
+        }
+        out = fixed;
     }
     unsigned char* result = (unsigned char*)malloc(out.size());
     memcpy(result, out.data(), out.size());
@@ -263,12 +308,25 @@ int main(int argc, char* argv[])
                 long converted_size = 0;
                 unsigned char* converted = NULL;
                 long set_bytes = 0, set_frames = 0;
-                if (argc > 6 && sscanf(argv[6], "%ldx%ld", &set_bytes, &set_frames) == 2 && set_bytes > 0 && set_frames > 0) {
+                if (argc > 6 && strncmp(argv[6], "tables=", 7) == 0) {
+                    std::vector<MapTable> tables;
+                    const char* spec = argv[6] + 7;
+                    while (*spec) {
+                        char* end;
+                        long st = strtol(spec, &end, 0);
+                        if (*end != ':') break;
+                        long n = strtol(end + 1, &end, 0);
+                        tables.push_back(MapTable(st, n));
+                        spec = (*end == ',') ? end + 1 : end;
+                        if (end == spec && *end) break;
+                    }
+                    converted = mappings_s2_to_s3(in_file_buffer, in_file_size, &converted_size, tables);
+                } else if (argc > 6 && sscanf(argv[6], "%ldx%ld", &set_bytes, &set_frames) == 2 && set_bytes > 0 && set_frames > 0) {
                     std::vector<unsigned char> all;
                     long first = -1;
                     for (long at = 0; at + set_bytes <= in_file_size; at += set_bytes) {
                         long part_size = 0;
-                        unsigned char* part = mappings_s2_to_s3(in_file_buffer + at, set_bytes, &part_size, set_frames);
+                        unsigned char* part = mappings_s2_to_s3(in_file_buffer + at, set_bytes, &part_size, std::vector<MapTable>(1, MapTable(0, set_frames)));
                         if (part == NULL) { all.clear(); first = -2; break; }
                         if (first < 0) first = part_size;
                         if (part_size != first) { free(part); all.clear(); first = -2; break; }

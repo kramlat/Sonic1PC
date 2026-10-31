@@ -2,12 +2,15 @@
 // launches by where along its slope the character stands, and only after it has been compressed: Obj_0x40_Diagonal_Springs (loc_1A30C) in its disassembly.
 // Subtype: bit 0 the character tumbles, bit 1 the weaker spring (a tumble of one flip, not three), bits 2-3 the collision path he takes (4: the first path's, 8: the second's). The object may be flipped.
 #include "Object/DiagSpring.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Level.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "Solid.h"
+#include "SolidSst.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -16,7 +19,7 @@
 
 typedef struct {
     uint8_t subtype; // 0x28
-} Scratch_DiagSpring;
+} Own_DiagSpring;
 
 #define ARTTILE_LEVER_SPRING 0x440 // ($8800 in the zones' art lists)
 
@@ -78,26 +81,26 @@ static void DiagSpring_Tumble(Sst *chr, uint8_t subtype) {
 }
 
 // The character stands on the spring (loc_1A3BA): on its springy side (past $10 pixels from the middle towards its low end) it starts to compress; once compressed back to the open frame it throws him
-static void DiagSpring_Stand(Object *obj, Sst *chr, uint8_t subtype) {
-    const bool flipped = obj->status.o.f.x_flip;
+static void DiagSpring_Stand(Sst *self, Sst *chr, uint8_t subtype) {
+    const bool flipped = ((self->status & SST_STATUS_X_FLIP) != 0);
     if (!flipped) {
-        if (!((uint16_t)(obj->pos.l.x.f.u - 0x10) < (uint16_t)chr->x_pos.f.u))
+        if (!((uint16_t)(self->x_pos.f.u - 0x10) < (uint16_t)chr->x_pos.f.u))
             return;
     } else {
-        if (!((uint16_t)(obj->pos.l.x.f.u + 0x10) >= (uint16_t)chr->x_pos.f.u))
+        if (!((uint16_t)(self->x_pos.f.u + 0x10) >= (uint16_t)chr->x_pos.f.u))
             return;
     }
 
-    if (obj->anim != 1) { // compress first
-        obj->anim = 1;
-        obj->prev_anim = 0;
+    if (self->anim != 1) { // compress first
+        self->anim = 1;
+        self->prev_anim = 0;
         return;
     }
-    if (obj->frame != 0)
+    if (self->mapping_frame != 0)
         return;
 
     // The throw (loc_1A3FA): further along the slope throws harder
-    int16_t d0 = (int16_t)(chr->x_pos.f.u - (obj->pos.l.x.f.u - 0x1C));
+    int16_t d0 = (int16_t)(chr->x_pos.f.u - (self->x_pos.f.u - 0x1C));
     if (flipped)
         d0 = (int16_t)(0x26 - d0);
     if (d0 < 0)
@@ -121,28 +124,28 @@ static void DiagSpring_Stand(Object *obj, Sst *chr, uint8_t subtype) {
     PlaySound(sfx_Spring);
 }
 
-void Obj_DiagSpring(Object *obj) {
-    Scratch_DiagSpring *scratch = (Scratch_DiagSpring *)&obj->scratch;
+void Obj_DiagSpring(Sst *self) {
+    Own_DiagSpring *own = (Own_DiagSpring *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        obj->mappings = Mappings_DiagSpring;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ARTTILE_LEVER_SPRING);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 0x1C;
-        obj->priority = 4;
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_DiagSpring;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ARTTILE_LEVER_SPRING);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x1C;
+        self->priority = 4 * 0x80;
     }
 
-    AnimateSprite(obj, Animation_DiagSpring);
-    const int8_t *slope = obj->frame == 0 ? slope_open : slope_pressed;
+    Sst_Animate(self, Animation_DiagSpring);
+    const int8_t *slope = self->mapping_frame == 0 ? slope_open : slope_pressed;
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = who == SolidChar_Sonic ? player : TAILS_OBJ;
         if (who == SolidChar_Tails && chr->code == NULL)
             continue;
-        Solid_Character(obj, chr, who, 0x27, 8, 8, obj->pos.l.x.f.u, slope);
-        if (obj->status.b & (1 << (3 + who)))
-            DiagSpring_Stand(obj, chr, scratch->subtype);
+        SolidSst_Character(self, chr, who, 0x27, 8, 8, self->x_pos.f.u, slope);
+        if (self->status & (1 << (3 + who)))
+            DiagSpring_Stand(self, chr, self->subtype);
     }
 
-    RememberState(obj); // (MarkObjGone: drawn, or gone when out of range, letting it come back)
+    SstOnScreenTest(self); // (MarkObjGone: drawn, or gone when out of range, letting it come back)
 }

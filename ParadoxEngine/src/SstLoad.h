@@ -66,6 +66,9 @@ void SstOnScreenTest2(Sst *obj, int16_t x);
 // place: it gets a byte of its own that nothing remembers.
 uint8_t *SstLoad_State(const Sst *obj);
 
+// (for the tests: while set, no X is out of range)
+extern bool sst_load_everything_in_range;
+
 // Whether an X is more than 0x280 past the coarse back edge of the camera (the test the three above make)
 bool SstOutOfRange(int16_t x);
 // Delete_Sprite_If_Not_In_Range: the same without the drawing

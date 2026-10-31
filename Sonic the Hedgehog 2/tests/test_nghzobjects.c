@@ -15,9 +15,15 @@
 
 // Neo Green Hill's arrow shooter (22) and leaves (2C), as the prototype's routines have them.
 
+// (the slots below $20 are taken, so that the objects a test makes get the slots the old tests named)
+static void SstTestFiller(Sst *self) { (void)self; }
+
 static void Reset(void) {
     memset(objects, 0, sizeof(Object) * 0x60);
     Sst_Reset();
+    sst_load_everything_in_range = true;
+    for (int i = 4; i < 0x20; i++)
+        sst[i].code = SstTestFiller;
     static const SstObjectIndex index_ = {sst_object_codes, 0x100};
     SstLoadCamera camera = {0, 0, false, 0xFFF};
     SstLoad_Init(&index_, NULL, false, &camera);
@@ -29,25 +35,23 @@ static void Reset(void) {
     player->y_pos.f.u = 0x1000;
 }
 
-static Object *Spawn(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
-    Object *obj = &objects[0x20];
-    memset(obj, 0, sizeof(Object));
-    obj->type = type;
-    obj->scratch.u8[0] = subtype;
-    obj->pos.l.x.f.u = x;
-    obj->pos.l.y.f.u = y;
+static Sst *Spawn(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
+    SstLoad_Seek((int16_t)(x - 0x100)); // (the loader keeps what is near the camera: the camera is where the object is)
+    Sst *obj = Sst_Spawn(type, x, y);
+    obj->subtype = subtype;
     return obj;
 }
 
 static int Count(uint8_t type, uint8_t routine) {
     int n = 0;
     for (int i = 1; i < 0x60; i++)
-        n += objects[i].type == type && objects[i].routine == routine;
+        n += sst[i].code == sst_object_codes[type] && sst[i].routine == routine;
     return n;
 }
 
 // The same for the objects of the status table
 static Sst *SpawnSst(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
+    SstLoad_Seek((int16_t)(x - 0x100)); // (the loader keeps what is near the camera: the camera is where the object is)
     Sst *obj = Sst_Spawn(type, x, y);
     obj->subtype = subtype;
     return obj;
@@ -158,7 +162,7 @@ static void NGHZObjects_TheBossArenaLocksTheCameraAndLoadsTheBossOnce(void) {
 static void NGHZObjects_TheBossWaitsForSonicInTheArenaThenDescendsWithItsLauncher(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_ARZ, 1);
-    Object *boss = Spawn(0x89, 0, 0, 0);
+    Sst *boss = Spawn(0x89, 0, 0, 0);
     limit_left2 = 0x2A40 - SCREEN_WIDEADD2;
     player->x_pos.f.u = 0x2A00; // (not yet in)
     Obj_NGHZBoss(boss);
@@ -166,38 +170,38 @@ static void NGHZObjects_TheBossWaitsForSonicInTheArenaThenDescendsWithItsLaunche
     player->x_pos.f.u = 0x2AD8;
     Obj_NGHZBoss(boss);
     CHECK_EQ(boss->child_count, 3);
-    CHECK_EQ(boss->col_type, 0x0F);
-    CHECK_EQ(boss->pos.l.x.f.u, 0x2AD8);
-    CHECK_EQ(boss->pos.l.y.f.u, 0x388);
+    CHECK_EQ(boss->collision_flags, 0x0F);
+    CHECK_EQ(boss->x_pos.f.u, 0x2AD8);
+    CHECK_EQ(boss->y_pos.f.u, 0x388);
     int launchers = 0;
     for (int i = 1; i < 0x60; i++)
-        launchers += objects[i].type == 0x89 && objects[i].child_count == 2;
+        launchers += sst[i].code == sst_object_codes[0x89] && sst[i].child_count == 2;
     CHECK_EQ(launchers, 1);
 }
 
 static void NGHZObjects_TheWhispFollowsSonicWithinItsSpeedLimit(void) {
     Reset();
-    Object *whisp = Spawn(0x8C, 0, 400, 300);
+    Sst *whisp = Spawn(0x8C, 0, 400, 300);
     player->x_pos.f.u = 600;
     player->y_pos.f.u = 200;
     Obj_Whisp(whisp);
-    CHECK_EQ(whisp->col_type, 0x0B);
+    CHECK_EQ(whisp->collision_flags, 0x0B);
     for (int i = 0; i < 0x11; i++)
         Obj_Whisp(whisp);
     CHECK_EQ(whisp->routine, 4); // (it has set off)
     for (int i = 0; i < 0x30; i++)
         Obj_Whisp(whisp);
-    CHECK(whisp->xsp > 0 && whisp->xsp <= 0x200); // (towards Sonic, on the right)
-    CHECK(whisp->ysp < 0 && whisp->ysp >= -0x200); // (and up)
-    CHECK(whisp->pos.l.x.f.u > 400);
+    CHECK(whisp->x_vel > 0 && whisp->x_vel <= 0x200); // (towards Sonic, on the right)
+    CHECK(whisp->y_vel < 0 && whisp->y_vel >= -0x200); // (and up)
+    CHECK(whisp->x_pos.f.u > 400);
 }
 
 static void NGHZObjects_TheGrounderBreaksItsWallAndWalksToSonic(void) {
     Reset();
-    Object *grounder = Spawn(0x8D, 0, 500, 300);
+    Sst *grounder = Spawn(0x8D, 0, 500, 300);
     player->x_pos.f.u = 700; // (far)
     Obj_Grounder(grounder);
-    CHECK_EQ(grounder->col_type, 0x02);
+    CHECK_EQ(grounder->collision_flags, 0x02);
     CHECK_EQ(Count(0x8F, 0), 4); // (four bricks)
     player->x_pos.f.u = 540; // (near)
     Obj_Grounder(grounder);
@@ -205,48 +209,48 @@ static void NGHZObjects_TheGrounderBreaksItsWallAndWalksToSonic(void) {
     CHECK_EQ(Count(0x90, 0), 5); // (five rocks)
     for (int pass = 0; pass < 2; pass++) { // (set up, then see the Grounder awake)
         for (int i = 1; i < 0x60; i++) {
-            if (objects[i].type == 0x8F)
-                Obj_GrounderWall(&objects[i]);
+            if (sst[i].code == sst_object_codes[0x8F])
+                Obj_GrounderWall(&sst[i]);
         }
     }
     int moving = 0;
     for (int i = 0x21; i < 0x60; i++)
-        moving += objects[i].type == 0x8F && objects[i].routine == 4;
+        moving += sst[i].code == sst_object_codes[0x8F] && sst[i].routine == 4;
     CHECK_EQ(moving, 4);
 }
 
 static void NGHZObjects_TheChopChopSwimsAndSpitsBubblesAndDashesAtSonic(void) {
     Reset();
-    Object *fish = Spawn(0x91, 0, 400, 300);
+    Sst *fish = Spawn(0x91, 0, 400, 300);
     player->x_pos.f.u = 1000;
     player->y_pos.f.u = 300;
     Obj_ChopChop(fish);
-    CHECK_EQ(fish->xsp, -0x40);
-    CHECK_EQ(fish->col_type, 0x02);
+    CHECK_EQ(fish->x_vel, -0x40);
+    CHECK_EQ(fish->collision_flags, 0x02);
     for (int i = 0; i < 20; i++)
         Obj_ChopChop(fish);
-    CHECK(fish->pos.l.x.f.u < 400);
-    player->x_pos.f.u = (int16_t)(fish->pos.l.x.f.u - 0x60); // ahead of it, near
+    CHECK(fish->x_pos.f.u < 400);
+    player->x_pos.f.u = (int16_t)(fish->x_pos.f.u - 0x60); // ahead of it, near
     Obj_ChopChop(fish);
     CHECK_EQ(fish->routine, 4); // (it stops)
     for (int i = 0; i < 0x12; i++)
         Obj_ChopChop(fish);
     CHECK_EQ(fish->routine, 6);
-    CHECK_EQ(fish->xsp, -0x200);
+    CHECK_EQ(fish->x_vel, -0x200);
 }
 
 static void SSZObjects_TheCrocobotIsSetUpAndFallsUntilItMeetsTheFloor(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_SSZ, 0);
-    Object *croc = Spawn(0x4E, 0, 400, 300);
+    Sst *croc = Spawn(0x4E, 0, 400, 300);
     Obj_Crocobot(croc);
-    CHECK_EQ(croc->col_type, 0x0A);
+    CHECK_EQ(croc->collision_flags, 0x0A);
     CHECK_EQ(croc->width_pixels, 0x10);
-    CHECK_EQ(croc->y_rad, 0x10);
-    CHECK_EQ(croc->tile & 0x7FF, 0x400); // (its art slot, moved to $400 to leave room for the horizontal spikes)
+    CHECK_EQ(croc->y_radius, 0x10);
+    CHECK_EQ(croc->art_tile & 0x7FF, 0x400); // (its art slot, moved to $400 to leave room for the horizontal spikes)
     CHECK(croc->mappings != NULL);
     CHECK_EQ(croc->routine, 0); // (no floor under it here: it keeps falling)
-    CHECK(croc->ysp > 0);
+    CHECK(croc->y_vel > 0);
 }
 
 static void SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain(void) {
@@ -267,14 +271,14 @@ static void SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain(vo
 static void SSZObjects_TheSwitchIsAButtonAndABaseFromTheLevelsTiles(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_SSZ, 0);
-    Object *sw = Spawn(0x47, 0x00, 400, 300);
+    Sst *sw = Spawn(0x47, 0x00, 400, 300);
     Obj_Switch(sw);
-    CHECK(sw->render.f.multi_sprite);
+    CHECK((sw->render_flags & SST_RENDER_MULTI_DRAW));
     CHECK_EQ(sw->child_count, 2);
     CHECK_EQ(sw->children[0].frame, 1); // (the base: first in the list, so in front)
     CHECK_EQ(sw->children[1].frame, 0); // (the button, up)
-    CHECK_EQ(sw->tile >> 13 & 3, 2);    // (palette row 2)
-    CHECK_EQ(sw->tile & 0x7FF, 0);      // (the level's own tiles: the pieces carry the tile numbers)
+    CHECK_EQ(sw->art_tile >> 13 & 3, 2);    // (palette row 2)
+    CHECK_EQ(sw->art_tile & 0x7FF, 0);      // (the level's own tiles: the pieces carry the tile numbers)
 }
 
 void RegisterNGHZObjectTests(void) {

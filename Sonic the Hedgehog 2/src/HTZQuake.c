@@ -1,6 +1,9 @@
 // Hill Top's earthquake for Sonic 2: the prototype's events (DynResize_HTz, loc_7AE4: act 1's three states and act 2's five), the shaking branch of its background scroll (Bg_Scroll_HTz's loc_6236) and
 // object 30 (Obj_0x30, the solid pieces of the ground that moves). The events move the background by a diff of their own while the camera is in a quake's stretch of the level (Screen_Shaking_Flag_HTZ),
 // and every now and then they move the ground up or down by a quarter pixel a frame, between two limits, with the screen shaking (Screen_Shaking_Flag) while it does.
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "HTZQuake.h"
 #include "ScrollEngine.h"
 #include "BackgroundLayer.h"
@@ -15,7 +18,7 @@
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
 #include "PLC.h"
-#include "Solid.h"
+#include "SolidSst.h"
 #include "Sound.h"
 #include "Video.h"
 
@@ -301,9 +304,7 @@ static void RunEvents(void) {
         limit_btm1 = 0x4A0 - SCREEN_TALLADD;
         dle_routine += 2;
         {
-            Object *boss = FindFreeObj();
-            if (boss != NULL)
-                boss->type = 0x52;
+            Sst_Spawn(0x52, 0, 0);
             boss_flag = 3;
         }
         lock_screen = true;
@@ -446,7 +447,7 @@ typedef struct {
     uint8_t pad0[7];
     int16_t base_x;  // 0x30
     int16_t base_y;  // 0x32
-} Scratch_QuakeBlock;
+} Own_QuakeBlock;
 
 // loc_17B74: the sloped top of kind 8, one value for each pixel (the alpha's: $CC pixels wide)
 static const uint8_t quake_slope[204] = {
@@ -469,29 +470,29 @@ static Sst *Char(int who) {
     return who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
 }
 
-void Obj_HTZQuakeBlock(Object *obj) {
-    Scratch_QuakeBlock *scratch = (Scratch_QuakeBlock *)&obj->scratch;
+void Obj_HTZQuakeBlock(Sst *self) {
+    Own_QuakeBlock *own = (Own_QuakeBlock *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        scratch->base_y = obj->pos.l.y.f.u;
-        scratch->base_x = obj->pos.l.x.f.u;
+    if (self->routine == 0) {
+        self->routine += 2;
+        own->base_y = self->y_pos.f.u;
+        own->base_x = self->x_pos.f.u;
         static const uint8_t widths[5] = { 0xC0, 0xC0, 0xC0, 0xE0, 0xFF };
-        obj->width_pixels = widths[(scratch->subtype >> 1) % 5];
-        if (scratch->subtype >= 6) { // the camera decides whether they are there (loc_17A68)
-            if (scratch->subtype == 6 ? scrpos_y.f.u >= 0x380 : scrpos_y.f.u < 0x380) {
-                if (obj->respawn_index)
-                    objstate[obj->respawn_index] &= 0x7F;
-                ObjectDelete(obj);
+        self->width_pixels = widths[(self->subtype >> 1) % 5];
+        if (self->subtype >= 6) { // the camera decides whether they are there (loc_17A68)
+            if (self->subtype == 6 ? scrpos_y.f.u >= 0x380 : scrpos_y.f.u < 0x380) {
+                if (self->respawn)
+                    (*SstLoad_State(self)) &= 0x7F;
+                Sst_Delete(self);
                 return;
             }
         }
     }
 
-    obj->pos.l.y.f.u = (int16_t)(scratch->base_y + htz_bg_y_offset);
-    const int16_t x = obj->pos.l.x.f.u;
+    self->y_pos.f.u = (int16_t)(own->base_y + htz_bg_y_offset);
+    const int16_t x = self->x_pos.f.u;
     int16_t x_rad, y_rad;
-    switch ((scratch->subtype >> 1) % 5) {
+    switch ((self->subtype >> 1) % 5) {
     case 0:
     case 1:
         x_rad = 0xCB;
@@ -513,34 +514,34 @@ void Obj_HTZQuakeBlock(Object *obj) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = Char(who);
         if (chr != NULL)
-            Solid_Character(obj, chr, who, x_rad, y_rad, (int16_t)(y_rad + 1), x, ((scratch->subtype >> 1) % 5) == 4 ? (const int8_t *)quake_slope : NULL);
+            SolidSst_Character(self, chr, who, x_rad, y_rad, (int16_t)(y_rad + 1), x, ((self->subtype >> 1) % 5) == 4 ? (const int8_t *)quake_slope : NULL);
     }
     // loc_FBF4: whoever stands on it is let go when the level's own floor is at or under his feet (the ground moves up through him)
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = Char(who);
-        if (chr == NULL || !(obj->status.b & (1 << (3 + who))))
+        if (chr == NULL || !(self->status & (1 << (3 + who))))
             continue;
         if (SstFloorDist(chr, chr->x_pos.f.u) <= 0) {
             chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
-            obj->status.b &= (uint8_t)~(1 << (3 + who));
+            self->status &= (uint8_t)~(1 << (3 + who));
         }
     }
-    DebugMarkers_Show(obj, (int16_t)(x_rad - 0xB), y_rad); // (the debug cheat shows the corners of its box)
-    const int kind = (scratch->subtype >> 1) % 5;
+    DebugMarkersSst_Show(self, (int16_t)(x_rad - 0xB), y_rad); // (the debug cheat shows the corners of its box)
+    const int kind = (self->subtype >> 1) % 5;
     if (kind == 2 || kind == 3) { // the lava's top (kinds 4 and 6) hurts whoever stands on it (Touch_ChkHurt: not while invincible or flashing)
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
             Sst *chr = Char(who);
-            if (chr == NULL || !(obj->status.b & (1 << (3 + who))) || invincibility || ((Scratch_Sonic *)chr->own.u8)->flash_time)
+            if (chr == NULL || !(self->status & (1 << (3 + who))) || invincibility || ((Scratch_Sonic *)chr->own.u8)->flash_time)
                 continue;
             if (who == SolidChar_Sonic)
-                HurtSonic(chr, obj);
+                HurtSonicFrom(chr, self->x_pos.f.u, false);
             else
-                Tails_Hurt(chr, obj);
+                Tails_Hurt(chr, self);
         }
     }
-    if (!htz_quake && IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        if (obj->respawn_index)
-            objstate[obj->respawn_index] &= 0x7F;
-        ObjectDelete(obj);
+    if (!htz_quake && SstOutOfRange(self->x_pos.f.u)) {
+        if (self->respawn)
+            (*SstLoad_State(self)) &= 0x7F;
+        Sst_Delete(self);
     }
 }

@@ -1,5 +1,8 @@
 // Hill Top's boss for Sonic 2, as the alpha has it (object 52): see HTZBoss.h. It uses the same boss helpers as the Metropolis boss (BossCommon).
 #include "Object/HTZBoss.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Object/BossCommon.h"
 #include "Object/HTZObjects.h"
 #include "Constants.h"
@@ -28,301 +31,301 @@ enum { Anim_Jet = 5, Anim_Ball = 7 };
 
 // The alpha's $FFFFF73F: the cannon is open (the second hitbox is there)
 static uint8_t cannon_open;
-static const Object *cannon_boss;
+static const Sst *cannon_boss;
 
-static void Boss_SavePlace(Object *obj) {
-    obj->children[0].x = obj->pos.l.x.f.u;
-    obj->children[0].y = obj->pos.l.y.f.u;
+static void Boss_SavePlace(Sst *self) {
+    self->children[0].x = self->x_pos.f.u;
+    self->children[0].y = self->y_pos.f.u;
 }
 
 // The ship is bobbing on the spot (Offset_0x0259CC)
-static void Ship_Bob(Object *obj, Scratch_AlphaBoss *scratch) {
+static void Ship_Bob(Sst *self, Own_AlphaBoss *own) {
     int16_t sin, cos;
-    CalcSine(scratch->angle, &sin, &cos);
-    obj->pos.l.y.f.u = (int16_t)((sin >> 7) + boss_move.y.f.u);
-    scratch->angle = (uint8_t)(scratch->angle + 4);
+    CalcSine(own->angle, &sin, &cos);
+    self->y_pos.f.u = (int16_t)((sin >> 7) + boss_move.y.f.u);
+    own->angle = (uint8_t)(own->angle + 4);
 }
 
 // What the ship does in each frame of its waiting, the same for each of the paths into it (Offset_0x0259B6)
-static void Ship_Show(Object *obj, Scratch_AlphaBoss *scratch) {
-    Boss_Hit(obj, scratch);
-    Boss_SavePlace(obj);
-    Boss_AnimateSprite(obj, scratch, Animation_HTZBoss);
-    DisplaySprite(obj);
+static void Ship_Show(Sst *self, Own_AlphaBoss *own) {
+    Boss_Hit(self, own);
+    Boss_SavePlace(self);
+    Boss_AnimateSprite(self, own, Animation_HTZBoss);
+    Sst_Draw(self);
 }
 
-static void Make_Smoke(Object *obj) {
-    Object *smoke = FindFreeObj();
+static void Make_Smoke(Sst *self) {
+    Sst *smoke = Sst_Allocate();
     if (smoke == NULL)
         return;
-    smoke->type = ObjId_HTZBoss;
-    ((Scratch_AlphaBoss *)&smoke->scratch)->boss_routine = Boss_Smoke;
+    smoke->code = sst_object_codes[ObjId_HTZBoss];
+    ((Own_AlphaBoss *)smoke->own.u8)->boss_routine = Boss_Smoke;
     smoke->mappings = Mappings_HTZBossSmoke;
-    smoke->tile = TILE_MAP(0, 0, 0, 0, ArtTile_HTZBossSmoke);
-    smoke->render.b |= SPRITE_CAM_FIELD;
-    smoke->priority = 1;
-    smoke->pos.l.x.f.u = obj->pos.l.x.f.u;
-    smoke->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u - 0x28);
-    smoke->xsp = -0x60;
-    smoke->ysp = -0xC0;
-    smoke->frame = 0;
-    smoke->frame_time.b = 0x11;
+    smoke->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_HTZBossSmoke);
+    smoke->render_flags |= SST_RENDER_LEVEL;
+    smoke->priority = 1 * 0x80;
+    smoke->x_pos.f.u = self->x_pos.f.u;
+    smoke->y_pos.f.u = (int16_t)(self->y_pos.f.u - 0x28);
+    smoke->x_vel = -0x60;
+    smoke->y_vel = -0xC0;
+    smoke->mapping_frame = 0;
+    smoke->anim_frame_timer = 0x11;
 }
 
-static void Ship_Run(Object *obj, Scratch_AlphaBoss *scratch) {
-    const bool left_side = scratch->side == 0; // (the side that it is on)
+static void Ship_Run(Sst *self, Own_AlphaBoss *own) {
+    const bool left_side = own->side == 0; // (the side that it is on)
 
-    switch (scratch->anim_routine) {
+    switch (own->anim_routine) {
     case Ship_Rise:
         cannon_open = 0;
         Boss_Move();
         if (boss_move.y.f.u <= (left_side ? 0x520 : 0x4D8)) {
             boss_move.y.f.u = left_side ? 0x520 : 0x4D8;
             boss_move.ysp = 0;
-            scratch->anim_routine += 2;
-            scratch->count = 0x3C;
+            own->anim_routine += 2;
+            own->count = 0x3C;
         }
-        obj->pos.l.y.f.u = boss_move.y.f.u;
-        Boss_Hit(obj, scratch);
-        DisplaySprite(obj);
+        self->y_pos.f.u = boss_move.y.f.u;
+        Boss_Hit(self, own);
+        Sst_Draw(self);
         break;
 
     case Ship_Wait: // bobs, and then the cannon opens (its animation moves the routine on) and fires its jet
-        if ((int8_t)--scratch->count >= 0) {
-            Ship_Bob(obj, scratch);
+        if ((int8_t)--own->count >= 0) {
+            Ship_Bob(self, own);
         } else {
             cannon_open = 1;
-            obj->child_count = 1;
-            if (scratch->count != 0xE8) {
-                Ship_Bob(obj, scratch);
+            self->child_count = 1;
+            if (own->count != 0xE8) {
+                Ship_Bob(self, own);
             } else {
-                Object *jet = FindFreeObj();
+                Sst *jet = Sst_Allocate();
                 if (jet != NULL) {
-                    jet->type = ObjId_HTZBoss;
-                    ((Scratch_AlphaBoss *)&jet->scratch)->boss_routine = Boss_Jet;
-                    jet->render.f.x_flip = obj->render.f.x_flip;
-                    jet->pos.l.x.f.u = obj->pos.l.x.f.u;
-                    jet->pos.l.y.f.u = obj->pos.l.y.f.u;
-                    scratch->count = 0x2F;
+                    jet->code = sst_object_codes[ObjId_HTZBoss];
+                    ((Own_AlphaBoss *)jet->own.u8)->boss_routine = Boss_Jet;
+                    SST_RENDER_SET(jet, SST_RENDER_X_FLIP, ((self->render_flags & SST_RENDER_X_FLIP) != 0));
+                    jet->x_pos.f.u = self->x_pos.f.u;
+                    jet->y_pos.f.u = self->y_pos.f.u;
+                    own->count = 0x2F;
                 }
             }
         }
-        Ship_Show(obj, scratch);
+        Ship_Show(self, own);
         break;
 
     case Ship_Close:
         cannon_open = 0;
-        obj->child_count = 0;
+        self->child_count = 0;
         boss_anim[2] = 0x10;
         boss_anim[3] = 0x00;
-        if (--scratch->count != 0) {
-            Ship_Bob(obj, scratch);
-            Ship_Show(obj, scratch);
+        if (--own->count != 0) {
+            Ship_Bob(self, own);
+            Ship_Show(self, own);
         } else {
             boss_move.ysp = 0xE0;
-            scratch->anim_routine += 2;
-            Boss_SavePlace(obj);
-            DisplaySprite(obj);
+            own->anim_routine += 2;
+            Boss_SavePlace(self);
+            Sst_Draw(self);
         }
         break;
 
     case Ship_Descend: {
         Boss_Move();
-        if (boss_move.y.f.u >= (left_side ? 0x540 : 0x4F0) && !scratch->flag) {
-            scratch->flag = 0xFF;
-            Object *balls = FindFreeObj(); // the lava
+        if (boss_move.y.f.u >= (left_side ? 0x540 : 0x4F0) && !own->flag) {
+            own->flag = 0xFF;
+            Sst *balls = Sst_Allocate(); // the lava
             if (balls != NULL) {
-                balls->type = ObjId_HTZBoss;
-                ((Scratch_AlphaBoss *)&balls->scratch)->boss_routine = Boss_Ball;
-                balls->pos.l.x.f.u = obj->pos.l.x.f.u;
-                balls->pos.l.y.f.u = obj->pos.l.y.f.u;
+                balls->code = sst_object_codes[ObjId_HTZBoss];
+                ((Own_AlphaBoss *)balls->own.u8)->boss_routine = Boss_Ball;
+                balls->x_pos.f.u = self->x_pos.f.u;
+                balls->y_pos.f.u = self->y_pos.f.u;
             }
         }
         if (boss_move.y.f.u >= (left_side ? 0x5D0 : 0x580)) { // at the bottom: up again, on the side that Sonic is not on
             boss_move.y.f.u = left_side ? 0x5D0 : 0x580;
             boss_move.ysp = (int16_t)0xFF20;
-            scratch->anim_routine = Ship_Rise;
-            scratch->flag = 0;
+            own->anim_routine = Ship_Rise;
+            own->flag = 0;
             if ((int16_t)(player->x_pos.f.u - 0x2FEC) >= 0) {
                 boss_move.y.f.u = 0x580;
-                obj->pos.l.x.f.u = 0x30A0;
-                scratch->side = 0xFF;
+                self->x_pos.f.u = 0x30A0;
+                own->side = 0xFF;
             } else {
-                obj->pos.l.x.f.u = 0x2F38;
+                self->x_pos.f.u = 0x2F38;
                 boss_move.y.f.u = 0x5D0;
-                scratch->side = 0;
+                own->side = 0;
             }
-            obj->render.f.x_flip = obj->pos.l.x.f.u <= (int16_t)player->x_pos.f.u; // (faces Sonic)
+            SST_RENDER_SET(self, SST_RENDER_X_FLIP, self->x_pos.f.u <= (int16_t)player->x_pos.f.u); // (faces Sonic)
         }
-        obj->pos.l.y.f.u = boss_move.y.f.u;
-        Boss_Hit(obj, scratch);
-        DisplaySprite(obj);
+        self->y_pos.f.u = boss_move.y.f.u;
+        Boss_Hit(self, own);
+        Sst_Draw(self);
         break;
     }
 
     case Ship_Wreck:
-        obj->child_count = 0;
+        self->child_count = 0;
         if (--boss_move.timer >= 0) {
             if (boss_move.timer <= 0x1E) {
-                obj->frame = 0x10; // the broken ship
-                Boss_Defeated(obj);
+                self->mapping_frame = 0x10; // the broken ship
+                Boss_Defeated(self);
                 if ((frame_count & 0x1F) == 0)
-                    Make_Smoke(obj);
+                    Make_Smoke(self);
             } else {
-                Boss_Defeated(obj);
+                Boss_Defeated(self);
             }
-            DisplaySprite(obj);
+            Sst_Draw(self);
             break;
         }
         if ((frame_count & 0x1F) == 0)
-            Make_Smoke(obj);
+            Make_Smoke(self);
         if (boss_move.timer > (int16_t)0xFFC4) { // (burning)
-            DisplaySprite(obj);
+            Sst_Draw(self);
             break;
         }
-        obj->pos.l.y.f.u += 2; // (sinking)
-        if (obj->pos.l.y.f.u <= (left_side ? 0x540 : 0x4F0)) {
-            DisplaySprite(obj);
+        self->y_pos.f.u += 2; // (sinking)
+        if (self->y_pos.f.u <= (left_side ? 0x540 : 0x4F0)) {
+            Sst_Draw(self);
             break;
         }
         if (!boss_status) {
             boss_status = 1; // the boss is beaten
             limit_right2 = limit_right1;
-            ObjectDelete(obj);
+            Sst_Delete(self);
         } else {
-            DisplaySprite(obj);
+            Sst_Draw(self);
         }
         break;
     }
 }
 
-void Obj_HTZBoss(Object *obj) {
-    Scratch_AlphaBoss *scratch = (Scratch_AlphaBoss *)&obj->scratch;
+void Obj_HTZBoss(Sst *self) {
+    Own_AlphaBoss *own = (Own_AlphaBoss *)self->own.u8;
 
-    switch (scratch->boss_routine) {
+    switch (own->boss_routine) {
     case Boss_Start:
-        obj->mappings = Mappings_HTZBoss;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_HTZBoss);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 0x90;
-        obj->priority = 4;
-        obj->pos.l.x.f.u = 0x30A0;
-        obj->pos.l.y.f.u = 0x580;
-        scratch->side = 1;
-        obj->frame = 1;
-        scratch->boss_routine += 2;
-        obj->render.f.multi_sprite = true;
-        obj->col_type = 0x0F;
-        scratch->hits = 8;
+        self->mappings = Mappings_HTZBoss;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_HTZBoss);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x90;
+        self->priority = 4 * 0x80;
+        self->x_pos.f.u = 0x30A0;
+        self->y_pos.f.u = 0x580;
+        own->side = 1;
+        self->mapping_frame = 1;
+        own->boss_routine += 2;
+        self->render_flags |= SST_RENDER_MULTI_DRAW;
+        self->collision_flags = 0x0F;
+        self->collision_property = 8;
         boss_flag = 3;
         boss_move.ysp = (int16_t)0xFF20;
-        boss_move.x.f.u = obj->pos.l.x.f.u;
-        boss_move.y.f.u = obj->pos.l.y.f.u;
-        obj->children[0].x = obj->pos.l.x.f.u;
-        obj->children[0].y = obj->pos.l.y.f.u;
-        obj->children[0].frame = 2;
+        boss_move.x.f.u = self->x_pos.f.u;
+        boss_move.y.f.u = self->y_pos.f.u;
+        self->children[0].x = self->x_pos.f.u;
+        self->children[0].y = self->y_pos.f.u;
+        self->children[0].frame = 2;
         boss_anim[0] = 0x06;
         boss_anim[1] = 0x00;
         boss_anim[2] = 0x10;
         boss_anim[3] = 0x00;
-        cannon_boss = obj;
+        cannon_boss = self;
         break;
 
     case Boss_Ship:
-        cannon_boss = obj;
-        Ship_Run(obj, scratch);
+        cannon_boss = self;
+        Ship_Run(self, own);
         break;
 
     case Boss_Jet:
-        if (obj->routine_sec == Part_Make) {
-            obj->mappings = Mappings_HTZBoss;
-            obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_HTZBossParts);
-            obj->render.b |= SPRITE_CAM_FIELD;
-            obj->priority = 4;
-            obj->routine_sec += 2;
-            obj->anim = Anim_Jet;
-            obj->col_type = 0x98;
-            obj->pos.l.y.f.u -= 0x1C;
-            if (obj->render.f.x_flip) {
-                obj->pos.l.x.f.u += 0x70;
-                obj->xsp = 4;
+        if (self->routine_secondary == Part_Make) {
+            self->mappings = Mappings_HTZBoss;
+            self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_HTZBossParts);
+            self->render_flags |= SST_RENDER_LEVEL;
+            self->priority = 4 * 0x80;
+            self->routine_secondary += 2;
+            self->anim = Anim_Jet;
+            self->collision_flags = 0x98;
+            self->y_pos.f.u -= 0x1C;
+            if (((self->render_flags & SST_RENDER_X_FLIP) != 0)) {
+                self->x_pos.f.u += 0x70;
+                self->x_vel = 4;
             } else {
-                obj->pos.l.x.f.u -= 0x70;
-                obj->xsp = -4;
+                self->x_pos.f.u -= 0x70;
+                self->x_vel = -4;
             }
         } else {
-            obj->pos.l.x.f.u += obj->xsp;
-            AnimateSprite(obj, Animation_HTZBoss);
-            RememberState(obj);
+            self->x_pos.f.u += self->x_vel;
+            Sst_Animate(self, Animation_HTZBoss);
+            SstOnScreenTest(self);
         }
         break;
 
     case Boss_Ball:
-        if (obj->routine_sec == Part_Make) { // the first of the two is this object itself
-            Object *ball = obj;
+        if (self->routine_secondary == Part_Make) { // the first of the two is this object itself
+            Sst *ball = self;
             for (int i = 0; i < 2; i++) {
                 if (i > 0) {
-                    ball = FindFreeObj();
+                    ball = Sst_Allocate();
                     if (ball == NULL)
                         return;
-                    ball->pos.l.x.f.u = obj->pos.l.x.f.u;
-                    ball->pos.l.y.f.u = obj->pos.l.y.f.u;
+                    ball->x_pos.f.u = self->x_pos.f.u;
+                    ball->y_pos.f.u = self->y_pos.f.u;
                 }
-                ball->type = ObjId_HTZBoss;
-                ((Scratch_AlphaBoss *)&ball->scratch)->boss_routine = Boss_Ball;
+                ball->code = sst_object_codes[ObjId_HTZBoss];
+                ((Own_AlphaBoss *)ball->own.u8)->boss_routine = Boss_Ball;
                 ball->mappings = Mappings_HTZBoss;
-                ball->tile = TILE_MAP(0, 0, 0, 0, ArtTile_HTZBossParts);
-                ball->render.b |= SPRITE_CAM_FIELD;
-                ball->priority = 3;
-                ball->routine_sec += 2;
+                ball->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_HTZBossParts);
+                ball->render_flags |= SST_RENDER_LEVEL;
+                ball->priority = 3 * 0x80;
+                ball->routine_secondary += 2;
                 ball->anim = Anim_Ball;
-                ball->col_type = 0x8B;
-                ball->y_rad = 8;
-                ball->x_rad = 8;
-                ball->pos.l.x.v &= ~0xFFFF; // (no fraction)
-                ball->xsp = (int16_t)(i == 0 ? -0x1C00 : 0x1C00);
-                ball->ysp = (int16_t)(ball->pos.l.x.f.u == 0x2F38 ? 0xAC00 : 0x9C00);
+                ball->collision_flags = 0x8B;
+                ball->y_radius = 8;
+                ball->x_radius = 8;
+                ball->x_pos.v &= ~0xFFFF; // (no fraction)
+                ball->x_vel = (int16_t)(i == 0 ? -0x1C00 : 0x1C00);
+                ball->y_vel = (int16_t)(ball->x_pos.f.u == 0x2F38 ? 0xAC00 : 0x9C00);
             }
         } else {
-            obj->pos.l.x.v += (int32_t)obj->xsp << 4;
-            obj->pos.l.y.v += (int32_t)obj->ysp << 4;
-            obj->ysp += 0x380;
-            if (ObjFloorDist(obj, obj->pos.l.x.f.u) < 0) {
-                obj->pos.l.y.f.u += ObjFloorDist(obj, obj->pos.l.x.f.u);
-                HTZFireball_BossBallLands(obj);
+            self->x_pos.v += (int32_t)self->x_vel << 4;
+            self->y_pos.v += (int32_t)self->y_vel << 4;
+            self->y_vel += 0x380;
+            if (SstFloorDist(self, self->x_pos.f.u) < 0) {
+                self->y_pos.f.u += SstFloorDist(self, self->x_pos.f.u);
+                HTZFireball_BossBallLands(self);
             } else {
-                AnimateSprite(obj, Animation_HTZBoss);
-                RememberState(obj);
+                Sst_Animate(self, Animation_HTZBoss);
+                SstOnScreenTest(self);
             }
         }
         break;
 
     case Boss_Smoke:
-        if (--obj->frame_time.b < 0) {
-            obj->frame_time.b = 0x11;
-            if (++obj->frame == 4) {
-                ObjectDelete(obj);
+        if (--self->anim_frame_timer < 0) {
+            self->anim_frame_timer = 0x11;
+            if (++self->mapping_frame == 4) {
+                Sst_Delete(self);
                 return;
             }
         }
-        obj->pos.l.x.v += (int32_t)obj->xsp << 8;
-        obj->pos.l.y.v += (int32_t)obj->ysp << 8;
-        DisplaySprite(obj);
+        self->x_pos.v += (int32_t)self->x_vel << 8;
+        self->y_pos.v += (int32_t)self->y_vel << 8;
+        Sst_Draw(self);
         break;
     }
 }
 
-bool HTZBoss_CannonBox(const Object *hit, int16_t *centre_x, int16_t *centre_y, int16_t *half_width) {
+bool HTZBoss_CannonBox(const Sst *hit, int16_t *centre_x, int16_t *centre_y, int16_t *half_width) {
     static const int16_t reach[8] = { 0x1C, 0x20, 0x28, 0x34, 0x3C, 0x44, 0x60, 0x70 };
     static const uint8_t width[8] = { 0x04, 0x04, 0x08, 0x0C, 0x14, 0x1C, 0x24, 0x08 };
 
-    if (hit->type != ObjId_HTZBoss || !cannon_open || hit != cannon_boss)
+    if (hit->code != sst_object_codes[ObjId_HTZBoss] || !cannon_open || hit != cannon_boss)
         return false;
     const uint8_t i = (uint8_t)(hit->children[0].frame - 2);
     if (i > 7)
         return false;
-    *centre_x = (int16_t)(hit->pos.l.x.f.u + (hit->render.f.x_flip ? reach[i] : -reach[i]));
-    *centre_y = (int16_t)(hit->pos.l.y.f.u - 0x1C);
+    *centre_x = (int16_t)(hit->x_pos.f.u + (((hit->render_flags & SST_RENDER_X_FLIP) != 0) ? reach[i] : -reach[i]));
+    *centre_y = (int16_t)(hit->y_pos.f.u - 0x1C);
     *half_width = width[i];
     return true;
 }

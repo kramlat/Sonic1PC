@@ -86,7 +86,7 @@ static void BossStarLight_Main(Sst *self, Own_BossStarLight *own) {
         sub->routine_secondary = 0;
         sub->routine = BSLZ_ObjData[i].routine;
         sub->anim = BSLZ_ObjData[i].anim;
-        sub->priority = BSLZ_ObjData[i].priority;
+        sub->priority = (uint16_t)(BSLZ_ObjData[i].priority * 0x80);
         // Force AnimateSprite's reset guard on the first call (see BossSpringYard.c).
         sub->prev_anim = (uint8_t)(BSLZ_ObjData[i].anim + 1);
         sub->anim_frame = 0;

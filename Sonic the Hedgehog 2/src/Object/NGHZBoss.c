@@ -1,6 +1,9 @@
 // Neo Green Hill's boss for Sonic 2, as the alpha has it (object 89): see NGHZBoss.h. It uses the same boss helpers as the others (BossCommon). The object comes in three kinds (the alpha's Obj_Boss_Routine): 0 waits
 // for the arena and then becomes the ship (2), which makes the launcher (4) with the walls' pillars as its children; the launcher makes the arrow-pillars (4 as well, told apart by their own state).
 #include "Object/NGHZBoss.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Object/BossCommon.h"
 #include "Constants.h"
 
@@ -13,7 +16,7 @@
 #include "Game.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
-#include "Solid.h"
+#include "SolidSst.h"
 #include "Sound.h"
 
 #include <string.h>
@@ -40,7 +43,7 @@ enum { Part_Robotnik = 0, Part_Hammer = 1, Part_Boost = 2 };
 enum { Pillar_Make = 0, Pillar_Fly = 2, Pillar_Shake = 4, Pillar_Fall = 6, Pillar_Gone = 8 };
 
 typedef struct {
-    Scratch_AlphaBoss boss; // flag: which way the ship goes (0x38: $FF left), side: it has been beaten (0x2C), count: bit 0 the ship has turned (0x3E)
+    Own_AlphaBoss boss; // flag: which way the ship goes (0x38: $FF left), side: it has been beaten (0x2C), count: bit 0 the ship has turned (0x3E)
     int16_t timer;          // 0x30: (the launcher's) how long it waits
     int16_t hammer_speed;   // 0x2E: how fast the hammer falls when the wreck lets go of it
     int32_t hammer_y;       // 0x3A
@@ -48,7 +51,7 @@ typedef struct {
     uint8_t state;          // 0x2B... a pillar's state (Obj_Timer's byte)
     uint8_t parent;         // 0x34: (a pillar's) the slot of the launcher
     uint8_t side;           // 0x28: (a pillar's) the side it comes from
-} Scratch_NGHZBoss;
+} Own_NGHZBoss;
 
 // The arena's walls and arrows (the alpha's numbers)
 static const int16_t arrow_targets[4] = { 0x458, 0x478, 0x498, 0x4B8 };
@@ -62,9 +65,9 @@ void NGHZBoss_Events(void) {
         limit_btm1 = limit_btm2 = 0x400 - SCREEN_TALLADD;
         dle_routine += 2;
         {
-            Object *boss = FindFreeObj();
+            Sst *boss = Sst_Allocate();
             if (boss != NULL)
-                boss->type = ObjId_NGHZBoss;
+                boss->code = sst_object_codes[ObjId_NGHZBoss];
         }
         boss_flag = 4;
         AddPLC(PlcId_NGHZBoss);
@@ -93,57 +96,57 @@ static void FillAnimationBuffer(void) { // Offset_0x02612C
 }
 
 // Offset_0x0262AA: where the parts are, from the ship's place; once it has been beaten the hammer falls
-static void Ship_Parts(Object *obj, Scratch_NGHZBoss *scratch) {
-    const int16_t x = obj->pos.l.x.f.u, y = obj->pos.l.y.f.u;
-    obj->children[Part_Robotnik].x = x;
-    obj->children[Part_Robotnik].y = y;
-    obj->children[Part_Boost].x = x;
-    obj->children[Part_Boost].y = y;
-    if (!scratch->boss.side) {
-        obj->children[Part_Hammer].x = x;
-        obj->children[Part_Hammer].y = y;
-        scratch->hammer_y = (int32_t)((uint32_t)(uint16_t)y << 16) | (scratch->hammer_y & 0xFFFF);
+static void Ship_Parts(Sst *self, Own_NGHZBoss *own) {
+    const int16_t x = self->x_pos.f.u, y = self->y_pos.f.u;
+    self->children[Part_Robotnik].x = x;
+    self->children[Part_Robotnik].y = y;
+    self->children[Part_Boost].x = x;
+    self->children[Part_Boost].y = y;
+    if (!own->boss.side) {
+        self->children[Part_Hammer].x = x;
+        self->children[Part_Hammer].y = y;
+        own->hammer_y = (int32_t)((uint32_t)(uint16_t)y << 16) | (own->hammer_y & 0xFFFF);
         return;
     }
     if (boss_move.timer > 0x78)
         return;
-    obj->children[Part_Hammer].x--;
-    scratch->hammer_y += (int32_t)scratch->hammer_speed << 8;
-    scratch->hammer_speed += 0x38;
-    obj->children[Part_Hammer].y = (int16_t)(scratch->hammer_y >> 16);
-    if (obj->children[Part_Hammer].y >= 0x540)
-        scratch->hammer_speed = 0;
+    self->children[Part_Hammer].x--;
+    own->hammer_y += (int32_t)own->hammer_speed << 8;
+    own->hammer_speed += 0x38;
+    self->children[Part_Hammer].y = (int16_t)(own->hammer_y >> 16);
+    if (self->children[Part_Hammer].y >= 0x540)
+        own->hammer_speed = 0;
 }
 
 // Offset_0x024580 and the flash of Robotnik's face (Offset_0x02628C): the bob and the hit
-static void Ship_Bob(Object *obj, Scratch_NGHZBoss *scratch) {
+static void Ship_Bob(Sst *self, Own_NGHZBoss *own) {
     int16_t sin, cos;
-    CalcSine(scratch->boss.angle, &sin, &cos);
-    obj->pos.l.y.f.u = (int16_t)((sin >> 6) + boss_move.y.f.u);
-    obj->pos.l.x.f.u = boss_move.x.f.u;
-    scratch->boss.angle = (uint8_t)(scratch->boss.angle + 2);
-    Boss_Hit(obj, &scratch->boss);
+    CalcSine(own->boss.angle, &sin, &cos);
+    self->y_pos.f.u = (int16_t)((sin >> 6) + boss_move.y.f.u);
+    self->x_pos.f.u = boss_move.x.f.u;
+    own->boss.angle = (uint8_t)(own->boss.angle + 2);
+    Boss_Hit(self, &own->boss);
 }
 
-static void Ship_Hit(Object *obj, Scratch_NGHZBoss *scratch) {
-    Ship_Bob(obj, scratch);
-    if (scratch->boss.flash == 0x1F)
+static void Ship_Hit(Sst *self, Own_NGHZBoss *own) {
+    Ship_Bob(self, own);
+    if (own->boss.flash == 0x1F)
         SetPartAnim(Part_Robotnik, 6);
 }
 
-static void Ship_Show(Object *obj, Scratch_NGHZBoss *scratch) {
-    Boss_AnimateSprite(obj, &scratch->boss, Animation_NGHZBoss);
-    DisplaySprite(obj);
+static void Ship_Show(Sst *self, Own_NGHZBoss *own) {
+    Boss_AnimateSprite(self, &own->boss, Animation_NGHZBoss);
+    Sst_Draw(self);
 }
 
-static void Ship_Run(Object *obj, Scratch_NGHZBoss *scratch) {
-    Scratch_AlphaBoss *boss = &scratch->boss;
+static void Ship_Run(Sst *self, Own_NGHZBoss *own) {
+    Own_AlphaBoss *boss = &own->boss;
 
     switch (boss->anim_routine) {
     case Ship_Descend:
         Boss_Move();
-        Ship_Hit(obj, scratch);
-        Ship_Parts(obj, scratch);
+        Ship_Hit(self, own);
+        Ship_Parts(self, own);
         if (boss_move.y.f.u >= 0x430) {
             boss_move.y.f.u = 0x430;
             boss->anim_routine += 2;
@@ -151,13 +154,13 @@ static void Ship_Run(Object *obj, Scratch_NGHZBoss *scratch) {
             boss_move.xsp = (int16_t)0xFF9C;
             boss->flag = 0xFF;
         }
-        Ship_Show(obj, scratch);
+        Ship_Show(self, own);
         break;
 
     case Ship_Cross: // along the arena, and at the other side Robotnik looks at the hammer
         Boss_Move();
-        Ship_Hit(obj, scratch);
-        Ship_Parts(obj, scratch);
+        Ship_Hit(self, own);
+        Ship_Parts(self, own);
         if (boss->flag == 0) {
             if (boss_move.x.f.u >= 0x2B08) {
                 boss->anim_routine += 2;
@@ -169,48 +172,48 @@ static void Ship_Run(Object *obj, Scratch_NGHZBoss *scratch) {
             boss_move.xsp = 0;
             SetPartAnim(Part_Robotnik, 5);
         }
-        Ship_Show(obj, scratch);
+        Ship_Show(self, own);
         break;
 
     case Ship_Hammer: // the hammer swings (its animation moves the state on) when the bob is at its lowest
         Boss_Move();
-        Ship_Hit(obj, scratch);
-        Ship_Parts(obj, scratch);
+        Ship_Hit(self, own);
+        Ship_Parts(self, own);
         if (boss->angle == 0xC0)
             SetPartAnim(Part_Hammer, 3);
-        Ship_Show(obj, scratch);
+        Ship_Show(self, own);
         break;
 
     case Ship_Turn: // it has hit: it turns and the wall throws an arrow
         SetPartAnim(Part_Hammer, 2);
         boss->count |= 1;
         boss->anim_routine = Ship_Cross;
-        obj->render.f.x_flip = !obj->render.f.x_flip;
+        SST_RENDER_SET(self, SST_RENDER_X_FLIP, !((self->render_flags & SST_RENDER_X_FLIP) != 0));
         boss->flag ^= 0xFF;
         boss_move.xsp = boss->flag != 0 ? (int16_t)0xFF9C : 0x64;
         Boss_Move();
-        Ship_Hit(obj, scratch);
-        Ship_Parts(obj, scratch);
-        Ship_Show(obj, scratch);
+        Ship_Hit(self, own);
+        Ship_Parts(self, own);
+        Ship_Show(self, own);
         break;
 
     case Ship_Wreck:
         boss->side = 0xFF;
         if (--boss_move.timer >= 0) {
-            Boss_Defeated(obj);
+            Boss_Defeated(self);
         } else {
-            obj->child_count = 2;
-            obj->children[Part_Robotnik].frame = 5;
-            obj->render.f.x_flip = true;
+            self->child_count = 2;
+            self->children[Part_Robotnik].frame = 5;
+            SST_RENDER_SET(self, SST_RENDER_X_FLIP, true);
             boss_move.xsp = 0;
             boss_move.ysp = 0;
             boss->anim_routine += 2;
             boss_move.timer = -0x12;
         }
-        obj->pos.l.y.f.u = boss_move.y.f.u;
-        obj->pos.l.x.f.u = boss_move.x.f.u;
-        Ship_Parts(obj, scratch);
-        DisplaySprite(obj);
+        self->y_pos.f.u = boss_move.y.f.u;
+        self->x_pos.f.u = boss_move.x.f.u;
+        Ship_Parts(self, own);
+        Sst_Draw(self);
         break;
 
     case Ship_Fall:
@@ -228,11 +231,11 @@ static void Ship_Run(Object *obj, Scratch_NGHZBoss *scratch) {
             boss_move.ysp += 0x18;
         }
         Boss_Move();
-        Ship_Bob(obj, scratch);
-        obj->pos.l.y.f.u = boss_move.y.f.u;
-        obj->pos.l.x.f.u = boss_move.x.f.u;
-        Ship_Parts(obj, scratch);
-        DisplaySprite(obj);
+        Ship_Bob(self, own);
+        self->y_pos.f.u = boss_move.y.f.u;
+        self->x_pos.f.u = boss_move.x.f.u;
+        Ship_Parts(self, own);
+        Sst_Draw(self);
         break;
 
     case Ship_Leave: // up and away to the right; the alpha's check of the arena's edge is the one of Dust Hill's ($2180), which this arena never has, so the edge opens for ever and the act does not end
@@ -240,144 +243,144 @@ static void Ship_Run(Object *obj, Scratch_NGHZBoss *scratch) {
         boss_move.ysp = (int16_t)0xFFC0;
         if (limit_right2 != 0x2180) {
             limit_right1 = limit_right2 += 2;
-        } else if (!obj->render.f.on_screen) {
+        } else if (!(self->render_flags & SST_RENDER_ON_SCREEN)) {
             if (!boss_status)
                 boss_status = 1;
-            ObjectDelete(obj);
+            Sst_Delete(self);
             return;
         }
         Boss_Move();
-        Ship_Bob(obj, scratch);
-        obj->pos.l.y.f.u = boss_move.y.f.u;
-        obj->pos.l.x.f.u = boss_move.x.f.u;
-        Ship_Parts(obj, scratch);
-        DisplaySprite(obj);
+        Ship_Bob(self, own);
+        self->y_pos.f.u = boss_move.y.f.u;
+        self->x_pos.f.u = boss_move.x.f.u;
+        Ship_Parts(self, own);
+        Sst_Draw(self);
         break;
     }
 }
 
 // Offset_0x0265DC: the solid that goes with the launcher, at a place of its own ($2A68, $498)
-static void Launcher_Solid(Object *obj) {
-    const int16_t saved_x = obj->pos.l.x.f.u, saved_y = obj->pos.l.y.f.u;
-    obj->pos.l.x.f.u = 0x2A68;
-    obj->pos.l.y.f.u = 0x498;
+static void Launcher_Solid(Sst *self) {
+    const int16_t saved_x = self->x_pos.f.u, saved_y = self->y_pos.f.u;
+    self->x_pos.f.u = 0x2A68;
+    self->y_pos.f.u = 0x498;
     FOR_EACH_CHARACTER(chr, who)
-        Solid_Character(obj, chr, who, 0x1B, 8, 0x11, 0x2A68, NULL);
-    obj->pos.l.x.f.u = saved_x;
-    obj->pos.l.y.f.u = saved_y;
+        SolidSst_Character(self, chr, who, 0x1B, 8, 0x11, 0x2A68, NULL);
+    self->x_pos.f.u = saved_x;
+    self->y_pos.f.u = saved_y;
 }
 
-static void Launcher_Throw(Object *obj, Scratch_NGHZBoss *scratch, bool right) { // Offset_0x02654C
-    Scratch_AlphaBoss *boss = &scratch->boss;
+static void Launcher_Throw(Sst *self, Own_NGHZBoss *own, bool right) { // Offset_0x02654C
+    Own_AlphaBoss *boss = &own->boss;
     boss->anim_routine += 2;
     if (!right) {
-        obj->frame = 2;
-        obj->pos.l.x.f.u = 0x2A62;
+        self->mapping_frame = 2;
+        self->x_pos.f.u = 0x2A62;
     } else {
-        obj->frame = 3;
-        obj->pos.l.x.f.u = 0x2B4E;
+        self->mapping_frame = 3;
+        self->x_pos.f.u = 0x2B4E;
     }
-    Object *pillar = FindFreeObj();
+    Sst *pillar = Sst_Allocate();
     if (pillar != NULL) {
-        pillar->type = ObjId_NGHZBoss;
-        Scratch_NGHZBoss *ps = (Scratch_NGHZBoss *)&pillar->scratch;
+        pillar->code = sst_object_codes[ObjId_NGHZBoss];
+        Own_NGHZBoss *ps = (Own_NGHZBoss *)pillar->own.u8;
         ps->boss.boss_routine = Boss_Parts;
         ps->boss.anim_routine = Pillar;
-        ps->parent = (uint8_t)(obj - objects);
+        ps->parent = (uint8_t)(self - sst);
         ps->side = right ? 0xFF : 0;
     }
-    scratch->timer = 0x28;
-    obj->pos.l.y.f.u = arrow_targets[RandomNumber() & 3];
+    own->timer = 0x28;
+    self->y_pos.f.u = arrow_targets[RandomNumber() & 3];
 }
 
-static void Launcher_Run(Object *obj, Scratch_NGHZBoss *scratch) {
-    Scratch_AlphaBoss *boss = &scratch->boss;
-    Object *ship = &objects[scratch->ship];
-    Scratch_NGHZBoss *ship_scratch = (Scratch_NGHZBoss *)&ship->scratch;
+static void Launcher_Run(Sst *self, Own_NGHZBoss *own) {
+    Own_AlphaBoss *boss = &own->boss;
+    Sst *ship = &sst[own->ship];
+    Own_NGHZBoss *ship_scratch = (Own_NGHZBoss *)ship->own.u8;
     if (ship_scratch->boss.anim_routine >= Ship_Wreck && boss->anim_routine < Launcher_Sink)
         boss->anim_routine = Launcher_Sink;
 
     switch (boss->anim_routine) {
     case Launcher_Rise:
-        Launcher_Solid(obj);
-        obj->children[0].y -= 2;
-        obj->children[1].y -= 2;
-        if (obj->children[0].y <= 0x488) {
+        Launcher_Solid(self);
+        self->children[0].y -= 2;
+        self->children[1].y -= 2;
+        if (self->children[0].y <= 0x488) {
             boss->anim_routine += 2;
             dhz_shake = 0;
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
 
     case Launcher_Wait:
-        Launcher_Solid(obj);
+        Launcher_Solid(self);
         if (ship_scratch->boss.count & 1) {
             ship_scratch->boss.count &= (uint8_t)~1;
-            Launcher_Throw(obj, scratch, ship_scratch->boss.flag != 0);
+            Launcher_Throw(self, own, ship_scratch->boss.flag != 0);
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
 
     case Launcher_Delay:
-        Launcher_Solid(obj);
-        if (--scratch->timer < 0) {
-            obj->frame = 0;
+        Launcher_Solid(self);
+        if (--own->timer < 0) {
+            self->mapping_frame = 0;
             boss->anim_routine = Launcher_Wait;
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
 
     case Launcher_Sink:
         dhz_shake = 1;
-        obj->children[0].y += 2;
-        obj->children[1].y += 2;
-        if (obj->children[0].y >= 0x510) {
+        self->children[0].y += 2;
+        self->children[1].y += 2;
+        if (self->children[0].y >= 0x510) {
             dhz_shake = 0;
-            ObjectDelete(obj);
+            Sst_Delete(self);
             return;
         }
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
     }
 }
 
 // The arrow-pillar the launcher throws: it flies across to the other wall, shakes, and falls
-static void Pillar_Run(Object *obj, Scratch_NGHZBoss *scratch) {
-    Object *launcher = &objects[scratch->parent];
-    Scratch_NGHZBoss *launcher_scratch = (Scratch_NGHZBoss *)&launcher->scratch;
-    if (((Scratch_NGHZBoss *)&objects[launcher_scratch->ship].scratch)->boss.anim_routine >= Ship_Wreck) {
-        ObjectDelete(obj);
+static void Pillar_Run(Sst *self, Own_NGHZBoss *own) {
+    Sst *launcher = &sst[own->parent];
+    Own_NGHZBoss *launcher_scratch = (Own_NGHZBoss *)launcher->own.u8;
+    if (((Own_NGHZBoss *)sst[launcher_scratch->ship].own.u8)->boss.anim_routine >= Ship_Wreck) {
+        Sst_Delete(self);
         return;
     }
 
-    switch (scratch->state) {
+    switch (own->state) {
     case Pillar_Make:
-        obj->mappings = Mappings_NGHZBossLauncher;
-        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_NGHZBoss);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->y_rad = (int8_t)0x90;
-        obj->priority = 4;
-        scratch->state += 2;
-        obj->pos.l.x.f.u = launcher->pos.l.x.f.u;
-        obj->pos.l.y.f.u = launcher->pos.l.y.f.u;
-        obj->ysp = 4; // (how fast it falls later)
-        obj->frame = 4;
-        obj->pos.l.y.f.u += 5;
-        if (scratch->side) {
-            obj->status.o.f.x_flip = true;
-            obj->render.f.x_flip = true;
-            obj->xsp = -4;
+        self->mappings = Mappings_NGHZBossLauncher;
+        self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_NGHZBoss);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->y_radius = (int8_t)0x90;
+        self->priority = 4 * 0x80;
+        own->state += 2;
+        self->x_pos.f.u = launcher->x_pos.f.u;
+        self->y_pos.f.u = launcher->y_pos.f.u;
+        self->y_vel = 4; // (how fast it falls later)
+        self->mapping_frame = 4;
+        self->y_pos.f.u += 5;
+        if (own->side) {
+            SST_STATUS_SET(self, SST_STATUS_X_FLIP, true);
+            SST_RENDER_SET(self, SST_RENDER_X_FLIP, true);
+            self->x_vel = -4;
         } else {
-            obj->xsp = 4;
+            self->x_vel = 4;
         }
         break;
 
     case Pillar_Fly: {
-        if (obj->status.b & 0x80)
-            scratch->state = Pillar_Gone;
-        int16_t x = (int16_t)(obj->pos.l.x.f.u + obj->xsp);
+        if (self->status & 0x80)
+            own->state = Pillar_Gone;
+        int16_t x = (int16_t)(self->x_pos.f.u + self->x_vel);
         bool arrived = false;
-        if (obj->xsp < 0) {
+        if (self->x_vel < 0) {
             if (x <= 0x2A76) {
                 x = 0x2A76;
                 arrived = true;
@@ -387,92 +390,92 @@ static void Pillar_Run(Object *obj, Scratch_NGHZBoss *scratch) {
             arrived = true;
         }
         if (arrived)
-            scratch->state += 2;
-        obj->pos.l.x.f.u = x;
-        DisplaySprite(obj);
+            own->state += 2;
+        self->x_pos.f.u = x;
+        Sst_Draw(self);
         break;
     }
 
     case Pillar_Shake: // its animation (shaking, then waiting) moves the state on at its end ($F9, which adds 2 to the state: the engine's animation has no such command)
-        if (obj->status.b & 0x80)
-            scratch->state += 2;
-        if (obj->anim == 1 && obj->anim_frame >= 31 && obj->frame_time.b <= 0)
-            scratch->state += 2;
+        if (self->status & 0x80)
+            own->state += 2;
+        if (self->anim == 1 && self->anim_frame >= 31 && self->anim_frame_timer <= 0)
+            own->state += 2;
         else
-            AnimateSprite(obj, Animation_NGHZBossPillars);
-        DisplaySprite(obj);
+            Sst_Animate(self, Animation_NGHZBossPillars);
+        Sst_Draw(self);
         break;
 
     case Pillar_Fall: {
-        const int16_t y = (int16_t)(obj->pos.l.y.f.u + obj->ysp);
+        const int16_t y = (int16_t)(self->y_pos.f.u + self->y_vel);
         if (y > 0x4F0) {
-            ObjectDelete(obj);
+            Sst_Delete(self);
             return;
         }
-        obj->pos.l.y.f.u = y;
-        DisplaySprite(obj);
+        self->y_pos.f.u = y;
+        Sst_Draw(self);
         break;
     }
 
     default:
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     }
 }
 
-void Obj_NGHZBoss(Object *obj) {
-    Scratch_NGHZBoss *scratch = (Scratch_NGHZBoss *)&obj->scratch;
+void Obj_NGHZBoss(Sst *self) {
+    Own_NGHZBoss *own = (Own_NGHZBoss *)self->own.u8;
 
-    switch (scratch->boss.boss_routine) {
+    switch (own->boss.boss_routine) {
     case Boss_Wait:
         if (limit_left2 == 0x2A40 - SCREEN_WIDEADD2 && player->x_pos.f.u >= 0x2A68 && player->x_pos.f.u <= 0x2B48) {
             dhz_shake = 1;
-            obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_NGHZBoss);
-            obj->mappings = Mappings_NGHZBoss;
-            obj->render.b |= SPRITE_CAM_FIELD;
-            obj->y_rad = 0x20;
-            obj->priority = 2;
-            obj->width_pixels = 0x90;
-            scratch->boss.boss_routine = Boss_Ship;
-            obj->pos.l.x.f.u = 0x2AD8;
-            obj->pos.l.y.f.u = 0x388;
+            self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_NGHZBoss);
+            self->mappings = Mappings_NGHZBoss;
+            self->render_flags |= SST_RENDER_LEVEL;
+            self->y_radius = 0x20;
+            self->priority = 2 * 0x80;
+            self->width_pixels = 0x90;
+            own->boss.boss_routine = Boss_Ship;
+            self->x_pos.f.u = 0x2AD8;
+            self->y_pos.f.u = 0x388;
             boss_move.x.f.u = 0x2AD8;
             boss_move.y.f.u = 0x388;
             boss_move.xsp = 0;
             boss_move.timer = 0;
-            obj->render.f.multi_sprite = true;
-            obj->child_count = 3;
-            obj->col_type = 0x0F;
-            scratch->boss.hits = 8;
-            obj->frame = 8; // (the main sprite)
-            scratch->hammer_speed = (int16_t)0xFC80;
-            scratch->hammer_y = (int32_t)(0x488u << 16);
+            self->render_flags |= SST_RENDER_MULTI_DRAW;
+            self->child_count = 3;
+            self->collision_flags = 0x0F;
+            self->collision_property = 8;
+            self->mapping_frame = 8; // (the main sprite)
+            own->hammer_speed = (int16_t)0xFC80;
+            own->hammer_y = (int32_t)(0x488u << 16);
             for (int i = 0; i < 3; i++) {
-                obj->children[i].x = 0x2AD8;
-                obj->children[i].y = 0x488;
+                self->children[i].x = 0x2AD8;
+                self->children[i].y = 0x488;
             }
-            obj->children[Part_Robotnik].frame = 0;
-            obj->children[Part_Hammer].frame = 9;
-            obj->children[Part_Boost].frame = 6;
+            self->children[Part_Robotnik].frame = 0;
+            self->children[Part_Hammer].frame = 9;
+            self->children[Part_Boost].frame = 6;
             boss_move.ysp = 0x100;
-            Object *launcher = FindFreeObj();
+            Sst *launcher = Sst_Allocate();
             if (launcher != NULL) {
-                launcher->type = ObjId_NGHZBoss;
+                launcher->code = sst_object_codes[ObjId_NGHZBoss];
                 launcher->mappings = Mappings_NGHZBossLauncher;
-                launcher->tile = TILE_MAP(0, 0, 0, 0, ArtTile_NGHZBoss);
-                launcher->y_rad = (int8_t)0x90;
-                launcher->priority = 4;
+                launcher->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_NGHZBoss);
+                launcher->y_radius = (int8_t)0x90;
+                launcher->priority = 4 * 0x80;
                 launcher->width_pixels = 0xFF;
-                launcher->pos.l.x.f.u = 0x2AD8;
-                launcher->pos.l.y.f.u = 0x488;
-                launcher->frame = 0;
-                launcher->render.b |= SPRITE_CAM_FIELD;
-                launcher->render.f.multi_sprite = true;
-                launcher->render.f.explicit_height = true;
+                launcher->x_pos.f.u = 0x2AD8;
+                launcher->y_pos.f.u = 0x488;
+                launcher->mapping_frame = 0;
+                launcher->render_flags |= SST_RENDER_LEVEL;
+                launcher->render_flags |= SST_RENDER_MULTI_DRAW;
+                launcher->height_pixels = launcher->y_radius;
                 launcher->child_count = 2;
-                Scratch_NGHZBoss *ls = (Scratch_NGHZBoss *)&launcher->scratch;
+                Own_NGHZBoss *ls = (Own_NGHZBoss *)launcher->own.u8;
                 ls->boss.boss_routine = Boss_Parts;
-                ls->ship = (uint8_t)(obj - objects);
+                ls->ship = (uint8_t)(self - sst);
                 launcher->children[0].x = 0x2A58;
                 launcher->children[0].y = 0x510;
                 launcher->children[0].frame = 0;
@@ -485,14 +488,14 @@ void Obj_NGHZBoss(Object *obj) {
         break;
 
     case Boss_Ship:
-        Ship_Run(obj, scratch);
+        Ship_Run(self, own);
         break;
 
     case Boss_Parts:
-        if (obj->render.f.multi_sprite)
-            Launcher_Run(obj, scratch);
+        if ((self->render_flags & SST_RENDER_MULTI_DRAW))
+            Launcher_Run(self, own);
         else
-            Pillar_Run(obj, scratch);
+            Pillar_Run(self, own);
         break;
     }
 }

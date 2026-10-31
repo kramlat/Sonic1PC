@@ -1,7 +1,7 @@
 #ifndef _HTZQUAKE_H
 #define _HTZQUAKE_H
 
-#include "Object.h"
+#include "Sst.h"
 
 // Hill Top's earthquake, the Simon Wai prototype's: its dynamic level events (DynResize_HTz), the background scroll that goes with them (the shaking branch of Bg_Scroll_HTz) and the solid blocks of
 // the moving ground (object 30)
@@ -23,6 +23,6 @@ void HTZQuake_EventsP2(void);     // the events for the second camera (called wi
 void HTZQuake_ShakeDustHill(void); // after Dust Hill's deformation: the shake of the boss's digging
 void HTZQuake_ShakeView(void);    // after the zone's usual deformation for that view: it shakes with the ground
 
-void Obj_HTZQuakeBlock(Object *obj);
+void Obj_HTZQuakeBlock(Sst *self);
 
 #endif //_HTZQUAKE_H

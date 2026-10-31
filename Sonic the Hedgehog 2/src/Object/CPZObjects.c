@@ -2,6 +2,8 @@
 // that make its staircases (6B, Obj_0x6B_Mz_Platform at loc_1BCEC), the one way barrier (2D), the tube cover (32), the rotating platforms (78), the sliding platforms (7A), the invisible block (74)
 // and the droplet chain badnik (1D). Each is a port of its routine in the prototype's disassembly.
 #include "Object/CPZObjects.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Camera.h"
@@ -12,7 +14,7 @@
 #include "Object/Tails.h"
 #include "MathUtil.h"
 #include "Oscillatory Routines.h"
-#include "Solid.h"
+#include "SolidSst.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -42,11 +44,12 @@ extern Oscillatory oscillatory;
         for (Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
 
 // The object is out of range: it goes, and forgets that it was loaded so that it can come back (MarkObjGone)
-static void GoneIfOffscreen(Object *obj, int16_t x) {
-    if (IS_OFFSCREEN(x)) {
-        if (obj->respawn_index)
-            objstate[obj->respawn_index] &= 0x7F;
-        ObjectDelete(obj);
+static void GoneIfOffscreen(Sst *self, int16_t x) {
+    if (SstOutOfRange(x)) {
+        if (self->respawn)
+            (*SstLoad_State(self)) &= 0x7F;
+        SstLoad_Forget(self);
+        Sst_Delete(self);
     }
 }
 
@@ -58,7 +61,7 @@ typedef struct {
     uint8_t pad[7];
     int16_t base_x;   // 0x30
     int16_t base_y;   // 0x32
-} Scratch_Elevator;
+} Own_Elevator;
 
 // loc_1622E: the width and the mapping frame of each size
 // (the alpha's, for Chemical Plant and Oil Ocean: the third frame is a platform of $80 pixels; the prototype's was $40)
@@ -71,39 +74,39 @@ static int16_t Osc(int offset) {
     return (int16_t)(uint8_t)(oscillatory.state[offset >> 2][0] >> 8);
 }
 
-static void Elevator_Move(Object *obj, Scratch_Elevator *scratch) {
-    const int kind = scratch->subtype & 0xF;
+static void Elevator_Move(Sst *self, Own_Elevator *own) {
+    const int kind = self->subtype & 0xF;
     switch (kind) {
     case 0:
     case 1: { // slides along x
         int16_t d0 = kind == 0 ? Osc(8) : Osc(0xC), d1 = kind == 0 ? 0x40 : 0x60;
-        if (obj->status.o.f.x_flip)
+        if (((self->status & SST_STATUS_X_FLIP) != 0))
             d0 = (int16_t)(-d0 + d1);
-        obj->pos.l.x.f.u = (int16_t)(scratch->base_x - d0);
+        self->x_pos.f.u = (int16_t)(own->base_x - d0);
         break;
     }
     case 2: { // slides along y
         int16_t d0 = Osc(0x1C), d1 = 0x80;
-        if (obj->status.o.f.x_flip)
+        if (((self->status & SST_STATUS_X_FLIP) != 0))
             d0 = (int16_t)(-d0 + d1);
-        obj->pos.l.y.f.u = (int16_t)(scratch->base_y - d0);
+        self->y_pos.f.u = (int16_t)(own->base_y - d0);
         break;
     }
     case 3: // waits for someone to stand on it
-        if (obj->status.b & 0x18)
-            scratch->subtype++;
+        if (self->status & 0x18)
+            self->subtype++;
         break;
     case 4: // then rises, slowing down to a stop at the top
     case 6:
     case 7: { // (6 and 7 never stop: they bob up and down above their start)
-        SpeedToPos(obj);
+        Sst_MoveSprite2(self);
         int16_t step = 8;
-        int16_t top = (int16_t)(scratch->base_y - 0x60);
-        if ((uint16_t)top < (uint16_t)obj->pos.l.y.f.u)
+        int16_t top = (int16_t)(own->base_y - 0x60);
+        if ((uint16_t)top < (uint16_t)self->y_pos.f.u)
             step = -step;
-        obj->ysp = (int16_t)(obj->ysp + step);
-        if (kind == 4 && obj->ysp == 0)
-            scratch->subtype++;
+        self->y_vel = (int16_t)(self->y_vel + step);
+        if (kind == 4 && self->y_vel == 0)
+            self->subtype++;
         break;
     }
     case 5: // (stopped)
@@ -122,46 +125,46 @@ static void Elevator_Move(Object *obj, Scratch_Elevator *scratch) {
         }
         if (kind >= 12)
             d1 = (int16_t)-d1;
-        obj->pos.l.x.f.u = (int16_t)(scratch->base_x + d1);
-        obj->pos.l.y.f.u = (int16_t)(scratch->base_y + d2);
+        self->x_pos.f.u = (int16_t)(own->base_x + d1);
+        self->y_pos.f.u = (int16_t)(own->base_y + d2);
         break;
     }
     }
 }
 
-void Obj_CPZElevator(Object *obj) {
-    Scratch_Elevator *scratch = (Scratch_Elevator *)&obj->scratch;
+void Obj_CPZElevator(Sst *self) {
+    Own_Elevator *own = (Own_Elevator *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
+    if (self->routine == 0) {
+        self->routine += 2;
         const bool oil = LEVEL_ZONE(level_id) == ZoneId_OOZ;
         const bool sand = LEVEL_ZONE(level_id) == ZoneId_SSZ; // (Sand Shower's, the staged objpatch-19.asm: its own mappings, drawn from the level's tiles)
-        obj->mappings = sand ? Mappings_SSZPlatform : Mappings_OOZElevator; // (the alpha's, for both zones: five frames)
-        obj->tile = sand ? TILE_MAP(0, 0, 0, 0, 0) : TILE_MAP(0, 3, 0, 0, oil ? 0x2F4 : 0x3A0); // (the alpha's art list puts Oil Ocean's at $5E80)
-        obj->render.b = SPRITE_CAM_FIELD;
-        int size = (scratch->subtype >> 4) & 0xF;
+        self->mappings = sand ? Mappings_SSZPlatform : Mappings_OOZElevator; // (the alpha's, for both zones: five frames)
+        self->art_tile = sand ? TILE_MAP(0, 0, 0, 0, 0) : TILE_MAP(0, 3, 0, 0, oil ? 0x2F4 : 0x3A0); // (the alpha's art list puts Oil Ocean's at $5E80)
+        self->render_flags = SST_RENDER_LEVEL;
+        int size = (self->subtype >> 4) & 0xF;
         if (size > (sand ? 3 : 4))
             size = sand ? 3 : 4;
-        obj->width_pixels = sand ? elevator_sizes_ssz[size][0] : elevator_sizes_alpha[size][0];
-        obj->frame = sand ? elevator_sizes_ssz[size][1] : elevator_sizes_alpha[size][1];
-        obj->priority = 4;
-        scratch->base_x = obj->pos.l.x.f.u;
-        scratch->base_y = obj->pos.l.y.f.u;
-        scratch->subtype &= 0xF;
-        if (scratch->subtype == 7)
-            obj->pos.l.y.f.u -= 0xC0;
+        self->width_pixels = sand ? elevator_sizes_ssz[size][0] : elevator_sizes_alpha[size][0];
+        self->mapping_frame = sand ? elevator_sizes_ssz[size][1] : elevator_sizes_alpha[size][1];
+        self->priority = 4 * 0x80;
+        own->base_x = self->x_pos.f.u;
+        own->base_y = self->y_pos.f.u;
+        self->subtype &= 0xF;
+        if (self->subtype == 7)
+            self->y_pos.f.u -= 0xC0;
     }
 
-    int16_t old_x = obj->pos.l.x.f.u;
-    Elevator_Move(obj, scratch);
+    int16_t old_x = self->x_pos.f.u;
+    Elevator_Move(self, own);
     FOR_EACH_CHARACTER(chr, who)
-        Solid_Platform(obj, chr, who, obj->width_pixels, 0x10, old_x);
+        SolidSst_Platform(self, chr, who, self->width_pixels, 0x10, old_x);
 
-    if (IS_OFFSCREEN(scratch->base_x)) {
-        GoneIfOffscreen(obj, scratch->base_x);
+    if (SstOutOfRange(own->base_x)) {
+        GoneIfOffscreen(self, own->base_x);
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -171,53 +174,53 @@ typedef struct {
     uint8_t subtype;  // 0x28: bit 1 the slower one
     uint8_t pad[7];
     int16_t speed;    // 0x30
-} Scratch_Booster;
+} Own_Booster;
 
 #define ARTTILE_BOOSTER 0x39C // ($7380 in the zone's art list)
 
-static void Booster_Give(Object *obj, Sst *chr, int16_t speed) {
+static void Booster_Give(Sst *self, Sst *chr, int16_t speed) {
     if ((uint16_t)(chr->x_vel < 0 ? -chr->x_vel : chr->x_vel) >= 0x1000) { // (the alpha's: a character who is going that fast already is left as he is, and the booster only sounds)
         PlaySound(sfx_Spring);
         return;
     }
     chr->x_vel = speed; // (goes super fast)
     chr->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
-    if (obj->status.o.f.x_flip) {
+    if (((self->status & SST_STATUS_X_FLIP) != 0)) {
         chr->status |= SST_PSTATUS_X_FLIP;
         chr->x_vel = (int16_t)-chr->x_vel;
     }
     ((Scratch_Sonic *)chr->own.u8)->control_lock = 0xF; // (not to turn round for a few frames)
     chr->ground_vel = chr->x_vel;
-    obj->status.b &= (uint8_t)~((1 << 5) | (1 << 6));
+    self->status &= (uint8_t)~((1 << 5) | (1 << 6));
     chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
     PlaySound(sfx_Spring);
 }
 
-void Obj_CPZBooster(Object *obj) {
-    Scratch_Booster *scratch = (Scratch_Booster *)&obj->scratch;
+void Obj_CPZBooster(Sst *self) {
+    Own_Booster *own = (Own_Booster *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        obj->mappings = Mappings_Booster;
-        obj->tile = TILE_MAP(1, 3, 0, 0, ARTTILE_BOOSTER);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 0x20;
-        obj->priority = 1;
-        scratch->speed = (scratch->subtype & 2) ? 0xA00 : 0x1000;
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_Booster;
+        self->art_tile = TILE_MAP(1, 3, 0, 0, ARTTILE_BOOSTER);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x20;
+        self->priority = 1 * 0x80;
+        own->speed = (self->subtype & 2) ? 0xA00 : 0x1000;
     }
 
-    obj->frame = (uint8_t)(frame_count & 2);
-    const int16_t x0 = (int16_t)(obj->pos.l.x.f.u - 0x10), x1 = (int16_t)(obj->pos.l.x.f.u + 0x10);
-    const int16_t y0 = (int16_t)(obj->pos.l.y.f.u - 0x10), y1 = (int16_t)(obj->pos.l.y.f.u + 0x10);
+    self->mapping_frame = (uint8_t)(frame_count & 2);
+    const int16_t x0 = (int16_t)(self->x_pos.f.u - 0x10), x1 = (int16_t)(self->x_pos.f.u + 0x10);
+    const int16_t y0 = (int16_t)(self->y_pos.f.u - 0x10), y1 = (int16_t)(self->y_pos.f.u + 0x10);
     FOR_EACH_CHARACTER(chr, who) {
         (void)who;
         if (((chr->status & SST_PSTATUS_IN_AIR) != 0))
             continue;
         uint16_t cx = (uint16_t)chr->x_pos.f.u, cy = (uint16_t)chr->y_pos.f.u;
         if (cx >= (uint16_t)x0 && cx < (uint16_t)x1 && cy >= (uint16_t)y0 && cy < (uint16_t)y1)
-            Booster_Give(obj, chr, scratch->speed);
+            Booster_Give(self, chr, own->speed);
     }
-    RememberState(obj);
+    SstOnScreenTest(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -229,7 +232,7 @@ typedef struct {
     int16_t wait;     // 0x30
     int16_t wait2;    // 0x32
     uint8_t offset;   // 0x36
-} Scratch_PipeTipper;
+} Own_PipeTipper;
 
 #define ARTTILE_PIPE_TIPPER 0x3B0 // ($7600 in the zone's art list)
 
@@ -240,51 +243,51 @@ static const uint8_t Animation_PipeTipper[] = {
     0x07, 0x04, 0x03, 0x02, 0x01, 0x00, 0xFE, 0x01,
 };
 
-void Obj_CPZPipeTipper(Object *obj) {
-    Scratch_PipeTipper *scratch = (Scratch_PipeTipper *)&obj->scratch;
+void Obj_CPZPipeTipper(Sst *self) {
+    Own_PipeTipper *own = (Own_PipeTipper *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        obj->mappings = Mappings_PipeTipper;
-        obj->tile = TILE_MAP(1, 3, 0, 0, ARTTILE_PIPE_TIPPER);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 0x10;
-        obj->priority = 4;
-        int d0 = (scratch->subtype & 0xF0) + 0x10;
-        scratch->wait = (int16_t)(d0 - 1);
-        scratch->wait2 = (int16_t)(d0 - 1);
-        scratch->offset = (uint8_t)(((scratch->subtype & 0xF) + 1) << 4);
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_PipeTipper;
+        self->art_tile = TILE_MAP(1, 3, 0, 0, ARTTILE_PIPE_TIPPER);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x10;
+        self->priority = 4 * 0x80;
+        int d0 = (self->subtype & 0xF0) + 0x10;
+        own->wait = (int16_t)(d0 - 1);
+        own->wait2 = (int16_t)(d0 - 1);
+        own->offset = (uint8_t)(((self->subtype & 0xF) + 1) << 4);
     }
 
-    if (obj->routine == 2) { // waits until the frame counter and its offset make 0
-        if ((uint8_t)(frame_count + scratch->offset) != 0) {
-            RememberState(obj);
+    if (self->routine == 2) { // waits until the frame counter and its offset make 0
+        if ((uint8_t)(frame_count + own->offset) != 0) {
+            SstOnScreenTest(self);
             return;
         }
-        obj->routine += 2;
+        self->routine += 2;
     }
     // Turn
-    if (--scratch->wait < 0) {
-        scratch->wait = 0x7F;
-        if (obj->anim != 0)
-            scratch->wait = scratch->wait2;
-        obj->anim ^= 1;
-        obj->prev_anim = 0xFF; // (the animation starts again)
+    if (--own->wait < 0) {
+        own->wait = 0x7F;
+        if (self->anim != 0)
+            own->wait = own->wait2;
+        self->anim ^= 1;
+        self->prev_anim = 0xFF; // (the animation starts again)
     }
-    AnimateSprite(obj, Animation_PipeTipper);
+    Sst_Animate(self, Animation_PipeTipper);
 
-    if (obj->frame == 0) { // upright: a platform
+    if (self->mapping_frame == 0) { // upright: a platform
         FOR_EACH_CHARACTER(chr, who)
-            Solid_Platform(obj, chr, who, 0x10, 0x11, obj->pos.l.x.f.u);
+            SolidSst_Platform(self, chr, who, 0x10, 0x11, self->x_pos.f.u);
     } else { // tipped: whoever stands on it falls
         FOR_EACH_CHARACTER(chr, who) {
-            if (obj->status.b & (1 << (3 + who))) {
+            if (self->status & (1 << (3 + who))) {
                 chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
-                obj->status.b &= (uint8_t)~(1 << (3 + who));
+                self->status &= (uint8_t)~(1 << (3 + who));
             }
         }
     }
-    RememberState(obj);
+    SstOnScreenTest(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -296,14 +299,14 @@ typedef struct {
     int16_t base_y;   // 0x30
     int16_t base_x;   // 0x34
     uint8_t started;  // 0x38: (kind 7) it has been stood on
-} Scratch_CPZBlock;
+} Own_CPZBlock;
 
 #define ARTTILE_CPZ_BLOCK 0x418 // ($8300 in the zone's art list)
 
 // What the block does (loc_1BDC8): 0 nothing (7 is the alpha's new one, below), 1 and 2 slide along x, 3 and 4 along y, 5 waits to be stood on and goes on to 6, which falls; 8-11 go round a square of side 2x$10, $30, $50 or $70, as the
 // oscillator that the kind names goes
-static void CPZBlock_Move(Object *obj, Scratch_CPZBlock *scratch) {
-    const int kind = scratch->subtype & 0xF;
+static void CPZBlock_Move(Sst *self, Own_CPZBlock *own) {
+    const int kind = self->subtype & 0xF;
     switch (kind) {
     case 1:
     case 2:
@@ -311,39 +314,39 @@ static void CPZBlock_Move(Object *obj, Scratch_CPZBlock *scratch) {
     case 4: {
         int16_t d1 = (kind == 1 || kind == 3) ? 0x40 : 0x80;
         int16_t d0 = (kind == 1 || kind == 3) ? Osc(8) : Osc(0x1C);
-        if (obj->status.o.f.x_flip)
+        if (((self->status & SST_STATUS_X_FLIP) != 0))
             d0 = (int16_t)(-d0 + d1);
         if (kind <= 2)
-            obj->pos.l.x.f.u = (int16_t)(scratch->base_x - d0);
+            self->x_pos.f.u = (int16_t)(own->base_x - d0);
         else
-            obj->pos.l.y.f.u = (int16_t)(scratch->base_y - d0);
+            self->y_pos.f.u = (int16_t)(own->base_y - d0);
         break;
     }
     case 5:
-        obj->pos.l.y.f.u = (int16_t)(scratch->base_y + (Osc(0) >> 1));
-        if (obj->status.b & 0x18)
-            scratch->subtype++;
+        self->y_pos.f.u = (int16_t)(own->base_y + (Osc(0) >> 1));
+        if (self->status & 0x18)
+            self->subtype++;
         break;
     case 6:
-        obj->pos.l.y.v += obj->ysp * 256;
-        obj->ysp = (int16_t)(obj->ysp + 8);
-        if (!((uint16_t)(limit_btm1 + 0xE0) >= (uint16_t)obj->pos.l.y.f.u))
-            scratch->subtype = 0;
+        self->y_pos.v += self->y_vel * 256;
+        self->y_vel = (int16_t)(self->y_vel + 8);
+        if (!((uint16_t)(limit_btm1 + 0xE0) >= (uint16_t)self->y_pos.f.u))
+            self->subtype = 0;
         break;
     case 7: // (the alpha's: waits to be stood on, then drops $70 pixels as a pendulum would, speeding up and slowing down by 8, and stops where its speed is 0 again)
-        if (!scratch->started) {
-            if (!(obj->status.b & 0x18))
+        if (!own->started) {
+            if (!(self->status & 0x18))
                 break;
-            scratch->started = 1;
+            own->started = 1;
         }
-        SpeedToPos(obj);
+        Sst_MoveSprite2(self);
         {
             int16_t accel = 8;
-            if ((uint16_t)(scratch->base_y + 0x70) < (uint16_t)obj->pos.l.y.f.u)
+            if ((uint16_t)(own->base_y + 0x70) < (uint16_t)self->y_pos.f.u)
                 accel = -8;
-            obj->ysp = (int16_t)(obj->ysp + accel);
-            if (obj->ysp == 0)
-                scratch->subtype = 0;
+            self->y_vel = (int16_t)(self->y_vel + accel);
+            if (self->y_vel == 0)
+                self->subtype = 0;
         }
         break;
     case 8:
@@ -358,23 +361,23 @@ static void CPZBlock_Move(Object *obj, Scratch_CPZBlock *scratch) {
             d0 = (int16_t)(d0 >> 1);
         int16_t d3 = (int16_t)oscillatory.state[osc][1];
         if (d3 == 0)
-            obj->status.b = (uint8_t)((obj->status.b & ~3) | ((obj->status.b + 1) & 3)); // (the phase: which side of the square)
-        switch (obj->status.b & 3) {
+            self->status = (uint8_t)((self->status & ~3) | ((self->status + 1) & 3)); // (the phase: which side of the square)
+        switch (self->status & 3) {
         case 0:
-            obj->pos.l.x.f.u = (int16_t)(scratch->base_x + d0 - d1);
-            obj->pos.l.y.f.u = (int16_t)(scratch->base_y - d1);
+            self->x_pos.f.u = (int16_t)(own->base_x + d0 - d1);
+            self->y_pos.f.u = (int16_t)(own->base_y - d1);
             break;
         case 1:
-            obj->pos.l.y.f.u = (int16_t)(scratch->base_y - (d0 - (d1 - 1)));
-            obj->pos.l.x.f.u = (int16_t)(scratch->base_x + d1);
+            self->y_pos.f.u = (int16_t)(own->base_y - (d0 - (d1 - 1)));
+            self->x_pos.f.u = (int16_t)(own->base_x + d1);
             break;
         case 2:
-            obj->pos.l.x.f.u = (int16_t)(scratch->base_x - (d0 - (d1 - 1)));
-            obj->pos.l.y.f.u = (int16_t)(scratch->base_y + d1);
+            self->x_pos.f.u = (int16_t)(own->base_x - (d0 - (d1 - 1)));
+            self->y_pos.f.u = (int16_t)(own->base_y + d1);
             break;
         default:
-            obj->pos.l.y.f.u = (int16_t)(scratch->base_y + d0 - d1);
-            obj->pos.l.x.f.u = (int16_t)(scratch->base_x - d1);
+            self->y_pos.f.u = (int16_t)(own->base_y + d0 - d1);
+            self->x_pos.f.u = (int16_t)(own->base_x - d1);
             break;
         }
         break;
@@ -384,38 +387,38 @@ static void CPZBlock_Move(Object *obj, Scratch_CPZBlock *scratch) {
     }
 }
 
-void Obj_CPZBlock(Object *obj) {
-    Scratch_CPZBlock *scratch = (Scratch_CPZBlock *)&obj->scratch;
+void Obj_CPZBlock(Sst *self) {
+    Own_CPZBlock *own = (Own_CPZBlock *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
+    if (self->routine == 0) {
+        self->routine += 2;
         const bool cpz = LEVEL_ZONE(level_id) == ZoneId_CPZ; // (loc_1BD06: Metropolis's platforms are the slide-out platform's: object 65's mappings)
-        obj->mappings = cpz ? Mappings_CPZBlock : Mappings_MTZPlatformA;
-        obj->tile = TILE_MAP(0, 3, 0, 0, cpz ? ARTTILE_CPZ_BLOCK : 0);
-        obj->render.b = SPRITE_CAM_FIELD;
-        obj->priority = 3;
-        const bool small = (scratch->subtype >> 4) & 1; // (loc_1BCFE: a wide block of 12 high, or a square one of 16)
-        obj->width_pixels = small ? 0x10 : 0x20;
-        obj->y_rad = small ? 0x10 : 0x0C;
-        obj->frame = small ? 0 : 1;
-        scratch->base_x = obj->pos.l.x.f.u;
-        scratch->base_y = obj->pos.l.y.f.u;
-        const int kind = scratch->subtype & 0xF;
+        self->mappings = cpz ? Mappings_CPZBlock : Mappings_MTZPlatformA;
+        self->art_tile = TILE_MAP(0, 3, 0, 0, cpz ? ARTTILE_CPZ_BLOCK : 0);
+        self->render_flags = SST_RENDER_LEVEL;
+        self->priority = 3 * 0x80;
+        const bool small = (self->subtype >> 4) & 1; // (loc_1BCFE: a wide block of 12 high, or a square one of 16)
+        self->width_pixels = small ? 0x10 : 0x20;
+        self->y_radius = small ? 0x10 : 0x0C;
+        self->mapping_frame = small ? 0 : 1;
+        own->base_x = self->x_pos.f.u;
+        own->base_y = self->y_pos.f.u;
+        const int kind = self->subtype & 0xF;
         if (kind >= 8 && (int16_t)oscillatory.state[10 + (kind - 8)][1] < 0)
-            obj->status.b ^= 1; // (it starts on the other side of its square when its oscillator is going down)
+            self->status ^= 1; // (it starts on the other side of its square when its oscillator is going down)
     }
 
-    int16_t old_x = obj->pos.l.x.f.u;
-    CPZBlock_Move(obj, scratch);
-    if (obj->render.f.on_screen) {
+    int16_t old_x = self->x_pos.f.u;
+    CPZBlock_Move(self, own);
+    if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         FOR_EACH_CHARACTER(chr, who)
-            Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), obj->y_rad, (int16_t)(obj->y_rad + 1), old_x, NULL);
+            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
     }
-    if (IS_OFFSCREEN(scratch->base_x)) {
-        GoneIfOffscreen(obj, scratch->base_x);
+    if (SstOutOfRange(own->base_x)) {
+        GoneIfOffscreen(self, own->base_x);
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -431,66 +434,66 @@ typedef struct {
     uint8_t passing;  // 0x37: and someone is going through
     int16_t left;     // 0x38: the strip in which it opens
     int16_t right;    // 0x3A
-} Scratch_CPZBarrier;
+} Own_CPZBarrier;
 
 #define ARTTILE_CPZ_STRIPES 0x394 // ($7280 in the zone's art list)
 #define ARTTILE_HTZ_VALVE_BARRIER 0x426 // ($84C0 in Hill Top's second list)
 
-void Obj_CPZBarrier(Object *obj) {
-    Scratch_CPZBarrier *scratch = (Scratch_CPZBarrier *)&obj->scratch;
+void Obj_CPZBarrier(Sst *self) {
+    Own_CPZBarrier *own = (Own_CPZBarrier *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
+    if (self->routine == 0) {
+        self->routine += 2;
         const bool ssz = LEVEL_ZONE(level_id) == ZoneId_SSZ; // (Sand Shower's door: its own mappings, one frame, drawn from the level's tiles on palette row 2)
-        obj->mappings = ssz ? Mappings_SSZBarrier : Mappings_CPZBarrier;
+        self->mappings = ssz ? Mappings_SSZBarrier : Mappings_CPZBarrier;
         // (Hill Top's valve barrier has art and a width of its own: the default of Obj2D_Init; Chemical Plant's is the stripes)
         const bool cpz = LEVEL_ZONE(level_id) == ZoneId_CPZ;
         const bool mtz = LEVEL_ZONE(level_id) == ZoneId_MTZ; // (Metropolis's is the first tile of its art, and as wide as Chemical Plant's)
-        obj->tile = ssz ? TILE_MAP(0, 2, 0, 0, 0) : mtz ? TILE_MAP(0, 3, 0, 0, 0) : TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
-        obj->width_pixels = ssz ? 0x10 : (cpz || mtz) ? 0xC : 8; // (Sand Shower's runs from x to x+32: its solid box is centred 16 to the right)
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 4;
-        scratch->base_y = obj->pos.l.y.f.u;
-        obj->frame = ssz ? 0 : scratch->subtype;
-        int16_t d2 = (int16_t)(obj->pos.l.x.f.u - 0x200), d3 = (int16_t)(obj->pos.l.x.f.u + 0x18);
-        if (obj->status.o.f.x_flip) {
+        self->art_tile = ssz ? TILE_MAP(0, 2, 0, 0, 0) : mtz ? TILE_MAP(0, 3, 0, 0, 0) : TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
+        self->width_pixels = ssz ? 0x10 : (cpz || mtz) ? 0xC : 8; // (Sand Shower's runs from x to x+32: its solid box is centred 16 to the right)
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        own->base_y = self->y_pos.f.u;
+        self->mapping_frame = ssz ? 0 : self->subtype;
+        int16_t d2 = (int16_t)(self->x_pos.f.u - 0x200), d3 = (int16_t)(self->x_pos.f.u + 0x18);
+        if (((self->status & SST_STATUS_X_FLIP) != 0)) {
             d2 = (int16_t)(d2 + 0x1E8);
             d3 = (int16_t)(d3 + 0x1E8);
         }
-        scratch->left = d2;
-        scratch->right = d3;
+        own->left = d2;
+        own->right = d3;
     }
 
     int16_t d2, d3;
-    const int16_t x = obj->pos.l.x.f.u;
+    const int16_t x = self->x_pos.f.u;
     if (LEVEL_ZONE(level_id) == ZoneId_SSZ) {
         // Sand Shower's door, in three kinds by the subtype (bits 4-5: the kind; bits 0-3: the switch it answers; bits 6-7: the time of the third kind). It is drawn from x to x+32, and opens to the side that it faces:
         // the open side is to the left, to the right if the object is flipped in X.
         //  0 the door: opens as a character comes up to it on its open side, and shuts behind him
         //  1 the switch door: the same, but it does not open until its switch is pressed, and then it waits for someone to go through it, and shuts behind him
         //  2 the timed switch door: faces nothing: its switch opens it, it stays up for the time the subtype gives (3, 5, 8 or 12 seconds) and shuts, on someone in its way too (he is crushed)
-        const unsigned kind = (scratch->subtype >> 4) & 3;
-        const bool pressed = (f_switch[scratch->subtype & 0xF] & 1) != 0;
-        const bool flipped = obj->status.o.f.x_flip;
+        const unsigned kind = (self->subtype >> 4) & 3;
+        const bool pressed = (f_switch[self->subtype & 0xF] & 1) != 0;
+        const bool flipped = ((self->status & SST_STATUS_X_FLIP) != 0);
         bool in_way = false;   // (in the door's place: it must not shut on him)
         FOR_EACH_CHARACTER(chr, who) {
             const int16_t cx = chr->x_pos.f.u, cy = chr->y_pos.f.u;
-            if (cx >= x - 8 && cx < x + 40 && cy >= scratch->base_y - 0x60 && cy < scratch->base_y + 0x30)
+            if (cx >= x - 8 && cx < x + 40 && cy >= own->base_y - 0x60 && cy < own->base_y + 0x30)
                 in_way = true;
         }
         bool open;
         if (kind == 2) {
             static const int16_t seconds[4] = { 3, 5, 8, 12 };
             if (pressed)
-                scratch->wait = (int16_t)(seconds[(scratch->subtype >> 6) & 3] * 60);
-            open = scratch->wait > 0;
-            if (scratch->wait > 0)
-                scratch->wait--;
+                own->wait = (int16_t)(seconds[(self->subtype >> 6) & 3] * 60);
+            open = own->wait > 0;
+            if (own->wait > 0)
+                own->wait--;
             // (nothing holds it for someone in its way: when the time is up it shuts, and a character who is still under it is crushed, as the solid test has it. That is the puzzle)
         } else {
             // the strip in which a character opens it, as the barrier has it, wider for this one's width: the open side's reach, and the far edge that he has to be past for it to shut (x+$38, or x-$18 flipped)
-            const int16_t d2 = flipped ? (obj->routine_sec ? x - 0x18 : x + 0x20) : x - 0x200;
-            const int16_t d3 = flipped ? x + 0x200 : (obj->routine_sec ? x + 0x38 : x);
+            const int16_t d2 = flipped ? (self->routine_secondary ? x - 0x18 : x + 0x20) : x - 0x200;
+            const int16_t d3 = flipped ? x + 0x200 : (self->routine_secondary ? x + 0x38 : x);
             bool in_strip = false;
             FOR_EACH_CHARACTER(chr, who) {
                 const int16_t cx = chr->x_pos.f.u;
@@ -501,49 +504,49 @@ void Obj_CPZBarrier(Object *obj) {
                 open = in_strip || in_way;
             } else {
                 if (pressed)
-                    scratch->latched = 1;
-                if (scratch->latched && in_way)
-                    scratch->passing = 1;
-                if (scratch->latched && scratch->passing && !in_way)
-                    scratch->latched = scratch->passing = 0; // (someone has gone through: it shuts behind him)
-                open = scratch->latched != 0;
+                    own->latched = 1;
+                if (own->latched && in_way)
+                    own->passing = 1;
+                if (own->latched && own->passing && !in_way)
+                    own->latched = own->passing = 0; // (someone has gone through: it shuts behind him)
+                open = own->latched != 0;
             }
         }
-        obj->routine_sec = open ? 2 : 0;
+        self->routine_secondary = open ? 2 : 0;
     } else {
-    if (!obj->status.o.f.x_flip) {
-        d2 = scratch->left;
-        d3 = obj->routine_sec ? scratch->right : x;
+    if (!((self->status & SST_STATUS_X_FLIP) != 0)) {
+        d2 = own->left;
+        d3 = self->routine_secondary ? own->right : x;
     } else {
-        d2 = obj->routine_sec ? scratch->left : x;
-        d3 = scratch->right;
+        d2 = self->routine_secondary ? own->left : x;
+        d3 = own->right;
     }
-    obj->routine_sec = 0; // (down, unless a character is in the strip)
+    self->routine_secondary = 0; // (down, unless a character is in the strip)
     FOR_EACH_CHARACTER(chr, who) {
         const uint16_t cx = (uint16_t)chr->x_pos.f.u;
         if (cx >= (uint16_t)d2 && cx < (uint16_t)d3)
-            obj->routine_sec = 2;
+            self->routine_secondary = 2;
     }
     }
-    if (obj->routine_sec) {
-        if (scratch->height != 0x40) {
-            scratch->height += 8;
-            obj->pos.l.y.f.u = (int16_t)(scratch->base_y - scratch->height);
+    if (self->routine_secondary) {
+        if (own->height != 0x40) {
+            own->height += 8;
+            self->y_pos.f.u = (int16_t)(own->base_y - own->height);
         }
-    } else if (scratch->height != 0) {
-        scratch->height -= 8;
-        obj->pos.l.y.f.u = (int16_t)(scratch->base_y - scratch->height);
+    } else if (own->height != 0) {
+        own->height -= 8;
+        self->y_pos.f.u = (int16_t)(own->base_y - own->height);
     }
 
-    if (obj->render.f.on_screen) {
+    if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         // (Sand Shower's door is drawn from its x to x+32: the solid test measures from the object's own x, so it is moved to the door's centre for it and back)
         const int16_t shift = (LEVEL_ZONE(level_id) == ZoneId_SSZ) ? 0x10 : 0;
-        obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + shift);
+        self->x_pos.f.u = (int16_t)(self->x_pos.f.u + shift);
         FOR_EACH_CHARACTER(chr, who)
-            Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), 0x20, 0x21, (int16_t)(x + shift), NULL);
-        obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u - shift);
+            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x20, 0x21, (int16_t)(x + shift), NULL);
+        self->x_pos.f.u = (int16_t)(self->x_pos.f.u - shift);
     }
-    RememberState(obj);
+    SstOnScreenTest(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -575,8 +578,8 @@ static void Cover_Launch(Sst *chr, bool rolling) {
 }
 
 // loc_17818: the score for it, as for a badnik (Obj29, 10, 20, 50 then 100 and, after fifteen in a row, 1000)
-void ObjectChainScore(Object *obj) {
-    Sst *points = Sst_Spawn(ObjId_Points, obj->pos.l.x.f.u, obj->pos.l.y.f.u);
+void ObjectChainScore(Sst *self) {
+    Sst *points = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
     if (points == NULL)
         return;
     static const uint16_t scores[4] = { 10, 20, 50, 100 };
@@ -594,62 +597,62 @@ void ObjectChainScore(Object *obj) {
 }
 
 // BreakObjectToPieces: the object is its first piece, and each other piece of the frame is a new object of the same id, in routine 4, that drifts away on the speed its piece is given
-void ObjectBreakToPieces(Object *obj, const int16_t (*speeds)[2], int count) {
+void ObjectBreakToPieces(Sst *self, const int16_t (*speeds)[2], int count) {
     const uint8_t *piece;
-    Mappings_FramePieces((const uint8_t *)obj->mappings, obj->frame, &piece);
-    obj->render.f.static_mappings = true;
-    Object *part = obj;
+    Mappings_FramePieces((const uint8_t *)self->mappings, self->mapping_frame, &piece);
+    self->render_flags |= SST_RENDER_STATIC;
+    Sst *part = self;
     for (int i = 0; i < count; i++) {
         if (i > 0) {
-            part = FindNextFreeObj(obj + 1);
+            part = Sst_AllocateAfter(self);
             if (part == NULL)
                 break;
             piece += SPRITE_PIECE_SIZE;
-            part->type = obj->type;
-            part->render.b = obj->render.b;
-            part->tile = obj->tile;
-            part->priority = obj->priority;
-            part->width_pixels = obj->width_pixels;
-            part->pos.l.x.f.u = obj->pos.l.x.f.u;
-            part->pos.l.y.f.u = obj->pos.l.y.f.u;
+            part->code = self->code;
+            part->render_flags = self->render_flags;
+            part->art_tile = self->art_tile;
+            part->priority = self->priority;
+            part->width_pixels = self->width_pixels;
+            part->x_pos.f.u = self->x_pos.f.u;
+            part->y_pos.f.u = self->y_pos.f.u;
         }
         part->routine = 4;
         part->mappings = piece;
-        part->xsp = speeds[i][0];
-        part->ysp = speeds[i][1];
+        part->x_vel = speeds[i][0];
+        part->y_vel = speeds[i][1];
     }
     PlaySound(sfx_WallSmash);
 }
 
-void Obj_TubeCover(Object *obj) {
-    if (obj->routine == 0) {
-        obj->routine += 2;
+void Obj_TubeCover(Sst *self) {
+    if (self->routine == 0) {
+        self->routine += 2;
         const bool rock = LEVEL_ZONE(level_id) != ZoneId_CPZ; // (Hill Top's rock: Obj_0x32 is the same object there, with its own art, width and pieces)
         const bool sand = LEVEL_ZONE(level_id) == ZoneId_SSZ; // (Sand Shower's rock: its own mappings, art at $3B2, 16 pixels wide, six pieces like Hill Top's; the third row of the palette (line 2 counting from 0): the mapping's words already say line 2 and high priority ($C0xx) and the engine adds the object's tile word to them, so the object adds no line of its own (a line on top of the mapping's 2 made it the wrong row))
-        obj->mappings = sand ? Mappings_SSZRock : rock ? Mappings_HTZRock : Mappings_TubeCover;
-        obj->tile = sand ? TILE_MAP(0, 0, 0, 0, 0x3BA) : rock ? TILE_MAP(0, 2, 0, 0, ARTTILE_HTZ_ROCK) : TILE_MAP(0, 3, 0, 0, ARTTILE_TUBE_COVER);
-        obj->width_pixels = rock && !sand ? 0x18 : 0x10;
-        obj->render.b = SPRITE_CAM_FIELD;
-        obj->priority = sand ? 2 : 4; // (Sand Shower: in front of monitors, which are 3, and so of the switch, 4: a monitor can be hidden under a rock and a switch under a monitor. Sonic and Tails are 2 too, but come first in the queue, so they stay in front)
+        self->mappings = sand ? Mappings_SSZRock : rock ? Mappings_HTZRock : Mappings_TubeCover;
+        self->art_tile = sand ? TILE_MAP(0, 0, 0, 0, 0x3BA) : rock ? TILE_MAP(0, 2, 0, 0, ARTTILE_HTZ_ROCK) : TILE_MAP(0, 3, 0, 0, ARTTILE_TUBE_COVER);
+        self->width_pixels = rock && !sand ? 0x18 : 0x10;
+        self->render_flags = SST_RENDER_LEVEL;
+        self->priority = (sand ? 2 : 4) * 0x80; // (Sand Shower: in front of monitors, which are 3, and so of the switch, 4: a monitor can be hidden under a rock and a switch under a monitor. Sonic and Tails are 2 too, but come first in the queue, so they stay in front)
     }
 
-    if (obj->routine == 4) { // a piece
-        SpeedToPos(obj);
-        obj->ysp += 0x18;
-        if (!obj->render.f.on_screen)
-            ObjectDelete(obj);
+    if (self->routine == 4) { // a piece
+        Sst_MoveSprite2(self);
+        self->y_vel += 0x18;
+        if (!(self->render_flags & SST_RENDER_ON_SCREEN))
+            Sst_Delete(self);
         else
-            DisplaySprite(obj);
+            Sst_Draw(self);
         return;
     }
 
     Sst *sidekick = TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL;
     const bool sonic_rolls = player->anim == SonAnimId_Roll, tails_rolls = sidekick != NULL && sidekick->anim == SonAnimId_Roll;
-    if (obj->render.f.on_screen) {
+    if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         FOR_EACH_CHARACTER(chr, who)
-            Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), 0x10, 0x11, obj->pos.l.x.f.u, NULL);
+            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x10, 0x11, self->x_pos.f.u, NULL);
     }
-    const uint8_t stand = obj->status.b & 0x18;
+    const uint8_t stand = self->status & 0x18;
     bool broken = false;
     if (stand == 0x18) { // both are on it
         if (sonic_rolls || tails_rolls) {
@@ -670,19 +673,19 @@ void Obj_TubeCover(Object *obj) {
         }
     }
     if (!broken) {
-        RememberState(obj);
+        SstOnScreenTest(self);
         return;
     }
-    obj->status.b &= 0xE7;
-    if (obj->mappings == Mappings_HTZRock || obj->mappings == Mappings_SSZRock)
-        ObjectBreakToPieces(obj, rock_pieces, 6);
+    self->status &= 0xE7;
+    if (self->mappings == Mappings_HTZRock || self->mappings == Mappings_SSZRock)
+        ObjectBreakToPieces(self, rock_pieces, 6);
     else
-        ObjectBreakToPieces(obj, cover_pieces, 4);
-    ObjectChainScore(obj);
+        ObjectBreakToPieces(self, cover_pieces, 4);
+    ObjectChainScore(self);
     // (it goes on as its first piece, this very frame)
-    SpeedToPos(obj);
-    obj->ysp += 0x18;
-    DisplaySprite(obj);
+    Sst_MoveSprite2(self);
+    self->y_vel += 0x18;
+    Sst_Draw(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -699,30 +702,30 @@ typedef struct {
     int16_t off[4];   // 0x34: (the first's) how far down each of the four is
     uint8_t parent;   // 0x3C: the slot of the first
     uint8_t pad1[3];
-} Scratch_CPZRotor;
+} Own_CPZRotor;
 
 // loc_1D4BC .. loc_1D552: what the first does for each kind (0 and 4 wait to be stood on, 2 and 6 to be bumped, then 1, 3, 5, 7 sink or rise)
-static void Rotor_Run(Scratch_CPZRotor *scratch) {
-    int16_t *off = scratch->off;
-    switch (scratch->subtype & 7) {
+static void Rotor_Run(Sst *self, Own_CPZRotor *own) {
+    int16_t *off = own->off;
+    switch (self->subtype & 7) {
     case 0:
     case 4:
-        if (scratch->wait == 0) {
-            if (scratch->touched & 0x30)
-                scratch->wait = 0x1E;
-        } else if (--scratch->wait == 0) {
-            scratch->subtype++;
+        if (own->wait == 0) {
+            if (own->touched & 0x30)
+                own->wait = 0x1E;
+        } else if (--own->wait == 0) {
+            self->subtype++;
         }
         break;
     case 2:
     case 6:
-        if (scratch->wait == 0) {
-            if (scratch->touched & 0x0C)
-                scratch->wait = 0x3C;
-        } else if (--scratch->wait == 0) {
-            scratch->subtype++;
+        if (own->wait == 0) {
+            if (own->touched & 0x0C)
+                own->wait = 0x3C;
+        } else if (--own->wait == 0) {
+            self->subtype++;
         } else { // shakes: the four go up and down a pixel, in turns
-            int16_t d0 = (int16_t)((scratch->wait >> 2) & 1);
+            int16_t d0 = (int16_t)((own->wait >> 2) & 1);
             off[0] = d0;
             off[1] = d0 ^ 1;
             off[2] = d0;
@@ -749,62 +752,62 @@ static void Rotor_Run(Scratch_CPZRotor *scratch) {
     }
 }
 
-void Obj_CPZRotor(Object *obj) {
-    Scratch_CPZRotor *scratch = (Scratch_CPZRotor *)&obj->scratch;
+void Obj_CPZRotor(Sst *self) {
+    Own_CPZRotor *own = (Own_CPZRotor *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
+    if (self->routine == 0) {
+        self->routine += 2;
         int d3 = 0x34, d4 = 2;
-        if (obj->status.o.f.x_flip) {
+        if (((self->status & SST_STATUS_X_FLIP) != 0)) {
             d3 = 0x3A;
             d4 = -2;
         }
-        int16_t d2 = obj->pos.l.x.f.u;
-        Object *part = obj;
+        int16_t d2 = self->x_pos.f.u;
+        Sst *part = self;
         for (int i = 0; i < 4; i++) {
             if (i > 0) {
-                part = FindNextFreeObj(obj + 1);
+                part = Sst_AllocateAfter(self);
                 if (part == NULL)
                     break;
                 part->routine = 4;
             }
-            Scratch_CPZRotor *ps = (Scratch_CPZRotor *)&part->scratch;
-            part->type = obj->type;
+            Own_CPZRotor *ps = (Own_CPZRotor *)part->own.u8;
+            part->code = self->code;
             part->mappings = Mappings_CPZBlock;
-            part->tile = TILE_MAP(0, 3, 0, 0, ARTTILE_CPZ_BLOCK);
-            part->render.b = 4;
-            part->priority = 3;
+            part->art_tile = TILE_MAP(0, 3, 0, 0, ARTTILE_CPZ_BLOCK);
+            part->render_flags = 4;
+            part->priority = 3 * 0x80;
             part->width_pixels = 0x10;
-            ps->subtype = scratch->subtype;
-            part->pos.l.x.f.u = d2;
-            part->pos.l.y.f.u = obj->pos.l.y.f.u;
-            ps->base_x = obj->pos.l.x.f.u;
-            ps->base_y = part->pos.l.y.f.u;
+            part->subtype = self->subtype;
+            part->x_pos.f.u = d2;
+            part->y_pos.f.u = self->y_pos.f.u;
+            ps->base_x = self->x_pos.f.u;
+            ps->base_y = part->y_pos.f.u;
             d2 = (int16_t)(d2 + 0x20);
             ps->index = (uint8_t)d3;
-            ps->parent = (uint8_t)(obj - objects);
+            ps->parent = (uint8_t)(self - sst);
             d3 += d4;
         }
     }
 
-    if (obj->routine == 2) {
-        Rotor_Run(scratch);
+    if (self->routine == 2) {
+        Rotor_Run(self, own);
     }
-    Object *first = &objects[scratch->parent];
-    Scratch_CPZRotor *fs = (Scratch_CPZRotor *)&first->scratch;
-    obj->pos.l.y.f.u = (int16_t)(scratch->base_y + fs->off[(scratch->index - 0x34) >> 1]);
-    if (obj->render.f.on_screen) {
+    Sst *first = &sst[own->parent];
+    Own_CPZRotor *fs = (Own_CPZRotor *)first->own.u8;
+    self->y_pos.f.u = (int16_t)(own->base_y + fs->off[(own->index - 0x34) >> 1]);
+    if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
         FOR_EACH_CHARACTER(chr, who) {
-            int32_t hit = Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), 0x10, 0x11, obj->pos.l.x.f.u, NULL);
+            int32_t hit = SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), 0x10, 0x11, self->x_pos.f.u, NULL);
             if (hit == -1)
                 fs->touched |= (uint8_t)(0x10 << who);
             else if (hit == -2)
                 fs->touched |= (uint8_t)(4 << who);
         }
     }
-    GoneIfOffscreen(obj, scratch->base_x);
-    if (obj->type != 0)
-        DisplaySprite(obj);
+    GoneIfOffscreen(self, own->base_x);
+    if (self->code != NULL)
+        Sst_Draw(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -820,7 +823,7 @@ typedef struct {
     uint8_t pad1[5];
     uint8_t partner;  // 0x3C: the slot of the other platform
     uint8_t pad2[3];
-} Scratch_CPZSlider;
+} Own_CPZSlider;
 
 #define ARTTILE_CPZ_SLIDER ARTTILE_CPZ_BLOCK
 
@@ -838,109 +841,110 @@ static bool SliderIsDustHill(void) {
 
 const void *DHZSwingMappings(void); // (NGHZObjects.c holds the resource)
 
-static void Slider_Move(Object *obj, Scratch_CPZSlider *scratch) {
-    const int16_t old_x = obj->pos.l.x.f.u;
+static void Slider_Move(Sst *self, Own_CPZSlider *own) {
+    const int16_t old_x = self->x_pos.f.u;
     int16_t x = old_x;
-    if (scratch->going_left) {
+    if (own->going_left) {
         x--;
-        if (x == scratch->left)
-            scratch->going_left = 0;
+        if (x == own->left)
+            own->going_left = 0;
     } else {
         x++;
-        if (x == scratch->right)
-            scratch->going_left = 1;
+        if (x == own->right)
+            own->going_left = 1;
     }
-    obj->pos.l.x.f.u = x;
+    self->x_pos.f.u = x;
     FOR_EACH_CHARACTER(chr, who)
-        Solid_Platform(obj, chr, who, obj->width_pixels, 8, old_x);
+        SolidSst_Platform(self, chr, who, self->width_pixels, 8, old_x);
 }
 
-void Obj_CPZSlider(Object *obj) {
-    Scratch_CPZSlider *scratch = (Scratch_CPZSlider *)&obj->scratch;
+void Obj_CPZSlider(Sst *self) {
+    Own_CPZSlider *own = (Own_CPZSlider *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
+    if (self->routine == 0) {
+        self->routine += 2;
         const bool dust_hill = SliderIsDustHill();
-        const int row = scratch->subtype / 6 > 3 ? 3 : scratch->subtype / 6;
+        const int row = self->subtype / 6 > 3 ? 3 : self->subtype / 6;
         const SliderRow *conf = &slider_rows_alpha[row];
-        Object *other = obj;
+        Sst *other = self;
         for (int i = 0; i <= conf->count; i++) {
             if (i > 0) {
-                other = FindNextFreeObj(obj + 1);
+                other = Sst_AllocateAfter(self);
                 if (other == NULL)
                     break;
-                other->type = obj->type;
+                other->code = self->code;
                 other->routine = 4;
-                other->pos.l.x.f.u = obj->pos.l.x.f.u;
-                other->pos.l.y.f.u = obj->pos.l.y.f.u;
+                other->x_pos.f.u = self->x_pos.f.u;
+                other->y_pos.f.u = self->y_pos.f.u;
             }
             other->mappings = dust_hill ? DHZSwingMappings() : Mappings_CPZSlider;
-            other->tile = dust_hill ? TILE_MAP(0, 0, 0, 0, 0) : TILE_MAP(1, 3, 0, 0, ARTTILE_CPZ_SLIDER);
-            other->render.b = 4;
-            other->priority = 4;
+            other->art_tile = dust_hill ? TILE_MAP(0, 0, 0, 0, 0) : TILE_MAP(1, 3, 0, 0, ARTTILE_CPZ_SLIDER);
+            other->render_flags = 4;
+            other->priority = 4 * 0x80;
             other->width_pixels = 0x18;
-            ((Scratch_CPZSlider *)&other->scratch)->base_x = obj->pos.l.x.f.u;
+            ((Own_CPZSlider *)other->own.u8)->base_x = self->x_pos.f.u;
         }
-        ((Scratch_CPZSlider *)&other->scratch)->partner = (uint8_t)(obj - objects);
-        scratch->partner = (uint8_t)(other - objects);
-        if (scratch->subtype == 0xC)
-            scratch->going_left = 1;
+        ((Own_CPZSlider *)other->own.u8)->partner = (uint8_t)(self - sst);
+        own->partner = (uint8_t)(other - sst);
+        if (self->subtype == 0xC)
+            own->going_left = 1;
         const int16_t reach = conf->reach;
-        const int16_t left = (int16_t)(scratch->base_x - reach), right = (int16_t)(left + reach * 2);
-        Scratch_CPZSlider *os = (Scratch_CPZSlider *)&other->scratch;
-        scratch->left = os->left = left;
-        scratch->right = os->right = right;
-        obj->pos.l.x.f.u = (int16_t)(obj->pos.l.x.f.u + conf->start0);
-        other->pos.l.x.f.u = (int16_t)(other->pos.l.x.f.u + conf->start1);
+        const int16_t left = (int16_t)(own->base_x - reach), right = (int16_t)(left + reach * 2);
+        Own_CPZSlider *os = (Own_CPZSlider *)other->own.u8;
+        own->left = os->left = left;
+        own->right = os->right = right;
+        self->x_pos.f.u = (int16_t)(self->x_pos.f.u + conf->start0);
+        other->x_pos.f.u = (int16_t)(other->x_pos.f.u + conf->start1);
     }
 
-    if (obj->routine == 2) { // the first: it is the one that goes when the row is out of range
-        Slider_Move(obj, scratch);
-        if (IS_OFFSCREEN(scratch->left) && IS_OFFSCREEN(scratch->right)) {
-            Object *other = &objects[scratch->partner];
-            if (other != obj && other->type == obj->type)
-                ObjectDelete(other);
-            if (obj->respawn_index)
-                objstate[obj->respawn_index] &= 0x7F;
-            ObjectDelete(obj);
+    if (self->routine == 2) { // the first: it is the one that goes when the row is out of range
+        Slider_Move(self, own);
+        if (SstOutOfRange(own->left) && SstOutOfRange(own->right)) {
+            Sst *other = &sst[own->partner];
+            if (other != self && other->code == self->code)
+                Sst_Delete(other);
+            if (self->respawn)
+                (*SstLoad_State(self)) &= 0x7F;
+            SstLoad_Forget(self);
+            Sst_Delete(self);
             return;
         }
     } else { // the second: it turns the first round when they meet
-        Slider_Move(obj, scratch);
-        Object *other = &objects[scratch->partner];
-        if (other->type == obj->type && (int16_t)(obj->pos.l.x.f.u - obj->width_pixels) == (int16_t)(other->pos.l.x.f.u + obj->width_pixels)) {
-            scratch->going_left ^= 1;
-            ((Scratch_CPZSlider *)&other->scratch)->going_left ^= 1;
+        Slider_Move(self, own);
+        Sst *other = &sst[own->partner];
+        if (other->code == self->code && (int16_t)(self->x_pos.f.u - self->width_pixels) == (int16_t)(other->x_pos.f.u + self->width_pixels)) {
+            own->going_left ^= 1;
+            ((Own_CPZSlider *)other->own.u8)->going_left ^= 1;
         }
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
 // Object 74: the invisible block, a solid that is only there while it is on the screen (and only shows in debug mode)
 // ---------------------------------------------------------------------------------------------------------------------------------------
-void Obj_CPZInvisibleBlock(Object *obj) {
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        obj->mappings = Mappings_CPZInvisibleBlock;
-        obj->tile = TILE_MAP(1, 0, 0, 0, 0x680);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        const uint8_t subtype = obj->scratch.u8[0];
-        obj->width_pixels = (uint8_t)((((subtype & 0xF0) + 0x10)) >> 1);
-        obj->y_rad = (int8_t)(((subtype & 0xF) + 1) << 3);
+void Obj_CPZInvisibleBlock(Sst *self) {
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_CPZInvisibleBlock;
+        self->art_tile = TILE_MAP(1, 0, 0, 0, 0x680);
+        self->render_flags |= SST_RENDER_LEVEL;
+        const uint8_t subtype = self->subtype;
+        self->width_pixels = (uint8_t)((((subtype & 0xF0) + 0x10)) >> 1);
+        self->y_radius = (int8_t)(((subtype & 0xF) + 1) << 3);
     }
 
-    const int16_t dx = (int16_t)(obj->pos.l.x.f.u - scrpos_x.f.u), dy = (int16_t)(obj->pos.l.y.f.u - scrpos_y.f.u);
+    const int16_t dx = (int16_t)(self->x_pos.f.u - scrpos_x.f.u), dy = (int16_t)(self->y_pos.f.u - scrpos_y.f.u);
     if (dx >= 0 && dx < 0x140 && dy >= 0 && dy < 0xE0) {
         FOR_EACH_CHARACTER(chr, who)
-            Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), obj->y_rad, (int16_t)(obj->y_rad + 1), obj->pos.l.x.f.u, NULL);
+            SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), self->x_pos.f.u, NULL);
     }
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        GoneIfOffscreen(obj, obj->pos.l.x.f.u);
+    if (SstOutOfRange(self->x_pos.f.u)) {
+        GoneIfOffscreen(self, self->x_pos.f.u);
         return;
     }
     if (debug_use)
-        DisplaySprite(obj);
+        Sst_Draw(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -956,39 +960,39 @@ typedef struct {
     int16_t drift;    // 0x36: the speed it adds to xsp each frame
     int16_t base_x;   // 0x38
     int16_t hop;      // 0x3A: how far it hops at the top of the jump (the hopping kind)
-} Scratch_CPZWorm;
+} Own_CPZWorm;
 
 #define ARTTILE_CPZ_WORM 0x43C // ($8780 in the zone's second list)
 
-void Obj_CPZWorm(Object *obj) {
-    Scratch_CPZWorm *scratch = (Scratch_CPZWorm *)&obj->scratch;
+void Obj_CPZWorm(Sst *self) {
+    Own_CPZWorm *own = (Own_CPZWorm *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: {
-        const int count = scratch->subtype & 0xF;
-        const uint8_t routine = (scratch->subtype & 0xF0) ? 6 : 2;
-        const bool flip = obj->status.o.f.x_flip;
-        Object *drop = obj;
+        const int count = self->subtype & 0xF;
+        const uint8_t routine = (self->subtype & 0xF0) ? 6 : 2;
+        const bool flip = ((self->status & SST_STATUS_X_FLIP) != 0);
+        Sst *drop = self;
         for (int i = 0; i <= count; i++) {
             if (i > 0) {
-                drop = FindNextFreeObj(obj + 1);
+                drop = Sst_AllocateAfter(self);
                 if (drop == NULL)
                     break;
             }
-            Scratch_CPZWorm *ds = (Scratch_CPZWorm *)&drop->scratch;
-            drop->type = obj->type;
+            Own_CPZWorm *ds = (Own_CPZWorm *)drop->own.u8;
+            drop->code = self->code;
             drop->routine = routine;
-            drop->pos.l.x.f.u = obj->pos.l.x.f.u;
-            drop->pos.l.y.f.u = obj->pos.l.y.f.u;
+            drop->x_pos.f.u = self->x_pos.f.u;
+            drop->y_pos.f.u = self->y_pos.f.u;
             drop->mappings = Mappings_CPZWorm;
-            drop->tile = TILE_MAP(0, 3, 0, 0, ARTTILE_CPZ_WORM);
-            drop->render.b = 4;
-            drop->priority = 3;
-            drop->col_type = 0x8B;
-            ds->base_x = drop->pos.l.x.f.u;
-            ds->base_y = drop->pos.l.y.f.u;
-            drop->ysp = -0x480;
-            ds->jump = drop->ysp;
+            drop->art_tile = TILE_MAP(0, 3, 0, 0, ARTTILE_CPZ_WORM);
+            drop->render_flags = 4;
+            drop->priority = 3 * 0x80;
+            drop->collision_flags = 0x8B;
+            ds->base_x = drop->x_pos.f.u;
+            ds->base_y = drop->y_pos.f.u;
+            drop->y_vel = -0x480;
+            ds->jump = drop->y_vel;
             drop->width_pixels = 8;
             ds->hop = flip ? -0x60 : 0x60;
             ds->drift = flip ? -0x0B : 0x0B;
@@ -998,36 +1002,36 @@ void Obj_CPZWorm(Object *obj) {
     }
     case 2:
     case 6: // waiting to jump
-        if (--scratch->wait < 0) {
-            obj->routine += 2;
-            scratch->wait = 0x3B;
+        if (--own->wait < 0) {
+            self->routine += 2;
+            own->wait = 0x3B;
             PlaySound(sfx_Gloop); // (the alpha's $DA: the prototype's was the fireball's $AE)
         }
         break;
     case 4: // jumping, and drifting to one side and then to the other
-        SpeedToPos(obj);
-        obj->xsp += scratch->drift;
-        obj->ysp += 0x18;
-        if (obj->ysp == 0)
-            scratch->drift = (int16_t)-scratch->drift;
-        if (!((uint16_t)scratch->base_y > (uint16_t)obj->pos.l.y.f.u)) {
-            obj->ysp = scratch->jump;
-            obj->xsp = 0;
-            obj->routine -= 2;
+        Sst_MoveSprite2(self);
+        self->x_vel += own->drift;
+        self->y_vel += 0x18;
+        if (self->y_vel == 0)
+            own->drift = (int16_t)-own->drift;
+        if (!((uint16_t)own->base_y > (uint16_t)self->y_pos.f.u)) {
+            self->y_vel = own->jump;
+            self->x_vel = 0;
+            self->routine -= 2;
         }
         break;
     default: // 8: jumping, and hopping sideways at the top
-        SpeedToPos(obj);
-        obj->ysp += 0x18;
-        if (obj->ysp == 0)
-            obj->pos.l.x.f.u = (int16_t)(scratch->hop + scratch->base_x);
-        if (!((uint16_t)scratch->base_y > (uint16_t)obj->pos.l.y.f.u)) {
-            obj->ysp = scratch->jump;
-            obj->pos.l.x.f.u = scratch->base_x;
+        Sst_MoveSprite2(self);
+        self->y_vel += 0x18;
+        if (self->y_vel == 0)
+            self->x_pos.f.u = (int16_t)(own->hop + own->base_x);
+        if (!((uint16_t)own->base_y > (uint16_t)self->y_pos.f.u)) {
+            self->y_vel = own->jump;
+            self->x_pos.f.u = own->base_x;
         }
         break;
     }
-    RememberState(obj);
+    SstOnScreenTest(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -1042,49 +1046,49 @@ typedef struct {
     uint8_t swing;    // 0x3D
     uint8_t pauses;   // 0x3E
     uint8_t reload;   // 0x3F
-} Scratch_FloatingPlatform;
+} Own_FloatingPlatform;
 
-void Obj_FloatingPlatform(Object *obj) {
-    Scratch_FloatingPlatform *scratch = (Scratch_FloatingPlatform *)&obj->scratch;
+void Obj_FloatingPlatform(Sst *self) {
+    Own_FloatingPlatform *own = (Own_FloatingPlatform *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        obj->mappings = Mappings_FloatingPlatform;
-        obj->tile = TILE_MAP(1, 3, 0, 0, ARTTILE_CPZ_BLOCK);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 0x10;
-        obj->priority = 4;
-        scratch->base_y = (int16_t)(obj->pos.l.y.f.u - 0x10);
-        scratch->pauses = scratch->reload = scratch->subtype & 0xF;
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_FloatingPlatform;
+        self->art_tile = TILE_MAP(1, 3, 0, 0, ARTTILE_CPZ_BLOCK);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x10;
+        self->priority = 4 * 0x80;
+        own->base_y = (int16_t)(self->y_pos.f.u - 0x10);
+        own->pauses = own->reload = self->subtype & 0xF;
     }
 
     int16_t sin, cos;
-    const uint8_t angle = scratch->phase;
+    const uint8_t angle = own->phase;
     bool bob = true; // (loc_14AC0) the usual bob; the swing (loc_14A8E) is the other
     if (angle == 0) {
         if ((frame_count & 0x3FF) == 0) {
-            scratch->swing = 1;
-            scratch->phase++;
+            own->swing = 1;
+            own->phase++;
         }
     } else if (angle != 0x80) {
-        scratch->phase++;
+        own->phase++;
     } else {
-        const uint8_t d1 = scratch->swing;
-        if (d1 != 0 || (int8_t)--scratch->pauses >= 0) {
-            scratch->swing++;
+        const uint8_t d1 = own->swing;
+        if (d1 != 0 || (int8_t)--own->pauses >= 0) {
+            own->swing++;
             CalcSine(d1, &sin, &cos);
-            obj->pos.l.y.f.u = (int16_t)(scratch->base_y + (((sin + 8) >> 6) - 0x10));
+            self->y_pos.f.u = (int16_t)(own->base_y + (((sin + 8) >> 6) - 0x10));
             bob = false;
         } else {
-            scratch->pauses = scratch->reload;
-            scratch->phase++;
+            own->pauses = own->reload;
+            own->phase++;
         }
     }
     if (bob) {
         CalcSine(angle, &sin, &cos);
-        obj->pos.l.y.f.u = (int16_t)(scratch->base_y + ((cos + 8) >> 4));
+        self->y_pos.f.u = (int16_t)(own->base_y + ((cos + 8) >> 4));
     }
     FOR_EACH_CHARACTER(chr, who)
-        Solid_Platform(obj, chr, who, obj->width_pixels, 9, obj->pos.l.x.f.u);
-    RememberState(obj);
+        SolidSst_Platform(self, chr, who, self->width_pixels, 9, self->x_pos.f.u);
+    SstOnScreenTest(self);
 }

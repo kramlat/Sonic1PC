@@ -90,7 +90,7 @@ static void BossFinal_Main(Sst *self, Own_BossFinal *s) {
         o->anim_frame = 0;
         o->anim_frame_timer = 0;
         o->mapping_frame = 0;
-        o->priority = BF_ObjData2[i].priority;
+        o->priority = (uint16_t)(BF_ObjData2[i].priority * 0x80);
         o->width_pixels = BF_ObjData2[i].width;
         o->y_radius = (int8_t)BF_ObjData2[i].height;
         o->render_flags = SST_RENDER_LEVEL;

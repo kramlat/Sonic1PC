@@ -1,6 +1,9 @@
 // Metropolis' other objects for Sonic 2 (the Simon Wai prototype's 67, 6C, 6E, 6F, 70 and 72; the first batch is in MTZObjects.c): the teleporter that lifts a character and sends him along a path (67), the platforms that
 // go round a path of points (6C), the machinery (6E) and the gears (70) that go round to the oscillators, the parallelogram elevators (6F) and the conveyor belts (72).
 #include "Object/MTZObjects.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Game.h"
@@ -11,7 +14,7 @@
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
 #include "Oscillatory Routines.h"
-#include "Solid.h"
+#include "SolidSst.h"
 #include "Sound.h"
 
 #include "Macros.h"
@@ -37,9 +40,9 @@ static int16_t Osc(int offset) {
     return (int16_t)(uint8_t)(oscillatory.state[offset >> 2][0] >> 8);
 }
 
-static void ForgetIfRemembered(Object *obj) {
-    if (obj->respawn_index)
-        objstate[obj->respawn_index] &= 0x7F;
+static void ForgetIfRemembered(Sst *self) {
+    if (self->respawn)
+        (*SstLoad_State(self)) &= 0x7F;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -61,7 +64,7 @@ typedef struct {
     uint8_t subtype;   // 0x28
     uint8_t pad0[3];   // 0x29-0x2B
     TeleportChar chr[2]; // 0x2C and 0x36
-} Scratch_Teleport;
+} Own_Teleport;
 
 enum { TeleportState_Free = 0, TeleportState_Lift = 2, TeleportState_Path = 4 };
 
@@ -179,9 +182,9 @@ static void Teleport_Aim(Sst *chr, TeleportChar *tc, int16_t tx, int16_t ty) {
 }
 
 // loc_1B278: the path starts at its first point (or, for a negative subtype, its last)
-static void Teleport_Start(Scratch_Teleport *scratch, Sst *chr, TeleportChar *tc) {
-    const bool back = (int8_t)scratch->subtype < 0;
-    const int number = (back ? -(int8_t)scratch->subtype : scratch->subtype) & 0xF;
+static void Teleport_Start(Sst *self, Own_Teleport *own, Sst *chr, TeleportChar *tc) {
+    const bool back = (int8_t)self->subtype < 0;
+    const int number = (back ? -(int8_t)self->subtype : self->subtype) & 0xF;
     const uint16_t *p = teleport_paths[number];
     const int words = teleport_path_bytes[number] / 2;
     tc->count = (int16_t)(teleport_path_bytes[number] - 4);
@@ -197,17 +200,17 @@ static void Teleport_Start(Scratch_Teleport *scratch, Sst *chr, TeleportChar *tc
     Teleport_Aim(chr, tc, (int16_t)p[tc->pos], (int16_t)p[tc->pos + 1]);
 }
 
-static void Teleport_Step(Object *obj, Scratch_Teleport *scratch, Sst *chr, TeleportChar *tc) {
+static void Teleport_Step(Sst *self, Own_Teleport *own, Sst *chr, TeleportChar *tc) {
     switch (tc->state) {
     case TeleportState_Free: { // loc_1B138
         if (debug_use)
             return;
-        int16_t d0 = (int16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u + 3);
-        if (obj->status.b & 1)
+        int16_t d0 = (int16_t)(chr->x_pos.f.u - self->x_pos.f.u + 3);
+        if (self->status & 1)
             d0 += 0x0A;
         if ((uint16_t)d0 >= 0x10)
             return;
-        int16_t d1 = (int16_t)(chr->y_pos.f.u - obj->pos.l.y.f.u + 0x20);
+        int16_t d1 = (int16_t)(chr->y_pos.f.u - self->y_pos.f.u + 0x20);
         if ((uint16_t)d1 >= 0x40)
             return;
         if (OBJ_CONTROL(chr) != 0)
@@ -218,24 +221,24 @@ static void Teleport_Step(Object *obj, Scratch_Teleport *scratch, Sst *chr, Tele
         chr->ground_vel = 0x800;
         chr->x_vel = 0;
         chr->y_vel = 0;
-        obj->status.b &= (uint8_t)~0x20;
+        self->status &= (uint8_t)~0x20;
         chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
         chr->status |= SST_PSTATUS_IN_AIR;
-        chr->x_pos.f.u = obj->pos.l.x.f.u;
-        chr->y_pos.f.u = obj->pos.l.y.f.u;
+        chr->x_pos.f.u = self->x_pos.f.u;
+        chr->y_pos.f.u = self->y_pos.f.u;
         tc->angle = 0;
         PlaySound(sfx_Roll);
-        obj->anim = 1;
-        obj->prev_anim = 0;
+        self->anim = 1;
+        self->prev_anim = 0;
         return;
     }
     case TeleportState_Lift: { // loc_1B1C8: up a few pixels and back down
         int16_t sin, cos;
         CalcSine(tc->angle, &sin, &cos);
         tc->angle = (uint8_t)(tc->angle + 2);
-        chr->y_pos.f.u = (int16_t)(obj->pos.l.y.f.u - (sin >> 5));
+        chr->y_pos.f.u = (int16_t)(self->y_pos.f.u - (sin >> 5));
         if (tc->angle == 0x80) {
-            Teleport_Start(scratch, chr, tc);
+            Teleport_Start(self, own, chr, tc);
             tc->state += 2;
             PlaySound(sfx_Teleport);
         }
@@ -247,8 +250,8 @@ static void Teleport_Step(Object *obj, Scratch_Teleport *scratch, Sst *chr, Tele
             chr->y_pos.v += chr->y_vel * 256;
             return;
         }
-        const bool back = (int8_t)scratch->subtype < 0;
-        const int number = (back ? -(int8_t)scratch->subtype : scratch->subtype) & 0xF;
+        const bool back = (int8_t)self->subtype < 0;
+        const int number = (back ? -(int8_t)self->subtype : self->subtype) & 0xF;
         const uint16_t *p = teleport_paths[number];
         chr->x_pos.f.u = (int16_t)p[tc->pos];
         chr->y_pos.f.u = (int16_t)p[tc->pos + 1];
@@ -258,7 +261,7 @@ static void Teleport_Step(Object *obj, Scratch_Teleport *scratch, Sst *chr, Tele
             chr->y_pos.f.u &= 0x07FF;
             tc->state = TeleportState_Free;
             OBJ_CONTROL(chr) = 0;
-            if (!(scratch->subtype & 0x10)) {
+            if (!(self->subtype & 0x10)) {
                 chr->x_vel = 0;
                 chr->y_vel = 0;
             }
@@ -270,31 +273,31 @@ static void Teleport_Step(Object *obj, Scratch_Teleport *scratch, Sst *chr, Tele
     }
 }
 
-void Obj_MTZTeleport(Object *obj) {
-    Scratch_Teleport *scratch = (Scratch_Teleport *)&obj->scratch;
+void Obj_MTZTeleport(Sst *self) {
+    Own_Teleport *own = (Own_Teleport *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        obj->mappings = Mappings_MTZTeleport;
-        obj->tile = TILE_MAP(0, 3, 0, 0, 0x33C);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 0x10;
-        obj->priority = 5;
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_MTZTeleport;
+        self->art_tile = TILE_MAP(0, 3, 0, 0, 0x33C);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x10;
+        self->priority = 5 * 0x80;
     } else {
-        Teleport_Step(obj, scratch, player, &scratch->chr[0]);
+        Teleport_Step(self, own, player, &own->chr[0]);
         if (TAILS_OBJ->code != NULL)
-            Teleport_Step(obj, scratch, TAILS_OBJ, &scratch->chr[1]);
+            Teleport_Step(self, own, TAILS_OBJ, &own->chr[1]);
     }
 
-    if (scratch->chr[0].state == 0 && scratch->chr[1].state == 0) { // (MarkObjGone3: nothing is drawn while it is idle)
-        if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-            ForgetIfRemembered(obj);
-            ObjectDelete(obj);
+    if (own->chr[0].state == 0 && own->chr[1].state == 0) { // (MarkObjGone3: nothing is drawn while it is idle)
+        if (SstOutOfRange(self->x_pos.f.u)) {
+            ForgetIfRemembered(self);
+            Sst_Delete(self);
         }
         return;
     }
-    AnimateSprite(obj, Animation_MTZTeleport);
-    DisplaySprite(obj);
+    Sst_Animate(self, Animation_MTZTeleport);
+    Sst_Draw(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -313,19 +316,19 @@ typedef struct {
     int8_t step;       // 0x3A: 4 or -4
     uint8_t pad1;      // 0x3B
     uint8_t path;      // 0x3C: which of the three
-} Scratch_MovingPlatform;
+} Own_MovingPlatform;
 
 // loc_1C112: sets the speed to go to the goal at a pixel a frame along the longer axis; the shorter axis is given the fraction (of 256) it moves each frame, and the remainder as where in the pixel it starts
-static void MovingPlatform_Aim(Object *obj, Scratch_MovingPlatform *scratch) {
-    int16_t dx = (int16_t)(obj->pos.l.x.f.u - scratch->goal_x);
-    int16_t dy = (int16_t)(obj->pos.l.y.f.u - scratch->goal_y);
+static void MovingPlatform_Aim(Sst *self, Own_MovingPlatform *own) {
+    int16_t dx = (int16_t)(self->x_pos.f.u - own->goal_x);
+    int16_t dy = (int16_t)(self->y_pos.f.u - own->goal_y);
     int16_t sx = -0x100, sy = -0x100;
     uint16_t ax = (uint16_t)dx, ay = (uint16_t)dy;
-    if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)scratch->goal_x) { // (the carry of the subtraction: it is to the left of its goal)
+    if ((uint16_t)self->x_pos.f.u < (uint16_t)own->goal_x) { // (the carry of the subtraction: it is to the left of its goal)
         ax = (uint16_t)-dx;
         sx = 0x100;
     }
-    if ((uint16_t)obj->pos.l.y.f.u < (uint16_t)scratch->goal_y) {
+    if ((uint16_t)self->y_pos.f.u < (uint16_t)own->goal_y) {
         ay = (uint16_t)-dy;
         sy = 0x100;
     }
@@ -338,10 +341,10 @@ static void MovingPlatform_Aim(Object *obj, Scratch_MovingPlatform *scratch) {
             vx = (int16_t)-quotient;
             sub = (uint16_t)remainder;
         }
-        obj->xsp = vx;
-        obj->ysp = sy;
-        obj->pos.l.x.v = (int32_t)(((uint32_t)obj->pos.l.x.v & 0xFFFF0000u) | sub);
-        obj->pos.l.y.v = (int32_t)((uint32_t)obj->pos.l.y.v & 0xFFFF0000u);
+        self->x_vel = vx;
+        self->y_vel = sy;
+        self->x_pos.v = (int32_t)(((uint32_t)self->x_pos.v & 0xFFFF0000u) | sub);
+        self->y_pos.v = (int32_t)((uint32_t)self->y_pos.v & 0xFFFF0000u);
     } else { // along x
         int16_t vy = 0;
         uint16_t sub = 0;
@@ -351,89 +354,89 @@ static void MovingPlatform_Aim(Object *obj, Scratch_MovingPlatform *scratch) {
             vy = (int16_t)-quotient;
             sub = (uint16_t)remainder;
         }
-        obj->ysp = vy;
-        obj->xsp = sx;
-        obj->pos.l.y.v = (int32_t)(((uint32_t)obj->pos.l.y.v & 0xFFFF0000u) | sub);
-        obj->pos.l.x.v = (int32_t)((uint32_t)obj->pos.l.x.v & 0xFFFF0000u);
+        self->y_vel = vy;
+        self->x_vel = sx;
+        self->y_pos.v = (int32_t)(((uint32_t)self->y_pos.v & 0xFFFF0000u) | sub);
+        self->x_pos.v = (int32_t)((uint32_t)self->x_pos.v & 0xFFFF0000u);
     }
 }
 
 // loc_1C0B6: at its goal it picks the next point; and always it moves
-static void MovingPlatform_Move(Object *obj, Scratch_MovingPlatform *scratch) {
-    if (obj->pos.l.x.f.u == scratch->goal_x && obj->pos.l.y.f.u == scratch->goal_y) {
-        uint8_t next = (uint8_t)(scratch->index + scratch->step);
-        if (next >= scratch->size)
-            next = (next & 0x80) ? (uint8_t)(scratch->size - 4) : 0;
-        scratch->index = next;
-        const int16_t *point = &moving_paths[scratch->path][next / 2];
-        scratch->goal_x = (int16_t)(point[0] + scratch->base_x);
-        scratch->goal_y = (int16_t)(point[1] + scratch->base_y);
-        MovingPlatform_Aim(obj, scratch);
+static void MovingPlatform_Move(Sst *self, Own_MovingPlatform *own) {
+    if (self->x_pos.f.u == own->goal_x && self->y_pos.f.u == own->goal_y) {
+        uint8_t next = (uint8_t)(own->index + own->step);
+        if (next >= own->size)
+            next = (next & 0x80) ? (uint8_t)(own->size - 4) : 0;
+        own->index = next;
+        const int16_t *point = &moving_paths[own->path][next / 2];
+        own->goal_x = (int16_t)(point[0] + own->base_x);
+        own->goal_y = (int16_t)(point[1] + own->base_y);
+        MovingPlatform_Aim(self, own);
     }
-    SpeedToPos(obj);
+    Sst_MoveSprite2(self);
 }
 
-void Obj_MTZMovingPlatform(Object *obj) {
-    Scratch_MovingPlatform *scratch = (Scratch_MovingPlatform *)&obj->scratch;
+void Obj_MTZMovingPlatform(Sst *self) {
+    Own_MovingPlatform *own = (Own_MovingPlatform *)self->own.u8;
 
-    if (obj->routine == 0) {
-        if (scratch->subtype & 0x80) { // loc_1C04A: a ring of platforms
-            const int list = scratch->subtype & 0x7F;
-            const int16_t x = obj->pos.l.x.f.u, y = obj->pos.l.y.f.u;
-            Object *platform = obj;
+    if (self->routine == 0) {
+        if (self->subtype & 0x80) { // loc_1C04A: a ring of platforms
+            const int list = self->subtype & 0x7F;
+            const int16_t x = self->x_pos.f.u, y = self->y_pos.f.u;
+            Sst *platform = self;
             for (int i = 0; i < 8; i++) {
                 if (i > 0) {
-                    platform = FindFreeObj();
+                    platform = Sst_Allocate();
                     if (platform == NULL)
                         break;
                 }
                 const int16_t *entry = moving_spawns[list % 3][i];
-                platform->type = 0x6C;
-                platform->pos.l.x.f.u = (int16_t)(x + entry[0]);
-                platform->pos.l.y.f.u = (int16_t)(y + entry[1]);
-                Scratch_MovingPlatform *other = (Scratch_MovingPlatform *)&platform->scratch;
+                platform->code = sst_object_codes[0x6C];
+                platform->x_pos.f.u = (int16_t)(x + entry[0]);
+                platform->y_pos.f.u = (int16_t)(y + entry[1]);
+                Own_MovingPlatform *other = (Own_MovingPlatform *)platform->own.u8;
                 other->base_x = x;
                 other->base_y = y;
-                other->subtype = (uint8_t)entry[2];
-                platform->status.b = obj->status.b;
+                platform->subtype = (uint8_t)entry[2];
+                platform->status = self->status;
             }
             return; // (and nothing is drawn)
         }
-        obj->routine += 2;
-        obj->mappings = Mappings_MTZMovingPlatform;
-        obj->tile = TILE_MAP(0, 3, 0, 0, 0x3F9);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 0x10;
-        obj->priority = 4;
-        obj->frame = 0;
-        scratch->path = (uint8_t)((scratch->subtype >> 4) % 3);
-        scratch->size = 0x28;
-        uint8_t index = (uint8_t)((scratch->subtype & 0xF) << 2);
-        scratch->step = 4;
-        if (obj->status.b & 1) {
-            scratch->step = -4;
-            uint8_t next = (uint8_t)(index + scratch->step);
-            if (next >= scratch->size)
-                next = (next & 0x80) ? (uint8_t)(scratch->size - 4) : 0;
+        self->routine += 2;
+        self->mappings = Mappings_MTZMovingPlatform;
+        self->art_tile = TILE_MAP(0, 3, 0, 0, 0x3F9);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x10;
+        self->priority = 4 * 0x80;
+        self->mapping_frame = 0;
+        own->path = (uint8_t)((self->subtype >> 4) % 3);
+        own->size = 0x28;
+        uint8_t index = (uint8_t)((self->subtype & 0xF) << 2);
+        own->step = 4;
+        if (self->status & 1) {
+            own->step = -4;
+            uint8_t next = (uint8_t)(index + own->step);
+            if (next >= own->size)
+                next = (next & 0x80) ? (uint8_t)(own->size - 4) : 0;
             index = next;
         }
-        scratch->index = index;
-        const int16_t *point = &moving_paths[scratch->path][index / 2];
-        scratch->goal_x = (int16_t)(point[0] + scratch->base_x);
-        scratch->goal_y = (int16_t)(point[1] + scratch->base_y);
-        MovingPlatform_Aim(obj, scratch);
+        own->index = index;
+        const int16_t *point = &moving_paths[own->path][index / 2];
+        own->goal_x = (int16_t)(point[0] + own->base_x);
+        own->goal_y = (int16_t)(point[1] + own->base_y);
+        MovingPlatform_Aim(self, own);
     }
 
-    const int16_t old_x = obj->pos.l.x.f.u;
-    MovingPlatform_Move(obj, scratch);
+    const int16_t old_x = self->x_pos.f.u;
+    MovingPlatform_Move(self, own);
     FOR_EACH_CHARACTER(chr, who)
-        Solid_Platform(obj, chr, who, 0x10, 8, old_x);
+        SolidSst_Platform(self, chr, who, 0x10, 8, old_x);
 
-    if (IS_OFFSCREEN(scratch->base_x)) { // (it is not forgotten: it is gone for good)
-        ObjectDelete(obj);
+    if (SstOutOfRange(own->base_x)) { // (it is not forgotten: it is gone for good)
+        Sst_Delete(self);
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -446,67 +449,67 @@ typedef struct {
     int16_t base_y;    // 0x30
     uint8_t pad1[2];   // 0x32-0x33
     int16_t base_x;    // 0x34
-} Scratch_Machine;
+} Own_Machine;
 
 enum { MachineRoutine_Init = 0, MachineRoutine_Solid = 2, MachineRoutine_Show = 4 };
 
 // loc_1C2F8: the width and height of each (and the frame, 0-3)
 static const uint8_t machine_sizes[4][2] = { { 0x10, 0x0C }, { 0x28, 0x08 }, { 0x60, 0x18 }, { 0x0C, 0x0C } };
 
-static void Machine_Place(Object *obj, Scratch_Machine *scratch, int16_t d1, int16_t d2) {
-    if (scratch->subtype & 1) {
+static void Machine_Place(Sst *self, Own_Machine *own, int16_t d1, int16_t d2) {
+    if (self->subtype & 1) {
         d1 = (int16_t)-d1;
         d2 = (int16_t)-d2;
     }
-    if (scratch->subtype & 2) {
+    if (self->subtype & 2) {
         d1 = (int16_t)-d1;
         const int16_t swap = d1;
         d1 = d2;
         d2 = swap;
     }
-    obj->pos.l.x.f.u = (int16_t)(scratch->base_x + d1);
-    obj->pos.l.y.f.u = (int16_t)(scratch->base_y + d2);
+    self->x_pos.f.u = (int16_t)(own->base_x + d1);
+    self->y_pos.f.u = (int16_t)(own->base_y + d2);
 }
 
-void Obj_MTZMachine(Object *obj) {
-    Scratch_Machine *scratch = (Scratch_Machine *)&obj->scratch;
+void Obj_MTZMachine(Sst *self) {
+    Own_Machine *own = (Own_Machine *)self->own.u8;
 
-    if (obj->routine == MachineRoutine_Init) {
-        obj->routine += 2;
-        obj->mappings = Mappings_MTZMachine;
-        obj->tile = TILE_MAP(0, 3, 0, 0, 0);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 4;
-        const int size = (scratch->subtype >> 4) & 3;
-        obj->width_pixels = machine_sizes[size][0];
-        obj->y_rad = (int8_t)machine_sizes[size][1];
-        obj->frame = (uint8_t)size;
-        scratch->base_x = obj->pos.l.x.f.u;
-        scratch->base_y = obj->pos.l.y.f.u;
+    if (self->routine == MachineRoutine_Init) {
+        self->routine += 2;
+        self->mappings = Mappings_MTZMachine;
+        self->art_tile = TILE_MAP(0, 3, 0, 0, 0);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        const int size = (self->subtype >> 4) & 3;
+        self->width_pixels = machine_sizes[size][0];
+        self->y_radius = (int8_t)machine_sizes[size][1];
+        self->mapping_frame = (uint8_t)size;
+        own->base_x = self->x_pos.f.u;
+        own->base_y = self->y_pos.f.u;
         if (size == 3) {
-            obj->routine = MachineRoutine_Show;
-            obj->tile = TILE_MAP(0, 3, 0, 0, 0x3F0);
-            obj->priority = 5;
+            self->routine = MachineRoutine_Show;
+            self->art_tile = TILE_MAP(0, 3, 0, 0, 0x3F0);
+            self->priority = 5 * 0x80;
         }
     }
 
-    if (obj->routine == MachineRoutine_Solid) {
-        const int16_t old_x = obj->pos.l.x.f.u;
-        Machine_Place(obj, scratch, (int16_t)(int8_t)(Osc(0x20) - 0x38), (int16_t)(int8_t)(Osc(0x24) - 0x38));
-        if (obj->render.f.on_screen) {
+    if (self->routine == MachineRoutine_Solid) {
+        const int16_t old_x = self->x_pos.f.u;
+        Machine_Place(self, own, (int16_t)(int8_t)(Osc(0x20) - 0x38), (int16_t)(int8_t)(Osc(0x24) - 0x38));
+        if ((self->render_flags & SST_RENDER_ON_SCREEN)) {
             FOR_EACH_CHARACTER(chr, who)
-                Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), obj->y_rad, (int16_t)(obj->y_rad + 1), old_x, NULL);
+                SolidSst_Character(self, chr, who, (int16_t)(self->width_pixels + 0xB), self->y_radius, (int16_t)(self->y_radius + 1), old_x, NULL);
         }
     } else {
-        Machine_Place(obj, scratch, (int16_t)(int8_t)((uint8_t)(Osc(0x20) >> 1) - 0x1C), (int16_t)(int8_t)((uint8_t)(Osc(0x24) >> 1) - 0x1C));
+        Machine_Place(self, own, (int16_t)(int8_t)((uint8_t)(Osc(0x20) >> 1) - 0x1C), (int16_t)(int8_t)((uint8_t)(Osc(0x24) >> 1) - 0x1C));
     }
 
-    if (IS_OFFSCREEN(scratch->base_x)) {
-        ForgetIfRemembered(obj);
-        ObjectDelete(obj);
+    if (SstOutOfRange(own->base_x)) {
+        ForgetIfRemembered(self);
+        Sst_Delete(self);
         return;
     }
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -523,60 +526,60 @@ typedef struct {
     uint8_t step;      // 0x38: the byte of the path the next step is at
     uint8_t pad2[3];   // 0x39-0x3B
     uint8_t path;      // 0x3C
-} Scratch_Elevator;
+} Own_Elevator;
 
 // loc_1C604: the next step
-static void Elevator_NextStep(Object *obj, Scratch_Elevator *scratch) {
-    const int16_t *step = elevator_paths[scratch->path][scratch->step / 6];
-    obj->xsp = step[0];
-    obj->ysp = step[1];
-    scratch->timer = step[2];
-    scratch->step = (uint8_t)(scratch->step + 6);
-    if (!(elevator_path_sizes[scratch->path] > scratch->step))
-        scratch->step = 0;
+static void Elevator_NextStep(Sst *self, Own_Elevator *own) {
+    const int16_t *step = elevator_paths[own->path][own->step / 6];
+    self->x_vel = step[0];
+    self->y_vel = step[1];
+    own->timer = step[2];
+    own->step = (uint8_t)(own->step + 6);
+    if (!(elevator_path_sizes[own->path] > own->step))
+        own->step = 0;
 }
 
-void Obj_MTZElevator(Object *obj) {
-    Scratch_Elevator *scratch = (Scratch_Elevator *)&obj->scratch;
+void Obj_MTZElevator(Sst *self) {
+    Own_Elevator *own = (Own_Elevator *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        obj->mappings = Mappings_MTZElevator;
-        obj->tile = TILE_MAP(0, 3, 0, 0, 0x53F);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 4;
-        obj->width_pixels = 0x80;
-        obj->y_rad = 0x20;
-        scratch->base_x = obj->pos.l.x.f.u;
-        scratch->base_y = obj->pos.l.y.f.u;
-        scratch->path = (uint8_t)(((scratch->subtype >> 4) & 7) % 5);
-        Elevator_NextStep(obj, scratch);
-        scratch->subtype &= 0x0F;
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_MTZElevator;
+        self->art_tile = TILE_MAP(0, 3, 0, 0, 0x53F);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x80;
+        self->y_radius = 0x20;
+        own->base_x = self->x_pos.f.u;
+        own->base_y = self->y_pos.f.u;
+        own->path = (uint8_t)(((self->subtype >> 4) & 7) % 5);
+        Elevator_NextStep(self, own);
+        self->subtype &= 0x0F;
     }
 
-    const int16_t old_x = obj->pos.l.x.f.u;
-    switch (scratch->subtype) {
+    const int16_t old_x = self->x_pos.f.u;
+    switch (self->subtype) {
     case 1:
-        if (obj->status.b & 0x18)
-            scratch->subtype++;
+        if (self->status & 0x18)
+            self->subtype++;
         break;
     case 2:
-        SpeedToPos(obj);
-        if (--scratch->timer == 0)
-            Elevator_NextStep(obj, scratch);
+        Sst_MoveSprite2(self);
+        if (--own->timer == 0)
+            Elevator_NextStep(self, own);
         break;
     }
     FOR_EACH_CHARACTER(chr, who)
-        Solid_CharacterDouble(obj, chr, who, obj->width_pixels, old_x, elevator_slope);
+        SolidSst_CharacterDouble(self, chr, who, self->width_pixels, old_x, elevator_slope);
 
-    if (!IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        DisplaySprite(obj);
+    if (!SstOutOfRange(self->x_pos.f.u)) {
+        Sst_Draw(self);
         return;
     }
-    if (!IS_OFFSCREEN(scratch->base_x))
+    if (!SstOutOfRange(own->base_x))
         return;
-    ForgetIfRemembered(obj);
-    ObjectDelete(obj);
+    ForgetIfRemembered(self);
+    Sst_Delete(self);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -590,77 +593,73 @@ typedef struct {
     int16_t base_x;    // 0x32
     uint16_t column;   // 0x34: which gear it is of the eight, in threes
     uint16_t row;      // 0x36: how far round the ring, in $18
-} Scratch_Gear;
+} Own_Gear;
 
-void Obj_MTZGear(Object *obj) {
-    Scratch_Gear *scratch = (Scratch_Gear *)&obj->scratch;
+void Obj_MTZGear(Sst *self) {
+    Own_Gear *own = (Own_Gear *)self->own.u8;
 
-    if (obj->routine == 0) {
-        const int16_t x = obj->pos.l.x.f.u, y = obj->pos.l.y.f.u;
+    if (self->routine == 0) {
+        const int16_t x = self->x_pos.f.u, y = self->y_pos.f.u;
         uint16_t column = 0;
-        Object *gear = obj;
-        obj->status.b |= 0x80;
+        Sst *gear = self;
+        self->status |= 0x80;
         for (int i = 0; i < 8; i++) {
             if (i > 0) {
-                gear = FindNextFreeObj(obj + 1);
+                gear = Sst_AllocateAfter(self);
                 if (gear == NULL)
                     break;
             }
-            gear->type = obj->type;
+            gear->code = self->code;
             gear->routine += 2;
             gear->mappings = Mappings_MTZGear;
-            gear->tile = TILE_MAP(0, 3, 0, 0, 0x378);
-            gear->render.b = SPRITE_CAM_FIELD;
-            gear->priority = 4;
+            gear->art_tile = TILE_MAP(0, 3, 0, 0, 0x378);
+            gear->render_flags = SST_RENDER_LEVEL;
+            gear->priority = 4 * 0x80;
             gear->width_pixels = 0x10;
-            Scratch_Gear *other = (Scratch_Gear *)&gear->scratch;
+            Own_Gear *other = (Own_Gear *)gear->own.u8;
             other->base_x = x;
             other->base_y = y;
-            gear->pos.l.x.f.u = (int16_t)(x + gear_positions[i].x);
-            gear->pos.l.y.f.u = (int16_t)(y + gear_positions[i].y);
-            gear->frame = gear_positions[i].frame;
+            gear->x_pos.f.u = (int16_t)(x + gear_positions[i].x);
+            gear->y_pos.f.u = (int16_t)(y + gear_positions[i].y);
+            gear->mapping_frame = gear_positions[i].frame;
             other->column = column;
             column += 3;
-            gear->status.b = obj->status.b;
+            gear->status = self->status;
         }
     }
 
-    const int16_t old_x = obj->pos.l.x.f.u;
+    const int16_t old_x = self->x_pos.f.u;
     if ((frame_count & 0xF) == 0) {
-        int16_t row = (int16_t)scratch->row;
-        if (obj->status.b & 1) {
+        int16_t row = (int16_t)own->row;
+        if (self->status & 1) {
             row -= 0x18;
             if (row < 0) {
                 row = 0x48;
-                scratch->column -= 3;
-                if ((int16_t)scratch->column < 0)
-                    scratch->column = 0x15;
+                own->column -= 3;
+                if ((int16_t)own->column < 0)
+                    own->column = 0x15;
             }
         } else {
             row += 0x18;
             if (row >= 0x60) {
                 row = 0;
-                scratch->column += 3;
-                if (scratch->column >= 0x18)
-                    scratch->column = 0;
+                own->column += 3;
+                if (own->column >= 0x18)
+                    own->column = 0;
             }
         }
-        scratch->row = (uint16_t)row;
-        const int index = (row + scratch->column) / 3;
-        obj->pos.l.x.f.u = (int16_t)(scratch->base_x + gear_positions[index].x);
-        obj->pos.l.y.f.u = (int16_t)(scratch->base_y + gear_positions[index].y);
-        obj->frame = gear_positions[index].frame;
+        own->row = (uint16_t)row;
+        const int index = (row + own->column) / 3;
+        self->x_pos.f.u = (int16_t)(own->base_x + gear_positions[index].x);
+        self->y_pos.f.u = (int16_t)(own->base_y + gear_positions[index].y);
+        self->mapping_frame = gear_positions[index].frame;
     }
-    const int size = (obj->frame * 2) & 0x1E;
+    const int size = (self->mapping_frame * 2) & 0x1E;
     const int16_t width = gear_sizes[size], height = gear_sizes[size + 1];
     FOR_EACH_CHARACTER(chr, who)
-        Solid_Character(obj, chr, who, width, height, height, old_x, NULL);
+        SolidSst_Character(self, chr, who, width, height, height, old_x, NULL);
 
-    if (IS_OFFSCREEN(scratch->base_x)) {
-        ObjectDelete(obj);
-        return;
-    }
-    DisplaySprite(obj);
+    SstOnScreenTest2(self, own->base_x);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -672,35 +671,35 @@ typedef struct {
     uint8_t pad0[13];  // 0x29-0x35
     int16_t speed;     // 0x36
     uint8_t range;     // 0x38
-} Scratch_Conveyor;
+} Own_Conveyor;
 
-static void Conveyor_Carry(Object *obj, Scratch_Conveyor *scratch, Sst *chr) {
-    const int16_t range = scratch->range;
-    int16_t d0 = (int16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u + range);
+static void Conveyor_Carry(Sst *self, Own_Conveyor *own, Sst *chr) {
+    const int16_t range = own->range;
+    int16_t d0 = (int16_t)(chr->x_pos.f.u - self->x_pos.f.u + range);
     if ((uint16_t)d0 >= (uint16_t)(range * 2))
         return;
-    int16_t d1 = (int16_t)(chr->y_pos.f.u - obj->pos.l.y.f.u + 0x30);
+    int16_t d1 = (int16_t)(chr->y_pos.f.u - self->y_pos.f.u + 0x30);
     if ((uint16_t)d1 >= 0x30)
         return;
     if (((chr->status & SST_PSTATUS_IN_AIR) != 0))
         return;
-    chr->x_pos.f.u = (int16_t)(chr->x_pos.f.u + scratch->speed);
+    chr->x_pos.f.u = (int16_t)(chr->x_pos.f.u + own->speed);
 }
 
-void Obj_MTZConveyor(Object *obj) {
-    Scratch_Conveyor *scratch = (Scratch_Conveyor *)&obj->scratch;
+void Obj_MTZConveyor(Sst *self) {
+    Own_Conveyor *own = (Own_Conveyor *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        scratch->range = (uint8_t)(scratch->subtype << 4);
-        scratch->speed = (obj->status.b & 1) ? -2 : 2;
+    if (self->routine == 0) {
+        self->routine += 2;
+        own->range = (uint8_t)(self->subtype << 4);
+        own->speed = (self->status & 1) ? -2 : 2;
     }
-    Conveyor_Carry(obj, scratch, player);
+    Conveyor_Carry(self, own, player);
     if (TAILS_OBJ->code != NULL)
-        Conveyor_Carry(obj, scratch, TAILS_OBJ);
+        Conveyor_Carry(self, own, TAILS_OBJ);
 
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) { // MarkObjGone3
-        ForgetIfRemembered(obj);
-        ObjectDelete(obj);
+    if (SstOutOfRange(self->x_pos.f.u)) { // MarkObjGone3
+        ForgetIfRemembered(self);
+        Sst_Delete(self);
     }
 }

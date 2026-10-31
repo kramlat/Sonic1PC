@@ -1,5 +1,8 @@
 // Hidden Palace's badniks for Sonic 2 (Nick Arcade's objects 4C and 4F): the BBat, a bat that hangs about and swoops at Sonic in an arc, and the Redz, a dinosaur that walks to the edge of its floor and back.
 #include "Object/HPZBadniks.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -34,152 +37,152 @@ typedef struct {
     uint8_t turned;       // 0x3D: it swoops to the right
     uint8_t first;        // 0x3E: which way it faces next while it looks about
     uint8_t arc;          // 0x3F: its angle on the arc
-} Scratch_BBat;
+} Own_BBat;
 
 enum { BBatRoutine_Init = 0, BBatRoutine_Main = 2, BBatRoutine_Attack = 4 };
 enum { BBatSub_Wait = 0, BBatSub_Flap = 2, BBatSub_Seek = 4 };
 
-static void BBat_SetFlip(Object *obj, bool flip) {
-    obj->render.f.x_flip = flip;
-    obj->status.o.f.x_flip = flip;
+static void BBat_SetFlip(Sst *self, bool flip) {
+    SST_RENDER_SET(self, SST_RENDER_X_FLIP, flip);
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, flip);
 }
 
 // Sonic within 128 pixels wakes it (BBat_WaitForPlayer): true if it was woken
-static bool BBat_WaitForPlayer(Object *obj, Scratch_BBat *scratch) {
-    int16_t d0 = obj->pos.l.x.f.u - player->x_pos.f.u;
+static bool BBat_WaitForPlayer(Sst *self, Own_BBat *own) {
+    int16_t d0 = self->x_pos.f.u - player->x_pos.f.u;
     if (d0 > 0x80 || d0 < -0x80)
         return false;
-    obj->routine_sec = BBatSub_Seek;
-    obj->anim = 2;
-    scratch->timer = 8;
-    scratch->first = 0;
+    self->routine_secondary = BBatSub_Seek;
+    self->anim = 2;
+    own->timer = 8;
+    own->first = 0;
     return true;
 }
 
 // It notices Sonic within 96 pixels and swoops (BBat_AttackPlayer). Returns what the original leaves in its zero flag: true if the rest of the frame's looking about is to be skipped
-static bool BBat_AttackPlayer(Object *obj, Scratch_BBat *scratch) {
-    scratch->detect_timer--;
-    if (scratch->detect_timer >= 0)
-        return scratch->detect_timer == 0;
+static bool BBat_AttackPlayer(Sst *self, Own_BBat *own) {
+    own->detect_timer--;
+    if (own->detect_timer >= 0)
+        return own->detect_timer == 0;
 
-    int16_t d0 = obj->pos.l.x.f.u - player->x_pos.f.u;
+    int16_t d0 = self->x_pos.f.u - player->x_pos.f.u;
     if (d0 > 0x60 || d0 < -0x60) {
         if (d0 <= 0x80 && d0 > -0x80)
             return false; // (between 96 and 128 pixels: nothing happens)
-        obj->anim = 1;
-        obj->routine_sec = BBatSub_Wait;
-        scratch->timer = 0x18;
+        self->anim = 1;
+        self->routine_secondary = BBatSub_Wait;
+        own->timer = 0x18;
         return false;
     }
     if (d0 < 0)
-        scratch->turned = 0xFF;
-    scratch->arc = 0x40;
-    obj->inertia = 0x400;
-    obj->routine = BBatRoutine_Attack;
-    obj->anim = 3;
-    scratch->timer = 0xC;
-    scratch->first = 1;
+        own->turned = 0xFF;
+    own->arc = 0x40;
+    self->ground_vel = 0x400;
+    self->routine = BBatRoutine_Attack;
+    self->anim = 3;
+    own->timer = 0xC;
+    own->first = 1;
     return true;
 }
 
-static void BBat_Hover(Object *obj, Scratch_BBat *scratch) {
-    switch (obj->routine_sec) {
+static void BBat_Hover(Sst *self, Own_BBat *own) {
+    switch (self->routine_secondary) {
     case BBatSub_Wait:
-        if ((int16_t)--scratch->timer >= 0)
+        if ((int16_t)--own->timer >= 0)
             return;
-        if (BBat_WaitForPlayer(obj, scratch))
+        if (BBat_WaitForPlayer(self, own))
             return;
         if ((uint8_t)RandomNumber() != 0) // (one frame in 256)
             return;
-        scratch->timer = 0x18;
-        scratch->detect_timer = 0x1E;
-        obj->routine_sec = BBatSub_Flap;
-        obj->anim = 1;
-        scratch->first = 0;
+        own->timer = 0x18;
+        own->detect_timer = 0x1E;
+        self->routine_secondary = BBatSub_Flap;
+        self->anim = 1;
+        own->first = 0;
         break;
     case BBatSub_Flap: { // (counts the high byte of its timer, which is 0: one frame)
-        uint8_t high = (uint8_t)(scratch->timer >> 8);
+        uint8_t high = (uint8_t)(own->timer >> 8);
         high--;
-        scratch->timer = (uint16_t)((scratch->timer & 0xFF) | (high << 8));
+        own->timer = (uint16_t)((own->timer & 0xFF) | (high << 8));
         if (high & 0x80)
-            obj->routine_sec = BBatSub_Wait;
+            self->routine_secondary = BBatSub_Wait;
         break;
     }
     case BBatSub_Seek:
-        if (BBat_AttackPlayer(obj, scratch))
+        if (BBat_AttackPlayer(self, own))
             return;
-        if (--scratch->timer != 0)
+        if (--own->timer != 0)
             return;
-        if (scratch->first) {
-            scratch->first = 0;
-            scratch->timer = 8;
-            BBat_SetFlip(obj, true);
+        if (own->first) {
+            own->first = 0;
+            own->timer = 8;
+            BBat_SetFlip(self, true);
         } else {
-            scratch->first = 1;
-            scratch->timer = 0xC;
-            BBat_SetFlip(obj, false);
+            own->first = 1;
+            own->timer = 0xC;
+            BBat_SetFlip(self, false);
         }
         break;
     }
 }
 
-void Obj_BBat(Object *obj) {
-    Scratch_BBat *scratch = (Scratch_BBat *)&obj->scratch;
+void Obj_BBat(Sst *self) {
+    Own_BBat *own = (Own_BBat *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case BBatRoutine_Init:
-        obj->mappings = Mappings_BBat;
-        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_BBat); // (palette line 2: Nick Arcade\x27s mistake, its flame and ears look odd)
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->col_type = 0xA;
-        obj->priority = 4;
-        obj->width_pixels = 0x10;
-        obj->y_rad = 0x10;
-        obj->x_rad = 8;
-        obj->routine += 2;
-        scratch->home_y = obj->pos.l.y.f.u;
+        self->mappings = Mappings_BBat;
+        self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_BBat); // (palette line 2: Nick Arcade\x27s mistake, its flame and ears look odd)
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->collision_flags = 0xA;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x10;
+        self->y_radius = 0x10;
+        self->x_radius = 8;
+        self->routine += 2;
+        own->home_y = self->y_pos.f.u;
         break;
     case BBatRoutine_Main: {
-        BBat_Hover(obj, scratch);
+        BBat_Hover(self, own);
         // its arc
         int16_t sin, cos;
-        CalcSine(scratch->arc, &sin, &cos);
-        obj->pos.l.y.f.u = (int16_t)(scratch->home_y + (sin >> 6));
-        scratch->arc += 4;
-        AnimateSprite(obj, Animation_BBat);
-        RememberState(obj);
+        CalcSine(own->arc, &sin, &cos);
+        self->y_pos.f.u = (int16_t)(own->home_y + (sin >> 6));
+        own->arc += 4;
+        Sst_Animate(self, Animation_BBat);
+        SstOnScreenTest(self);
         break;
     }
     case BBatRoutine_Attack: {
         int16_t sin, cos;
         // BBat_Move: its speed from the angle on the arc
-        CalcSine(scratch->arc, &sin, &cos);
-        obj->xsp = (int16_t)(((int32_t)cos * obj->inertia) >> 8);
-        obj->ysp = (int16_t)(((int32_t)sin * obj->inertia) >> 8);
+        CalcSine(own->arc, &sin, &cos);
+        self->x_vel = (int16_t)(((int32_t)cos * self->ground_vel) >> 8);
+        self->y_vel = (int16_t)(((int32_t)sin * self->ground_vel) >> 8);
         // BBat_ArcMotion
         bool done;
-        if (!scratch->turned) {
-            done = scratch->arc >= 0xC0;
+        if (!own->turned) {
+            done = own->arc >= 0xC0;
             if (!done)
-                scratch->arc += 2;
+                own->arc += 2;
         } else {
-            done = scratch->arc == 0xC0;
+            done = own->arc == 0xC0;
             if (!done)
-                scratch->arc -= 2;
+                own->arc -= 2;
         }
         if (done) {
-            scratch->turned = 0;
-            obj->routine = BBatRoutine_Main;
-            obj->routine_sec = BBatSub_Wait;
-            scratch->timer = 0x18;
-            obj->anim = 1;
-            BBat_SetFlip(obj, false);
+            own->turned = 0;
+            self->routine = BBatRoutine_Main;
+            self->routine_secondary = BBatSub_Wait;
+            own->timer = 0x18;
+            self->anim = 1;
+            BBat_SetFlip(self, false);
         }
-        if (scratch->turned)
-            BBat_SetFlip(obj, true);
-        SpeedToPos(obj);
-        AnimateSprite(obj, Animation_BBat);
-        RememberState(obj);
+        if (own->turned)
+            BBat_SetFlip(self, true);
+        Sst_MoveSprite2(self);
+        Sst_Animate(self, Animation_BBat);
+        SstOnScreenTest(self);
         break;
     }
     }
@@ -192,61 +195,61 @@ typedef struct {
     uint8_t subtype;     // 0x28
     uint8_t pad0[7];     // 0x29-0x2F
     int16_t wait_timer;  // 0x30
-} Scratch_Redz;
+} Own_Redz;
 
 enum { RedzRoutine_Init = 0, RedzRoutine_Main = 2, RedzRoutine_Delete = 4 };
 
-void Obj_Redz(Object *obj) {
-    Scratch_Redz *scratch = (Scratch_Redz *)&obj->scratch;
+void Obj_Redz(Sst *self) {
+    Own_Redz *own = (Own_Redz *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case RedzRoutine_Init: {
-        obj->mappings = Mappings_Redz;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Redz);
-        obj->render.b = SPRITE_CAM_FIELD;
-        obj->priority = 4;
-        obj->width_pixels = 0x10;
-        obj->y_rad = 0x10;
-        obj->x_rad = 6;
-        obj->col_type = 0xC;
-        ObjectFall(obj);
-        int16_t d1 = ObjFloorDist(obj, obj->pos.l.x.f.u);
+        self->mappings = Mappings_Redz;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Redz);
+        self->render_flags = SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x10;
+        self->y_radius = 0x10;
+        self->x_radius = 6;
+        self->collision_flags = 0xC;
+        Sst_MoveSprite(self);
+        int16_t d1 = SstFloorDist(self, self->x_pos.f.u);
         if (d1 < 0) {
-            obj->pos.l.y.f.u += d1;
-            obj->ysp = 0;
-            obj->routine += 2;
-            obj->status.o.f.x_flip ^= 1;
+            self->y_pos.f.u += d1;
+            self->y_vel = 0;
+            self->routine += 2;
+            self->status ^= SST_STATUS_X_FLIP;
         }
         break;
     }
     case RedzRoutine_Main:
-        if (obj->routine_sec == 0) { // waits, then walks off
-            if (--scratch->wait_timer < 0) {
-                obj->routine_sec += 2;
-                obj->xsp = -0x80;
-                obj->anim = 1;
-                bool was_set = obj->status.o.f.x_flip;
-                obj->status.o.f.x_flip ^= 1;
+        if (self->routine_secondary == 0) { // waits, then walks off
+            if (--own->wait_timer < 0) {
+                self->routine_secondary += 2;
+                self->x_vel = -0x80;
+                self->anim = 1;
+                bool was_set = ((self->status & SST_STATUS_X_FLIP) != 0);
+                self->status ^= SST_STATUS_X_FLIP;
                 if (!was_set)
-                    obj->xsp = -obj->xsp;
+                    self->x_vel = -self->x_vel;
             }
         } else { // walks until the floor ends
-            SpeedToPos(obj);
-            int16_t d1 = ObjFloorDist(obj, obj->pos.l.x.f.u);
+            Sst_MoveSprite2(self);
+            int16_t d1 = SstFloorDist(self, self->x_pos.f.u);
             if (d1 < -8 || d1 >= 0xC) {
-                obj->routine_sec -= 2;
-                scratch->wait_timer = 59;
-                obj->xsp = 0;
-                obj->anim = 0;
+                self->routine_secondary -= 2;
+                own->wait_timer = 59;
+                self->x_vel = 0;
+                self->anim = 0;
             } else {
-                obj->pos.l.y.f.u += d1;
+                self->y_pos.f.u += d1;
             }
         }
-        AnimateSprite(obj, Animation_Redz);
-        RememberState(obj);
+        Sst_Animate(self, Animation_Redz);
+        SstOnScreenTest(self);
         break;
     case RedzRoutine_Delete:
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     }
 }
@@ -259,87 +262,87 @@ typedef struct {
     uint8_t subtype;     // 0x28
     uint8_t pad0[7];     // 0x29-0x2F
     int16_t wait_timer;  // 0x30
-} Scratch_Rhinobot;
+} Own_Rhinobot;
 
 enum { RhinoAnim_Walk = 0, RhinoAnim_Still = 1, RhinoAnim_Charge = 2 };
 
 // It looks for Sonic: behind it, it walks on; within $60 pixels in front of it, it charges (Offset_0x0229DC)
-static void Rhinobot_Chase(Object *obj) {
-    const int16_t d0 = (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
-    const bool facing_right = obj->status.o.f.x_flip;
+static void Rhinobot_Chase(Sst *self) {
+    const int16_t d0 = (int16_t)(self->x_pos.f.u - player->x_pos.f.u);
+    const bool facing_right = ((self->status & SST_STATUS_X_FLIP) != 0);
     if (d0 < 0) { // Sonic is to its right
         if (d0 < -0x60)
             return;
         if (facing_right) {
-            obj->anim = RhinoAnim_Charge;
-            obj->xsp = 0x200;
+            self->anim = RhinoAnim_Charge;
+            self->x_vel = 0x200;
         } else {
-            obj->anim = RhinoAnim_Walk;
-            obj->xsp = -0x80;
+            self->anim = RhinoAnim_Walk;
+            self->x_vel = -0x80;
         }
     } else { // to its left
         if (d0 > 0x60)
             return;
         if (facing_right) {
-            obj->anim = RhinoAnim_Walk;
-            obj->xsp = 0x80;
+            self->anim = RhinoAnim_Walk;
+            self->x_vel = 0x80;
         } else {
-            obj->anim = RhinoAnim_Charge;
-            obj->xsp = -0x200;
+            self->anim = RhinoAnim_Charge;
+            self->x_vel = -0x200;
         }
     }
 }
 
-void Obj_Rhinobot(Object *obj) {
-    Scratch_Rhinobot *scratch = (Scratch_Rhinobot *)&obj->scratch;
+void Obj_Rhinobot(Sst *self) {
+    Own_Rhinobot *own = (Own_Rhinobot *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: {
-        obj->mappings = Mappings_Rhinobot;
-        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Rhinobot);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->col_type = 0x0A;
-        obj->priority = 4;
-        obj->width_pixels = 0x18;
-        obj->y_rad = 0x10;
-        obj->x_rad = 0x18;
-        ObjectFall(obj);
-        const int16_t d1 = ObjFloorDist(obj, obj->pos.l.x.f.u);
+        self->mappings = Mappings_Rhinobot;
+        self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Rhinobot);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->collision_flags = 0x0A;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x18;
+        self->y_radius = 0x10;
+        self->x_radius = 0x18;
+        Sst_MoveSprite(self);
+        const int16_t d1 = SstFloorDist(self, self->x_pos.f.u);
         if (d1 < 0) {
-            obj->pos.l.y.f.u += d1;
-            obj->ysp = 0;
-            obj->routine += 2;
+            self->y_pos.f.u += d1;
+            self->y_vel = 0;
+            self->routine += 2;
         }
         break;
     }
     case 2:
-        if (obj->routine_sec == 0) { // waits, then walks off
-            if (--scratch->wait_timer < 0) {
-                obj->routine_sec += 2;
-                obj->xsp = -0x80;
-                obj->anim = RhinoAnim_Walk;
-                const bool was_set = obj->status.o.f.x_flip;
-                obj->status.o.f.x_flip ^= 1;
+        if (self->routine_secondary == 0) { // waits, then walks off
+            if (--own->wait_timer < 0) {
+                self->routine_secondary += 2;
+                self->x_vel = -0x80;
+                self->anim = RhinoAnim_Walk;
+                const bool was_set = ((self->status & SST_STATUS_X_FLIP) != 0);
+                self->status ^= SST_STATUS_X_FLIP;
                 if (!was_set)
-                    obj->xsp = -obj->xsp;
+                    self->x_vel = -self->x_vel;
             }
         } else { // walks or charges until the floor ends
-            Rhinobot_Chase(obj);
-            ObjectFall(obj);
-            const int16_t d1 = ObjFloorDist(obj, obj->pos.l.x.f.u);
+            Rhinobot_Chase(self);
+            Sst_MoveSprite(self);
+            const int16_t d1 = SstFloorDist(self, self->x_pos.f.u);
             if (d1 < -8) { // the floor ends: back a step, and stands a while
-                obj->routine_sec -= 2;
-                scratch->wait_timer = 0x3B;
-                obj->pos.l.x.v -= (int32_t)obj->xsp << 8;
-                obj->xsp = 0;
-                obj->anim = RhinoAnim_Still;
+                self->routine_secondary -= 2;
+                own->wait_timer = 0x3B;
+                self->x_pos.v -= (int32_t)self->x_vel << 8;
+                self->x_vel = 0;
+                self->anim = RhinoAnim_Still;
             } else if (d1 < 0xC) {
-                obj->ysp = 0;
-                obj->pos.l.y.f.u += d1;
+                self->y_vel = 0;
+                self->y_pos.f.u += d1;
             }
         }
-        AnimateSprite(obj, Animation_Rhinobot);
-        RememberState(obj);
+        Sst_Animate(self, Animation_Rhinobot);
+        SstOnScreenTest(self);
         break;
     }
 }

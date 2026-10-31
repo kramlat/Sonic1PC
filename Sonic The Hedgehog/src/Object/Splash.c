@@ -92,18 +92,18 @@ void Splash_Make(void) {
         splash_companion->subtype = 1;
 }
 
-static Sst *Companion(void) {
+Sst *Splash_Companion(void) {
     return splash_companion != NULL && splash_companion->code == sst_object_codes[ObjId_Splash] && splash_companion->subtype == 1 ? splash_companion : NULL;
 }
 
 void Splash_SetAnim(uint8_t anim) {
-    Sst *c = Companion();
+    Sst *c = Splash_Companion();
     if (c != NULL)
         c->anim = anim;
 }
 
 uint8_t Splash_GetAnim(void) {
-    const Sst *c = Companion();
+    const Sst *c = Splash_Companion();
     return c != NULL ? c->anim : SplashAnim_Null;
 }
 

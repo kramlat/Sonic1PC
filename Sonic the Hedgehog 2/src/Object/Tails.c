@@ -70,7 +70,7 @@ static uint16_t control_counter;
 // The last frame loaded of each of Tails' art windows
 static uint8_t last_frame_tails = 0xFF, last_frame_tail = 0xFF;
 
-static signed int HurtTails(Sst *self, Object *src);
+static signed int HurtTails(Sst *self, int16_t src_x, bool spikes);
 
 // General Sonic state stuff
 static inline uint8_t scratch_air(const Sst *self) {
@@ -97,7 +97,7 @@ static void Tails_Water(Sst *self) {
             self->y_vel = (int16_t)(self->y_vel << 1); // double Y-speed while leaving the water (not when he is hurt)
         if (self->y_vel == 0)
             return;
-        DustSplash_Show(&objects[DUST_TAILS_SLOT], DUST_SPLASH);
+        DustSplash_Show(&sst[DUST_TAILS_SLOT], DUST_SPLASH);
         if (self->y_vel < -0x1000)
             self->y_vel = -0x1000;
         PlaySound(sfx_Splash);
@@ -117,7 +117,7 @@ static void Tails_Water(Sst *self) {
         self->y_vel >>= 2;
         if (self->y_vel == 0)
             return;
-        DustSplash_Show(&objects[DUST_TAILS_SLOT], DUST_SPLASH);
+        DustSplash_Show(&sst[DUST_TAILS_SLOT], DUST_SPLASH);
         PlaySound(sfx_Splash);
     }
 }
@@ -717,7 +717,7 @@ static const uint8_t obj_sizes[][2] = {
     { 0x48, 0x8 },
 };
 
-static signed int React_ChkHurt(Sst *self, Object *hit) {
+static signed int React_ChkHurt(Sst *self, Sst *hit) {
     Scratch_Sonic* scratch = (Scratch_Sonic *)self->own.u8;
 
     // Check for invincibility or invulnerability
@@ -727,42 +727,41 @@ static signed int React_ChkHurt(Sst *self, Object *hit) {
         return -1;
 
     // Hurt Sonic
-    return HurtTails(self, hit);
+    return HurtTails(self, hit->x_pos.f.u, hit->code == sst_object_codes[ObjId_Spikes]);
 }
 
-static signed int React_Enemy(Sst *self, Object *hit)
+static signed int React_Enemy(Sst *self, Sst *hit)
 {
     // Check if we can hurt the enemy
     if (!(invincibility || self->anim == SonAnimId_Roll))
         return React_ChkHurt(self, hit);
 
     // The alpha's bosses are multi-sprite objects whose hit counter Sonic's touch counts down (the touch code of the alpha)
-    if (hit->render.f.multi_sprite) {
-        Scratch_AlphaBoss *boss = (Scratch_AlphaBoss *)&hit->scratch;
-        if (boss->hits) {
+    if ((hit->render_flags & SST_RENDER_MULTI_DRAW)) {
+        if (hit->collision_property) {
             self->x_vel = -self->x_vel;
             self->y_vel = -self->y_vel;
             if (boss_flag != 3) { // (Hill Top's does not take the speed from him)
                 self->x_vel >>= 1;
                 self->y_vel >>= 1;
             }
-            hit->col_type = 0;
-            boss->hits--;
+            hit->collision_flags = 0;
+            hit->collision_property--;
         }
         return 0;
     }
 
     // Check if enemy is a boss
-    if (hit->col_property) {
+    if (hit->collision_property) {
         // Hit boss
         self->x_vel = -self->x_vel >> 1;
         self->y_vel = -self->y_vel >> 1;
-        hit->col_type = 0;
-        if (!(--hit->col_property))
-            hit->status.o.f.flag7 = true;
+        hit->collision_flags = 0;
+        if (!(--hit->collision_property))
+            hit->status |= 0x80;
     } else {
         // Mark enemy touch flag
-        hit->status.o.f.flag7 = true;
+        hit->status |= 0x80;
 
         // Increment bonus
         uint8_t bonus = item_bonus;
@@ -771,23 +770,23 @@ static signed int React_Enemy(Sst *self, Object *hit)
         // Handle score bonus
         if (bonus >= 6)
             bonus = bonus;
-        hit->scratch.u16[0xB] = bonus;
+        hit->own.u16[0xB] = bonus;
 
         static const uint16_t points[] = { 10, 20, 50, 100 };
         uint16_t point_bonus = points[bonus >> 1];
         if (item_bonus >= 32) {
             point_bonus = 1000;
-            hit->scratch.u16[0xB] = 10;
+            hit->own.u16[0xB] = 10;
         }
 
         AddPoints(point_bonus);
 
         // Explode object and bounce
-        hit->type = ObjId_Explosion;
+        hit->code = sst_object_codes[ObjId_Explosion];
         hit->routine = 0;
 
         if (self->y_vel >= 0) {
-            if (self->y_pos.f.u < hit->pos.l.y.f.u)
+            if (self->y_pos.f.u < hit->y_pos.f.u)
                 self->y_vel = -self->y_vel;
             else
                 self->y_vel -= 0x100;
@@ -798,16 +797,16 @@ static signed int React_Enemy(Sst *self, Object *hit)
     return 0; // d0 not set
 }
 
-static signed int React_Monitor(Sst *self, Object *hit) {
+static signed int React_Monitor(Sst *self, Sst *hit) {
     if (self->y_vel < 0) {
         // Check if we're below the monitor
         uint16_t chky = self->y_pos.f.u - 0x10;
-        if ((uint16_t)hit->pos.l.y.f.u < chky) {
+        if ((uint16_t)hit->y_pos.f.u < chky) {
             // Bump monitor
             self->y_vel = -self->y_vel;
-            hit->ysp = -0x180;
-            if (!hit->routine_sec)
-                hit->routine_sec += 4;
+            hit->y_vel = -0x180;
+            if (!hit->routine_secondary)
+                hit->routine_secondary += 4;
         }
     } else if (self->anim == SonAnimId_Roll) {
         // Break monitor
@@ -834,10 +833,10 @@ static signed int ReactToItem(Sst *self) {
     height <<= 1;
 
     // Iterate through level objects
-    Object *hit = level_objects;
-    for (int i = 0; i < LEVEL_OBJECTS; i++, hit++) {
+    for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++) {
+        Sst *hit = &sst[i];
         // Check if object is collidable
-        if (!(hit->render.f.on_screen && hit->col_type))
+        if (hit->code == NULL || !((hit->render_flags & SST_RENDER_ON_SCREEN) && hit->collision_flags))
             continue;
 
         // The alpha's Hill Top boss has a second hitbox, its open cannon
@@ -850,41 +849,41 @@ static signed int ReactToItem(Sst *self) {
         }
 
         // Get object's size
-        const uint8_t *sizep = obj_sizes[hit->col_type & 0x3F];
+        const uint8_t *sizep = obj_sizes[hit->collision_flags & 0x3F];
         uint8_t hit_width = *sizep++;
         uint8_t hit_height = *sizep++;
 
         // Check if we're touching (same overlap test as the original's React_CheckHitboxOverlap)
-        int16_t x_diff = x - (hit->pos.l.x.f.u - hit_width);
-        int16_t y_diff = y - (hit->pos.l.y.f.u - hit_height);
+        int16_t x_diff = x - (hit->x_pos.f.u - hit_width);
+        int16_t y_diff = y - (hit->y_pos.f.u - hit_height);
 
         if (x_diff >= -width && x_diff <= hit_width * 2 && y_diff >= -height && y_diff <= hit_height * 2) {
             // Made contact
-            switch (hit->col_type & 0xC0) {
+            switch (hit->collision_flags & 0xC0) {
             case 0x00: // Enemy
                 return React_Enemy(self, hit);
             case 0xC0: // Special
-                if ((hit->col_type & 0x3F) == 0x0B) { // Caterkiller spiked body segment
-                    hit->status.o.f.flag7 = true; // mark segment touched -- read by Obj_Caterkiller to fragmentate
+                if ((hit->collision_flags & 0x3F) == 0x0B) { // Caterkiller spiked body segment
+                    hit->status |= 0x80; // mark segment touched -- read by Obj_Caterkiller to fragmentate
                     return React_ChkHurt(self, hit);
                 }
-                if ((hit->col_type & 0x3F) == 0x0C) { // Yadrin -- narrow "face" hitbox at the top only
-                    int16_t penetration = (int16_t)((y + height) - (hit->pos.l.y.f.u - hit_height));
+                if ((hit->collision_flags & 0x3F) == 0x0C) { // Yadrin -- narrow "face" hitbox at the top only
+                    int16_t penetration = (int16_t)((y + height) - (hit->y_pos.f.u - hit_height));
                     if (penetration < 8) {
-                        int16_t face_left = (int16_t)(hit->pos.l.x.f.u - 4);
-                        if (hit->status.o.f.x_flip)
+                        int16_t face_left = (int16_t)(hit->x_pos.f.u - 4);
+                        if ((hit->status & SST_STATUS_X_FLIP))
                             face_left -= 16;
                         if (x < (int16_t)(face_left + 24) && (int16_t)(x + width) > face_left)
                             return React_ChkHurt(self, hit);
                     }
                     return React_Enemy(self, hit);
                 }
-                switch (hit->col_type & 0x3F) { // the alpha's Touch_Special (the final's too): the object's own routine reads and clears col_property each frame, a bit for each character
+                switch (hit->collision_flags & 0x3F) { // the alpha's Touch_Special (the final's too): the object's own routine reads and clears col_property each frame, a bit for each character
                 case 6: case 0x14: case 0x15: case 0x16: case 0x17: // (the round bumper, the auto spin: bit 0 is Sonic's, bit 1 Tails')
-                    hit->col_property += 2;
+                    hit->collision_property += 2;
                     return 0;
                 case 0x21: // (a pole of Labyrinth's: counts the touches)
-                    hit->col_property++;
+                    hit->collision_property++;
                     return 0;
                 default:
                     break;
@@ -893,7 +892,7 @@ static signed int ReactToItem(Sst *self) {
             case 0x80: // Hurt
                 return React_ChkHurt(self, hit);
             case 0x40: // Other
-                if ((hit->col_type & 0x3F) == 6)
+                if ((hit->collision_flags & 0x3F) == 6)
                     return React_Monitor(self, hit);
                 if (scratch->flash_time < 90)
                     hit->routine = 4;
@@ -904,12 +903,12 @@ static signed int ReactToItem(Sst *self) {
     return 0;
 }
 
-int32_t Tails_Hurt(Sst *self, Object *src) {
-    return HurtTails(self, src);
+int32_t Tails_Hurt(Sst *self, Sst *src) {
+    return HurtTails(self, src->x_pos.f.u, src->code == sst_object_codes[ObjId_Spikes]);
 }
 
 // Sonic functions
-static signed int HurtTails(Sst *self, Object *src)
+static signed int HurtTails(Sst *self, int16_t src_x, bool spikes)
 {
     Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
@@ -930,21 +929,20 @@ static signed int HurtTails(Sst *self, Object *src)
     // Set Sonic state
     self->routine = 4;
     spindash_flag &= ~1;
-    objects[DUST_TAILS_SLOT].anim = DUST_NULL;
+    sst[DUST_TAILS_SLOT].anim = DUST_NULL;
     Tails_ResetOnFloor(self);
     self->status |= SST_PSTATUS_IN_AIR;
 
     self->x_vel = ((self->status & SST_PSTATUS_UNDERWATER) != 0) ? -0x100 : -0x200;
     self->y_vel = ((self->status & SST_PSTATUS_UNDERWATER) != 0) ? -0x200 : -0x400;
-    if (self->x_pos.f.u >= src->pos.l.x.f.u)
+    if (self->x_pos.f.u >= src_x)
         self->x_vel = -self->x_vel;
     self->ground_vel = 0;
 
     self->anim = SonAnimId_Hurt;
     scratch->flash_time = 120;
 
-    // LZ harpoon isn't ported yet -- only checking for Spikes here.
-    PlaySound((src->type == ObjId_Spikes) ? sfx_HitSpikes : sfx_Death);
+    PlaySound(spikes ? sfx_HitSpikes : sfx_Death);
     return -1;
 }
 
@@ -1560,7 +1558,7 @@ static void Tails_ReleaseSpindash(Sst *self) {
     self->anim = SonAnimId_Roll;
     self->status |= SST_PSTATUS_IN_BALL;
     PlaySound(sfx_Teleport);
-    objects[DUST_TAILS_SLOT].anim = DUST_NULL;
+    sst[DUST_TAILS_SLOT].anim = DUST_NULL;
 
     // Get release speed from the number of revs (the alpha's table: $80 for each step of the counter's high byte)
     int16_t speed = (int16_t)(0x800 + (((spindash_count >> 8) & 0xFF) << 7));
@@ -1602,8 +1600,8 @@ void Tails_CancelSpindash(void) {
         return;
     spindash_flag &= ~1;
     spindash_count = 0;
-    if (objects[DUST_TAILS_SLOT].anim == DUST_DASH)
-        objects[DUST_TAILS_SLOT].anim = DUST_NULL;
+    if (sst[DUST_TAILS_SLOT].anim == DUST_DASH)
+        sst[DUST_TAILS_SLOT].anim = DUST_NULL;
 }
 
 static bool Tails_SpinDash(Sst *self) {
@@ -1622,7 +1620,7 @@ static bool Tails_SpinDash(Sst *self) {
     spindash_flag |= 1;
     spindash_count = 0;
     if (scratch_air(self) >= 12)
-        DustSplash_Show(&objects[DUST_TAILS_SLOT], DUST_DASH);
+        DustSplash_Show(&sst[DUST_TAILS_SLOT], DUST_DASH);
 
     // Because we're skipping the rest of the normal-movement case
     Tails_LevelBound(self);
@@ -1812,7 +1810,7 @@ void Game_LevelObjects(void) {
     tails->y_pos.f.u = player->y_pos.f.u;
     memset(SST_TAILS_TAILS, 0, sizeof(Sst));
     if (LEVEL_ZONE(level_id) == ZoneId_OOZ)
-        objects[0x1E].type = 7; // (the oil, where Hidden Palace and the others have a water surface: Oil Ocean has no water)
+        Sst_Spawn(7, 0, 0); // (the oil, where Hidden Palace and the others have a water surface: Oil Ocean has no water)
     DustSplash_MakeTails(); // (the alpha's dust and splash for Tails)
     SplitScreen_LoadLevel(); // (a level picked with B in the level select is a two-player one: Tails is its second player)
 }

@@ -1,5 +1,8 @@
 // What the alpha's bosses of Metropolis and Hill Top share: see BossCommon.h
 #include "Object/BossCommon.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "EnginePalette.h"
@@ -21,7 +24,7 @@ void Boss_Move(void) {
 }
 
 // One part's step of Boss_AnimateSprite (Offset_0x026338): `pair` is the part's two bytes of the buffer, `frame` where its frame goes. Returns false where the original leaves without storing (the routine moves on)
-static bool BossAnimatePart(Scratch_AlphaBoss *scratch, const uint8_t *table, uint8_t *pair, uint8_t *frame) {
+static bool BossAnimatePart(Own_AlphaBoss *own, const uint8_t *table, uint8_t *pair, uint8_t *frame) {
     uint8_t d0 = pair[0];
     uint8_t d1 = d0 >> 4;
     d0 &= 0xF;
@@ -45,7 +48,7 @@ static bool BossAnimatePart(Scratch_AlphaBoss *scratch, const uint8_t *table, ui
                 d1 = 0;
                 d2 = script[1];
             } else if (d2 == 0xFE) { // moves the routine on
-                scratch->anim_routine += 2;
+                own->anim_routine += 2;
                 return false;
             } else if (d2 == 0xFD) { // changes the animation
                 d5 = (uint8_t)((d5 & 0xF0) | script[2 + d1]);
@@ -66,54 +69,54 @@ store:
     return true;
 }
 
-void Boss_AnimateSprite(Object *obj, Scratch_AlphaBoss *scratch, const uint8_t *table) {
+void Boss_AnimateSprite(Sst *self, Own_AlphaBoss *own, const uint8_t *table) {
     uint8_t *pair = boss_anim;
-    if (obj->frame != 0) {
-        if (!BossAnimatePart(scratch, table, pair, &obj->frame))
+    if (self->mapping_frame != 0) {
+        if (!BossAnimatePart(own, table, pair, &self->mapping_frame))
             return;
         pair += 2;
     } else {
         pair += 2;
     }
-    for (int i = 0; i < obj->child_count; i++, pair += 2) {
-        if (!BossAnimatePart(scratch, table, pair, &obj->children[i].frame))
+    for (int i = 0; i < self->child_count; i++, pair += 2) {
+        if (!BossAnimatePart(own, table, pair, &self->children[i].frame))
             return;
     }
 }
 
 // Offset_0x024580 and Boss_Hit: the ship bobs on its sine, and a hit flashes it (and lets the balls go)
-void Boss_Hit(Object *obj, Scratch_AlphaBoss *scratch) {
-    if (scratch->anim_routine >= 8)
+void Boss_Hit(Sst *self, Own_AlphaBoss *own) {
+    if (own->anim_routine >= 8)
         return;
-    if (scratch->hits == 0) { // (the touch code has counted them out)
+    if (self->collision_property == 0) { // (the touch code has counted them out)
         AddPoints(100);
         boss_move.timer = 0xB3;
-        scratch->anim_routine = 8;
+        own->anim_routine = 8;
         return;
     }
-    if (obj->col_type != 0)
+    if (self->collision_flags != 0)
         return;
-    if (scratch->flash == 0) {
-        scratch->flash = 0x20;
+    if (own->flash == 0) {
+        own->flash = 0x20;
         QueueSound2(sfx_HitBoss);
     }
     dry_palette[1][1] = (dry_palette[1][1] == 0) ? 0x0EEE : 0;
-    if (--scratch->flash == 0)
-        obj->col_type = 0xF;
+    if (--own->flash == 0)
+        self->collision_flags = 0xF;
 }
 
 
 // The wreck blows up (Boss_Defeated): every eight frames an explosion, a random distance (up to $20 each way) from the boss
-void Boss_Defeated(Object *obj) {
+void Boss_Defeated(Sst *self) {
     if (frame_count & 7)
         return;
-    Object *exp = FindFreeObj();
+    Sst *exp = Sst_Allocate();
     if (exp == NULL)
         return;
-    exp->type = ObjId_BossExplosionPiece;
-    exp->pos.l.x.f.u = obj->pos.l.x.f.u;
-    exp->pos.l.y.f.u = obj->pos.l.y.f.u;
+    exp->code = sst_object_codes[ObjId_BossExplosionPiece];
+    exp->x_pos.f.u = self->x_pos.f.u;
+    exp->y_pos.f.u = self->y_pos.f.u;
     const uint32_t rand = RandomNumber();
-    exp->pos.l.x.f.u += (int16_t)(((rand & 0xFF) >> 2) - 0x20);
-    exp->pos.l.y.f.u += (int16_t)((((rand >> 8) & 0xFF) >> 2) - 0x20);
+    exp->x_pos.f.u += (int16_t)(((rand & 0xFF) >> 2) - 0x20);
+    exp->y_pos.f.u += (int16_t)((((rand >> 8) & 0xFF) >> 2) - 0x20);
 }

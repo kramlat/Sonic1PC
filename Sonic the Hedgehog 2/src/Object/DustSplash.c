@@ -1,6 +1,9 @@
 // Object 08 of the alpha (Aug 21st 1992): the dust of the spin dash, the dust of the skid and the splash of the water, one object for each player. Where the prototype only has a splash (WaterObjects.c had it), it is all this
 // one now, with its own art that it brings into VRAM a frame at a time (the DPLC), 16 tiles for each player ($49C for Sonic, $48C for Tails).
 #include "Object/DustSplash.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -21,9 +24,9 @@ typedef struct {
     int8_t skid_timer;   // 0x32
     uint8_t owner;       // 0x3E: the slot of the player it belongs to
     uint16_t dest;       // 0x3C: where in VRAM its tiles go
-} Scratch_Dust;
+} Own_Dust;
 
-static Sst *Owner(const Scratch_Dust *dust) {
+static Sst *Owner(const Own_Dust *dust) {
     return dust->owner ? SST_PLAYER_2 : player;
 }
 
@@ -33,13 +36,13 @@ static uint16_t Air(const Sst *chr) {
 }
 
 // Brings the tiles of the frame into VRAM (Load_Dust_Water_Splash_Dynamic_PLC): the DPLC's runs, one after the other from where this dust's window starts
-static void LoadTiles(Object *obj, Scratch_Dust *dust) {
-    if (obj->frame == dust->last_frame)
+static void LoadTiles(Sst *self, Own_Dust *dust) {
+    if (self->mapping_frame == dust->last_frame)
         return;
-    dust->last_frame = obj->frame;
+    dust->last_frame = self->mapping_frame;
 
     const uint8_t *dplc = Mappings_DustSplashDPLC;
-    dplc += (dplc[obj->frame << 1] << 8) | dplc[(obj->frame << 1) + 1];
+    dplc += (dplc[self->mapping_frame << 1] << 8) | dplc[(self->mapping_frame << 1) + 1];
     int entries = (int16_t)((dplc[0] << 8) | dplc[1]);
     dplc += 2;
 
@@ -54,120 +57,122 @@ static void LoadTiles(Object *obj, Scratch_Dust *dust) {
     }
 }
 
-static void Show(Object *obj, Scratch_Dust *dust) {
-    AnimateSprite(obj, Animation_DustSplash);
-    LoadTiles(obj, dust);
-    DisplaySprite(obj);
+static void Show(Sst *self, Own_Dust *dust) {
+    Sst_Animate(self, Animation_DustSplash);
+    LoadTiles(self, dust);
+    Sst_Draw(self);
 }
 
 // Routine 2: by what it shows
-static void Main(Object *obj, Scratch_Dust *dust) {
+static void Main(Sst *self, Own_Dust *dust) {
     Sst *chr = Owner(dust);
-    switch (obj->anim) {
+    switch (self->anim) {
     case DUST_NULL:
         break;
     case DUST_SPLASH:
-        obj->pos.l.y.f.u = wtr_pos1;
-        if (!obj->prev_anim) { // (the first frame of it: it stays where it is afterwards)
-            obj->pos.l.x.f.u = chr->x_pos.f.u;
-            obj->status.b = 0;
-            obj->tile &= (uint16_t)~TILE_PRIORITY_AND;
+        self->y_pos.f.u = wtr_pos1;
+        if (!self->prev_anim) { // (the first frame of it: it stays where it is afterwards)
+            self->x_pos.f.u = chr->x_pos.f.u;
+            self->status = 0;
+            self->art_tile &= (uint16_t)~TILE_PRIORITY_AND;
         }
         break;
     case DUST_DASH:
         if (Air(chr) < 12) {
-            obj->anim = DUST_NULL;
+            self->anim = DUST_NULL;
             return;
         }
-        if (!obj->prev_anim) { // (it starts where the player is, and he stays put while he charges)
-            obj->pos.l.x.f.u = chr->x_pos.f.u;
-            obj->pos.l.y.f.u = chr->y_pos.f.u;
-            obj->status.b = chr->status;
+        if (!self->prev_anim) { // (it starts where the player is, and he stays put while he charges)
+            self->x_pos.f.u = chr->x_pos.f.u;
+            self->y_pos.f.u = chr->y_pos.f.u;
+            self->status = chr->status;
             if (dust->tails)
-                obj->pos.l.y.f.u -= 4;
+                self->y_pos.f.u -= 4;
             if (chr->art_tile & TILE_PRIORITY_AND)
-                obj->tile |= TILE_PRIORITY_AND;
+                self->art_tile |= TILE_PRIORITY_AND;
         }
         break;
     case DUST_SKID:
         if (Air(chr) < 12) {
-            obj->anim = DUST_NULL;
+            self->anim = DUST_NULL;
             return;
         }
         break;
     }
-    Show(obj, dust);
+    Show(self, dust);
 }
 
 // Routine 6: while the player skids (his animation 13) it makes a puff of dust every fourth frame, each an object that plays the skid's animation and goes
-static void Skid(Object *obj, Scratch_Dust *dust) {
+static void Skid(Sst *self, Own_Dust *dust) {
     Sst *chr = Owner(dust);
     if (chr->anim != SonAnimId_Stop) {
-        obj->routine = 2;
+        self->routine = 2;
         dust->skid_timer = 0;
         return;
     }
     if (--dust->skid_timer < 0) {
         dust->skid_timer = 3;
-        Object *puff = FindFreeObj();
+        Sst *puff = Sst_Allocate();
         if (puff != NULL) {
             memset(puff, 0, sizeof(*puff));
-            puff->type = obj->type;
-            puff->pos.l.x.f.u = chr->x_pos.f.u;
-            puff->pos.l.y.f.u = (int16_t)(chr->y_pos.f.u + 0x10);
+            puff->code = self->code;
+            puff->x_pos.f.u = chr->x_pos.f.u;
+            puff->y_pos.f.u = (int16_t)(chr->y_pos.f.u + 0x10);
             if (dust->tails)
-                puff->pos.l.y.f.u -= 4;
+                puff->y_pos.f.u -= 4;
             puff->anim = DUST_SKID;
             puff->routine = 2;
-            puff->mappings = obj->mappings;
-            puff->render.b = obj->render.b;
-            puff->priority = 1;
+            puff->mappings = self->mappings;
+            puff->render_flags = self->render_flags;
+            puff->priority = 1 * 0x80;
             puff->width_pixels = 4;
-            puff->tile = obj->tile;
-            Scratch_Dust *child = (Scratch_Dust *)&puff->scratch;
+            puff->art_tile = self->art_tile;
+            Own_Dust *child = (Own_Dust *)puff->own.u8;
             child->tails = dust->tails;
             child->owner = dust->owner;
             child->dest = dust->dest; // (the alpha forgets this one: its puffs would write their tiles at VRAM 0)
             if (chr->art_tile != 0)
-                puff->tile |= TILE_PRIORITY_AND;
+                puff->art_tile |= TILE_PRIORITY_AND;
         }
     }
-    LoadTiles(obj, dust);
+    LoadTiles(self, dust);
 }
 
-void DustSplash_Show(Object *dust, uint8_t what) {
+void DustSplash_Show(Sst *dust, uint8_t what) {
+    if (dust == NULL)
+        return;
     dust->anim = what;
     dust->prev_anim = 0;
 }
 
-void Obj_DustSplash(Object *obj) {
-    Scratch_Dust *dust = (Scratch_Dust *)&obj->scratch;
-    switch (obj->routine) {
+void Obj_DustSplash(Sst *self) {
+    Own_Dust *dust = (Own_Dust *)self->own.u8;
+    switch (self->routine) {
     case 0:
-        obj->routine += 2;
-        obj->mappings = Mappings_DustSplash;
-        obj->render.f.level_fg = true;
-        obj->priority = 1;
-        obj->width_pixels = 0x10;
+        self->routine += 2;
+        self->mappings = Mappings_DustSplash;
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 1 * 0x80;
+        self->width_pixels = 0x10;
         dust->owner = dust->tails ? 1 : 0; // (the character: 0 is Sonic, 1 Tails)
         dust->dest = dust->tails ? 0x9180 : 0x9380; // tiles $48C and $49C
-        obj->tile = TILE_MAP(0, 0, 0, 0, dust->tails ? 0x48C : 0x49C);
+        self->art_tile = TILE_MAP(0, 0, 0, 0, dust->tails ? 0x48C : 0x49C);
         // Fallthrough
     case 2:
-        Main(obj, dust);
+        Main(self, dust);
         break;
     case 4:
-        ObjectDelete(obj);
+        Sst_Delete(self);
         break;
     case 6:
-        Skid(obj, dust);
+        Skid(self, dust);
         break;
     }
 }
 
 void DustSplash_MakeTails(void) {
-    Object *dust = &objects[DUST_TAILS_SLOT];
+    Sst *dust = &sst[DUST_TAILS_SLOT];
     memset(dust, 0, sizeof(*dust));
-    dust->type = ObjId_Splash;
-    ((Scratch_Dust *)&dust->scratch)->tails = 1;
+    dust->code = sst_object_codes[ObjId_Splash];
+    ((Own_Dust *)dust->own.u8)->tails = 1;
 }

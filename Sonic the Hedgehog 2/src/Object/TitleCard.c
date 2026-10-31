@@ -217,6 +217,28 @@ static uint8_t TitleCard_AnimalsPlc(int zone) {
     }
 }
 
+// The four elements of the level's title card, in the order they were made (NULL where the card is not there)
+static Sst *TitleCard_Element(int n) {
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_TitleCard] && n-- == 0)
+            return &sst[i];
+    return NULL;
+}
+
+bool TitleCard_Arrived(void) {
+    const Sst *zone = TitleCard_Element(2);
+    return zone == NULL || zone->x_pos.f.u == ((const Own_TitleCard *)zone->own.u8)->main_x;
+}
+
+void TitleCard_Leave(void) {
+    static const uint8_t add[4] = { 2, 4, 4, 4 };
+    for (int i = 0; i < 4; i++) {
+        Sst *e = TitleCard_Element(i);
+        if (e != NULL)
+            e->routine = (uint8_t)(e->routine + add[i]);
+    }
+}
+
 // Title card object
 void Obj_TitleCard(Sst *self) {
     Own_TitleCard *own = (Own_TitleCard *)self->own.u8;

@@ -54,7 +54,7 @@ static void BossMarble_Main(Sst *self, Own_BossMarble *own) {
         sub->routine_secondary = 0;
         sub->routine = BMZ_ObjData[i].routine;
         sub->anim = BMZ_ObjData[i].anim;
-        sub->priority = BMZ_ObjData[i].priority;
+        sub->priority = (uint16_t)(BMZ_ObjData[i].priority * 0x80);
         sub->code = sst_object_codes[ObjId_BossMarble];
         sub->x_pos.f.u = self->x_pos.f.u;
         sub->y_pos.f.u = self->y_pos.f.u;

@@ -1,7 +1,7 @@
 #ifndef _BOSSCOMMON_H
 #define _BOSSCOMMON_H
 
-#include "Object.h"
+#include "Sst.h"
 #include "MathUtil.h"
 
 // What the alpha's bosses of Metropolis and Hill Top share (its Boss_Move, Boss_AnimateSprite and Boss_Hit, and the explosions of a wreck, Boss_Defeated): a buffer for the boss's place as 16.16 numbers and its speed,
@@ -16,7 +16,7 @@ typedef struct {
     uint8_t flag;         // 0x38
     uint8_t side;         // 0x2C: (Hill Top's) which side of the arena it is on
     uint8_t count;        // 0x3E
-} Scratch_AlphaBoss;
+} Own_AlphaBoss;
 
 typedef struct {
     dword_s x, y;
@@ -29,9 +29,9 @@ extern uint8_t boss_anim[16];
 extern uint8_t boss_flag; // the alpha's Boss_Flag: which boss is there (3: Hill Top's)
 
 void Boss_Move(void);
-void Boss_AnimateSprite(Object *obj, Scratch_AlphaBoss *boss, const uint8_t *table);
-void Boss_Hit(Object *obj, Scratch_AlphaBoss *boss);
-void Boss_Defeated(Object *obj);
+void Boss_AnimateSprite(Sst *self, Own_AlphaBoss *boss, const uint8_t *table);
+void Boss_Hit(Sst *self, Own_AlphaBoss *boss);
+void Boss_Defeated(Sst *self);
 
 #define ObjId_BossExplosionPiece 0x58
 

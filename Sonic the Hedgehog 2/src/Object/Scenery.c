@@ -1,6 +1,9 @@
 // Decorative sprites for Sonic 2 (the Simon Wai prototype's objects 1C and 71): the stakes at the ends of the bridges, the poles of Hill Top's lifts and other scenery of its zones (1C, its look from a table by the subtype),
 // and the glowing orbs and bridge stakes of Hidden Palace (71, animated by the subtype's high nibble).
 #include "Object/Scenery.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -20,7 +23,7 @@
 
 typedef struct {
     uint8_t subtype; // 0x28
-} Scratch_Scenery;
+} Own_Scenery;
 
 typedef struct {
     const uint8_t *mappings;
@@ -46,22 +49,21 @@ static const SceneryLook looks[] = {
     { Mappings_SceneryOOZ, TILE_MAP(0, 2, 0, 0, 0x346), 3, 8, 4 },
 };
 
-void Obj_Scenery(Object *obj) {
-    Scratch_Scenery *scratch = (Scratch_Scenery *)&obj->scratch;
+void Obj_Scenery(Sst *self) {
+    Own_Scenery *own = (Own_Scenery *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        const SceneryLook *look = &looks[scratch->subtype % (sizeof(looks) / sizeof(looks[0]))];
-        obj->mappings = look->mappings;
-        obj->tile = look->tile;
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->frame = look->frame;
-        obj->width_pixels = look->width;
-        obj->priority = look->priority;
+    if (self->routine == 0) {
+        self->routine += 2;
+        const SceneryLook *look = &looks[self->subtype % (sizeof(looks) / sizeof(looks[0]))];
+        self->mappings = look->mappings;
+        self->art_tile = look->tile;
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->mapping_frame = look->frame;
+        self->width_pixels = look->width;
+        self->priority = (uint16_t)(look->priority * 0x80);
     }
-    DisplaySprite(obj);
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-        ObjectDelete(obj);
+    Sst_Draw(self);
+    SstDeleteIfNotInRange2(self, self->x_pos.f.u);
 }
 
 // Ani_obj71: the animation of each kind
@@ -80,27 +82,26 @@ static const SceneryLook decor_looks[] = {
     { Mappings_MTZLavaBubble, TILE_MAP(0, 2, 0, 0, 0x536), 0, 0x10, 1 },
 };
 
-void Obj_HPZDecor(Object *obj) {
-    Scratch_Scenery *scratch = (Scratch_Scenery *)&obj->scratch;
+void Obj_HPZDecor(Sst *self) {
+    Own_Scenery *own = (Own_Scenery *)self->own.u8;
 
-    if (obj->routine == 0) {
-        obj->routine += 2;
-        unsigned kind = scratch->subtype & 0xF;
+    if (self->routine == 0) {
+        self->routine += 2;
+        unsigned kind = self->subtype & 0xF;
         if (kind >= sizeof(decor_looks) / sizeof(decor_looks[0])) {
-            ObjectDelete(obj);
+            Sst_Delete(self);
             return;
         }
         const SceneryLook *look = &decor_looks[kind];
-        obj->mappings = look->mappings;
-        obj->tile = look->tile;
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->frame = look->frame;
-        obj->width_pixels = look->width;
-        obj->priority = look->priority;
-        obj->anim = scratch->subtype >> 4;
+        self->mappings = look->mappings;
+        self->art_tile = look->tile;
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->mapping_frame = look->frame;
+        self->width_pixels = look->width;
+        self->priority = (uint16_t)(look->priority * 0x80);
+        self->anim = self->subtype >> 4;
     }
-    AnimateSprite(obj, Animation_HPZDecor);
-    DisplaySprite(obj);
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u))
-        ObjectDelete(obj);
+    Sst_Animate(self, Animation_HPZDecor);
+    Sst_Draw(self);
+    SstDeleteIfNotInRange2(self, self->x_pos.f.u);
 }

@@ -1,6 +1,9 @@
 // Dust Hill's boss for Sonic 2, as the alpha has it (object 57): see DHZBoss.h. It uses the same boss helpers as the Metropolis and Hill Top bosses (BossCommon): the ship's place and speed in a buffer, and the
 // animation of its parts, each a pair of nibbles in a small buffer. Its parts (the front drill, the ship's body, Robotnik, the back drill) are the object's child sprites.
 #include "Object/DHZBoss.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Object/BossCommon.h"
 #include "Constants.h"
 
@@ -28,12 +31,12 @@ enum { Run_Rise = 0, Run_Down = 2, Run_Charge = 4, Run_Across = 6, Run_Wreck = 8
 enum { Part_FrontDrill = 0, Part_Body = 1, Part_Robotnik = 2, Part_BackDrill = 3 };
 
 typedef struct {
-    Scratch_AlphaBoss boss;
+    Own_AlphaBoss boss;
     int16_t back_speed;  // 0x2E: how fast the back drill falls when the wreck lets go of it
     int16_t front_speed; // 0x30: and the front
     int32_t front_y;     // 0x34 (Control_Var_08): the front drill's place as 16.16
     int32_t back_y;      // 0x3A (Control_Var_0E)
-} Scratch_DHZBoss;
+} Own_DHZBoss;
 
 // The palette the boss's list $19 sets over the second line (PalLoad2)
 static const uint16_t boss_palette[16] = {
@@ -51,9 +54,9 @@ void DHZBoss_Events(void) {
         limit_btm1 = 0x600 - SCREEN_TALLADD;
         dle_routine += 2;
         {
-            Object *boss = FindFreeObj();
+            Sst *boss = Sst_Allocate();
             if (boss != NULL)
-                boss->type = ObjId_DHZBoss;
+                boss->code = sst_object_codes[ObjId_DHZBoss];
         }
         VDP_SeekVRAM(0x6C00); // (the rocks' four tiles)
         VDP_WriteVRAM(Art_DHZBossRock, sizeof(Art_DHZBossRock));
@@ -85,36 +88,36 @@ static void SetPartAnim(int part, uint8_t anim) {
 }
 
 // Offset_0x026CF4: where the parts are, from the ship's place; once it has been beaten the drills fall (the back first)
-static void Boss_Parts(Object *obj, Scratch_DHZBoss *scratch) {
-    const int16_t x = obj->pos.l.x.f.u, y = obj->pos.l.y.f.u;
-    obj->children[Part_Body].x = x;
-    obj->children[Part_Body].y = y;
-    obj->children[Part_Robotnik].x = x;
-    obj->children[Part_Robotnik].y = y;
-    if (!scratch->boss.side) {
-        obj->children[Part_BackDrill].x = x;
-        obj->children[Part_BackDrill].y = y;
-        obj->children[Part_FrontDrill].x = x;
-        obj->children[Part_FrontDrill].y = y;
-        scratch->back_y = (int32_t)((uint32_t)(uint16_t)y << 16) | (scratch->back_y & 0xFFFF);
-        scratch->front_y = (int32_t)((uint32_t)(uint16_t)y << 16) | (scratch->front_y & 0xFFFF);
-        obj->children[Part_BackDrill].x = (int16_t)(x + (obj->render.f.x_flip ? 0x28 : -0x28));
+static void Boss_Parts(Sst *self, Own_DHZBoss *own) {
+    const int16_t x = self->x_pos.f.u, y = self->y_pos.f.u;
+    self->children[Part_Body].x = x;
+    self->children[Part_Body].y = y;
+    self->children[Part_Robotnik].x = x;
+    self->children[Part_Robotnik].y = y;
+    if (!own->boss.side) {
+        self->children[Part_BackDrill].x = x;
+        self->children[Part_BackDrill].y = y;
+        self->children[Part_FrontDrill].x = x;
+        self->children[Part_FrontDrill].y = y;
+        own->back_y = (int32_t)((uint32_t)(uint16_t)y << 16) | (own->back_y & 0xFFFF);
+        own->front_y = (int32_t)((uint32_t)(uint16_t)y << 16) | (own->front_y & 0xFFFF);
+        self->children[Part_BackDrill].x = (int16_t)(x + (((self->render_flags & SST_RENDER_X_FLIP) != 0) ? 0x28 : -0x28));
         return;
     }
     if (boss_move.timer > 0x78)
         return;
-    obj->children[Part_BackDrill].x--;
-    scratch->back_y += (int32_t)scratch->back_speed << 8;
-    scratch->back_speed += 0x38;
-    obj->children[Part_BackDrill].y = (int16_t)(scratch->back_y >> 16);
-    if (obj->children[Part_BackDrill].y >= 0x6F0)
-        scratch->back_speed = 0;
-    obj->children[Part_FrontDrill].x++;
-    scratch->front_y += (int32_t)scratch->front_speed << 8;
-    scratch->front_speed += 0x38;
-    obj->children[Part_FrontDrill].y = (int16_t)(scratch->front_y >> 16);
-    if (obj->children[Part_FrontDrill].y >= 0x6F0)
-        scratch->front_speed = 0;
+    self->children[Part_BackDrill].x--;
+    own->back_y += (int32_t)own->back_speed << 8;
+    own->back_speed += 0x38;
+    self->children[Part_BackDrill].y = (int16_t)(own->back_y >> 16);
+    if (self->children[Part_BackDrill].y >= 0x6F0)
+        own->back_speed = 0;
+    self->children[Part_FrontDrill].x++;
+    own->front_y += (int32_t)own->front_speed << 8;
+    own->front_speed += 0x38;
+    self->children[Part_FrontDrill].y = (int16_t)(own->front_y >> 16);
+    if (self->children[Part_FrontDrill].y >= 0x6F0)
+        own->front_speed = 0;
 }
 
 // Offset_0x026DB0: every eighth frame, while the boss digs, a rock comes loose at a random place along the arena
@@ -125,47 +128,47 @@ static void Boss_DropRock(void) {
     do {
         x = (int16_t)((RandomNumber() & 0x1FF) + 0x20F0);
     } while (x > 0x2228);
-    Object *rock = FindFreeObj();
+    Sst *rock = Sst_Allocate();
     if (rock == NULL)
         return;
-    rock->type = ObjId_DHZBoss;
-    ((Scratch_DHZBoss *)&rock->scratch)->boss.boss_routine = Boss_Rock;
-    rock->pos.l.x.f.u = x;
-    rock->pos.l.y.f.u = 0x5F0;
+    rock->code = sst_object_codes[ObjId_DHZBoss];
+    ((Own_DHZBoss *)rock->own.u8)->boss.boss_routine = Boss_Rock;
+    rock->x_pos.f.u = x;
+    rock->y_pos.f.u = 0x5F0;
     rock->mappings = Mappings_DHZBoss;
-    rock->tile = TILE_MAP(0, 0, 0, 0, ArtTile_DHZBossRock);
-    rock->render.b |= SPRITE_CAM_FIELD;
-    rock->priority = 3;
-    rock->frame = 0xD;
+    rock->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_DHZBossRock);
+    rock->render_flags |= SST_RENDER_LEVEL;
+    rock->priority = 3 * 0x80;
+    rock->mapping_frame = 0xD;
 }
 
 // Offset_0x026E0A: the hit, and the flash of Robotnik's face when it has just been hit
-static void Boss_Struck(Object *obj, Scratch_DHZBoss *scratch) {
-    Boss_Hit(obj, &scratch->boss);
-    if (scratch->boss.flash == 0x1F)
+static void Boss_Struck(Sst *self, Own_DHZBoss *own) {
+    Boss_Hit(self, &own->boss);
+    if (own->boss.flash == 0x1F)
         SetPartAnim(Part_Robotnik, 0xE);
 }
 
 // What every frame of the digging and charging ends with
-static void Boss_Show(Object *obj, Scratch_DHZBoss *scratch) {
-    obj->pos.l.y.f.u = boss_move.y.f.u;
-    obj->pos.l.x.f.u = boss_move.x.f.u;
-    Boss_Struck(obj, scratch);
-    Boss_AnimateSprite(obj, &scratch->boss, Animation_DHZBoss);
-    Boss_Parts(obj, scratch);
-    DisplaySprite(obj);
+static void Boss_Show(Sst *self, Own_DHZBoss *own) {
+    self->y_pos.f.u = boss_move.y.f.u;
+    self->x_pos.f.u = boss_move.x.f.u;
+    Boss_Struck(self, own);
+    Boss_AnimateSprite(self, &own->boss, Animation_DHZBoss);
+    Boss_Parts(self, own);
+    Sst_Draw(self);
 }
 
 // What the wreck's frames end with (no hit, no animation of its own)
-static void Boss_ShowWreck(Object *obj, Scratch_DHZBoss *scratch) {
-    obj->pos.l.y.f.u = boss_move.y.f.u;
-    obj->pos.l.x.f.u = boss_move.x.f.u;
-    Boss_Parts(obj, scratch);
-    DisplaySprite(obj);
+static void Boss_ShowWreck(Sst *self, Own_DHZBoss *own) {
+    self->y_pos.f.u = boss_move.y.f.u;
+    self->x_pos.f.u = boss_move.x.f.u;
+    Boss_Parts(self, own);
+    Sst_Draw(self);
 }
 
-static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
-    Scratch_AlphaBoss *boss = &scratch->boss;
+static void Boss_Dig(Sst *self, Own_DHZBoss *own) {
+    Own_AlphaBoss *boss = &own->boss;
 
     switch (boss->anim_routine) {
     case Run_Rise: // up out of the floor to the middle of the arena, and then to where Sonic is
@@ -186,7 +189,7 @@ static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
             dhz_shake = 1;
             Boss_DropRock();
         }
-        Boss_Show(obj, scratch);
+        Boss_Show(self, own);
         break;
 
     case Run_Down: // down again, drilling: the drills spin faster, Robotnik laughs
@@ -201,7 +204,7 @@ static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
             boss_move.timer = 0xC8;
             dhz_shake = 0;
         }
-        Boss_Show(obj, scratch);
+        Boss_Show(self, own);
         break;
 
     case Run_Charge: // a moment at the bottom (turning to Sonic), and then it goes on down to its floor
@@ -209,9 +212,9 @@ static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
             if (boss_move.timer == 0) {
                 boss_anim[1] = 0x30;
                 boss_move.ysp = 0x400;
-                obj->render.f.x_flip = false;
+                SST_RENDER_SET(self, SST_RENDER_X_FLIP, false);
                 if ((int16_t)(player->x_pos.f.u - boss_move.x.f.u) >= 0)
-                    obj->render.f.x_flip = true;
+                    SST_RENDER_SET(self, SST_RENDER_X_FLIP, true);
             }
             Boss_Move();
             if (boss_move.y.f.u >= 0x650) {
@@ -219,11 +222,11 @@ static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
                 boss->anim_routine += 2;
                 boss_move.xsp = (int16_t)0xFE00;
                 boss_move.ysp = 0;
-                if (obj->render.f.x_flip)
+                if (((self->render_flags & SST_RENDER_X_FLIP) != 0))
                     boss_move.xsp = (int16_t)-boss_move.xsp;
             }
         }
-        Boss_Show(obj, scratch);
+        Boss_Show(self, own);
         break;
 
     case Run_Across: // along the floor to the wall, and up again
@@ -240,24 +243,24 @@ static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
             boss_move.timer = 0xC8;
             boss_move.ysp = (int16_t)0xFF40;
         }
-        Boss_Show(obj, scratch);
+        Boss_Show(self, own);
         break;
 
     case Run_Wreck: // blowing up where it is
         boss->side = 0xFF;
         dhz_shake = 0;
         if (--boss_move.timer >= 0) {
-            Boss_Defeated(obj);
+            Boss_Defeated(self);
         } else {
-            obj->children[Part_Robotnik].frame = 0x13;
-            obj->frame = 7; // (and the main sprite's frame the wreck has)
-            obj->render.f.x_flip = true;
+            self->children[Part_Robotnik].frame = 0x13;
+            self->mapping_frame = 7; // (and the main sprite's frame the wreck has)
+            SST_RENDER_SET(self, SST_RENDER_X_FLIP, true);
             boss_move.xsp = 0;
             boss_move.ysp = 0;
             boss->anim_routine += 2;
             boss_move.timer = -0x12;
         }
-        Boss_ShowWreck(obj, scratch);
+        Boss_ShowWreck(self, own);
         break;
 
     case Run_Fall: // the ship drops a little and hovers, and then goes
@@ -275,7 +278,7 @@ static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
             boss_move.ysp += 0x18;
         }
         Boss_Move();
-        Boss_ShowWreck(obj, scratch);
+        Boss_ShowWreck(self, own);
         break;
 
     case Run_Leave: // up and away to the right, the arena opening as it goes; when it is off the screen the act is over
@@ -283,54 +286,54 @@ static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
         boss_move.ysp = (int16_t)0xFFC0;
         if (limit_right2 != 0x2180 + SCREEN_WIDEADD2)
             limit_right1 = limit_right2 += 2;
-        else if (!obj->render.f.on_screen) {
+        else if (!(self->render_flags & SST_RENDER_ON_SCREEN)) {
             if (!boss_status)
                 boss_status = 1;
-            ObjectDelete(obj);
+            Sst_Delete(self);
             return;
         }
         Boss_Move();
-        Boss_ShowWreck(obj, scratch);
+        Boss_ShowWreck(self, own);
         break;
     }
 }
 
-void Obj_DHZBoss(Object *obj) {
-    Scratch_DHZBoss *scratch = (Scratch_DHZBoss *)&obj->scratch;
+void Obj_DHZBoss(Sst *self) {
+    Own_DHZBoss *own = (Own_DHZBoss *)self->own.u8;
 
-    switch (scratch->boss.boss_routine) {
+    switch (own->boss.boss_routine) {
     case Boss_Start:
-        obj->mappings = Mappings_DHZBoss;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_DHZBoss);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 3;
-        obj->width_pixels = 0x60;
-        obj->pos.l.x.f.u = 0x21A0;
-        obj->pos.l.y.f.u = 0x678;
-        scratch->boss.boss_routine += 2;
-        obj->render.f.multi_sprite = true;
-        obj->child_count = 4;
-        obj->col_type = 0x0F;
-        scratch->boss.hits = 8;
-        boss_move.x.f.u = obj->pos.l.x.f.u;
-        boss_move.y.f.u = obj->pos.l.y.f.u;
+        self->mappings = Mappings_DHZBoss;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_DHZBoss);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 3 * 0x80;
+        self->width_pixels = 0x60;
+        self->x_pos.f.u = 0x21A0;
+        self->y_pos.f.u = 0x678;
+        own->boss.boss_routine += 2;
+        self->render_flags |= SST_RENDER_MULTI_DRAW;
+        self->child_count = 4;
+        self->collision_flags = 0x0F;
+        self->collision_property = 8;
+        boss_move.x.f.u = self->x_pos.f.u;
+        boss_move.y.f.u = self->y_pos.f.u;
         boss_move.ysp = (int16_t)0xFF40;
         boss_move.xsp = 0;
         boss_move.timer = 0x28;
-        obj->frame = 5; // (the alpha's Obj_Boss_Ani_Map, the main sprite's frame: the ship's flames, animated by the first pair of the animation buffer)
+        self->mapping_frame = 5; // (the alpha's Obj_Boss_Ani_Map, the main sprite's frame: the ship's flames, animated by the first pair of the animation buffer)
         for (int i = 0; i < 4; i++) {
-            obj->children[i].x = obj->pos.l.x.f.u;
-            obj->children[i].y = obj->pos.l.y.f.u;
+            self->children[i].x = self->x_pos.f.u;
+            self->children[i].y = self->y_pos.f.u;
         }
-        obj->children[Part_FrontDrill].frame = 2;
-        obj->children[Part_Body].frame = 1;
-        obj->children[Part_Robotnik].frame = 0xE;
-        obj->children[Part_BackDrill].frame = 2;
-        obj->children[Part_BackDrill].x -= 0x28;
-        scratch->back_speed = (int16_t)0xFC80;
-        scratch->front_speed = (int16_t)0xFC80;
-        scratch->front_y = (int32_t)((uint32_t)(uint16_t)obj->pos.l.y.f.u << 16);
-        scratch->back_y = scratch->front_y;
+        self->children[Part_FrontDrill].frame = 2;
+        self->children[Part_Body].frame = 1;
+        self->children[Part_Robotnik].frame = 0xE;
+        self->children[Part_BackDrill].frame = 2;
+        self->children[Part_BackDrill].x -= 0x28;
+        own->back_speed = (int16_t)0xFC80;
+        own->front_speed = (int16_t)0xFC80;
+        own->front_y = (int32_t)((uint32_t)(uint16_t)self->y_pos.f.u << 16);
+        own->back_y = own->front_y;
         {
             static const uint8_t buffer[10] = { 0x02, 0x00, 0x03, 0x00, 0x10, 0x00, 0x0D, 0x00, 0x03, 0x00 };
             memcpy(boss_anim, buffer, sizeof(buffer));
@@ -338,16 +341,16 @@ void Obj_DHZBoss(Object *obj) {
         break;
 
     case Boss_Run:
-        Boss_Dig(obj, scratch);
+        Boss_Dig(self, own);
         break;
 
     case Boss_Rock: // a rock that has come loose from the ceiling: it falls (a little less quickly than things usually do)
-        ObjectFall(obj);
-        obj->ysp -= 0x14;
-        if (obj->pos.l.y.f.u > 0x6F0)
-            ObjectDelete(obj);
+        Sst_MoveSprite(self);
+        self->y_vel -= 0x14;
+        if (self->y_pos.f.u > 0x6F0)
+            Sst_Delete(self);
         else
-            DisplaySprite(obj);
+            Sst_Draw(self);
         break;
     }
 }

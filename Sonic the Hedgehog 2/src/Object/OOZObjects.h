@@ -1,13 +1,13 @@
 #ifndef _OOZOBJECTS_H
 #define _OOZOBJECTS_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_OilSurface(Object *obj);
-void Obj_OOZLauncher(Object *obj);
-void Obj_OOZSpikeball(Object *obj);
-void Obj_OOZPushSpring(Object *obj);
-void Obj_OOZSpringBall(Object *obj);
-void Obj_OOZCannon(Object *obj);
+void Obj_OilSurface(Sst *self);
+void Obj_OOZLauncher(Sst *self);
+void Obj_OOZSpikeball(Sst *self);
+void Obj_OOZPushSpring(Sst *self);
+void Obj_OOZSpringBall(Sst *self);
+void Obj_OOZCannon(Sst *self);
 
 #endif //_OOZOBJECTS_H

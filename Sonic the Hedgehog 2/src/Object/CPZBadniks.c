@@ -1,5 +1,8 @@
 // Chemical Plant's badniks for Sonic 2, as the alpha has them: see CPZBadniks.h
 #include "Object/CPZBadniks.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Object/Coconuts.h"
 #include "Constants.h"
 
@@ -31,125 +34,125 @@ typedef struct {
     uint8_t pad0;    // 0x29
     uint8_t walk;    // 0x2A
     uint8_t wait;    // 0x2B (Obj_Player_Status)
-} Scratch_Spiny;
+} Own_Spiny;
 
 enum { SpinyRoutine_Init = 0, SpinyRoutine_Walk = 2, SpinyRoutine_Throw = 4 };
 
-static void Spiny_Shoot(Object *obj, bool horizontal) {
-    Object *shot = FindFreeObj();
+static void Spiny_Shoot(Sst *self, bool horizontal) {
+    Sst *shot = Sst_Allocate();
     if (shot == NULL)
         return;
-    shot->type = ObjId_EnemyWeapon;
-    ((Scratch_Weapon *)&shot->scratch)->weapon = Weapon_SpinyShot;
-    shot->frame = 6;
-    shot->pos.l.x.f.u = obj->pos.l.x.f.u;
-    shot->pos.l.y.f.u = obj->pos.l.y.f.u;
+    shot->code = sst_object_codes[ObjId_EnemyWeapon];
+    ((Own_Weapon *)shot->own.u8)->weapon = Weapon_SpinyShot;
+    shot->mapping_frame = 6;
+    shot->x_pos.f.u = self->x_pos.f.u;
+    shot->y_pos.f.u = self->y_pos.f.u;
     if (horizontal) { // thrown up and towards Sonic
-        shot->ysp = (int16_t)0xFD00;
-        shot->xsp = (uint16_t)obj->pos.l.x.f.u < (uint16_t)player->x_pos.f.u ? 0x100 : -0x100;
+        shot->y_vel = (int16_t)0xFD00;
+        shot->x_vel = (uint16_t)self->x_pos.f.u < (uint16_t)player->x_pos.f.u ? 0x100 : -0x100;
     } else { // thrown out of the wall, to the side that it faces
-        shot->xsp = obj->render.f.x_flip ? -0x300 : 0x300;
+        shot->x_vel = ((self->render_flags & SST_RENDER_X_FLIP) != 0) ? -0x300 : 0x300;
     }
 }
 
-static void Spiny_Run(Object *obj, bool horizontal) {
-    Scratch_Spiny *scratch = (Scratch_Spiny *)&obj->scratch;
+static void Spiny_Run(Sst *self, bool horizontal) {
+    Own_Spiny *own = (Own_Spiny *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case SpinyRoutine_Init:
-        obj->mappings = Mappings_Spiny;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x52D);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->priority = 4;
-        obj->width_pixels = 8;
-        obj->col_type = 0x0B;
-        obj->routine += 2;
+        self->mappings = Mappings_Spiny;
+        self->art_tile = TILE_MAP(0, 1, 0, 0, 0x52D);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 8;
+        self->collision_flags = 0x0B;
+        self->routine += 2;
         if (horizontal)
-            obj->xsp = (int16_t)0xFFC0;
+            self->x_vel = (int16_t)0xFFC0;
         else
-            obj->ysp = (int16_t)0xFFC0;
-        scratch->walk = 0;
-        scratch->wait = 0x80;
+            self->y_vel = (int16_t)0xFFC0;
+        own->walk = 0;
+        own->wait = 0x80;
         break;
 
     case SpinyRoutine_Walk: {
         bool walking = true;
-        if (scratch->wait != 0) {
-            scratch->wait--;
+        if (own->wait != 0) {
+            own->wait--;
         } else {
-            const int16_t dx = (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
+            const int16_t dx = (int16_t)(self->x_pos.f.u - player->x_pos.f.u);
             if ((uint16_t)(dx + 0x60) < 0xC0) { // Sonic is near: it stops, and its frame is the one that throws
-                obj->routine += 2;
-                scratch->wait = 0x28;
-                obj->frame = horizontal ? 2 : 5;
+                self->routine += 2;
+                own->wait = 0x28;
+                self->mapping_frame = horizontal ? 2 : 5;
                 walking = false;
             }
         }
         if (walking) {
-            if (--scratch->walk == 0) {
-                scratch->walk = 0;
-                scratch->wait = 0x80;
+            if (--own->walk == 0) {
+                own->walk = 0;
+                own->wait = 0x80;
                 if (horizontal)
-                    obj->xsp = (int16_t)-obj->xsp;
+                    self->x_vel = (int16_t)-self->x_vel;
                 else
-                    obj->ysp = (int16_t)-obj->ysp;
+                    self->y_vel = (int16_t)-self->y_vel;
             }
-            SpeedToPos(obj);
-            AnimateSprite(obj, horizontal ? Animation_SpinyHorizontal : Animation_SpinyVertical);
+            Sst_MoveSprite2(self);
+            Sst_Animate(self, horizontal ? Animation_SpinyHorizontal : Animation_SpinyVertical);
         }
-        RememberState(obj);
+        SstOnScreenTest(self);
         break;
     }
 
     case SpinyRoutine_Throw:
-        if ((int8_t)--scratch->wait < 0) {
-            obj->routine -= 2;
-            scratch->wait = 0x40;
-        } else if (scratch->wait == 0x14) {
-            Spiny_Shoot(obj, horizontal);
+        if ((int8_t)--own->wait < 0) {
+            self->routine -= 2;
+            own->wait = 0x40;
+        } else if (own->wait == 0x14) {
+            Spiny_Shoot(self, horizontal);
         }
-        RememberState(obj);
+        SstOnScreenTest(self);
         break;
     }
 }
 
-void Obj_Spiny(Object *obj) {
-    Spiny_Run(obj, true);
+void Obj_Spiny(Sst *self) {
+    Spiny_Run(self, true);
 }
 
-void Obj_SpinyVertical(Object *obj) {
-    Spiny_Run(obj, false);
+void Obj_SpinyVertical(Sst *self) {
+    Spiny_Run(self, false);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
 // The Grabber (A7, and A8 to AB that go with it): each sets itself up from the alpha's table of looks (the subtype is the index: $36 the body, $38 a part with the hurting collision $CB, $3A another with none) and then
 // only stays, as long as its place is near
 // ---------------------------------------------------------------------------------------------------------------------------------------
-void Obj_Grabber(Object *obj) {
-    if (obj->routine == 0) {
-        const uint8_t subtype = obj->scratch.u8[0];
-        obj->mappings = Mappings_Grabber;
-        obj->tile = TILE_MAP(0, 1, 0, 0, 0x500);
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->routine += 2;
+void Obj_Grabber(Sst *self) {
+    if (self->routine == 0) {
+        const uint8_t subtype = self->subtype;
+        self->mappings = Mappings_Grabber;
+        self->art_tile = TILE_MAP(0, 1, 0, 0, 0x500);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->routine += 2;
         switch (subtype) {
         case 0x38: // (A8)
-            obj->priority = 2;
-            obj->width_pixels = 0x10;
-            obj->col_type = 0xCB;
+            self->priority = 2 * 0x80;
+            self->width_pixels = 0x10;
+            self->collision_flags = 0xCB;
             break;
         case 0x3A: // (A9)
-            obj->priority = 4;
-            obj->width_pixels = 4;
-            obj->col_type = 0;
+            self->priority = 4 * 0x80;
+            self->width_pixels = 4;
+            self->collision_flags = 0;
             break;
         default: // (A7, the body)
-            obj->priority = 4;
-            obj->width_pixels = 0x10;
-            obj->col_type = 0x0B;
+            self->priority = 4 * 0x80;
+            self->width_pixels = 0x10;
+            self->collision_flags = 0x0B;
             break;
         }
         return;
     }
-    RememberState(obj);
+    SstOnScreenTest(self);
 }

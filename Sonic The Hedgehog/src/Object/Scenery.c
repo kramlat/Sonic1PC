@@ -46,7 +46,7 @@ void Obj_Scenery(Sst *self) {
         self->render_flags |= SST_RENDER_LEVEL;
         self->mapping_frame = v->frame;
         self->width_pixels = v->width_pixels;
-        self->priority = v->priority;
+        self->priority = (uint16_t)(v->priority * 0x80);
         self->collision_flags = 0; // col_none
         __attribute__((fallthrough));
     }

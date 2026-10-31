@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "Level.h"
 #include "Object.h"
+#include "SstLoad.h"
 #include "Object/CharControl.h"
 #include "Object/CPZObjects.h"
 #include "Object/DHZObjects.h"
@@ -12,15 +13,22 @@
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
 #include "Oscillatory Routines.h"
-#include "Solid.h"
+#include "SolidSst.h"
 
 // Metropolis' objects: the teleporter, the platforms that go round a path, the machinery, the elevators, the gears, the conveyor belts and the boxes that wait to be stepped off.
 
 extern Oscillatory oscillatory;
 extern const uint8_t Mappings_MTZPlatformA[];
 
+// (the slots below $20 are taken, so that the objects a test makes get the slots the old tests named)
+static void SstTestFiller(Sst *self) { (void)self; }
+
 static void Reset(void) {
     memset(objects, 0, sizeof(Object) * 0x60);
+    Sst_Reset();
+    sst_load_everything_in_range = true;
+    for (int i = 4; i < 0x20; i++)
+        sst[i].code = SstTestFiller;
     memset(f_switch, 0, sizeof(f_switch));
     memset(objstate, 0, sizeof(objstate));
     level_id = LEVEL_ID(ZoneId_MTZ, 0);
@@ -38,19 +46,24 @@ static void Reset(void) {
     player->y_pos.f.u = 0x400;
     player->status = 0;
     OBJ_CONTROL(player) = 0;
+    {
+        static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+        SstLoadCamera camera = {(int16_t)scrpos_x.f.u, (int16_t)scrpos_y.f.u, false, 0xFFF};
+        SstLoad_Init(&index_, NULL, false, &camera);
+    }
 }
 
-static Object *Spawn(Object *slot, uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
+static Sst *Spawn(Sst *slot, uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
     memset(slot, 0, sizeof(Object));
-    slot->type = type;
-    slot->scratch.u8[0] = subtype;
-    slot->pos.l.x.f.u = x;
-    slot->pos.l.y.f.u = y;
+    slot->code = sst_object_codes[type];
+    slot->subtype = subtype;
+    slot->x_pos.f.u = x;
+    slot->y_pos.f.u = y;
     return slot;
 }
 
-#define SLOT(n) (&objects[n])
-#define SCRATCH_S16(obj, offset) ((obj)->scratch.s16[((offset) - 0x28) / 2])
+#define SLOT(n) (&sst[n])
+#define SCRATCH_S16(obj, offset) ((obj)->own.s16[((offset) - 0x28) / 2])
 
 // --- 67 ---
 
@@ -58,7 +71,7 @@ static void MTZ_TheTeleporterTakesACharacterAlongItsPath(void) {
     Reset();
     // path 1 (the alpha's): two points, (0xC58, 0x5F0) and (0xE28, 0x5F0)
     scrpos_x.f.u = 0xB80;
-    Object *tele = Spawn(SLOT(0x20), 0x67, 1, 0xC58, 0x5F0);
+    Sst *tele = Spawn(SLOT(0x20), 0x67, 1, 0xC58, 0x5F0);
     Obj_MTZTeleport(tele);
     player->x_pos.f.u = 0xC58;
     player->y_pos.f.u = 0x5F0 - 0x10;
@@ -80,7 +93,7 @@ static void MTZ_TheTeleporterTakesACharacterAlongItsPath(void) {
 
 static void MTZ_ANegativeSubtypeSendsHimBackwards(void) {
     Reset();
-    Object *tele = Spawn(SLOT(0x20), 0x67, 0xFF, 0xE28, 0x5F0); // (path 1, the other way)
+    Sst *tele = Spawn(SLOT(0x20), 0x67, 0xFF, 0xE28, 0x5F0); // (path 1, the other way)
     Obj_MTZTeleport(tele);
     player->x_pos.f.u = 0xE28;
     player->y_pos.f.u = 0x5F0 - 0x10;
@@ -98,7 +111,7 @@ static void MTZ_ALongerPathFollowsEveryPoint(void) {
     Reset();
     // path 0 (the alpha's): six points, from (0x7A8, 0x270) round to (0x7A8, 0x3F0)
     scrpos_x.f.u = 0x6A0;
-    Object *tele = Spawn(SLOT(0x20), 0x67, 0x10, 0x7A8, 0x270); // (bit 4: he keeps his speed)
+    Sst *tele = Spawn(SLOT(0x20), 0x67, 0x10, 0x7A8, 0x270); // (bit 4: he keeps his speed)
     Obj_MTZTeleport(tele);
     player->x_pos.f.u = 0x7A8;
     player->y_pos.f.u = 0x270 - 0x10;
@@ -116,49 +129,49 @@ static void MTZ_ALongerPathFollowsEveryPoint(void) {
 static void MTZ_TheTeleporterIgnoresACharacterThatIsBusy(void) {
     Reset();
     scrpos_x.f.u = 0xB80;
-    Object *tele = Spawn(SLOT(0x20), 0x67, 1, 0xC58, 0x5F0);
+    Sst *tele = Spawn(SLOT(0x20), 0x67, 1, 0xC58, 0x5F0);
     Obj_MTZTeleport(tele);
     player->x_pos.f.u = 0xC58;
     player->y_pos.f.u = 0x5F0 - 0x10;
     OBJ_CONTROL(player) = 0x81; // (in a tube)
     Obj_MTZTeleport(tele);
-    CHECK_EQ(tele->scratch.u8[0x2C - 0x28], 0);
+    CHECK_EQ(tele->own.u8[0x2C - 0x28], 0);
     OBJ_CONTROL(player) = 0;
     player->x_pos.f.u = 0xC58 + 0x20; // (and out of reach)
     Obj_MTZTeleport(tele);
-    CHECK_EQ(tele->scratch.u8[0x2C - 0x28], 0);
+    CHECK_EQ(tele->own.u8[0x2C - 0x28], 0);
 }
 
 // --- 6C ---
 
 static void MTZ_ARingOfPlatformsIsMadeOfEight(void) {
     Reset();
-    Object *spawner = Spawn(SLOT(0x20), 0x6C, 0x80, 0x1000, 0x300);
+    Sst *spawner = Spawn(SLOT(0x20), 0x6C, 0x80, 0x1000, 0x300);
     Obj_MTZMovingPlatform(spawner);
     int count = 0;
     for (int i = 0; i < 0x60; i++)
-        if (objects[i].type == 0x6C)
+        if (sst[i].code == sst_object_codes[0x6C])
             count++;
     CHECK_EQ(count, 8);
-    CHECK_EQ(spawner->scratch.u8[0], 1); // (itself the first)
-    CHECK_EQ(spawner->pos.l.x.f.u, 0x1000);
-    CHECK_EQ(spawner->pos.l.y.f.u, 0x300);
+    CHECK_EQ(spawner->subtype, 1); // (itself the first)
+    CHECK_EQ(spawner->x_pos.f.u, 0x1000);
+    CHECK_EQ(spawner->y_pos.f.u, 0x300);
     bool found = false;
     for (int i = 0; i < 0x60; i++)
-        if (&objects[i] != spawner && objects[i].type == 0x6C && objects[i].pos.l.x.f.u == 0x1000 - 0x20 && objects[i].pos.l.y.f.u == 0x300 + 0x3A)
-            found = (objects[i].scratch.u8[0] == 3);
+        if (&sst[i] != spawner && sst[i].code == sst_object_codes[0x6C] && sst[i].x_pos.f.u == 0x1000 - 0x20 && sst[i].y_pos.f.u == 0x300 + 0x3A)
+            found = (sst[i].subtype == 3);
     CHECK(found);
 }
 
 static void MTZ_APlatformGoesRoundItsPathExactly(void) {
     Reset();
-    Object *plat = Spawn(SLOT(0x20), 0x6C, 0x01, 0x1000, 0x300);
+    Sst *plat = Spawn(SLOT(0x20), 0x6C, 0x01, 0x1000, 0x300);
     SCRATCH_S16(plat, 0x30) = 0x1000;
     SCRATCH_S16(plat, 0x32) = 0x300;
     bool at_far_point = false;
     for (int i = 0; i < 3000; i++) {
         Obj_MTZMovingPlatform(plat);
-        const int dx = plat->pos.l.x.f.u - 0x1000, dy = plat->pos.l.y.f.u - 0x300;
+        const int dx = plat->x_pos.f.u - 0x1000, dy = plat->y_pos.f.u - 0x300;
         CHECK(dx >= -0x20 && dx <= 0x20 && dy >= 0 && dy <= 0x100);
         if (dx == -0x20 && dy == 0xE0)
             at_far_point = true;
@@ -168,109 +181,109 @@ static void MTZ_APlatformGoesRoundItsPathExactly(void) {
 
 static void MTZ_AFlippedPlatformGoesTheOtherWayRound(void) {
     Reset();
-    Object *plat = Spawn(SLOT(0x20), 0x6C, 0x00, 0x1000, 0x300);
+    Sst *plat = Spawn(SLOT(0x20), 0x6C, 0x00, 0x1000, 0x300);
     SCRATCH_S16(plat, 0x30) = 0x1000;
     SCRATCH_S16(plat, 0x32) = 0x300;
-    plat->status.b = 1;
+    plat->status = 1;
     Obj_MTZMovingPlatform(plat);
     // it starts at its first point and goes to the last: up and to the left... the point before the first is the tenth (22, 10)
     for (int i = 0; i < 40; i++)
         Obj_MTZMovingPlatform(plat);
-    CHECK(plat->pos.l.x.f.u > 0x1000);
+    CHECK(plat->x_pos.f.u > 0x1000);
 }
 
 static void MTZ_APlatformCarriesWhoStandsOnIt(void) {
     Reset();
-    Object *plat = Spawn(SLOT(0x20), 0x6C, 0x03, 0x1000 - 0x20, 0x300 + 0x3A);
+    Sst *plat = Spawn(SLOT(0x20), 0x6C, 0x03, 0x1000 - 0x20, 0x300 + 0x3A);
     SCRATCH_S16(plat, 0x30) = 0x1000;
     SCRATCH_S16(plat, 0x32) = 0x300;
     Obj_MTZMovingPlatform(plat);
-    player->x_pos.f.u = plat->pos.l.x.f.u;
-    player->y_pos.f.u = (int16_t)(plat->pos.l.y.f.u - 8 - player->y_radius);
+    player->x_pos.f.u = plat->x_pos.f.u;
+    player->y_pos.f.u = (int16_t)(plat->y_pos.f.u - 8 - player->y_radius);
     player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
     player->status |= SST_PSTATUS_OBJECT_STAND;
-    plat->status.b |= 8;
+    plat->status |= 8;
     const int16_t y0 = player->y_pos.f.u;
     for (int i = 0; i < 20; i++)
         Obj_MTZMovingPlatform(plat);
     CHECK(player->y_pos.f.u > y0); // (down with it)
-    CHECK_EQ(player->y_pos.f.u + player->y_radius + 8, plat->pos.l.y.f.u);
+    CHECK_EQ(player->y_pos.f.u + player->y_radius + 8, plat->y_pos.f.u);
 }
 
 // --- 6E ---
 
 static void MTZ_TheMachineFollowsTheOscillators(void) {
     Reset();
-    Object *m = Spawn(SLOT(0x20), 0x6E, 0x00, 0x1000, 0x300);
+    Sst *m = Spawn(SLOT(0x20), 0x6E, 0x00, 0x1000, 0x300);
     oscillatory.state[8][0] = 0x3800;
     oscillatory.state[9][0] = 0x3800;
     Obj_MTZMachine(m);
     Obj_MTZMachine(m);
-    CHECK_EQ(m->pos.l.x.f.u, 0x1000);
-    CHECK_EQ(m->pos.l.y.f.u, 0x300);
+    CHECK_EQ(m->x_pos.f.u, 0x1000);
+    CHECK_EQ(m->y_pos.f.u, 0x300);
     oscillatory.state[8][0] = 0x4800;
     oscillatory.state[9][0] = 0x2800;
     Obj_MTZMachine(m);
-    CHECK_EQ(m->pos.l.x.f.u, 0x1010);
-    CHECK_EQ(m->pos.l.y.f.u, 0x300 - 0x10);
+    CHECK_EQ(m->x_pos.f.u, 0x1010);
+    CHECK_EQ(m->y_pos.f.u, 0x300 - 0x10);
 }
 
 static void MTZ_AFlippedMachineGoesTheOtherWay(void) {
     Reset();
-    Object *m = Spawn(SLOT(0x20), 0x6E, 0x01, 0x1000, 0x300);
+    Sst *m = Spawn(SLOT(0x20), 0x6E, 0x01, 0x1000, 0x300);
     oscillatory.state[8][0] = 0x4800;
     oscillatory.state[9][0] = 0x2800;
     Obj_MTZMachine(m);
     Obj_MTZMachine(m);
-    CHECK_EQ(m->pos.l.x.f.u, 0x1000 - 0x10);
-    CHECK_EQ(m->pos.l.y.f.u, 0x300 + 0x10);
+    CHECK_EQ(m->x_pos.f.u, 0x1000 - 0x10);
+    CHECK_EQ(m->y_pos.f.u, 0x300 + 0x10);
 }
 
 static void MTZ_AMirroredMachineSwapsItsAxes(void) {
     Reset();
-    Object *m = Spawn(SLOT(0x20), 0x6E, 0x02, 0x1000, 0x300);
+    Sst *m = Spawn(SLOT(0x20), 0x6E, 0x02, 0x1000, 0x300);
     oscillatory.state[8][0] = 0x4800; // +$10
     oscillatory.state[9][0] = 0x3800; // 0
     Obj_MTZMachine(m);
     Obj_MTZMachine(m);
-    CHECK_EQ(m->pos.l.x.f.u, 0x1000); // (x: the other's, negated... zero)
-    CHECK_EQ(m->pos.l.y.f.u, 0x300 - 0x10);
+    CHECK_EQ(m->x_pos.f.u, 0x1000); // (x: the other's, negated... zero)
+    CHECK_EQ(m->y_pos.f.u, 0x300 - 0x10);
 }
 
 static void MTZ_ThePartOfAMachineIsNotSolid(void) {
     Reset();
-    Object *m = Spawn(SLOT(0x20), 0x6E, 0x30, 0x1000, 0x300);
+    Sst *m = Spawn(SLOT(0x20), 0x6E, 0x30, 0x1000, 0x300);
     Obj_MTZMachine(m);
     CHECK_EQ(m->routine, 4);
-    CHECK_EQ(m->frame, 3);
+    CHECK_EQ(m->mapping_frame, 3);
 }
 
 // --- 6F ---
 
 static void MTZ_TheElevatorWaitsToBeStoodOnAndThenGoesForEver(void) {
     Reset();
-    Object *e = Spawn(SLOT(0x20), 0x6F, 0x01, 0x1000, 0x300);
+    Sst *e = Spawn(SLOT(0x20), 0x6F, 0x01, 0x1000, 0x300);
     Obj_MTZElevator(e);
-    const int16_t x0 = e->pos.l.x.f.u, y0 = e->pos.l.y.f.u;
+    const int16_t x0 = e->x_pos.f.u, y0 = e->y_pos.f.u;
     for (int i = 0; i < 20; i++)
         Obj_MTZElevator(e);
-    CHECK_EQ(e->pos.l.x.f.u, x0); // (still)
-    e->status.b |= 8;
+    CHECK_EQ(e->x_pos.f.u, x0); // (still)
+    e->status |= 8;
     Obj_MTZElevator(e);
-    CHECK_EQ(e->scratch.u8[0], 2);
+    CHECK_EQ(e->subtype, 2);
     for (int i = 0; i < 0x100; i++)
         Obj_MTZElevator(e);
-    CHECK_EQ(e->pos.l.x.f.u, x0 + 0x100);
-    CHECK_EQ(e->pos.l.y.f.u, y0 - 0x80);
+    CHECK_EQ(e->x_pos.f.u, x0 + 0x100);
+    CHECK_EQ(e->y_pos.f.u, y0 - 0x80);
 }
 
 static void MTZ_AnElevatorOfModeZeroNeverMoves(void) {
     Reset();
-    Object *e = Spawn(SLOT(0x20), 0x6F, 0x00, 0x1000, 0x300);
-    e->status.b |= 8;
+    Sst *e = Spawn(SLOT(0x20), 0x6F, 0x00, 0x1000, 0x300);
+    e->status |= 8;
     for (int i = 0; i < 50; i++)
         Obj_MTZElevator(e);
-    CHECK_EQ(e->pos.l.x.f.u, 0x1000);
+    CHECK_EQ(e->x_pos.f.u, 0x1000);
 }
 
 // (the middle of the elevator's table: its top $20 above its centre, $40 thick)
@@ -278,13 +291,13 @@ static const int8_t elevator_middle[256] = { [128] = 0x20, [129] = 0x40 };
 
 static void MTZ_TheElevatorTopIsASlopeOfItsOwn(void) {
     Reset();
-    Object *e = Spawn(SLOT(0x20), 0x6F, 0x00, 0x1000, 0x300);
+    Sst *e = Spawn(SLOT(0x20), 0x6F, 0x00, 0x1000, 0x300);
     Obj_MTZElevator(e); // (init)
     player->x_pos.f.u = 0x1000;
     player->y_pos.f.u = (int16_t)(0x300 - 0x20 - player->y_radius + 2);
     player->status |= SST_PSTATUS_IN_AIR;
     player->y_vel = 0x100;
-    const int32_t r = Solid_CharacterDouble(e, player, SolidChar_Sonic, 0x80, 0x1000, elevator_middle);
+    const int32_t r = SolidSst_CharacterDouble(e, player, SolidChar_Sonic, 0x80, 0x1000, elevator_middle);
     CHECK_EQ(r, -1);
     CHECK(((player->status & SST_PSTATUS_OBJECT_STAND) != 0));
 }
@@ -293,71 +306,71 @@ static void MTZ_TheElevatorTopIsASlopeOfItsOwn(void) {
 
 static void MTZ_ABoxWaitsUntilWhoStoodOnItStepsOff(void) {
     Reset();
-    Object *b = Spawn(SLOT(0x20), 0x6A, 0x00, 0x1000, 0x300);
+    Sst *b = Spawn(SLOT(0x20), 0x6A, 0x00, 0x1000, 0x300);
     Obj_RotatingBoxes(b);
     for (int i = 0; i < 20; i++)
         Obj_RotatingBoxes(b);
-    CHECK_EQ(b->pos.l.y.f.u, 0x300);
-    b->status.b |= 8; // (stood on)
+    CHECK_EQ(b->y_pos.f.u, 0x300);
+    b->status |= 8; // (stood on)
     for (int i = 0; i < 20; i++)
         Obj_RotatingBoxes(b);
-    CHECK_EQ(b->pos.l.y.f.u, 0x300); // (still, while he is on it)
-    b->status.b &= (uint8_t)~8; // (steps off)
+    CHECK_EQ(b->y_pos.f.u, 0x300); // (still, while he is on it)
+    b->status &= (uint8_t)~8; // (steps off)
     for (int i = 0; i < 17; i++) // (the first frame only sees him go)
         Obj_RotatingBoxes(b);
-    CHECK_EQ(b->pos.l.y.f.u, 0x300 + 0x40); // (down 4 a frame for 16)
+    CHECK_EQ(b->y_pos.f.u, 0x300 + 0x40); // (down 4 a frame for 16)
     for (int i = 0; i < 20; i++)
         Obj_RotatingBoxes(b);
-    CHECK_EQ(b->pos.l.y.f.u, 0x300 + 0x40); // (and it waits again)
+    CHECK_EQ(b->y_pos.f.u, 0x300 + 0x40); // (and it waits again)
 }
 
 // --- 70 ---
 
 static void MTZ_AGearIsEightGears(void) {
     Reset();
-    Object *g = Spawn(SLOT(0x20), 0x70, 0, 0x1000, 0x300);
+    Sst *g = Spawn(SLOT(0x20), 0x70, 0, 0x1000, 0x300);
     Obj_MTZGear(g);
     int count = 0;
     for (int i = 0; i < 0x60; i++)
-        if (objects[i].type == 0x70)
+        if (sst[i].code == sst_object_codes[0x70])
             count++;
     CHECK_EQ(count, 8);
-    CHECK_EQ(g->pos.l.x.f.u, 0x1000);
-    CHECK_EQ(g->pos.l.y.f.u, 0x300 - 0x48);
+    CHECK_EQ(g->x_pos.f.u, 0x1000);
+    CHECK_EQ(g->y_pos.f.u, 0x300 - 0x48);
 }
 
 static void MTZ_TheGearsMoveOnEverySixteenthFrame(void) {
     Reset();
-    Object *g = Spawn(SLOT(0x20), 0x70, 0, 0x1000, 0x300);
+    Sst *g = Spawn(SLOT(0x20), 0x70, 0, 0x1000, 0x300);
     Obj_MTZGear(g);
-    const int16_t y0 = g->pos.l.y.f.u, x0 = g->pos.l.x.f.u;
+    const int16_t y0 = g->y_pos.f.u, x0 = g->x_pos.f.u;
     frame_count = 5;
     Obj_MTZGear(g);
-    CHECK_EQ(g->pos.l.y.f.u, y0);
-    CHECK_EQ(g->pos.l.x.f.u, x0);
+    CHECK_EQ(g->y_pos.f.u, y0);
+    CHECK_EQ(g->x_pos.f.u, x0);
     frame_count = 16;
     Obj_MTZGear(g);
-    CHECK(g->pos.l.y.f.u != y0 || g->pos.l.x.f.u != x0);
+    CHECK(g->y_pos.f.u != y0 || g->x_pos.f.u != x0);
 }
 
 static void MTZ_TheGearsGoAllTheWayRoundAndBack(void) {
     Reset();
-    Object *g = Spawn(SLOT(0x20), 0x70, 0, 0x1000, 0x300);
+    Sst *g = Spawn(SLOT(0x20), 0x70, 0, 0x1000, 0x300);
     Obj_MTZGear(g);
-    const int16_t y0 = g->pos.l.y.f.u, x0 = g->pos.l.x.f.u;
+    const int16_t y0 = g->y_pos.f.u, x0 = g->x_pos.f.u;
     for (int i = 0; i < 32; i++) { // (four rows of the ring for each of the eight places: a whole turn is 32 steps)
         frame_count = 16 * (i + 1);
         Obj_MTZGear(g);
     }
-    CHECK_EQ(g->pos.l.x.f.u, x0);
-    CHECK_EQ(g->pos.l.y.f.u, y0);
+    CHECK_EQ(g->x_pos.f.u, x0);
+    CHECK_EQ(g->y_pos.f.u, y0);
 }
 
 // --- 72 ---
 
 static void MTZ_TheConveyorMovesWhoIsOnTheGroundOnIt(void) {
     Reset();
-    Object *c = Spawn(SLOT(0x20), 0x72, 0x02, 0x1000, 0x300);
+    Sst *c = Spawn(SLOT(0x20), 0x72, 0x02, 0x1000, 0x300);
     player->x_pos.f.u = 0x1000;
     player->y_pos.f.u = 0x300 - 0x10;
     player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
@@ -369,7 +382,7 @@ static void MTZ_TheConveyorMovesWhoIsOnTheGroundOnIt(void) {
 
 static void MTZ_TheConveyorLeavesWhoIsInTheAirAlone(void) {
     Reset();
-    Object *c = Spawn(SLOT(0x20), 0x72, 0x02, 0x1000, 0x300);
+    Sst *c = Spawn(SLOT(0x20), 0x72, 0x02, 0x1000, 0x300);
     player->x_pos.f.u = 0x1000;
     player->y_pos.f.u = 0x300 - 0x10;
     player->status |= SST_PSTATUS_IN_AIR;
@@ -379,8 +392,8 @@ static void MTZ_TheConveyorLeavesWhoIsInTheAirAlone(void) {
 
 static void MTZ_AFlippedConveyorGoesLeftAndReachesSubtypeTimesSixteenEachSide(void) {
     Reset();
-    Object *c = Spawn(SLOT(0x20), 0x72, 0x02, 0x1000, 0x300);
-    c->status.b = 1;
+    Sst *c = Spawn(SLOT(0x20), 0x72, 0x02, 0x1000, 0x300);
+    c->status = 1;
     player->x_pos.f.u = 0x1000 + 0x1F;
     player->y_pos.f.u = 0x300 - 0x10;
     Obj_MTZConveyor(c);
@@ -397,7 +410,7 @@ static void MTZ_AFlippedConveyorGoesLeftAndReachesSubtypeTimesSixteenEachSide(vo
 
 static void MTZ_TheBlockOfMetropolisIsTheSlidePlatformsOwn(void) {
     Reset();
-    Object *b = Spawn(SLOT(0x20), 0x6B, 0x00, 0x1000, 0x300);
+    Sst *b = Spawn(SLOT(0x20), 0x6B, 0x00, 0x1000, 0x300);
     Obj_CPZBlock(b);
     CHECK(b->mappings == Mappings_MTZPlatformA);
     CHECK_EQ(b->width_pixels, 0x20);

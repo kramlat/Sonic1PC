@@ -289,13 +289,17 @@ void SstLoad_Forget(const Sst *obj) {
         sst_respawn_table[obj->respawn - 1] &= 0x7F;
 }
 
+bool sst_load_everything_in_range; // (the tests that place objects anywhere in a level: nothing is out of range)
+
 bool SstOutOfRange(int16_t x) {
+    if (sst_load_everything_in_range)
+        return false;
     return (uint16_t)((uint16_t)((uint16_t)x & 0xFF80) - (uint16_t)x_coarse_back) > 0x280;
 }
 
 void SstOnScreenTest2(Sst *obj, int16_t x) {
     uint16_t d0 = (uint16_t)((uint16_t)x & 0xFF80) - (uint16_t)x_coarse_back;
-    if (d0 > 0x280) {
+    if (d0 > 0x280 && !sst_load_everything_in_range) {
         SstLoad_Forget(obj);
         Sst_Delete(obj);
         return;
@@ -309,7 +313,7 @@ void SstOnScreenTest(Sst *obj) {
 
 void SstDeleteIfNotInRange(Sst *obj) {
     uint16_t d0 = (uint16_t)((uint16_t)obj->x_pos.f.u & 0xFF80) - (uint16_t)x_coarse_back;
-    if (d0 > 0x280) {
+    if (d0 > 0x280 && !sst_load_everything_in_range) {
         SstLoad_Forget(obj);
         Sst_Delete(obj);
     }

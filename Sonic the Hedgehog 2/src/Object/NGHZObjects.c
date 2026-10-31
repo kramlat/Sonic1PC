@@ -431,7 +431,7 @@ void Obj_NGHZSwing(Sst *self) {
         const int links = self->subtype & 0xF;
         own->radius = (uint8_t)(links * 16 + 8);
         int16_t y = self->y_pos.f.u;
-        Sst *chain = Sst_AllocateAfter(self + 1);
+        Sst *chain = Sst_AllocateAfter(self);
         if (chain != NULL) {
             chain->code = self->code;
             chain->mappings = self->mappings;
@@ -471,7 +471,7 @@ void Obj_NGHZSwing(Sst *self) {
         Swing_Move(self, own);
         Swing_Platform(self, old_x);
         if ((self->status & 0x18) && SWING_OSC(6) == 0) { // stood on, at the end of the swing: it lets go of the chain
-            Sst *raft = Sst_AllocateAfter(self + 1);
+            Sst *raft = Sst_AllocateAfter(self);
             if (raft != NULL) {
                 *raft = *self;
                 raft->routine = (uint8_t)(LEVEL_ZONE(level_id) == ZoneId_ARZ ? SwingRoutine_Raft : SwingRoutine_Fall);
@@ -609,7 +609,7 @@ void Obj_NGHZRotator(Sst *self) {
         own->centre_y = self->y_pos.f.u;
         own->speed = (int16_t)((int16_t)(int8_t)(self->subtype & 0xF0) << 3);
         own->angle = (uint16_t)((((self->status >> 2) | (self->status << 6)) & 0xC0) << 8); // (ror.b #2, and #$C0)
-        Sst *chain = Sst_AllocateAfter(self + 1);
+        Sst *chain = Sst_AllocateAfter(self);
         if (chain != NULL) {
             chain->code = self->code;
             chain->mappings = self->mappings;
@@ -627,7 +627,7 @@ void Obj_NGHZRotator(Sst *self) {
             own->chain = (uint8_t)(chain - sst);
             uint8_t *slots[2] = { &own->second, &own->third };
             for (int i = 0; i < 2; i++) {
-                Sst *follower = Sst_AllocateAfter(self + 1);
+                Sst *follower = Sst_AllocateAfter(self);
                 if (follower == NULL)
                     break;
                 follower->code = self->code;

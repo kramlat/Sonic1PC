@@ -1,13 +1,15 @@
 // The collapsing platform of Sonic 2 (the prototype's object 1F, "Collapsing_Platforms"): the platform in Dust Hill and Oil Ocean that, a moment after somebody has stood on it, breaks into pieces that fall one after another
 // (a piece for each of the frame's sprite pieces, each with its own delay). Like the collapsing ledge (1A, Hidden Palace's), whose pieces it shares, but its top is flat. It carries Sonic and Tails.
 // Dust Hill's is 64 pixels wide (a half width of $20) of 6 pieces, Oil Ocean's 128 of 7. (Other zones: the prototype has a plain default with no art here, which no layout places.)
-#include "Object.h"
 #include "Constants.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 
 #include "Level.h"
 #include "Mappings.h"
 #include "Object/Tails.h"
-#include "Solid.h"
+#include "SolidSst.h"
 
 #include "Macros.h"
 
@@ -22,7 +24,7 @@ typedef struct {
     uint8_t timer;     // 0x38: from being touched to collapsing (and, in a piece, to falling)
     uint8_t pad1;      // 0x39
     uint8_t touched;   // 0x3A
-} Scratch_CollapsingPlatform;
+} Own_CollapsingPlatform;
 
 enum { CollapseRoutine_Init = 0, CollapseRoutine_Main = 2, CollapseRoutine_Piece = 6 };
 
@@ -47,73 +49,73 @@ static bool IsNeoGreenHill(void) {
     return LEVEL_ZONE(level_id) == ZoneId_ARZ;
 }
 
-static void Platform(Object *obj) {
+static void Platform(Sst *self) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
         Sst *chr = Character(who);
         if (chr != NULL)
-            Solid_Platform(obj, chr, who, obj->width_pixels, 0x10, obj->pos.l.x.f.u);
+            SolidSst_Platform(self, chr, who, self->width_pixels, 0x10, self->x_pos.f.u);
     }
 }
 
-void Obj_CollapsingPlatform(Object *obj) {
-    Scratch_CollapsingPlatform *scratch = (Scratch_CollapsingPlatform *)&obj->scratch;
+void Obj_CollapsingPlatform(Sst *self) {
+    Own_CollapsingPlatform *own = (Own_CollapsingPlatform *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case CollapseRoutine_Init:
-        obj->routine += 2;
-        obj->render.b |= SPRITE_CAM_FIELD; // ori.b #4,1(a0): the layout's facing stays
-        obj->priority = 4;
-        scratch->timer = 7;
+        self->routine += 2;
+        self->render_flags |= SST_RENDER_LEVEL; // ori.b #4,1(a0): the layout's facing stays
+        self->priority = 4 * 0x80;
+        own->timer = 7;
         if (IsOilOcean()) {
-            obj->mappings = Mappings_CollapsePlatformOOZ;
-            obj->tile = TILE_MAP(0, 3, 0, 0, 0x39D);
-            obj->width_pixels = 0x40;
+            self->mappings = Mappings_CollapsePlatformOOZ;
+            self->art_tile = TILE_MAP(0, 3, 0, 0, 0x39D);
+            self->width_pixels = 0x40;
         } else if (IsSandShower()) { // (the staged objpatch-1F.asm: its mappings, the art at $500 on palette 0 (the mapping says line 2), 128 pixels wide, and Oil Ocean's delays)
-            obj->mappings = Mappings_SSZCollapsingPlatform;
-            obj->tile = TILE_MAP(0, 0, 0, 0, 0x500);
-            obj->width_pixels = 0x40;
+            self->mappings = Mappings_SSZCollapsingPlatform;
+            self->art_tile = TILE_MAP(0, 0, 0, 0, 0x500);
+            self->width_pixels = 0x40;
         } else if (IsNeoGreenHill()) {
-            obj->mappings = Mappings_CollapsePlatformNGHZ;
-            obj->tile = TILE_MAP(0, 2, 0, 0, 0);
-            obj->width_pixels = 0x20;
+            self->mappings = Mappings_CollapsePlatformNGHZ;
+            self->art_tile = TILE_MAP(0, 2, 0, 0, 0);
+            self->width_pixels = 0x20;
         } else {
-            obj->mappings = Mappings_CollapsePlatformDHZ;
-            obj->tile = TILE_MAP(0, 3, 0, 0, 0x3F4);
-            obj->width_pixels = 0x20;
+            self->mappings = Mappings_CollapsePlatformDHZ;
+            self->art_tile = TILE_MAP(0, 3, 0, 0, 0x3F4);
+            self->width_pixels = 0x20;
         }
         // Fallthrough
     case CollapseRoutine_Main:
-        if (scratch->touched) {
-            if (scratch->timer == 0) { // it collapses
-                obj->frame += 1;
-                FragmentatePlatform(obj, IsOilOcean() ? 7 : IsSandShower() ? 4 : IsNeoGreenHill() ? 8 : 6, IsOilOcean() || IsSandShower() ? delays_ooz : IsNeoGreenHill() ? delays_nghz : delays_dhz);
+        if (own->touched) {
+            if (own->timer == 0) { // it collapses
+                self->mapping_frame += 1;
+                SstFragmentatePlatform(self, IsOilOcean() ? 7 : IsSandShower() ? 4 : IsNeoGreenHill() ? 8 : 6, IsOilOcean() || IsSandShower() ? delays_ooz : IsNeoGreenHill() ? delays_nghz : delays_dhz);
                 return;
             }
-            scratch->timer--;
+            own->timer--;
         }
-        if (obj->status.b & 0x18)
-            scratch->touched = 1;
-        Platform(obj);
-        RememberState(obj);
+        if (self->status & 0x18)
+            own->touched = 1;
+        Platform(self);
+        SstOnScreenTest(self);
         break;
     case CollapseRoutine_Piece:
-        if (scratch->timer == 0) { // falling
-            ObjectFall(obj);
-            if (!obj->render.f.on_screen)
-                ObjectDelete(obj);
+        if (own->timer == 0) { // falling
+            Sst_MoveSprite(self);
+            if (!(self->render_flags & SST_RENDER_ON_SCREEN))
+                Sst_Delete(self);
             else
-                DisplaySprite(obj);
+                Sst_Draw(self);
             break;
         }
-        if (!scratch->touched) { // a piece that waits to fall
-            scratch->timer--;
-            DisplaySprite(obj);
+        if (!own->touched) { // a piece that waits to fall
+            own->timer--;
+            Sst_Draw(self);
             break;
         }
         // the first piece (the platform itself) is still a platform until it lets go
-        Platform(obj);
-        RememberState(obj);
-        if (--scratch->timer == 0) {
+        Platform(self);
+        SstOnScreenTest(self);
+        if (--own->timer == 0) {
             for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
                 Sst *chr = Character(who);
                 if (chr != NULL && ((chr->status & SST_PSTATUS_OBJECT_STAND) != 0)) {

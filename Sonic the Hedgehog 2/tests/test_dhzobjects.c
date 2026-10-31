@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "Level.h"
+#include "SstLoad.h"
 #include "Object.h"
 #include "Object/DHZBadniks.h"
 #include "Object/DHZBoss.h"
@@ -18,10 +19,17 @@
 // Dust Hill's objects (and the collapsing platform it shares with Oil Ocean): the platform that breaks, the stomper, the switch and the drawbridge it lowers, the boxes on their path, the chain of spiked balls and
 // the platform with spikes at its sides.
 
-void Obj_CollapsingPlatform(Object *obj);
+void Obj_CollapsingPlatform(Sst *obj);
+
+// (the slots below $20 are taken, so that the objects a test makes get the slots the old tests named)
+static void SstTestFiller(Sst *self) { (void)self; }
 
 static void Reset(int zone) {
     memset(objects, 0, sizeof(Object) * 0x60);
+    Sst_Reset();
+    sst_load_everything_in_range = true;
+    for (int i = 4; i < 0x20; i++)
+        sst[i].code = SstTestFiller;
     memset(f_switch, 0, sizeof(f_switch));
     level_id = LEVEL_ID(zone, 0);
     scrpos_x.v = scrpos_y.v = 0;
@@ -31,15 +39,17 @@ static void Reset(int zone) {
     player->y_radius = 19;
     player->x_pos.f.u = 0x1000;
     player->y_pos.f.u = 0x1000;
+    {
+        static const SstObjectIndex index_ = {sst_object_codes, 0x100};
+        SstLoadCamera camera = {(int16_t)scrpos_x.f.u, (int16_t)scrpos_y.f.u, false, 0xFFF};
+        SstLoad_Init(&index_, NULL, false, &camera);
+    }
 }
 
-static Object *Spawn(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
-    Object *obj = &objects[0x20];
-    memset(obj, 0, sizeof(Object));
-    obj->type = type;
-    obj->scratch.u8[0] = subtype;
-    obj->pos.l.x.f.u = x;
-    obj->pos.l.y.f.u = y;
+static Sst *Spawn(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
+    SstLoad_Seek((int16_t)(x - 0x100)); // (the loader keeps what is near the camera: the camera is where the object is)
+    Sst *obj = Sst_Spawn(type, x, y);
+    obj->subtype = subtype;
     return obj;
 }
 
@@ -54,7 +64,7 @@ static void StandOn(int16_t x, int16_t top) {
 static int CountOf(uint8_t type, uint8_t routine) {
     int n = 0;
     for (int i = 0x20; i < 0x60; i++)
-        n += objects[i].type == type && objects[i].routine == routine;
+        n += sst[i].code == sst_object_codes[type] && sst[i].routine == routine;
     return n;
 }
 
@@ -62,10 +72,10 @@ static int CountOf(uint8_t type, uint8_t routine) {
 
 static void DHZ_TheCollapsingPlatformBreaksIntoSixPiecesOnceStoodOn(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x1F, 0, 200, 400);
+    Sst *obj = Spawn(0x1F, 0, 200, 400);
     Obj_CollapsingPlatform(obj);
     CHECK_EQ(obj->width_pixels, 0x20);
-    CHECK_EQ(obj->tile & 0x7FF, 0x3F4);
+    CHECK_EQ(obj->art_tile & 0x7FF, 0x3F4);
     for (int i = 0; i < 20; i++) { // (nobody on it: it stays)
         Obj_CollapsingPlatform(obj);
         CHECK_EQ(obj->routine, 2);
@@ -75,17 +85,17 @@ static void DHZ_TheCollapsingPlatformBreaksIntoSixPiecesOnceStoodOn(void) {
         Obj_CollapsingPlatform(obj);
     }
     CHECK_EQ(obj->routine, 6); // (it has let go)
-    CHECK_EQ(obj->frame, 1);
+    CHECK_EQ(obj->mapping_frame, 1);
     CHECK_EQ(CountOf(0x1F, 6), 6); // (the platform itself is the first piece)
-    CHECK_EQ(obj->scratch.u8[0x10] <= 0x1A, true);
+    CHECK_EQ(obj->own.u8[0x10] <= 0x1A, true);
 }
 
 static void DHZ_TheCollapsingPlatformOfOilOceanIsWiderAndHasSevenPieces(void) {
     Reset(ZoneId_OOZ);
-    Object *obj = Spawn(0x1F, 0, 200, 400);
+    Sst *obj = Spawn(0x1F, 0, 200, 400);
     Obj_CollapsingPlatform(obj);
     CHECK_EQ(obj->width_pixels, 0x40);
-    CHECK_EQ(obj->tile & 0x7FF, 0x39D);
+    CHECK_EQ(obj->art_tile & 0x7FF, 0x39D);
     for (int i = 0; i < 30 && obj->routine != 6; i++) {
         StandOn(200, 400 - 0x10);
         Obj_CollapsingPlatform(obj);
@@ -97,21 +107,21 @@ static void DHZ_TheCollapsingPlatformOfOilOceanIsWiderAndHasSevenPieces(void) {
 static void DHZ_TheCollapsingPlatformKeepsItsFacingAndItsPiecesTakeIt(void) {
     for (int zone = 0; zone < 2; zone++) {
         Reset(zone ? ZoneId_OOZ : ZoneId_MCZ);
-        Object *obj = Spawn(0x1F, 0, 200, 400);
-        obj->render.f.x_flip = true;
-        obj->status.o.f.x_flip = true;
+        Sst *obj = Spawn(0x1F, 0, 200, 400);
+        obj->render_flags |= SST_RENDER_X_FLIP;
+        obj->status |= SST_STATUS_X_FLIP;
         Obj_CollapsingPlatform(obj);
-        CHECK(obj->render.f.x_flip);
-        CHECK(obj->render.f.level_fg);
+        CHECK((obj->render_flags & SST_RENDER_X_FLIP));
+        CHECK((obj->render_flags & SST_RENDER_LEVEL));
         for (int i = 0; i < 30 && obj->routine != 6; i++) {
             StandOn(200, 400 - 0x10);
             Obj_CollapsingPlatform(obj);
         }
         int pieces = 0;
         for (int i = 0x20; i < 0x60; i++)
-            if (objects[i].type == 0x1F && objects[i].routine == 6) {
+            if (sst[i].code == sst_object_codes[0x1F] && sst[i].routine == 6) {
                 pieces++;
-                CHECK(objects[i].render.f.x_flip);
+                CHECK((sst[i].render_flags & SST_RENDER_X_FLIP));
             }
         CHECK(pieces >= 6);
     }
@@ -120,7 +130,7 @@ static void DHZ_TheCollapsingPlatformKeepsItsFacingAndItsPiecesTakeIt(void) {
 // A piece falls when its delay has gone: the others wait
 static void DHZ_PiecesFallOneAfterAnother(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x1F, 0, 200, 400);
+    Sst *obj = Spawn(0x1F, 0, 200, 400);
     Obj_CollapsingPlatform(obj);
     for (int i = 0; i < 30 && obj->routine != 6; i++) {
         StandOn(200, 400 - 0x10);
@@ -128,16 +138,16 @@ static void DHZ_PiecesFallOneAfterAnother(void) {
     }
     int16_t y[0x60];
     for (int i = 0x20; i < 0x60; i++)
-        y[i] = objects[i].pos.l.y.f.u;
+        y[i] = sst[i].y_pos.f.u;
     for (int frame = 0; frame < 14; frame++)
         for (int i = 0x20; i < 0x60; i++)
-            if (objects[i].type == 0x1F && objects[i].routine == 6) {
-                objects[i].render.f.on_screen = true; // (a piece that has fallen out of sight is gone: they are in sight here)
-                Obj_CollapsingPlatform(&objects[i]);
+            if (sst[i].code == sst_object_codes[0x1F] && sst[i].routine == 6) {
+                sst[i].render_flags |= SST_RENDER_ON_SCREEN; // (a piece that has fallen out of sight is gone: they are in sight here)
+                Obj_CollapsingPlatform(&sst[i]);
             }
     int fallen = 0;
     for (int i = 0x21; i < 0x60; i++)
-        fallen += objects[i].type == 0x1F && objects[i].pos.l.y.f.u > y[i];
+        fallen += sst[i].code == sst_object_codes[0x1F] && sst[i].y_pos.f.u > y[i];
     CHECK(fallen >= 1 && fallen < 5); // (only the piece with the shortest delay, $02, has begun to fall by now: $0A has not got going)
 }
 
@@ -145,46 +155,46 @@ static void DHZ_PiecesFallOneAfterAnother(void) {
 
 static void DHZ_TheStomperRisesAPixelAFrameAndDropsEight(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x2A, 0, 200, 500);
+    Sst *obj = Spawn(0x2A, 0, 200, 500);
     Obj_DHZStomper(obj);
-    CHECK_EQ(obj->pos.l.y.f.u, 499);
+    CHECK_EQ(obj->y_pos.f.u, 499);
     for (int i = 1; i < 0x60; i++)
         Obj_DHZStomper(obj);
-    CHECK_EQ(obj->pos.l.y.f.u, 500 - 0x60); // (at the top)
+    CHECK_EQ(obj->y_pos.f.u, 500 - 0x60); // (at the top)
     Obj_DHZStomper(obj);
-    CHECK_EQ(obj->pos.l.y.f.u, 500 - 0x58); // (and dropping)
+    CHECK_EQ(obj->y_pos.f.u, 500 - 0x58); // (and dropping)
     for (int i = 0; i < 11; i++)
         Obj_DHZStomper(obj);
-    CHECK_EQ(obj->pos.l.y.f.u, 500); // (12 frames to the bottom)
+    CHECK_EQ(obj->y_pos.f.u, 500); // (12 frames to the bottom)
     Obj_DHZStomper(obj);
-    CHECK_EQ(obj->pos.l.y.f.u, 499); // (rising again)
+    CHECK_EQ(obj->y_pos.f.u, 499); // (rising again)
 }
 
 // --- 47 and 77 ---
 
 static void DHZ_TheSwitchIsDownWhileSomeoneStandsOnIt(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x47, 3, 200, 400);
+    Sst *obj = Spawn(0x47, 3, 200, 400);
     Obj_Switch(obj);
-    CHECK_EQ(obj->pos.l.y.f.u, 404); // (4 lower than where it is placed)
-    obj->render.f.on_screen = true;
+    CHECK_EQ(obj->y_pos.f.u, 404); // (4 lower than where it is placed)
+    obj->render_flags |= SST_RENDER_ON_SCREEN;
     StandOn(200, 404 - 5);
     Obj_Switch(obj);
     CHECK_EQ(f_switch[3], 1);
-    CHECK_EQ(obj->frame, 1);
+    CHECK_EQ(obj->mapping_frame, 1);
     player->x_pos.f.u = 0x1000; // (steps off)
     player->status |= SST_PSTATUS_IN_AIR;
     player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     Obj_Switch(obj);
     CHECK_EQ(f_switch[3], 0);
-    CHECK_EQ(obj->frame, 0);
+    CHECK_EQ(obj->mapping_frame, 0);
 }
 
 static void DHZ_ASwitchWithBitSixSetsTheTopBit(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x47, 0x42, 200, 400);
+    Sst *obj = Spawn(0x47, 0x42, 200, 400);
     Obj_Switch(obj);
-    obj->render.f.on_screen = true;
+    obj->render_flags |= SST_RENDER_ON_SCREEN;
     StandOn(200, 404 - 5);
     Obj_Switch(obj);
     CHECK_EQ(f_switch[2], 0x80);
@@ -192,153 +202,153 @@ static void DHZ_ASwitchWithBitSixSetsTheTopBit(void) {
 
 static void DHZ_TheDrawbridgeLowersAtStartAndRaisesOnceItsSwitchIsDown(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x77, 5, 200, 400);
+    Sst *obj = Spawn(0x77, 5, 200, 400);
     for (int i = 0; i < 20; i++)
         Obj_DHZGate(obj);
-    CHECK_EQ(obj->frame, 0); // (flat)
+    CHECK_EQ(obj->mapping_frame, 0); // (flat)
     f_switch[5] = 1;
     for (int i = 0; i < 20; i++)
         Obj_DHZGate(obj);
     CHECK_EQ(obj->anim, 1);
-    CHECK_EQ(obj->frame, 4); // (up: the alpha has five frames)
+    CHECK_EQ(obj->mapping_frame, 4); // (up: the alpha has five frames)
     f_switch[5] = 0;
     for (int i = 0; i < 20; i++)
         Obj_DHZGate(obj);
-    CHECK_EQ(obj->frame, 4); // (only once)
+    CHECK_EQ(obj->mapping_frame, 4); // (only once)
 }
 
 static void DHZ_ARaisedDrawbridgeLetsGoOfWhoeverStandsOnIt(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x77, 5, 200, 400);
+    Sst *obj = Spawn(0x77, 5, 200, 400);
     f_switch[5] = 1;
     for (int i = 0; i < 20; i++)
         Obj_DHZGate(obj);
-    obj->status.b |= 1 << 3;
+    obj->status |= 1 << 3;
     player->status |= SST_PSTATUS_OBJECT_STAND;
     Obj_DHZGate(obj);
     CHECK(!((player->status & SST_PSTATUS_OBJECT_STAND) != 0));
-    CHECK_EQ(obj->status.b & 0x18, 0);
+    CHECK_EQ(obj->status & 0x18, 0);
 }
 
 // --- 6A ---
 
 static void DHZ_TheBoxesMakeTwoMoreAndMoveOnAPath(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x6A, 0x18, 200, 400);
+    Sst *obj = Spawn(0x6A, 0x18, 200, 400);
     Obj_RotatingBoxes(obj);
     CHECK_EQ(CountOf(0x6A, 0), 2); // (the two others wait to start)
-    CHECK_EQ(objects[0x21].pos.l.x.f.u, 200 + 0x40);
-    CHECK_EQ(objects[0x21].pos.l.y.f.u, 400 + 0x40);
-    CHECK_EQ(objects[0x22].pos.l.x.f.u, 200 - 0x40);
-    CHECK_EQ(objects[0x21].scratch.u8[0], 6);
-    CHECK_EQ(objects[0x22].scratch.u8[0], 0xC);
-    CHECK_EQ(obj->xsp, 0x100); // (the parent starts on the step after the cycle's last: to the right)
+    CHECK_EQ(sst[0x21].x_pos.f.u, 200 + 0x40);
+    CHECK_EQ(sst[0x21].y_pos.f.u, 400 + 0x40);
+    CHECK_EQ(sst[0x22].x_pos.f.u, 200 - 0x40);
+    CHECK_EQ(sst[0x21].subtype, 6);
+    CHECK_EQ(sst[0x22].subtype, 0xC);
+    CHECK_EQ(obj->x_vel, 0x100); // (the parent starts on the step after the cycle's last: to the right)
     for (int i = 0; i < 0x40; i++)
         Obj_RotatingBoxes(obj);
-    CHECK_EQ(obj->pos.l.x.f.u, 200 + 0x40); // (a pixel a frame for the step's $40 frames)
-    CHECK_EQ(obj->pos.l.y.f.u, 400);
-    CHECK_EQ(obj->ysp, 0x100); // (the first step: down)
-    CHECK_EQ(obj->xsp, 0);
+    CHECK_EQ(obj->x_pos.f.u, 200 + 0x40); // (a pixel a frame for the step's $40 frames)
+    CHECK_EQ(obj->y_pos.f.u, 400);
+    CHECK_EQ(obj->y_vel, 0x100); // (the first step: down)
+    CHECK_EQ(obj->x_vel, 0);
 }
 
 static void DHZ_FlippedBoxesTurnTheOtherWay(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x6A, 0x18, 200, 400);
-    obj->status.o.f.x_flip = true;
+    Sst *obj = Spawn(0x6A, 0x18, 200, 400);
+    obj->status |= SST_STATUS_X_FLIP;
     Obj_RotatingBoxes(obj);
-    CHECK_EQ(obj->xsp, -0x100);
-    CHECK_EQ(objects[0x21].scratch.u8[0], 0xC); // (the one on the right swaps with the left)
-    CHECK_EQ(objects[0x22].scratch.u8[0], 6);
+    CHECK_EQ(obj->x_vel, -0x100);
+    CHECK_EQ(sst[0x21].subtype, 0xC); // (the one on the right swaps with the left)
+    CHECK_EQ(sst[0x22].subtype, 6);
 }
 
 // --- 75 ---
 
 static void DHZ_TheSpikedBallIsAtTheEndOfItsChain(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x75, 0x16, 200, 400); // 6 links, speed $80
+    Sst *obj = Spawn(0x75, 0x16, 200, 400); // 6 links, speed $80
     Obj_SpikeballChain(obj);
-    CHECK_EQ(obj->col_type, 0x9A);
-    CHECK_EQ(objects[0x21].child_count, 6);
-    CHECK(objects[0x21].render.f.multi_sprite);
-    CHECK_EQ(obj->pos.l.x.f.u, 200 + 6 * 16); // (the angle starts at 0: to the right)
-    CHECK_EQ(obj->pos.l.y.f.u, 400);
-    CHECK_EQ(objects[0x21].children[0].x, 200);
-    CHECK_EQ(objects[0x21].children[5].x, 200 + 5 * 16);
-    CHECK_EQ(objects[0x21].children[5].frame, 1);
+    CHECK_EQ(obj->collision_flags, 0x9A);
+    CHECK_EQ(sst[0x21].child_count, 6);
+    CHECK((sst[0x21].render_flags & SST_RENDER_MULTI_DRAW));
+    CHECK_EQ(obj->x_pos.f.u, 200 + 6 * 16); // (the angle starts at 0: to the right)
+    CHECK_EQ(obj->y_pos.f.u, 400);
+    CHECK_EQ(sst[0x21].children[0].x, 200);
+    CHECK_EQ(sst[0x21].children[5].x, 200 + 5 * 16);
+    CHECK_EQ(sst[0x21].children[5].frame, 1);
 }
 
 static void DHZ_TheFlipOfTheObjectGivesTheStartingAngle(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x75, 0x16, 200, 400);
-    obj->status.b = 1; // x flip: ror #2 puts bit 0 at bit 6: a quarter turn
+    Sst *obj = Spawn(0x75, 0x16, 200, 400);
+    obj->status = 1; // x flip: ror #2 puts bit 0 at bit 6: a quarter turn
     Obj_SpikeballChain(obj);
-    CHECK_EQ(obj->pos.l.x.f.u, 200); // (sine at $40: straight down)
-    CHECK_EQ(obj->pos.l.y.f.u, 400 + 6 * 16);
+    CHECK_EQ(obj->x_pos.f.u, 200); // (sine at $40: straight down)
+    CHECK_EQ(obj->y_pos.f.u, 400 + 6 * 16);
 }
 
 static void DHZ_TheChainTurnsBySpeedTimesEightAFrame(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x75, 0x16, 200, 400);
+    Sst *obj = Spawn(0x75, 0x16, 200, 400);
     Obj_SpikeballChain(obj);
     for (int i = 0; i < 128; i++) // 128 frames of $80 is a quarter of the angle's range, and the first frame's: straight down
         Obj_SpikeballChain(obj);
-    CHECK_EQ(obj->pos.l.x.f.u, 200);
-    CHECK_EQ(obj->pos.l.y.f.u, 400 + 6 * 16);
+    CHECK_EQ(obj->x_pos.f.u, 200);
+    CHECK_EQ(obj->y_pos.f.u, 400 + 6 * 16);
     for (int i = 0; i < 128; i++)
         Obj_SpikeballChain(obj);
-    CHECK_EQ(obj->pos.l.x.f.u, 200 - 6 * 16); // (and then to the left)
-    CHECK_EQ(obj->pos.l.y.f.u, 400);
+    CHECK_EQ(obj->x_pos.f.u, 200 - 6 * 16); // (and then to the left)
+    CHECK_EQ(obj->y_pos.f.u, 400);
 }
 
 static void DHZ_ASubtypeOfLowNibbleFIsASolidBlock(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x75, 0x0F, 200, 400);
+    Sst *obj = Spawn(0x75, 0x0F, 200, 400);
     Obj_SpikeballChain(obj);
-    CHECK_EQ(obj->frame, 2);
+    CHECK_EQ(obj->mapping_frame, 2);
     CHECK_EQ(obj->routine, 4);
-    CHECK_EQ(obj->col_type, 0);
-    CHECK_EQ(objects[0x21].type, 0); // (no chain)
+    CHECK_EQ(obj->collision_flags, 0);
+    CHECK(sst[0x21].code == NULL); // (no chain)
 }
 
 // --- 76 ---
 
 static void DHZ_ThePlatformWithSpikesSlidesAwayWhenSomeoneComesNear(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x76, 0, 300, 400);
+    Sst *obj = Spawn(0x76, 0, 300, 400);
     Obj_PlatformSpikes(obj);
     CHECK_EQ(obj->width_pixels, 0x40);
     for (int i = 0; i < 5; i++)
         Obj_PlatformSpikes(obj);
-    CHECK_EQ(obj->pos.l.x.f.u, 300); // (nobody near)
+    CHECK_EQ(obj->x_pos.f.u, 300); // (nobody near)
     player->x_pos.f.u = 300 - 0x80; // within the strip $C0 to $41 to the left, at its height, on the ground
     player->y_pos.f.u = 400;
     player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
     Obj_PlatformSpikes(obj);
     Obj_PlatformSpikes(obj);
-    CHECK_EQ(obj->scratch.u8[0], 2);
+    CHECK_EQ(obj->own.u8[0], 2);
     for (int i = 0; i < 0x7F; i++)
         Obj_PlatformSpikes(obj);
-    CHECK_EQ(obj->pos.l.x.f.u, 300 - 0x80); // (it has gone $80 to the left and stops)
+    CHECK_EQ(obj->x_pos.f.u, 300 - 0x80); // (it has gone $80 to the left and stops)
     Obj_PlatformSpikes(obj);
-    CHECK_EQ(obj->pos.l.x.f.u, 300 - 0x80);
+    CHECK_EQ(obj->x_pos.f.u, 300 - 0x80);
 }
 
 static void DHZ_ACharacterInTheAirDoesNotSetItOff(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x76, 0, 300, 400);
+    Sst *obj = Spawn(0x76, 0, 300, 400);
     Obj_PlatformSpikes(obj);
     player->x_pos.f.u = 300 - 0x80;
     player->y_pos.f.u = 400;
     player->status |= SST_PSTATUS_IN_AIR;
     for (int i = 0; i < 10; i++)
         Obj_PlatformSpikes(obj);
-    CHECK_EQ(obj->scratch.u8[0], 0);
+    CHECK_EQ(obj->own.u8[0], 0);
 }
 
 static void DHZ_AFlippedPlatformWithSpikesSlidesRight(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0x76, 0, 300, 400);
-    obj->status.o.f.x_flip = true;
+    Sst *obj = Spawn(0x76, 0, 300, 400);
+    obj->status |= SST_STATUS_X_FLIP;
     Obj_PlatformSpikes(obj);
     player->x_pos.f.u = 300 + 0x80 - 0x100 + 0x80 - 0x40; // (the strip is the same one turned round: $40 to $C0 to the right)
     player->x_pos.f.u = 300 + 0x80;
@@ -346,7 +356,7 @@ static void DHZ_AFlippedPlatformWithSpikesSlidesRight(void) {
     player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
     for (int i = 0; i < 12; i++)
         Obj_PlatformSpikes(obj);
-    CHECK(obj->pos.l.x.f.u > 300);
+    CHECK(obj->x_pos.f.u > 300);
 }
 
 // --- 15, the swinging platform (Dust Hill's Newton's cradle: three side by side, the first swinging out to the left only, the middle hanging still, the third out to the right only) ---
@@ -409,32 +419,32 @@ static void DHZ_TheCradleSwingsOutOnOneSideOnlyAndTheMiddleHangsStill(void) {
 
 static void DHZ_TheCrawltonWaitsUntilSonicIsNearThenTurnsToHimAndCrawls(void) {
     Reset(ZoneId_MCZ);
-    Object *head = Spawn(0x9E, 0x22, 200, 400);
+    Sst *head = Spawn(0x9E, 0x22, 200, 400);
     player->x_pos.f.u = 200 + 0x100; // (far)
     player->y_pos.f.u = 400;
     Obj_Crawlton(head); // the set up: its body is made
-    CHECK_EQ(objects[0x21].type, 0x9E);
-    CHECK_EQ(objects[0x21].child_count, 7);
-    CHECK(objects[0x21].render.f.multi_sprite);
+    CHECK(sst[0x21].code == sst_object_codes[0x9E]);
+    CHECK_EQ(sst[0x21].child_count, 7);
+    CHECK((sst[0x21].render_flags & SST_RENDER_MULTI_DRAW));
     for (int i = 0; i < 5; i++)
         Obj_Crawlton(head);
-    CHECK_EQ(head->xsp, 0);
+    CHECK_EQ(head->x_vel, 0);
     player->x_pos.f.u = 250;
     Obj_Crawlton(head); // he is near: it turns
-    CHECK(head->render.f.x_flip);
-    CHECK_EQ(head->xsp, 0x100); // (50 pixels away: 50 * 8 = $190, less its low byte)
+    CHECK((head->render_flags & SST_RENDER_X_FLIP));
+    CHECK_EQ(head->x_vel, 0x100); // (50 pixels away: 50 * 8 = $190, less its low byte)
     for (int i = 0; i < 0x11 + 0x1C; i++)
         Obj_Crawlton(head);
-    CHECK(head->pos.l.x.f.u > 200); // it has crawled towards him
+    CHECK(head->x_pos.f.u > 200); // it has crawled towards him
 }
 
 static void DHZ_TheCrawltonBodyFollowsTheHeadWhileItCrawls(void) {
     Reset(ZoneId_MCZ);
-    Object *head = Spawn(0x9E, 0x22, 200, 400);
+    Sst *head = Spawn(0x9E, 0x22, 200, 400);
     player->x_pos.f.u = 250;
     player->y_pos.f.u = 400;
     Obj_Crawlton(head);
-    Object *body = &objects[0x21];
+    Sst *body = &sst[0x21];
     for (int i = 0; i < 3; i++) {
         Obj_Crawlton(head);
         Obj_Crawlton(body);
@@ -450,46 +460,46 @@ static void DHZ_TheCrawltonBodyFollowsTheHeadWhileItCrawls(void) {
 
 static void DHZ_TheFlasherDriftsFlashesAndGlowsDangerously(void) {
     Reset(ZoneId_MCZ);
-    Object *obj = Spawn(0xA3, 0x2C, 300, 300);
+    Sst *obj = Spawn(0xA3, 0x2C, 300, 300);
     Obj_Flasher(obj);
-    CHECK_EQ(obj->col_type, 0x06);
+    CHECK_EQ(obj->collision_flags, 0x06);
     for (int i = 0; i < 0x41; i++)
         Obj_Flasher(obj);
     CHECK_EQ(obj->routine, 4); // drifting
     for (int i = 0; i < 0x81; i++)
         Obj_Flasher(obj);
     CHECK_EQ(obj->routine, 6);       // it stops to flash
-    CHECK_EQ(obj->col_type, 0x86);   // and hurts
+    CHECK_EQ(obj->collision_flags, 0x86);   // and hurts
     for (int i = 0; i < 0x100 && obj->routine != 8; i++)
         Obj_Flasher(obj);
     CHECK_EQ(obj->routine, 8);       // the glow
     for (int i = 0; i < 0x200 && obj->routine != 4; i++)
         Obj_Flasher(obj);
     CHECK_EQ(obj->routine, 4);       // and it drifts again
-    CHECK_EQ(obj->col_type, 0x06);
+    CHECK_EQ(obj->collision_flags, 0x06);
 }
 
 static void DHZ_TheBossRisesDropsRocksAndMovesToWhereSonicIs(void) {
     Reset(ZoneId_MCZ);
     level_id = LEVEL_ID(ZoneId_MCZ, 1);
-    Object *boss = Spawn(0x57, 0, 0, 0);
-    boss->pos.l.x.f.u = 0;
+    Sst *boss = Spawn(0x57, 0, 0, 0);
+    boss->x_pos.f.u = 0;
     Obj_DHZBoss(boss);
     CHECK_EQ(boss->child_count, 4);
-    CHECK(boss->render.f.multi_sprite);
-    CHECK_EQ(boss->pos.l.x.f.u, 0x21A0);
-    CHECK_EQ(boss->pos.l.y.f.u, 0x678);
+    CHECK((boss->render_flags & SST_RENDER_MULTI_DRAW));
+    CHECK_EQ(boss->x_pos.f.u, 0x21A0);
+    CHECK_EQ(boss->y_pos.f.u, 0x678);
     player->x_pos.f.u = 0x2180;
-    for (int i = 0; i < 0x28 + 0x200 && boss->pos.l.y.f.u > 0x560 + 4; i++) {
+    for (int i = 0; i < 0x28 + 0x200 && boss->y_pos.f.u > 0x560 + 4; i++) {
         scrpos_x.f.u = 0x20F0;
         scrpos_y.f.u = 0x5C0;
         frame_count++;
         Obj_DHZBoss(boss);
     }
-    CHECK(boss->pos.l.y.f.u <= 0x564);
+    CHECK(boss->y_pos.f.u <= 0x564);
     int rocks = 0;
     for (int i = 0x21; i < 0x60; i++)
-        rocks += objects[i].type == 0x57;
+        rocks += sst[i].code == sst_object_codes[0x57];
     CHECK(rocks > 0); // (they come loose while it digs)
 }
 
@@ -520,28 +530,28 @@ static void DHZ_TheBossArenaLocksTheCameraAndLoadsTheBossOnce(void) {
 
 static void CNZ_TheRoundBumperThrowsWhoeverTouchesIt(void) {
     Reset(ZoneId_CNZ);
-    Object *bumper = Spawn(0x44, 0, 300, 300);
+    Sst *bumper = Spawn(0x44, 0, 300, 300);
     player->x_pos.f.u = 300;
     player->y_pos.f.u = 330; // below it
     Obj_CNZBumper(bumper); // set up
-    CHECK_EQ(bumper->col_type, 0xD7);
+    CHECK_EQ(bumper->collision_flags, 0xD7);
     CHECK_EQ(player->y_vel, 0);
-    bumper->col_property = 1; // (the touch response counts it)
+    bumper->collision_property = 1; // (the touch response counts it)
     Obj_CNZBumper(bumper);
     CHECK(player->y_vel > 0x500);                   // thrown away from it: straight down, at $700 or so
     CHECK(((player->status & SST_PSTATUS_IN_AIR) != 0));
-    CHECK_EQ(bumper->col_property, 0);
+    CHECK_EQ(bumper->collision_property, 0);
     CHECK_EQ(bumper->anim, 1);
 }
 
 static void CNZ_TheBossGoesRoundTheArenaAndLetsTheBallFall(void) {
     Reset(ZoneId_CNZ);
     level_id = LEVEL_ID(ZoneId_CNZ, 1);
-    Object *boss = Spawn(0x51, 0, 0, 0);
+    Sst *boss = Spawn(0x51, 0, 0, 0);
     Obj_CNZBoss(boss);
     CHECK_EQ(boss->child_count, 4);
-    CHECK_EQ(boss->pos.l.x.f.u, 0x2850);
-    CHECK_EQ(boss->pos.l.y.f.u, 0x600);
+    CHECK_EQ(boss->x_pos.f.u, 0x2850);
+    CHECK_EQ(boss->y_pos.f.u, 0x600);
     player->x_pos.f.u = 0x2800;
     int balls = 0;
     int16_t min_x = 0x7FFF;
@@ -550,18 +560,18 @@ static void CNZ_TheBossGoesRoundTheArenaAndLetsTheBallFall(void) {
         scrpos_y.f.u = 0x500;
         frame_count++;
         Obj_CNZBoss(boss);
-        if (boss->pos.l.x.f.u < min_x)
-            min_x = boss->pos.l.x.f.u;
+        if (boss->x_pos.f.u < min_x)
+            min_x = boss->x_pos.f.u;
         for (int j = 0x21; j < 0x60; j++) {
-            if (objects[j].type == 0x51 && ((uint8_t *)&objects[j].scratch)[0] == 4) {
+            if (sst[j].code == sst_object_codes[0x51] && ((uint8_t *)&sst[j].own)[0] == 4) {
                 balls++;
-                Obj_CNZBoss(&objects[j]);
+                Obj_CNZBoss(&sst[j]);
             }
         }
     }
     CHECK(balls > 0);                // (it lets a ball fall)
     CHECK(min_x <= 0x2730 + 4);      // (it goes to the left corner of the arena)
-    CHECK(boss->pos.l.y.f.u <= 0x600 && boss->pos.l.y.f.u >= 0x59C);
+    CHECK(boss->y_pos.f.u <= 0x600 && boss->y_pos.f.u >= 0x59C);
     ClearPLC();
 }
 
@@ -588,28 +598,28 @@ static void CNZ_TheBossArenaLocksTheCameraAtTheEndOfActTwoOnly(void) {
 
 static void CNZ_TheAutoSpinRollsWhoeverTouchesItIntoABall(void) {
     Reset(ZoneId_CNZ);
-    Object *box = Spawn(0x84, 0, 300, 300);
+    Sst *box = Spawn(0x84, 0, 300, 300);
     Obj_AutoSpin(box);
-    CHECK_EQ(box->col_type, 0xC6);
-    CHECK_EQ(box->frame, 0);
+    CHECK_EQ(box->collision_flags, 0xC6);
+    CHECK_EQ(box->mapping_frame, 0);
     player->status &= (uint8_t)~SST_PSTATUS_IN_BALL;
     player->ground_vel = 0;
     player->y_pos.f.u = 300;
-    box->col_property = 1; // (the touch response sets a bit for each character: Sonic's is the first)
+    box->collision_property = 1; // (the touch response sets a bit for each character: Sonic's is the first)
     Obj_AutoSpin(box);
     CHECK(((player->status & SST_PSTATUS_IN_BALL) != 0));
     CHECK_EQ(player->anim, SonAnimId_Roll);
     CHECK_EQ(player->ground_vel, 0x200);
     CHECK_EQ(player->y_pos.f.u, 305);
-    CHECK_EQ(box->col_property, 0);
-    box->col_property = 1; // (already a ball: nothing)
+    CHECK_EQ(box->collision_property, 0);
+    box->collision_property = 1; // (already a ball: nothing)
     Obj_AutoSpin(box);
     CHECK_EQ(player->y_pos.f.u, 305);
 }
 
 static void CNZ_TheBumperKnowsWhichCharacterTouchedIt(void) {
     Reset(ZoneId_CNZ);
-    Object *bumper = Spawn(0x44, 0, 300, 300);
+    Sst *bumper = Spawn(0x44, 0, 300, 300);
     Obj_CNZBumper(bumper);
     player->x_pos.f.u = 300;
     player->y_pos.f.u = 330;
@@ -618,7 +628,7 @@ static void CNZ_TheBumperKnowsWhichCharacterTouchedIt(void) {
     TAILS_OBJ->y_pos.f.u = 270;
     TAILS_OBJ->y_vel = 0;
     player->y_vel = 0;
-    bumper->col_property = 2; // Tails' bit only
+    bumper->collision_property = 2; // Tails' bit only
     Obj_CNZBumper(bumper);
     CHECK_EQ(player->y_vel, 0);
     CHECK(TAILS_OBJ->y_vel < -0x500); // (thrown up: he is above it)

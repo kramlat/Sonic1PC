@@ -155,8 +155,9 @@ static const uint16_t time_bonuses[TIME_BONUSES_NUM] = {
 // fixed reserved slot the real v_endcard byte corresponds to), so it's
 // safe to call from multiple objects/frames.
 void GotThroughAct(void) {
-    if (objects[23].type != ObjId_Null)
-        return;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_GotThroughCard])
+            return;
 
     // Reset game state
     limit_left2 = limit_right2;

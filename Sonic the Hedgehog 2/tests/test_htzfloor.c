@@ -4,25 +4,26 @@
 
 #include "Level.h"
 #include "Object.h"
+#include "SstLoad.h"
 #include "Object/HTZObjects.h"
 #include "Object/Sonic.h"
 
 // Hill Top's breakable floor (Obj_0x2F): it breaks for a roller standing on it who walks the secondary collision path (the solid bits $E/$F that the path swappers give each character), or with subtype
 // bit 7 for any roller; whoever stands on it and does not break it is put back on the first path ($C/$D).
 
-static Object *Floor(uint8_t subtype) {
+static Sst *Floor(uint8_t subtype) {
     memset(objects, 0, sizeof(Object) * 0x40);
     scrpos_x.v = scrpos_y.v = 0; // (the camera at the level's start: the floor is near it, so it is not forgotten for being out of range)
-    Object *obj = &objects[0x20];
-    obj->type = 0x2F;
-    obj->scratch.u8[0] = subtype;
-    obj->pos.l.x.f.u = 100;
-    obj->pos.l.y.f.u = 200;
-    obj->render.f.on_screen = true;
-    obj->status.b = 1 << 3; // Sonic is standing on it
+    Sst *obj = &sst[0x20];
+    obj->code = sst_object_codes[0x2F];
+    obj->subtype = subtype;
+    obj->x_pos.f.u = 100;
+    obj->y_pos.f.u = 200;
+    obj->render_flags |= SST_RENDER_ON_SCREEN;
+    obj->status = 1 << 3; // Sonic is standing on it
     Obj_HTZBreakFloor(obj); // (its first call sets it up)
-    obj->status.b = 1 << 3;
-    obj->render.f.on_screen = true;
+    obj->status = 1 << 3;
+    obj->render_flags |= SST_RENDER_ON_SCREEN;
     return obj;
 }
 
@@ -41,7 +42,7 @@ static void Roller(uint8_t top_solid_bit) {
 }
 
 static void HTZFloor_ABallOnTheSecondPathBreaksIt(void) {
-    Object *obj = Floor(0);
+    Sst *obj = Floor(0);
     Roller(0xE);
     Obj_HTZBreakFloor(obj);
     CHECK_EQ(obj->routine, 4); // it has become its first piece
@@ -50,7 +51,7 @@ static void HTZFloor_ABallOnTheSecondPathBreaksIt(void) {
 }
 
 static void HTZFloor_ABallOnTheFirstPathDoesNotBreakIt(void) {
-    Object *obj = Floor(0);
+    Sst *obj = Floor(0);
     Roller(0xC);
     Obj_HTZBreakFloor(obj);
     CHECK_EQ(obj->routine, 2);
@@ -59,14 +60,14 @@ static void HTZFloor_ABallOnTheFirstPathDoesNotBreakIt(void) {
 }
 
 static void HTZFloor_SubtypeBitSevenBreaksItForAnyRoller(void) {
-    Object *obj = Floor(0x80);
+    Sst *obj = Floor(0x80);
     Roller(0xC);
     Obj_HTZBreakFloor(obj);
     CHECK_EQ(obj->routine, 4);
 }
 
 static void HTZFloor_AWalkerOnTheSecondPathIsPutBackOnTheFirst(void) {
-    Object *obj = Floor(0);
+    Sst *obj = Floor(0);
     Roller(0xE);
     player->anim = SonAnimId_Walk;
     player->status &= (uint8_t)~SST_PSTATUS_IN_BALL;
@@ -80,21 +81,21 @@ static void HTZFloor_AWalkerOnTheSecondPathIsPutBackOnTheFirst(void) {
 static void HTZSeesaw_TheBallIsTheBadniksArt(void) {
     memset(objects, 0, sizeof(Object) * 0x40);
     scrpos_x.v = scrpos_y.v = 0;
-    Object *seesaw = &objects[0x20];
-    seesaw->type = 0x14;
-    seesaw->scratch.u8[0] = 0;
-    seesaw->pos.l.x.f.u = 100;
-    seesaw->pos.l.y.f.u = 200;
+    Sst *seesaw = &sst[0x20];
+    seesaw->code = sst_object_codes[0x14];
+    seesaw->subtype = 0;
+    seesaw->x_pos.f.u = 100;
+    seesaw->y_pos.f.u = 200;
     Obj_HTZSeesaw(seesaw);
-    CHECK_EQ(seesaw->tile & 0x7FF, 0x3C6);
-    Object *ball = NULL;
+    CHECK_EQ(seesaw->art_tile & 0x7FF, 0x3C6);
+    Sst *ball = NULL;
     for (int i = 0x21; i < 0x40; i++)
-        if (objects[i].type == 0x14)
-            ball = &objects[i];
+        if (sst[i].code == sst_object_codes[0x14])
+            ball = &sst[i];
     CHECK(ball != NULL);
     if (ball != NULL) {
         Obj_HTZSeesaw(ball); // (its first call sets it up)
-        CHECK_EQ(ball->tile & 0x7FF, 0x3DE);
+        CHECK_EQ(ball->art_tile & 0x7FF, 0x3DE);
     }
 }
 

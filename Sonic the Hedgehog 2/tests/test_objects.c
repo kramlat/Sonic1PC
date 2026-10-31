@@ -49,6 +49,15 @@ typedef struct {
 } Pending;
 
 // The object ids that the layouts of these zones place and that are still the null object (empty list: nothing missing)
+// (the slots below $20 are taken in the tests that need the slots the old tests named)
+static void SstTestFiller(Sst *self) { (void)self; }
+static void SstTestClear(void) {
+    Sst_Reset();
+    sst_load_everything_in_range = true;
+    for (int i = 4; i < 0x20; i++)
+        sst[i].code = SstTestFiller;
+}
+
 static const Pending pending[] = {
     { ZoneId_EHZ, 0, { 0 } },
     { ZoneId_HTZ, 0, { 0 } },
@@ -134,17 +143,17 @@ static void DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects(void) {
 
 // The "?" corners of an invisible box (Sonic 1's lava tag has the same with the debug cheat on)
 static void DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat(void) {
-    Object box;
+    Sst box;
     memset(&box, 0, sizeof(box));
-    box.pos.l.x.f.u = 0x1000;
-    box.pos.l.y.f.u = 0x400;
+    box.x_pos.f.u = 0x1000;
+    box.y_pos.f.u = 0x400;
     debug_cheat = false;
-    DebugMarkers_Show(&box, 0x40, 0x20);
+    DebugMarkersSst_Show(&box, 0x40, 0x20);
     CHECK_EQ(box.child_count, 0);
     debug_cheat = true;
-    DebugMarkers_Show(&box, 0x40, 0x20);
+    DebugMarkersSst_Show(&box, 0x40, 0x20);
     CHECK_EQ(box.child_count, 4);
-    CHECK(box.render.f.multi_sprite);
+    CHECK(box.render_flags & SST_RENDER_MULTI_DRAW);
     CHECK_EQ(box.children[0].x, 0x1000 - 0x40 + 8);
     CHECK_EQ(box.children[0].y, 0x400 - 0x20 + 8);
     CHECK_EQ(box.children[3].x, 0x1000 + 0x40 - 8);
@@ -252,17 +261,17 @@ static void DustSplash_FollowsTheSpinDashAndSplashesAtTheWater(void) {
     player->x_pos.f.u = 0x123;
     player->y_pos.f.u = 0x234;
     ((Scratch_Sonic *)player->own.u8)->air = 30;
-    Object *dust = &objects[0x1B];
+    Sst *dust = &sst[0x1B];
     memset(dust, 0, sizeof(*dust));
-    dust->type = ObjId_Splash;
+    dust->code = sst_object_codes[ObjId_Splash];
     Obj_DustSplash(dust);
     CHECK_EQ(dust->routine, 2);
 
     DustSplash_Show(dust, DUST_DASH);
     for (int i = 0; i < 6; i++)
         Obj_DustSplash(dust);
-    CHECK_EQ(dust->pos.l.x.f.u, 0x123);
-    CHECK_EQ(dust->pos.l.y.f.u, 0x234);
+    CHECK_EQ(dust->x_pos.f.u, 0x123);
+    CHECK_EQ(dust->y_pos.f.u, 0x234);
     const uint8_t *tiles = VDP_TileSpace() + 0x49C * 0x20;
     bool art = false;
     for (int b = 0; b < 0x80; b++)
@@ -277,8 +286,8 @@ static void DustSplash_FollowsTheSpinDashAndSplashesAtTheWater(void) {
     wtr_pos1 = 0x300;
     DustSplash_Show(dust, DUST_SPLASH);
     Obj_DustSplash(dust);
-    CHECK_EQ(dust->pos.l.y.f.u, 0x300);
-    CHECK_EQ(dust->pos.l.x.f.u, 0x123);
+    CHECK_EQ(dust->y_pos.f.u, 0x300);
+    CHECK_EQ(dust->x_pos.f.u, 0x123);
 }
 
 
@@ -286,14 +295,13 @@ static void DustSplash_FollowsTheSpinDashAndSplashesAtTheWater(void) {
 static int CountdownObjects(void) {
     int n = 0;
     for (int i = 1; i < 0x40; i++)
-        if (objects[i].type == ObjId_DrownCount)
+        if (sst[i].code == sst_object_codes[ObjId_DrownCount])
             n++;
     return n;
 }
 
 static void Countdown_CountsAPlayersAirAndDrownsHim(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     Sst *sonic = player;
     sonic->code = sst_object_codes[ObjId_Sonic];
     sonic->routine = 2;
@@ -303,7 +311,7 @@ static void Countdown_CountsAPlayersAirAndDrownsHim(void) {
     wtr_pos1 = 0x100;
     ((Scratch_Sonic *)sonic->own.u8)->air = 30;
     Countdown_Make(13, false);
-    Object *counter = &objects[13];
+    Sst *counter = &sst[13];
 
     Obj_Countdown(counter); // the first frame counts at once
     CHECK_EQ(((Scratch_Sonic *)sonic->own.u8)->air, 29);
@@ -338,6 +346,9 @@ static void Animals_ZonesHaveTheirPairAndEndAnimalsTheirOwnMovement(void) {
     CHECK_EQ(Level_AnimalsPlc(), PlcId_Flicky3A);
 
     Sst_Reset();
+    sst_load_everything_in_range = true;
+    for (int i = 4; i < 0x20; i++)
+        sst[i].code = SstTestFiller;
     boss_status = 0;
     level_id = (uint16_t)(ZoneId_HPZ << 8); // (Mouse $08 at $580, Seal $03 at $594)
     Sst *animal = Sst_Spawn(ObjId_Animal, 0, 0);
@@ -369,114 +380,110 @@ static void Animals_ZonesHaveTheirPairAndEndAnimalsTheirOwnMovement(void) {
 
 // The alpha's Coconuts: it sets itself up from its subtype's look, waits, throws a coconut at Sonic when he is within $60 pixels of it (turning to him), and the coconut falls from its hand
 static void Coconuts_ThrowACoconutWhenSonicIsNear(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     player->code = sst_object_codes[ObjId_Sonic];
     player->x_pos.f.u = 0x400;
     player->y_pos.f.u = 0x300;
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x200;
-    Object *monkey = &objects[0x20];
-    monkey->type = ObjId_Coconuts;
-    monkey->pos.l.x.f.u = 0x440;
-    monkey->pos.l.y.f.u = 0x300;
-    monkey->scratch.u8[0] = 0x1E; // (its subtype)
+    Sst *monkey = &sst[0x20];
+    monkey->code = sst_object_codes[ObjId_Coconuts];
+    monkey->x_pos.f.u = 0x440;
+    monkey->y_pos.f.u = 0x300;
+    monkey->subtype = 0x1E; // (its subtype)
     Obj_Coconuts(monkey);
     CHECK_EQ(monkey->routine, 2);
-    CHECK_EQ(monkey->tile & 0x7FF, 0x3EE);
-    CHECK_EQ(monkey->col_type, 9);
+    CHECK_EQ(monkey->art_tile & 0x7FF, 0x3EE);
+    CHECK_EQ(monkey->collision_flags, 9);
 
     Obj_Coconuts(monkey); // (Sonic is $40 pixels to its left: it faces him and throws)
     CHECK_EQ(monkey->routine, 6);
-    CHECK_EQ(monkey->frame, 1);
-    CHECK(!monkey->render.f.x_flip);
+    CHECK_EQ(monkey->mapping_frame, 1);
+    CHECK(!(monkey->render_flags & SST_RENDER_X_FLIP));
     for (int f = 0; f < 10; f++)
         Obj_Coconuts(monkey);
-    CHECK_EQ(monkey->frame, 2);
-    Object *nut = NULL;
+    CHECK_EQ(monkey->mapping_frame, 2);
+    Sst *nut = NULL;
     for (int i = 1; i < 0x40; i++)
-        if (objects[i].type == ObjId_EnemyWeapon)
-            nut = &objects[i];
+        if (sst[i].code == sst_object_codes[ObjId_EnemyWeapon])
+            nut = &sst[i];
     CHECK(nut != NULL);
     if (nut != NULL) {
-        CHECK_EQ(nut->xsp, -0x100);
-        CHECK_EQ(nut->pos.l.x.f.u, 0x440 + 11);
-        CHECK_EQ(nut->pos.l.y.f.u, 0x300 - 13);
+        CHECK_EQ(nut->x_vel, -0x100);
+        CHECK_EQ(nut->x_pos.f.u, 0x440 + 11);
+        CHECK_EQ(nut->y_pos.f.u, 0x300 - 13);
         Obj_EnemyWeapon(nut);
-        CHECK_EQ(nut->col_type, 0x8B);
+        CHECK_EQ(nut->collision_flags, 0x8B);
         Obj_EnemyWeapon(nut);
-        CHECK_EQ(nut->ysp, 0x20);
+        CHECK_EQ(nut->y_vel, 0x20);
     }
 }
 
 // The alpha's boss explosion: seven frames of seven ticks, then it is gone
 static void BossExplosion_RunsSevenFramesAndGoes(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
-    Object *exp = &objects[0x30];
-    exp->type = 0x58;
-    exp->pos.l.x.f.u = 0x100;
-    exp->pos.l.y.f.u = 0x100;
+    SstTestClear();
+    Sst *exp = &sst[0x30];
+    exp->code = sst_object_codes[0x58];
+    exp->x_pos.f.u = 0x100;
+    exp->y_pos.f.u = 0x100;
     Obj_BossExplosion(exp);
     CHECK_EQ(exp->routine, 2);
-    CHECK_EQ(exp->tile & 0x7FF, 0x580);
-    for (int f = 0; f < 7 * 8 + 2 && exp->type != 0; f++)
+    CHECK_EQ(exp->art_tile & 0x7FF, 0x580);
+    for (int f = 0; f < 7 * 8 + 2 && exp->code != NULL; f++)
         Obj_BossExplosion(exp);
-    CHECK_EQ(exp->type, 0);
+    CHECK(exp->code == NULL);
 }
 
 
 // The alpha's Slicer: it walks towards the left, and when Sonic is within $80 pixels in front of it raises its blades and sends two pincers at him
 static void Slicer_RaisesItsBladesAndSendsTwoPincers(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     player->code = sst_object_codes[ObjId_Sonic];
     player->x_pos.f.u = 0x400;
     player->y_pos.f.u = 0x300;
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x200;
-    Object *slicer = &objects[0x20];
-    slicer->type = ObjId_Slicer;
-    slicer->pos.l.x.f.u = 0x440;
-    slicer->pos.l.y.f.u = 0x300;
+    Sst *slicer = &sst[0x20];
+    slicer->code = sst_object_codes[ObjId_Slicer];
+    slicer->x_pos.f.u = 0x440;
+    slicer->y_pos.f.u = 0x300;
     Obj_Slicer(slicer);
     CHECK_EQ(slicer->routine, 2);
-    CHECK_EQ(slicer->xsp, -0x40);
-    CHECK_EQ(slicer->col_type, 6);
+    CHECK_EQ(slicer->x_vel, -0x40);
+    CHECK_EQ(slicer->collision_flags, 6);
     Obj_Slicer(slicer); // (Sonic is in front of it, $40 away)
     CHECK_EQ(slicer->routine, 6);
-    CHECK_EQ(slicer->frame, 3);
+    CHECK_EQ(slicer->mapping_frame, 3);
     for (int f = 0; f < 10; f++)
         Obj_Slicer(slicer);
-    CHECK_EQ(slicer->frame, 4);
+    CHECK_EQ(slicer->mapping_frame, 4);
     int pincers = 0;
     for (int i = 1; i < 0x40; i++)
-        if (objects[i].type == ObjId_SlicerPincers)
+        if (sst[i].code == sst_object_codes[ObjId_SlicerPincers])
             pincers++;
     CHECK_EQ(pincers, 2);
 }
 
 // The alpha's unfinished Metropolis boss: its ship makes the object of the balls, which makes seven of them (the object itself the first) that orbit the ship; a hit lets them go
 static void MTZBoss_MakesSevenBallsThatOrbitTheShip(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     scrpos_x.f.u = 0x1D00;
     scrpos_y.f.u = 0x100;
-    Object *ship = &objects[0x20];
-    ship->type = ObjId_MTZBoss;
+    Sst *ship = &sst[0x20];
+    ship->code = sst_object_codes[ObjId_MTZBoss];
     Obj_MTZBoss(ship);
-    CHECK_EQ(ship->pos.l.x.f.u, 0x1EA0 - 2);
-    CHECK_EQ(ship->col_type, 0xF);
-    Object *first = NULL;
+    CHECK_EQ(ship->x_pos.f.u, 0x1EA0 - 2);
+    CHECK_EQ(ship->collision_flags, 0xF);
+    Sst *first = NULL;
     for (int i = 1; i < 0x40 && first == NULL; i++)
-        if (objects[i].type == ObjId_MTZBossBall)
-            first = &objects[i];
+        if (sst[i].code == sst_object_codes[ObjId_MTZBossBall])
+            first = &sst[i];
     CHECK(first != NULL);
     if (first != NULL)
         Obj_MTZBossBall(first); // (it makes the seven)
     int balls = 0;
     for (int i = 1; i < 0x40; i++)
-        if (objects[i].type == ObjId_MTZBossBall && objects[i].routine == 2)
+        if (sst[i].code == sst_object_codes[ObjId_MTZBossBall] && sst[i].routine == 2)
             balls++;
     CHECK_EQ(balls, 7);
 }
@@ -485,8 +492,7 @@ static void MTZBoss_MakesSevenBallsThatOrbitTheShip(void) {
 // The alpha's Emerald Hill boss, from the level's event to its parts: in act 2, as the camera reaches $26E0, the event puts the ship (object 56, subtype $81) in the arena, locks the screen and starts the boss's music; the ship makes
 // its face and the car's parts (objects 5B), and the explosions of its wreck are object 58
 static void EHZBoss_TheEventPutsTheAlphasShipInTheArena(void) {
-    for (int i = 0; i < 0x80; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     level_id = LEVEL_ID(ZoneId_EHZ, 1);
     dle_routine = 0;
     boss_status = 0;
@@ -495,28 +501,27 @@ static void EHZBoss_TheEventPutsTheAlphasShipInTheArena(void) {
     DynamicLevelEvents();
     CHECK(lock_screen);
     CHECK_EQ(dle_routine, 2);
-    Object *ship = NULL;
+    Sst *ship = NULL;
     for (int i = 1; i < 0x80; i++)
-        if (objects[i].type == 0x56)
-            ship = &objects[i];
+        if (sst[i].code == sst_object_codes[0x56])
+            ship = &sst[i];
     CHECK(ship != NULL);
     if (ship == NULL)
         return;
-    CHECK_EQ(ship->pos.l.x.f.u, 0x29D0);
+    CHECK_EQ(ship->x_pos.f.u, 0x29D0);
     Obj_EHZBoss(ship);
-    CHECK_EQ(ship->pos.l.x.f.u, 0x2A00); // (the ship is put at $2A00,$2C0, out of the arena, and slides in from the right)
-    CHECK_EQ(ship->pos.l.y.f.u, 0x2C0);
+    CHECK_EQ(ship->x_pos.f.u, 0x2A00); // (the ship is put at $2A00,$2C0, out of the arena, and slides in from the right)
+    CHECK_EQ(ship->y_pos.f.u, 0x2C0);
     int parts = 0;
     for (int i = 1; i < 0x80; i++)
-        if (objects[i].type == 0x5B)
+        if (sst[i].code == sst_object_codes[0x5B])
             parts++;
     CHECK_EQ(parts, 6); // (the car's body, its three wheels and spike, and the cockpit's glass, as the alpha makes them)
 }
 
 // The rotating cylinder of Metropolis (object 06 with bit 7 in its subtype): a character level with its middle is taken onto it and carried round (his height follows a cosine, his flip angle goes on by 4), and let go at its end
 static void Cylinder_TakesACharacterAndLetsGoAtTheEnd(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     player->code = sst_object_codes[ObjId_Sonic];
     player->y_radius = 0x13;
     player->x_pos.f.u = 0x500;
@@ -524,14 +529,14 @@ static void Cylinder_TakesACharacterAndLetsGoAtTheEnd(void) {
     player->ground_vel = 0x700;
     scrpos_x.f.u = 0x400;
     scrpos_y.f.u = 0x300;
-    Object *cyl = &objects[0x20];
-    cyl->type = 6;
-    cyl->scratch.u8[0] = 0x80;
-    cyl->pos.l.x.f.u = 0x500;
-    cyl->pos.l.y.f.u = 0x400;
+    Sst *cyl = &sst[0x20];
+    cyl->code = sst_object_codes[6];
+    cyl->subtype = 0x80;
+    cyl->x_pos.f.u = 0x500;
+    cyl->y_pos.f.u = 0x400;
     Obj_Spiral(cyl);
     CHECK_EQ(cyl->routine, 4);
-    CHECK(cyl->status.b & 8); // (he is on it)
+    CHECK(cyl->status & 8); // (he is on it)
     CHECK_EQ(player->y_pos.f.u, 0x428);
     Obj_Spiral(cyl);
     const int16_t y_start = player->y_pos.f.u;
@@ -540,7 +545,7 @@ static void Cylinder_TakesACharacterAndLetsGoAtTheEnd(void) {
     CHECK(player->y_pos.f.u != y_start || ((Scratch_Sonic *)player->own.u8)->flip_angle != 0); // (round it)
     player->x_pos.f.u = 0x500 + 0x100; // (past its end)
     Obj_Spiral(cyl);
-    CHECK(!(cyl->status.b & 8));
+    CHECK(!(cyl->status & 8));
     CHECK(((player->status & SST_PSTATUS_IN_AIR) != 0));
 }
 
@@ -565,8 +570,7 @@ static void Signpost_LevelEndDespawnsCharactersThatLeaveTheScreen(void) {
 // A level that wraps vertically (its top limit is exactly $FF00, its bottom $800: Metropolis): with the camera near the bottom of the level and the character just over the wrap (at the top), the camera goes on (it is
 // $60 above him) and does not jump a whole level's height, and one level's height up is the same: the distance is taken modulo $800
 static void Scroll_AWrappingLevelKeepsTheCameraWithACharacterOverTheWrap(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     player->code = sst_object_codes[ObjId_Sonic];
     limit_top2 = 0xFF00;
     limit_btm2 = 0x800;
@@ -591,34 +595,32 @@ static void Scroll_AWrappingLevelKeepsTheCameraWithACharacterOverTheWrap(void) {
 
 // Hill Top's Spiker: it walks to and fro, and with Sonic within $20 pixels across it stops, and fires its drill (once)
 static void Spiker_FiresItsDrillOnceWhenSonicIsAbove(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     player->code = sst_object_codes[ObjId_Sonic];
     player->x_pos.f.u = 0x410;
     player->y_pos.f.u = 0x200;
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x100;
-    Object *spiker = &objects[0x20];
-    spiker->type = ObjId_Spiker;
-    spiker->pos.l.x.f.u = 0x400;
-    spiker->pos.l.y.f.u = 0x300;
+    Sst *spiker = &sst[0x20];
+    spiker->code = sst_object_codes[ObjId_Spiker];
+    spiker->x_pos.f.u = 0x400;
+    spiker->y_pos.f.u = 0x300;
     Obj_Spiker(spiker);
     CHECK_EQ(spiker->routine, 2);
-    CHECK_EQ(spiker->col_type, 0x12);
+    CHECK_EQ(spiker->collision_flags, 0x12);
     for (int f = 0; f < 40; f++)
         Obj_Spiker(spiker);
     int drills = 0;
     for (int i = 1; i < 0x40; i++)
-        if (objects[i].type == ObjId_SpikerDrill)
+        if (sst[i].code == sst_object_codes[ObjId_SpikerDrill])
             drills++;
     CHECK_EQ(drills, 1); // (and not another, however long it stays)
-    CHECK_EQ(spiker->frame == 2 || spiker->anim == 1, true);
+    CHECK_EQ(spiker->mapping_frame == 2 || spiker->anim == 1, true);
 }
 
 // The alpha's Hill Top boss: it rises to the top of its side, opens its cannon (a jet of flame, once, and a second hitbox while it is open), sinks and throws two balls of lava; with its hits out it blows up and the act's boss is done
 static void HTZBoss_FiresItsJetThenThrowsTwoLavaBalls(void) {
-    for (int i = 0; i < 0x80; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     memset(&boss_move, 0, sizeof(boss_move));
     boss_status = 0;
     player->code = sst_object_codes[ObjId_Sonic];
@@ -626,11 +628,11 @@ static void HTZBoss_FiresItsJetThenThrowsTwoLavaBalls(void) {
     player->y_pos.f.u = 0x500;
     scrpos_x.f.u = 0x2F00;
     scrpos_y.f.u = 0x400;
-    Object *boss = &objects[0x20];
-    boss->type = ObjId_HTZBoss;
+    Sst *boss = &sst[0x20];
+    boss->code = sst_object_codes[ObjId_HTZBoss];
     Obj_HTZBoss(boss);
-    CHECK_EQ(boss->col_type, 0xF);
-    CHECK_EQ(((Scratch_AlphaBoss *)&boss->scratch)->hits, 8);
+    CHECK_EQ(boss->collision_flags, 0xF);
+    CHECK_EQ(boss->collision_property, 8);
     int jets = 0, balls = 0;
     bool box_was_there = false;
     for (int f = 0; f < 1200 && balls < 2; f++) {
@@ -640,11 +642,11 @@ static void HTZBoss_FiresItsJetThenThrowsTwoLavaBalls(void) {
         box_was_there |= HTZBoss_CannonBox(boss, &cx, &cy, &hw);
         jets = balls = 0;
         for (int i = 0x21; i < 0x80; i++) {
-            if (objects[i].type != ObjId_HTZBoss)
+            if (sst[i].code != sst_object_codes[ObjId_HTZBoss])
                 continue;
-            if (((Scratch_AlphaBoss *)&objects[i].scratch)->boss_routine == 6 && objects[i].routine_sec == 0)
-                Obj_HTZBoss(&objects[i]); // (the spawner makes its two)
-            const uint8_t part = ((Scratch_AlphaBoss *)&objects[i].scratch)->boss_routine;
+            if (((Own_AlphaBoss *)&sst[i].own)->boss_routine == 6 && sst[i].routine_secondary == 0)
+                Obj_HTZBoss(&sst[i]); // (the spawner makes its two)
+            const uint8_t part = ((Own_AlphaBoss *)&sst[i].own)->boss_routine;
             jets += part == 4;
             balls += part == 6;
         }
@@ -654,45 +656,44 @@ static void HTZBoss_FiresItsJetThenThrowsTwoLavaBalls(void) {
     CHECK_EQ(box_was_there, true);
     int16_t left = 0, right = 0;
     for (int i = 0x21; i < 0x80; i++)
-        if (objects[i].type == ObjId_HTZBoss && ((Scratch_AlphaBoss *)&objects[i].scratch)->boss_routine == 6) {
-            left += objects[i].xsp < 0;
-            right += objects[i].xsp > 0;
+        if (sst[i].code == sst_object_codes[ObjId_HTZBoss] && ((Own_AlphaBoss *)&sst[i].own)->boss_routine == 6) {
+            left += sst[i].x_vel < 0;
+            right += sst[i].x_vel > 0;
         }
     CHECK_EQ(left, 1);
     CHECK_EQ(right, 1);
 
     // beaten: its explosions, and then the boss is done
-    ((Scratch_AlphaBoss *)&boss->scratch)->hits = 0;
+    boss->collision_property = 0;
     for (int f = 0; f < 1200 && !boss_status; f++) {
         frame_count++;
         Obj_HTZBoss(boss);
     }
     CHECK_EQ(boss_status, 1);
-    CHECK_EQ(boss->type, 0);
+    CHECK(boss->code == NULL);
 }
 
 // The alpha's Rhinobot (4D, unused there): its look from the art list ($3B2, palette line 1), and once it stands on the floor it waits, then walks off to the way it faces turned round
 static void Rhinobot_SetsItselfUpAndWalksOff(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     player->code = sst_object_codes[ObjId_Sonic];
     player->x_pos.f.u = 0x400;
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x280;
-    Object *rhino = &objects[0x20];
-    rhino->type = 0x4D;
-    rhino->pos.l.x.f.u = 0x400;
-    rhino->pos.l.y.f.u = 0x300;
+    Sst *rhino = &sst[0x20];
+    rhino->code = sst_object_codes[0x4D];
+    rhino->x_pos.f.u = 0x400;
+    rhino->y_pos.f.u = 0x300;
     Obj_Rhinobot(rhino);
-    CHECK_EQ(rhino->col_type, 0x0A);
-    CHECK_EQ(rhino->tile, TILE_MAP(0, 1, 0, 0, 0x3B2));
+    CHECK_EQ(rhino->collision_flags, 0x0A);
+    CHECK_EQ(rhino->art_tile, TILE_MAP(0, 1, 0, 0, 0x3B2));
     CHECK_EQ(rhino->width_pixels, 0x18);
     rhino->routine = 2; // (standing: no floor in the test)
-    rhino->routine_sec = 0;
+    rhino->routine_secondary = 0;
     Obj_Rhinobot(rhino);
-    CHECK_EQ(rhino->routine_sec, 2);
-    CHECK_EQ(rhino->xsp, 0x80);
-    CHECK_EQ(rhino->status.o.f.x_flip, true);
+    CHECK_EQ(rhino->routine_secondary, 2);
+    CHECK_EQ(rhino->x_vel, 0x80);
+    CHECK_EQ((rhino->status & SST_STATUS_X_FLIP), true);
 }
 
 // The alpha's new effects ($E1-$E9) are effects like the rest: they play on the effects' channels (they once played into the music's, over its notes)
@@ -858,41 +859,39 @@ static void Music_SongKeepsItsNoiseAndVoicesAfterTheExtraLifeJingle(void) {
 
 // The Sol: it makes four fireballs that circle it, and with Sonic near and its frame 2 it throws them one by one
 static void Sol_MakesFourFireballs(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     player->code = sst_object_codes[ObjId_Sonic];
     player->x_pos.f.u = 0x1000;
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x100;
-    Object *sol = &objects[0x20];
-    sol->type = ObjId_Sol;
-    sol->pos.l.x.f.u = 0x400;
-    sol->pos.l.y.f.u = 0x300;
+    Sst *sol = &sst[0x20];
+    sol->code = sst_object_codes[ObjId_Sol];
+    sol->x_pos.f.u = 0x400;
+    sol->y_pos.f.u = 0x300;
     Obj_Sol(sol);
     CHECK_EQ(sol->routine, 2);
     int balls = 0;
     for (int i = 1; i < 0x40; i++)
-        if (objects[i].type == ObjId_Sol && objects[i].routine == 6)
+        if (sst[i].code == sst_object_codes[ObjId_Sol] && sst[i].routine == 6)
             balls++;
     CHECK_EQ(balls, 4);
-    CHECK_EQ(sol->col_type, 0x0B);
+    CHECK_EQ(sol->collision_flags, 0x0B);
 }
 
 // The Rexon: the body walks to and fro, and with Sonic within reach it rears up and makes its five heads, the last of which throws fireballs; with the last one gone the rest come apart
 static void Rexon_RearsUpIntoFiveHeads(void) {
-    for (int i = 0; i < 0x40; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    SstTestClear();
     player->code = sst_object_codes[ObjId_Sonic];
     player->x_pos.f.u = 0x1000; // (far)
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x100;
-    Object *rexon = &objects[0x20];
-    rexon->type = ObjId_RexonBody;
-    rexon->pos.l.x.f.u = 0x400;
-    rexon->pos.l.y.f.u = 0x300;
+    Sst *rexon = &sst[0x20];
+    rexon->code = sst_object_codes[ObjId_RexonBody];
+    rexon->x_pos.f.u = 0x400;
+    rexon->y_pos.f.u = 0x300;
     Obj_RexonBody(rexon);
     CHECK_EQ(rexon->routine, 2);
-    CHECK_EQ(rexon->frame, 2);
+    CHECK_EQ(rexon->mapping_frame, 2);
     Obj_RexonBody(rexon);
     CHECK_EQ(rexon->routine, 2); // (nothing yet)
     player->x_pos.f.u = 0x420;
@@ -901,7 +900,7 @@ static void Rexon_RearsUpIntoFiveHeads(void) {
     CHECK_EQ(rexon->routine, 6);
     int heads = 0;
     for (int i = 1; i < 0x40; i++)
-        if (objects[i].type == ObjId_RexonHead)
+        if (sst[i].code == sst_object_codes[ObjId_RexonHead])
             heads++;
     CHECK_EQ(heads, 5);
 }

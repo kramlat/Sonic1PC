@@ -35,7 +35,7 @@ static void Pri_Main(Sst *self, Own_PrisonCapsule *own) {
     uint8_t subtype = self->subtype;
     self->routine = Pri_Var[subtype].routine;
     self->width_pixels = Pri_Var[subtype].width;
-    self->priority = Pri_Var[subtype].priority;
+    self->priority = (uint16_t)(Pri_Var[subtype].priority * 0x80);
     self->mapping_frame = Pri_Var[subtype].frame;
 
     if (subtype == 2) { // unused leftover

@@ -1,8 +1,8 @@
 #ifndef _DIAGSPRING_H
 #define _DIAGSPRING_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_DiagSpring(Object *obj);
+void Obj_DiagSpring(Sst *self);
 
 #endif //_DIAGSPRING_H

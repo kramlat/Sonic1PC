@@ -1,10 +1,10 @@
 #ifndef _HPZOBJECTS_H
 #define _HPZOBJECTS_H
 
-#include "Object.h"
+#include "Sst.h"
 
-void Obj_HPZEmerald(Object *obj);
-void Obj_HPZWaterfall(Object *obj);
-void Obj_CollapsingLedge(Object *obj);
+void Obj_HPZEmerald(Sst *self);
+void Obj_HPZWaterfall(Sst *self);
+void Obj_CollapsingLedge(Sst *self);
 
 #endif //_HPZOBJECTS_H

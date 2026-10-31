@@ -92,7 +92,7 @@ static void BossSpringYard_Main(Sst *self, Own_BossSpringYard *own) {
         sub->anim_frame = 0;
         sub->anim_frame_timer = 0;
         sub->mapping_frame = 0;
-        sub->priority = BSYZ_ObjData[i].priority;
+        sub->priority = (uint16_t)(BSYZ_ObjData[i].priority * 0x80);
         sub->code = sst_object_codes[ObjId_BossSpringYard];
         sub->mappings = Mappings_Eggman;
         sub->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Eggman);
@@ -168,8 +168,8 @@ static void BossSpringYard_FindBlocks(Own_BossSpringYard *own) {
     own->has_block = false;
     uint8_t target_col = own->parent_index; // block_index alias -- see BossSpringYard.h
 
-    for (int i = RESERVED_OBJECTS; i < OBJECTS; i++) {
-        if (objects[i].type == ObjId_BossBlock && objects[i].scratch.u8[0] == target_col) {
+    for (int i = 0; i < SST_COUNT; i++) {
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_BossBlock] && sst[i].subtype == target_col) {
             own->block_index = (uint8_t)i;
             own->has_block = true;
             break;
