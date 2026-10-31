@@ -468,6 +468,7 @@ void GM_Title(void) {
     // Clear the pattern load queue and fade out
     ClearPLC();
     PaletteFadeOut();
+    VDP_ClearVRAM(); // (the title's pictures rely on the tiles they do not load being blank, as after a boot: a demo's level art must not show through)
 
     // Set VDP state
     Viewport_UseOwnPlanes(&screen1p);
@@ -542,7 +543,9 @@ void GM_Title(void) {
     demo_length = 376;
 
     // Load title objects
+    const int16_t title_x = player->x_pos.f.u; // (where the level start put him: what ends the title counts from it)
     Sst_ResetAll();
+    player->x_pos.f.u = title_x;
     Sst_SpawnCode(Obj_TitleSonic, 0, 0);
     Sst_SpawnCode(Obj_PSB, 0, 0);
 #ifndef SCP_JP

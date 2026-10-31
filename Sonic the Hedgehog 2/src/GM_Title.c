@@ -409,6 +409,7 @@ void GM_Title(void) {
     // Clear the pattern load queue and fade out
     ClearPLC();
     PaletteFadeOut();
+    VDP_ClearVRAM(); // (the title's pictures rely on the tiles they do not load being blank, as after a boot: a demo's level art must not show through)
 
     // Set VDP state
     VDP_SetBackgroundColour(0x20); // Line 2, entry 0
@@ -465,7 +466,9 @@ void GM_Title(void) {
     demo_length = 376;
 
     // Load title objects
+    const int16_t title_x = player->x_pos.f.u; // (what ends the title counts from where it was put above)
     Sst_ResetAll(); // (the level's Sonic and Tails must not stay on the title screen)
+    player->x_pos.f.u = title_x;
     Sst_Spawn(ObjId_TitleSonic, 0, 0); // Sonic (frame 0) and Tails (frame 1): the prototypes' title characters
     Sst *tails = Sst_Spawn(ObjId_TitleSonic, 0, 0);
     if (tails != NULL)
