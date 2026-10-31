@@ -465,7 +465,7 @@ void GM_Title(void) {
     demo_length = 376;
 
     // Load title objects
-    Sst_Reset();
+    Sst_ResetAll(); // (the level's Sonic and Tails must not stay on the title screen)
     Sst_Spawn(ObjId_TitleSonic, 0, 0); // Sonic (frame 0) and Tails (frame 1): the prototypes' title characters
     Sst *tails = Sst_Spawn(ObjId_TitleSonic, 0, 0);
     if (tails != NULL)

@@ -250,6 +250,7 @@ GM_Level_Branch:;
     }
 
     Level_ClearState();
+    Sst_ResetAll(); // (the characters too: the previous level's Sonic, his routine and speeds, must not carry over)
 
     // Clear screen
     ClearScreen();

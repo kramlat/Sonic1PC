@@ -488,7 +488,7 @@ void GM_Title(void) {
     PalLoad1(PalId_Sonic);
 
     // Load "SONIC TEAM PRESENTS" object
-    Sst_Reset();
+    Sst_ResetAll(); // (the level's Sonic must not stay on the title screen)
     Sst_Spawn(ObjId_Credits, 0, 0);
 
     ExecuteObjects();
@@ -539,7 +539,7 @@ void GM_Title(void) {
     demo_length = 376;
 
     // Load title objects
-    Sst_Reset();
+    Sst_ResetAll();
     Sst_Spawn(ObjId_TitleSonic, 0, 0);
     Sst_Spawn(ObjId_PSB, 0, 0);
 #ifndef SCP_JP

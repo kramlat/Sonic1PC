@@ -61,8 +61,8 @@ void GM_Continue(void) {
     sonframe_num = 0xFF;    // Sonic's graphics are always loaded afresh
     sonframe_chg = false;
 
+    Sst_ResetAll();
     player->code = sst_object_codes[ObjId_81];
-    Sst_Reset();
     Sst_Spawn(ObjId_80, 0, 0);
     Sst *light = Sst_Spawn(ObjId_80, 0, 0); // the light spot on the floor Sonic lies on
     if (light != NULL) {
