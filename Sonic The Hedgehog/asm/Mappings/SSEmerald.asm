@@ -1,9 +1,9 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - special stage chaos	emeralds
 ; ---------------------------------------------------------------------------
-; (converted to Sonic 2 mapping format: see _MapMacros.asm and engine/Mappings.h)
+; (converted to Sonic 2 mapping format: see _MapMacrosS3.asm and engine/Mappings.h)
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_SS_Chaos1:	mappingsTable
 	mappingsTableEntry.w	Chaos_Frame0

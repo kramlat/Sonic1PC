@@ -120,6 +120,10 @@ void BuildSpr_Normal(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t 
 	DrawPieces(sprite, sprite_i, x, y, tile, NULL, 0, false, false, false, mappings, (unsigned)pieces + 1);
 }
 
+void BuildSpr_NormalS3(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces) {
+	DrawPiecesEx(sprite, sprite_i, x, y, tile, NULL, 0, false, false, false, mappings, (unsigned)pieces + 1, true, 0);
+}
+
 // One frame of an object's mappings, pieces and all, at a place on screen (Sonic 2's ChkDrawSprite)
 static void DrawFrame(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, const Object *obj, unsigned frame, bool two_p) {
 	const uint8_t *pieces;

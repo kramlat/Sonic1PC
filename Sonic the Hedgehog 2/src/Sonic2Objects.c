@@ -1,6 +1,7 @@
 #include "SstLoad.h"
 #include "Object/Signpost.h"
 #include "Object/Points.h"
+#include "Object/Ring.h"
 #include "Object/GameOverCard.h"
 #include "Object/Credits.h"
 #include "Object/HiddenBonus.h"
@@ -36,7 +37,6 @@ void Obj_HUD(Object *obj);
 void Obj_BuzzBomber(Object *obj);
 void Obj_BuzzMissile(Object *obj);
 void Obj_BuzzExplode(Object *obj);
-void Obj_Ring(Object *obj);
 void Obj_Spikes(Object *obj);
 void Obj_Spring(Object *obj);
 void Obj_Monitor(Object *obj);
@@ -60,7 +60,6 @@ void Obj_MTZBossBall(Object *obj);
 void Obj_Slicer(Object *obj);
 void Obj_SlicerPincers(Object *obj);
 void Obj_EnemyWeapon(Object *obj);
-void Obj_RingLoss(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_BigSpikeBall(Object *obj);
 void Obj_Motobug(Object *obj);
@@ -262,7 +261,7 @@ const ObjectFunc game_objects[] = {
 	/* 22 ObjId_BuzzBomber          */ Obj_ArrowShooter, // (the prototype's arrow shooter of Neo Green Hill)
 	/* 23 ObjId_BuzzMissile         */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 24 ObjId_BuzzExplode         */ Obj_OxygenBubbles, // (the alpha's vents of bubbles, where the prototype has Sonic 1's Buzz Bomber explosion that nothing makes)
-	/* 25 ObjId_Ring                */ Obj_Ring,
+	/* 25 ObjId_Ring                */ NULL, // (moved to the status table: sst_object_codes)
 	/* 26 ObjId_Monitor             */ Obj_Monitor,
 	/* 27 ObjId_Explosion           */ Obj_ExplosionObject, // (an old object that turns into one: the explosion is on the status table)
 	/* 28 ObjId_Animal              */ Obj_FlickyAnimals,
@@ -280,7 +279,7 @@ const ObjectFunc game_objects[] = {
 	/* 34 ObjId_TitleCard           */ Obj_TitleCard,
 	/* 35 ObjId_GrassFire          */ Obj_Null, // removed in Nick Arcade
 	/* 36 ObjId_Spikes              */ Obj_Spikes,
-	/* 37 ObjId_RingLoss            */ Obj_RingLoss,
+	/* 37 ObjId_RingLoss            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 38 ObjId_ShieldInvincibility */ NULL, // (moved to the status table: sst_object_codes)
 	/* 39 ObjId_GameOverCard        */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3A ObjId_GotThroughCard      */ Obj_GotThroughCard,
@@ -405,6 +404,8 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_RingLoss] = Obj_RingLoss,
+	[ObjId_Ring] = Obj_Ring,
 	[ObjId_Signpost] = Obj_Signpost,
 	[ObjId_GameOverCard] = Obj_GameOverCard,
 	[ObjId_Credits] = Obj_Credits,

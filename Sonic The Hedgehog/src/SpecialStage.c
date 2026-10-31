@@ -437,7 +437,7 @@ void SS_ShowLayout(uint8_t sprite_i) {
                     // Draw block mapping
                     uint8_t pieces = (uint8_t)Mappings_FramePieces(mapping->mapping, mapping->frame, &mapping_data);
                     if (pieces)
-                        BuildSpr_Normal(&sprite, &sprite_i, x, y, mapping->tile, mapping_data, pieces - 1);
+                        BuildSpr_NormalS3(&sprite, &sprite_i, x, y, mapping->tile, mapping_data, pieces - 1);
                 }
             }
         }

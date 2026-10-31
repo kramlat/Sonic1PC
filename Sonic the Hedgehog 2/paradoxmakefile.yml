@@ -100,7 +100,6 @@ resources:
   - "Art/Lamppost"
   - "Art/Shield"
   - "Art/Invincibility"
-  - "Mappings/RingREV01"
   - "Mappings/HUD"
   - "Mappings/Monitor"
   - "Mappings/Spikes"
@@ -711,6 +710,7 @@ mappings_SonicTheHedgehog2:
   - "Mappings/ShieldInvincibility"
   - "Mappings/Checkpoint"
   - "Mappings/Signpost"
+  - "Mappings/RingREV01"
 
 assemble:
   - "Mappings/TitleCharacters"

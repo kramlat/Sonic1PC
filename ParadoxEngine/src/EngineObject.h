@@ -152,6 +152,8 @@ Object *FindNextFreeObj(Object *obj);
 void ExecuteObjects(void);
 
 void BuildSpr_Normal(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces);
+// the same for mappings in the format of Sonic 3 & Knuckles (6-byte pieces)
+void BuildSpr_NormalS3(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces);
 void BuildSprites(uint8_t *sprite_io);
 
 void AnimateSprite(Object *obj, const uint8_t *anim_script);

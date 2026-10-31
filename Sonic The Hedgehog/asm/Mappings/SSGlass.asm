@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - special stage breakable glass blocks and red-white blocks
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_SS_Glass_internal:	mappingsTable
 	mappingsTableEntry.w	byte_1B928

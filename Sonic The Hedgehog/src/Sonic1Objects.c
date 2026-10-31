@@ -4,6 +4,7 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/Ring.h"
 #include "Object/Ending.h"
 #include "Object/SpecialResult.h"
 #include "Object/ContinueScreen.h"
@@ -105,13 +106,11 @@
 #include "Object/WaterSurface.h"
 
 void Obj_HUD(Object *obj);
-void Obj_Ring(Object *obj);
 void Obj_Monitor(Object *obj);
 void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
 void Obj_GotThroughCard(Object *obj);
 void Obj_Animals(Object *obj);
-void Obj_RingLoss(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_Seesaw(Object *obj);
 void Obj_BossGreenHill(Object *obj);
@@ -167,7 +166,7 @@ const ObjectFunc game_objects[] = {
 	/* 22 ObjId_BuzzBomber          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 23 ObjId_BuzzMissile         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 24 ObjId_BuzzExplode         */ NULL, // (moved to the status table: sst_object_codes)
-	/* 25 ObjId_Ring                */ Obj_Ring,
+	/* 25 ObjId_Ring                */ NULL, // (moved to the status table: sst_object_codes)
 	/* 26 ObjId_Monitor             */ Obj_Monitor,
 	/* 27 ObjId_Explosion           */ Obj_ExplosionObject, // (an old object that turns into one: the explosion is on the status table)
 	/* 28 ObjId_Animal              */ Obj_Animals,
@@ -185,7 +184,7 @@ const ObjectFunc game_objects[] = {
 	/* 34 ObjId_TitleCard           */ Obj_TitleCard,
 	/* 35 ObjId_GrassFire           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 36 ObjId_Spikes              */ NULL, // (moved to the status table: sst_object_codes)
-	/* 37 ObjId_RingLoss            */ Obj_RingLoss,
+	/* 37 ObjId_RingLoss            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 38 ObjId_ShieldInvincibility */ NULL, // (moved to the status table: sst_object_codes)
 	/* 39 ObjId_GameOverCard        */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3A ObjId_GotThroughCard      */ Obj_GotThroughCard,
@@ -278,6 +277,8 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_RingLoss] = Obj_RingLoss,
+	[ObjId_Ring] = Obj_Ring,
 	[ObjId_8D] = Obj_EndEggmobile,
 	[ObjId_8C] = Obj_TryChaos,
 	[ObjId_8B] = Obj_EndEggman,

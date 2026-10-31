@@ -1,4 +1,5 @@
 #include "test.h"
+#include "Object/Ring.h"
 
 #include <string.h>
 #include <signal.h>
@@ -396,16 +397,14 @@ static void Sound_StopSilencesEverything(void) {
 }
 
 // Collecting a ring plays the ring sound; the 100th ring plays the extra-life jingle instead.
-void Obj_Ring(Object *obj);
 static void Ring_CollectPlaysSound(void) {
     ResetSound();
     // A ring that Sonic is touching: routine 4 is the "collected" step (see Ring.c).
     extern uint16_t rings; // Level.h
     extern uint8_t life_num, lives;
     rings = 0; life_num = 0; lives = 3;
-    Object ring;
+    Sst ring;
     memset(&ring, 0, sizeof(ring));
-    ring.type = ObjId_Ring;
     ring.routine = 4;
     Obj_Ring(&ring);
     Sound_Frame();
@@ -418,7 +417,6 @@ static void Ring_CollectPlaysSound(void) {
     ResetSound();
     rings = 99; life_num = 0;
     memset(&ring, 0, sizeof(ring));
-    ring.type = ObjId_Ring;
     ring.routine = 4;
     Obj_Ring(&ring);
     Sound_Frame();
