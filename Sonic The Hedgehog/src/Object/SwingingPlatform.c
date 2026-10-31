@@ -68,11 +68,9 @@ void Obj_SwingingPlatform(Sst *self) {
             }
 
             // Chain Creation
-            // Read the level-placed subtype byte. It lives at scratch offset
-            // 0 (obSubtype), aliased here as child_count -- read it BEFORE
-            // clearing it to 0 just below, matching the original's own
-            // read-then-reuse-the-same-byte pattern.
-            uint8_t subtype = own->child_count;
+            // The level-placed subtype byte (obSubtype: its own field in the
+            // status table; the original reuses that byte as the link count).
+            uint8_t subtype = self->subtype;
             uint8_t count = subtype & 0xF;
             uint8_t d3 = (count << 4) + 8;
             own->chain_length = d3;
