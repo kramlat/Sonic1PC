@@ -2,7 +2,7 @@
 #define _RING_H
 
 #include "Sst.h"
-#include "RingsManager.h"
+#include "Rings.h"
 
 
 // Ring formation offsets, indexed by (subtype>>4)&0xF -- see Ring.c's own
@@ -15,14 +15,11 @@ void Ring_Collect(void); // adds one ring: counter, sound, extra lives at 100 an
 typedef struct {
     int16_t base_x; // 0x32
     uint8_t index; // 0x34
-    uint16_t entry; // 0x36: the ring's entry in the ring layout, or RING_NO_ENTRY
 } Own_Ring;
 
-#define RING_NO_ENTRY 0xFFFF
-
-// The ring layout's rings (RingsManager.h): started with the level, then given the camera's X once a frame (ObjPosLoad does both)
-extern RingsManager rings_manager;
-extern uint8_t ring_status[0x200];
+// The level's rings (Rings.h): ObjPosLoad starts them with the level; the player's touch routine collects the ones it touches
+void Ring_StartLayout(const uint8_t *layout);
+void Ring_TouchLayout(const Sst *player);
 
 
 void Obj_Ring(Sst *self);

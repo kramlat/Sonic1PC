@@ -81,23 +81,51 @@ static void Editor_MovingAnObjectPastAnotherReordersAndRemovingShrinks(void) {
     CHECK_EQ(level.object_count, 1);
 }
 
-static void Editor_RingLinesKeepTheirCountAndDirection(void) {
+static void Editor_RingLinesAreWrittenAsOneEntryForEachRing(void) {
     EditorLevel_Clear(&level);
     const EditorRing r = { 0x80, 0x120, 5, true };
     EditorLevel_AddRing(&level, &r);
-    uint8_t out[8];
-    CHECK_EQ(EditorLevel_WriteRings(&level, out, sizeof(out)), 8);
-    CHECK_EQ(out[2], 0xC1); // vertical, 5 rings (count - 1 = 4), y $120: $8000 | $4000 | $120
-    CHECK_EQ(out[3], 0x20);
+    const EditorRing h = { 0x80, 0x40, 3, false };
+    EditorLevel_AddRing(&level, &h);
+    uint8_t out[9 * 4];
+    CHECK_EQ(EditorLevel_WriteRings(&level, out, sizeof(out)), 9 * 4); // 8 rings and the end mark
+    // in X order, rings of the same X in the order they were added: the line down (x $80, y $120 on), then the row's first ring (x $80, y $40) comes after the column's first, its others at $98 and $B0
+    CHECK_EQ(out[0] << 8 | out[1], 0x80);
+    CHECK_EQ(out[2] << 8 | out[3], 0x120);
+    CHECK_EQ(out[4] << 8 | out[5], 0x80);
+    CHECK_EQ(out[6] << 8 | out[7], 0x138);
+    CHECK_EQ(out[20] << 8 | out[21], 0x80); // the row's first ring
+    CHECK_EQ(out[22] << 8 | out[23], 0x40);
+    CHECK_EQ(out[24] << 8 | out[25], 0x98);
+    CHECK_EQ(out[28] << 8 | out[29], 0xB0);
+    CHECK_EQ(out[32] << 8 | out[33], 0xFFFF);
     CHECK_EQ(EditorLevel_FindRing(&level, 0x80, 0x120 + 3 * 0x18 + 2, 6), 0); // (the fourth ring of the line)
     EditorLevel_LoadRings(&level, out);
-    CHECK_EQ(level.rings[0].count, 5);
-    CHECK(level.rings[0].vertical);
+    CHECK_EQ(level.ring_count, 8); // the layout has them one by one
+    CHECK_EQ(level.rings[0].count, 1);
+}
+
+static void Editor_NoMoreRingsThanTheStatusTableHolds(void) {
+    EditorLevel_Clear(&level);
+    EditorRing r = { 0, 0x40, 8, false };
+    for (int i = 0; i < 63; i++) { // 63 lines of 8 are 504 rings
+        r.x = (uint16_t)(i * 0xE0);
+        CHECK(EditorLevel_AddRing(&level, &r) >= 0);
+    }
+    r.count = 7;
+    CHECK(EditorLevel_AddRing(&level, &r) >= 0); // 511
+    r.count = 1;
+    CHECK_EQ(EditorLevel_AddRing(&level, &r), -1);
+    r.count = 8;
+    r.x = 0;
+    CHECK_EQ(EditorLevel_SetRing(&level, 0, &r), 0); // the same size: fine
+    CHECK_EQ(level.ring_count, 64);
 }
 
 void RegisterEditorTests(void) {
     RUN_TEST(Editor_EveryZonesObjectsAndRingsWriteBackAsTheyWereRead);
     RUN_TEST(Editor_AnObjectGoesInXOrderAndWritesItsFlags);
     RUN_TEST(Editor_MovingAnObjectPastAnotherReordersAndRemovingShrinks);
-    RUN_TEST(Editor_RingLinesKeepTheirCountAndDirection);
+    RUN_TEST(Editor_RingLinesAreWrittenAsOneEntryForEachRing);
+    RUN_TEST(Editor_NoMoreRingsThanTheStatusTableHolds);
 }

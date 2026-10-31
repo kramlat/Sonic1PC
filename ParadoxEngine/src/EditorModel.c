@@ -4,7 +4,8 @@
 
 #define OBJECT_ENTRY_BYTES 6
 #define RING_ENTRY_BYTES   4
-#define RING_STEP          0x18 // RingsManager.h's RING_SPACING
+#define RING_STEP          0x18 // Rings.h's RING_SPACING
+#define MAX_RING_COUNT     511  // Rings.h's RINGS_MAX: the ring handler's status table
 
 static uint16_t Be16(const uint8_t *p) {
     return (uint16_t)((p[0] << 8) | p[1]);
@@ -47,12 +48,11 @@ bool EditorLevel_LoadRings(EditorLevel *level, const uint8_t *layout) {
     for (const uint8_t *p = layout; Be16(p) != 0xFFFF; p += RING_ENTRY_BYTES) {
         if (level->ring_count >= EDITOR_MAX_RINGS)
             return false;
-        const uint16_t y = Be16(p + 2);
         EditorRing *r = &level->rings[level->ring_count++];
         r->x = Be16(p);
-        r->y = y & 0x0FFF;
-        r->count = (uint8_t)(((y >> 12) & 7) + 1);
-        r->vertical = (y & 0x8000) != 0;
+        r->y = Be16(p + 2) & 0x0FFF;
+        r->count = 1; // (the layout has the rings one by one: a line is only something the editor places)
+        r->vertical = false;
     }
     return true;
 }
@@ -106,8 +106,20 @@ int EditorLevel_SetObject(EditorLevel *level, int index, const EditorObject *obj
     return EditorLevel_AddObject(level, object);
 }
 
+// How many rings the entries make: a line is as many rings as it counts
+static int RingTotal(const EditorLevel *level) {
+    int n = 0;
+    for (int i = 0; i < level->ring_count; i++)
+        n += level->rings[i].count;
+    return n;
+}
+
+static int ClampedCount(const EditorRing *ring) {
+    return ring->count < 1 ? 1 : ring->count > 8 ? 8 : ring->count;
+}
+
 int EditorLevel_AddRing(EditorLevel *level, const EditorRing *ring) {
-    if (level->ring_count >= EDITOR_MAX_RINGS)
+    if (level->ring_count >= EDITOR_MAX_RINGS || RingTotal(level) + ClampedCount(ring) > MAX_RING_COUNT)
         return -1;
     const int at = RingSlot(level, ring->x);
     memmove(&level->rings[at + 1], &level->rings[at], (size_t)(level->ring_count - at) * sizeof(EditorRing));
@@ -134,6 +146,8 @@ bool EditorLevel_RemoveRing(EditorLevel *level, int index) {
 int EditorLevel_SetRing(EditorLevel *level, int index, const EditorRing *ring) {
     if (index < 0 || index >= level->ring_count)
         return -1;
+    if (RingTotal(level) - level->rings[index].count + ClampedCount(ring) > MAX_RING_COUNT)
+        return -1; // (it would not fit: the entry stays as it was)
     EditorLevel_RemoveRing(level, index);
     return EditorLevel_AddRing(level, ring);
 }
@@ -194,15 +208,28 @@ size_t EditorLevel_WriteObjects(const EditorLevel *level, uint8_t *out, size_t c
 }
 
 size_t EditorLevel_WriteRings(const EditorLevel *level, uint8_t *out, size_t capacity) {
-    const size_t need = (size_t)level->ring_count * RING_ENTRY_BYTES + RING_ENTRY_BYTES;
-    if (capacity < need)
+    const int total = RingTotal(level);
+    const size_t need = (size_t)total * RING_ENTRY_BYTES + RING_ENTRY_BYTES;
+    if (total > MAX_RING_COUNT || capacity < need)
         return 0;
-    uint8_t *p = out;
-    for (int i = 0; i < level->ring_count; i++, p += RING_ENTRY_BYTES) {
+
+    // One entry for each ring, in X order (rings with the same X in the order they were added): a line is put in as its rings, each in its place
+    int written = 0;
+    for (int i = 0; i < level->ring_count; i++) {
         const EditorRing *r = &level->rings[i];
-        PutBe16(p, r->x);
-        PutBe16(p + 2, (uint16_t)((r->y & 0x0FFF) | ((uint16_t)(r->count - 1) << 12) | (r->vertical ? 0x8000 : 0)));
+        for (int n = 0; n < r->count; n++) {
+            const uint16_t x = (uint16_t)(r->x + (r->vertical ? 0 : n * RING_STEP));
+            const uint16_t y = (uint16_t)((r->y & 0x0FFF) + (r->vertical ? n * RING_STEP : 0));
+            int at = written;
+            while (at > 0 && Be16(out + (at - 1) * RING_ENTRY_BYTES) > x)
+                at--;
+            memmove(out + (at + 1) * RING_ENTRY_BYTES, out + at * RING_ENTRY_BYTES, (size_t)(written - at) * RING_ENTRY_BYTES);
+            PutBe16(out + at * RING_ENTRY_BYTES, x);
+            PutBe16(out + at * RING_ENTRY_BYTES + 2, y);
+            written++;
+        }
     }
+    uint8_t *p = out + written * RING_ENTRY_BYTES;
     PutBe16(p, 0xFFFF);
     PutBe16(p + 2, 0);
     return need;

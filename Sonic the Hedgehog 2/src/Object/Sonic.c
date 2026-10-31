@@ -321,6 +321,7 @@ void Sonic_Animate(Sst *self) {
 }
 
 // Sonic DPLCs
+#include "Object/Ring.h"
 #include "Resource/Art/Sonic.h"
 
 #include "Resource/Mappings/SonicDPLC.h"
@@ -826,6 +827,10 @@ static signed int React_Monitor(Sst *self, Sst *hit) {
 
 signed int ReactToItem(Sst *self) {
     Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
+
+    // Test_Ring_Collisions: the rings of the level's layout (a hurt player is blinking and cannot collect them for a while)
+    if (scratch->flash_time < 90)
+        Ring_TouchLayout(self);
 
     // Get collision area
     int16_t width, height;

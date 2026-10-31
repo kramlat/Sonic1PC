@@ -7,6 +7,7 @@
 #include "Object.h"
 #include "SstLoad.h"
 #include "Object/Explosion.h"
+#include "Object/Ring.h"
 #include "Object/Sonic.h"
 #include "Object/ShieldInvincibility.h"
 #include "Mappings.h"
@@ -175,6 +176,26 @@ static void SstObjects_SonicWalkingIntoABadnikOnTheTableIsHurt(void) {
     CHECK(chopper->code == sst_object_codes[ObjId_Chopper]);     // (still a chopper)
     CHECK_EQ(player->routine, 4);                                // (hurt)
     CHECK_EQ(score, 0);
+}
+
+static void SstObjects_SonicTouchingARingOfTheLayoutCollectsIt(void) {
+    Touch_Setup();
+    static const uint8_t layout[] = { 0x01, 0x00, 0x03, 0x00,   0xFF, 0xFF, 0x00, 0x00 }; // one ring, where Sonic is
+    Ring_StartLayout(layout);
+    rings = 0;
+    ReactToItem(player);
+    CHECK_EQ(rings, 1);
+    ReactToItem(player);
+    CHECK_EQ(rings, 1); // (once)
+
+    Ring_StartLayout(layout);
+    ((Scratch_Sonic *)player->own.u8)->flash_time = 90; // (just hurt: the rings he scattered are not for him yet)
+    ReactToItem(player);
+    CHECK_EQ(rings, 1);
+    ((Scratch_Sonic *)player->own.u8)->flash_time = 89;
+    ReactToItem(player);
+    CHECK_EQ(rings, 2);
+    Rings_Init(NULL);
 }
 
 static void SstObjects_AChopperJumpsInItsPlaceAndTurnsBackAtTheWater(void) {
@@ -387,6 +408,7 @@ void RegisterSstObjectsTests(void) {
     RUN_TEST(SstObjects_AHelixMakesItsSpikesAndTakesThemWhenItLeaves);
     RUN_TEST(SstObjects_SonicRollingIntoABadnikOnTheTableDestroysItAndScores);
     RUN_TEST(SstObjects_SonicWalkingIntoABadnikOnTheTableIsHurt);
+    RUN_TEST(SstObjects_SonicTouchingARingOfTheLayoutCollectsIt);
     RUN_TEST(SstObjects_AChopperJumpsInItsPlaceAndTurnsBackAtTheWater);
     RUN_TEST(SstObjects_JawsTurnAfterTheirDelay);
     RUN_TEST(SstObjects_ABumperThrowsSonicAwayAndPaysTenPointsTenTimes);

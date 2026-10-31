@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 # Splits the rings out of a Sonic 1 level's object layout (Sonic 2 object format: objlayout_s1_to_s2.pl), the way Sonic 2 keeps them: in a ring layout of their own.
+# NOTE: this writes the group format of Sonic 2 (a line of up to 8 rings in an entry), from before the ring handler (Rings.h) of Sonic 3 & Knuckles; run rings2s3.pl on its output.
 #
 # Sonic 1 placed rings as objects (id $25): a group is a start position, a count (subtype bits 0-2, 7 meaning 7 rings, otherwise 1 + the number) and a formation
 # (subtype bits 4-7, an offset between neighbouring rings). The ring layout is a list of 4-byte big-endian entries sorted by X, ended by X = $FFFF:

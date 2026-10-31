@@ -2,6 +2,7 @@
 
 #include "EngineObject.h"
 #include "Sst.h"
+#include "Rings.h"
 #include "ScrollEngine.h"
 
 #include "Camera.h"
@@ -108,6 +109,11 @@ void BuildSpr_NormalS3(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_
 	DrawPiecesEx(sprite, sprite_i, x, y, tile, NULL, 0, false, false, false, mappings, (unsigned)pieces + 1, true, 0);
 }
 
+// Draws `count` Sonic 3 pieces with their origin at (x, y) in sprite coordinates, each piece culled singly against a view `cull_w` wide (the ring handler's sprites)
+void BuildSpr_PiecesS3(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *pieces, unsigned count, int cull_w) {
+	DrawPiecesEx(sprite, sprite_i, x, y, tile, NULL, 0, false, false, false, pieces, count, true, cull_w);
+}
+
 // Render_Sprites for the Sonic 3 objects (Sst.h) of one draw queue (sonic3k.asm line 36348): the same culling and the same pieces, in the sprite pipeline's table. A level object is placed against the foreground camera, other
 // positions are sprite coordinates already; a multi-draw object has a main sprite (frame 0: none) and its children, each piece culled singly.
 void SstRenderQueue(int queue, sprite_t **sprite, uint8_t *sprite_i, const SpriteView *view, int16_t top, int view_w, bool clear_on_screen) {
@@ -198,6 +204,8 @@ void SstRenderQueue(int queue, sprite_t **sprite, uint8_t *sprite_i, const Sprit
 // One pass over the queued objects for one view: `top` is where the view's top is in sprite coordinates, `view_w` how wide it is (the cull checks use it). The first pass clears each object's on-screen flag; a second one
 // only adds to it, so an object is on screen if it is in either view.
 static void BuildPass(sprite_t **sprite, uint8_t *sprite_i, const SpriteView *view, int16_t top, bool clear_on_screen, int view_w) {
+	// The level's rings come first (Render_Sprites: the HUD, the rings, then the queues)
+	Rings_Render(sprite, sprite_i, view, top, view_w);
 	for (int i = 0; i < SST_QUEUES; i++)
 		SstRenderQueue(i, sprite, sprite_i, view, top, view_w, clear_on_screen);
 }

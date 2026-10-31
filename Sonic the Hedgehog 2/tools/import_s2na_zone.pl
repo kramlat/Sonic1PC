@@ -4,7 +4,8 @@
 #   layout         FG (width-1, height-1 header, then rows) and BG laid out as the engine's 16 x 0x100 interleaved blob (FG at +0, BG at +0x80), Kosinski
 #   Map128/Map16   the chunk and block tables, Kosinski          collision index (primary, secondary)  Kosinski
 #   objects        S2NA object ids -> this port's ids (Sonic 1's table keeps its ids; Sonic 2's own objects are appended from $8E)
-#   rings, palette, Nemesis art  copied
+#   rings                        made into one entry for each ring (Rings.h)
+#   palette, Nemesis art         copied
 #
 # Usage: import_s2na_zone.pl ZONE ACT...     e.g.  import_s2na_zone.pl EHZ 1 2       (KOSENC=path to the kosenc tool, built from ParadoxEngine/tools/kosenc)
 use strict;
@@ -26,6 +27,20 @@ my $src = $base{$zone} // $zone;
 
 sub slurp { my $p = shift; open my $f, '<:raw', $p or die "$p: $!"; local $/; my $d = <$f>; close $f; $d }
 sub spit { my ($p, $d) = @_; open my $f, '>:raw', $p or die "$p: $!"; print $f $d; close $f }
+# The ring layout of the prototype is groups (a line of up to 8 rings in an entry); the ring handler (Rings.h) wants one entry for each ring, in order by X, ended by $FFFF and 0
+sub rings_s3 {
+    my $d = shift;
+    my @e;
+    for (my $i = 0; $i + 2 <= length $d; $i += 4) {
+        my ($x, $yw) = unpack('nn', substr($d, $i, 4) . "\0\0");
+        last if $x == 0xFFFF;
+        my $vertical = $yw & 0x8000;
+        for my $k (0 .. (($yw >> 12) & 7)) {
+            push @e, [ $x + ($vertical ? 0 : $k * 0x18), ($yw & 0xFFF) + ($vertical ? $k * 0x18 : 0), scalar @e ];
+        }
+    }
+    return join('', map { pack('nn', $_->[0], $_->[1]) } sort { $a->[0] <=> $b->[0] or $a->[2] <=> $b->[2] } @e) . pack('nn', 0xFFFF, 0);
+}
 sub kos { my ($p, $d) = @_; spit("$p.raw", $d); system($kosenc, "$p.raw", $p) == 0 or die "kosenc failed"; unlink "$p.raw" }
 
 make_path(map "$res/$_", qw(S2Layout S2Map16 S2Map128 S2Collision S2Objects S2Rings S2Palette S2Art));
@@ -73,5 +88,5 @@ for my $act (@acts) {
     }
     $out .= pack('nnCC', 0xFFFF, 0, 0, 0);
     spit("$res/S2Objects/$zone$act", $out);
-    spit("$res/S2Rings/$zone$act", -e "$s2na/level/rings/${zone}_$act.bin" ? slurp("$s2na/level/rings/${zone}_$act.bin") : pack('n', 0xFFFF));
+    spit("$res/S2Rings/$zone$act", rings_s3(-e "$s2na/level/rings/${zone}_$act.bin" ? slurp("$s2na/level/rings/${zone}_$act.bin") : pack('n', 0xFFFF)));
 }

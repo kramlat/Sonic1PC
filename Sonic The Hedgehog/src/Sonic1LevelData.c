@@ -111,7 +111,7 @@
 #include "Resource/ObjectLayout/SBZ2.h"
 #include "Resource/ObjectLayout/SBZ3.h"
 
-// The rings, in their own layouts (RingsManager.h)
+// The rings, in their own layouts (Rings.h)
 #include "Resource/RingLayout/Ending.h"
 #include "Resource/RingLayout/FZ.h"
 #include "Resource/RingLayout/GHZ1.h"

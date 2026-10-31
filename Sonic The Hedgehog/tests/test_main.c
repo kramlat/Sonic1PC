@@ -18,7 +18,7 @@ void RegisterLevelCollisionTests(void);
 void RegisterPrisonTests(void);
 void RegisterLZ3WallTests(void);
 void RegisterFMAlgorithmTests(void);
-void RegisterRingsManagerTests(void);
+void RegisterRingsTests(void);
 void RegisterSpritesTests(void);
 void RegisterVDPSplitTests(void);
 void RegisterLevelPlaneTests(void);
@@ -80,7 +80,7 @@ int main(void) {
     printf("LZ3 wall switch tests:\n");
     RegisterLZ3WallTests();
     RegisterFMAlgorithmTests();
-    RegisterRingsManagerTests();
+    RegisterRingsTests();
     RegisterSpritesTests();
     RegisterVDPSplitTests();
     RegisterLevelPlaneTests();

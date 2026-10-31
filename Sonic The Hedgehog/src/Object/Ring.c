@@ -47,8 +47,6 @@ static bool Obj_Ring_ShiftChk(uint8_t* state) {
 
 static void Obj_Ring_SetupRing(Sst *self, uint8_t index, int16_t x, int16_t y, Sst *ring) {
     Own_Ring *own = (Own_Ring *)ring->own.u8;
-    own->entry = RING_NO_ENTRY; // a ring made by a ring group object (the debug placement), not one of the ring layout's
-
     // Set type and routine
     ring->code = sst_object_codes[ObjId_Ring];
     ring->routine += 2;
@@ -71,40 +69,16 @@ static void Obj_Ring_SetupRing(Sst *self, uint8_t index, int16_t x, int16_t y, S
     own->index = index;
 }
 
-// The rings of the ring layout (RingsManager.h): an object each, as before, made when their entry comes into range.
-RingsManager rings_manager;
-uint8_t ring_status[0x200];
-
-static void Ring_Spawn(void *user, const RingSpawn *spawn) {
-    (void)user;
-    Sst *ring = Sst_Allocate();
-    if (ring == NULL)
-        return;
-    Own_Ring *own = (Own_Ring *)ring->own.u8;
-
-    ring->code = sst_object_codes[ObjId_Ring];
-    ring->routine += 2;
-    ring->x_pos.f.u = spawn->x;
-    ring->y_pos.f.u = spawn->y;
-    own->base_x = spawn->base_x;
-    own->index = spawn->bit;
-    own->entry = spawn->entry;
-
-    ring->mappings = Mappings_RingREV01;
-    ring->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring);
-    ring->render_flags = SST_RENDER_LEVEL;
-    ring->priority = 2 * 0x80;
-    ring->collision_flags = 0x47;
-    ring->width_pixels = 8;
+// The level's rings are not objects: the ring handler (Rings.h) keeps them, as Sonic 3 & Knuckles does. This gives it their look and the level's layout.
+void Ring_StartLayout(const uint8_t *layout) {
+    Rings_SetLook(Mappings_RingREV01, TILE_MAP(0, 1, 0, 0, ArtTile_Ring));
+    Rings_Init(layout);
 }
 
-void Rings_Init(const uint8_t *layout, int16_t camera_x) {
-    static const RingsManagerConfig config = RINGS_MANAGER_DEFAULT_CONFIG;
-    RingsManager_Init(&rings_manager, &config, ring_status, sizeof(ring_status), layout, camera_x, Ring_Spawn, NULL);
-}
-
-void Rings_Update(int16_t camera_x) {
-    RingsManager_Update(&rings_manager, camera_x, Ring_Spawn, NULL);
+// Test_Ring_Collisions: the player picks up the rings of the layout they touch
+void Ring_TouchLayout(const Sst *player) {
+    for (int n = Rings_Collide(player->x_pos.f.u, player->y_pos.f.u, player->y_radius); n > 0; n--)
+        Ring_Collect();
 }
 
 static void ExtraLife(void) {
@@ -191,10 +165,7 @@ void Obj_Ring(Sst *self) {
 
         // Collect ring and mark as collected
         Ring_Collect();
-        if (own->entry != RING_NO_ENTRY)
-            RingsManager_Collect(&rings_manager, own->entry, own->index);
-        else
-            (*SstLoad_State(self)) |= (1 << own->index);
+        (*SstLoad_State(self)) |= (1 << own->index);
         // Fallthrough
     case 6: // Sparkling
         // Animate and draw

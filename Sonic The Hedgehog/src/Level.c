@@ -1,6 +1,7 @@
 #include "EditorLive.h"
 #include "Level.h"
 #include "SstLoad.h"
+#include "Object/Ring.h"
 #include "ScrollEngine.h"
 
 #include "Constants.h"
@@ -763,6 +764,7 @@ void SynchroAnimate(void) {
     if (--sprite_anim[1].time < 0) {
         sprite_anim[1].time = 7;
         sprite_anim[1].frame = (sprite_anim[1].frame + 1) & 3;
+        rings_frame = sprite_anim[1].frame; // (Rings_frame: the spinning frame the ring handler's rings show)
     }
 
     // Unused
@@ -818,11 +820,11 @@ void ObjPosLoad(void) {
         Sst_Reset();
         SstLoadCamera sst_camera = SstCamera();
         SstLoad_Init(&sst_object_index, Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), false, &sst_camera);
-        Rings_Init(Editor_RingLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_ring[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
+        Ring_StartLayout(Editor_RingLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_ring[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]));
     } else {
         SstLoadCamera sst_camera = SstCamera();
         SstLoad_Update(&sst_camera);
-        Rings_Update(scrpos_x.f.u);
+        Rings_Update();
     }
 }
 

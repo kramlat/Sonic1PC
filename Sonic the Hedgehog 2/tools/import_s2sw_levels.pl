@@ -85,17 +85,20 @@ sub s3_layout {
     return $head . pack('n*', @ptr) . $rows;
 }
 sub kos { my ($p, $d) = @_; spit("$p.raw", $d); system($kosenc, "$p.raw", $p) == 0 or die "kosenc failed\n"; unlink "$p.raw" }
-# The ring layouts of the prototypes and the alpha are in the order they were made in, and the games sort them by X in RAM when a level begins (the alpha's Load_Rings_Layout); the final's files, and the rings manager here, expect them sorted already
-# (it walks them as the camera goes), so they are put in order here: by X, entries with the same X as they were (the 2-byte end marker stays last)
+# The ring layouts of the prototypes and the alpha are groups (a line of up to 8 rings in an entry) in the order they were made in, and the games sort them by X in RAM when a level begins (the alpha's Load_Rings_Layout).
+# The ring handler (Rings.h) wants the layout of Sonic 3 & Knuckles, one entry for each ring, sorted already: so the groups are made into their rings, in order by X (rings with the same X as they were), with a 4-byte end mark
 sub sort_rings {
     my $d = shift;
-    my (@e, $i);
-    for ($i = 0; $i + 4 <= length $d; $i += 4) {
-        my $x = unpack('n', substr($d, $i, 2));
+    my @e;
+    for (my $i = 0; $i + 2 <= length $d; $i += 4) {
+        my ($x, $yw) = unpack('nn', substr($d, $i, 4) . "\0\0");
         last if $x == 0xFFFF;
-        push @e, [ $x, substr($d, $i, 4), scalar @e ];
+        my $vertical = $yw & 0x8000;
+        for my $k (0 .. (($yw >> 12) & 7)) {
+            push @e, [ $x + ($vertical ? 0 : $k * 0x18), ($yw & 0xFFF) + ($vertical ? $k * 0x18 : 0), scalar @e ];
+        }
     }
-    return join('', map { $_->[1] } sort { $a->[0] <=> $b->[0] or $a->[2] <=> $b->[2] } @e) . substr($d, $i);
+    return join('', map { pack('nn', $_->[0], $_->[1]) } sort { $a->[0] <=> $b->[0] or $a->[2] <=> $b->[2] } @e) . pack('nn', 0xFFFF, 0);
 }
 sub path { my $p = shift; $p =~ s{^\.\./}{}; return "$sw/$p" }
 
@@ -214,7 +217,7 @@ for my $name (@order) {
                 # (a layout staged from the level editor is in the new format already: the editor writes it so, Kosinski compressed. One saved before that, an old-format file, has to be converted with ParadoxEngine/tools/layout2s3 first)
                 spit("$res/S2Layout/$key", slurp($lay));
                 spit("$res/S2Objects/$key", pack('nnCC', 0xFFFF, 0, 0, 0));
-                spit("$res/S2Rings/$key", pack('n', 0xFFFF));
+                spit("$res/S2Rings/$key", pack('nn', 0xFFFF, 0));
             }
             $info{$z}{acts}{$act} = { slot => 0x0E, act => $act - 1, key => $key, alpha => 1, start_override => ($act == 1 ? [ 0x06F9, 0x05D4 ] : [ 0x00BE, 0x005E ]) }; # (the starts: where the user put Sonic in debug mode; the HUD there shows the camera's position, and the ring is the debug cursor on Sonic: camera plus the cursor's place on the screen)
             push @resources, "S2Layout/$key", "S2Objects/$key", "S2Rings/$key";

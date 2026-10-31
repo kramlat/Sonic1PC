@@ -31,6 +31,7 @@
 #include "Resource/Mappings/Tails.h"
 #include "Resource/Art/Tails.h"
 #include "Resource/Mappings/TailsDPLC.h"
+#include "Object/Ring.h"
 #include "Resource/Animation/Tails.h"
 #include "Resource/Animation/TailsTails.h"
 
@@ -818,6 +819,10 @@ static signed int React_Monitor(Sst *self, Sst *hit) {
 
 static signed int ReactToItem(Sst *self) {
     Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
+
+    // Test_Ring_Collisions: the rings of the level's layout (a hurt player is blinking and cannot collect them for a while)
+    if (scratch->flash_time < 90)
+        Ring_TouchLayout(self);
 
     // Get collision area
     int16_t width, height;

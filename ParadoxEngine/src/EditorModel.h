@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-// The built-in level editor's model of a level's objects and rings: plain data the editor changes and writes out in the engine's own layout formats (SstLoad.h and RingsManager.h), the files a game keeps under
+// The built-in level editor's model of a level's objects and rings: plain data the editor changes and writes out in the engine's own layout formats (SstLoad.h and Rings.h), the files a game keeps under
 // res/. Nothing here knows a game, a file path or a user interface: the Qt tools and the game's hooks work on it.
 //
 // Entries are kept in layout order (sorted by X, entries with the same X in the order they were added), which is what the managers need, so what is written out loads back unchanged.
@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 #define EDITOR_MAX_OBJECTS 0x400
-#define EDITOR_MAX_RINGS   0x400
+#define EDITOR_MAX_RINGS   511 // (the ring handler's status table: no more rings than that in all, a line counting as its rings)
 
 typedef struct {
     uint16_t x;
@@ -30,7 +30,7 @@ typedef struct {
 typedef struct {
     uint16_t x;
     uint16_t y;       // 0-$FFF
-    uint8_t count;    // 1-8 rings in a line
+    uint8_t count;    // 1-8 rings in a line: the layout has them one by one, so a loaded ring is a line of 1
     bool vertical;    // the line goes down, not right
 } EditorRing;
 

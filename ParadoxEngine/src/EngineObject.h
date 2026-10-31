@@ -22,5 +22,6 @@ void ExecuteObjects(void);
 void BuildSpr_Normal(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces);
 // the same for mappings in the format of Sonic 3 & Knuckles (6-byte pieces)
 void BuildSpr_NormalS3(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *mappings, uint8_t pieces);
+void BuildSpr_PiecesS3(sprite_t **sprite, uint8_t *sprite_i, uint16_t x, uint16_t y, uint16_t tile, const uint8_t *pieces, unsigned count, int cull_w);
 // Turns the frame's draw queues (Sst_Draw) into the VDP's sprite table(s)
 void BuildSprites(uint8_t *sprite_io);

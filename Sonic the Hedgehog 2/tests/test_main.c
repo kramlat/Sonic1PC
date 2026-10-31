@@ -12,6 +12,7 @@ void RegisterPaletteTests(void);
 void RegisterVdp8bppTests(void);
 void RegisterTileBankTests(void);
 void RegisterVDPWindowTests(void);
+void RegisterRingsTests(void);
 void RegisterLevelDataTests(void);
 void RegisterObjectCoverageTests(void);
 void RegisterSolidTests(void);
@@ -44,6 +45,7 @@ int main(void) {
     RegisterVdp8bppTests();
     RegisterTileBankTests();
     RegisterVDPWindowTests();
+    RegisterRingsTests();
     printf("Level data tests:\n");
     RegisterLevelDataTests();
     printf("Object coverage tests:\n");

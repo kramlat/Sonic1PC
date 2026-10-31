@@ -77,7 +77,7 @@ Line numbers are those of `sonic3k.asm` in the disassembly this was read from.
 | Layout | `S2Layout/*`: 16 rows x 128 chunks, FG and BG interleaved, Kosinski; sizes in tables (`LevelSizes`, `StartLocArray`, `BGScrollBlockSizes`) | header with the size, rows as wide as the level, row pointers |
 | Planes | `LevelDrawCore.c` / `LevelPlane.c`: planes redrawn from the camera with the game's own tables per zone (`Deform_*` in `LevelScroll.c`) | draw-as-you-move into a plane buffer, per-zone init/event routines, block-table deformation |
 | Objects | `Sst` (the S3&K status table) with a code pointer per slot (`sst_object_codes[id]` by id), run by `Sst_Process`; 8 priority queues drawn by `SstRenderQueue` in `Sprites.c` | code pointer per slot, 8 priority queues |
-| Rings | Sonic 2: groups of up to 8 (x, y, count, direction) in `S2Rings/*`; Sonic 1: `res/RingLayout/*` | one 4-byte entry per ring |
+| Rings | one 4-byte entry per ring (`res/RingLayout/*`, `res/S2Rings/*`), kept by the ring handler `Rings.c`: not objects (DONE, stage 5) | one 4-byte entry per ring |
 
 Sonic 1 and Sonic 2 share the engine (both already use the Sonic 2 layout conventions: 16 rows of a $100-byte stride, 128-pixel chunks, `res/Layout` and `res/RingLayout`
 in Sonic 1, `S2Layout` and `S2Rings` in Sonic 2), so every stage below is done once in `ParadoxEngine/` and each game then converts its own data. Sonic 1's ring and object
@@ -112,8 +112,11 @@ game plays as before after each. Tests compare the new path with the old one (th
      Ocean, Dust Hill, Casino Night, Neo Green Hill, Sand Shower, Cyber City, Metropolis), then the split screen's second view; the old `Deform_*`, `BGScroll_*` and the scroll flags are removed.
    * e. **Per-level masks and camera limits**: each level sets its masks (from its layout's size) instead of the defaults; where a level was optimised, its start position and its dynamic events are adjusted (the
      user's note).
-4. **Ring data format** (engine `RingsManager.c`, the editor's ring tools): the 4-byte entries and the status table; `Test_Ring_Collisions` and `Render_Rings` as the model; Sonic 2's `S2Rings/*`
+4. **Ring data format and the ring handler** (DONE 2026-10-31: engine `Rings.c/.h`, `tools/rings2s3.pl`, the editor's ring tools): the 4-byte entries and the status table; `Test_Ring_Collisions` and `Render_Rings` as the model; Sonic 2's `S2Rings/*`
    converted by expanding each group, and Sonic 1's `res/RingLayout/*` the same way. The editor keeps placing "a line of N rings" and writes N entries.
+   **Status:** all 46 layouts are converted (`rings2s3.pl`; the importers write the new format); `Rings.c` is `Test_Ring_Collisions`, `Render_Rings` and the consumption list, with the box test in the original's word arithmetic and the
+   rings drawn before the queues. One difference from the original, on purpose: it finds the rings near a camera or a player when asked (binary search of the sorted list) and does not keep `Ring_start_addr_ROM`/`_end_addr_ROM` moving, so
+   the split screen's second view and a player away from the camera work with no second set of pointers. Left out: the Lightning Shield attraction (neither game has it), `Ring_status_table_2` (the vertical level of zone $14) and `Perfect_rings`.
 5. **Object handler** (the user's stage 4, after the scrolling engine): the object format of Sonic 3 & Knuckles with its own status table, an SST of its own beside the old `Object` one (the games' objects keep
    **Status (2026-10-31):** stage 4 is done for both games: every object, the characters and the screens' objects (title, continue, results, ending, the SSRG screen) are on the status table, and the old `Object` path is gone (4e): `Object`/`objects[]`, the old loop of `ExecuteObjects`, the old half of `BuildSprites`, `ObjectsManager`, the `game_objects[]` tables and the explosion markers, the old `Solid.c`/`SolidObject`/`BossMove`/`BossDefeated`/`Object.c` helpers (`SolidSst_*` is `Solid_*` again, `DebugMarkersSst_Show` is `DebugMarkers_Show`). The loader has a second window for the other player's camera (`SstLoad_UpdateSecond`, as S3&K keeps a second set of pointers for Player_2), which Sonic 2's split screen uses.
    working until each moves over). The S3&K object is $4A bytes (`object_size`) with the code address first (0: a free slot), `render_flags` ($4), the routine ($5), the height and width in pixels ($6, $7), the
@@ -126,7 +129,7 @@ game plays as before after each. Tests compare the new path with the old one (th
      reverse-gravity versions, `Animate_Sprite` and `Animate_SpriteIrregularDelay` with all their codes. Tests: `test_sst.c`.
    * b. **Rendering** (DONE except DPLC, the HUD and rings): `SstRenderQueue` (Sprites.c): `Render_Sprites` over the queues into the sprite table the old objects use (the S3&K mappings, 6-byte pieces; the cull tests
      with `Screen_Y_wrap_value`; static mappings; multi-draw objects with their children, each piece culled singly; the on-screen flag). A queue's new objects come after its old ones. Still to come: DPLC
-     (`Perform_DPLC`) for the players, the sprite mask, and the HUD and rings drawn first (the rings are stage 5); the existing `BuildSprites` stays for the old objects until the last has moved.
+     (`Perform_DPLC`) for the players, the sprite mask, and the HUD drawn first (the rings are drawn first too: stage 5, `Rings_Render`); the existing `BuildSprites` stays for the old objects until the last has moved.
    * c. **Loading** (DONE: `SstLoad.c/.h`, `test_sstload.c`): `Load_Sprites` with the respawn table (a byte per entry, bit 7), the X window and the Y window (a row pass; bit 15 loads whatever the Y; the wrapping
      versions), the held free slot, `Seek_Object_Manager`, `Clear_SpriteRingMem`'s object half, `Sprite_OnScreen_Test` / `_Test2` / `Delete_Sprite_If_Not_In_Range`. The layout files already are the 6-byte
      format, so nothing is converted in bulk: the id's routine comes from a table in each game's `Level.c` (empty until objects move over); the old `ObjectsManager` skips ids the table has. Bit 15 is the old
@@ -144,7 +147,7 @@ game plays as before after each. Tests compare the new path with the old one (th
      parts, the screens' objects (title, ending, credits, results, continue, special stage), `Ring` (stage 5), `Monitor`, `Signpost`, `Checkpoint`, `Animal`, `Seesaw` (shares its ball with the Star Light boss),
      `Button`/`Scrap Eggman`, `PathSwapper`, `GHZTunnel`, `GiantRing`, `HiddenBonus`. Sonic 2: its shared objects moved with Sonic 1's; its own 90-odd object files (two characters, `Solid.c`, `Tails`) are all still to come,
      with the characters, which move after Sonic 1's player. The tools (`objtosst.pl`, `sstregister.pl`) and the lessons in the ChangeLog make a file a matter of minutes; the player and the bosses are not mechanical.
-   * e. **The old handler goes** (DONE 2026-10-31): `Object`, the old loop of `ExecuteObjects`, the old half of `BuildSprites` (which now builds every view from the status table's queues), `ObjectsManager` (the rings keep its load window as `RingsManagerConfig`) removed.
+   * e. **The old handler goes** (DONE 2026-10-31): `Object`, the old loop of `ExecuteObjects`, the old half of `BuildSprites` (which now builds every view from the status table's queues), `ObjectsManager` removed.
 6. **The levels**: every zone of both games through the converters (Emerald Hill and Hill Top first: the one primary and two secondaries), the importers and the editor writing the new formats, the old
    readers removed (the camera limits and start positions stay in their tables, as in S3&K, unless the user wants them taken from the data).
 

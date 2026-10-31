@@ -1,4 +1,5 @@
 #include "Sst.h"
+#include "Rings.h"
 
 #include <string.h>
 
@@ -23,11 +24,13 @@ Sst *Sst_QueueEntry(int q, int index) {
 void Sst_Reset(void) {
     memset(&sst[SST_PLAYERS], 0, sizeof(sst) - SST_PLAYERS * sizeof(Sst));
     Sst_ClearQueues();
+    Rings_Init(NULL); // (the rings are the level's: whatever starts a level gives them again after this)
 }
 
 void Sst_ResetAll(void) {
     memset(sst, 0, sizeof(sst));
     Sst_ClearQueues();
+    Rings_Init(NULL);
 }
 
 void Sst_Draw(Sst *obj) {

@@ -223,6 +223,3 @@ void DynamicLevelEvents(void);
 void SynchroAnimate(void);
 void SignpostArtLoad(void);
 void ObjPosLoad(void);
-// The rings' manager (Object/Ring.c): started with the level, given the camera's X once a frame, by ObjPosLoad
-void Rings_Init(const uint8_t *layout, int16_t camera_x);
-void Rings_Update(int16_t camera_x);
