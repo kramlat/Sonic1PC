@@ -371,12 +371,18 @@ extern const uint8_t Mappings_Sonic[];
 extern const uint8_t Mappings_Pylon[];
 extern const uint8_t Mappings_Points[];
 extern const uint8_t Mappings_ShieldInvincibility[];
+extern const uint8_t Mappings_Checkpoint[];
+extern const uint8_t Mappings_WaterSurface[];
+extern const uint8_t Mappings_HiddenBonuses[];
 
 static void SstObjects_TheMappingsOfTheTableAreInItsFormat(void) {
     CheckMappings(Mappings_Sonic, 0x40);
     CheckMappings(Mappings_Pylon, 1);
     CheckMappings(Mappings_Points, 7);
     CheckMappings(Mappings_ShieldInvincibility, 8);
+    CheckMappings(Mappings_Checkpoint, 3);
+    CheckMappings(Mappings_WaterSurface, 2);
+    CheckMappings(Mappings_HiddenBonuses, 2);
 }
 
 void RegisterSstObjectsTests(void) {

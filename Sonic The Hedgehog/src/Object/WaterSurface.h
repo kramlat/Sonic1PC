@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Object.h"
+#include "Sst.h"
 
 // Object 0x1B - LZ water surface. Two fixed instances (left/right half of
 // the screen), continuously repositioned every frame to track the camera
@@ -15,4 +15,4 @@
 
 extern const uint8_t Mappings_WaterSurface[];
 
-void Obj_WaterSurface(Object *obj);
+void Obj_WaterSurface(Sst *self);

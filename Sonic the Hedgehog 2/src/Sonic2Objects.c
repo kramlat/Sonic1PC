@@ -1,5 +1,7 @@
 #include "SstLoad.h"
 #include "Object/Points.h"
+#include "Object/HiddenBonus.h"
+#include "Object/Checkpoint.h"
 #include "Object/ShieldInvincibility.h"
 #include "Object/SuperSonicStars.h"
 #include "Object/SpecialSonic.h"
@@ -36,7 +38,6 @@ void Obj_Ring(Object *obj);
 void Obj_Spikes(Object *obj);
 void Obj_Spring(Object *obj);
 void Obj_Monitor(Object *obj);
-void Obj_Checkpoint(Object *obj);
 void Obj_Chopper(Object *obj);
 void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
@@ -76,7 +77,6 @@ void Obj_ContSonic(Object *obj);
 void Obj_Waterfall(Object *obj);
 void Obj_GiantRing(Object *obj);
 void Obj_RingFlash(Object *obj);
-void Obj_HiddenBonus(Object *obj);
 void Obj_BasicPlatform(Object *obj);
 void Obj_Scenery(Object *obj);
 void Obj_HPZDecor(Object *obj);
@@ -346,11 +346,11 @@ const ObjectFunc game_objects[] = {
 	/* 76 ObjId_BossBlock          */ Obj_PlatformSpikes, // (the prototype's platform with spikes at its sides, Dust Hill)
 	/* 77 ObjId_BossLabyrinth      */ Obj_DHZGate, // (the prototype's drawbridge of Dust Hill)
 	/* 78 ObjId_Caterkiller        */ Obj_CPZRotor, // (the prototype's rotating platforms of Chemical Plant)
-	/* 79 ObjId_Checkpoint          */ Obj_Checkpoint,
+	/* 79 ObjId_Checkpoint          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 7A ObjId_BossStarLight      */ Obj_CPZSlider, // (the prototype's sliding platforms of Chemical Plant)
 	/* 7B ObjId_BossSpikeball      */ Obj_CPZTubeSpring, // (the prototype's spring tubes of Chemical Plant)
 	/* 7C ObjId_RingFlash          */ Obj_Null, // removed in Nick Arcade
-	/* 7D ObjId_HiddenBonus         */ Obj_HiddenBonus,
+	/* 7D ObjId_HiddenBonus         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 7E ObjId_SSResult           */ NULL, // (moved to the status table: sst_object_codes; the alpha's Super Sonic stars: nothing makes them yet)
 	/* 7F ObjId_SSRChaos           */ Obj_DHZVinesSwitch, // (the alpha's roots that are switches, in Dust Hill: Nick Arcade removed it)
 	/* 80 ObjId_80                 */ Obj_DHZVines, // (the alpha's roots that carry: Nick Arcade removed it)
@@ -405,6 +405,8 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_HiddenBonus] = Obj_HiddenBonus,
+	[ObjId_Checkpoint] = Obj_Checkpoint,
 	[ObjId_Sonic] = Obj_Sonic,
 	[ObjId_ShieldInvincibility] = Obj_ShieldInvincibility,
 	[ObjId_SSResult] = Obj_SuperSonicStars,

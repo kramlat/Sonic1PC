@@ -122,7 +122,7 @@ static void DebugLists_HaveThePrototypesLengthsAndPlaceRealObjects(void) {
         for (int e = 0; e < count; e++) {
             if (list[e].type == ObjId_Null)
                 continue;
-            const bool ported = (int)list[e].type < game_object_count && game_objects[list[e].type] != NULL && game_objects[list[e].type] != Obj_Null;
+            const bool ported = ((int)list[e].type < game_object_count && game_objects[list[e].type] != NULL && game_objects[list[e].type] != Obj_Null) || sst_object_codes[list[e].type] != NULL;
             if (!ported) {
                 printf("\n    zone %d entry %d places object %02X, which is not ported", expect[i].zone, e, (int)list[e].type);
                 CHECK(ported);

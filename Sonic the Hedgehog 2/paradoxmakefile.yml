@@ -105,7 +105,6 @@ resources:
   - "Mappings/Monitor"
   - "Mappings/Spikes"
   - "Mappings/Points"
-  - "Mappings/Checkpoint"
   - "Art/HUD"
   - "Art/HUDLife"
   - "Art/HUDNum"
@@ -711,6 +710,7 @@ mappings_SonicTheHedgehog2:
   - "Mappings/Tails"
   - "Mappings/SuperSonicStars"
   - "Mappings/ShieldInvincibility"
+  - "Mappings/Checkpoint"
 
 assemble:
   - "Mappings/TitleCharacters"

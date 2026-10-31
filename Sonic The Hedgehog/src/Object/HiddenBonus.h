@@ -1,11 +1,9 @@
 #ifndef _HIDDENBONUS_H
 #define _HIDDENBONUS_H
 
-#include "Object.h"
+#include "Sst.h"
 
-// Hidden bonus assets
-#include "Resource/Mappings/HiddenBonuses.h"
 
-void Obj_HiddenBonus(Object *obj);
+void Obj_HiddenBonus(Sst *self);
 
 #endif //_HIDDENBONUS_H

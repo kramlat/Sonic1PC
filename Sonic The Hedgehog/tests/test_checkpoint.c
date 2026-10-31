@@ -5,7 +5,8 @@
 #include "Level.h"
 #include "LevelScroll.h"
 #include "Object.h"
-void Obj_Checkpoint_StoreInfo(Object *obj, const void *scratch); // Checkpoint.h defines its mappings array, so not included
+#include "Object/Checkpoint.h"
+#include "SstLoad.h"
 
 // Regression test (2026-09): lamp posts were broken -- after dying you
 // respawned at (0,0) with the camera at 0,0. The saved positions were the
@@ -13,13 +14,10 @@ void Obj_Checkpoint_StoreInfo(Object *obj, const void *scratch); // Checkpoint.h
 // the pixel position, and loading wrote them back into the fraction too.
 
 static void Checkpoint_RoundTripKeepsPositions(void) {
-    memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
+    Sst_Reset();
     memset(player, 0, sizeof(Sst));
-    Object *lamp = &level_objects[0];
-    lamp->type = ObjId_Checkpoint;
-    lamp->pos.l.x.f.u = 0x1290;
-    lamp->pos.l.y.f.u = 0x04AC;
-    lamp->scratch.u8[0] = 1;
+    Sst *lamp = Sst_Spawn(ObjId_Checkpoint, 0x1290, 0x04AC);
+    lamp->subtype = 1;
 
     scrpos_x.f.u = 0x1150; scrpos_x.f.l = 0x4000;
     scrpos_y.f.u = 0x0420;
@@ -29,7 +27,7 @@ static void Checkpoint_RoundTripKeepsPositions(void) {
     life_count = 2;
     level_id = LEVEL_ID(ZoneId_LZ, 2);
 
-    Obj_Checkpoint_StoreInfo(lamp, &lamp->scratch);
+    Obj_Checkpoint_StoreInfo(lamp, (const Own_Checkpoint *)lamp->own.u8);
     CHECK_EQ(last_lamp, 1);
 
     // The player has died and the level restarts: everything is reset.

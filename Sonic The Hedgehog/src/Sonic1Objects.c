@@ -4,6 +4,8 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/HiddenBonus.h"
+#include "Object/Checkpoint.h"
 #include "Object/ShieldInvincibility.h"
 #include "Object/EndingSonic.h"
 #include "Object/ContinueSonic.h"
@@ -96,7 +98,6 @@ void Obj_GHZTunnel(Object *obj);
 void Obj_HUD(Object *obj);
 void Obj_Ring(Object *obj);
 void Obj_Monitor(Object *obj);
-void Obj_Checkpoint(Object *obj);
 void Obj_MonitorItem(Object *obj);
 void Obj_TitleCard(Object *obj);
 void Obj_GotThroughCard(Object *obj);
@@ -113,7 +114,6 @@ void Obj_EndEggmobile(Object *obj);
 void Obj_ContScrItem(Object *obj);
 void Obj_GiantRing(Object *obj);
 void Obj_RingFlash(Object *obj);
-void Obj_HiddenBonus(Object *obj);
 void Obj_Button(Object *obj);
 void Obj_Seesaw(Object *obj);
 void Obj_BossGreenHill(Object *obj);
@@ -164,7 +164,7 @@ const ObjectFunc game_objects[] = {
 	/* 18 ObjId_BasicPlatform       */ NULL, // (moved to the status table: sst_object_codes)
 	/* 19 ObjId_19                  */ Obj_Null,
 	/* 1A ObjId_CollapseLedge       */ NULL, // (moved to the status table: sst_object_codes)
-	/* 1B ObjId_WaterSurface        */ Obj_WaterSurface,
+	/* 1B ObjId_WaterSurface        */ NULL, // (moved to the status table: sst_object_codes)
 	/* 1C ObjId_Scenery             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 1D ObjId_MagicSwitch         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 1E ObjId_BallHog             */ NULL, // (moved to the status table: sst_object_codes)
@@ -258,11 +258,11 @@ const ObjectFunc game_objects[] = {
 	/* 76 ObjId_BossBlock           */ Obj_BossBlock,
 	/* 77 ObjId_BossLabyrinth      */ Obj_BossLabyrinth,
 	/* 78 ObjId_Caterkiller         */ NULL, // (moved to the status table: sst_object_codes)
-	/* 79 ObjId_Checkpoint          */ Obj_Checkpoint,
+	/* 79 ObjId_Checkpoint          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 7A ObjId_BossStarLight       */ Obj_BossStarLight,
 	/* 7B ObjId_BossSpikeball       */ Obj_BossSpikeball,
 	/* 7C ObjId_RingFlash           */ Obj_RingFlash,
-	/* 7D ObjId_HiddenBonus         */ Obj_HiddenBonus,
+	/* 7D ObjId_HiddenBonus         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 7E ObjId_SSResult            */ Obj_SpecialResult,
 	/* 7F ObjId_SSRChaos            */ Obj_SpecialResultEmerald,
 	/* 80 ObjId_80                  */ Obj_ContScrItem,
@@ -285,6 +285,9 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_HiddenBonus] = Obj_HiddenBonus,
+	[ObjId_Checkpoint] = Obj_Checkpoint,
+	[ObjId_WaterSurface] = Obj_WaterSurface,
 	[ObjId_ShieldInvincibility] = Obj_ShieldInvincibility,
 	[ObjId_87] = Obj_EndSonic,
 	[ObjId_81] = Obj_ContSonic,
