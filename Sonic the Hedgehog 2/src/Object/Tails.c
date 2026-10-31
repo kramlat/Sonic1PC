@@ -49,7 +49,6 @@ static int16_t tails_look_shift;
 #define TAILS_BALL_WIDTH   7
 #define TAILS_BALL_SHIFT   5
 
-extern uint8_t hud_lives_slot; // (HUD.c; its header holds the HUD's art too, which only HUD.c may define)
 #define ArtTile_Tails      0x7A0
 #define ArtTile_TailsTails 0x7B0
 #define SST_TAILS_TAILS   (&sst[2]) // his tails: the reserved slot of the status table (Reserved_object_3)
@@ -1806,7 +1805,6 @@ void Game_LevelObjects(void) {
     VDP_SetShadowHighlight((jpad1_hold1 & JPAD_C) != 0); // (the prototype enables the VDP's shadow/highlight mode, which darkens all but what is above the planes' priority, when C is held as a level loads)
     if (cli_start_level >= 0) // a level started from the command line skipped the title, which loads the main art (HUD, rings, ...)
         AddPLC(PlcId_Main);
-    hud_lives_slot = 20; // (the default, 29, is where Tails' tails are: the counter took the slot every frame and the tails never showed while he rolled or spin dashed)
     Sst *tails = SST_PLAYER_2;
     memset(tails, 0, sizeof(*tails));
     tails->code = sst_object_codes[ObjId_02];
@@ -1821,5 +1819,5 @@ void Game_LevelObjects(void) {
 
 // While the level editor has the level, neither player runs or shows (the editor's cursor is where Sonic is: EditorLive.h)
 bool Game_EditorSkipObject(const void *self) {
-    return self == (const void *)player || self == (const void *)TAILS_OBJ || ((const Object *)self)->type == ObjId_HUD; // (and the HUD: the editor draws its own)
+    return self == (const void *)player || self == (const void *)TAILS_OBJ;
 }

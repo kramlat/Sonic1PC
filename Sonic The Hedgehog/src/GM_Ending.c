@@ -125,7 +125,7 @@ void GM_Ending(void) {
     jpad1_hold2 = JPAD_LEFT;
     jpad1_press2 = 0;
     player->ground_vel = -0x800; // capped to -0x600 straight away
-    objects[1].type = ObjId_HUD;
+    Sst_Spawn(ObjId_HUD, 0, 0);
     if (ending_eggmobile_exploding) // Eggman's ship was wrecked in the Final Zone: it falls in the distance
         Sst_Spawn(ObjId_8D, 0, 0);
     ObjPosLoad();

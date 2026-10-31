@@ -4,6 +4,7 @@
 #include "Object/Monitor.h"
 #include "Object/Signpost.h"
 #include "Object/Points.h"
+#include "Object/HUD.h"
 #include "Object/PrisonCapsule.h"
 #include "Object/Ring.h"
 #include "Object/GameOverCard.h"
@@ -37,7 +38,6 @@ void Obj_GHZTunnel(Object *obj);
 void Obj_GHZBridge(Object *obj);
 void Obj_Bridge(Object *obj);
 void Obj_Crabmeat(Object *obj);
-void Obj_HUD(Object *obj);
 void Obj_BuzzBomber(Object *obj);
 void Obj_BuzzMissile(Object *obj);
 void Obj_BuzzExplode(Object *obj);
@@ -255,7 +255,7 @@ const ObjectFunc game_objects[] = {
 	/* 1E ObjId_BallHog            */ Obj_CPZTube, // (the prototype's tube network of Chemical Plant)
 	/* 1F ObjId_Crabmeat            */ Obj_CollapsingPlatform, // (the prototype's collapsing platform of Dust Hill and Oil Ocean)
 	/* 20 ObjId_Cannonball         */ Obj_HTZFireball, // (the prototype's fireball of Hill Top: the lava bubble)
-	/* 21 ObjId_HUD                 */ Obj_HUD,
+	/* 21 ObjId_HUD                 */ NULL, // (moved to the status table: sst_object_codes)
 	/* 22 ObjId_BuzzBomber          */ Obj_ArrowShooter, // (the prototype's arrow shooter of Neo Green Hill)
 	/* 23 ObjId_BuzzMissile         */ Obj_Null, // (the prototype's object here is not ported yet)
 	/* 24 ObjId_BuzzExplode         */ Obj_OxygenBubbles, // (the alpha's vents of bubbles, where the prototype has Sonic 1's Buzz Bomber explosion that nothing makes)
@@ -402,6 +402,7 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_HUD] = Obj_HUD,
 	[ObjId_GotThroughCard] = Obj_GotThroughCard,
 	[ObjId_TitleCard] = Obj_TitleCard,
 	[ObjId_Animal] = Obj_FlickyAnimals,

@@ -330,7 +330,7 @@ GM_Level_Branch:;
     player->code = sst_object_codes[ObjId_Sonic];
     objects[0x1B].type = ObjId_Splash; // Spin Dash dust / skid dust / water splash companion
     if (demo >= 0)
-        objects[1].type = ObjId_HUD;
+        Sst_Spawn(ObjId_HUD, 0, 0);
     Game_LevelObjects();
 
     if (Level_HasWater())

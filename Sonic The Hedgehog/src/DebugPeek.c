@@ -70,7 +70,7 @@ void Peek_EditorState(EditorPeek *out) {
 #ifndef ZONE_SLOTS // (Sonic 2 has its own: Tails is a player too)
 // While the level editor has the level the player and the HUD do not run or show (the editor draws its own)
 bool Game_EditorSkipObject(const void *obj) {
-	return obj == (const void *)player || ((const Object *)obj)->type == ObjId_HUD;
+	return obj == (const void *)player;
 }
 #endif
 
