@@ -1,3 +1,4 @@
+#include "SstLoad.h"
 #include "GM_Ending.h"
 #include "Viewport.h"
 #include "Constants.h"
@@ -308,7 +309,8 @@ void GM_Credits(void) {
     memset(dry_palette_dup, 0, sizeof(dry_palette_dup));
     PalLoad1(PalId_Sonic);
 
-    objects[CREDITS_SLOT_TEXT].type = ObjId_Credits;
+    Sst_Reset();
+    Sst_Spawn(ObjId_Credits, 0, 0);
     ExecuteObjects();
     BuildSprites(NULL);
 

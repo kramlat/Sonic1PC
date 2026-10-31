@@ -688,21 +688,16 @@ void DynamicLevelEvents(void) {
                 if ((uint16_t)scrpos_x.f.u < (0x2050 - 0x1A0 - SCREEN_WIDEADD2)) // boss_sbz2_x-$1A0
                     break;
                 {
-                    Object *floor = FindFreeObj();
-                    if (floor == NULL)
+                    if (Sst_Spawn(ObjId_FalseFloor, 0, 0) == NULL)
                         break;
-                    floor->type = ObjId_FalseFloor;
                 }
                 dle_routine += 2;
                 AddPLC(PlcId_EggmanSBZ2);
                 break;
             case 4: // DLE_SBZ2_Eggman
                 if ((uint16_t)scrpos_x.f.u >= (0x2050 - 0xF0 - SCREEN_WIDEADD2)) { // boss_sbz2_x-$F0
-                    Object *eggman = FindFreeObj();
-                    if (eggman != NULL) {
-                        eggman->type = ObjId_ScrapEggman;
+                    if (Sst_Spawn(ObjId_ScrapEggman, 0, 0) != NULL)
                         dle_routine += 2;
-                    }
                     lock_screen = true;
                 }
                 limit_left2 = scrpos_x.f.u; // DLE_SBZ2_SetBoundary

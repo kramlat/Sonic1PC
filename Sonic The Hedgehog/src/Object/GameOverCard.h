@@ -1,11 +1,9 @@
 #ifndef _GAMEOVER_CARD_H
 #define _GAMEOVER_CARD_H
 
-#include "Object.h"
+#include "Sst.h"
 
-// Game Over card assets
-#include "Resource/Mappings/GameOver.h"
 
-void Obj_GameOverCard(Object* obj);
+void Obj_GameOverCard(Sst *self);
 
 #endif //_GAMEOVER_CARD_H

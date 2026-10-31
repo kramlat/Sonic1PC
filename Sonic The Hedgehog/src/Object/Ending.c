@@ -1,3 +1,4 @@
+#include "SstLoad.h"
 #include "Ending.h"
 #include "Constants.h"
 
@@ -147,7 +148,7 @@ void Obj_EndEggman(Object *obj) {
         obj->priority = 2; // behind the emeralds
         obj->anim = 2;     // the "END" tantrum, for a good ending
         if (emeralds != EMERALDS_ALL) {
-            objects[CREDITS_SLOT_TRYAGAIN].type = ObjId_Credits;
+            Sst_Spawn(ObjId_Credits, 0, 0);
             credits_num = 9; // the "TRY AGAIN" text page
             objects[CREDITS_SLOT_CHAOS].type = ObjId_8C;
             obj->anim = 0;

@@ -1,5 +1,7 @@
 #include "SstLoad.h"
 #include "Object/Points.h"
+#include "Object/GameOverCard.h"
+#include "Object/Credits.h"
 #include "Object/HiddenBonus.h"
 #include "Object/Checkpoint.h"
 #include "Object/ShieldInvincibility.h"
@@ -59,13 +61,11 @@ void Obj_Slicer(Object *obj);
 void Obj_SlicerPincers(Object *obj);
 void Obj_EnemyWeapon(Object *obj);
 void Obj_RingLoss(Object *obj);
-void Obj_GameOverCard(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_BigSpikeBall(Object *obj);
 void Obj_Motobug(Object *obj);
 void Obj_Newtron(Object *obj);
 void Obj_GHZEdge(Object *obj);
-void Obj_Credits(Object *obj);
 void Obj_EndSonic(Object *obj);
 void Obj_EndChaos(Object *obj);
 void Obj_EndSTH(Object *obj);
@@ -282,7 +282,7 @@ const ObjectFunc game_objects[] = {
 	/* 36 ObjId_Spikes              */ Obj_Spikes,
 	/* 37 ObjId_RingLoss            */ Obj_RingLoss,
 	/* 38 ObjId_ShieldInvincibility */ NULL, // (moved to the status table: sst_object_codes)
-	/* 39 ObjId_GameOverCard        */ Obj_GameOverCard,
+	/* 39 ObjId_GameOverCard        */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3A ObjId_GotThroughCard      */ Obj_GotThroughCard,
 	/* 3B ObjId_GHZRock             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3C ObjId_SmashWall           */ NULL, // (moved to the status table: sst_object_codes)
@@ -363,7 +363,7 @@ const ObjectFunc game_objects[] = {
 	/* 87 ObjId_87                 */ Obj_Null, // removed in Nick Arcade
 	/* 88 ObjId_88                 */ Obj_Null, // removed in Nick Arcade
 	/* 89 ObjId_89                 */ Obj_NGHZBoss, // (the alpha's boss of Neo Green Hill)
-	/* 8A ObjId_Credits             */ Obj_Credits,
+	/* 8A ObjId_Credits             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 8B ObjId_8B                 */ Obj_Null, // removed in Nick Arcade
 	/* 8C ObjId_8C                 */ Obj_Whisp, // (the alpha's Whisp: unplaced)
 	/* 8D ObjId_8D                 */ Obj_Grounder, // (the alpha's Grounder inside its wall)
@@ -405,6 +405,8 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_GameOverCard] = Obj_GameOverCard,
+	[ObjId_Credits] = Obj_Credits,
 	[ObjId_HiddenBonus] = Obj_HiddenBonus,
 	[ObjId_PathSwapper] = Obj_PathSwapper,
 	[ObjId_Checkpoint] = Obj_Checkpoint,

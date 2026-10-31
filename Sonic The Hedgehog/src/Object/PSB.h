@@ -1,10 +1,10 @@
 #ifndef _PSB_H
 #define _PSB_H
 
-#include "Object.h"
+#include "Sst.h"
 
 //'PRESS START BUTTON' Assets
-#include "Resource/Animation/PSB.h"
-#include "Resource/Mappings/PSB.h"
+
+void Obj_PSB(Sst *self);
 
 #endif //_PSB_H

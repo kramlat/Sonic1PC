@@ -1,4 +1,7 @@
 #include "VanishSonic.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Level.h"
@@ -8,46 +11,46 @@
 #include "Resource/Mappings/VanishSonic.h"
 #include "Sound.h"
 
-static void Van_DeleteSonic(Object *obj) {
-    obj->pos.l.x.f.u = player->x_pos.f.u;
-    obj->pos.l.y.f.u = player->y_pos.f.u;
-    obj->status.b = player->status;
+static void Van_DeleteSonic(Sst *self) {
+    self->x_pos.f.u = player->x_pos.f.u;
+    self->y_pos.f.u = player->y_pos.f.u;
+    self->status = player->status;
 
-    AnimateSprite(obj, Animation_VanishSonic); // advances obj->routine on finish (afRoutine)
+    Sst_Animate(self, Animation_VanishSonic); // advances self->routine on finish (afRoutine)
 
-    if (obj->frame == 2 && player->code != sst_object_codes[ObjId_Null]) { // once, at the animation's middle
+    if (self->mapping_frame == 2 && player->code != sst_object_codes[ObjId_Null]) { // once, at the animation's middle
         player->code = sst_object_codes[ObjId_Null]; // delete Sonic
         QueueSound2(sfx_SSGoal);
     }
 
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-static void Van_ReloadSonic(Object *obj, Scratch_VanishSonic *scratch) {
-    if (--scratch->time != 0)
+static void Van_ReloadSonic(Sst *self, Own_VanishSonic *own) {
+    if (--own->time != 0)
         return; // wait for timer to run out (object stays invisible meanwhile)
     player->code = sst_object_codes[ObjId_Sonic]; // reload Sonic
-    ObjectDelete(obj);
+    Sst_Delete(self);
 }
 
-void Obj_VanishSonic(Object *obj) {
-    Scratch_VanishSonic *scratch = (Scratch_VanishSonic *)&obj->scratch;
+void Obj_VanishSonic(Sst *self) {
+    Own_VanishSonic *own = (Own_VanishSonic *)self->own.u8;
 
-    if (obj->routine == 0) {
+    if (self->routine == 0) {
         if (plc_buffer[0].art != NULL)
             return; // wait until entry effect patterns finish decompressing
 
-        obj->routine = 2; // advance to Van_DeleteSonic
-        obj->mappings = Mappings_VanishSonic;
-        obj->render.b = SPRITE_CAM_FIELD;
-        obj->priority = 1;
-        obj->width_pixels = 112 / 2;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Warp);
-        scratch->time = 2 * 60;
+        self->routine = 2; // advance to Van_DeleteSonic
+        self->mappings = Mappings_VanishSonic;
+        self->render_flags = SST_RENDER_LEVEL;
+        self->priority = 1 * 0x80;
+        self->width_pixels = 112 / 2;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Warp);
+        own->time = 2 * 60;
     }
 
-    switch (obj->routine) {
-    case 2: Van_DeleteSonic(obj); break;
-    case 4: Van_ReloadSonic(obj, scratch); break;
+    switch (self->routine) {
+    case 2: Van_DeleteSonic(self); break;
+    case 4: Van_ReloadSonic(self, own); break;
     }
 }

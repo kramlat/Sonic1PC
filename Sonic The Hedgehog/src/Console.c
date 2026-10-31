@@ -1,3 +1,4 @@
+#include "SstLoad.h"
 #include "Console.h"
 
 #include "Level.h"
@@ -249,6 +250,14 @@ static void CmdSpawn(char *args) {
     for (size_t i = 0; i < sizeof(spawn_names) / sizeof(spawn_names[0]); i++) {
         if (strcmp(spawn_names[i].name, name) != 0)
             continue;
+        if (sst_object_codes[spawn_names[i].id] != NULL) {
+            if (Sst_Spawn(spawn_names[i].id, player->x_pos.f.u, (int16_t)(player->y_pos.f.u - 32)) == NULL) {
+                LogLine("no free object slot");
+                return;
+            }
+            LogLine("spawned %s at player", name);
+            return;
+        }
         Object *spawned = FindFreeObj();
         if (spawned == NULL) {
             LogLine("no free object slot");

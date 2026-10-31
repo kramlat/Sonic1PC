@@ -1,10 +1,9 @@
 #ifndef _TITLESONIC_H
 #define _TITLESONIC_H
 
-#include "Object.h"
+#include "Sst.h"
 
-// Title Sonic assets
-#include "Resource/Animation/TitleSonic.h"
-#include "Resource/Mappings/TitleSonic.h"
+
+void Obj_TitleSonic(Sst *self);
 
 #endif //_TITLESONIC_H

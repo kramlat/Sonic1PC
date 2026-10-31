@@ -1785,9 +1785,10 @@ static void GameOver(Sst *self) {
         scratch->death_timer = 0;
 
         // Load 'GAME OVER' objects
-        objects[2].type = ObjId_GameOverCard; // GAME
-        objects[3].type = ObjId_GameOverCard; // OVER
-        objects[3].frame = 1;
+        Sst_Spawn(ObjId_GameOverCard, 0, 0); // GAME
+        Sst *over = Sst_Spawn(ObjId_GameOverCard, 0, 0); // OVER
+        if (over != NULL)
+            over->mapping_frame = 1;
 
         time_over = false;
         PlayMusic(bgm_GameOver);
@@ -1802,10 +1803,12 @@ static void GameOver(Sst *self) {
             scratch->death_timer = 0;
 
             // Load 'TIME OVER' objects
-            objects[2].type = ObjId_GameOverCard; // TIME
-            objects[3].type = ObjId_GameOverCard; // OVER
-            objects[2].frame = 2;
-            objects[3].frame = 3;
+            Sst *time_card = Sst_Spawn(ObjId_GameOverCard, 0, 0); // TIME
+            Sst *over_card = Sst_Spawn(ObjId_GameOverCard, 0, 0); // OVER
+            if (time_card != NULL)
+                time_card->mapping_frame = 2;
+            if (over_card != NULL)
+                over_card->mapping_frame = 3;
 
             PlayMusic(bgm_GameOver);
             AddPLC(PlcId_GameOver);

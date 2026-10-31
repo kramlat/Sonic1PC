@@ -1,4 +1,8 @@
 #include "GameOverCard.h"
+#include "Resource/Mappings/GameOver.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 #include "Game.h"
 #include "Level.h"
@@ -11,57 +15,57 @@
 #define FROM_ADD (TO_ADD + ((SCREEN_WIDEADD2 + 0xF) & ~0xF))
 #define FROM_SUB ((0x10 - TO_ADD) & 0xF)
 
-// Game Over card object
-void Obj_GameOverCard(Object* obj) {
-    switch (obj->routine) {
+// Game Over card object (own.u16[0]: the frames it waits for the restart)
+void Obj_GameOverCard(Sst *self) {
+    switch (self->routine) {
     case 0: // Initialization
         // Wait for art to be finished loading
         if (plc_buffer[0].art != NULL)
             break;
 
         // Increment routine and set position
-        obj->routine += 2;
+        self->routine += 2;
 
-        obj->pos.s.x = 0x50 - FROM_SUB;
-        if (obj->frame & 1)
-            obj->pos.s.x = 0x1F0 + FROM_ADD;
-        obj->pos.s.y = 0xF0 + SCREEN_TALLADD2;
+        self->x_pos.f.u = 0x50 - FROM_SUB;
+        if (self->mapping_frame & 1)
+            self->x_pos.f.u = 0x1F0 + FROM_ADD;
+        self->y_pos.f.u = 0xF0 + SCREEN_TALLADD2;
 
         // Set object drawing information
-        obj->mappings = Mappings_GameOver;
-        obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Game_Over);
-        obj->render.b = 0;
-        obj->priority = 0;
+        self->mappings = Mappings_GameOver;
+        self->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_Game_Over);
+        self->render_flags = 0;
+        self->priority = 0 * 0x80;
         // Fallthrough
     case 2: // Moving
-        if (obj->pos.s.x == (0x120 + TO_ADD)) {
+        if (self->x_pos.f.u == (0x120 + TO_ADD)) {
             // Start waiting for restart
-            obj->frame_time.w = 720;
-            obj->routine += 2;
+            self->own.u16[0] = 720;
+            self->routine += 2;
             // Doesn't call DisplaySprite or fallthrough
         } else {
             // Move
-            if (obj->pos.s.x > (0x120 + TO_ADD))
-                obj->pos.s.x -= 16;
-            else if (obj->pos.s.x < (0x120 + TO_ADD))
-                obj->pos.s.x += 16;
+            if (self->x_pos.f.u > (0x120 + TO_ADD))
+                self->x_pos.f.u -= 16;
+            else if (self->x_pos.f.u < (0x120 + TO_ADD))
+                self->x_pos.f.u += 16;
 
             // Draw
-            DisplaySprite(obj);
+            Sst_Draw(self);
         }
         break;
     case 4:
         if (!(jpad1_hold1 & (JPAD_A | JPAD_C | JPAD_B))) {
             // Don't change handle timer if 'OVER'
-            if (obj->frame & 1) {
-                DisplaySprite(obj);
+            if (self->mapping_frame & 1) {
+                Sst_Draw(self);
                 break;
             }
 
             // Decrement timer
-            if (obj->frame_time.w) {
-                obj->frame_time.w--;
-                DisplaySprite(obj);
+            if (self->own.u16[0]) {
+                self->own.u16[0]--;
+                Sst_Draw(self);
                 break;
             }
         }
@@ -77,7 +81,7 @@ void Obj_GameOverCard(Object* obj) {
             restart = true;
         }
 
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
     }
 }

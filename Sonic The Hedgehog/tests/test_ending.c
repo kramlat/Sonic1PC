@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "Level.h"
 #include "Object.h"
+#include "SstLoad.h"
 #include "Object/Ending.h"
 #include "Object/EndingSonic.h"
 #include "SpecialStage.h"
@@ -15,6 +16,7 @@
 
 static void Reset(void) {
     memset(objects, 0, sizeof(objects));
+    Sst_Reset();
     emeralds = 0;
     memset(emerald_list, 0, sizeof(emerald_list));
     restart = 0;
@@ -83,7 +85,11 @@ static void TryAgain_EggmanJugglesTheMissingEmeralds(void) {
         emerald_list[i] = (uint8_t)i;
     objects[CREDITS_SLOT_TEXT].type = ObjId_8B;
     Obj_EndEggman(&objects[CREDITS_SLOT_TEXT]);
-    CHECK_EQ(objects[CREDITS_SLOT_TRYAGAIN].type, ObjId_Credits); // the "TRY AGAIN" text
+    int credits = 0;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_Credits])
+            credits++;
+    CHECK_EQ(credits, 1); // the "TRY AGAIN" text
     CHECK_EQ(credits_num, 9);
     CHECK_EQ(objects[CREDITS_SLOT_CHAOS].type, ObjId_8C);
 

@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - "SONIC TEAM	PRESENTS" and credits
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_Cred_internal:	mappingsTable
 	mappingsTableEntry.w	@staff

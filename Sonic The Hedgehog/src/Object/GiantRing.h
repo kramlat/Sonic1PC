@@ -1,17 +1,14 @@
 #ifndef _GIANTRING_H
 #define _GIANTRING_H
 
-#include "Object.h"
+#include "Sst.h"
 
-// Giant Ring / Flash assets
-#include "Resource/Mappings/GiantRing.h"
-#include "Resource/Mappings/RingFlash.h"
 
 typedef struct {
-    Object *parent; // parent Giant Ring object -- set to routine 6 (delete) once the flash reaches its 3rd frame
-} Scratch_RingFlash;
+    Sst *parent; // parent Giant Ring object -- set to routine 6 (delete) once the flash reaches its 3rd frame
+} Own_RingFlash;
 
-void Obj_GiantRing(Object *obj);
-void Obj_RingFlash(Object *obj);
+void Obj_GiantRing(Sst *self);
+void Obj_RingFlash(Sst *self);
 
 #endif //_GIANTRING_H

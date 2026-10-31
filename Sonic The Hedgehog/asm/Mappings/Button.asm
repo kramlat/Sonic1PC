@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - switches (MZ, SYZ, LZ, SBZ)
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_But_internal:	mappingsTable
 	mappingsTableEntry.w	byte_BEAC

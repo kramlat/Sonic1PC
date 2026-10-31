@@ -1,11 +1,9 @@
 #ifndef _BUTTON_H
 #define _BUTTON_H
 
-#include "Object.h"
+#include "Sst.h"
 
-// Button assets
-#include "Resource/Mappings/Button.h"
 
-void Obj_Button(Object *obj);
+void Obj_Button(Sst *self);
 
 #endif //_BUTTON_H

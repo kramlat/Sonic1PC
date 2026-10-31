@@ -1,3 +1,4 @@
+#include "SstLoad.h"
 #include "GM_Title.h"
 #include "Constants.h"
 
@@ -468,9 +469,11 @@ void GM_Title(void) {
     memset(&objects[2], 0, sizeof(Object));
 
     // Load title objects
-    objects[1].type = ObjId_TitleSonic; // Sonic (frame 0) and Tails (frame 1): the prototypes' title characters
-    objects[5].type = ObjId_TitleSonic;
-    objects[5].frame = 1;
+    Sst_Reset();
+    Sst_Spawn(ObjId_TitleSonic, 0, 0); // Sonic (frame 0) and Tails (frame 1): the prototypes' title characters
+    Sst *tails = Sst_Spawn(ObjId_TitleSonic, 0, 0);
+    if (tails != NULL)
+        tails->mapping_frame = 1;
     // (Sonic 1's "PRESS START BUTTON" object, its trademark sign and its sprite mask are not loaded: Sonic 2 disables the PSB object.)
 
     ExecuteObjects();

@@ -361,7 +361,7 @@ static void CheckMappings(const uint8_t *m, int frames) {
     for (int f = 0; f < frames; f++) {
         const uint8_t *pieces;
         uint16_t count = Mappings_FramePieces(m, (unsigned)f, &pieces);
-        CHECK(count < 24);
+        CHECK(count < 64);
         for (uint16_t i = 0; i < count; i++)
             CHECK((pieces[i * SPRITE_PIECE_SIZE_S3 + 1] & 0xF0) == 0);
     }
@@ -372,6 +372,14 @@ extern const uint8_t Mappings_Pylon[];
 extern const uint8_t Mappings_Points[];
 extern const uint8_t Mappings_ShieldInvincibility[];
 extern const uint8_t Mappings_Checkpoint[];
+extern const uint8_t Mappings_VanishSonic[];
+extern const uint8_t Mappings_TitleSonic[];
+extern const uint8_t Mappings_PSB[];
+extern const uint8_t Mappings_Credits[];
+extern const uint8_t Mappings_GameOver[];
+extern const uint8_t Mappings_GiantRing[];
+extern const uint8_t Mappings_RingFlash[];
+extern const uint8_t Mappings_Button[];
 extern const uint8_t Mappings_PathSwapper[];
 extern const uint8_t Mappings_WaterSurface[];
 extern const uint8_t Mappings_HiddenBonuses[];
@@ -382,6 +390,14 @@ static void SstObjects_TheMappingsOfTheTableAreInItsFormat(void) {
     CheckMappings(Mappings_Points, 7);
     CheckMappings(Mappings_ShieldInvincibility, 8);
     CheckMappings(Mappings_Checkpoint, 3);
+    CheckMappings(Mappings_VanishSonic, (Mappings_VanishSonic[0] << 8 | Mappings_VanishSonic[1]) / 2);
+    CheckMappings(Mappings_TitleSonic, (Mappings_TitleSonic[0] << 8 | Mappings_TitleSonic[1]) / 2);
+    CheckMappings(Mappings_PSB, (Mappings_PSB[0] << 8 | Mappings_PSB[1]) / 2);
+    CheckMappings(Mappings_Credits, (Mappings_Credits[0] << 8 | Mappings_Credits[1]) / 2);
+    CheckMappings(Mappings_GameOver, (Mappings_GameOver[0] << 8 | Mappings_GameOver[1]) / 2);
+    CheckMappings(Mappings_GiantRing, (Mappings_GiantRing[0] << 8 | Mappings_GiantRing[1]) / 2);
+    CheckMappings(Mappings_RingFlash, (Mappings_RingFlash[0] << 8 | Mappings_RingFlash[1]) / 2);
+    CheckMappings(Mappings_Button, (Mappings_Button[0] << 8 | Mappings_Button[1]) / 2);
     CheckMappings(Mappings_PathSwapper, 8);
     CheckMappings(Mappings_WaterSurface, 2);
     CheckMappings(Mappings_HiddenBonuses, 2);

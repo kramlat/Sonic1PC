@@ -1,3 +1,4 @@
+#include "SstLoad.h"
 #include "GM_Title.h"
 #include "Viewport.h"
 #include "Constants.h"
@@ -490,7 +491,8 @@ void GM_Title(void) {
     PalLoad1(PalId_Sonic);
 
     // Load "SONIC TEAM PRESENTS" object
-    objects[2].type = ObjId_Credits;
+    Sst_Reset();
+    Sst_Spawn(ObjId_Credits, 0, 0);
 
     ExecuteObjects();
     BuildSprites(NULL);
@@ -541,14 +543,17 @@ void GM_Title(void) {
     memset(&objects[2], 0, sizeof(Object));
 
     // Load title objects
-    objects[1].type = ObjId_TitleSonic;
-    objects[2].type = ObjId_PSB;
+    Sst_Reset();
+    Sst_Spawn(ObjId_TitleSonic, 0, 0);
+    Sst_Spawn(ObjId_PSB, 0, 0);
 #ifndef SCP_JP
-    objects[3].type = ObjId_PSB;
-    objects[3].frame = 3;
+    Sst *tm = Sst_Spawn(ObjId_PSB, 0, 0);
+    if (tm != NULL)
+        tm->mapping_frame = 3;
 #endif
-    objects[4].type = ObjId_PSB;
-    objects[4].frame = 2;
+    Sst *mask = Sst_Spawn(ObjId_PSB, 0, 0);
+    if (mask != NULL)
+        mask->mapping_frame = 2;
 
     ExecuteObjects();
     DeformLayers();

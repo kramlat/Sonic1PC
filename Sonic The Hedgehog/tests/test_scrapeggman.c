@@ -8,6 +8,7 @@
 #include "PLC.h"
 #include "Sound.h"
 #include "Object/ScrapEggman.h"
+#include "SstLoad.h"
 
 // SBZ2's end cutscene (objects 82/83) and the dynamic level events that start it and chain SBZ3 -> Final Zone,
 // from s1disasm's "_inc/DynamicLevelEvents.asm" and "_incObj/82, 83 SBZ Eggman Cutscene and Crumbling Floor.asm".
@@ -18,6 +19,12 @@
 
 static int Count(uint8_t type) {
     int n = 0;
+    if (sst_object_codes[type] != NULL) {
+        for (int i = 0; i < SST_COUNT; i++)
+            if (sst[i].code != NULL && sst[i].code == sst_object_codes[type])
+                n++;
+        return n;
+    }
     for (int i = 0; i < LEVEL_OBJECTS; i++)
         if (level_objects[i].type == type)
             n++;
@@ -25,12 +32,12 @@ static int Count(uint8_t type) {
 }
 
 static void RunObjects(void) {
-    for (int i = 0; i < LEVEL_OBJECTS; i++) {
-        Object *o = &level_objects[i];
-        if (o->type == ObjId_ScrapEggman)
+    for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++) {
+        Sst *o = &sst[i];
+        if (o->code == sst_object_codes[ObjId_ScrapEggman])
             Obj_ScrapEggman(o);
-        else if (o->type == ObjId_FalseFloor) {
-            o->render.f.on_screen = true; // BuildSprites would set this for anything drawn on screen
+        else if (o->code != NULL && o->code == sst_object_codes[ObjId_FalseFloor]) {
+            o->render_flags |= SST_RENDER_ON_SCREEN; // the renderer would set this for anything drawn on screen
             Obj_FalseFloor(o);
         }
     }
@@ -39,6 +46,7 @@ static void RunObjects(void) {
 
 static void Reset(uint16_t id) {
     memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
+    Sst_Reset();
     memset(player, 0, sizeof(Sst));
     player->routine = 2;
     level_id = id;
@@ -79,8 +87,7 @@ static void SBZ2_EventsSpawnTheCutscene(void) {
 static void SBZ2_FloorBuildsAndCollapses(void) {
     Reset(LEVEL_ID(ZoneId_SBZ, 1));
     scrpos_x.f.u = SBZ2_X - 0xF0;
-    Object *manager = &level_objects[0];
-    manager->type = ObjId_FalseFloor;
+    Sst *manager = Sst_Spawn(ObjId_FalseFloor, 0, 0);
     RunObjects();
     CHECK_EQ(Count(ObjId_FalseFloor), 9); // manager + 8 blocks
     CHECK_EQ(manager->routine, 2);
@@ -90,36 +97,35 @@ static void SBZ2_FloorBuildsAndCollapses(void) {
         RunObjects();
     CHECK_EQ(Count(ObjId_FalseFloor), 9);
 
-    ((Scratch_FalseFloor *)&manager->scratch)->cmd = 0x474F; // "GO"
+    ((Own_FalseFloor *)manager->own.u8)->cmd = 0x474F; // "GO"
     for (int i = 0; i < 400; i++)
         RunObjects();
     // Every block has become 4 fragments (the manager is gone).
-    CHECK_EQ(manager->type, 0);
+    CHECK(manager->code == NULL);
     CHECK_EQ(Count(ObjId_FalseFloor), 8 * 4);
 }
 
 static void SBZ2_EggmanPressesTheSwitch(void) {
     Reset(LEVEL_ID(ZoneId_SBZ, 1));
     scrpos_x.f.u = SBZ2_X - 0xF0;
-    level_objects[0].type = ObjId_FalseFloor;
-    level_objects[20].type = ObjId_ScrapEggman;
+    Sst *floor = Sst_Spawn(ObjId_FalseFloor, 0, 0);
+    Sst *eggman = Sst_Spawn(ObjId_ScrapEggman, 0, 0);
     player->x_pos.f.u = SBZ2_X + 0x80; // far from Eggman (0x2160)
     RunObjects();
     CHECK_EQ(Count(ObjId_ScrapEggman), 2); // Eggman + his switch
-    Object *eggman = &level_objects[20];
-    CHECK_EQ(eggman->pos.l.x.f.u, SBZ2_X + 0x110);
-    CHECK_EQ(eggman->routine_sec, 0);
+    CHECK_EQ(eggman->x_pos.f.u, SBZ2_X + 0x110);
+    CHECK_EQ(eggman->routine_secondary, 0);
 
     for (int i = 0; i < 60; i++) // he waits for Sonic
         RunObjects();
-    CHECK_EQ(eggman->routine_sec, 0);
+    CHECK_EQ(eggman->routine_secondary, 0);
 
     player->x_pos.f.u = SBZ2_X + 0xC0; // within 128px
-    for (int i = 0; i < 400 && eggman->routine_sec != 6; i++)
+    for (int i = 0; i < 400 && eggman->routine_secondary != 6; i++)
         RunObjects();
-    CHECK_EQ(eggman->routine_sec, 6);                 // leapt, landed and set the floor off
-    CHECK_EQ(eggman->pos.l.y.f.u, SBZ2_Y + 0x8B);     // snapped to the floor
-    CHECK_EQ(((Scratch_FalseFloor *)&level_objects[0].scratch)->cmd, 0x474F);
+    CHECK_EQ(eggman->routine_secondary, 6);                 // leapt, landed and set the floor off
+    CHECK_EQ(eggman->y_pos.f.u, SBZ2_Y + 0x8B);     // snapped to the floor
+    CHECK_EQ(((Own_FalseFloor *)floor->own.u8)->cmd, 0x474F);
 }
 
 static void SBZ3_TopOfTheLevelLeadsToFinalZone(void) {
