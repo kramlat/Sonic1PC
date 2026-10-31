@@ -73,7 +73,7 @@ static void ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace(void) {
         for (int act = 0; act < 3; act++) {
             for (const uint8_t *e = level_obj[p->zone][act]; e != NULL && !(e[0] == 0xFF && e[1] == 0xFF); e += 6) {
                 const uint8_t id = e[4];
-                const bool ported = id < game_object_count && game_objects[id] != NULL && game_objects[id] != Obj_Null;
+                const bool ported = (id < game_object_count && game_objects[id] != NULL && game_objects[id] != Obj_Null) || sst_object_codes[id] != NULL;
                 if (!ported && !IsPending(p, id)) {
                     printf("\n    zone %d act %d places object %02X, which is not ported", p->zone, act, id);
                     CHECK(ported);
@@ -103,7 +103,7 @@ static void ObjectCoverage_NoPlacedObjectIsFalselyPending(void) {
         const Pending *p = &pending[z];
         for (int i = 0; i < p->count; i++) {
             const uint8_t id = p->ids[i];
-            CHECK(!(id < game_object_count && game_objects[id] != NULL && game_objects[id] != Obj_Null)); // (it was ported: take it off the list)
+            CHECK(!((id < game_object_count && game_objects[id] != NULL && game_objects[id] != Obj_Null) || sst_object_codes[id] != NULL)); // (it was ported: take it off the list)
         }
     }
 }

@@ -1,4 +1,7 @@
 #include "PathSwapper.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 
 #include "Game.h"
 #include "Level.h"
@@ -36,20 +39,20 @@ static const int16_t PSwapper_Sizes[4] = { 0x20, 0x40, 0x80, 0x100 };
 // only" (render.f.x_flip, repurposed the same way the real object reuses
 // its obRender X-flip bit) skips the collision-path change but still
 // updates Sonic's draw priority.
-static void PSwapper_Trigger(Object *obj, Scratch_PathSwapper *scratch, bool forward) {
-    if (scratch->subtype & PSWAP_BIT_GROUNDONLY) {
+static void PSwapper_Trigger(Sst *self, Own_PathSwapper *own, bool forward) {
+    if (self->subtype & PSWAP_BIT_GROUNDONLY) {
         if (((player->status & SST_PSTATUS_IN_AIR) != 0))
             return;
     }
 
-    if (!obj->render.f.x_flip) {
-        bool target_path2 = forward ? (scratch->subtype & PSWAP_BIT_PATH2_FORWARD) != 0
-                                     : (scratch->subtype & PSWAP_BIT_PATH2_BACKWARD) != 0;
+    if (!((self->render_flags & SST_RENDER_X_FLIP) != 0)) {
+        bool target_path2 = forward ? (self->subtype & PSWAP_BIT_PATH2_FORWARD) != 0
+                                     : (self->subtype & PSWAP_BIT_PATH2_BACKWARD) != 0;
         collision_path = target_path2 ? 1 : 0;
     }
 
-    bool priority = forward ? (scratch->subtype & PSWAP_BIT_PRIORITY_FORWARD) != 0
-                             : (scratch->subtype & PSWAP_BIT_PRIORITY_BACKWARD) != 0;
+    bool priority = forward ? (self->subtype & PSWAP_BIT_PRIORITY_FORWARD) != 0
+                             : (self->subtype & PSWAP_BIT_PRIORITY_BACKWARD) != 0;
     player->art_tile &= ~0x8000;
     if (priority)
         player->art_tile |= 0x8000;
@@ -58,112 +61,113 @@ static void PSwapper_Trigger(Object *obj, Scratch_PathSwapper *scratch, bool for
         PlaySound(sfx_Lamppost);
 }
 
-static void PSwapper_MainX(Object *obj) {
-    Scratch_PathSwapper *scratch = (Scratch_PathSwapper*)&obj->scratch;
+static void PSwapper_MainX(Sst *self) {
+    Own_PathSwapper *own = (Own_PathSwapper *)self->own.u8;
     if (debug_use)
         return;
 
-    int16_t obj_x = obj->pos.l.x.f.u;
+    int16_t obj_x = self->x_pos.f.u;
     int16_t player_x = player->x_pos.f.u;
-    bool forward = !scratch->passed;
+    bool forward = !own->passed;
 
     if (forward) {
         if (obj_x > player_x)
             return;
-        scratch->passed = true;
+        own->passed = true;
     } else {
         if (obj_x <= player_x)
             return;
-        scratch->passed = false;
+        own->passed = false;
     }
 
-    int16_t top = obj->pos.l.y.f.u - scratch->size;
-    int16_t bottom = obj->pos.l.y.f.u + scratch->size;
+    int16_t top = self->y_pos.f.u - own->size;
+    int16_t bottom = self->y_pos.f.u + own->size;
     int16_t player_y = player->y_pos.f.u;
     if (player_y < top || player_y >= bottom)
         return;
 
-    PSwapper_Trigger(obj, scratch, forward);
+    PSwapper_Trigger(self, own, forward);
 }
 
-static void PSwapper_MainY(Object *obj) {
-    Scratch_PathSwapper *scratch = (Scratch_PathSwapper*)&obj->scratch;
+static void PSwapper_MainY(Sst *self) {
+    Own_PathSwapper *own = (Own_PathSwapper *)self->own.u8;
     if (debug_use)
         return;
 
-    int16_t obj_y = obj->pos.l.y.f.u;
+    int16_t obj_y = self->y_pos.f.u;
     int16_t player_y = player->y_pos.f.u;
-    bool forward = !scratch->passed;
+    bool forward = !own->passed;
 
     if (forward) {
         if (obj_y > player_y)
             return;
-        scratch->passed = true;
+        own->passed = true;
     } else {
         if (obj_y <= player_y)
             return;
-        scratch->passed = false;
+        own->passed = false;
     }
 
-    int16_t left = obj->pos.l.x.f.u - scratch->size;
-    int16_t right = obj->pos.l.x.f.u + scratch->size;
+    int16_t left = self->x_pos.f.u - own->size;
+    int16_t right = self->x_pos.f.u + own->size;
     int16_t player_x = player->x_pos.f.u;
     if (player_x < left || player_x >= right)
         return;
 
-    PSwapper_Trigger(obj, scratch, forward);
+    PSwapper_Trigger(self, own, forward);
 }
 
-void Obj_PathSwapper(Object *obj) {
-    Scratch_PathSwapper *scratch = (Scratch_PathSwapper*)&obj->scratch;
+void Obj_PathSwapper(Sst *self) {
+    Own_PathSwapper *own = (Own_PathSwapper *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: { // PSwapper_Init
-        scratch->size = PSwapper_Sizes[scratch->subtype & PSWAP_BIT_SIZE_MASK];
+        own->size = PSwapper_Sizes[self->subtype & PSWAP_BIT_SIZE_MASK];
 
         // Debug-only preview (see file header) -- harmless to set up
         // unconditionally even when debug_cheat is off, since the object
         // just never gets displayed in that case.
-        obj->mappings = Mappings_PathSwapper;
-        obj->tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring); // | Tile_Pal2
-        obj->render.b |= SPRITE_CAM_FIELD;
-        obj->width_pixels = 32 / 2;
-        obj->priority = 5;
-        obj->frame = scratch->subtype & (PSWAP_BIT_SIZE_MASK | PSWAP_BIT_HORIZONTAL);
+        self->mappings = Mappings_PathSwapper;
+        self->art_tile = TILE_MAP(0, 1, 0, 0, ArtTile_Ring); // | Tile_Pal2
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 32 / 2;
+        self->priority = 5 * 0x80;
+        self->mapping_frame = self->subtype & (PSWAP_BIT_SIZE_MASK | PSWAP_BIT_HORIZONTAL);
 
-        if (scratch->subtype & PSWAP_BIT_HORIZONTAL) {
-            obj->routine = 4; // PSwapper_MainY
+        if (self->subtype & PSWAP_BIT_HORIZONTAL) {
+            self->routine = 4; // PSwapper_MainY
             // If Sonic spawned already below the trigger line, treat it as
             // already-crossed so the first real trigger is the reverse one.
-            if (obj->pos.l.y.f.u < player->y_pos.f.u)
-                scratch->passed = true;
+            if (self->y_pos.f.u < player->y_pos.f.u)
+                own->passed = true;
         } else {
-            obj->routine = 2; // PSwapper_MainX
-            if (obj->pos.l.x.f.u < player->x_pos.f.u)
-                scratch->passed = true;
+            self->routine = 2; // PSwapper_MainX
+            if (self->x_pos.f.u < player->x_pos.f.u)
+                own->passed = true;
         }
         break;
     }
     case 2:
-        PSwapper_MainX(obj);
+        PSwapper_MainX(self);
         break;
     case 4:
-        PSwapper_MainY(obj);
+        PSwapper_MainY(self);
         break;
     }
 
     if (debug_cheat) {
         // Stay visible and tracked like any normal object while the debug
         // cheat is active (matches real hardware's own DebugPathSwappers).
-        RememberState(obj);
+        SstOnScreenTest(self);
         return;
     }
 
     // Otherwise: purely invisible/logic-only. Matches RememberState's own
     // off-screen handling (respawn-flag clear + delete) but never displays.
-    if (IS_OFFSCREEN(obj->pos.l.x.f.u)) {
-        if (obj->respawn_index)
-            objstate[obj->respawn_index] &= 0x7F;
-        ObjectDelete(obj);
+    if (SstOutOfRange(self->x_pos.f.u)) {
+        if (self->respawn)
+            (*SstLoad_State(self)) &= 0x7F;
+        SstLoad_Forget(self);
+        Sst_Delete(self);
     }
 }

@@ -5,7 +5,7 @@
 ; hardware's DebugPathSwappers feature. All pieces are 2x2 tiles (16x16)
 ; using tile 0 relative to the object's own base tile (ArtTile_Ring).
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_PathSwapper_internal:	mappingsTable
 	mappingsTableEntry.w	@f1

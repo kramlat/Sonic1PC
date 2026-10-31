@@ -4,6 +4,7 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/GHZTunnel.h"
 #include "Object/HiddenBonus.h"
 #include "Object/Checkpoint.h"
 #include "Object/ShieldInvincibility.h"
@@ -94,7 +95,6 @@
 void Obj_Signpost(Object *obj);
 void Obj_TitleSonic(Object *obj);
 void Obj_PSB(Object *obj);
-void Obj_GHZTunnel(Object *obj);
 void Obj_HUD(Object *obj);
 void Obj_Ring(Object *obj);
 void Obj_Monitor(Object *obj);
@@ -140,7 +140,7 @@ const ObjectFunc game_objects[] = {
 	/* 00 ObjId_Null                */ NULL,
 	/* 01 ObjId_Sonic               */ NULL, // (moved to the status table: sst_object_codes)
 	/* 02 ObjId_02                  */ Obj_Null,
-	/* 03 ObjId_PathSwapper         */ Obj_PathSwapper,
+	/* 03 ObjId_PathSwapper         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 04 ObjId_04                  */ Obj_Null,
 	/* 05 ObjId_05                  */ Obj_Null,
 	/* 06 ObjId_06                  */ Obj_Null,
@@ -153,7 +153,7 @@ const ObjectFunc game_objects[] = {
 	/* 0D ObjId_Signpost            */ Obj_Signpost,
 	/* 0E ObjId_TitleSonic          */ Obj_TitleSonic,
 	/* 0F ObjId_PSB                 */ Obj_PSB,
-	/* 10 ObjId_GHZTunnel           */ Obj_GHZTunnel,
+	/* 10 ObjId_GHZTunnel           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 11 ObjId_GHZBridge           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 12 ObjId_SpinningLight       */ NULL, // (moved to the status table: sst_object_codes)
 	/* 13 ObjId_LavaMaker           */ NULL, // (moved to the status table: sst_object_codes)
@@ -285,6 +285,8 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_GHZTunnel] = Obj_GHZTunnel,
+	[ObjId_PathSwapper] = Obj_PathSwapper,
 	[ObjId_HiddenBonus] = Obj_HiddenBonus,
 	[ObjId_Checkpoint] = Obj_Checkpoint,
 	[ObjId_WaterSurface] = Obj_WaterSurface,

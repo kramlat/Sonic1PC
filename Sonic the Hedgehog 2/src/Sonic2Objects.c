@@ -228,7 +228,7 @@ const ObjectFunc game_objects[] = {
 	/* 00 ObjId_Null                */ NULL,
 	/* 01 ObjId_Sonic               */ NULL, // (the characters are on the status table: sst_object_codes)
 	/* 02 ObjId_02                 */ NULL,
-	/* 03 ObjId_PathSwapper         */ Obj_PathSwapper,
+	/* 03 ObjId_PathSwapper         */ NULL, // (moved to the status table: sst_object_codes)
 	/* 04 ObjId_04                 */ Obj_NAWaterSurface,
 	/* 05 ObjId_05                 */ NULL,
 	/* 06 ObjId_06                 */ Obj_Spiral,
@@ -406,6 +406,7 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
 	[ObjId_HiddenBonus] = Obj_HiddenBonus,
+	[ObjId_PathSwapper] = Obj_PathSwapper,
 	[ObjId_Checkpoint] = Obj_Checkpoint,
 	[ObjId_Sonic] = Obj_Sonic,
 	[ObjId_ShieldInvincibility] = Obj_ShieldInvincibility,
