@@ -14,7 +14,7 @@ open $in, '<', 'paradoxmakefile.yml' or die $!; my $yml = <$in>; close $in;
 
 for my $arg (@ARGV) {
     my ($obj, $maps) = split /:/, $arg, 2;
-    my @maps = $maps ? split(/,/, $maps) : ($obj);
+    my @maps = defined $maps ? ($maps eq "-" ? () : split(/,/, $maps)) : ($obj);
     $src =~ s/^void Obj_\Q$obj\E\(Object \*obj\);\n//m;
     $src =~ s/^(#include "Object\/\Q$obj\E\.h"\n)//m;
     if (-f "src/Object/$obj.h" || -f "../Sonic The Hedgehog/src/Object/$obj.h") {

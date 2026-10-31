@@ -148,7 +148,7 @@ static void SBZ3_TopOfTheLevelLeadsToFinalZone(void) {
     CHECK_EQ(lock_multi, 1);
 }
 
-void Obj_GotThroughCard(Object *obj);
+#include "Object/TitleCard.h"
 
 // The end-of-act card in SBZ2 doesn't lead to the next act: after the tally it slides out, hands control back,
 // starts the Final Zone music and opens the right boundary up to the cutscene room (Got_SBZ2_MoveOut/Boundary).
@@ -159,16 +159,16 @@ static void SBZ2_GotThroughCardLeadsIntoTheCutscene(void) {
     lock_ctrl = true;
     plc_buffer[0].art = NULL; // the card waits for its art to finish loading
     sound_music.queue[SOUND_QUEUE_NORMAL] = 0; // nothing queued yet
-    level_objects[0].type = ObjId_GotThroughCard;
+    Sst_Spawn(ObjId_GotThroughCard, 0, 0);
 
-    Object *ring = NULL;
+    Sst *ring = NULL;
     for (int f = 0; f < 3000; f++) {
-        for (int i = 0; i < LEVEL_OBJECTS; i++)
-            if (level_objects[i].type == ObjId_GotThroughCard)
-                Obj_GotThroughCard(&level_objects[i]);
-        for (int i = 0; i < LEVEL_OBJECTS; i++)
-            if (level_objects[i].type == ObjId_GotThroughCard && level_objects[i].frame == 4)
-                ring = &level_objects[i];
+        for (int i = 0; i < SST_COUNT; i++)
+            if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_GotThroughCard])
+                Obj_GotThroughCard(&sst[i]);
+        for (int i = 0; i < SST_COUNT; i++)
+            if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_GotThroughCard] && sst[i].mapping_frame == 4)
+                ring = &sst[i];
         if (f == 600) { // well into the 3s waits and tally, but not done
             CHECK(ring != NULL && ring->routine != 0x10);
             CHECK_EQ(sound_music.queue[SOUND_QUEUE_NORMAL], 0); // no music change before the slide-out

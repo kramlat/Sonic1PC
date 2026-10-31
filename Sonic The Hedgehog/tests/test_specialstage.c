@@ -229,13 +229,14 @@ static void SSResult_TalliesTheRingBonusThenSignalsExit(void) {
     CHECK_EQ(emerald_objects, 3);
 }
 
-void Obj_GotThroughCard(Object *obj);
+#include "Object/TitleCard.h"
 
 // Jumping into a giant ring (Obj_RingFlash sets big_ring) makes the end-of-act card lead to the special stage,
 // with the next level already picked for afterwards; without it the next level just loads.
 static void GiantRing_EndCardLeadsToTheSpecialStage(void) {
     for (int ring = 0; ring < 2; ring++) {
         memset(objects, 0, sizeof(objects));
+        Sst_Reset();
         plc_buffer[0].art = NULL;
         level_id = LEVEL_ID(ZoneId_GHZ, 0);
         time_bonus = ring_bonus = 0;
@@ -243,11 +244,11 @@ static void GiantRing_EndCardLeadsToTheSpecialStage(void) {
         restart = false;
         gamemode = GameMode_Level;
         last_lamp = 5;
-        objects[23].type = ObjId_GotThroughCard;
+        Sst_Spawn(ObjId_GotThroughCard, 0, 0);
         for (int f = 0; f < 3000 && gamemode == GameMode_Level && !restart; f++)
-            for (int i = 0; i < 40; i++)
-                if (objects[i].type == ObjId_GotThroughCard)
-                    Obj_GotThroughCard(&objects[i]);
+            for (int i = 0; i < SST_COUNT; i++)
+                if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_GotThroughCard])
+                    Obj_GotThroughCard(&sst[i]);
         CHECK_EQ(level_id, LEVEL_ID(ZoneId_GHZ, 1)); // GHZ2 comes next either way
         CHECK_EQ(last_lamp, 0);
         if (ring) {

@@ -1,3 +1,4 @@
+#include "SstLoad.h"
 #include "Object.h"
 
 #include "Video.h"
@@ -163,7 +164,7 @@ void GotThroughAct(void) {
     time_count = false;
 
     // Load "Got through" card
-    objects[23].type = ObjId_GotThroughCard;
+    Sst_Spawn(ObjId_GotThroughCard, 0, 0);
     NewPLC(PlcId_TitleCard);
     endact_bonus = true;
 

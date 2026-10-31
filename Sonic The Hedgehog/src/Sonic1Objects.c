@@ -4,6 +4,7 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/TitleCard.h"
 #include "Object/Monitor.h"
 #include "Object/PrisonCapsule.h"
 #include "Object/Animal.h"
@@ -109,8 +110,6 @@
 #include "Object/WaterSurface.h"
 
 void Obj_HUD(Object *obj);
-void Obj_TitleCard(Object *obj);
-void Obj_GotThroughCard(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_Seesaw(Object *obj);
 void Obj_BossGreenHill(Object *obj);
@@ -180,13 +179,13 @@ const ObjectFunc game_objects[] = {
 	/* 31 ObjId_ChainStomp          */ NULL, // (moved to the status table: sst_object_codes)
 	/* 32 ObjId_Button              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 33 ObjId_PushBlock           */ NULL, // (moved to the status table: sst_object_codes)
-	/* 34 ObjId_TitleCard           */ Obj_TitleCard,
+	/* 34 ObjId_TitleCard           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 35 ObjId_GrassFire           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 36 ObjId_Spikes              */ NULL, // (moved to the status table: sst_object_codes)
 	/* 37 ObjId_RingLoss            */ NULL, // (moved to the status table: sst_object_codes)
 	/* 38 ObjId_ShieldInvincibility */ NULL, // (moved to the status table: sst_object_codes)
 	/* 39 ObjId_GameOverCard        */ NULL, // (moved to the status table: sst_object_codes)
-	/* 3A ObjId_GotThroughCard      */ Obj_GotThroughCard,
+	/* 3A ObjId_GotThroughCard      */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3B ObjId_GHZRock             */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3C ObjId_SmashWall           */ NULL, // (moved to the status table: sst_object_codes)
 	/* 3D ObjId_BossGreenHill       */ Obj_BossGreenHill,
@@ -276,6 +275,8 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_GotThroughCard] = Obj_GotThroughCard,
+	[ObjId_TitleCard] = Obj_TitleCard,
 	[ObjId_MonitorItem] = Obj_MonitorItem,
 	[ObjId_Monitor] = Obj_Monitor,
 	[ObjId_PrisonCapsule] = Obj_PrisonCapsule,

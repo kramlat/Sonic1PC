@@ -3,7 +3,7 @@
 ; ---------------------------------------------------------------------------
 ; (converted to Sonic 2 mapping format: see _MapMacros.asm and engine/Mappings.h)
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_Card_internal:	mappingsTable
 	mappingsTableEntry.w	Map_Card_Frame00

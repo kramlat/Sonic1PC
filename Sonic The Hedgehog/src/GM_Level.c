@@ -1,3 +1,4 @@
+#include "SstLoad.h"
 #include "GM_Level.h"
 #include "Viewport.h"
 #include "GameInterface.h"
@@ -300,7 +301,7 @@ GM_Level_Branch:;
 
         // Start title card (the prototypes had none: their levels start straight away, once the art is loaded)
         if (!game_info.no_title_card)
-            objects[2].type = ObjId_TitleCard;
+            Sst_Spawn(ObjId_TitleCard, 0, 0);
 
         do {
             // Run game and load PLCs
