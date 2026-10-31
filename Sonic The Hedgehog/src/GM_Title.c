@@ -543,9 +543,10 @@ void GM_Title(void) {
     demo_length = 376;
 
     // Load title objects
-    const int16_t title_x = player->x_pos.f.u; // (where the level start put him: what ends the title counts from it)
+    const dword_s title_x = player->x_pos, title_y = player->y_pos; // (where the level start put him: the camera follows it, and what ends the title counts from it)
     Sst_ResetAll();
-    player->x_pos.f.u = title_x;
+    player->x_pos = title_x;
+    player->y_pos = title_y;
     Sst_SpawnCode(Obj_TitleSonic, 0, 0);
     Sst_SpawnCode(Obj_PSB, 0, 0);
 #ifndef SCP_JP
