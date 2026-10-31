@@ -127,7 +127,7 @@ void GM_Ending(void) {
     player->ground_vel = -0x800; // capped to -0x600 straight away
     objects[1].type = ObjId_HUD;
     if (ending_eggmobile_exploding) // Eggman's ship was wrecked in the Final Zone: it falls in the distance
-        objects[ENDING_SLOT_EGGMOBILE].type = ObjId_8D;
+        Sst_Spawn(ObjId_8D, 0, 0);
     ObjPosLoad();
     ExecuteObjects();
     BuildSprites(NULL);
@@ -264,6 +264,7 @@ static void CreditsScreenSetup(void) {
     VDPDisableWaterSplit();
     ClearScreen();
     memset(objects, 0, sizeof(objects));
+    Sst_Reset();
 }
 
 // The "TRY AGAIN" (not every emerald) / "END" (all of them) screen: Eggman, juggling the emeralds Sonic missed or
@@ -276,7 +277,7 @@ static void TryAgainEnd(void) {
     PalLoad1(PalId_Ending);
     dry_palette_dup[2][0] = 0; // keep the backdrop black
 
-    objects[CREDITS_SLOT_TEXT].type = ObjId_8B;
+    Sst_Spawn(ObjId_8B, 0, 0);
     ExecuteObjects();
     BuildSprites(NULL);
 

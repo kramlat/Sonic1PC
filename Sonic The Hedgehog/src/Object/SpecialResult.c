@@ -1,4 +1,7 @@
 #include "SpecialResult.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Game.h"
@@ -25,27 +28,38 @@ static const struct { int16_t x0, x1, y; uint8_t routine, frame; } SSR_ItemData[
 // X positions of the Chaos Emeralds, in the order they were collected (interleaved so they stay centred).
 static const int16_t SSRC_PosData[6] = { 0x110, 0x128, 0x0F8, 0x140, 0x0E0, 0x158 };
 
-static Scratch_SpecialResult *SR(Object *o) { return (Scratch_SpecialResult *)&o->scratch; }
+static Own_SpecialResult *SR(Sst *o) { return (Own_SpecialResult *)o->own.u8; }
 
-static void SSR_Display(Object *obj) {
-    if (obj->pos.s.x >= 0 && obj->pos.s.x < (0x200 + SCREEN_WIDEADD))
-        DisplaySprite(obj);
+static void SSR_Display(Sst *self) {
+    if (self->x_pos.f.u >= 0 && self->x_pos.f.u < (0x200 + SCREEN_WIDEADD))
+        Sst_Draw(self);
 }
 
-static void SSR_Main(Object *obj) {
+// The continue element, the fifth of the card (it comes up when 50 rings are collected)
+static Sst *ssr_continue_element;
+
+static void SSR_Main(Sst *self) {
     int count = (rings >= SSR_CONTINUE_RINGS) ? 5 : 4;
-    Object *a1 = obj;
-    for (int i = 0; i < count; i++, a1++) {
-        a1->type = ObjId_SSResult;
-        a1->pos.s.x = SSR_ItemData[i].x0;
+    Sst *a1 = self;
+    ssr_continue_element = NULL;
+    for (int i = 0; i < count; i++) {
+        if (i > 0) {
+            a1 = Sst_AllocateAfter(a1);
+            if (a1 == NULL)
+                break;
+        }
+        if (i == 4)
+            ssr_continue_element = a1;
+        a1->code = sst_object_codes[ObjId_SSResult];
+        a1->x_pos.f.u = SSR_ItemData[i].x0;
         SR(a1)->main_x = SSR_ItemData[i].x1;
-        a1->pos.s.y = SSR_ItemData[i].y;
+        a1->y_pos.f.u = SSR_ItemData[i].y;
         a1->routine = SSR_ItemData[i].routine;
-        a1->frame = SSR_ItemData[i].frame;
+        a1->mapping_frame = SSR_ItemData[i].frame;
         a1->mappings = Mappings_SpecialResult;
-        a1->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Title_Card);
-        a1->render.b = 0; // positioned on screen, not in the level
-        a1->frame_time.w = 0;
+        a1->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_Title_Card);
+        a1->render_flags = 0; // positioned on screen, not in the level
+        SR(a1)->timer = 0;
     }
 
     // The header text: "SPECIAL STAGE" with no emeralds, "CHAOS EMERALDS" with some, "SONIC GOT THEM ALL" with all.
@@ -54,49 +68,49 @@ static void SSR_Main(Object *obj) {
         frame = 0;
         if (emeralds == 6) {
             frame = 8;
-            obj->pos.s.x = 0x18;
-            SR(obj)->main_x = 0x118;
+            self->x_pos.f.u = 0x18;
+            SR(self)->main_x = 0x118;
         }
     }
-    obj->frame = frame;
+    self->mapping_frame = frame;
 }
 
-void Obj_SpecialResult(Object *obj) {
-    switch (obj->routine) {
+void Obj_SpecialResult(Sst *self) {
+    switch (self->routine) {
     case 0: // wait for the title card art
         if (plc_buffer[0].art != NULL)
             return;
-        SSR_Main(obj);
+        SSR_Main(self);
         // fall through into Move, like the real routine 0
         __attribute__((fallthrough));
     case 2: { // Move in
         int16_t speed = 0x10;
-        if (obj->pos.s.x == SR(obj)->main_x) { // reached its place
-            if (obj->frame == 2) { // the ring bonus element drives the sequence
-                obj->routine += 2;
-                obj->frame_time.w = 3 * 60;
-                objects[SSR_EMERALD_SLOT].type = ObjId_SSRChaos;
+        if (self->x_pos.f.u == SR(self)->main_x) { // reached its place
+            if (self->mapping_frame == 2) { // the ring bonus element drives the sequence
+                self->routine += 2;
+                SR(self)->timer = 3 * 60;
+                Sst_Spawn(ObjId_SSRChaos, 0, 0);
                 // fall through into the wait (below)
-                if (--obj->frame_time.w == 0)
-                    obj->routine += 2;
-                DisplaySprite(obj);
+                if (--SR(self)->timer == 0)
+                    self->routine += 2;
+                Sst_Draw(self);
                 return;
             }
         } else {
-            if (obj->pos.s.x > SR(obj)->main_x)
+            if (self->x_pos.f.u > SR(self)->main_x)
                 speed = -speed;
-            obj->pos.s.x += speed;
+            self->x_pos.f.u += speed;
         }
-        SSR_Display(obj);
+        SSR_Display(self);
         break;
     }
     case 4: case 8: case 0xC: case 0x10: // waits
-        if (--obj->frame_time.w == 0)
-            obj->routine += 2;
-        DisplaySprite(obj);
+        if (--SR(self)->timer == 0)
+            self->routine += 2;
+        Sst_Draw(self);
         break;
     case 6: // tally the ring bonus into the score
-        DisplaySprite(obj);
+        Sst_Draw(self);
         endact_bonus = true; // update the bonus numbers
         if (ring_bonus != 0) {
             ring_bonus -= 10;
@@ -105,65 +119,72 @@ void Obj_SpecialResult(Object *obj) {
                 QueueSound2(sfx_Switch);
         } else {
             QueueSound2(sfx_Cash);
-            obj->routine += 2; // wait, then exit
-            obj->frame_time.w = 3 * 60;
+            self->routine += 2; // wait, then exit
+            SR(self)->timer = 3 * 60;
             if (rings >= SSR_CONTINUE_RINGS) { // an extra continue: show it first
-                obj->frame_time.w = 1 * 60;
-                obj->routine += 4;
+                SR(self)->timer = 1 * 60;
+                self->routine += 4;
             }
         }
         break;
     case 0xA: case 0x12: // exit: tells the stage loop it can finish
         restart = true;
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
     case 0xE: { // the continue icon appears
-        Object *icon = &objects[SSR_CARD_SLOT + 4];
-        icon->frame = 4; // mini Sonic
-        icon->routine = 0x14;
+        Sst *icon = ssr_continue_element;
+        if (icon != NULL) {
+            icon->mapping_frame = 4; // mini Sonic
+            icon->routine = 0x14;
+        }
         QueueSound2(sfx_Continue);
-        obj->routine += 2;
-        obj->frame_time.w = 6 * 60;
-        DisplaySprite(obj);
+        self->routine += 2;
+        SR(self)->timer = 6 * 60;
+        Sst_Draw(self);
         break;
     }
     case 0x14: // mini Sonic taps his foot
         if ((vbla_count & 0xF) == 0)
-            obj->frame ^= 1;
-        DisplaySprite(obj);
+            self->mapping_frame ^= 1;
+        Sst_Draw(self);
         break;
     }
 }
 
-void Obj_SpecialResultEmerald(Object *obj) {
-    switch (obj->routine) {
+void Obj_SpecialResultEmerald(Sst *self) {
+    switch (self->routine) {
     case 0: { // Main: this object and the next ones become the collected emeralds
         if (emeralds == 0) {
-            ObjectDelete(obj);
+            Sst_Delete(self);
             return;
         }
-        Object *a1 = obj;
-        for (int i = 0; i < emeralds && i < 6; i++, a1++) {
-            a1->type = ObjId_SSRChaos;
-            a1->pos.s.x = SSRC_PosData[i];
-            a1->pos.s.y = 0xF0;
+        Sst *a1 = self;
+        for (int i = 0; i < emeralds && i < 6; i++) {
+            if (i > 0) {
+                a1 = Sst_AllocateAfter(a1);
+                if (a1 == NULL)
+                    break;
+            }
+            a1->code = sst_object_codes[ObjId_SSRChaos];
+            a1->x_pos.f.u = SSRC_PosData[i];
+            a1->y_pos.f.u = 0xF0;
             uint8_t colour = emerald_list[i];
-            a1->frame = colour;
+            a1->mapping_frame = colour;
             a1->anim = colour;
             a1->routine = 2;
             a1->mappings = Mappings_SSResultEmerald;
-            a1->tile = TILE_MAP(1, 0, 0, 0, ArtTile_SS_Results_Emeralds);
-            a1->render.b = 0;
+            a1->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_SS_Results_Emeralds);
+            a1->render_flags = 0;
         }
         // fall through into Flash for this first emerald
         __attribute__((fallthrough));
     }
     case 2: { // Flash: alternate between blank and the emerald every frame
-        uint8_t frame = obj->frame;
-        obj->frame = 6; // blank
+        uint8_t frame = self->mapping_frame;
+        self->mapping_frame = 6; // blank
         if (frame == 6)
-            obj->frame = obj->anim;
-        DisplaySprite(obj);
+            self->mapping_frame = self->anim;
+        Sst_Draw(self);
         break;
     }
     }

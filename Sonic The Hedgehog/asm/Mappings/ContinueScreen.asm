@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - Continue screen
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_ContScr_internal:	mappingsTable
 	mappingsTableEntry.w	@cont_text

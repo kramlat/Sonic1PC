@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Object.h"
+#include "Sst.h"
 
 // The ending sequence (objects 87-89) and the "TRY AGAIN" / "END" screens (8B, 8C). The game modes that run them
 // are in GM_Ending.c.
@@ -13,8 +13,8 @@
 #define ENDING_SLOT_EGGMOBILE 24 // Eggman's wrecked Eggmobile in the background (only when it was destroyed in the Final Zone)
 #define CREDITS_SLOT_CHAOS   32 // v_eggmanchaos: the emeralds Eggman juggles
 
-void Obj_EndChaos(Object *obj);
-void Obj_EndSTH(Object *obj);
-void Obj_EndEggman(Object *obj);
-void Obj_TryChaos(Object *obj);
-void Obj_EndEggmobile(Object *obj);
+void Obj_EndChaos(Sst *self);
+void Obj_EndSTH(Sst *self);
+void Obj_EndEggman(Sst *self);
+void Obj_TryChaos(Sst *self);
+void Obj_EndEggmobile(Sst *self);

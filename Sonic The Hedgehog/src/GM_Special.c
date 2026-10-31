@@ -1,3 +1,4 @@
+#include "SstLoad.h"
 #include "GM_Special.h"
 #include "Viewport.h"
 
@@ -283,7 +284,8 @@ void SS_Results(void) {
 	PlaySound(bgm_GotThrough);
 
 	memset(objects, 0, sizeof(objects));
-	objects[SSR_CARD_SLOT].type = ObjId_SSResult;
+	Sst_Reset();
+	Sst_Spawn(ObjId_SSResult, 0, 0);
 	restart = false;
 
 	do {

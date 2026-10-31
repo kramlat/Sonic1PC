@@ -3,7 +3,7 @@
 ; The art holds the Eggmobile pod (tiles 0-3), three pieces of debris (4-15), a small fireball (16, 17) and
 ; a big one (21-24), a starburst explosion (25-28) and two smoke puffs (29-37 dense, 38-46 fading).
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_EShip_internal:	mappingsTable
 	mappingsTableEntry.w	@pod

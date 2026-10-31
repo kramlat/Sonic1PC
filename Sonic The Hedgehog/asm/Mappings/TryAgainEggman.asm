@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - Robotnik on the "TRY AGAIN" and "END" screens
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_EEgg_internal:	mappingsTable
 	mappingsTableEntry.w	@eEgg_Try1

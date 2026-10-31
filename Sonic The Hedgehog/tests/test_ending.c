@@ -23,6 +23,22 @@ static void Reset(void) {
     gamemode = GameMode_Ending;
 }
 
+static int CountOf(uint8_t id) {
+    int n = 0;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[id])
+            n++;
+    return n;
+}
+
+// The n-th object of the id on the status table (in slot order)
+static Sst *Nth(uint8_t id, int n) {
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[id] && n-- == 0)
+            return &sst[i];
+    return NULL;
+}
+
 static void RunSonic(int frames) {
     for (int i = 0; i < frames; i++)
         Obj_EndSonic(player);
@@ -35,7 +51,7 @@ static void Ending_BadEndingLeapsAndShowsTheLogo(void) {
     RunSonic(1);
     CHECK_EQ(player->routine_secondary, 0x10); // skipped the emerald part
     RunSonic((3 * 60) + 36);             // the wait before the leap
-    CHECK_EQ(objects[ENDING_SLOT_LOGO].type, ObjId_89);
+    CHECK_EQ(CountOf(ObjId_89), 1);
 }
 
 static void Ending_GoodEndingMakesSixSpinningEmeralds(void) {
@@ -45,30 +61,29 @@ static void Ending_GoodEndingMakesSixSpinningEmeralds(void) {
     RunSonic(1);
     CHECK_EQ(player->routine_secondary, 2);
     RunSonic(79);                         // looking at the emeralds for a bit under 1.5 seconds
-    CHECK_EQ(objects[ENDING_SLOT_EMERALDS].type, ObjId_88);
-    Obj_EndChaos(&objects[ENDING_SLOT_EMERALDS]); // Sonic's "hold" animation hasn't reached its last frame: nothing yet
-    CHECK_EQ(objects[ENDING_SLOT_EMERALDS + 1].type, 0);
+    CHECK_EQ(CountOf(ObjId_88), 1);
+    Sst *first = Nth(ObjId_88, 0);
+    Obj_EndChaos(first); // Sonic's "hold" animation hasn't reached its last frame: nothing yet
+    CHECK_EQ(CountOf(ObjId_88), 1);
 
     player->mapping_frame = 2;
-    Obj_EndChaos(&objects[ENDING_SLOT_EMERALDS]);
-    for (int i = 0; i < 6; i++) {
-        CHECK_EQ(objects[ENDING_SLOT_EMERALDS + i].type, ObjId_88);
-        CHECK_EQ(objects[ENDING_SLOT_EMERALDS + i].frame, 1 + i); // frame 0 is the white flash
-    }
+    Obj_EndChaos(first);
+    CHECK_EQ(CountOf(ObjId_88), 6);
+    for (int i = 0; i < 6; i++)
+        CHECK_EQ(Nth(ObjId_88, i)->mapping_frame, 1 + i); // frame 0 is the white flash
     // They widen to a radius of 0x20 and the sequence moves on to the white flash
     player->routine_secondary = 6;
     for (int i = 0; i < 0x100; i++)
         for (int e = 0; e < 6; e++)
-            Obj_EndChaos(&objects[ENDING_SLOT_EMERALDS + e]);
-    CHECK_EQ(objects[ENDING_SLOT_EMERALDS].scratch.u16[10], 0x2000);
+            Obj_EndChaos(Nth(ObjId_88, e));
+    CHECK_EQ(first->own.u16[10], 0x2000);
     Obj_EndSonic(player);
     CHECK_EQ(restart, 1);
 }
 
 static void Ending_LogoSlidesInThenGoesToTheCredits(void) {
     Reset();
-    Object *logo = &objects[ENDING_SLOT_LOGO];
-    logo->type = ObjId_89;
+    Sst *logo = Sst_Spawn(ObjId_89, 0, 0);
     for (int i = 0; i < 20; i++)
         Obj_EndSTH(logo);
     CHECK_EQ(logo->routine, 4); // arrived, waiting
@@ -83,58 +98,51 @@ static void TryAgain_EggmanJugglesTheMissingEmeralds(void) {
     emeralds = 4; // has blue, yellow, pink and green... as emerald_list order 0-3
     for (int i = 0; i < 4; i++)
         emerald_list[i] = (uint8_t)i;
-    objects[CREDITS_SLOT_TEXT].type = ObjId_8B;
-    Obj_EndEggman(&objects[CREDITS_SLOT_TEXT]);
+    Sst *eggman = Sst_Spawn(ObjId_8B, 0, 0);
+    Obj_EndEggman(eggman);
     int credits = 0;
     for (int i = 0; i < SST_COUNT; i++)
         if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_Credits])
             credits++;
     CHECK_EQ(credits, 1); // the "TRY AGAIN" text
     CHECK_EQ(credits_num, 9);
-    CHECK_EQ(objects[CREDITS_SLOT_CHAOS].type, ObjId_8C);
+    CHECK_EQ(CountOf(ObjId_8C), 1);
 
-    Object *chaos = &objects[CREDITS_SLOT_CHAOS];
+    Sst *chaos = Nth(ObjId_8C, 0);
     Obj_TryChaos(chaos);
-    CHECK_EQ(chaos[0].type, ObjId_8C);
-    CHECK_EQ(chaos[1].type, ObjId_8C);
-    CHECK_EQ(chaos[2].type, 0);                  // 6 - 4 = two emeralds
-    CHECK_EQ(chaos[0].frame, 5);                 // the first one Sonic hasn't got (index 4), plus the flash frame
-    CHECK_EQ(chaos[1].frame, 6);
+    CHECK_EQ(CountOf(ObjId_8C), 2);              // 6 - 4 = two emeralds
+    CHECK_EQ(Nth(ObjId_8C, 0)->mapping_frame, 5); // the first one Sonic hasn't got (index 4), plus the flash frame
+    CHECK_EQ(Nth(ObjId_8C, 1)->mapping_frame, 6);
 }
 
 static void TryAgain_AllEmeraldsIsTheEndScreen(void) {
     Reset();
     emeralds = 6;
-    objects[CREDITS_SLOT_TEXT].type = ObjId_8B;
-    Obj_EndEggman(&objects[CREDITS_SLOT_TEXT]);
-    CHECK_EQ(objects[CREDITS_SLOT_TRYAGAIN].type, 0);
-    CHECK_EQ(objects[CREDITS_SLOT_CHAOS].type, 0);
-    CHECK_EQ(objects[CREDITS_SLOT_TEXT].anim, 2); // the tantrum
+    Sst *eggman = Sst_Spawn(ObjId_8B, 0, 0);
+    Obj_EndEggman(eggman);
+    CHECK_EQ(CountOf(ObjId_Credits), 0);
+    CHECK_EQ(CountOf(ObjId_8C), 0);
+    CHECK_EQ(eggman->anim, 2); // the tantrum
 }
 
 static void Ending_WreckedEggmobileFallsAndBlowsUp(void) {
     Reset();
-    Object *ship = &objects[ENDING_SLOT_EGGMOBILE];
-    ship->type = ObjId_8D;
+    Sst *ship = Sst_Spawn(ObjId_8D, 0, 0);
     int blast_frame = -1;
     bool smoked = false;
-    for (int f = 0; f < 600 && ship->type != 0; f++) {
-        for (int i = 0; i < 128; i++) // the effect's parts too (the level object slots)
-            if (objects[i].type == ObjId_8D)
-                Obj_EndEggmobile(&objects[i]);
+    for (int f = 0; f < 600 && ship->code != NULL; f++) {
+        for (int i = 0; i < SST_COUNT; i++) // the effect's parts too
+            if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_8D])
+                Obj_EndEggmobile(&sst[i]);
         if (ship->routine == 4 && blast_frame < 0)
             blast_frame = f;
-        for (int i = 32; i < 128; i++)
-            if (objects[i].type == ObjId_8D && objects[i].routine == 6)
+        for (int i = 0; i < SST_COUNT; i++)
+            if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_8D] && sst[i].routine == 6)
                 smoked = true;
     }
     CHECK(smoked);                         // it trails smoke
     CHECK(blast_frame > 70 && blast_frame < 300); // sinks for a while, then blows up
-    CHECK_EQ(ship->type, 0);               // and is gone
-    int left = 0;
-    for (int i = 0; i < 128; i++)
-        left += objects[i].type == ObjId_8D;
-    CHECK(left > 0 || blast_frame > 0);
+    CHECK(ship->code == NULL);             // and is gone
 }
 
 void RegisterEndingTests(void) {

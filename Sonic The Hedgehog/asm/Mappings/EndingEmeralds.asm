@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - chaos emeralds on the ending sequence
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_ECha_internal:	mappingsTable
 	mappingsTableEntry.w	@eCha_flashing

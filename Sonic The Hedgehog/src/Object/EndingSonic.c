@@ -44,7 +44,7 @@ static void ESon_MakeEmeralds(Sst *self) {
     self->routine_secondary += 2;
     self->anim = 0;          // "hold" animation, restarted at once
     self->prev_anim = 0xFF;
-    objects[ENDING_SLOT_EMERALDS].type = ObjId_88;
+    Sst_Spawn(ObjId_88, 0, 0);
 }
 
 static void ESon_Main(Sst *self) {
@@ -65,7 +65,11 @@ static void ESon_Main(Sst *self) {
 }
 
 static void ESon_LookUp(Sst *self) {
-    if (objects[ENDING_SLOT_EMERALDS].scratch.u16[10] != 0x20 * 0x100) // the emeralds spin at full radius
+    Sst *emerald = NULL; // the first of the emeralds Sonic holds up
+    for (int i = 0; i < SST_COUNT && emerald == NULL; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_88])
+            emerald = &sst[i];
+    if (emerald == NULL || emerald->own.u16[10] != 0x20 * 0x100) // the emeralds spin at full radius
         return;
     restart = 1; // End_ChkEmerald: start the white flash
     self->eson_time = (1 * 60) + 30;
@@ -75,8 +79,9 @@ static void ESon_LookUp(Sst *self) {
 static void ESon_DeleteEmeralds(Sst *self) {
     if (--self->eson_time != 0)
         return;
-    for (int i = ENDING_SLOT_EMERALDS; i < 32; i++)
-        memset(&objects[i], 0, sizeof(Object));
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_88])
+            Sst_Delete(&sst[i]);
     restart = 1; // End_SlowFade: the emeralds are gone
     self->routine_secondary += 2;
     self->anim = 1; // confused
@@ -89,7 +94,7 @@ static void ESon_MakeLogo(Sst *self) {
     self->routine_secondary += 2;
     self->eson_time = 3 * 60; // unused
     self->anim = 2;           // leap at the screen
-    objects[ENDING_SLOT_LOGO].type = ObjId_89;
+    Sst_Spawn(ObjId_89, 0, 0);
 }
 
 static void ESon_BadEnding(Sst *self) {
@@ -103,7 +108,7 @@ static void ESon_BadEnding(Sst *self) {
     self->priority = 2 * 0x80;
     self->mapping_frame = 5; // first leaping frame
     self->anim = 2;
-    objects[ENDING_SLOT_LOGO].type = ObjId_89;
+    Sst_Spawn(ObjId_89, 0, 0);
     ESon_Animate(self);
 }
 

@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - chaos emeralds from	the special stage results screen
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_SSRC_internal:	mappingsTable
 	mappingsTableEntry.w	byte_CE02

@@ -7,6 +7,7 @@
 #include "LevelScroll.h"
 #include "Demo.h"
 #include "Object.h"
+#include "SstLoad.h"
 #include "Object/DebugList.h"
 #include "Object/SpecialResult.h"
 #include "Object/SpecialSonic.h"
@@ -205,14 +206,15 @@ static void SSResult_TalliesTheRingBonusThenSignalsExit(void) {
     emerald_list[0] = 0; emerald_list[1] = 1; emerald_list[2] = 2;
     score = 0;
     restart = false;
-    objects[SSR_CARD_SLOT].type = ObjId_SSResult;
+    Sst_Reset();
+    Sst_Spawn(ObjId_SSResult, 0, 0);
 
     for (int f = 0; f < 3000 && !restart; f++) {
-        for (int i = 0; i < 64; i++) {
-            Object *o = &objects[i];
-            if (o->type == ObjId_SSResult)
+        for (int i = 0; i < SST_COUNT; i++) {
+            Sst *o = &sst[i];
+            if (o->code != NULL && o->code == sst_object_codes[ObjId_SSResult])
                 Obj_SpecialResult(o);
-            else if (o->type == ObjId_SSRChaos)
+            else if (o->code != NULL && o->code == sst_object_codes[ObjId_SSRChaos])
                 Obj_SpecialResultEmerald(o);
         }
         vbla_count++;
@@ -221,8 +223,8 @@ static void SSResult_TalliesTheRingBonusThenSignalsExit(void) {
     CHECK_EQ(ring_bonus, 0);
     CHECK_EQ(score, 70); // 7 rings x 100 points (the score counts in tens)
     int emerald_objects = 0;
-    for (int i = 0; i < 64; i++)
-        if (objects[i].type == ObjId_SSRChaos)
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_SSRChaos])
             emerald_objects++;
     CHECK_EQ(emerald_objects, 3);
 }

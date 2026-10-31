@@ -1,3 +1,4 @@
+#include "SstLoad.h"
 #include "GM_Continue.h"
 #include "Viewport.h"
 #include "Constants.h"
@@ -62,12 +63,16 @@ void GM_Continue(void) {
     sonframe_chg = false;
 
     player->code = sst_object_codes[ObjId_81];
-    objects[CONTINUE_SLOT_TEXT].type = ObjId_80;
-    objects[CONTINUE_SLOT_LIGHT].type = ObjId_80; // the light spot on the floor Sonic lies on
-    objects[CONTINUE_SLOT_LIGHT].priority = 3;
-    objects[CONTINUE_SLOT_LIGHT].frame = 4;
-    objects[CONTINUE_SLOT_ICON].type = ObjId_80; // the mini Sonics
-    objects[CONTINUE_SLOT_ICON].routine = 4;
+    Sst_Reset();
+    Sst_Spawn(ObjId_80, 0, 0);
+    Sst *light = Sst_Spawn(ObjId_80, 0, 0); // the light spot on the floor Sonic lies on
+    if (light != NULL) {
+        light->priority = 3 * 0x80;
+        light->mapping_frame = 4;
+    }
+    Sst *icon = Sst_Spawn(ObjId_80, 0, 0); // the mini Sonics
+    if (icon != NULL)
+        icon->routine = 4;
 
     ExecuteObjects();
     BuildSprites(NULL);

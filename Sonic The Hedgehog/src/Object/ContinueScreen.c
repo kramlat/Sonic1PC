@@ -1,4 +1,7 @@
 #include "ContinueScreen.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Constants.h"
 
 #include "Game.h"
@@ -30,23 +33,23 @@ static const uint16_t csi_mini_sonic_x[CSI_MAX_MINI_SONICS] = {
     0x116, 0x12A, 0x102, 0x13E, 0xEE, 0x152, 0xDA, 0x166, 0xC6, 0x17A, 0xB2, 0x18E, 0x9E, 0x1A2, 0x8A,
 };
 
-static void CSI_Main(Object *obj) {
-    obj->routine += 2;
-    obj->mappings = Mappings_ContinueScreen;
-    obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Continue_Sonic);
-    obj->render.b = 0; // positioned on the screen
-    obj->width_pixels = 120 / 2;
-    obj->pos.s.x = 0x80 + (SCREEN_WIDTH / 2);
-    obj->pos.s.y = 0x80 + 64 + SCREEN_TALLADD2;
+static void CSI_Main(Sst *self) {
+    self->routine += 2;
+    self->mappings = Mappings_ContinueScreen;
+    self->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_Continue_Sonic);
+    self->render_flags = 0; // positioned on the screen
+    self->width_pixels = 120 / 2;
+    self->x_pos.f.u = 0x80 + (SCREEN_WIDTH / 2);
+    self->y_pos.f.u = 0x80 + 64 + SCREEN_TALLADD2;
     rings = 0;
-    DisplaySprite(obj);
+    Sst_Draw(self);
 }
 
-static void CSI_MakeMiniSonic(Object *obj) {
+static void CSI_MakeMiniSonic(Sst *self) {
     // One of the continues is the one being used, and stays hidden: only a second one shows anything at all
     int count = continues - 1;
     if (count < 1) {
-        ObjectDelete(obj);
+        Sst_Delete(self);
         return;
     }
 
@@ -57,51 +60,55 @@ static void CSI_MakeMiniSonic(Object *obj) {
     }
     bool odd_shift = ((count - 1) & 1) != 0; // an even number of them is shifted left to stay centred
 
-    // The first mini Sonic is this object itself, the others follow it in the next slots
+    // The first mini Sonic is this object itself, the others are made after it
+    Sst *last = self;
     for (int i = 0; i < count; i++) {
-        Object *mini = obj + i;
-        mini->type = ObjId_80;
-        mini->pos.s.x = (int16_t)csi_mini_sonic_x[i] - (odd_shift ? 10 : 0) + SCREEN_WIDEADD2;
-        mini->pos.s.y = 0x80 + 0x50 + SCREEN_TALLADD2;
-        mini->frame = CSI_FRAME_MINI_FOOT_DOWN;
+        Sst *mini = (i == 0) ? self : Sst_AllocateAfter(self);
+        if (mini == NULL)
+            break;
+        last = mini;
+        mini->code = sst_object_codes[ObjId_80];
+        mini->x_pos.f.u = (int16_t)csi_mini_sonic_x[i] - (odd_shift ? 10 : 0) + SCREEN_WIDEADD2;
+        mini->y_pos.f.u = 0x80 + 0x50 + SCREEN_TALLADD2;
+        mini->mapping_frame = CSI_FRAME_MINI_FOOT_DOWN;
         mini->routine = CSI_SHOW_MINI_SONIC;
         mini->mappings = Mappings_ContinueScreen;
-        mini->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Mini_Sonic);
-        mini->render.b = 0;
+        mini->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_Mini_Sonic);
+        mini->render_flags = 0;
     }
     // The rightmost one is the one that flashes once Sonic uses the continue
-    (obj + count - 1)->status.b = flash_the_used_one ? 1 : 0;
+    last->status = flash_the_used_one ? 1 : 0;
 }
 
-static void CSI_ShowMiniSonic(Object *obj) {
+static void CSI_ShowMiniSonic(Sst *self) {
     // The mini Sonic that stands for the continue being used flashes while Sonic runs off, and is gone once he moves
-    if (obj->status.b != 0 && SONIC_RUNNING_AWAY && !(vbla_count & 1)) {
+    if (self->status != 0 && SONIC_RUNNING_AWAY && !(vbla_count & 1)) {
         if (player->x_vel != 0)
-            ObjectDelete(obj);
+            Sst_Delete(self);
         return; // hidden this frame
     }
     if (!(vbla_count & 0xF))
-        obj->frame ^= 1; // foot up / foot down
-    DisplaySprite(obj);
+        self->mapping_frame ^= 1; // foot up / foot down
+    Sst_Draw(self);
 }
 
-void Obj_ContScrItem(Object *obj) {
-    switch (obj->routine) {
+void Obj_ContScrItem(Sst *self) {
+    switch (self->routine) {
     case CSI_MAIN:
-        CSI_Main(obj);
+        CSI_Main(self);
         break;
     case CSI_DISPLAY:
-        DisplaySprite(obj);
+        Sst_Draw(self);
         break;
     case CSI_MAKE_MINI_SONIC:
-        CSI_MakeMiniSonic(obj);
-        if (obj->type == ObjId_Null)
+        CSI_MakeMiniSonic(self);
+        if (self->code == NULL)
             break;
         // The first mini Sonic is this object, which carries on with its own routine in the same frame
-        CSI_ShowMiniSonic(obj);
+        CSI_ShowMiniSonic(self);
         break;
     case CSI_SHOW_MINI_SONIC:
-        CSI_ShowMiniSonic(obj);
+        CSI_ShowMiniSonic(self);
         break;
     }
 }

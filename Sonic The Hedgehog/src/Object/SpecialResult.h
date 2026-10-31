@@ -1,20 +1,18 @@
 #ifndef _SPECIALRESULT_H
 #define _SPECIALRESULT_H
 
-#include "Object.h"
+#include "Sst.h"
 
 // Object 7E - Special Stage results card; Object 7F - the Chaos Emeralds shown on it. Ported from s1disasm's
-// "_incObj/7E, 7F Special Stage Results and Chaos Emeralds.asm". The card is built from consecutive objects
-// starting at objects[SSR_CARD_SLOT]; the emeralds from objects[SSR_EMERALD_SLOT].
-#define SSR_CARD_SLOT    23 // v_ssrescard
-#define SSR_EMERALD_SLOT 32 // v_ssresemeralds
+// "_incObj/7E, 7F Special Stage Results and Chaos Emeralds.asm". The card is built from the object that is spawned
+// (the header text) and the ones it makes after it; the emeralds are made by the ring bonus element.
 
 typedef struct {
-    uint8_t pad[8];   // 0x28-0x2F
-    int16_t main_x;   // 0x30 -- X the element slides in to
-} Scratch_SpecialResult;
+    int16_t main_x;   // X the element slides in to
+    uint16_t timer;   // frames it waits (frame_time.w)
+} Own_SpecialResult;
 
-void Obj_SpecialResult(Object *obj);
-void Obj_SpecialResultEmerald(Object *obj);
+void Obj_SpecialResult(Sst *self);
+void Obj_SpecialResultEmerald(Sst *self);
 
 #endif //_SPECIALRESULT_H

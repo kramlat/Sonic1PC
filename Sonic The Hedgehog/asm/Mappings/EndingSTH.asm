@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - "SONIC THE HEDGEHOG" text on the ending sequence
 ; ---------------------------------------------------------------------------
-	include	"Mappings/_MapMacros.asm"
+	include	"Mappings/_MapMacrosS3.asm"
 
 Map_ESth_internal:	mappingsTable
 	mappingsTableEntry.w	@eSth_1
