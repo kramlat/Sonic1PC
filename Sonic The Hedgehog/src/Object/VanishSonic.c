@@ -9,14 +9,14 @@
 #include "Sound.h"
 
 static void Van_DeleteSonic(Object *obj) {
-    obj->pos.l.x.f.u = player->pos.l.x.f.u;
-    obj->pos.l.y.f.u = player->pos.l.y.f.u;
-    obj->status.b = player->status.b;
+    obj->pos.l.x.f.u = player->x_pos.f.u;
+    obj->pos.l.y.f.u = player->y_pos.f.u;
+    obj->status.b = player->status;
 
     AnimateSprite(obj, Animation_VanishSonic); // advances obj->routine on finish (afRoutine)
 
-    if (obj->frame == 2 && player->type != ObjId_Null) { // once, at the animation's middle
-        player->type = ObjId_Null; // delete Sonic
+    if (obj->frame == 2 && player->code != sst_object_codes[ObjId_Null]) { // once, at the animation's middle
+        player->code = sst_object_codes[ObjId_Null]; // delete Sonic
         QueueSound2(sfx_SSGoal);
     }
 
@@ -26,7 +26,7 @@ static void Van_DeleteSonic(Object *obj) {
 static void Van_ReloadSonic(Object *obj, Scratch_VanishSonic *scratch) {
     if (--scratch->time != 0)
         return; // wait for timer to run out (object stays invisible meanwhile)
-    player->type = ObjId_Sonic; // reload Sonic
+    player->code = sst_object_codes[ObjId_Sonic]; // reload Sonic
     ObjectDelete(obj);
 }
 

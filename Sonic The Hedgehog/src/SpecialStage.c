@@ -389,7 +389,7 @@ void SS_ShowLayout(uint8_t sprite_i) {
     // the picture, unless the camera is held back at an edge of the stage). The first cell is the one a centred camera would start at,
     // less the extra cells; its offset from Sonic, plus the original's own offsets (20 across, 68 down), is where the window starts
     // relative to him. With the original 320x224 picture and its 16 cells that comes to the original's 180 either way.
-    const int sonic_x = (uint16_t)player->pos.l.x.f.u, sonic_y = (uint16_t)player->pos.l.y.f.u;
+    const int sonic_x = (uint16_t)player->x_pos.f.u, sonic_y = (uint16_t)player->y_pos.f.u;
     sonic_screen_x = sonic_x - (uint16_t)scrpos_x.f.u;
     sonic_screen_y = sonic_y - (uint16_t)scrpos_y.f.u;
     const int first_x = FloorDiv(sonic_x - SCREEN_WIDTH / 2, 24) - margin;
@@ -472,8 +472,8 @@ SS_Load_Branch:;
     }
 
     // Set player start position
-    player->pos.l.x.f.u = ss_startpos[stage][0];
-    player->pos.l.y.f.u = ss_startpos[stage][1];
+    player->x_pos.f.u = ss_startpos[stage][0];
+    player->y_pos.f.u = ss_startpos[stage][1];
 
     // Read layout
     memcpy(ss_layout_tmp, ss_layouts[stage], SS_SRCDIM * SS_SRCDIM);

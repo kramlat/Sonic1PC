@@ -163,7 +163,7 @@ static void Obj_BuzzBomber_Fire(Sst *self, Sst *missile, Own_BuzzBomber *own) {
 
 static bool Obj_BuzzBomber_CheckCloseToSonic(Sst *self) {
     // Get X difference and check if we're close enough to Sonic
-    uint16_t x_off = (self->x_pos.f.u < player->pos.l.x.f.u) ? (player->pos.l.x.f.u - self->x_pos.f.u) : (self->x_pos.f.u - player->pos.l.x.f.u);
+    uint16_t x_off = (self->x_pos.f.u < player->x_pos.f.u) ? (player->x_pos.f.u - self->x_pos.f.u) : (self->x_pos.f.u - player->x_pos.f.u);
 
     if (x_off >= 0x60 || !(self->render_flags & SST_RENDER_ON_SCREEN))
         return false;

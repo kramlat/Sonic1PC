@@ -40,8 +40,8 @@ static void Jun_Rotate(Sst *self, Own_Junction *own) {
 
 static void Jun_ChgPos(Sst *self) {
     const int8_t *off = Jun_XYOffset[self->mapping_frame];
-    player->pos.l.x.f.u = (int16_t)(self->x_pos.f.u + off[0]);
-    player->pos.l.y.f.u = (int16_t)(self->y_pos.f.u + off[1]);
+    player->x_pos.f.u = (int16_t)(self->x_pos.f.u + off[0]);
+    player->y_pos.f.u = (int16_t)(self->y_pos.f.u + off[1]);
 }
 
 static void Jun_Action(Sst *self, Own_Junction *own) {
@@ -60,7 +60,7 @@ static void Jun_Action(Sst *self, Own_Junction *own) {
         return;
     }
 
-    uint8_t check_frame = (player->pos.l.x.f.u < self->x_pos.f.u) ? 0xE : 7;
+    uint8_t check_frame = (player->x_pos.f.u < self->x_pos.f.u) ? 0xE : 7;
     if (self->mapping_frame != check_frame) {
         SstOnScreenTest(self);
         return;
@@ -70,19 +70,19 @@ static void Jun_Action(Sst *self, Own_Junction *own) {
     self->routine = 6; // advance to Jun_Inside
     lock_multi = 1; // lock Sonic's controls
     player->anim = SonAnimId_Roll;
-    player->inertia = 0x800; // force fast ground speed for fast rolling animation
-    player->xsp = 0;
-    player->ysp = 0;
+    player->ground_vel = 0x800; // force fast ground speed for fast rolling animation
+    player->x_vel = 0;
+    player->y_vel = 0;
     self->status &= (uint8_t)~SST_STATUS_PLAYER_PUSH;
-    player->status.p.f.pushing = false;
-    player->status.p.f.in_air = true;
+    player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+    player->status |= SST_PSTATUS_IN_AIR;
 
-    int16_t old_x = player->pos.l.x.f.u;
-    int16_t old_y = player->pos.l.y.f.u;
+    int16_t old_x = player->x_pos.f.u;
+    int16_t old_y = player->y_pos.f.u;
     Jun_ChgPos(self);
     // Average old and new position for a smooth in-between frame
-    player->pos.l.x.f.u = (int16_t)((int16_t)(player->pos.l.x.f.u + old_x) >> 1);
-    player->pos.l.y.f.u = (int16_t)((int16_t)(player->pos.l.y.f.u + old_y) >> 1);
+    player->x_pos.f.u = (int16_t)((int16_t)(player->x_pos.f.u + old_x) >> 1);
+    player->y_pos.f.u = (int16_t)((int16_t)(player->y_pos.f.u + old_y) >> 1);
 
     SstOnScreenTest(self);
 }
@@ -91,11 +91,11 @@ static void Jun_Inside(Sst *self, Own_Junction *own) {
     uint8_t frame = self->mapping_frame;
 
     if ((frame == 4 || frame == 7) && frame != own->grabframe) {
-        player->xsp = 0;
-        player->ysp = 0x800; // shoot Sonic down
+        player->x_vel = 0;
+        player->y_vel = 0x800; // shoot Sonic down
         if (frame != 4) { // exited to the right, not the bottom
-            player->xsp = 0x800;
-            player->ysp = 0x800;
+            player->x_vel = 0x800;
+            player->y_vel = 0x800;
         }
         lock_multi = 0; // unlock Sonic's controls
         self->routine = 2; // back to Jun_Action

@@ -36,12 +36,12 @@ void Obj_EHZWaterfall(Object *obj) {
     }
 
     uint16_t x0 = (uint16_t)(obj->pos.l.x.f.u - 0x40), x1 = (uint16_t)(obj->pos.l.x.f.u + 0x40);
-    uint16_t sonic_x = (uint16_t)player->pos.l.x.f.u;
+    uint16_t sonic_x = (uint16_t)player->x_pos.f.u;
     obj->frame = 0;
     if (sonic_x >= x0 && sonic_x < x1) {
         obj->frame = 1 + scratch->subtype;
     } else {
-        uint16_t tails_x = (uint16_t)TAILS_OBJ->pos.l.x.f.u;
+        uint16_t tails_x = (uint16_t)TAILS_OBJ->x_pos.f.u;
         if (tails_x >= x0 && tails_x < x1)
             obj->frame = 1;
         obj->frame += scratch->subtype;

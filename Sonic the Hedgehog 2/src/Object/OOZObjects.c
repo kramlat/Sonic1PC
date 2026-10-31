@@ -28,10 +28,10 @@
 
 #define FOR_EACH_CHARACTER(chr, who) \
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) \
-        for (Object *chr = Character(who); chr != NULL; chr = NULL)
+        for (Sst *chr = Character(who); chr != NULL; chr = NULL)
 
-static Object *Character(int who) {
-    return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+static Sst *Character(int who) {
+    return who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
 }
 
 static void ForgetIfRemembered(Object *obj) {
@@ -65,7 +65,7 @@ void Obj_OilSurface(Object *obj) {
     }
 
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = Character(who);
+        Sst *chr = Character(who);
         if (chr == NULL)
             continue;
         uint8_t *depth = (who == SolidChar_Sonic) ? &scratch->depth : &scratch->depth_tails;
@@ -83,8 +83,8 @@ void Obj_OilSurface(Object *obj) {
         } else if (*depth != 0x30) {
             (*depth)++;
         }
-        obj->pos.l.x.f.u = chr->pos.l.x.f.u;
-        Solid_Platform(obj, chr, who, 0x20, *depth, chr->pos.l.x.f.u);
+        obj->pos.l.x.f.u = chr->x_pos.f.u;
+        Solid_Platform(obj, chr, who, 0x20, *depth, chr->x_pos.f.u);
     }
 }
 
@@ -120,24 +120,24 @@ static void Launcher_Fire(Object *obj, Scratch_Launcher *scratch) {
     RememberState(obj);
 }
 
-static void Launcher_Hold(Object *chr) {
+static void Launcher_Hold(Sst *chr) {
     OBJ_CONTROL(chr) = 1;
-    chr->inertia = 0;
-    chr->xsp = 0;
-    chr->ysp = 0;
-    chr->status.p.f.pushing = false;
-    chr->tile &= ~TILE_PRIORITY_AND;
+    chr->ground_vel = 0;
+    chr->x_vel = 0;
+    chr->y_vel = 0;
+    chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+    chr->art_tile &= ~TILE_PRIORITY_AND;
 }
 
-static void Launcher_Launch(Object *obj, Object *chr, int who) {
+static void Launcher_Launch(Object *obj, Sst *chr, int who) {
     if (!(obj->status.b & (8 << who)))
         return;
-    chr->pos.l.x.f.u = obj->pos.l.x.f.u;
+    chr->x_pos.f.u = obj->pos.l.x.f.u;
     chr->anim = SonAnimId_Roll;
-    chr->inertia = 0x800;
-    chr->status.p.f.in_air = true;
-    chr->ysp = -0x1000;
-    chr->status.p.f.object_stand = false;
+    chr->ground_vel = 0x800;
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->y_vel = -0x1000;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     OBJ_CONTROL(chr) = 0;
     PlaySound(sfx_Spring);
 }
@@ -206,15 +206,15 @@ void Obj_OOZLauncher(Object *obj) {
         if (on == 0)
             break;
         if (on == 0x18) { // both are on it: both must be in the middle
-            const int16_t sx = player->pos.l.x.f.u, tx = TAILS_OBJ->pos.l.x.f.u;
+            const int16_t sx = player->x_pos.f.u, tx = TAILS_OBJ->x_pos.f.u;
             if (sx < left || sx >= right || tx < left || tx >= right)
                 break;
             Launcher_Hold(player);
             Launcher_Hold(TAILS_OBJ);
         } else {
             const int who = (on & 8) ? SolidChar_Sonic : SolidChar_Tails;
-            Object *chr = Character(who);
-            if (chr == NULL || chr->pos.l.x.f.u < left || chr->pos.l.x.f.u >= right)
+            Sst *chr = Character(who);
+            if (chr == NULL || chr->x_pos.f.u < left || chr->x_pos.f.u >= right)
                 break;
             Launcher_Hold(chr);
         }
@@ -371,18 +371,18 @@ typedef struct {
 
 enum { PushRoutine_Init = 0, PushRoutine_Spring = 2, PushRoutine_Pusher = 4 };
 
-static void PushSpring_Launch(Object *obj, Scratch_PushSpring *scratch, Object *chr, int who) {
+static void PushSpring_Launch(Object *obj, Scratch_PushSpring *scratch, Sst *chr, int who) {
     const uint8_t bit = (uint8_t)(8 << who);
     if (!(obj->status.b & bit))
         return;
     obj->status.b &= (uint8_t)~bit;
-    chr->ysp = scratch->power;
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
+    chr->y_vel = scratch->power;
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->anim = SonAnimId_Spring;
     chr->routine = 2;
     if (scratch->subtype & 0x80)
-        chr->xsp = 0;
+        chr->x_vel = 0;
     CharThrow_Tumble(chr, scratch->subtype, 4, 0, 1);
     PlaySound(sfx_Spring);
 }
@@ -401,35 +401,35 @@ static void PushSpring_Fling(Object *obj, Scratch_PushSpring *scratch) {
             d0 = -d0;
         d0 += 0xA;
         d0 = (int16_t)(d0 << 7);
-        chr->xsp = (int16_t)-d0;
-        chr->pos.l.x.f.u -= 4;
-        chr->status.p.f.x_flip = true;
+        chr->x_vel = (int16_t)-d0;
+        chr->x_pos.f.u -= 4;
+        chr->status |= SST_PSTATUS_X_FLIP;
         if (!obj->status.o.f.x_flip) {
-            chr->status.p.f.x_flip = false;
-            chr->pos.l.x.f.u += 8;
-            chr->xsp = (int16_t)-chr->xsp;
+            chr->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+            chr->x_pos.f.u += 8;
+            chr->x_vel = (int16_t)-chr->x_vel;
         }
-        ((Scratch_Sonic *)&chr->scratch)->control_lock = 0xF;
-        chr->inertia = chr->xsp;
-        if (!chr->status.p.f.in_ball)
+        ((Scratch_Sonic *)chr->own.u8)->control_lock = 0xF;
+        chr->ground_vel = chr->x_vel;
+        if (!((chr->status & SST_PSTATUS_IN_BALL) != 0))
             chr->anim = SonAnimId_Walk;
         if (scratch->subtype & 0x80)
-            chr->ysp = 0;
+            chr->y_vel = 0;
         CharThrow_Tumble(chr, scratch->subtype, 8, 1, 3);
-        chr->status.p.f.pushing = false;
+        chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
         chr->prev_anim = 1;
         PlaySound(sfx_Spring);
     }
 }
 
 // loc_183E4: the pusher is pushed by `chr` (who has `penetration` pixels in it)
-static void Pusher_Push(Object *obj, Scratch_PushSpring *scratch, Object *chr, int16_t penetration) {
+static void Pusher_Push(Object *obj, Scratch_PushSpring *scratch, Sst *chr, int16_t penetration) {
     int16_t d0, d1;
     if (obj->status.o.f.x_flip) {
-        if (chr->status.p.f.x_flip)
+        if (((chr->status & SST_PSTATUS_X_FLIP) != 0))
             return;
         if (penetration == 0) {
-            if (chr->inertia > 0)
+            if (chr->ground_vel > 0)
                 scratch->moved = 1;
             return;
         }
@@ -441,10 +441,10 @@ static void Pusher_Push(Object *obj, Scratch_PushSpring *scratch, Object *chr, i
         d0 = 1;
         d1 = 0x40;
     } else {
-        if (!chr->status.p.f.x_flip)
+        if (!((chr->status & SST_PSTATUS_X_FLIP) != 0))
             return;
         if (penetration == 0) {
-            if (chr->inertia < 0)
+            if (chr->ground_vel < 0)
                 scratch->moved = 1;
             return;
         }
@@ -456,9 +456,9 @@ static void Pusher_Push(Object *obj, Scratch_PushSpring *scratch, Object *chr, i
         d0 = -1;
         d1 = -0x40;
     }
-    chr->pos.l.x.f.u += d0;
-    chr->inertia = d1;
-    chr->xsp = 0;
+    chr->x_pos.f.u += d0;
+    chr->ground_vel = d1;
+    chr->x_vel = 0;
     d0 = (int16_t)(scratch->home_x - obj->pos.l.x.f.u);
     if (d0 < 0)
         d0 = -d0;
@@ -513,12 +513,12 @@ void Obj_OOZPushSpring(Object *obj) {
     // the pusher (loc_18322)
     scratch->moved = 0;
     FOR_EACH_CHARACTER(chr, who) {
-        const int16_t before = chr->pos.l.x.f.u;
+        const int16_t before = chr->x_pos.f.u;
         if (Solid_Character(obj, chr, who, 0x1F, 0xC, 0xD, obj->pos.l.x.f.u, NULL) != 1)
             continue;
-        const int16_t penetration = (int16_t)(before - chr->pos.l.x.f.u);
+        const int16_t penetration = (int16_t)(before - chr->x_pos.f.u);
         uint8_t d1 = obj->status.b;
-        if (obj->pos.l.x.f.u >= chr->pos.l.x.f.u)
+        if (obj->pos.l.x.f.u >= chr->x_pos.f.u)
             d1 ^= 1;
         if (!(d1 & 1))
             Pusher_Push(obj, scratch, chr, penetration);
@@ -729,19 +729,19 @@ static const uint8_t cannon_frame[8] = { 0x00, 0x07, 0x00, 0x07, 0x00, 0x07, 0x0
 // Where it fires, by direction: x and y speed (loc_1944E): up, right, down, left
 static const int16_t cannon_fire[4][2] = { { 0x0000, -0x1000 }, { 0x1000, 0x0000 }, { 0x0000, 0x1000 }, { -0x1000, 0x0000 } };
 
-static void Cannon_Char(Object *obj, Scratch_Cannon *scratch, Object *chr, int who) {
+static void Cannon_Char(Object *obj, Scratch_Cannon *scratch, Sst *chr, int who) {
     uint8_t *state = (who == SolidChar_Sonic) ? &scratch->state_sonic : &scratch->state_tails;
-    Scratch_Sonic *sscratch = (Scratch_Sonic *)&chr->scratch;
+    Scratch_Sonic *sscratch = (Scratch_Sonic *)chr->own.u8;
 
     switch (*state) {
     case CannonState_Idle: {
         if (debug_use)
             return;
-        if ((uint16_t)(chr->pos.l.x.f.u - obj->pos.l.x.f.u + 0x10) >= 0x20)
+        if ((uint16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u + 0x10) >= 0x20)
             return;
-        if ((uint16_t)(chr->pos.l.y.f.u - obj->pos.l.y.f.u + 0x10) >= 0x20)
+        if ((uint16_t)(chr->y_pos.f.u - obj->pos.l.y.f.u + 0x10) >= 0x20)
             return;
-        if (chr->status.p.f.object_stand && sscratch->standing_obj < STANDING_SST) { // (it was on another cannon: that one lets go of it)
+        if (((chr->status & SST_PSTATUS_OBJECT_STAND) != 0) && sscratch->standing_obj < STANDING_SST) { // (it was on another cannon: that one lets go of it)
             Object *prev = &objects[sscratch->standing_obj];
             if (prev != obj && prev->type == obj->type) {
                 Scratch_Cannon *other = (Scratch_Cannon *)&prev->scratch;
@@ -753,17 +753,17 @@ static void Cannon_Char(Object *obj, Scratch_Cannon *scratch, Object *chr, int w
         }
         sscratch->standing_obj = Standing_IdOfObject(obj);
         *state += 2;
-        chr->pos.l.x.f.u = obj->pos.l.x.f.u;
-        chr->pos.l.y.f.u = obj->pos.l.y.f.u;
+        chr->x_pos.f.u = obj->pos.l.x.f.u;
+        chr->y_pos.f.u = obj->pos.l.y.f.u;
         OBJ_CONTROL(chr) = 0x81;
         chr->anim = SonAnimId_Roll;
-        chr->inertia = 0x1000;
-        chr->xsp = 0;
-        chr->ysp = 0;
+        chr->ground_vel = 0x1000;
+        chr->x_vel = 0;
+        chr->y_vel = 0;
         obj->status.b &= (uint8_t)~0x20; // (bit 5 for either: the prototype clears the first character's)
-        chr->status.p.f.pushing = false;
-        chr->status.p.f.in_air = true;
-        chr->status.p.f.object_stand = true;
+        chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+        chr->status |= SST_PSTATUS_IN_AIR;
+        chr->status |= SST_PSTATUS_OBJECT_STAND;
         obj->frame = scratch->base_frame;
         PlaySound(sfx_Roll);
         break;
@@ -796,13 +796,13 @@ static void Cannon_Char(Object *obj, Scratch_Cannon *scratch, Object *chr, int w
         if (obj->status.o.f.x_flip)
             dir -= 2;
         dir &= 3;
-        chr->xsp = cannon_fire[dir][0];
-        chr->ysp = cannon_fire[dir][1];
+        chr->x_vel = cannon_fire[dir][0];
+        chr->y_vel = cannon_fire[dir][1];
         obj->frame_time.w = 3;
         if (scratch->subtype & 0x80) { // let go to fly free
             OBJ_CONTROL(chr) = 0;
-            chr->status.p.f.in_air = true;
-            chr->status.p.f.object_stand = false;
+            chr->status |= SST_PSTATUS_IN_AIR;
+            chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
             sscratch->jumping = 0;
             chr->routine = 2;
             *state = CannonState_Wait;
@@ -822,8 +822,8 @@ static void Cannon_Char(Object *obj, Scratch_Cannon *scratch, Object *chr, int w
                 }
             }
         }
-        chr->pos.l.x.v += (int32_t)chr->xsp << 8;
-        chr->pos.l.y.v += (int32_t)chr->ysp << 8;
+        chr->x_pos.v += (int32_t)chr->x_vel << 8;
+        chr->y_pos.v += (int32_t)chr->y_vel << 8;
         break;
     case CannonState_Wait:
         if (--scratch->wait < 0)

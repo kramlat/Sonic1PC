@@ -1,3 +1,4 @@
+#include "Sst.h"
 #include "EditorLive.h"
 
 #include <string.h>
@@ -46,12 +47,12 @@ void Editor_SetPlaytest(bool on) {
     if (on == editor_playtest || !editor_present)
         return;
     if (on) { // (the player comes to the cursor)
-        player->pos.l.x.f.u = (int16_t)cursor_x;
-        player->pos.l.y.f.u = (int16_t)cursor_y;
-        player->xsp = player->ysp = player->inertia = 0;
+        player->x_pos.f.u = (int16_t)cursor_x;
+        player->y_pos.f.u = (int16_t)cursor_y;
+        player->x_vel = player->y_vel = player->ground_vel = 0;
     } else { // (back to editing: the cursor is where the player was left, and the player is parked again at the next frame)
-        cursor_x = player->pos.l.x.f.u;
-        cursor_y = player->pos.l.y.f.u;
+        cursor_x = player->x_pos.f.u;
+        cursor_y = player->y_pos.f.u;
     }
     editor_playtest = on;
     Game_EditorSetMode(!on);
@@ -74,9 +75,9 @@ void Editor_Hold(void) {
     cursor_y = ny;
     // While the level is edited the player is parked far outside it, so nothing that waits for him to come near (the signpost, the checkpoints, the path swappers, the badniks that go for him...) can be triggered;
     // the cursor is where the editor looks, and a playtest starts from it
-    player->pos.l.x.f.u = EDITOR_PARK;
-    player->pos.l.y.f.u = EDITOR_PARK;
-    player->xsp = player->ysp = player->inertia = 0;
+    player->x_pos.f.u = EDITOR_PARK;
+    player->y_pos.f.u = EDITOR_PARK;
+    player->x_vel = player->y_vel = player->ground_vel = 0;
 }
 
 static int16_t saved_x, saved_y;
@@ -89,10 +90,10 @@ bool Editor_Editing(void) {
 void Editor_CameraBegin(void) {
     if (!Editor_Editing())
         return;
-    saved_x = player->pos.l.x.f.u;
-    saved_y = player->pos.l.y.f.u;
-    player->pos.l.x.f.u = (int16_t)cursor_x;
-    player->pos.l.y.f.u = (int16_t)cursor_y;
+    saved_x = player->x_pos.f.u;
+    saved_y = player->y_pos.f.u;
+    player->x_pos.f.u = (int16_t)cursor_x;
+    player->y_pos.f.u = (int16_t)cursor_y;
     standing_in = true;
 }
 
@@ -100,8 +101,8 @@ void Editor_CameraEnd(void) {
     if (!standing_in)
         return;
     standing_in = false;
-    player->pos.l.x.f.u = saved_x;
-    player->pos.l.y.f.u = saved_y;
+    player->x_pos.f.u = saved_x;
+    player->y_pos.f.u = saved_y;
 }
 
 void Editor_Open(int zone, int act, const uint8_t *objects, const uint8_t *rings) {
@@ -121,8 +122,8 @@ void Editor_Close(void) {
     if (!editor_open)
         return;
     if (Editor_Editing()) { // (the player is where the cursor is when the level is played again)
-        player->pos.l.x.f.u = (int16_t)cursor_x;
-        player->pos.l.y.f.u = (int16_t)cursor_y;
+        player->x_pos.f.u = (int16_t)cursor_x;
+        player->y_pos.f.u = (int16_t)cursor_y;
     }
     editor_open = false;
     editor_present = false;

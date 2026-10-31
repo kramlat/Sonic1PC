@@ -22,12 +22,12 @@ static const int8_t sparkle_pos[8][2] = {
 };
 
 // (the type is cleared and the rest of the object is left as it is, so that the camera, which follows his place, stays where it is)
-static void DespawnWhenOffScreenRight(Object *chr) {
-    if (chr->type == ObjId_Null)
+static void DespawnWhenOffScreenRight(Sst *chr) {
+    if (chr->code == sst_object_codes[ObjId_Null])
         return;
-    const int16_t x = (int16_t)(chr->pos.l.x.f.u - scrpos_x.f.u);
+    const int16_t x = (int16_t)(chr->x_pos.f.u - scrpos_x.f.u);
     if (x >= SCREEN_WIDTH)
-        chr->type = ObjId_Null;
+        chr->code = sst_object_codes[ObjId_Null];
 }
 
 void Obj_Signpost(Object* obj) {
@@ -48,7 +48,7 @@ void Obj_Signpost(Object* obj) {
         // Fallthrough
     case 2: // Wait for contact
         // Check if player is touching signpost
-        if ((uint16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u) < 0x20) {
+        if ((uint16_t)(player->x_pos.f.u - obj->pos.l.x.f.u) < 0x20) {
             // Start spinning
             PlaySound(sfx_Signpost);
             time_count = false;
@@ -98,14 +98,14 @@ void Obj_Signpost(Object* obj) {
         // Lock player controls
         if (debug_use)
             break;
-        if (!player->status.p.f.in_air) {
+        if (!((player->status & SST_PSTATUS_IN_AIR) != 0)) {
             lock_ctrl = true;
             jpad1_hold2 = JPAD_RIGHT;
             jpad1_press2 = 0;
         }
 
         // Check if level end sequence should play
-        if (player->type != ObjId_Null && (uint16_t)player->pos.l.x.f.u < (limit_right2 + 296 + SCREEN_WIDEADD))
+        if (player->code != sst_object_codes[ObjId_Null] && (uint16_t)player->x_pos.f.u < (limit_right2 + 296 + SCREEN_WIDEADD))
             break;
 
         // Start level end sequence
@@ -114,7 +114,7 @@ void Obj_Signpost(Object* obj) {
         break;
     case 8: // Level end: the characters run on to the right, and are gone (despawned) when they leave the screen, so that they do not fall out of the level and die while the results card is up
         DespawnWhenOffScreenRight(player);
-        if (TAILS_OBJ->type != ObjId_Null)
+        if (TAILS_OBJ->code != sst_object_codes[ObjId_Null])
             DespawnWhenOffScreenRight(TAILS_OBJ);
         break;
     }

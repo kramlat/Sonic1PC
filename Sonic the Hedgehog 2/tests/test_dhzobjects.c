@@ -28,9 +28,9 @@ static void Reset(int zone) {
     scrpos_x.f.u = 0;
     limit_btm2 = 0x720;
     player->routine = 2;
-    player->y_rad = 19;
-    player->pos.l.x.f.u = 0x1000;
-    player->pos.l.y.f.u = 0x1000;
+    player->y_radius = 19;
+    player->x_pos.f.u = 0x1000;
+    player->y_pos.f.u = 0x1000;
 }
 
 static Object *Spawn(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
@@ -45,10 +45,10 @@ static Object *Spawn(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
 
 // Sonic standing on a flat top at `top`
 static void StandOn(int16_t x, int16_t top) {
-    player->pos.l.x.f.u = x;
-    player->pos.l.y.f.u = (int16_t)(top - player->y_rad);
-    player->status.p.f.in_air = false;
-    player->status.p.f.object_stand = true;
+    player->x_pos.f.u = x;
+    player->y_pos.f.u = (int16_t)(top - player->y_radius);
+    player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
+    player->status |= SST_PSTATUS_OBJECT_STAND;
 }
 
 static int CountOf(uint8_t type, uint8_t routine) {
@@ -172,9 +172,9 @@ static void DHZ_TheSwitchIsDownWhileSomeoneStandsOnIt(void) {
     Obj_Switch(obj);
     CHECK_EQ(f_switch[3], 1);
     CHECK_EQ(obj->frame, 1);
-    player->pos.l.x.f.u = 0x1000; // (steps off)
-    player->status.p.f.in_air = true;
-    player->status.p.f.object_stand = false;
+    player->x_pos.f.u = 0x1000; // (steps off)
+    player->status |= SST_PSTATUS_IN_AIR;
+    player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     Obj_Switch(obj);
     CHECK_EQ(f_switch[3], 0);
     CHECK_EQ(obj->frame, 0);
@@ -214,9 +214,9 @@ static void DHZ_ARaisedDrawbridgeLetsGoOfWhoeverStandsOnIt(void) {
     for (int i = 0; i < 20; i++)
         Obj_DHZGate(obj);
     obj->status.b |= 1 << 3;
-    player->status.p.f.object_stand = true;
+    player->status |= SST_PSTATUS_OBJECT_STAND;
     Obj_DHZGate(obj);
-    CHECK(!player->status.p.f.object_stand);
+    CHECK(!((player->status & SST_PSTATUS_OBJECT_STAND) != 0));
     CHECK_EQ(obj->status.b & 0x18, 0);
 }
 
@@ -310,9 +310,9 @@ static void DHZ_ThePlatformWithSpikesSlidesAwayWhenSomeoneComesNear(void) {
     for (int i = 0; i < 5; i++)
         Obj_PlatformSpikes(obj);
     CHECK_EQ(obj->pos.l.x.f.u, 300); // (nobody near)
-    player->pos.l.x.f.u = 300 - 0x80; // within the strip $C0 to $41 to the left, at its height, on the ground
-    player->pos.l.y.f.u = 400;
-    player->status.p.f.in_air = false;
+    player->x_pos.f.u = 300 - 0x80; // within the strip $C0 to $41 to the left, at its height, on the ground
+    player->y_pos.f.u = 400;
+    player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
     Obj_PlatformSpikes(obj);
     Obj_PlatformSpikes(obj);
     CHECK_EQ(obj->scratch.u8[0], 2);
@@ -327,9 +327,9 @@ static void DHZ_ACharacterInTheAirDoesNotSetItOff(void) {
     Reset(ZoneId_MCZ);
     Object *obj = Spawn(0x76, 0, 300, 400);
     Obj_PlatformSpikes(obj);
-    player->pos.l.x.f.u = 300 - 0x80;
-    player->pos.l.y.f.u = 400;
-    player->status.p.f.in_air = true;
+    player->x_pos.f.u = 300 - 0x80;
+    player->y_pos.f.u = 400;
+    player->status |= SST_PSTATUS_IN_AIR;
     for (int i = 0; i < 10; i++)
         Obj_PlatformSpikes(obj);
     CHECK_EQ(obj->scratch.u8[0], 0);
@@ -340,10 +340,10 @@ static void DHZ_AFlippedPlatformWithSpikesSlidesRight(void) {
     Object *obj = Spawn(0x76, 0, 300, 400);
     obj->status.o.f.x_flip = true;
     Obj_PlatformSpikes(obj);
-    player->pos.l.x.f.u = 300 + 0x80 - 0x100 + 0x80 - 0x40; // (the strip is the same one turned round: $40 to $C0 to the right)
-    player->pos.l.x.f.u = 300 + 0x80;
-    player->pos.l.y.f.u = 400;
-    player->status.p.f.in_air = false;
+    player->x_pos.f.u = 300 + 0x80 - 0x100 + 0x80 - 0x40; // (the strip is the same one turned round: $40 to $C0 to the right)
+    player->x_pos.f.u = 300 + 0x80;
+    player->y_pos.f.u = 400;
+    player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
     for (int i = 0; i < 12; i++)
         Obj_PlatformSpikes(obj);
     CHECK(obj->pos.l.x.f.u > 300);
@@ -406,8 +406,8 @@ static void DHZ_TheCradleSwingsOutOnOneSideOnlyAndTheMiddleHangsStill(void) {
 static void DHZ_TheCrawltonWaitsUntilSonicIsNearThenTurnsToHimAndCrawls(void) {
     Reset(ZoneId_MCZ);
     Object *head = Spawn(0x9E, 0x22, 200, 400);
-    player->pos.l.x.f.u = 200 + 0x100; // (far)
-    player->pos.l.y.f.u = 400;
+    player->x_pos.f.u = 200 + 0x100; // (far)
+    player->y_pos.f.u = 400;
     Obj_Crawlton(head); // the set up: its body is made
     CHECK_EQ(objects[0x21].type, 0x9E);
     CHECK_EQ(objects[0x21].child_count, 7);
@@ -415,7 +415,7 @@ static void DHZ_TheCrawltonWaitsUntilSonicIsNearThenTurnsToHimAndCrawls(void) {
     for (int i = 0; i < 5; i++)
         Obj_Crawlton(head);
     CHECK_EQ(head->xsp, 0);
-    player->pos.l.x.f.u = 250;
+    player->x_pos.f.u = 250;
     Obj_Crawlton(head); // he is near: it turns
     CHECK(head->render.f.x_flip);
     CHECK_EQ(head->xsp, 0x100); // (50 pixels away: 50 * 8 = $190, less its low byte)
@@ -427,8 +427,8 @@ static void DHZ_TheCrawltonWaitsUntilSonicIsNearThenTurnsToHimAndCrawls(void) {
 static void DHZ_TheCrawltonBodyFollowsTheHeadWhileItCrawls(void) {
     Reset(ZoneId_MCZ);
     Object *head = Spawn(0x9E, 0x22, 200, 400);
-    player->pos.l.x.f.u = 250;
-    player->pos.l.y.f.u = 400;
+    player->x_pos.f.u = 250;
+    player->y_pos.f.u = 400;
     Obj_Crawlton(head);
     Object *body = &objects[0x21];
     for (int i = 0; i < 3; i++) {
@@ -475,7 +475,7 @@ static void DHZ_TheBossRisesDropsRocksAndMovesToWhereSonicIs(void) {
     CHECK(boss->render.f.multi_sprite);
     CHECK_EQ(boss->pos.l.x.f.u, 0x21A0);
     CHECK_EQ(boss->pos.l.y.f.u, 0x678);
-    player->pos.l.x.f.u = 0x2180;
+    player->x_pos.f.u = 0x2180;
     for (int i = 0; i < 0x28 + 0x200 && boss->pos.l.y.f.u > 0x560 + 4; i++) {
         scrpos_x.f.u = 0x20F0;
         scrpos_y.f.u = 0x5C0;
@@ -517,15 +517,15 @@ static void DHZ_TheBossArenaLocksTheCameraAndLoadsTheBossOnce(void) {
 static void CNZ_TheRoundBumperThrowsWhoeverTouchesIt(void) {
     Reset(ZoneId_CNZ);
     Object *bumper = Spawn(0x44, 0, 300, 300);
-    player->pos.l.x.f.u = 300;
-    player->pos.l.y.f.u = 330; // below it
+    player->x_pos.f.u = 300;
+    player->y_pos.f.u = 330; // below it
     Obj_CNZBumper(bumper); // set up
     CHECK_EQ(bumper->col_type, 0xD7);
-    CHECK_EQ(player->ysp, 0);
+    CHECK_EQ(player->y_vel, 0);
     bumper->col_property = 1; // (the touch response counts it)
     Obj_CNZBumper(bumper);
-    CHECK(player->ysp > 0x500);                   // thrown away from it: straight down, at $700 or so
-    CHECK(player->status.p.f.in_air);
+    CHECK(player->y_vel > 0x500);                   // thrown away from it: straight down, at $700 or so
+    CHECK(((player->status & SST_PSTATUS_IN_AIR) != 0));
     CHECK_EQ(bumper->col_property, 0);
     CHECK_EQ(bumper->anim, 1);
 }
@@ -538,7 +538,7 @@ static void CNZ_TheBossGoesRoundTheArenaAndLetsTheBallFall(void) {
     CHECK_EQ(boss->child_count, 4);
     CHECK_EQ(boss->pos.l.x.f.u, 0x2850);
     CHECK_EQ(boss->pos.l.y.f.u, 0x600);
-    player->pos.l.x.f.u = 0x2800;
+    player->x_pos.f.u = 0x2800;
     int balls = 0;
     int16_t min_x = 0x7FFF;
     for (int i = 0; i < 1500; i++) {
@@ -588,37 +588,37 @@ static void CNZ_TheAutoSpinRollsWhoeverTouchesItIntoABall(void) {
     Obj_AutoSpin(box);
     CHECK_EQ(box->col_type, 0xC6);
     CHECK_EQ(box->frame, 0);
-    player->status.p.f.in_ball = false;
-    player->inertia = 0;
-    player->pos.l.y.f.u = 300;
+    player->status &= (uint8_t)~SST_PSTATUS_IN_BALL;
+    player->ground_vel = 0;
+    player->y_pos.f.u = 300;
     box->col_property = 1; // (the touch response sets a bit for each character: Sonic's is the first)
     Obj_AutoSpin(box);
-    CHECK(player->status.p.f.in_ball);
+    CHECK(((player->status & SST_PSTATUS_IN_BALL) != 0));
     CHECK_EQ(player->anim, SonAnimId_Roll);
-    CHECK_EQ(player->inertia, 0x200);
-    CHECK_EQ(player->pos.l.y.f.u, 305);
+    CHECK_EQ(player->ground_vel, 0x200);
+    CHECK_EQ(player->y_pos.f.u, 305);
     CHECK_EQ(box->col_property, 0);
     box->col_property = 1; // (already a ball: nothing)
     Obj_AutoSpin(box);
-    CHECK_EQ(player->pos.l.y.f.u, 305);
+    CHECK_EQ(player->y_pos.f.u, 305);
 }
 
 static void CNZ_TheBumperKnowsWhichCharacterTouchedIt(void) {
     Reset(ZoneId_CNZ);
     Object *bumper = Spawn(0x44, 0, 300, 300);
     Obj_CNZBumper(bumper);
-    player->pos.l.x.f.u = 300;
-    player->pos.l.y.f.u = 330;
-    TAILS_OBJ->type = 0x02;
-    TAILS_OBJ->pos.l.x.f.u = 300;
-    TAILS_OBJ->pos.l.y.f.u = 270;
-    TAILS_OBJ->ysp = 0;
-    player->ysp = 0;
+    player->x_pos.f.u = 300;
+    player->y_pos.f.u = 330;
+    TAILS_OBJ->code = sst_object_codes[0x02];
+    TAILS_OBJ->x_pos.f.u = 300;
+    TAILS_OBJ->y_pos.f.u = 270;
+    TAILS_OBJ->y_vel = 0;
+    player->y_vel = 0;
     bumper->col_property = 2; // Tails' bit only
     Obj_CNZBumper(bumper);
-    CHECK_EQ(player->ysp, 0);
-    CHECK(TAILS_OBJ->ysp < -0x500); // (thrown up: he is above it)
-    TAILS_OBJ->type = 0;
+    CHECK_EQ(player->y_vel, 0);
+    CHECK(TAILS_OBJ->y_vel < -0x500); // (thrown up: he is above it)
+    TAILS_OBJ->code = sst_object_codes[0];
 }
 
 void RegisterDHZObjectTests(void) {

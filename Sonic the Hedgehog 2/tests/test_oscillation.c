@@ -54,7 +54,7 @@ static void RefDo(Ref *r) {
 }
 
 static void Alive(void) {
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
 }
 

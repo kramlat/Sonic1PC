@@ -25,7 +25,7 @@ void Obj_SuperSonicStars(Object *obj) {
         obj->priority = 1;
         obj->width_pixels = 0x18;
         obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_SuperSonicStars);
-        if (player->tile & TILE_PRIORITY_AND)
+        if (player->art_tile & TILE_PRIORITY_AND)
             obj->tile |= TILE_PRIORITY_AND;
     }
 
@@ -45,20 +45,20 @@ void Obj_SuperSonicStars(Object *obj) {
             }
         }
         if (!stars->settled) {
-            obj->pos.l.x.f.u = player->pos.l.x.f.u;
-            obj->pos.l.y.f.u = player->pos.l.y.f.u;
+            obj->pos.l.x.f.u = player->x_pos.f.u;
+            obj->pos.l.y.f.u = player->y_pos.f.u;
         }
         DisplaySprite(obj);
         return;
     }
 
     if (CharObjControl(player) == 0) {
-        const int16_t speed = (int16_t)(player->inertia < 0 ? -player->inertia : player->inertia);
+        const int16_t speed = (int16_t)(player->ground_vel < 0 ? -player->ground_vel : player->ground_vel);
         if (speed >= 0x800) { // fast enough: a round begins at Sonic
             obj->frame = 0;
             stars->animating = 1;
-            obj->pos.l.x.f.u = player->pos.l.x.f.u;
-            obj->pos.l.y.f.u = player->pos.l.y.f.u;
+            obj->pos.l.x.f.u = player->x_pos.f.u;
+            obj->pos.l.y.f.u = player->y_pos.f.u;
             DisplaySprite(obj);
             return;
         }

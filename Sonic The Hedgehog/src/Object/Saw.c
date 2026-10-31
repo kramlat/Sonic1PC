@@ -61,7 +61,7 @@ static bool Saw_Type3_SpeedingFromLeft(Sst *self, Own_Saw *own) {
         return false;
     }
 
-    uint16_t px = (uint16_t)player->pos.l.x.f.u;
+    uint16_t px = (uint16_t)player->x_pos.f.u;
     if (px < 192)
         return true; // Sonic close to the left level edge
     uint16_t d0 = (uint16_t)(px - 192);
@@ -69,7 +69,7 @@ static bool Saw_Type3_SpeedingFromLeft(Sst *self, Own_Saw *own) {
     if (d0 < saw_x)
         return true; // Sonic not in horizontal range
 
-    uint16_t d1 = (uint16_t)((uint16_t)player->pos.l.y.f.u - 128);
+    uint16_t d1 = (uint16_t)((uint16_t)player->y_pos.f.u - 128);
     uint16_t saw_y = (uint16_t)self->y_pos.f.u;
     if (d1 >= saw_y)
         return false; // not in upper trigger zone (not hidden, just not launched)
@@ -93,12 +93,12 @@ static bool Saw_Type4_SpeedingFromRight(Sst *self, Own_Saw *own) {
         return false;
     }
 
-    uint16_t d0 = (uint16_t)((uint16_t)player->pos.l.x.f.u + 224);
+    uint16_t d0 = (uint16_t)((uint16_t)player->x_pos.f.u + 224);
     uint16_t saw_x = (uint16_t)self->x_pos.f.u;
     if (d0 >= saw_x)
         return true; // Sonic not in horizontal range
 
-    uint16_t d1 = (uint16_t)((uint16_t)player->pos.l.y.f.u - 128);
+    uint16_t d1 = (uint16_t)((uint16_t)player->y_pos.f.u - 128);
     uint16_t saw_y = (uint16_t)self->y_pos.f.u;
     if (d1 >= saw_y)
         return false;

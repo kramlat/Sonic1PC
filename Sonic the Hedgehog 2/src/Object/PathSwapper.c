@@ -26,17 +26,17 @@ typedef struct {
 static const int16_t swapper_sizes[4] = { 0x20, 0x40, 0x80, 0x100 };
 
 // The character has left the strip: switch his path and priority by which side he left on
-static void Swapper_Cross(const Object *obj, Object *chr, bool forward, uint8_t subtype) {
-    Scratch_Sonic *sscratch = (Scratch_Sonic *)&chr->scratch;
+static void Swapper_Cross(const Object *obj, Sst *chr, bool forward, uint8_t subtype) {
+    Scratch_Sonic *sscratch = (Scratch_Sonic *)chr->own.u8;
     bool second = (subtype & (forward ? 0x08 : 0x10)) != 0;
     bool front = (subtype & (forward ? 0x20 : 0x40)) != 0;
     (void)obj;
 
     sscratch->top_solid_bit = second ? 0xE : 0xC;
     sscratch->lrb_solid_bit = second ? 0xF : 0xD;
-    chr->tile &= ~0x8000;
+    chr->art_tile &= ~0x8000;
     if (front)
-        chr->tile |= 0x8000;
+        chr->art_tile |= 0x8000;
     if (debug_cheat)
         PlaySound(sfx_Lamppost);
 }
@@ -61,12 +61,12 @@ static void Swapper_Watch(Object *obj, bool horizontal) {
     }
 
     for (int who = 0; who < 2; who++) {
-        Object *chr = (who == 0) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+        Sst *chr = (who == 0) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
         if (chr == NULL)
             continue;
         const uint8_t bit = (uint8_t)(0x80 >> who);
 
-        uint16_t cx = (uint16_t)chr->pos.l.x.f.u, cy = (uint16_t)chr->pos.l.y.f.u;
+        uint16_t cx = (uint16_t)chr->x_pos.f.u, cy = (uint16_t)chr->y_pos.f.u;
         if (cx >= (uint16_t)x0 && cx < (uint16_t)x1 && cy >= (uint16_t)y0 && cy < (uint16_t)y1) {
             scratch->inside |= bit;
             continue;
@@ -76,10 +76,10 @@ static void Swapper_Watch(Object *obj, bool horizontal) {
 
         // He was inside and is outside now (unless on the ground is asked for and he is in the air: then nothing, and he is let go)
         scratch->inside &= (uint8_t)~bit;
-        if ((scratch->subtype & 0x80) && chr->status.p.f.in_air)
+        if ((scratch->subtype & 0x80) && ((chr->status & SST_PSTATUS_IN_AIR) != 0))
             continue;
-        bool forward = !horizontal ? !((uint16_t)chr->pos.l.x.f.u < (uint16_t)obj->pos.l.x.f.u)
-                                   : !((uint16_t)chr->pos.l.y.f.u < (uint16_t)obj->pos.l.y.f.u);
+        bool forward = !horizontal ? !((uint16_t)chr->x_pos.f.u < (uint16_t)obj->pos.l.x.f.u)
+                                   : !((uint16_t)chr->y_pos.f.u < (uint16_t)obj->pos.l.y.f.u);
         Swapper_Cross(obj, chr, forward, scratch->subtype);
     }
 }

@@ -46,7 +46,7 @@ void Obj_MarbleBrick(Sst *self) {
             case 0: // static
                 break;
             case 2: { // fall when Sonic gets close
-                int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+                int16_t d0 = (int16_t)(player->x_pos.f.u - self->x_pos.f.u);
                 if (d0 < 0)
                     d0 = -d0;
                 if (d0 < 0x90) {

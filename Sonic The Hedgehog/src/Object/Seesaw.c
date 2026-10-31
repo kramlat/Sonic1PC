@@ -62,7 +62,7 @@ static void See_ChgFrame(Object *obj, Scratch_Seesaw *scratch, int8_t new_state)
 
 // Sets the seesaw tilt based on what side of it Sonic is standing on.
 static void See_ChkSide(Object *obj, Scratch_Seesaw *scratch) {
-    int16_t d0 = (int16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
+    int16_t d0 = (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
     int8_t new_state;
     if (d0 >= 0) {
         new_state = 2; // Sonic on the left side -- ascending
@@ -80,7 +80,7 @@ static void See_Seesaw_Platform(Object *obj, Scratch_Seesaw *scratch) {
 
     const uint8_t *heightmap = (obj->frame & 1) ? See_DataFlat : See_DataSlope;
 
-    scratch->landspeed = player->ysp;
+    scratch->landspeed = player->y_vel;
 
     SlopeObject(obj, 96 / 2, heightmap); // may set obj->routine = 4
 }
@@ -215,11 +215,11 @@ static void See_Spikeball_InAir_FallingDown(Object *obj, Scratch_Seesaw *scratch
         parent->status.o.f.player_stand = false;
         if (was_standing) {
             parent->routine = 2; // reset seesaw back to See_Seesaw_Platform
-            player->ysp = (int16_t)-obj->ysp; // bounce Sonic based on the ball's landing speed
-            player->status.p.f.in_air = true;
+            player->y_vel = (int16_t)-obj->ysp; // bounce Sonic based on the ball's landing speed
+            player->status |= SST_PSTATUS_IN_AIR;
             Sonic_CancelSpindash(); // reset the charge so landing doesn't release it like a drop dash
-            player->status.p.f.object_stand = false;
-            ((Scratch_Sonic *)&player->scratch)->jumping = 0;
+            player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+            ((Scratch_Sonic *)player->own.u8)->jumping = 0;
             player->anim = SonAnimId_Spring;
             player->routine = 2; // Sonic_Control
             QueueSound2(sfx_Spring);

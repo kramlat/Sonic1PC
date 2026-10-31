@@ -31,8 +31,8 @@ static const uint8_t delays_ooz[7] = { 0x1A, 0x12, 0x0A, 0x02, 0x16, 0x0E, 0x06 
 static const uint8_t delays_dhz[6] = { 0x1A, 0x16, 0x12, 0x0E, 0x0A, 0x02 };
 static const uint8_t delays_nghz[8] = { 0x16, 0x1A, 0x18, 0x12, 0x06, 0x0E, 0x0A, 0x02 }; // (the alpha's data for Neo Green Hill's 8 pieces)
 
-static Object *Character(int who) {
-    return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+static Sst *Character(int who) {
+    return who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
 }
 
 static bool IsOilOcean(void) {
@@ -49,7 +49,7 @@ static bool IsNeoGreenHill(void) {
 
 static void Platform(Object *obj) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = Character(who);
+        Sst *chr = Character(who);
         if (chr != NULL)
             Solid_Platform(obj, chr, who, obj->width_pixels, 0x10, obj->pos.l.x.f.u);
     }
@@ -115,10 +115,10 @@ void Obj_CollapsingPlatform(Object *obj) {
         RememberState(obj);
         if (--scratch->timer == 0) {
             for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-                Object *chr = Character(who);
-                if (chr != NULL && chr->status.p.f.object_stand) {
-                    chr->status.p.f.object_stand = false;
-                    chr->status.p.f.pushing = false;
+                Sst *chr = Character(who);
+                if (chr != NULL && ((chr->status & SST_PSTATUS_OBJECT_STAND) != 0)) {
+                    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+                    chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
                     chr->prev_anim = 1;
                 }
             }

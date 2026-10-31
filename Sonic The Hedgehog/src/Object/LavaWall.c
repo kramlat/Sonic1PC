@@ -47,12 +47,12 @@ static void LWall_Solid(Sst *self, Own_LavaWall *own) {
 }
 
 static void LWall_ChkSonic(Sst *self, Own_LavaWall *own) {
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - self->x_pos.f.u);
     if (d0 < 0)
         d0 = (int16_t)-d0;
     bool in_range = d0 < 192;
     if (in_range) {
-        int16_t d1 = (int16_t)(player->pos.l.y.f.u - self->y_pos.f.u);
+        int16_t d1 = (int16_t)(player->y_pos.f.u - self->y_pos.f.u);
         if (d1 < 0)
             d1 = (int16_t)-d1;
         in_range = d1 < 96;

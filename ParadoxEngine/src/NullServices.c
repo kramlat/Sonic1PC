@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "Sst.h"
 #include "Console.h"
 #include "Demo.h"
 #include "DebugPeek.h"

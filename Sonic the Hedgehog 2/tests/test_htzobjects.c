@@ -17,8 +17,8 @@ static void Reset(void) {
     scrpos_x.v = scrpos_y.v = 0;
     limit_btm2 = 0x720;
     player->routine = 2;
-    player->pos.l.x.f.u = 0x1000;
-    player->pos.l.y.f.u = 0x1000;
+    player->x_pos.f.u = 0x1000;
+    player->y_pos.f.u = 0x1000;
 }
 
 static Object *Spawn(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {

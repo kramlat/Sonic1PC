@@ -173,15 +173,15 @@ void Obj_DrownCount(Object *obj) {
             if (scratch->restart_time) {
                 // Sonic is already drowning -- count down to the death state.
                 if (--scratch->restart_time != 0) {
-                    SpeedToPos(player);
-                    player->ysp += 0x10; // sink faster
+                    Sst_MoveSprite2(player);
+                    player->y_vel += 0x10; // sink faster
                     goto checkSpawnExtraBubbles;
                 }
                 player->routine = 6; // Sonic_Death
                 return;
             }
 
-            if (player->routine >= 6 || !player->status.p.f.underwater)
+            if (player->routine >= 6 || !((player->status & SST_PSTATUS_UNDERWATER) != 0))
                 return;
 
             if (--scratch->num_time >= 0)
@@ -220,11 +220,11 @@ void Obj_DrownCount(Object *obj) {
 
                 Sonic_ResetOnFloor(player);
                 player->anim = SonAnimId_Drown;
-                player->status.p.f.in_air = true;
-                player->tile |= TILE_PRIORITY_AND;
-                player->ysp = 0;
-                player->xsp = 0;
-                player->inertia = 0;
+                player->status |= SST_PSTATUS_IN_AIR;
+                player->art_tile |= TILE_PRIORITY_AND;
+                player->y_vel = 0;
+                player->x_vel = 0;
+                player->ground_vel = 0;
                 nobgscroll = true;
                 player->routine = 2; // Sonic_Control
                 time_count = false;
@@ -247,17 +247,17 @@ void Obj_DrownCount(Object *obj) {
                     Scratch_DrownCount *bubScratch = (Scratch_DrownCount*)&bub->scratch;
 
                     int16_t off = 6;
-                    if (player->status.p.f.x_flip) {
+                    if (((player->status & SST_PSTATUS_X_FLIP) != 0)) {
                         off = -6;
                         bub->angle = 0x40;
                     }
-                    bub->pos.l.x.f.u = (int16_t)(player->pos.l.x.f.u + off);
-                    bub->pos.l.y.f.u = player->pos.l.y.f.u;
+                    bub->pos.l.x.f.u = (int16_t)(player->x_pos.f.u + off);
+                    bub->pos.l.y.f.u = player->y_pos.f.u;
                     bubScratch->subtype = 6; // small bubble
 
                     if (scratch->restart_time) {
                         scratch->delay_time &= 7;
-                        bub->pos.l.y.f.u = (int16_t)(player->pos.l.y.f.u - 12);
+                        bub->pos.l.y.f.u = (int16_t)(player->y_pos.f.u - 12);
                         bub->angle = (uint8_t)RandomNumber();
                         if ((frame_count & 3) == 0)
                             bubScratch->subtype = 0xE; // medium bubble

@@ -35,7 +35,7 @@ void Obj_SmashWall(Sst *self) {
         self->mapping_frame = self->subtype; // subtype -- 0=left, 1=middle, 2=right
         // Fallthrough
     case 2: { // Solid
-        own->speed = player->xsp;
+        own->speed = player->x_vel;
 
         SstSolidObject(self, 32 / 2 + 11 /* sonic_solid_width */, 64 / 2, 64 / 2, self->x_pos.f.u, NULL, NULL);
         if (!((self->status & SST_STATUS_PLAYER_PUSH) != 0)) {
@@ -54,19 +54,19 @@ void Obj_SmashWall(Sst *self) {
             break;
         }
 
-        player->xsp = own->speed; // restore Sonic's speed from before SolidObject changed it
+        player->x_vel = own->speed; // restore Sonic's speed from before SolidObject changed it
         const int16_t(*frag_speeds)[2];
-        if (self->x_pos.f.u < player->pos.l.x.f.u) {
-            player->pos.l.x.f.u += 4; // push Sonic right a bit for pseudo-seamless movement
+        if (self->x_pos.f.u < player->x_pos.f.u) {
+            player->x_pos.f.u += 4; // push Sonic right a bit for pseudo-seamless movement
             frag_speeds = frag_speed_right;
         } else {
-            player->pos.l.x.f.u -= 4 * 2; // push Sonic left a bit (and undo the +4 above)
+            player->x_pos.f.u -= 4 * 2; // push Sonic left a bit (and undo the +4 above)
             frag_speeds = frag_speed_left;
         }
 
-        player->inertia = player->xsp;
+        player->ground_vel = player->x_vel;
         self->status &= (uint8_t)~SST_STATUS_PLAYER_PUSH;
-        player->status.p.f.pushing = false;
+        player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
 
         SstSmashObject(self, 8, &frag_speeds[0][0]);
         __attribute__((fallthrough)); // parent object is now the first fragment -- routine 4

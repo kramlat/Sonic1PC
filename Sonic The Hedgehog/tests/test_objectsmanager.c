@@ -4,6 +4,7 @@
 
 #include "EngineObject.h"
 #include "ObjectsManager.h"
+#include "SstLoad.h"
 
 // Sonic 2's objects manager (engine/ObjectsManager.c) on a made-up layout.
 
@@ -26,10 +27,17 @@ static int Loaded(uint8_t id) {
     return n;
 }
 
+static void NoSstObjects(void) { // (the ids of this made-up layout are not the game's: no id belongs to the status table's loader)
+    static const SstObjectIndex none = {NULL, 0};
+    SstLoadCamera camera = {0, 0, false, 0xFFF};
+    SstLoad_Init(&none, NULL, false, &camera);
+}
+
 static ObjectsManager mgr;
 static uint8_t marks[0x40];
 
 static void Reset(int16_t camera_x) {
+    NoSstObjects();
     static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
     memset(objects, 0, sizeof(objects));
     ObjectsManager_Init(&mgr, &config, marks, sizeof(marks), layout, camera_x);
@@ -138,6 +146,7 @@ static void ObjectsManager_ForgetLetsItComeBack(void) {
 static void ObjectsManager_WindowIsAParameter(void) {
     static const ObjectsManagerConfig narrow = { 0x180, 0x80 };
     memset(objects, 0, sizeof(objects));
+    NoSstObjects();
     ObjectsManager_Init(&mgr, &narrow, marks, sizeof(marks), layout, 0);
     CHECK_EQ(Loaded(1), 1); // 0x100 < 0x180
     CHECK_EQ(Loaded(2), 0); // 0x200 is not
@@ -164,6 +173,7 @@ static ObjectsManager2P mgr2;
 static void Reset2P(int16_t camera_x, int16_t camera_x_p2) {
     static const ObjectsManagerConfig config = OBJECTS_MANAGER_DEFAULT_CONFIG;
     memset(objects, 0, sizeof(objects));
+    NoSstObjects();
     ObjectsManager2P_Init(&mgr2, &config, marks, sizeof(marks), layout, camera_x, camera_x_p2);
 }
 

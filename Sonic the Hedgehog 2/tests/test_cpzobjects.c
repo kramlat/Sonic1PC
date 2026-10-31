@@ -17,8 +17,8 @@ static void Reset(void) {
     scrpos_x.v = scrpos_y.v = 0x100 << 16; // (near the objects below: they are not forgotten for being far away)
     limit_btm1 = 0x720;
     player->routine = 2;
-    player->pos.l.x.f.u = 0x1000; // (far from everything, until a test puts him somewhere)
-    player->pos.l.y.f.u = 0x1000;
+    player->x_pos.f.u = 0x1000; // (far from everything, until a test puts him somewhere)
+    player->y_pos.f.u = 0x1000;
 }
 
 static Object *Spawn(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
@@ -38,14 +38,14 @@ static void CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter(void) {
     Object *obj = Spawn(0x2D, 0, 800, 300);
     Obj_CPZBarrier(obj);
     CHECK_EQ(obj->pos.l.y.f.u, 300);
-    player->pos.l.x.f.u = 700; // inside [x - $200, x)
+    player->x_pos.f.u = 700; // inside [x - $200, x)
     for (int i = 0; i < 4; i++)
         Obj_CPZBarrier(obj);
     CHECK_EQ(obj->pos.l.y.f.u, 300 - 4 * 8);
     for (int i = 0; i < 20; i++)
         Obj_CPZBarrier(obj);
     CHECK_EQ(obj->pos.l.y.f.u, 300 - 0x40); // (and no higher)
-    player->pos.l.x.f.u = 0x1000; // gone
+    player->x_pos.f.u = 0x1000; // gone
     for (int i = 0; i < 4; i++)
         Obj_CPZBarrier(obj);
     CHECK_EQ(obj->pos.l.y.f.u, 300 - 0x40 + 4 * 8);
@@ -58,7 +58,7 @@ static void CPZObjects_BarrierDoesNotOpenForTheFarSide(void) {
     Reset();
     Object *obj = Spawn(0x2D, 0, 800, 300);
     Obj_CPZBarrier(obj);
-    player->pos.l.x.f.u = 900; // beyond it, the side it shuts
+    player->x_pos.f.u = 900; // beyond it, the side it shuts
     for (int i = 0; i < 10; i++)
         Obj_CPZBarrier(obj);
     CHECK_EQ(obj->pos.l.y.f.u, 300);
@@ -67,42 +67,42 @@ static void CPZObjects_BarrierDoesNotOpenForTheFarSide(void) {
 static void CPZObjects_ABoosterGivesTheSpeedItsSubtypeSays(void) {
     Reset();
     Object *obj = Spawn(0x1B, 0, 200, 300);
-    player->pos.l.x.f.u = 200;
-    player->pos.l.y.f.u = 300;
-    player->status.p.f.in_air = false;
+    player->x_pos.f.u = 200;
+    player->y_pos.f.u = 300;
+    player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
     Obj_CPZBooster(obj);
-    CHECK_EQ(player->xsp, 0x1000);
-    CHECK_EQ(player->inertia, 0x1000);
-    CHECK_EQ(((Scratch_Sonic *)&player->scratch)->control_lock, 0xF);
+    CHECK_EQ(player->x_vel, 0x1000);
+    CHECK_EQ(player->ground_vel, 0x1000);
+    CHECK_EQ(((Scratch_Sonic *)player->own.u8)->control_lock, 0xF);
 
     Object *slow = Spawn(0x1B, 2, 200, 300); // bit 1: the slower one
-    player->xsp = 0;
+    player->x_vel = 0;
     Obj_CPZBooster(slow);
-    CHECK_EQ(player->xsp, 0xA00);
+    CHECK_EQ(player->x_vel, 0xA00);
 
     Object *back = Spawn(0x1B, 0, 200, 300);
-    player->xsp = 0;
+    player->x_vel = 0;
     Obj_CPZBooster(back); // (its first call sets it up, and gives the speed)
     back->status.o.f.x_flip = true;
-    player->xsp = 0;
+    player->x_vel = 0;
     Obj_CPZBooster(back);
-    CHECK_EQ(player->xsp, -0x1000);
-    CHECK(player->status.p.f.x_flip);
+    CHECK_EQ(player->x_vel, -0x1000);
+    CHECK(((player->status & SST_PSTATUS_X_FLIP) != 0));
 
-    player->xsp = 0x1200; // (the alpha's: a character already that fast is left as he is)
+    player->x_vel = 0x1200; // (the alpha's: a character already that fast is left as he is)
     Obj_CPZBooster(slow);
-    CHECK_EQ(player->xsp, 0x1200);
+    CHECK_EQ(player->x_vel, 0x1200);
 }
 
 static void CPZObjects_ABoosterLeavesWhoIsInTheAirAlone(void) {
     Reset();
     Object *obj = Spawn(0x1B, 0, 200, 300);
-    player->pos.l.x.f.u = 200;
-    player->pos.l.y.f.u = 300;
-    player->status.p.f.in_air = true;
-    player->xsp = 0x123;
+    player->x_pos.f.u = 200;
+    player->y_pos.f.u = 300;
+    player->status |= SST_PSTATUS_IN_AIR;
+    player->x_vel = 0x123;
     Obj_CPZBooster(obj);
-    CHECK_EQ(player->xsp, 0x123);
+    CHECK_EQ(player->x_vel, 0x123);
 }
 
 // The staircase block of kind 5 waits to be stood on, and then (kind 6) falls
@@ -126,7 +126,7 @@ static void CPZObjects_ABlockFallsOnceItIsStoodOn(void) {
 static void CPZObjects_TheSpinyWalksToAndFroAndThrowsAShotWhenSonicIsNear(void) {
     Reset();
     Object *spiny = Spawn(0xA5, 0x32, 400, 300);
-    player->pos.l.x.f.u = 0x1000; // (far)
+    player->x_pos.f.u = 0x1000; // (far)
     Obj_Spiny(spiny);
     CHECK_EQ(spiny->xsp, -0x40);
     CHECK_EQ(spiny->col_type, 0x0B);
@@ -134,7 +134,7 @@ static void CPZObjects_TheSpinyWalksToAndFroAndThrowsAShotWhenSonicIsNear(void) 
         Obj_Spiny(spiny);
     CHECK(spiny->pos.l.x.f.u < 400);               // (it walks to the left)
     CHECK_EQ(spiny->routine, 2);                   // (and does not look for Sonic for the first $80 frames)
-    player->pos.l.x.f.u = (int16_t)(spiny->pos.l.x.f.u + 0x20);
+    player->x_pos.f.u = (int16_t)(spiny->pos.l.x.f.u + 0x20);
     for (int i = 0; i < 0x50; i++)
         Obj_Spiny(spiny);
     CHECK_EQ(spiny->routine, 4);                   // (it has stopped to throw)

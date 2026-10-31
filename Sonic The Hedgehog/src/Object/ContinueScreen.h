@@ -11,4 +11,3 @@
 #define CONTINUE_SLOT_ICON  3 // the first of the mini Sonics
 
 void Obj_ContScrItem(Object *obj);
-void Obj_ContSonic(Object *obj);

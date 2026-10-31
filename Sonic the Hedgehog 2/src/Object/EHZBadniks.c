@@ -70,7 +70,7 @@ enum { BuzzerAnim_Moving, BuzzerAnim_Flame, BuzzerAnim_Bullet, BuzzerAnim_Shoot 
 static void Buzzer_ChkPlayer(Object *obj, Scratch_Buzzer *scratch) {
     if (scratch->shot_made)
         return;
-    int16_t d1 = obj->pos.l.x.f.u - player->pos.l.x.f.u;
+    int16_t d1 = obj->pos.l.x.f.u - player->x_pos.f.u;
     int16_t d0 = d1 < 0 ? -d1 : d1;
     if (d0 < 0x28 || d0 > 0x30)
         return;
@@ -257,7 +257,7 @@ static void Snail_CreateFlame(Object *obj) {
 static void Snail_Charge(Object *obj, Scratch_Snail *scratch) {
     if (scratch->charging)
         return;
-    int16_t d0 = player->pos.l.x.f.u - obj->pos.l.x.f.u;
+    int16_t d0 = player->x_pos.f.u - obj->pos.l.x.f.u;
     if (d0 > 100 || d0 < -100)
         return;
     if (d0 < 0) {

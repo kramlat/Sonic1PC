@@ -216,8 +216,8 @@ void HUD_Update(void) {
         // Update lives
     } else {
         // Update position
-        HUD_WriteHex(0xDC40, (scrpos_x.f.u << 16) | player->pos.l.x.f.u);
-        HUD_WriteHex(0xDD40, (scrpos_y.f.u << 16) | player->pos.l.y.f.u);
+        HUD_WriteHex(0xDC40, (scrpos_x.f.u << 16) | player->x_pos.f.u);
+        HUD_WriteHex(0xDD40, (scrpos_y.f.u << 16) | player->y_pos.f.u);
 
         // Update rings
         if (ring_count) {

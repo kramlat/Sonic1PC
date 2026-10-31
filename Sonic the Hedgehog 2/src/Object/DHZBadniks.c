@@ -66,12 +66,12 @@ void Obj_Crawlton(Object *obj) {
         break;
 
     case Crawl_Wait: { // waits until Sonic is within $80 pixels each way: then turns to him (and takes the speed towards him: a quarter of how far, a frame)
-        const int16_t dx = (int16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
-        const int16_t dy = (int16_t)(obj->pos.l.y.f.u - player->pos.l.y.f.u);
+        const int16_t dx = (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
+        const int16_t dy = (int16_t)(obj->pos.l.y.f.u - player->y_pos.f.u);
         if ((uint16_t)(dx + 0x80) < 0x100 && (uint16_t)(dy + 0x80) < 0x100) {
             scratch->state += 2;
             scratch->counter = 0x10;
-            obj->render.f.x_flip = (uint16_t)obj->pos.l.x.f.u < (uint16_t)player->pos.l.x.f.u;
+            obj->render.f.x_flip = (uint16_t)obj->pos.l.x.f.u < (uint16_t)player->x_pos.f.u;
             obj->xsp = (int16_t)(((-dx) << 3) & 0xFF00);
             obj->ysp = (int16_t)(((-dy) << 3) & 0xFF00);
         }

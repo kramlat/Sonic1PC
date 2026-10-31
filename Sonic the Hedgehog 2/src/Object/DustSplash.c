@@ -23,13 +23,13 @@ typedef struct {
     uint16_t dest;       // 0x3C: where in VRAM its tiles go
 } Scratch_Dust;
 
-static Object *Owner(const Scratch_Dust *dust) {
-    return &objects[dust->owner];
+static Sst *Owner(const Scratch_Dust *dust) {
+    return dust->owner ? SST_PLAYER_2 : player;
 }
 
 // The air the player has left (each has his own, in his object): the dust is only there while he is not about to drown
-static uint16_t Air(const Object *owner) {
-    return ((const Scratch_Sonic *)&owner->scratch)->air;
+static uint16_t Air(const Sst *chr) {
+    return ((const Scratch_Sonic *)chr->own.u8)->air;
 }
 
 // Brings the tiles of the frame into VRAM (Load_Dust_Water_Splash_Dynamic_PLC): the DPLC's runs, one after the other from where this dust's window starts
@@ -62,35 +62,35 @@ static void Show(Object *obj, Scratch_Dust *dust) {
 
 // Routine 2: by what it shows
 static void Main(Object *obj, Scratch_Dust *dust) {
-    Object *owner = Owner(dust);
+    Sst *chr = Owner(dust);
     switch (obj->anim) {
     case DUST_NULL:
         break;
     case DUST_SPLASH:
         obj->pos.l.y.f.u = wtr_pos1;
         if (!obj->prev_anim) { // (the first frame of it: it stays where it is afterwards)
-            obj->pos.l.x.f.u = owner->pos.l.x.f.u;
+            obj->pos.l.x.f.u = chr->x_pos.f.u;
             obj->status.b = 0;
             obj->tile &= (uint16_t)~TILE_PRIORITY_AND;
         }
         break;
     case DUST_DASH:
-        if (Air(owner) < 12) {
+        if (Air(chr) < 12) {
             obj->anim = DUST_NULL;
             return;
         }
         if (!obj->prev_anim) { // (it starts where the player is, and he stays put while he charges)
-            obj->pos.l.x.f.u = owner->pos.l.x.f.u;
-            obj->pos.l.y.f.u = owner->pos.l.y.f.u;
-            obj->status.b = owner->status.b;
+            obj->pos.l.x.f.u = chr->x_pos.f.u;
+            obj->pos.l.y.f.u = chr->y_pos.f.u;
+            obj->status.b = chr->status;
             if (dust->tails)
                 obj->pos.l.y.f.u -= 4;
-            if (owner->tile & TILE_PRIORITY_AND)
+            if (chr->art_tile & TILE_PRIORITY_AND)
                 obj->tile |= TILE_PRIORITY_AND;
         }
         break;
     case DUST_SKID:
-        if (Air(owner) < 12) {
+        if (Air(chr) < 12) {
             obj->anim = DUST_NULL;
             return;
         }
@@ -101,8 +101,8 @@ static void Main(Object *obj, Scratch_Dust *dust) {
 
 // Routine 6: while the player skids (his animation 13) it makes a puff of dust every fourth frame, each an object that plays the skid's animation and goes
 static void Skid(Object *obj, Scratch_Dust *dust) {
-    Object *owner = Owner(dust);
-    if (owner->anim != SonAnimId_Stop) {
+    Sst *chr = Owner(dust);
+    if (chr->anim != SonAnimId_Stop) {
         obj->routine = 2;
         dust->skid_timer = 0;
         return;
@@ -113,8 +113,8 @@ static void Skid(Object *obj, Scratch_Dust *dust) {
         if (puff != NULL) {
             memset(puff, 0, sizeof(*puff));
             puff->type = obj->type;
-            puff->pos.l.x.f.u = owner->pos.l.x.f.u;
-            puff->pos.l.y.f.u = (int16_t)(owner->pos.l.y.f.u + 0x10);
+            puff->pos.l.x.f.u = chr->x_pos.f.u;
+            puff->pos.l.y.f.u = (int16_t)(chr->y_pos.f.u + 0x10);
             if (dust->tails)
                 puff->pos.l.y.f.u -= 4;
             puff->anim = DUST_SKID;
@@ -128,7 +128,7 @@ static void Skid(Object *obj, Scratch_Dust *dust) {
             child->tails = dust->tails;
             child->owner = dust->owner;
             child->dest = dust->dest; // (the alpha forgets this one: its puffs would write their tiles at VRAM 0)
-            if (owner->tile != 0)
+            if (chr->art_tile != 0)
                 puff->tile |= TILE_PRIORITY_AND;
         }
     }
@@ -149,7 +149,7 @@ void Obj_DustSplash(Object *obj) {
         obj->render.f.level_fg = true;
         obj->priority = 1;
         obj->width_pixels = 0x10;
-        dust->owner = dust->tails ? TAILS_SLOT : 0;
+        dust->owner = dust->tails ? 1 : 0; // (the character: 0 is Sonic, 1 Tails)
         dust->dest = dust->tails ? 0x9180 : 0x9380; // tiles $48C and $49C
         obj->tile = TILE_MAP(0, 0, 0, 0, dust->tails ? 0x48C : 0x49C);
         // Fallthrough

@@ -1,5 +1,6 @@
 #include "SstLoad.h"
 #include "Object/Points.h"
+#include "Object/SpecialSonic.h"
 #include "Object/SmashWall.h"
 #include "Object/GHZRock.h"
 #include "Object/Helix.h"
@@ -15,12 +16,11 @@
 #include "Object/Splash.h"
 #include "Object/WaterSurface.h"
 
-void Obj_Sonic(Object *obj);
-void Obj_SpecialSonic(Object *obj);
+void Obj_Sonic(Sst *obj);
 void Obj_Signpost(Object *obj);
 void Obj_TitleCharacters(Object *obj); // Sonic 2's: Sonic and Tails from the title screen
-void Obj_Tails(Object *obj);
-void Obj_TailsTails(Object *obj);
+void Obj_Tails(Sst *obj);
+void Obj_TailsTails(Sst *obj);
 void Obj_PSB(Object *obj);
 void Obj_GHZTunnel(Object *obj);
 void Obj_GHZBridge(Object *obj);
@@ -226,15 +226,15 @@ void Obj_Cannonball(Object *obj);
 // runs as the null object.
 const ObjectFunc game_objects[] = {
 	/* 00 ObjId_Null                */ NULL,
-	/* 01 ObjId_Sonic               */ Obj_Sonic,
-	/* 02 ObjId_02                 */ Obj_Tails,
+	/* 01 ObjId_Sonic               */ NULL, // (the characters are on the status table: sst_object_codes)
+	/* 02 ObjId_02                 */ NULL,
 	/* 03 ObjId_PathSwapper         */ Obj_PathSwapper,
 	/* 04 ObjId_04                 */ Obj_NAWaterSurface,
-	/* 05 ObjId_05                 */ Obj_TailsTails,
+	/* 05 ObjId_05                 */ NULL,
 	/* 06 ObjId_06                 */ Obj_Spiral,
 	/* 07 ObjId_07                 */ Obj_OilSurface, // (the prototype's oil of Oil Ocean: made by the level)
 	/* 08 ObjId_Splash              */ Obj_DustSplash, // (the alpha's: the spin dash's dust, the skid's and the water's splash, for each player; Sonic 1's level start makes Sonic's)
-	/* 09 ObjId_SpecialSonic        */ Obj_SpecialSonic,
+	/* 09 ObjId_SpecialSonic        */ NULL, // (moved to the status table: sst_object_codes)
 	/* 0A ObjId_DrownCount          */ Obj_Countdown, // (the alpha's: the bubbles and the counting of the air, for Sonic and for Tails)
 	/* 0B ObjId_Pole               */ Obj_CPZPipeTipper, // (the prototype's section of pipe that tips you off)
 	/* 0C ObjId_FlapDoor           */ Obj_FloatingPlatform, // (the prototype's small floating platform: none in its levels)
@@ -405,6 +405,10 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id; Sonic 1's shared ones. The loader of that table loads their layout entries.
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_Sonic] = Obj_Sonic,
+	[ObjId_02] = Obj_Tails,
+	[ObjId_05] = Obj_TailsTails,
+	[ObjId_SpecialSonic] = Obj_SpecialSonic,
 	[ObjId_Points] = Obj_Points,
 	[ObjId_SmashWall] = Obj_SmashWall,
 	[ObjId_GHZRock] = Obj_GHZRock,

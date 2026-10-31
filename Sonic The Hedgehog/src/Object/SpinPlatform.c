@@ -22,7 +22,7 @@ static void Spin_SolidAndDisplay(Sst *self, int16_t width_half, int16_t height_h
     }
 
     if (((self->status & SST_STATUS_PLAYER_STAND) != 0)) {
-        player->status.p.f.object_stand = false;
+        player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
         self->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;
     }
     SstOnScreenTest(self);

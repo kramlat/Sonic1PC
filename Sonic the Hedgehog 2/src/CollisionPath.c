@@ -6,8 +6,8 @@
 #include "Object/Tails.h"
 
 uint8_t Game_CollisionPath(const void *object) {
-    const Object *obj = (const Object *)object;
+    const Sst *obj = (const Sst *)object;
     if (obj != player && obj != TAILS_OBJ)
         return 0;
-    return ((const Scratch_Sonic *)&obj->scratch)->top_solid_bit == 0xE;
+    return ((const Scratch_Sonic *)obj->own.u8)->top_solid_bit == 0xE;
 }

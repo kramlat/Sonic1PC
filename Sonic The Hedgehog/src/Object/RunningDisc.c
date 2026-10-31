@@ -26,7 +26,7 @@
 // Sonic's "stick to convex" flag (the original's sticktoconvex, at 0x38 of his object): while it is set, his floor-following code keeps him on
 // the gear's tight curve instead of letting him leave the ground, and his slope repel does not shake him off it.
 static void SetStickToConvex(bool on) {
-    ((Scratch_Sonic *)&player->scratch)->x38.floor_clip = on ? 1 : 0;
+    ((Scratch_Sonic *)player->own.u8)->x38.floor_clip = on ? 1 : 0;
 }
 
 static void Disc_DetachSonic(Own_RunningDisc *own) {
@@ -39,20 +39,20 @@ static void Disc_DetachSonic(Own_RunningDisc *own) {
 static void Disc_AttachSonic(Own_RunningDisc *own) {
     if (!own->sonic_attached) {
         own->sonic_attached = 1;
-        if (!player->status.p.f.in_ball)
+        if (!((player->status & SST_PSTATUS_IN_BALL) != 0))
             player->anim = SonAnimId_Walk;
-        player->status.p.f.pushing = false;
+        player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
         player->prev_anim = SonAnimId_Run; // restart Sonic's animation
         SetStickToConvex(true);
     }
 
-    int16_t inertia = player->inertia;
+    int16_t inertia = player->ground_vel;
     if (own->spot_speed >= 0) { // gear moving clockwise (it always is)
-        if (inertia < 0x400) { player->inertia = 0x400; return; }
-        if (inertia > (int16_t)0xF00) player->inertia = (int16_t)0xF00;
+        if (inertia < 0x400) { player->ground_vel = 0x400; return; }
+        if (inertia > (int16_t)0xF00) player->ground_vel = (int16_t)0xF00;
     } else {
-        if (inertia > -0x400) { player->inertia = -0x400; return; }
-        if (inertia < (int16_t)-0xF00) player->inertia = (int16_t)-0xF00;
+        if (inertia > -0x400) { player->ground_vel = -0x400; return; }
+        if (inertia < (int16_t)-0xF00) player->ground_vel = (int16_t)-0xF00;
     }
 }
 
@@ -60,19 +60,19 @@ static void Disc_MoveSonic(Own_RunningDisc *own) {
     int16_t trig = own->triggersize;
     int16_t diameter = (int16_t)(trig * 2);
 
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - own->orig_x + trig);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - own->orig_x + trig);
     if ((uint16_t)d0 >= (uint16_t)diameter) {
         Disc_DetachSonic(own);
         return;
     }
 
-    int16_t d1 = (int16_t)(player->pos.l.y.f.u - own->orig_y + trig);
+    int16_t d1 = (int16_t)(player->y_pos.f.u - own->orig_y + trig);
     if ((uint16_t)d1 >= (uint16_t)diameter) {
         Disc_DetachSonic(own);
         return;
     }
 
-    if (player->status.p.f.in_air) {
+    if (((player->status & SST_PSTATUS_IN_AIR) != 0)) {
         own->sonic_attached = 0;
         return;
     }

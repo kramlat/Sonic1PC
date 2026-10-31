@@ -35,7 +35,7 @@ static void VanP_DetectOrStoodOn(Sst *self) {
     if (self->mapping_frame & 2) {
         // Not visible -- can't be solid
         if (((self->status & SST_STATUS_PLAYER_STAND) != 0)) {
-            player->status.p.f.object_stand = false;
+            player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
             self->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;
             self->routine = 2; // VanP_Detect
         }

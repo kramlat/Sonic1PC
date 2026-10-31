@@ -21,7 +21,7 @@
 static bool Bas_CheckDistanceAndFaceSonic(Sst *self, int16_t zone, int16_t *move_speed) {
     int16_t speed = 0x100;
     SST_STATUS_SET(self, SST_STATUS_X_FLIP, true);
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - self->x_pos.f.u);
     if (d0 < 0) {
         d0 = (int16_t)-d0;
         speed = (int16_t)-speed;
@@ -44,7 +44,7 @@ static void Bas_Action_ChkSonic(Sst *self, Own_Basaran *own) {
     if (!Bas_CheckDistanceAndFaceSonic(self, 128, &move_speed))
         return;
 
-    int16_t sonic_y = player->pos.l.y.f.u;
+    int16_t sonic_y = player->y_pos.f.u;
     own->sonic_y = sonic_y;
     int16_t d0 = (int16_t)(sonic_y - self->y_pos.f.u);
     if (d0 < 0 || d0 >= 128)
@@ -93,7 +93,7 @@ static bool Bas_Action_Fly(Sst *self) {
 
     Sst_MoveSprite2(self);
 
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - self->x_pos.f.u);
     if (d0 < 0)
         d0 = (int16_t)-d0;
     if (d0 < 128)

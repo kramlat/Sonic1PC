@@ -6,7 +6,6 @@
 #include "Sonic.h"
 #include "Sound.h"
 
-#include "Resource/Animation/ContinueSonic.h"
 #include "Resource/Mappings/ContinueScreen.h"
 extern const uint8_t Mappings_Sonic[]; // (defined with the Sonic object)
 
@@ -77,7 +76,7 @@ static void CSI_MakeMiniSonic(Object *obj) {
 static void CSI_ShowMiniSonic(Object *obj) {
     // The mini Sonic that stands for the continue being used flashes while Sonic runs off, and is gone once he moves
     if (obj->status.b != 0 && SONIC_RUNNING_AWAY && !(vbla_count & 1)) {
-        if (player->xsp != 0)
+        if (player->x_vel != 0)
             ObjectDelete(obj);
         return; // hidden this frame
     }
@@ -105,93 +104,4 @@ void Obj_ContScrItem(Object *obj) {
         CSI_ShowMiniSonic(obj);
         break;
     }
-}
-
-// ---------------------------------------------------------------------------
-// Object 81 - Sonic on the continue screen
-// ---------------------------------------------------------------------------
-
-enum {
-    CSON_MAIN = 0,
-    CSON_CHECK_LAND = 2,
-    CSON_ANIMATE = 4,
-    CSON_RUN_RIGHT = 6,
-};
-
-#define CSON_FLOOR_Y (0x1A0 + SCREEN_TALLADD2)
-
-static void CSon_Animate(Object *obj);
-static void CSon_RunRight(Object *obj);
-
-static void CSon_Main(Object *obj) {
-    obj->routine += 2;
-    obj->pos.l.x.f.u = 0xA0 + SCREEN_WIDEADD2;
-    obj->pos.l.y.f.u = 0xC0 + SCREEN_TALLADD2;
-    obj->mappings = Mappings_Sonic; // Sonic's own mappings, graphics and animations
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Sonic);
-    obj->render.b = 0;
-    obj->render.f.level_fg = true;
-    obj->priority = 2; // behind the other elements
-    obj->anim = SonAnimId_Float3;
-    obj->ysp = 0x400; // falls in from above
-}
-
-static void CSon_CheckLand(Object *obj) {
-    if (obj->pos.l.y.f.u != CSON_FLOOR_Y) {
-        SpeedToPos(obj);
-        Sonic_Animate(obj);
-        Sonic_LoadGfx(obj);
-        return;
-    }
-    obj->routine += 2;
-    obj->ysp = 0;
-    obj->mappings = Mappings_ContinueScreen; // his own lying-down frames
-    obj->tile = TILE_MAP(1, 0, 0, 0, ArtTile_Continue_Sonic);
-    obj->anim = 0;
-    CSon_Animate(obj);
-}
-
-static void CSon_Animate(Object *obj) {
-    if (!(jpad1_press1 & JPAD_START)) {
-        AnimateSprite(obj, Animation_ContinueSonic);
-        return;
-    }
-    // A continue is used: Sonic gets up and runs off to the right
-    obj->routine += 2;
-    obj->mappings = Mappings_Sonic;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Sonic);
-    obj->anim = SonAnimId_Float4; // getting up, turning into the walk animation
-    obj->inertia = 0;
-    obj->pos.l.y.f.u -= 8;
-    FadeOutMusic();
-    CSon_RunRight(obj);
-}
-
-static void CSon_RunRight(Object *obj) {
-    if (obj->inertia == 0x40 * 0x20) {
-        obj->xsp = 0x1000; // shoots off once his ground speed is up
-    } else {
-        obj->inertia += 0x20; // (only the animation looks at it until then)
-    }
-    SpeedToPos(obj);
-    Sonic_Animate(obj);
-    Sonic_LoadGfx(obj);
-}
-
-void Obj_ContSonic(Object *obj) {
-    switch (obj->routine) {
-    case CSON_MAIN:
-        CSon_Main(obj);
-        // falls through
-    case CSON_CHECK_LAND:
-        CSon_CheckLand(obj);
-        break;
-    case CSON_ANIMATE:
-        CSon_Animate(obj);
-        break;
-    case CSON_RUN_RIGHT:
-        CSon_RunRight(obj);
-        break;
-    }
-    DisplaySprite(obj);
 }

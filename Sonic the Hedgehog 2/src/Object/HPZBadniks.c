@@ -46,7 +46,7 @@ static void BBat_SetFlip(Object *obj, bool flip) {
 
 // Sonic within 128 pixels wakes it (BBat_WaitForPlayer): true if it was woken
 static bool BBat_WaitForPlayer(Object *obj, Scratch_BBat *scratch) {
-    int16_t d0 = obj->pos.l.x.f.u - player->pos.l.x.f.u;
+    int16_t d0 = obj->pos.l.x.f.u - player->x_pos.f.u;
     if (d0 > 0x80 || d0 < -0x80)
         return false;
     obj->routine_sec = BBatSub_Seek;
@@ -62,7 +62,7 @@ static bool BBat_AttackPlayer(Object *obj, Scratch_BBat *scratch) {
     if (scratch->detect_timer >= 0)
         return scratch->detect_timer == 0;
 
-    int16_t d0 = obj->pos.l.x.f.u - player->pos.l.x.f.u;
+    int16_t d0 = obj->pos.l.x.f.u - player->x_pos.f.u;
     if (d0 > 0x60 || d0 < -0x60) {
         if (d0 <= 0x80 && d0 > -0x80)
             return false; // (between 96 and 128 pixels: nothing happens)
@@ -265,7 +265,7 @@ enum { RhinoAnim_Walk = 0, RhinoAnim_Still = 1, RhinoAnim_Charge = 2 };
 
 // It looks for Sonic: behind it, it walks on; within $60 pixels in front of it, it charges (Offset_0x0229DC)
 static void Rhinobot_Chase(Object *obj) {
-    const int16_t d0 = (int16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
+    const int16_t d0 = (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
     const bool facing_right = obj->status.o.f.x_flip;
     if (d0 < 0) { // Sonic is to its right
         if (d0 < -0x60)

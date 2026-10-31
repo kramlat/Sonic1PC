@@ -326,7 +326,7 @@ GM_Level_Branch:;
     ColIndexLoad();
 
     // Create player and HUD objects
-    player->type = ObjId_Sonic;
+    player->code = sst_object_codes[ObjId_Sonic];
     objects[0x1B].type = ObjId_Splash; // Spin Dash dust / skid dust / water splash companion
     if (demo >= 0)
         objects[1].type = ObjId_HUD;

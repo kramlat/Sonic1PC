@@ -51,8 +51,8 @@ static void Pri_BodyMain(Object *obj) {
     if (boss_status == 2) { // has the prison been opened from the switch?
         if (obj->status.o.f.player_stand) {
             obj->status.o.f.player_stand = false;
-            player->status.p.f.object_stand = false;
-            player->status.p.f.in_air = true;
+            player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+            player->status |= SST_PSTATUS_IN_AIR;
         }
         obj->frame = 2; // destroyed prison
         return;
@@ -118,8 +118,8 @@ static void Pri_Switch(Object *obj, Scratch_PrisonCapsule *scratch) {
     jpad1_hold2 = JPAD_RIGHT; // simulate holding right to move Sonic
     jpad1_press2 = 0;
     obj->status.o.f.player_stand = false;
-    player->status.p.f.object_stand = false;
-    player->status.p.f.in_air = true;
+    player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+    player->status |= SST_PSTATUS_IN_AIR;
 }
 
 static void Pri_Explosion(Object *obj) {

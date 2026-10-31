@@ -39,7 +39,7 @@ enum { SONIC_WAIT2_FRAME = 3 }; // fr_Wait2
 static void End_MoveSonic(void) {
     switch (sonicend) {
     case 0:
-        if (player->pos.l.x.f.u >= (SCREEN_WIDTH / 2) - 16) // still running in from the right
+        if (player->x_pos.f.u >= (SCREEN_WIDTH / 2) - 16) // still running in from the right
             return;
         sonicend += 2;
         lock_ctrl = true;
@@ -47,25 +47,25 @@ static void End_MoveSonic(void) {
         jpad1_press2 = 0;
         break;
     case 2:
-        if (player->pos.l.x.f.u < SCREEN_WIDTH / 2) // skidding until the middle
+        if (player->x_pos.f.u < SCREEN_WIDTH / 2) // skidding until the middle
             return;
         sonicend += 2;
         lock_ctrl = false;
         jpad1_hold2 = 0;
         jpad1_press2 = 0;
-        player->inertia = 0; // stop dead
+        player->ground_vel = 0; // stop dead
         lock_multi = 0x81;   // controls ignored, objects not interacted with
-        player->frame = SONIC_WAIT2_FRAME;
+        player->mapping_frame = SONIC_WAIT2_FRAME;
         player->anim = SonAnimId_Wait;
         player->prev_anim = SonAnimId_Wait; // so the animation isn't restarted
-        player->frame_time.b = 3;
+        player->anim_frame_timer = 3;
         break;
     case 4:
         sonicend += 2;
-        player->pos.l.x.f.u = SCREEN_WIDTH / 2;
-        player->type = ObjId_87; // the ending-only Sonic replaces the real one
+        player->x_pos.f.u = SCREEN_WIDTH / 2;
+        player->code = sst_object_codes[ObjId_87]; // the ending-only Sonic replaces the real one
         player->routine = 0;
-        player->routine_sec = 0;
+        player->routine_secondary = 0;
         break;
     }
 }
@@ -118,12 +118,12 @@ void GM_Ending(void) {
         debug_mode = true;
 
     // Sonic runs in from the right, controls locked on a simulated left press
-    player->type = ObjId_Sonic;
-    player->status.p.f.x_flip = true;
+    player->code = sst_object_codes[ObjId_Sonic];
+    player->status |= SST_PSTATUS_X_FLIP;
     lock_ctrl = true;
     jpad1_hold2 = JPAD_LEFT;
     jpad1_press2 = 0;
-    player->inertia = -0x800; // capped to -0x600 straight away
+    player->ground_vel = -0x800; // capped to -0x600 straight away
     objects[1].type = ObjId_HUD;
     if (ending_eggmobile_exploding) // Eggman's ship was wrecked in the Final Zone: it falls in the distance
         objects[ENDING_SLOT_EGGMOBILE].type = ObjId_8D;

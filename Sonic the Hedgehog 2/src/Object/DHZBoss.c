@@ -173,7 +173,7 @@ static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
             Boss_Move();
             if (boss_move.y.f.u <= 0x560) {
                 boss_move.ysp = 0x100;
-                int16_t x = (int16_t)(player->pos.l.x.f.u + (int8_t)(RandomNumber() & 0xFF));
+                int16_t x = (int16_t)(player->x_pos.f.u + (int8_t)(RandomNumber() & 0xFF));
                 if (x <= 0x2100)
                     x = 0x2100;
                 else if (x >= 0x2218)
@@ -210,7 +210,7 @@ static void Boss_Dig(Object *obj, Scratch_DHZBoss *scratch) {
                 boss_anim[1] = 0x30;
                 boss_move.ysp = 0x400;
                 obj->render.f.x_flip = false;
-                if ((int16_t)(player->pos.l.x.f.u - boss_move.x.f.u) >= 0)
+                if ((int16_t)(player->x_pos.f.u - boss_move.x.f.u) >= 0)
                     obj->render.f.x_flip = true;
             }
             Boss_Move();

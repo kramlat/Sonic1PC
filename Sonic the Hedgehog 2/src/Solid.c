@@ -9,16 +9,16 @@
 #include "Object/Tails.h"
 
 // The character is carried along with the object it stands on (MvSonicOnPtfm / MvSonicOnSlope): put on its top, and moved along by what the object moved
-static void MoveOnObject(Object *obj, Object *chr, int16_t x, int16_t y_top) {
+static void MoveOnObject(Object *obj, Sst *chr, int16_t x, int16_t y_top) {
     if ((CharObjControl(chr) & 0x80) || chr->routine >= 6) // (an object holding the character: no carrying)
         return;
-    chr->pos.l.y.f.u = y_top - chr->y_rad;
-    chr->pos.l.x.f.u -= x - obj->pos.l.x.f.u;
+    chr->y_pos.f.u = y_top - chr->y_radius;
+    chr->x_pos.f.u -= x - obj->pos.l.x.f.u;
 }
 
 // The height of a slope's top at the character's place across the object (the heights are relative to the first, flipped with the object)
-static int16_t SlopeHeight(const Object *obj, const Object *chr, int16_t x_rad, const int8_t *slope) {
-    uint16_t column = (uint16_t)(chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad);
+static int16_t SlopeHeight(const Object *obj, const Sst *chr, int16_t x_rad, const int8_t *slope) {
+    uint16_t column = (uint16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u + x_rad);
     if (obj->render.f.x_flip)
         column = (uint16_t)(~column + (x_rad << 1));
     column >>= 1;
@@ -26,23 +26,23 @@ static int16_t SlopeHeight(const Object *obj, const Object *chr, int16_t x_rad, 
 }
 
 // The character lands on the object (RideObject_SetRide): whatever it stood on before lets go, it takes this one, and its vertical speed becomes ground speed
-static void RideObject(Object *obj, Object *chr, int who) {
-    Scratch_Sonic *scratch = (Scratch_Sonic *)&chr->scratch;
+static void RideObject(Object *obj, Sst *chr, int who) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)chr->own.u8;
 
-    if (chr->status.p.f.object_stand)
+    if (((chr->status & SST_PSTATUS_OBJECT_STAND) != 0))
         Standing_Release(scratch->standing_obj, STANDING_RELEASE_FLAG);
 
     scratch->standing_obj = Standing_IdOfObject(obj);
     chr->angle = 0;
-    chr->ysp = 0;
-    chr->inertia = chr->xsp;
-    if (chr->status.p.f.in_air) {
+    chr->y_vel = 0;
+    chr->ground_vel = chr->x_vel;
+    if (((chr->status & SST_PSTATUS_IN_AIR) != 0)) {
         if (who == SolidChar_Sonic)
             Sonic_ResetOnFloor(chr);
         else
             Tails_ResetOnFloor(chr);
     }
-    chr->status.p.f.object_stand = true;
+    chr->status |= SST_PSTATUS_OBJECT_STAND;
     obj->status.b |= (uint8_t)(1 << (3 + who));
 }
 
@@ -56,20 +56,20 @@ static const int8_t *DoubleSlopePair(const int8_t *table, int16_t c, int16_t x_r
     return &table[index];
 }
 
-static int32_t SolidCore(Object *obj, Object *chr, int who, int16_t x_rad, int16_t y_air, int16_t y_walk, int16_t x, const int8_t *slope, const int8_t *dbl) {
+static int32_t SolidCore(Object *obj, Sst *chr, int who, int16_t x_rad, int16_t y_air, int16_t y_walk, int16_t x, const int8_t *slope, const int8_t *dbl) {
     const uint8_t stand_bit = (uint8_t)(1 << (3 + who));
     const uint8_t push_bit = (uint8_t)(1 << (5 + who));
 
     // Already standing on it: carry on until the character jumps or walks off
     if (obj->status.b & stand_bit) {
-        int16_t d0 = chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
-        if (chr->status.p.f.in_air || d0 < 0 || (uint16_t)d0 >= (uint16_t)(x_rad << 1)) {
-            chr->status.p.f.object_stand = false;
+        int16_t d0 = chr->x_pos.f.u - obj->pos.l.x.f.u + x_rad;
+        if (((chr->status & SST_PSTATUS_IN_AIR) != 0) || d0 < 0 || (uint16_t)d0 >= (uint16_t)(x_rad << 1)) {
+            chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
             obj->status.b &= (uint8_t)~stand_bit;
             return 0;
         }
         if (dbl != NULL) {
-            if (chr->status.p.f.object_stand) {
+            if (((chr->status & SST_PSTATUS_OBJECT_STAND) != 0)) {
                 int16_t c = d0;
                 if (obj->render.f.x_flip)
                     c = (int16_t)(~c + x_rad); // (the prototype adds half the width here, not all of it, when the object is flipped)
@@ -77,13 +77,13 @@ static int32_t SolidCore(Object *obj, Object *chr, int who, int16_t x_rad, int16
             }
         } else if (slope == NULL)
             MoveOnObject(obj, chr, x, obj->pos.l.y.f.u - y_walk);
-        else if (chr->status.p.f.object_stand)
+        else if (((chr->status & SST_PSTATUS_OBJECT_STAND) != 0))
             MoveOnObject(obj, chr, x, obj->pos.l.y.f.u - SlopeHeight(obj, chr, x_rad, slope) - slope[0]); // (the height as the table says it: the top of the object, not relative to its first column, as the prototype's MvSonicOnSlope has it. It was + here, which sank him 2 x the table's first entry into the slope: 16 pixels on a lever spring)
         return 0;
     }
 
     // The part of the box test along x: d0 is the character's distance from the object's left edge
-    int16_t d0 = chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+    int16_t d0 = chr->x_pos.f.u - obj->pos.l.x.f.u + x_rad;
     int16_t x_dia = x_rad << 1;
     int16_t y_top = obj->pos.l.y.f.u;
     int16_t d2 = y_air;
@@ -100,12 +100,12 @@ static int32_t SolidCore(Object *obj, Object *chr, int who, int16_t x_rad, int16
                 c = (int16_t)(~c + x_dia);
             const int8_t *pair = DoubleSlopePair(dbl, c, x_rad);
             y_top = obj->pos.l.y.f.u - pair[0];
-            d2 = (int16_t)(pair[1] + chr->y_rad);
-            d3 = chr->pos.l.y.f.u - y_top + chr->y_rad + 4;
-            d4 = (int16_t)(d2 + chr->y_rad);
+            d2 = (int16_t)(pair[1] + chr->y_radius);
+            d3 = chr->y_pos.f.u - y_top + chr->y_radius + 4;
+            d4 = (int16_t)(d2 + chr->y_radius);
         } else {
-            d2 += chr->y_rad;
-            d3 = chr->pos.l.y.f.u - y_top + 4 + d2;
+            d2 += chr->y_radius;
+            d3 = chr->y_pos.f.u - y_top + 4 + d2;
             d4 = d2 << 1;
         }
         miss = d3 < 0 || (uint16_t)d3 >= (uint16_t)d4;
@@ -136,18 +136,18 @@ static int32_t SolidCore(Object *obj, Object *chr, int who, int16_t x_rad, int16
             if ((uint16_t)d1 > 4) {
                 bool push = true;
                 if (d0 != 0) {
-                    bool toward = d0 < 0 ? chr->xsp < 0 : chr->xsp >= 0;
+                    bool toward = d0 < 0 ? chr->x_vel < 0 : chr->x_vel >= 0;
                     if (toward) {
-                        chr->inertia = 0;
-                        chr->xsp = 0;
+                        chr->ground_vel = 0;
+                        chr->x_vel = 0;
                     }
                 }
-                chr->pos.l.x.f.u -= d0;
-                if (chr->status.p.f.in_air)
+                chr->x_pos.f.u -= d0;
+                if (((chr->status & SST_PSTATUS_IN_AIR) != 0))
                     push = false;
                 if (push) {
                     obj->status.b |= push_bit;
-                    chr->status.p.f.pushing = true;
+                    chr->status |= SST_PSTATUS_PUSHING;
                     return 1;
                 }
             }
@@ -157,12 +157,12 @@ static int32_t SolidCore(Object *obj, Object *chr, int who, int16_t x_rad, int16
 
         if (d3 < 0) {
             // The underside: pushed down, or crushed if it can't move
-            if (chr->ysp != 0) {
-                if (chr->ysp < 0 && d3 < 0) {
-                    chr->pos.l.y.f.u -= d3;
-                    chr->ysp = 0;
+            if (chr->y_vel != 0) {
+                if (chr->y_vel < 0 && d3 < 0) {
+                    chr->y_pos.f.u -= d3;
+                    chr->y_vel = 0;
                 }
-            } else if (!chr->status.p.f.in_air) {
+            } else if (!((chr->status & SST_PSTATUS_IN_AIR) != 0)) {
                 if (who == SolidChar_Sonic)
                     KillSonic(chr, obj);
                 else
@@ -175,10 +175,10 @@ static int32_t SolidCore(Object *obj, Object *chr, int who, int16_t x_rad, int16
             // The top: lands on it if it is over the object and not rising
             d3 -= 4;
             int16_t wid = obj->width_pixels;
-            int16_t d1x = wid + chr->pos.l.x.f.u - obj->pos.l.x.f.u;
-            if (d1x >= 0 && d1x < (wid << 1) && chr->ysp >= 0) {
-                chr->pos.l.y.f.u -= d3;
-                chr->pos.l.y.f.u -= 1;
+            int16_t d1x = wid + chr->x_pos.f.u - obj->pos.l.x.f.u;
+            if (d1x >= 0 && d1x < (wid << 1) && chr->y_vel >= 0) {
+                chr->y_pos.f.u -= d3;
+                chr->y_pos.f.u -= 1;
                 RideObject(obj, chr, who);
                 return -1;
             }
@@ -191,33 +191,33 @@ static int32_t SolidCore(Object *obj, Object *chr, int who, int16_t x_rad, int16
     return 0;
 }
 
-int32_t Solid_Character(Object *obj, Object *chr, int who, int16_t x_rad, int16_t y_air, int16_t y_walk, int16_t x, const int8_t *slope) {
+int32_t Solid_Character(Object *obj, Sst *chr, int who, int16_t x_rad, int16_t y_air, int16_t y_walk, int16_t x, const int8_t *slope) {
     return SolidCore(obj, chr, who, x_rad, y_air, y_walk, x, slope, NULL);
 }
 
-int32_t Solid_CharacterDouble(Object *obj, Object *chr, int who, int16_t x_rad, int16_t x, const int8_t *table) {
+int32_t Solid_CharacterDouble(Object *obj, Sst *chr, int who, int16_t x_rad, int16_t x, const int8_t *table) {
     return SolidCore(obj, chr, who, x_rad, 0, 0, x, NULL, table);
 }
 
 // Landing on top of a platform (PlatformObject_cont / PlatformObject11_cont): `x_rad` is half the platform's width, `width` the whole span measured from its left edge (a bridge's logs are not as wide as its
 // ends), `y_walk` how high above the object's centre the surface is. The character must not be rising and be within 16 pixels of the surface. True if he has just landed on it.
 // Whether a character falling toward a surface at height `surface_y` is within 16 pixels above it, lands on it (PlatformObject_ChkYRange)
-static bool LandAt(Object *obj, Object *chr, int who, int16_t surface_y) {
-    int16_t dist = surface_y - (int16_t)(chr->pos.l.y.f.u + chr->y_rad + 4);
+static bool LandAt(Object *obj, Sst *chr, int who, int16_t surface_y) {
+    int16_t dist = surface_y - (int16_t)(chr->y_pos.f.u + chr->y_radius + 4);
     if (dist > 0 || (uint16_t)dist < 0xFFF0u) // (the surface has to be within 16 pixels above the feet)
         return false;
     if ((CharObjControl(chr) & 0x80) || chr->routine >= 6)
         return false;
 
-    chr->pos.l.y.f.u += dist + 3;
+    chr->y_pos.f.u += dist + 3;
     RideObject(obj, chr, who);
     return true;
 }
 
-bool Solid_PlatformLand(Object *obj, Object *chr, int who, int16_t x_rad, int16_t width, int16_t y_walk) {
-    if (chr->ysp < 0)
+bool Solid_PlatformLand(Object *obj, Sst *chr, int who, int16_t x_rad, int16_t width, int16_t y_walk) {
+    if (chr->y_vel < 0)
         return false;
-    int16_t d0 = chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+    int16_t d0 = chr->x_pos.f.u - obj->pos.l.x.f.u + x_rad;
     if (d0 < 0 || (uint16_t)d0 >= (uint16_t)width)
         return false;
     return LandAt(obj, chr, who, obj->pos.l.y.f.u - y_walk);
@@ -225,18 +225,18 @@ bool Solid_PlatformLand(Object *obj, Object *chr, int who, int16_t x_rad, int16_
 
 // A platform whose top is a slope (SlopedPlatform): carried while standing, otherwise it may be landed on at the height of the slope where the character is. `slope` gives the height of each 2 pixel column
 // above the object's centre, mirrored with the object.
-void Solid_SlopedPlatform(Object *obj, Object *chr, int who, int16_t x_rad, const uint8_t *slope, int16_t x) {
+void Solid_SlopedPlatform(Object *obj, Sst *chr, int who, int16_t x_rad, const uint8_t *slope, int16_t x) {
     const uint8_t stand_bit = (uint8_t)(1 << (3 + who));
-    int16_t d0 = chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+    int16_t d0 = chr->x_pos.f.u - obj->pos.l.x.f.u + x_rad;
     int16_t width = x_rad << 1;
 
     if (obj->status.b & stand_bit) {
-        if (chr->status.p.f.in_air || d0 < 0 || (uint16_t)d0 >= (uint16_t)width) {
-            chr->status.p.f.object_stand = false;
+        if (((chr->status & SST_PSTATUS_IN_AIR) != 0) || d0 < 0 || (uint16_t)d0 >= (uint16_t)width) {
+            chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
             obj->status.b &= (uint8_t)~stand_bit;
             return;
         }
-        if (chr->status.p.f.object_stand) {
+        if (((chr->status & SST_PSTATUS_OBJECT_STAND) != 0)) {
             uint16_t column = (uint16_t)d0;
             if (obj->render.f.x_flip)
                 column = (uint16_t)(~column + (x_rad << 1));
@@ -245,7 +245,7 @@ void Solid_SlopedPlatform(Object *obj, Object *chr, int who, int16_t x_rad, cons
         return;
     }
 
-    if (chr->ysp < 0 || d0 < 0 || (uint16_t)d0 >= (uint16_t)width)
+    if (chr->y_vel < 0 || d0 < 0 || (uint16_t)d0 >= (uint16_t)width)
         return;
     uint16_t column = (uint16_t)d0;
     if (obj->render.f.x_flip)
@@ -255,12 +255,12 @@ void Solid_SlopedPlatform(Object *obj, Object *chr, int who, int16_t x_rad, cons
 
 // A platform for either character (PlatformObject_SingleCharacter): while he stands on it he is carried along (`x` is where the platform was before it moved this frame) until he jumps or walks off;
 // otherwise he may land on it. `x_rad` is half its width and `y_walk` how high above its centre the surface is.
-void Solid_Platform(Object *obj, Object *chr, int who, int16_t x_rad, int16_t y_walk, int16_t x) {
+void Solid_Platform(Object *obj, Sst *chr, int who, int16_t x_rad, int16_t y_walk, int16_t x) {
     const uint8_t stand_bit = (uint8_t)(1 << (3 + who));
     if (obj->status.b & stand_bit) {
-        int16_t d0 = chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
-        if (chr->status.p.f.in_air || d0 < 0 || (uint16_t)d0 >= (uint16_t)(x_rad << 1)) {
-            chr->status.p.f.object_stand = false;
+        int16_t d0 = chr->x_pos.f.u - obj->pos.l.x.f.u + x_rad;
+        if (((chr->status & SST_PSTATUS_IN_AIR) != 0) || d0 < 0 || (uint16_t)d0 >= (uint16_t)(x_rad << 1)) {
+            chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
             obj->status.b &= (uint8_t)~stand_bit;
             return;
         }
@@ -271,6 +271,6 @@ void Solid_Platform(Object *obj, Object *chr, int who, int16_t x_rad, int16_t y_
 }
 
 // A character is put on an object without a solid test of its own (the corkscrew's path): it stands on it as if it had landed (RideObject_SetRide)
-void Solid_Ride(Object *obj, Object *chr, int who) {
+void Solid_Ride(Object *obj, Sst *chr, int who) {
     RideObject(obj, chr, who);
 }

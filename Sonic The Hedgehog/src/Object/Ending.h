@@ -13,7 +13,6 @@
 #define ENDING_SLOT_EGGMOBILE 24 // Eggman's wrecked Eggmobile in the background (only when it was destroyed in the Final Zone)
 #define CREDITS_SLOT_CHAOS   32 // v_eggmanchaos: the emeralds Eggman juggles
 
-void Obj_EndSonic(Object *obj);
 void Obj_EndChaos(Object *obj);
 void Obj_EndSTH(Object *obj);
 void Obj_EndEggman(Object *obj);

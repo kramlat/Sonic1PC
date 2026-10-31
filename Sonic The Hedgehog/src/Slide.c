@@ -1,3 +1,4 @@
+#include "Object/Sonic.h"
 #include "Slide.h"
 #include "Constants.h"
 
@@ -6,9 +7,9 @@
 #include "Sound.h"
 
 void Slide_Update(const SlideSurface *surfaces, int count) {
-    Scratch_Sonic *scratch = (Scratch_Sonic *)&player->scratch;
+    Scratch_Sonic *scratch = (Scratch_Sonic *)player->own.u8;
 
-    if (player->status.p.f.in_air) {
+    if (((player->status & SST_PSTATUS_IN_AIR) != 0)) {
         if (f_slidemode) {
             scratch->control_lock = 5;
             f_slidemode = false;
@@ -16,7 +17,7 @@ void Slide_Update(const SlideSurface *surfaces, int count) {
         return;
     }
 
-    uint8_t chunk = LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, player->pos.l.x.f.u >> 7, player->pos.l.y.f.u >> 7);
+    uint8_t chunk = LevelLayout_Chunk(LEVEL_LAYOUT_PLANE_FG, player->x_pos.f.u >> 7, player->y_pos.f.u >> 7);
 
     int match = -1;
     for (int i = 0; i < count; i++) {
@@ -35,8 +36,8 @@ void Slide_Update(const SlideSurface *surfaces, int count) {
     }
 
     int8_t speed = surfaces[match].speed;
-    player->status.p.f.x_flip = speed < 0;
-    player->inertia = (int16_t)(speed << 8);
+    SST_STATUS_SET(player, SST_PSTATUS_X_FLIP, speed < 0);
+    player->ground_vel = (int16_t)(speed << 8);
     player->anim = SonAnimId_WaterSlid;
     f_slidemode = true;
 

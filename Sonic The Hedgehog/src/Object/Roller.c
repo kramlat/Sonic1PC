@@ -19,7 +19,7 @@
 
 static void Roll_Action_FromLeft(Sst *self, Own_Roller *own) {
     (void)own;
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - 256);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - 256);
     if (d0 < 0)
         return;
     d0 = (int16_t)(d0 - self->x_pos.f.u);
@@ -51,7 +51,7 @@ static void Roll_Action_StopAndUnfold(Sst *self, Own_Roller *own) {
     if ((int8_t)own->stateflags < 0)
         return;
 
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - 48);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - 48);
     d0 = (int16_t)(d0 - self->x_pos.f.u);
     if (d0 >= 0)
         return;

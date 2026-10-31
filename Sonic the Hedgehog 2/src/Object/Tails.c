@@ -2,6 +2,9 @@
 // which a stub of a "CPU" fills with Sonic's own pad from 16 frames ago; he has no water code, no debug mode and no flight yet; hurting him loses SONIC'S rings (the copy of the hurt
 // code works on the shared ring count); he does not die from enemies, only from falling below the level, and then he comes back above Sonic.
 #include "Standing.h"
+#include "SstLoad.h"
+#include "ObjectSst.h"
+#include "Object.h"
 #include "Object/Tails.h"
 #include "Object/DustSplash.h"
 #include "Object/Countdown.h"
@@ -19,7 +22,6 @@
 #include "LevelCollision.h"
 #include "LevelScroll.h"
 #include "MathUtil.h"
-#include "Object.h"
 #include "PLC.h"
 #include "SpecialStage.h"
 #include "Sound.h"
@@ -50,7 +52,7 @@ static int16_t tails_look_shift;
 extern uint8_t hud_lives_slot; // (HUD.c; its header holds the HUD's art too, which only HUD.c may define)
 #define ArtTile_Tails      0x7A0
 #define ArtTile_TailsTails 0x7B0
-#define TAILSTAILS_SLOT    0x1D
+#define SST_TAILS_TAILS   (&sst[2]) // his tails: the reserved slot of the status table (Reserved_object_3)
 // His animations, as the alpha's table has them (ids 0-8 are Sonic 1's names; its 9 is the spin dash, where the port's Sonic has had 31, and its entry 31 the script of his fastest running)
 #define TAILS_ANIM_SPINDASH 9
 #define TAILS_ANIM_PEELOUT  31
@@ -69,69 +71,69 @@ static uint16_t control_counter;
 // The last frame loaded of each of Tails' art windows
 static uint8_t last_frame_tails = 0xFF, last_frame_tail = 0xFF;
 
-static signed int HurtTails(Object *obj, Object *src);
+static signed int HurtTails(Sst *self, Object *src);
 
 // General Sonic state stuff
-static inline uint8_t scratch_air(const Object *obj) {
-    return ((const Scratch_Sonic *)&obj->scratch)->air;
+static inline uint8_t scratch_air(const Sst *self) {
+    return ((const Scratch_Sonic *)self->own.u8)->air;
 }
 
 // Water (the alpha's Miles_Water): Tails slows in it as Sonic does, with the speeds of his own, the water splashes where he goes in and out, and his air is counted (Countdown.c) so that he drowns too.
-static void Tails_Water(Object *obj) {
+static void Tails_Water(Sst *self) {
     if (!Level_HasWater())
         return;
 
-    if (obj->pos.l.y.f.u < wtr_pos1) {
+    if (self->y_pos.f.u < wtr_pos1) {
         // Above water
-        if (!obj->status.p.f.underwater)
+        if (!((self->status & SST_PSTATUS_UNDERWATER) != 0))
             return;
-        obj->status.p.f.underwater = false;
-        Countdown_ResumeMusic(obj);
+        self->status &= (uint8_t)~SST_PSTATUS_UNDERWATER;
+        Countdown_ResumeMusic(self);
 
         tails_speed_max = 0x600;
         tails_speed_acc = 0xC;
         tails_speed_dec = 0x80;
 
-        if (obj->routine != 4)
-            obj->ysp = (int16_t)(obj->ysp << 1); // double Y-speed while leaving the water (not when he is hurt)
-        if (obj->ysp == 0)
+        if (self->routine != 4)
+            self->y_vel = (int16_t)(self->y_vel << 1); // double Y-speed while leaving the water (not when he is hurt)
+        if (self->y_vel == 0)
             return;
         DustSplash_Show(&objects[DUST_TAILS_SLOT], DUST_SPLASH);
-        if (obj->ysp < -0x1000)
-            obj->ysp = -0x1000;
+        if (self->y_vel < -0x1000)
+            self->y_vel = -0x1000;
         PlaySound(sfx_Splash);
     } else {
         // Underwater
-        if (obj->status.p.f.underwater)
+        if (((self->status & SST_PSTATUS_UNDERWATER) != 0))
             return;
-        obj->status.p.f.underwater = true;
-        Countdown_ResumeMusic(obj);
+        self->status |= SST_PSTATUS_UNDERWATER;
+        Countdown_ResumeMusic(self);
         Countdown_Make(COUNTDOWN_TAILS_SLOT, true); // the counting of his air
 
         tails_speed_max = 0x300;
         tails_speed_acc = 0x6;
         tails_speed_dec = 0x40;
 
-        obj->xsp >>= 1;
-        obj->ysp >>= 2;
-        if (obj->ysp == 0)
+        self->x_vel >>= 1;
+        self->y_vel >>= 2;
+        if (self->y_vel == 0)
             return;
         DustSplash_Show(&objects[DUST_TAILS_SLOT], DUST_SPLASH);
         PlaySound(sfx_Splash);
     }
 }
 
-static void Tails_Display(Object *obj) {
-    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+static void Tails_Display(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
     // Handle invulnerability blinking
     uint16_t blink;
     if ((blink = scratch->flash_time)) {
         scratch->flash_time--;
         if (blink & 4)
-            DisplaySprite(obj);
+            Sst_Draw(self);
     } else {
-        DisplaySprite(obj);
+        Sst_Draw(self);
     }
 
     // Handle invincibility timer
@@ -184,8 +186,8 @@ static void Tails_LoadDPLC(uint8_t frame, uint8_t *last, uint16_t tile) {
     }
 }
 
-static void Tails_LoadGfx(Object *obj) {
-    Tails_LoadDPLC(obj->frame, &last_frame_tails, ArtTile_Tails);
+static void Tails_LoadGfx(Sst *self) {
+    Tails_LoadDPLC(self->mapping_frame, &last_frame_tails, ArtTile_Tails);
 }
 
 // Tails_Control and TailsCPU_Control: a pad 2 that is being used keeps Tails for 300 frames; otherwise he copies Sonic's pad from 16 frames back (the CPU's other states
@@ -212,79 +214,79 @@ static void Tails_Control(void) {
 
 // The animation of Tails and of his tails. Tails' (Tails_Animate): like Sonic's, but his walking sets are 8 frames apart and his running ones 6, and he tumbles from frame $75 (a spring flips him); the command
 // $FC (only the tails' animation uses it) turns the tails with the direction Tails moves in.
-static void Tails_AnimateReadFrame(Object *obj, const uint8_t *anim_script) {
-    uint8_t cmd = anim_script[1 + obj->anim_frame];
+static void Tails_AnimateReadFrame(Sst *self, const uint8_t *anim_script) {
+    uint8_t cmd = anim_script[1 + self->anim_frame];
     if (cmd < 0xF0) {
     Anim_Next:
-        obj->frame = cmd;
-        obj->anim_frame++;
+        self->mapping_frame = cmd;
+        self->anim_frame++;
     } else {
         if (++cmd == 0) { // restart
-            obj->anim_frame = 0;
+            self->anim_frame = 0;
             cmd = anim_script[1];
             goto Anim_Next;
         }
         if (++cmd == 0) { // go back (next byte) frames
-            obj->anim_frame -= anim_script[2 + obj->anim_frame];
-            cmd = anim_script[1 + obj->anim_frame];
+            self->anim_frame -= anim_script[2 + self->anim_frame];
+            cmd = anim_script[1 + self->anim_frame];
             goto Anim_Next;
         }
         if (++cmd == 0) // change animation
-            obj->anim = anim_script[2 + obj->anim_frame];
+            self->anim = anim_script[2 + self->anim_frame];
     }
 }
 
-static void Tails_AnimateTable(Object *obj, const uint8_t *table, const Object *tails) {
-    uint8_t anim = obj->anim;
-    if (anim != obj->prev_anim) {
-        obj->prev_anim = anim;
-        obj->anim_frame = 0;
-        obj->frame_time.b = 0;
+static void Tails_AnimateTable(Sst *self, const uint8_t *table, const Sst *tails) {
+    uint8_t anim = self->anim;
+    if (anim != self->prev_anim) {
+        self->prev_anim = anim;
+        self->anim_frame = 0;
+        self->anim_frame_timer = 0;
     }
 #define TAILS_SCRIPT(id) (table + ((table[(id) << 1] << 8) | table[((id) << 1) + 1]))
     const uint8_t *script = TAILS_SCRIPT(anim);
 
     int8_t wait = (int8_t)script[0];
     if (wait >= 0) { // a regular animation
-        obj->render.f.x_flip = obj->status.p.f.x_flip;
-        obj->render.f.y_flip = false;
-        if (--obj->frame_time.b >= 0)
+        SST_RENDER_SET(self, SST_RENDER_X_FLIP, ((self->status & SST_PSTATUS_X_FLIP) != 0));
+        SST_RENDER_SET(self, SST_RENDER_Y_FLIP, false);
+        if (--self->anim_frame_timer >= 0)
             return;
-        obj->frame_time.b = wait;
-        Tails_AnimateReadFrame(obj, script);
+        self->anim_frame_timer = wait;
+        Tails_AnimateReadFrame(self, script);
         return;
     }
 
-    if (--obj->frame_time.b >= 0)
+    if (--self->anim_frame_timer >= 0)
         return;
-    uint16_t abs_spd = (obj->inertia < 0) ? -obj->inertia : obj->inertia;
+    uint16_t abs_spd = (self->ground_vel < 0) ? -self->ground_vel : self->ground_vel;
     if (++wait == 0) { // $FF: walking or running
-        uint8_t angle = obj->angle;
+        uint8_t angle = self->angle;
         if (angle != 0 && !(angle & 0x80))
             angle--; // (the alpha: a slope that rises counts one step less)
-        uint8_t flip = obj->status.p.f.x_flip;
+        uint8_t flip = ((self->status & SST_PSTATUS_X_FLIP) != 0);
         if (!flip)
             angle ^= ~0;
         if ((angle += 0x10) & 0x80)
             flip ^= 3;
-        obj->render.f.x_flip = (flip & 1) != 0;
-        obj->render.f.y_flip = (flip & 2) != 0;
+        SST_RENDER_SET(self, SST_RENDER_X_FLIP, (flip & 1) != 0);
+        SST_RENDER_SET(self, SST_RENDER_Y_FLIP, (flip & 2) != 0);
         // Tumbling (flung by a spring): the frame comes from the flip angle alone
-        uint8_t fa = ((Scratch_Sonic*)&obj->scratch)->flip_angle;
+        uint8_t fa = ((Scratch_Sonic *)self->own.u8)->flip_angle;
         if (fa) {
-            if (!obj->status.p.f.x_flip) {
-                obj->render.f.x_flip = false;
-                obj->render.f.y_flip = false;
-                obj->frame = (uint8_t)(((uint8_t)(fa + 0xB)) / 0x16 + 0x75);
+            if (!((self->status & SST_PSTATUS_X_FLIP) != 0)) {
+                SST_RENDER_SET(self, SST_RENDER_X_FLIP, false);
+                SST_RENDER_SET(self, SST_RENDER_Y_FLIP, false);
+                self->mapping_frame = (uint8_t)(((uint8_t)(fa + 0xB)) / 0x16 + 0x75);
             } else {
-                obj->render.f.x_flip = true;
-                obj->render.f.y_flip = true;
-                obj->frame = (uint8_t)(((uint8_t)((uint8_t)-fa + 0x8F)) / 0x16 + 0x75);
+                SST_RENDER_SET(self, SST_RENDER_X_FLIP, true);
+                SST_RENDER_SET(self, SST_RENDER_Y_FLIP, true);
+                self->mapping_frame = (uint8_t)(((uint8_t)((uint8_t)-fa + 0x8F)) / 0x16 + 0x75);
             }
-            obj->frame_time.b = 0;
+            self->anim_frame_timer = 0;
             return;
         }
-        if (obj->status.p.f.pushing)
+        if (((self->status & SST_PSTATUS_PUSHING) != 0))
             goto Anim_Pushing;
         angle = (angle >> 4) & 6;
         const uint8_t *s = TAILS_SCRIPT(SonAnimId_Walk);
@@ -298,9 +300,9 @@ static void Tails_AnimateTable(Object *obj, const uint8_t *table, const Object *
         int16_t spd = 0x800 - abs_spd;
         if (spd < 0)
             spd = 0;
-        obj->frame_time.b = spd >> 8;
-        Tails_AnimateReadFrame(obj, s);
-        obj->frame += offset;
+        self->anim_frame_timer = spd >> 8;
+        Tails_AnimateReadFrame(self, s);
+        self->mapping_frame += offset;
     } else if (++wait == 0) { // $FE: rolling
         const uint8_t *s = TAILS_SCRIPT(SonAnimId_Roll2);
         if (abs_spd < 0x600)
@@ -308,82 +310,82 @@ static void Tails_AnimateTable(Object *obj, const uint8_t *table, const Object *
         int16_t spd = 0x400 - abs_spd;
         if (spd < 0)
             spd = 0;
-        obj->frame_time.b = spd >> 8;
-        obj->render.f.x_flip = obj->status.p.f.x_flip;
-        obj->render.f.y_flip = false;
-        Tails_AnimateReadFrame(obj, s);
+        self->anim_frame_timer = spd >> 8;
+        SST_RENDER_SET(self, SST_RENDER_X_FLIP, ((self->status & SST_PSTATUS_X_FLIP) != 0));
+        SST_RENDER_SET(self, SST_RENDER_Y_FLIP, false);
+        Tails_AnimateReadFrame(self, s);
     } else if (++wait == 0) { // $FD: pushing
     Anim_Pushing:;
         int16_t spd = 0x800 - abs_spd;
         if (spd < 0)
             spd = 0;
-        obj->frame_time.b = spd >> 6;
-        obj->render.f.x_flip = obj->status.p.f.x_flip;
-        obj->render.f.y_flip = false;
-        Tails_AnimateReadFrame(obj, TAILS_SCRIPT(SonAnimId_Push));
+        self->anim_frame_timer = spd >> 6;
+        SST_RENDER_SET(self, SST_RENDER_X_FLIP, ((self->status & SST_PSTATUS_X_FLIP) != 0));
+        SST_RENDER_SET(self, SST_RENDER_Y_FLIP, false);
+        Tails_AnimateReadFrame(self, TAILS_SCRIPT(SonAnimId_Push));
     } else { // $FC: the tails, turned the way Tails moves
-        uint8_t angle = CalcAngle(tails->xsp, tails->ysp);
+        uint8_t angle = CalcAngle(tails->x_vel, tails->y_vel);
         uint8_t flip = 0;
-        if (!obj->status.p.f.x_flip)
+        if (!((self->status & SST_PSTATUS_X_FLIP) != 0))
             angle = (uint8_t)~angle;
         else
             angle = (uint8_t)(angle + 0x80);
         angle = (uint8_t)(angle + 0x10);
         if (angle & 0x80)
             flip = 3;
-        obj->render.f.x_flip = ((obj->status.p.f.x_flip ^ flip) & 1) != 0;
-        obj->render.f.y_flip = ((obj->status.p.f.x_flip ^ flip) & 2) != 0;
+        SST_RENDER_SET(self, SST_RENDER_X_FLIP, ((((self->status & SST_PSTATUS_X_FLIP) != 0) ^ flip) & 1) != 0);
+        SST_RENDER_SET(self, SST_RENDER_Y_FLIP, ((((self->status & SST_PSTATUS_X_FLIP) != 0) ^ flip) & 2) != 0);
         uint8_t offset = (uint8_t)((angle >> 3) & 0xC);
-        obj->frame_time.b = 3;
-        Tails_AnimateReadFrame(obj, script);
-        obj->frame += offset;
+        self->anim_frame_timer = 3;
+        Tails_AnimateReadFrame(self, script);
+        self->mapping_frame += offset;
     }
 #undef TAILS_SCRIPT
 }
 
-static void Tails_Animate(Object *obj) {
-    Tails_AnimateTable(obj, Animation_Tails, obj);
+static void Tails_Animate(Sst *self) {
+    Tails_AnimateTable(self, Animation_Tails, self);
 }
 
 // Falling below the level (the only way he dies): Tails_GameOver brings him back above Sonic
-void KillTails(Object *obj) {
-    obj->routine = 6;
-    Tails_ResetOnFloor(obj);
-    obj->status.p.f.in_air = true;
-    obj->ysp = -0x700;
-    obj->xsp = 0;
-    obj->inertia = 0;
-    obj->anim = SonAnimId_Death;
-    obj->tile |= TILE_PRIORITY_AND;
+void KillTails(Sst *self) {
+    self->routine = 6;
+    Tails_ResetOnFloor(self);
+    self->status |= SST_PSTATUS_IN_AIR;
+    self->y_vel = -0x700;
+    self->x_vel = 0;
+    self->ground_vel = 0;
+    self->anim = SonAnimId_Death;
+    self->art_tile |= TILE_PRIORITY_AND;
     PlaySound(sfx_Death);
 }
 
 // Sonic collision functions
-void Tails_ResetOnFloor(Object *obj) {
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+void Tails_ResetOnFloor(Sst *self) {
+    Scratch_Sonic* scratch = (Scratch_Sonic *)self->own.u8;
 
     // Set state
-    obj->status.p.f.pushing = false;
-    obj->status.p.f.in_air = false;
-    obj->status.p.f.roll_jump = false;
+    self->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+    self->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
+    self->status &= (uint8_t)~SST_PSTATUS_ROLL_JUMP;
 
-    if (obj->status.p.f.in_ball) {
-        obj->status.p.f.in_ball = false;
-        obj->y_rad = TAILS_HEIGHT;
-        obj->x_rad = TAILS_WIDTH;
-        obj->anim = SonAnimId_Walk;
-        obj->pos.l.y.f.u -= 1; // (one, not Sonic's five)
+    if (((self->status & SST_PSTATUS_IN_BALL) != 0)) {
+        self->status &= (uint8_t)~SST_PSTATUS_IN_BALL;
+        self->y_radius = TAILS_HEIGHT;
+        self->x_radius = TAILS_WIDTH;
+        self->anim = SonAnimId_Walk;
+        self->y_pos.f.u -= 1; // (one, not Sonic's five)
     }
 
     scratch->flip_angle = 0;
     scratch->jumping = false;
     item_bonus = 0;
     scratch->flips_remaining = 0;
-    if (obj->anim == 0x14)
-        obj->anim = SonAnimId_Walk; // (the alpha: a landing ends a flip's animation)
+    if (self->anim == 0x14)
+        self->anim = SonAnimId_Walk; // (the alpha: a landing ends a flip's animation)
 }
 
-static int16_t Tails_Angle(Object *obj, int16_t dist0, int16_t dist1) {
+static int16_t Tails_Angle(Sst *self, int16_t dist0, int16_t dist1) {
     // Get angle and distance to use (use closest one)
     uint8_t res_angle = angle_buffer1;
     int16_t res_dist = dist1;
@@ -394,17 +396,17 @@ static int16_t Tails_Angle(Object *obj, int16_t dist0, int16_t dist1) {
 
     // Use adjusted angle if hit angle is odd (special angle, run on all sides)
     if (res_angle & 1)
-        obj->angle = (obj->angle + 0x20) & 0xC0;
+        self->angle = (self->angle + 0x20) & 0xC0;
     else
-        obj->angle = res_angle;
+        self->angle = res_angle;
     return res_dist;
 }
 
-static void Tails_AnglePos(Object *obj) {
-    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+static void Tails_AnglePos(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
     // Don't do floor collision if standing on an object
-    if (obj->status.p.f.object_stand) {
+    if (((self->status & SST_PSTATUS_OBJECT_STAND) != 0)) {
         angle_buffer0 = 0;
         angle_buffer1 = 0;
         return;
@@ -415,7 +417,7 @@ static void Tails_AnglePos(Object *obj) {
     angle_buffer1 = 3;
 
     // Get symmetrical angle
-    uint8_t angle = obj->angle;
+    uint8_t angle = self->angle;
     if ((angle + 0x20) & 0x80) {
         if (angle & 0x80)
             angle--;
@@ -429,73 +431,73 @@ static void Tails_AnglePos(Object *obj) {
     int16_t dist0, dist1, dist;
     switch (angle & 0xC0) {
     case 0x00:
-        dist0 = FindFloor(obj, obj->pos.l.x.f.u + obj->x_rad, obj->pos.l.y.f.u + obj->y_rad, META_SOLID_TOP, 0, 0x10, &angle_buffer0);
-        dist1 = FindFloor(obj, obj->pos.l.x.f.u - obj->x_rad, obj->pos.l.y.f.u + obj->y_rad, META_SOLID_TOP, 0, 0x10, &angle_buffer1);
-        if ((dist = Tails_Angle(obj, dist0, dist1)) != 0) {
+        dist0 = FindFloor(self, self->x_pos.f.u + self->x_radius, self->y_pos.f.u + self->y_radius, META_SOLID_TOP, 0, 0x10, &angle_buffer0);
+        dist1 = FindFloor(self, self->x_pos.f.u - self->x_radius, self->y_pos.f.u + self->y_radius, META_SOLID_TOP, 0, 0x10, &angle_buffer1);
+        if ((dist = Tails_Angle(self, dist0, dist1)) != 0) {
             if (dist < 0) {
                 if (dist >= -14)
-                    obj->pos.l.y.f.u += dist;
+                    self->y_pos.f.u += dist;
             } else {
                 if (dist <= 14 || scratch->x38.floor_clip) {
-                    obj->pos.l.y.f.u += dist;
+                    self->y_pos.f.u += dist;
                 } else {
-                    obj->status.p.f.in_air = true;
-                    obj->status.p.f.pushing = false;
-                    obj->prev_anim = 1;
+                    self->status |= SST_PSTATUS_IN_AIR;
+                    self->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+                    self->prev_anim = 1;
                 }
             }
         }
         break;
     case 0x40:
-        dist0 = FindWall(obj, (obj->pos.l.x.f.u - obj->y_rad) ^ 0xF, obj->pos.l.y.f.u - obj->x_rad, META_SOLID_TOP, META_X_FLIP, -0x10, &angle_buffer0);
-        dist1 = FindWall(obj, (obj->pos.l.x.f.u - obj->y_rad) ^ 0xF, obj->pos.l.y.f.u + obj->x_rad, META_SOLID_TOP, META_X_FLIP, -0x10, &angle_buffer1);
-        if ((dist = Tails_Angle(obj, dist0, dist1)) != 0) {
+        dist0 = FindWall(self, (self->x_pos.f.u - self->y_radius) ^ 0xF, self->y_pos.f.u - self->x_radius, META_SOLID_TOP, META_X_FLIP, -0x10, &angle_buffer0);
+        dist1 = FindWall(self, (self->x_pos.f.u - self->y_radius) ^ 0xF, self->y_pos.f.u + self->x_radius, META_SOLID_TOP, META_X_FLIP, -0x10, &angle_buffer1);
+        if ((dist = Tails_Angle(self, dist0, dist1)) != 0) {
             if (dist < 0) {
                 if (dist >= -14)
-                    obj->pos.l.x.f.u -= dist;
+                    self->x_pos.f.u -= dist;
             } else {
                 if (dist <= 14 || scratch->x38.floor_clip) {
-                    obj->pos.l.x.f.u -= dist;
+                    self->x_pos.f.u -= dist;
                 } else {
-                    obj->status.p.f.in_air = true;
-                    obj->status.p.f.pushing = false;
-                    obj->prev_anim = 1;
+                    self->status |= SST_PSTATUS_IN_AIR;
+                    self->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+                    self->prev_anim = 1;
                 }
             }
         }
         break;
     case 0x80:
-        dist0 = FindFloor(obj, obj->pos.l.x.f.u - obj->x_rad, (obj->pos.l.y.f.u - obj->y_rad) ^ 0xF, META_SOLID_TOP, META_Y_FLIP, -0x10, &angle_buffer0);
-        dist1 = FindFloor(obj, obj->pos.l.x.f.u + obj->x_rad, (obj->pos.l.y.f.u - obj->y_rad) ^ 0xF, META_SOLID_TOP, META_Y_FLIP, -0x10, &angle_buffer1);
-        if ((dist = Tails_Angle(obj, dist0, dist1)) != 0) {
+        dist0 = FindFloor(self, self->x_pos.f.u - self->x_radius, (self->y_pos.f.u - self->y_radius) ^ 0xF, META_SOLID_TOP, META_Y_FLIP, -0x10, &angle_buffer0);
+        dist1 = FindFloor(self, self->x_pos.f.u + self->x_radius, (self->y_pos.f.u - self->y_radius) ^ 0xF, META_SOLID_TOP, META_Y_FLIP, -0x10, &angle_buffer1);
+        if ((dist = Tails_Angle(self, dist0, dist1)) != 0) {
             if (dist < 0) {
                 if (dist >= -14)
-                    obj->pos.l.y.f.u -= dist;
+                    self->y_pos.f.u -= dist;
             } else {
                 if (dist <= 14 || scratch->x38.floor_clip) {
-                    obj->pos.l.y.f.u -= dist;
+                    self->y_pos.f.u -= dist;
                 } else {
-                    obj->status.p.f.in_air = true;
-                    obj->status.p.f.pushing = false;
-                    obj->prev_anim = 1;
+                    self->status |= SST_PSTATUS_IN_AIR;
+                    self->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+                    self->prev_anim = 1;
                 }
             }
         }
         break;
     case 0xC0:
-        dist0 = FindWall(obj, obj->pos.l.x.f.u + obj->y_rad, obj->pos.l.y.f.u + obj->x_rad, META_SOLID_TOP, 0, 0x10, &angle_buffer0);
-        dist1 = FindWall(obj, obj->pos.l.x.f.u + obj->y_rad, obj->pos.l.y.f.u - obj->x_rad, META_SOLID_TOP, 0, 0x10, &angle_buffer1);
-        if ((dist = Tails_Angle(obj, dist0, dist1)) != 0) {
+        dist0 = FindWall(self, self->x_pos.f.u + self->y_radius, self->y_pos.f.u + self->x_radius, META_SOLID_TOP, 0, 0x10, &angle_buffer0);
+        dist1 = FindWall(self, self->x_pos.f.u + self->y_radius, self->y_pos.f.u - self->x_radius, META_SOLID_TOP, 0, 0x10, &angle_buffer1);
+        if ((dist = Tails_Angle(self, dist0, dist1)) != 0) {
             if (dist < 0) {
                 if (dist >= -14)
-                    obj->pos.l.x.f.u += dist;
+                    self->x_pos.f.u += dist;
             } else {
                 if (dist <= 14 || scratch->x38.floor_clip) {
-                    obj->pos.l.x.f.u += dist;
+                    self->x_pos.f.u += dist;
                 } else if (!scratch->x38.floor_clip) {
-                    obj->status.p.f.in_air = true;
-                    obj->status.p.f.pushing = false;
-                    obj->prev_anim = 1;
+                    self->status |= SST_PSTATUS_IN_AIR;
+                    self->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+                    self->prev_anim = 1;
                 }
             }
         }
@@ -503,11 +505,11 @@ static void Tails_AnglePos(Object *obj) {
     }
 }
 
-static void Tails_Floor(Object *obj) {
+static void Tails_Floor(Sst *self) {
     // Get angle we're moving in
     // There's some weird logging stuff done here
     // Maybe testing if the CalcAngle is yielding desirable results?
-    uint8_t angle = CalcAngle(obj->xsp, obj->ysp);
+    uint8_t angle = CalcAngle(self->x_vel, self->y_vel);
     angle -= 0x20;
     angle &= 0xC0;
 
@@ -516,161 +518,161 @@ static void Tails_Floor(Object *obj) {
     switch (angle) {
     case 0x00: { // Moving down
         // Collide with walls
-        int16_t wall_left = GetDistance2_Left(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL);
-        int16_t wall_right = GetDistance2_Right(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL);
+        int16_t wall_left = GetDistance2_Left(self, self->x_pos.f.u, self->y_pos.f.u, NULL);
+        int16_t wall_right = GetDistance2_Right(self, self->x_pos.f.u, self->y_pos.f.u, NULL);
         if ((dist0 = wall_left) < 0) {
-            obj->pos.l.x.f.u -= dist0;
-            obj->xsp = 0;
+            self->x_pos.f.u -= dist0;
+            self->x_vel = 0;
         }
         if ((dist0 = wall_right) < 0) {
-            obj->pos.l.x.f.u += dist0;
-            obj->xsp = 0;
+            self->x_pos.f.u += dist0;
+            self->x_vel = 0;
         }
 
         // Collide with floor
-        GetDistance_Down(obj, &dist0, &dist1, &hit_angle);
+        GetDistance_Down(self, &dist0, &dist1, &hit_angle);
 
-        clip = -((obj->ysp >> 8) + 8);
+        clip = -((self->y_vel >> 8) + 8);
         if (dist1 < 0 && (dist0 >= clip || dist1 >= clip)) {
             // Set state
-            obj->pos.l.y.f.u += dist1;
-            obj->angle = hit_angle;
-            Tails_ResetOnFloor(obj);
-            obj->anim = SonAnimId_Walk;
+            self->y_pos.f.u += dist1;
+            self->angle = hit_angle;
+            Tails_ResetOnFloor(self);
+            self->anim = SonAnimId_Walk;
 
             // Get inertia
             if ((hit_angle + 0x20) & 0x40) {
                 // If floor is greater than 45 degrees, use our full vertical velocity (capped at 0xFC0)
-                obj->xsp = 0;
-                if (obj->ysp > 0xFC0)
-                    obj->ysp = 0xFC0;
-                obj->inertia = (hit_angle & 0x80) ? -obj->ysp : obj->ysp;
+                self->x_vel = 0;
+                if (self->y_vel > 0xFC0)
+                    self->y_vel = 0xFC0;
+                self->ground_vel = (hit_angle & 0x80) ? -self->y_vel : self->y_vel;
             } else if ((hit_angle + 0x10) & 0x20) {
                 // If floor is greater than 22.5 degrees, use our halved vertical velocity
-                obj->ysp /= 2;
-                obj->inertia = (hit_angle & 0x80) ? -obj->ysp : obj->ysp;
+                self->y_vel /= 2;
+                self->ground_vel = (hit_angle & 0x80) ? -self->y_vel : self->y_vel;
             } else {
                 // If floor is less than 22.5 degrees, use our horizontal velocity
-                obj->ysp = 0;
-                obj->inertia = obj->xsp;
+                self->y_vel = 0;
+                self->ground_vel = self->x_vel;
             }
         }
         break;
     }
     case 0x40: // Moving left
         // Collide with walls
-        if ((dist0 = GetDistance2_Left(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL)) < 0) {
-            obj->pos.l.x.f.u -= dist0;
-            obj->xsp = 0;
-            obj->inertia = obj->ysp;
+        if ((dist0 = GetDistance2_Left(self, self->x_pos.f.u, self->y_pos.f.u, NULL)) < 0) {
+            self->x_pos.f.u -= dist0;
+            self->x_vel = 0;
+            self->ground_vel = self->y_vel;
             break; // Original returns here?
         }
 
         // Collide with ceiling
-        GetDistance_Up(obj, NULL, &dist1, &hit_angle);
+        GetDistance_Up(self, NULL, &dist1, &hit_angle);
         if (dist1 < 0) {
-            obj->pos.l.y.f.u -= dist1;
-            if (obj->ysp < 0)
-                obj->ysp = 0;
+            self->y_pos.f.u -= dist1;
+            if (self->y_vel < 0)
+                self->y_vel = 0;
             break; // Again...
         }
 
         // Collide with floor
-        if (obj->ysp >= 0) {
-            GetDistance_Down(obj, NULL, &dist1, &hit_angle);
+        if (self->y_vel >= 0) {
+            GetDistance_Down(self, NULL, &dist1, &hit_angle);
             if (dist1 < 0) {
                 // Set state
-                obj->pos.l.y.f.u += dist1;
-                obj->angle = hit_angle;
-                Tails_ResetOnFloor(obj);
-                obj->anim = SonAnimId_Walk;
+                self->y_pos.f.u += dist1;
+                self->angle = hit_angle;
+                Tails_ResetOnFloor(self);
+                self->anim = SonAnimId_Walk;
 
                 // Get inertia
-                obj->ysp = 0;
-                obj->inertia = obj->xsp;
+                self->y_vel = 0;
+                self->ground_vel = self->x_vel;
             }
         }
         break;
     case 0x80: // Moving up
         // Collide with walls
-        if ((dist0 = GetDistance2_Left(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL)) < 0) {
-            obj->pos.l.x.f.u -= dist0;
-            obj->xsp = 0;
+        if ((dist0 = GetDistance2_Left(self, self->x_pos.f.u, self->y_pos.f.u, NULL)) < 0) {
+            self->x_pos.f.u -= dist0;
+            self->x_vel = 0;
         }
-        if ((dist0 = GetDistance2_Right(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL)) < 0) {
-            obj->pos.l.x.f.u += dist0;
-            obj->xsp = 0;
+        if ((dist0 = GetDistance2_Right(self, self->x_pos.f.u, self->y_pos.f.u, NULL)) < 0) {
+            self->x_pos.f.u += dist0;
+            self->x_vel = 0;
         }
 
         // Collide with ceiling
-        GetDistance_Up(obj, NULL, &dist1, &hit_angle);
+        GetDistance_Up(self, NULL, &dist1, &hit_angle);
         if (dist1 < 0) {
-            obj->pos.l.y.f.u -= dist1;
+            self->y_pos.f.u -= dist1;
             if (!((hit_angle + 0x20) & 0x40)) {
                 // Kill speed
-                if (obj->ysp < 0)
-                    obj->ysp = 0;
+                if (self->y_vel < 0)
+                    self->y_vel = 0;
             } else {
                 // Land on ceiling
-                obj->angle = hit_angle;
-                Tails_ResetOnFloor(obj);
-                obj->inertia = (hit_angle & 0x80) ? -obj->ysp : obj->ysp;
+                self->angle = hit_angle;
+                Tails_ResetOnFloor(self);
+                self->ground_vel = (hit_angle & 0x80) ? -self->y_vel : self->y_vel;
             }
         }
         break;
     case 0xC0: // Moving right
         // Collide with walls
-        if ((dist0 = GetDistance2_Right(obj, obj->pos.l.x.f.u, obj->pos.l.y.f.u, NULL)) < 0) {
-            obj->pos.l.x.f.u += dist0;
-            obj->xsp = 0;
-            obj->inertia = obj->ysp;
+        if ((dist0 = GetDistance2_Right(self, self->x_pos.f.u, self->y_pos.f.u, NULL)) < 0) {
+            self->x_pos.f.u += dist0;
+            self->x_vel = 0;
+            self->ground_vel = self->y_vel;
         }
 
         // Collide with ceiling
-        GetDistance_Up(obj, NULL, &dist1, &hit_angle);
+        GetDistance_Up(self, NULL, &dist1, &hit_angle);
         if (dist1 < 0) {
-            obj->pos.l.y.f.u -= dist1;
-            if (obj->ysp < 0)
-                obj->ysp = 0;
+            self->y_pos.f.u -= dist1;
+            if (self->y_vel < 0)
+                self->y_vel = 0;
             break; // Again...
         }
 
         // Collide with floor
-        if (obj->ysp >= 0) {
-            GetDistance_Down(obj, NULL, &dist1, &hit_angle);
+        if (self->y_vel >= 0) {
+            GetDistance_Down(self, NULL, &dist1, &hit_angle);
             if (dist1 < 0) {
                 // Set state
-                obj->pos.l.y.f.u += dist1;
-                obj->angle = hit_angle;
-                Tails_ResetOnFloor(obj);
-                obj->anim = SonAnimId_Walk;
+                self->y_pos.f.u += dist1;
+                self->angle = hit_angle;
+                Tails_ResetOnFloor(self);
+                self->anim = SonAnimId_Walk;
 
                 // Get inertia
-                obj->ysp = 0;
-                obj->inertia = obj->xsp;
+                self->y_vel = 0;
+                self->ground_vel = self->x_vel;
             }
         }
         break;
     }
 }
 
-static void Tails_HurtStop(Object *obj) {
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+static void Tails_HurtStop(Sst *self) {
+    Scratch_Sonic* scratch = (Scratch_Sonic *)self->own.u8;
 
     // Die when falling below the level
-    if ((limit_btm2 + SCREEN_HEIGHT) < obj->pos.l.y.f.u) {
-        KillTails(obj);
+    if ((limit_btm2 + SCREEN_HEIGHT) < self->y_pos.f.u) {
+        KillTails(self);
         return;
     }
 
     // Do collision
-    Tails_Floor(obj);
-    if (!obj->status.p.f.in_air) {
-        obj->ysp = 0;
-        obj->xsp = 0;
-        obj->inertia = 0;
-        obj->anim = SonAnimId_Walk;
-        obj->routine -= 2;
+    Tails_Floor(self);
+    if (!((self->status & SST_PSTATUS_IN_AIR) != 0)) {
+        self->y_vel = 0;
+        self->x_vel = 0;
+        self->ground_vel = 0;
+        self->anim = SonAnimId_Walk;
+        self->routine -= 2;
         scratch->flash_time = 120;
     }
 }
@@ -716,8 +718,8 @@ static const uint8_t obj_sizes[][2] = {
     { 0x48, 0x8 },
 };
 
-static signed int React_ChkHurt(Object *obj, Object *hit) {
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+static signed int React_ChkHurt(Sst *self, Object *hit) {
+    Scratch_Sonic* scratch = (Scratch_Sonic *)self->own.u8;
 
     // Check for invincibility or invulnerability
     if (invincibility)
@@ -726,24 +728,24 @@ static signed int React_ChkHurt(Object *obj, Object *hit) {
         return -1;
 
     // Hurt Sonic
-    return HurtTails(obj, hit);
+    return HurtTails(self, hit);
 }
 
-static signed int React_Enemy(Object *obj, Object *hit)
+static signed int React_Enemy(Sst *self, Object *hit)
 {
     // Check if we can hurt the enemy
-    if (!(invincibility || obj->anim == SonAnimId_Roll))
-        return React_ChkHurt(obj, hit);
+    if (!(invincibility || self->anim == SonAnimId_Roll))
+        return React_ChkHurt(self, hit);
 
     // The alpha's bosses are multi-sprite objects whose hit counter Sonic's touch counts down (the touch code of the alpha)
     if (hit->render.f.multi_sprite) {
         Scratch_AlphaBoss *boss = (Scratch_AlphaBoss *)&hit->scratch;
         if (boss->hits) {
-            obj->xsp = -obj->xsp;
-            obj->ysp = -obj->ysp;
+            self->x_vel = -self->x_vel;
+            self->y_vel = -self->y_vel;
             if (boss_flag != 3) { // (Hill Top's does not take the speed from him)
-                obj->xsp >>= 1;
-                obj->ysp >>= 1;
+                self->x_vel >>= 1;
+                self->y_vel >>= 1;
             }
             hit->col_type = 0;
             boss->hits--;
@@ -754,8 +756,8 @@ static signed int React_Enemy(Object *obj, Object *hit)
     // Check if enemy is a boss
     if (hit->col_property) {
         // Hit boss
-        obj->xsp = -obj->xsp >> 1;
-        obj->ysp = -obj->ysp >> 1;
+        self->x_vel = -self->x_vel >> 1;
+        self->y_vel = -self->y_vel >> 1;
         hit->col_type = 0;
         if (!(--hit->col_property))
             hit->status.o.f.flag7 = true;
@@ -785,46 +787,46 @@ static signed int React_Enemy(Object *obj, Object *hit)
         hit->type = ObjId_Explosion;
         hit->routine = 0;
 
-        if (obj->ysp >= 0) {
-            if (obj->pos.l.y.f.u < hit->pos.l.y.f.u)
-                obj->ysp = -obj->ysp;
+        if (self->y_vel >= 0) {
+            if (self->y_pos.f.u < hit->pos.l.y.f.u)
+                self->y_vel = -self->y_vel;
             else
-                obj->ysp -= 0x100;
+                self->y_vel -= 0x100;
         } else {
-            obj->ysp += 0x100;
+            self->y_vel += 0x100;
         }
     }
     return 0; // d0 not set
 }
 
-static signed int React_Monitor(Object *obj, Object *hit) {
-    if (obj->ysp < 0) {
+static signed int React_Monitor(Sst *self, Object *hit) {
+    if (self->y_vel < 0) {
         // Check if we're below the monitor
-        uint16_t chky = obj->pos.l.y.f.u - 0x10;
+        uint16_t chky = self->y_pos.f.u - 0x10;
         if ((uint16_t)hit->pos.l.y.f.u < chky) {
             // Bump monitor
-            obj->ysp = -obj->ysp;
+            self->y_vel = -self->y_vel;
             hit->ysp = -0x180;
             if (!hit->routine_sec)
                 hit->routine_sec += 4;
         }
-    } else if (obj->anim == SonAnimId_Roll) {
+    } else if (self->anim == SonAnimId_Roll) {
         // Break monitor
-        obj->ysp = -obj->ysp;
+        self->y_vel = -self->y_vel;
         hit->routine += 2;
     }
     return 0; // d0 not set
 }
 
-static signed int ReactToItem(Object *obj) {
-    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+static signed int ReactToItem(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
     // Get collision area
     int16_t width, height;
-    int16_t x = obj->pos.l.x.f.u - 8;
-    int16_t y = obj->pos.l.y.f.u - (height = (uint8_t)(obj->y_rad - 3));
+    int16_t x = self->x_pos.f.u - 8;
+    int16_t y = self->y_pos.f.u - (height = (uint8_t)(self->y_radius - 3));
 
-    if (obj->frame == 0x39) {
+    if (self->mapping_frame == 0x39) {
         // Smaller hitbox when ducking
         y += 12;
         height = 10;
@@ -845,7 +847,7 @@ static signed int ReactToItem(Object *obj) {
             const int16_t cx = x - (cannon_x - cannon_w);
             const int16_t cy = y - (cannon_y - 4);
             if (cx >= -width && cx <= cannon_w * 2 && cy >= -height && cy <= 8)
-                return React_Enemy(obj, hit);
+                return React_Enemy(self, hit);
         }
 
         // Get object's size
@@ -861,11 +863,11 @@ static signed int ReactToItem(Object *obj) {
             // Made contact
             switch (hit->col_type & 0xC0) {
             case 0x00: // Enemy
-                return React_Enemy(obj, hit);
+                return React_Enemy(self, hit);
             case 0xC0: // Special
                 if ((hit->col_type & 0x3F) == 0x0B) { // Caterkiller spiked body segment
                     hit->status.o.f.flag7 = true; // mark segment touched -- read by Obj_Caterkiller to fragmentate
-                    return React_ChkHurt(obj, hit);
+                    return React_ChkHurt(self, hit);
                 }
                 if ((hit->col_type & 0x3F) == 0x0C) { // Yadrin -- narrow "face" hitbox at the top only
                     int16_t penetration = (int16_t)((y + height) - (hit->pos.l.y.f.u - hit_height));
@@ -874,9 +876,9 @@ static signed int ReactToItem(Object *obj) {
                         if (hit->status.o.f.x_flip)
                             face_left -= 16;
                         if (x < (int16_t)(face_left + 24) && (int16_t)(x + width) > face_left)
-                            return React_ChkHurt(obj, hit);
+                            return React_ChkHurt(self, hit);
                     }
-                    return React_Enemy(obj, hit);
+                    return React_Enemy(self, hit);
                 }
                 switch (hit->col_type & 0x3F) { // the alpha's Touch_Special (the final's too): the object's own routine reads and clears col_property each frame, a bit for each character
                 case 6: case 0x14: case 0x15: case 0x16: case 0x17: // (the round bumper, the auto spin: bit 0 is Sonic's, bit 1 Tails')
@@ -890,10 +892,10 @@ static signed int ReactToItem(Object *obj) {
                 }
                 break;
             case 0x80: // Hurt
-                return React_ChkHurt(obj, hit);
+                return React_ChkHurt(self, hit);
             case 0x40: // Other
                 if ((hit->col_type & 0x3F) == 6)
-                    return React_Monitor(obj, hit);
+                    return React_Monitor(self, hit);
                 if (scratch->flash_time < 90)
                     hit->routine = 4;
                 break;
@@ -903,43 +905,43 @@ static signed int ReactToItem(Object *obj) {
     return 0;
 }
 
-int32_t Tails_Hurt(Object *obj, Object *src) {
-    return HurtTails(obj, src);
+int32_t Tails_Hurt(Sst *self, Object *src) {
+    return HurtTails(self, src);
 }
 
 // Sonic functions
-static signed int HurtTails(Object *obj, Object *src)
+static signed int HurtTails(Sst *self, Object *src)
 {
-    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
     // Lose rings and shield
     if (!shield) {
         if (rings) {
             // Spawn lost rings object
-            Object* rings = FindFreeObj();
+            Sst *rings = Sst_Allocate();
             if (rings != NULL) {
-                rings->type = ObjId_RingLoss;
-                rings->pos.l.x.f.u = obj->pos.l.x.f.u;
-                rings->pos.l.y.f.u = obj->pos.l.y.f.u;
+                rings->code = sst_object_codes[ObjId_RingLoss];
+                rings->x_pos.f.u = self->x_pos.f.u;
+                rings->y_pos.f.u = self->y_pos.f.u;
             }
         }
     }
     shield = 0;
 
     // Set Sonic state
-    obj->routine = 4;
+    self->routine = 4;
     spindash_flag &= ~1;
     objects[DUST_TAILS_SLOT].anim = DUST_NULL;
-    Tails_ResetOnFloor(obj);
-    obj->status.p.f.in_air = true;
+    Tails_ResetOnFloor(self);
+    self->status |= SST_PSTATUS_IN_AIR;
 
-    obj->xsp = obj->status.p.f.underwater ? -0x100 : -0x200;
-    obj->ysp = obj->status.p.f.underwater ? -0x200 : -0x400;
-    if (obj->pos.l.x.f.u >= src->pos.l.x.f.u)
-        obj->xsp = -obj->xsp;
-    obj->inertia = 0;
+    self->x_vel = ((self->status & SST_PSTATUS_UNDERWATER) != 0) ? -0x100 : -0x200;
+    self->y_vel = ((self->status & SST_PSTATUS_UNDERWATER) != 0) ? -0x200 : -0x400;
+    if (self->x_pos.f.u >= src->pos.l.x.f.u)
+        self->x_vel = -self->x_vel;
+    self->ground_vel = 0;
 
-    obj->anim = SonAnimId_Hurt;
+    self->anim = SonAnimId_Hurt;
     scratch->flash_time = 120;
 
     // LZ harpoon isn't ported yet -- only checking for Spikes here.
@@ -948,8 +950,8 @@ static signed int HurtTails(Object *obj, Object *src)
 }
 
 // Sonic movement functions
-static bool Tails_Jump(Object *obj) {
-    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+static bool Tails_Jump(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
     // Don't jump if ABC isn't pressed
     if (!(jpad2_press & (JPAD_A | JPAD_C | JPAD_B)))
@@ -957,60 +959,60 @@ static bool Tails_Jump(Object *obj) {
 
     // Check if we have enough room to jump
     int16_t dist;
-    GetDistanceBelowAngle(obj, obj->angle + 0x80, NULL, &dist, NULL);
+    GetDistanceBelowAngle(self, self->angle + 0x80, NULL, &dist, NULL);
     if (dist < 6)
         return false;
 
     // Get jump speed
     int16_t speed = 0x680;
-    if (obj->status.p.f.underwater)
+    if (((self->status & SST_PSTATUS_UNDERWATER) != 0))
         speed = 0x380;
 
     int16_t sin, cos;
-    CalcSine(obj->angle - 0x40, &sin, &cos);
-    obj->xsp += (cos * speed) >> 8;
-    obj->ysp += (sin * speed) >> 8;
+    CalcSine(self->angle - 0x40, &sin, &cos);
+    self->x_vel += (cos * speed) >> 8;
+    self->y_vel += (sin * speed) >> 8;
 
     // Set state
-    obj->status.p.f.in_air = true;
-    obj->status.p.f.pushing = false;
+    self->status |= SST_PSTATUS_IN_AIR;
+    self->status &= (uint8_t)~SST_PSTATUS_PUSHING;
     scratch->jumping = true;
     scratch->x38.floor_clip = 0;
 
     PlaySound(sfx_Jump);
 
-    obj->y_rad = TAILS_HEIGHT; // No idea why this is here
-    obj->x_rad = TAILS_WIDTH;
+    self->y_radius = TAILS_HEIGHT; // No idea why this is here
+    self->x_radius = TAILS_WIDTH;
 
-    if (!obj->status.p.f.in_ball) {
-        obj->y_rad = TAILS_BALL_HEIGHT;
-        obj->x_rad = TAILS_BALL_WIDTH;
-        obj->anim = SonAnimId_Roll;
-        obj->status.p.f.in_ball = true;
-        obj->pos.l.y.f.u += TAILS_BALL_SHIFT;
+    if (!((self->status & SST_PSTATUS_IN_BALL) != 0)) {
+        self->y_radius = TAILS_BALL_HEIGHT;
+        self->x_radius = TAILS_BALL_WIDTH;
+        self->anim = SonAnimId_Roll;
+        self->status |= SST_PSTATUS_IN_BALL;
+        self->y_pos.f.u += TAILS_BALL_SHIFT;
     } else {
-        obj->status.p.f.roll_jump = true;
+        self->status |= SST_PSTATUS_ROLL_JUMP;
     }
     return true;
 }
 
-static void Tails_SlopeResist(Object *obj) {
-    if (((obj->angle + 0x60) & 0xFF) >= 0xC0)
+static void Tails_SlopeResist(Sst *self) {
+    if (((self->angle + 0x60) & 0xFF) >= 0xC0)
         return;
 
-    int16_t force = (GetSin(obj->angle) * 0x20) >> 8;
-    if (obj->inertia != 0)
-        obj->inertia += force;
+    int16_t force = (GetSin(self->angle) * 0x20) >> 8;
+    if (self->ground_vel != 0)
+        self->ground_vel += force;
 }
 
-static void Tails_MoveLeft(Object *obj) {
-    int16_t inertia = obj->inertia;
+static void Tails_MoveLeft(Sst *self) {
+    int16_t inertia = self->ground_vel;
     if (inertia <= 0) {
         // Turn around
-        if (!obj->status.p.f.x_flip) {
-            obj->status.p.f.x_flip = true;
-            obj->status.p.f.pushing = false;
-            obj->prev_anim = 1; // Reset animation
+        if (!((self->status & SST_PSTATUS_X_FLIP) != 0)) {
+            self->status |= SST_PSTATUS_X_FLIP;
+            self->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+            self->prev_anim = 1; // Reset animation
         }
 
         // Accelerate
@@ -1018,26 +1020,26 @@ static void Tails_MoveLeft(Object *obj) {
             inertia = -tails_speed_max;
 
         // Set speed and animation
-        obj->inertia = inertia;
-        obj->anim = SonAnimId_Walk;
+        self->ground_vel = inertia;
+        self->anim = SonAnimId_Walk;
     } else {
         // Decelerate
         if ((inertia -= tails_speed_dec) < 0)
             inertia = -0x80;
-        obj->inertia = inertia;
+        self->ground_vel = inertia;
 
         // (Nick Arcade tests the masked angle against the speed where it means the speed, so its skid never happens: neither does this)
     }
 }
 
-static void Tails_MoveRight(Object *obj) {
-    int16_t inertia = obj->inertia;
+static void Tails_MoveRight(Sst *self) {
+    int16_t inertia = self->ground_vel;
     if (inertia >= 0) {
         // Turn around
-        if (obj->status.p.f.x_flip) {
-            obj->status.p.f.x_flip = false;
-            obj->status.p.f.pushing = false;
-            obj->prev_anim = 1; // Reset animation
+        if (((self->status & SST_PSTATUS_X_FLIP) != 0)) {
+            self->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+            self->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+            self->prev_anim = 1; // Reset animation
         }
 
         // Accelerate
@@ -1045,20 +1047,20 @@ static void Tails_MoveRight(Object *obj) {
             inertia = tails_speed_max;
 
         // Set speed and animation
-        obj->inertia = inertia;
-        obj->anim = SonAnimId_Walk;
+        self->ground_vel = inertia;
+        self->anim = SonAnimId_Walk;
     } else {
         // Decelerate
         if ((inertia += tails_speed_dec) >= 0)
             inertia = 0x80;
-        obj->inertia = inertia;
+        self->ground_vel = inertia;
 
         // (Nick Arcade tests the masked angle against the speed where it means the speed, so its skid never happens: neither does this)
     }
 }
 
-static void Tails_Move(Object *obj) {
-    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+static void Tails_Move(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
     if (f_slidemode)
         goto Tails_AngleSpeed;
@@ -1067,45 +1069,45 @@ static void Tails_Move(Object *obj) {
         if (!scratch->control_lock) {
             // Move left and right according to held direction
             if (jpad2_hold & JPAD_LEFT)
-                Tails_MoveLeft(obj);
+                Tails_MoveLeft(self);
             if (jpad2_hold & JPAD_RIGHT)
-                Tails_MoveRight(obj);
+                Tails_MoveRight(self);
 
             // Do idle or balance animation
-            if (((obj->angle + 0x20) & 0xC0) == 0x00 && !obj->inertia) {
+            if (((self->angle + 0x20) & 0xC0) == 0x00 && !self->ground_vel) {
                 // Do idle animation
-                obj->status.p.f.pushing = false;
-                obj->anim = SonAnimId_Wait;
+                self->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+                self->anim = SonAnimId_Wait;
 
-                if (obj->status.p.f.object_stand) {
+                if (((self->status & SST_PSTATUS_OBJECT_STAND) != 0)) {
                     // Balance on an object
                     StandingInfo stand;
                     Standing_Get(scratch->standing_obj, &stand);
                     if (!stand.flag7) {
                         int16_t left_dist = stand.width;
                         int16_t right_dist = left_dist + left_dist - 4;
-                        left_dist += obj->pos.l.x.f.u - stand.x;
+                        left_dist += self->x_pos.f.u - stand.x;
 
                         if (left_dist < 4)
-                            obj->status.p.f.x_flip = true;
+                            self->status |= SST_PSTATUS_X_FLIP;
                         else if (left_dist >= right_dist)
-                            obj->status.p.f.x_flip = false;
+                            self->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
                         else
                             goto LookUpDown;
-                        obj->anim = SonAnimId_Balance;
+                        self->anim = SonAnimId_Balance;
                         goto Tails_ResetScr;
                     }
                 } else {
                     // Balance on level
-                    if (ObjFloorDist(obj, obj->pos.l.x.f.u) >= 12) {
+                    if (SstFloorDist(self, self->x_pos.f.u) >= 12) {
                         if (scratch->front_angle == 3) {
-                            obj->status.p.f.x_flip = false;
-                            obj->anim = SonAnimId_Balance;
+                            self->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+                            self->anim = SonAnimId_Balance;
                             goto Tails_ResetScr;
                         }
                         if (scratch->back_angle == 3) {
-                            obj->status.p.f.x_flip = true;
-                            obj->anim = SonAnimId_Balance;
+                            self->status |= SST_PSTATUS_X_FLIP;
+                            self->anim = SonAnimId_Balance;
                             goto Tails_ResetScr;
                         }
                     }
@@ -1114,7 +1116,7 @@ static void Tails_Move(Object *obj) {
             // Handle looking up and down
             LookUpDown:;
                 if (jpad2_hold & JPAD_UP) {
-                    obj->anim = SonAnimId_LookUp;
+                    self->anim = SonAnimId_LookUp;
                     // Wait 2 seconds (120 frames) before the camera actually
                     // starts panning up, matching the Spin Dash guide's
                     // camera-delay addition
@@ -1128,7 +1130,7 @@ static void Tails_Move(Object *obj) {
                     goto DoFriction;
                 }
                 if (jpad2_hold & JPAD_DOWN) {
-                    obj->anim = SonAnimId_Duck;
+                    self->anim = SonAnimId_Duck;
                     if (cam_y_delay < 120) {
                         cam_y_delay++;
                         goto Tails_ResetScr_Part2;
@@ -1154,12 +1156,12 @@ static void Tails_Move(Object *obj) {
     // Friction
     DoFriction:;
         if (!(jpad2_hold & (JPAD_LEFT | JPAD_RIGHT))) {
-            if (obj->inertia > 0) {
-                if ((obj->inertia -= tails_speed_acc) < 0)
-                    obj->inertia = 0;
-            } else if (obj->inertia < 0) {
-                if ((obj->inertia += tails_speed_acc) >= 0)
-                    obj->inertia = 0;
+            if (self->ground_vel > 0) {
+                if ((self->ground_vel -= tails_speed_acc) < 0)
+                    self->ground_vel = 0;
+            } else if (self->ground_vel < 0) {
+                if ((self->ground_vel += tails_speed_acc) >= 0)
+                    self->ground_vel = 0;
             }
         }
     }
@@ -1167,82 +1169,82 @@ static void Tails_Move(Object *obj) {
     // Calculate global speed from inertia
 Tails_AngleSpeed:;
     int16_t sin, cos;
-    CalcSine(obj->angle, &sin, &cos);
-    obj->xsp = (cos * obj->inertia) >> 8;
-    obj->ysp = (sin * obj->inertia) >> 8;
+    CalcSine(self->angle, &sin, &cos);
+    self->x_vel = (cos * self->ground_vel) >> 8;
+    self->y_vel = (sin * self->ground_vel) >> 8;
 
     // Handle wall collision
-    if (((obj->angle + 0x40) & 0x80) || !obj->inertia)
+    if (((self->angle + 0x40) & 0x80) || !self->ground_vel)
         return;
 
-    uint8_t add_angle = (obj->inertia < 0) ? 0x40 : -0x40;
-    uint8_t angle = obj->angle + add_angle;
-    int16_t dist = GetDistanceBelowAngle2(obj, angle, NULL);
+    uint8_t add_angle = (self->ground_vel < 0) ? 0x40 : -0x40;
+    uint8_t angle = self->angle + add_angle;
+    int16_t dist = GetDistanceBelowAngle2(self, angle, NULL);
 
     if (dist < 0) {
         dist <<= 8;
         switch ((angle + 0x20) & 0xC0) {
         case 0x00:
-            obj->ysp += dist;
+            self->y_vel += dist;
             break;
         case 0x40:
-            obj->xsp -= dist;
-            obj->status.p.f.pushing = true;
-            obj->inertia = 0;
+            self->x_vel -= dist;
+            self->status |= SST_PSTATUS_PUSHING;
+            self->ground_vel = 0;
             break;
         case 0x80:
-            obj->ysp -= dist;
+            self->y_vel -= dist;
             break;
         case 0xC0:
-            obj->xsp += dist;
-            obj->status.p.f.pushing = true;
-            obj->inertia = 0;
+            self->x_vel += dist;
+            self->status |= SST_PSTATUS_PUSHING;
+            self->ground_vel = 0;
             break;
         }
     }
 }
 
-void Tails_ChkRoll(Object *obj) {
+void Tails_ChkRoll(Sst *self) {
     // Enter roll state
-    if (obj->status.p.f.in_ball)
+    if (((self->status & SST_PSTATUS_IN_BALL) != 0))
         return;
-    obj->status.p.f.in_ball = true;
-    obj->y_rad = TAILS_BALL_HEIGHT;
-    obj->x_rad = TAILS_BALL_WIDTH;
-    obj->anim = SonAnimId_Roll;
-    obj->pos.l.y.f.u += TAILS_BALL_SHIFT;
+    self->status |= SST_PSTATUS_IN_BALL;
+    self->y_radius = TAILS_BALL_HEIGHT;
+    self->x_radius = TAILS_BALL_WIDTH;
+    self->anim = SonAnimId_Roll;
+    self->y_pos.f.u += TAILS_BALL_SHIFT;
     PlaySound(sfx_Roll);
 
     // Set speed (S-tubes)
-    if (!obj->inertia)
-        obj->inertia = 0x200;
+    if (!self->ground_vel)
+        self->ground_vel = 0x200;
 }
 
-static void Tails_Roll(Object *obj) {
+static void Tails_Roll(Sst *self) {
     // Don't allow rolling while on a water slide
     if (f_slidemode)
         return;
 
     // Check if we can and are trying to roll
-    if (jump_only || ((obj->inertia < 0) ? -obj->inertia : obj->inertia) < 0x80)
+    if (jump_only || ((self->ground_vel < 0) ? -self->ground_vel : self->ground_vel) < 0x80)
         return;
     if ((jpad2_hold & (JPAD_LEFT | JPAD_RIGHT)) || !(jpad2_hold & JPAD_DOWN))
         return;
-    Tails_ChkRoll(obj);
+    Tails_ChkRoll(self);
 }
 
-static void Tails_LevelBound(Object *obj) {
+static void Tails_LevelBound(Sst *self) {
     // Get next X position
     // This is unsigned, but it shouldn't be
-    uint16_t x = (obj->pos.l.x.v + (obj->xsp << 8)) >> 16;
+    uint16_t x = (self->x_pos.v + (self->x_vel << 8)) >> 16;
 
     // Prevent us from going off the left or right boundaries
     int16_t bound;
     if (x < (bound = limit_left2 + 16) || x > (bound = limit_right2 + (lock_screen ? 290 : 360) + SCREEN_WIDEADD)) {
-        obj->pos.l.x.f.u = bound;
-        obj->pos.l.x.f.l = 0;
-        obj->xsp = 0;
-        obj->inertia = 0;
+        self->x_pos.f.u = bound;
+        self->x_pos.f.l = 0;
+        self->x_vel = 0;
+        self->ground_vel = 0;
     }
 
     // Fall off the bottom boundary. FixBugs: use whichever of limit_btm2
@@ -1253,15 +1255,15 @@ static void Tails_LevelBound(Object *obj) {
     // (or having already finished) lowering itself, killing Sonic in
     // legitimately-reachable deep areas a zone's own DLE has unlocked.
     uint16_t kill_plane = (limit_btm1 > limit_btm2) ? limit_btm1 : limit_btm2;
-    if ((kill_plane + SCREEN_HEIGHT) < obj->pos.l.y.f.u) {
+    if ((kill_plane + SCREEN_HEIGHT) < self->y_pos.f.u) {
         // (SBZ2's drop into SBZ3 is not a kill-plane exception any more: the cutscene triggers it itself, see
         // DynamicLevelEvents' SBZ act 2 case.)
-        KillTails(obj);
+        KillTails(self);
     }
 }
 
-static void Tails_SlopeRepel(Object *obj) {
-    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+static void Tails_SlopeRepel(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
     // Check if we can fall off a slope
     if (scratch->x38.floor_clip)
@@ -1269,11 +1271,11 @@ static void Tails_SlopeRepel(Object *obj) {
 
     if (!scratch->control_lock) {
         // Check if the slope is steep enough
-        if ((obj->angle + 0x20) & 0xC0) {
+        if ((self->angle + 0x20) & 0xC0) {
             // Fall off if we're going too slow
-            if (((obj->inertia < 0) ? -obj->inertia : obj->inertia) < 0x280) {
-                obj->inertia = 0;
-                obj->status.p.f.in_air = true;
+            if (((self->ground_vel < 0) ? -self->ground_vel : self->ground_vel) < 0x280) {
+                self->ground_vel = 0;
+                self->status |= SST_PSTATUS_IN_AIR;
                 scratch->control_lock = 30;
             }
         }
@@ -1283,52 +1285,52 @@ static void Tails_SlopeRepel(Object *obj) {
     }
 }
 
-static void Tails_RollRepel(Object *obj) {
-    if (((obj->angle + 0x60) & 0xFF) >= 0xC0)
+static void Tails_RollRepel(Sst *self) {
+    if (((self->angle + 0x60) & 0xFF) >= 0xC0)
         return;
 
-    int16_t force = (GetSin(obj->angle) * 0x50) >> 8;
-    if (obj->inertia >= 0) { // (standing still counts as moving right: the original tests only for a negative speed)
+    int16_t force = (GetSin(self->angle) * 0x50) >> 8;
+    if (self->ground_vel >= 0) { // (standing still counts as moving right: the original tests only for a negative speed)
         if (force < 0)
             force >>= 2;
-        obj->inertia += force;
+        self->ground_vel += force;
     } else {
         if (force >= 0)
             force >>= 2;
-        obj->inertia += force;
+        self->ground_vel += force;
     }
 }
 
-static void Tails_RollLeft(Object *obj) {
-    int16_t inertia = obj->inertia;
+static void Tails_RollLeft(Sst *self) {
+    int16_t inertia = self->ground_vel;
     if (inertia <= 0) {
         // Set animation
-        obj->status.p.f.x_flip = true;
-        obj->anim = SonAnimId_Roll;
+        self->status |= SST_PSTATUS_X_FLIP;
+        self->anim = SonAnimId_Roll;
     } else {
         // Decelerate
         if ((inertia -= tails_speed_dec >> 2) < 0)
             inertia = -0x80;
-        obj->inertia = inertia;
+        self->ground_vel = inertia;
     }
 }
 
-static void Tails_RollRight(Object *obj) {
-    int16_t inertia = obj->inertia;
+static void Tails_RollRight(Sst *self) {
+    int16_t inertia = self->ground_vel;
     if (inertia >= 0) {
         // Set animation
-        obj->status.p.f.x_flip = false;
-        obj->anim = SonAnimId_Roll;
+        self->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+        self->anim = SonAnimId_Roll;
     } else {
         // Decelerate
         if ((inertia += tails_speed_dec >> 2) >= 0)
             inertia = 0x80;
-        obj->inertia = inertia;
+        self->ground_vel = inertia;
     }
 }
 
-static void Tails_RollSpeed(Object *obj) {
-    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+static void Tails_RollSpeed(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
     if (f_slidemode)
         goto Tails_AngledRollSpeed;
@@ -1337,18 +1339,18 @@ static void Tails_RollSpeed(Object *obj) {
         if (!scratch->control_lock) {
             // Move left and right according to held direction
             if (jpad2_hold & JPAD_LEFT)
-                Tails_RollLeft(obj);
+                Tails_RollLeft(self);
             if (jpad2_hold & JPAD_RIGHT)
-                Tails_RollRight(obj);
+                Tails_RollRight(self);
         }
 
         // Friction
-        if (obj->inertia > 0) {
-            if ((obj->inertia -= (tails_speed_acc >> 1)) < 0)
-                obj->inertia = 0;
+        if (self->ground_vel > 0) {
+            if ((self->ground_vel -= (tails_speed_acc >> 1)) < 0)
+                self->ground_vel = 0;
         } else {
-            if ((obj->inertia += (tails_speed_acc >> 1)) >= 0)
-                obj->inertia = 0;
+            if ((self->ground_vel += (tails_speed_acc >> 1)) >= 0)
+                self->ground_vel = 0;
         }
 
         // Uncurl when we've come to a stop -- unless must_roll (GHZTunnel)
@@ -1357,15 +1359,15 @@ static void Tails_RollSpeed(Object *obj) {
         // Tails_KeepRolling: "magically gives Sonic an extra push if he's
         // going to stop rolling where it's not allowed, such as in an
         // S-curve").
-        if (obj->inertia == 0) {
-            if (obj->status.p.f.must_roll) {
-                obj->inertia = obj->status.p.f.x_flip ? (int16_t)-0x400 : (int16_t)0x400;
+        if (self->ground_vel == 0) {
+            if (((self->status & SST_PSTATUS_MUST_ROLL) != 0)) {
+                self->ground_vel = ((self->status & SST_PSTATUS_X_FLIP) != 0) ? (int16_t)-0x400 : (int16_t)0x400;
             } else {
-                obj->status.p.f.in_ball = false;
-                obj->y_rad = TAILS_HEIGHT;
-                obj->x_rad = TAILS_WIDTH;
-                obj->anim = SonAnimId_Wait;
-                obj->pos.l.y.f.u -= TAILS_BALL_SHIFT;
+                self->status &= (uint8_t)~SST_PSTATUS_IN_BALL;
+                self->y_radius = TAILS_HEIGHT;
+                self->x_radius = TAILS_WIDTH;
+                self->anim = SonAnimId_Wait;
+                self->y_pos.f.u -= TAILS_BALL_SHIFT;
             }
         }
     }
@@ -1373,82 +1375,82 @@ static void Tails_RollSpeed(Object *obj) {
     // Calculate global speed from inertia
 Tails_AngledRollSpeed:;
     int16_t sin, cos;
-    CalcSine(obj->angle, &sin, &cos);
-    obj->ysp = (sin * obj->inertia) >> 8;
-    cos = (cos * obj->inertia) >> 8;
+    CalcSine(self->angle, &sin, &cos);
+    self->y_vel = (sin * self->ground_vel) >> 8;
+    cos = (cos * self->ground_vel) >> 8;
     if (cos > 0x1000) // Global X speed is limited to 0x1000 both ways.
         cos = 0x1000; // This causes the speed to desync from inertia
     if (cos < -0x1000) // at high speeds.
         cos = -0x1000; // Is this here because of the broken camera?
-    obj->xsp = cos;
+    self->x_vel = cos;
 
     // Handle wall collision
-    if (((obj->angle + 0x40) & 0x80) || !obj->inertia)
+    if (((self->angle + 0x40) & 0x80) || !self->ground_vel)
         return;
 
-    uint8_t add_angle = (obj->inertia < 0) ? 0x40 : -0x40;
-    uint8_t angle = obj->angle + add_angle;
-    int16_t dist = GetDistanceBelowAngle2(obj, angle, NULL);
+    uint8_t add_angle = (self->ground_vel < 0) ? 0x40 : -0x40;
+    uint8_t angle = self->angle + add_angle;
+    int16_t dist = GetDistanceBelowAngle2(self, angle, NULL);
 
     if (dist < 0) {
         dist <<= 8;
         switch ((angle + 0x20) & 0xC0) {
         case 0x00:
-            obj->ysp += dist;
+            self->y_vel += dist;
             break;
         case 0x40:
-            obj->xsp -= dist;
-            obj->status.p.f.pushing = true;
-            obj->inertia = 0;
+            self->x_vel -= dist;
+            self->status |= SST_PSTATUS_PUSHING;
+            self->ground_vel = 0;
             break;
         case 0x80:
-            obj->ysp -= dist;
+            self->y_vel -= dist;
             break;
         case 0xC0:
-            obj->xsp += dist;
-            obj->status.p.f.pushing = true;
-            obj->inertia = 0;
+            self->x_vel += dist;
+            self->status |= SST_PSTATUS_PUSHING;
+            self->ground_vel = 0;
             break;
         }
     }
 }
 
-static void Tails_JumpHeight(Object *obj) {
-    Scratch_Sonic* scratch = (Scratch_Sonic*)&obj->scratch;
+static void Tails_JumpHeight(Sst *self) {
+    Scratch_Sonic* scratch = (Scratch_Sonic *)self->own.u8;
 
     if (scratch->jumping) {
         // Get minimum jump speed and apply if ABC isn't held
-        int16_t spd = obj->status.p.f.underwater ? -0x200 : -0x400;
-        if (obj->ysp < spd && !(jpad2_hold & (JPAD_A | JPAD_C | JPAD_B)))
-            obj->ysp = spd;
+        int16_t spd = ((self->status & SST_PSTATUS_UNDERWATER) != 0) ? -0x200 : -0x400;
+        if (self->y_vel < spd && !(jpad2_hold & (JPAD_A | JPAD_C | JPAD_B)))
+            self->y_vel = spd;
     } else {
         // Cap upwards speed
-        if (obj->ysp < -0xFC0)
-            obj->ysp = -0xFC0;
+        if (self->y_vel < -0xFC0)
+            self->y_vel = -0xFC0;
     }
 }
 
-static void Tails_JumpDirection(Object *obj) {
+static void Tails_JumpDirection(Sst *self) {
     // Handle acceleration
-    if (!obj->status.p.f.roll_jump) {
-        int16_t xsp = obj->xsp;
+    if (!((self->status & SST_PSTATUS_ROLL_JUMP) != 0)) {
+        int16_t xsp = self->x_vel;
 
         // Accelerate left
         if (jpad2_hold & JPAD_LEFT) {
-            obj->status.p.f.x_flip = true;
+            self->status |= SST_PSTATUS_X_FLIP;
             if ((xsp -= (tails_speed_acc << 1)) <= -tails_speed_max)
                 xsp = -tails_speed_max;
         }
 
         // Accelerate right
         if (jpad2_hold & JPAD_RIGHT) {
-            obj->status.p.f.x_flip = false;
+            self->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
             if ((xsp += (tails_speed_acc << 1)) >= tails_speed_max)
                 xsp = tails_speed_max;
         }
 
         // Apply acceleration
-        obj->xsp = xsp;
+        self->x_vel = xsp;
     }
 
     // Reset screen shift
@@ -1458,27 +1460,27 @@ static void Tails_JumpDirection(Object *obj) {
         look_shift -= 2;
 
     // Handle air drag
-    if ((uint16_t)obj->ysp >= (uint16_t)-0x400) {
-        int16_t xsp = obj->xsp;
+    if ((uint16_t)self->y_vel >= (uint16_t)-0x400) {
+        int16_t xsp = self->x_vel;
         int16_t drag = xsp >> 5;
         if (drag > 0) // Do I really have to say anything?
         {
             if ((xsp -= drag) < 0)
                 xsp = 0;
-            obj->xsp = xsp;
+            self->x_vel = xsp;
         } else if (drag < 0) {
             if ((xsp -= drag) >= 0)
                 xsp = 0;
-            obj->xsp = xsp;
+            self->x_vel = xsp;
         }
     }
 }
 
-static void Tails_JumpAngle(Object *obj) {
-    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+static void Tails_JumpAngle(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
     // Reset angle towards 0
-    uint8_t angle = obj->angle;
+    uint8_t angle = self->angle;
     if (angle != 0) {
         if (!(angle & 0x80)) {
             if ((angle -= 2) & 0x80)
@@ -1488,7 +1490,7 @@ static void Tails_JumpAngle(Object *obj) {
                 angle = 0;
         }
 
-        obj->angle = angle;
+        self->angle = angle;
     }
 
     // Tumble (a spring's flip), as Sonic's
@@ -1496,7 +1498,7 @@ static void Tails_JumpAngle(Object *obj) {
     if (flip == 0)
         return;
 
-    if (obj->inertia >= 0) {
+    if (self->ground_vel >= 0) {
         unsigned sum = flip + scratch->flip_speed;
         flip = (uint8_t)sum;
         if (sum > 0xFF && (int8_t)--scratch->flips_remaining < 0) {
@@ -1515,7 +1517,7 @@ static void Tails_JumpAngle(Object *obj) {
 }
 
 // Spin Dash
-static void Tails_Spindash_ResetScr(Object *obj) {
+static void Tails_Spindash_ResetScr(Sst *self) {
     // Reset camera to neutral position (same logic as Tails_Move/Tails_JumpDirection)
     if (look_shift < (96 + SCREEN_TALLADD2))
         look_shift += 2;
@@ -1523,74 +1525,74 @@ static void Tails_Spindash_ResetScr(Object *obj) {
         look_shift -= 2;
 
     // Since we skip the rest of the normal-movement case, run these manually
-    Tails_LevelBound(obj);
-    Tails_AnglePos(obj);
+    Tails_LevelBound(self);
+    Tails_AnglePos(self);
 }
 
-static void Tails_ChargingSpindash(Object *obj) {
-    obj->anim = TAILS_ANIM_SPINDASH; // make sure Spin Dash animation stays
+static void Tails_ChargingSpindash(Sst *self) {
+    self->anim = TAILS_ANIM_SPINDASH; // make sure Spin Dash animation stays
 
     // Charge decay
     spindash_count -= spindash_count >> 5;
 
     if (!(jpad2_press & (JPAD_A | JPAD_C | JPAD_B))) {
-        Tails_Spindash_ResetScr(obj);
+        Tails_Spindash_ResetScr(self);
         return;
     }
 
     // Restart Spin Dash animation
-    obj->anim = TAILS_ANIM_SPINDASH;
-    obj->anim_frame = 0;
-    obj->frame_time.b = 0;
+    self->anim = TAILS_ANIM_SPINDASH;
+    self->anim_frame = 0;
+    self->anim_frame_timer = 0;
     PlaySound(sfx_SpindashRev);
 
     spindash_count += 0x200;
     if (spindash_count > 0x800)
         spindash_count = 0x800;
 
-    Tails_Spindash_ResetScr(obj);
+    Tails_Spindash_ResetScr(self);
 }
 
-static void Tails_ReleaseSpindash(Object *obj) {
+static void Tails_ReleaseSpindash(Sst *self) {
     spindash_flag &= ~1;
-    obj->y_rad = TAILS_BALL_HEIGHT;
-    obj->x_rad = TAILS_BALL_WIDTH;
-    obj->pos.l.y.f.u += TAILS_BALL_SHIFT;
-    obj->anim = SonAnimId_Roll;
-    obj->status.p.f.in_ball = true;
+    self->y_radius = TAILS_BALL_HEIGHT;
+    self->x_radius = TAILS_BALL_WIDTH;
+    self->y_pos.f.u += TAILS_BALL_SHIFT;
+    self->anim = SonAnimId_Roll;
+    self->status |= SST_PSTATUS_IN_BALL;
     PlaySound(sfx_Teleport);
     objects[DUST_TAILS_SLOT].anim = DUST_NULL;
 
     // Get release speed from the number of revs (the alpha's table: $80 for each step of the counter's high byte)
     int16_t speed = (int16_t)(0x800 + (((spindash_count >> 8) & 0xFF) << 7));
-    if (obj->status.p.f.x_flip)
+    if (((self->status & SST_PSTATUS_X_FLIP) != 0))
         speed = -speed;
-    obj->inertia = speed;
+    self->ground_vel = speed;
 
     // Camera delay (the alpha's is always $2000)
     cam_x_delay = 0x2000;
 
-    // Set new velocities immediately (same convention as Tails_Move/Tails_RollSpeed: cos->xsp, sin->ysp)
+    // Set new velocities immediately (same convention as Tails_Move/Tails_RollSpeed: cos->x_vel, sin->y_vel)
     int16_t sin, cos;
-    CalcSine(obj->angle, &sin, &cos);
-    obj->xsp = (int16_t)(((int32_t)cos * obj->inertia) >> 8);
-    obj->ysp = (int16_t)(((int32_t)sin * obj->inertia) >> 8);
+    CalcSine(self->angle, &sin, &cos);
+    self->x_vel = (int16_t)(((int32_t)cos * self->ground_vel) >> 8);
+    self->y_vel = (int16_t)(((int32_t)sin * self->ground_vel) >> 8);
 
-    Tails_Spindash_ResetScr(obj);
+    Tails_Spindash_ResetScr(self);
 }
 
-static void Tails_UpdateSpindash(Object *obj) {
+static void Tails_UpdateSpindash(Sst *self) {
     // Bug fix (part 2 of the monitor fix): guarantee the Spin Dash
     // animation is set as soon as we know we're spin dashing, before
     // Monitor's own Mon_SolidSides push-vs-break check (which now also
     // exempts this animation, see Monitor.c) gets a chance to run this
     // same frame and see a stale Push animation instead.
-    obj->anim = TAILS_ANIM_SPINDASH;
+    self->anim = TAILS_ANIM_SPINDASH;
     if (jpad2_hold & JPAD_DOWN) {
-        Tails_ChargingSpindash(obj);
+        Tails_ChargingSpindash(self);
         return;
     }
-    Tails_ReleaseSpindash(obj);
+    Tails_ReleaseSpindash(self);
 }
 
 // Abandons a spin dash that is still charging when Sonic leaves the ground some other
@@ -1605,27 +1607,27 @@ void Tails_CancelSpindash(void) {
         objects[DUST_TAILS_SLOT].anim = DUST_NULL;
 }
 
-static bool Tails_SpinDash(Object *obj) {
+static bool Tails_SpinDash(Sst *self) {
     if (spindash_flag & 1) {
-        Tails_UpdateSpindash(obj);
+        Tails_UpdateSpindash(self);
         return true;
     }
 
-    if (obj->anim != SonAnimId_Duck)
+    if (self->anim != SonAnimId_Duck)
         return false;
     if (!(jpad2_press & (JPAD_A | JPAD_C | JPAD_B)))
         return false;
 
-    obj->anim = TAILS_ANIM_SPINDASH;
+    self->anim = TAILS_ANIM_SPINDASH;
     PlaySound(sfx_SpindashRev);
     spindash_flag |= 1;
     spindash_count = 0;
-    if (scratch_air(obj) >= 12)
+    if (scratch_air(self) >= 12)
         DustSplash_Show(&objects[DUST_TAILS_SLOT], DUST_DASH);
 
     // Because we're skipping the rest of the normal-movement case
-    Tails_LevelBound(obj);
-    Tails_AnglePos(obj);
+    Tails_LevelBound(self);
+    Tails_AnglePos(self);
     return true;
 }
 
@@ -1639,52 +1641,50 @@ static const uint8_t TailsTails_Animations[34] = {
 };
 static uint8_t tails_tails_prev_anim = 0xFF;
 
-void Obj_TailsTails(Object *obj) {
-    const Object *tails = &objects[TAILS_SLOT];
-    switch (obj->routine) {
+void Obj_TailsTails(Sst *self) {
+    const Sst *tails = SST_PLAYER_2;
+    switch (self->routine) {
     case 0:
-        obj->routine += 2;
-        obj->mappings = Mappings_Tails;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_TailsTails);
-        obj->priority = 2;
-        obj->width_pixels = 0x18;
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
+        self->routine += 2;
+        self->mappings = Mappings_Tails;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_TailsTails);
+        self->priority = 2 * 0x80;
+        self->width_pixels = 0x18;
+        self->render_flags = SST_RENDER_LEVEL;
         tails_tails_prev_anim = 0xFF;
         last_frame_tail = 0xFF;
         // Fallthrough
     case 2:
-        obj->angle = tails->angle;
-        obj->status = tails->status;
-        obj->pos.l.x.f.u = tails->pos.l.x.f.u;
-        obj->pos.l.y.f.u = tails->pos.l.y.f.u;
-        const uint8_t cue = tails->status.p.f.pushing ? 4 : (tails->anim < sizeof(TailsTails_Animations) ? tails->anim : 0);
+        self->angle = tails->angle;
+        self->status = tails->status;
+        self->x_pos.f.u = tails->x_pos.f.u;
+        self->y_pos.f.u = tails->y_pos.f.u;
+        const uint8_t cue = ((tails->status & SST_PSTATUS_PUSHING) != 0) ? 4 : (tails->anim < sizeof(TailsTails_Animations) ? tails->anim : 0);
         if (cue != tails_tails_prev_anim) {
             tails_tails_prev_anim = cue;
-            obj->anim = TailsTails_Animations[cue];
+            self->anim = TailsTails_Animations[cue];
         }
-        Tails_AnimateTable(obj, Animation_TailsTails, tails);
-        Tails_LoadDPLC(obj->frame, &last_frame_tail, ArtTile_TailsTails);
-        DisplaySprite(obj);
+        Tails_AnimateTable(self, Animation_TailsTails, tails);
+        Tails_LoadDPLC(self->mapping_frame, &last_frame_tail, ArtTile_TailsTails);
+        Sst_Draw(self);
         break;
     }
 }
 
 // Tails (object 02)
-void Obj_Tails(Object *obj) {
-    Scratch_Sonic *scratch = (Scratch_Sonic*)&obj->scratch;
+void Obj_Tails(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
 
-    switch (obj->routine) {
+    switch (self->routine) {
     case 0: // Initialization
-        obj->routine += 2;
-        obj->y_rad = TAILS_HEIGHT;
-        obj->x_rad = TAILS_WIDTH;
-        obj->mappings = Mappings_Tails;
-        obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Tails);
-        obj->priority = 2;
-        obj->width_pixels = 0x18;
-        obj->render.b = 0;
-        obj->render.f.level_fg = true;
+        self->routine += 2;
+        self->y_radius = TAILS_HEIGHT;
+        self->x_radius = TAILS_WIDTH;
+        self->mappings = Mappings_Tails;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Tails);
+        self->priority = 2 * 0x80;
+        self->width_pixels = 0x18;
+        self->render_flags = SST_RENDER_LEVEL;
         scratch->air = 30;
         tails_speed_max = 0x600;
         tails_speed_acc = 0xC;
@@ -1700,102 +1700,102 @@ void Obj_Tails(Object *obj) {
         pad_head = 0;
         control_counter = 0;
         last_frame_tails = 0xFF;
-        objects[TAILSTAILS_SLOT].type = ObjId_05; // (his tails)
+        SST_TAILS_TAILS->code = sst_object_codes[ObjId_05]; // (his tails)
         // Fallthrough
     case 2: // Regular movement
         Tails_Control();
 
-        if (!(CharObjControl(obj) & 1)) {
-            switch ((obj->status.p.f.in_ball << 2) | (obj->status.p.f.in_air << 1)) {
+        if (!(CharObjControl(self) & 1)) {
+            switch ((((self->status & SST_PSTATUS_IN_BALL) != 0) << 2) | (((self->status & SST_PSTATUS_IN_AIR) != 0) << 1)) {
             case 0: // Not in ball, not in air
-                if (Tails_SpinDash(obj))
+                if (Tails_SpinDash(self))
                     break;
-                if (Tails_Jump(obj))
+                if (Tails_Jump(self))
                     break;
-                Tails_SlopeResist(obj);
-                Tails_Move(obj);
-                Tails_Roll(obj);
-                Tails_LevelBound(obj);
-                SpeedToPos(obj);
-                Tails_AnglePos(obj);
-                Tails_SlopeRepel(obj);
+                Tails_SlopeResist(self);
+                Tails_Move(self);
+                Tails_Roll(self);
+                Tails_LevelBound(self);
+                Sst_MoveSprite2(self);
+                Tails_AnglePos(self);
+                Tails_SlopeRepel(self);
                 break;
             case 2: // Not in ball, in air
                 Tails_CancelSpindash();
-                Tails_JumpHeight(obj);
-                Tails_JumpDirection(obj);
-                Tails_LevelBound(obj);
-                ObjectFall(obj);
-                if (obj->status.p.f.underwater)
-                    obj->ysp -= 0x28;
-                Tails_JumpAngle(obj);
-                Tails_Floor(obj);
+                Tails_JumpHeight(self);
+                Tails_JumpDirection(self);
+                Tails_LevelBound(self);
+                Sst_MoveSprite(self);
+                if (((self->status & SST_PSTATUS_UNDERWATER) != 0))
+                    self->y_vel -= 0x28;
+                Tails_JumpAngle(self);
+                Tails_Floor(self);
                 break;
             case 4: // In ball, not in air
-                if (!obj->status.p.f.must_roll && Tails_Jump(obj))
+                if (!((self->status & SST_PSTATUS_MUST_ROLL) != 0) && Tails_Jump(self))
                     break;
-                Tails_RollRepel(obj);
-                Tails_RollSpeed(obj);
-                Tails_LevelBound(obj);
-                SpeedToPos(obj);
-                Tails_AnglePos(obj);
-                Tails_SlopeRepel(obj);
+                Tails_RollRepel(self);
+                Tails_RollSpeed(self);
+                Tails_LevelBound(self);
+                Sst_MoveSprite2(self);
+                Tails_AnglePos(self);
+                Tails_SlopeRepel(self);
                 break;
             case 6: // In ball, in air
                 Tails_CancelSpindash();
-                Tails_JumpHeight(obj);
-                Tails_JumpDirection(obj);
-                Tails_LevelBound(obj);
-                ObjectFall(obj);
-                if (obj->status.p.f.underwater)
-                    obj->ysp -= 0x28;
-                Tails_JumpAngle(obj);
-                Tails_Floor(obj);
+                Tails_JumpHeight(self);
+                Tails_JumpDirection(self);
+                Tails_LevelBound(self);
+                Sst_MoveSprite(self);
+                if (((self->status & SST_PSTATUS_UNDERWATER) != 0))
+                    self->y_vel -= 0x28;
+                Tails_JumpAngle(self);
+                Tails_Floor(self);
                 break;
             }
         }
 
         if (limit_top2 == 0xFF00) // (a level that wraps vertically: see Sonic.c)
-            obj->pos.l.y.f.u &= 0x7FF;
+            self->y_pos.f.u &= 0x7FF;
 
-        Tails_Display(obj);
-        Tails_Water(obj);
+        Tails_Display(self);
+        Tails_Water(self);
         scratch->front_angle = angle_buffer0;
         scratch->back_angle = angle_buffer1;
-        Tails_Animate(obj);
-        if (!(CharObjControl(obj) & 0x80))
-            ReactToItem(obj);
-        Tails_LoadGfx(obj);
+        Tails_Animate(self);
+        if (!(CharObjControl(self) & 0x80))
+            ReactToItem(self);
+        Tails_LoadGfx(self);
         break;
     case 4: // Hurt
-        SpeedToPos(obj);
-        obj->ysp += 0x30;
-        if (obj->status.p.f.underwater)
-            obj->ysp -= 0x20;
-        Tails_HurtStop(obj);
-        if (obj->routine != 6) {
-            Tails_LevelBound(obj);
-            Tails_Animate(obj);
-            Tails_LoadGfx(obj);
-            DisplaySprite(obj);
+        Sst_MoveSprite2(self);
+        self->y_vel += 0x30;
+        if (((self->status & SST_PSTATUS_UNDERWATER) != 0))
+            self->y_vel -= 0x20;
+        Tails_HurtStop(self);
+        if (self->routine != 6) {
+            Tails_LevelBound(self);
+            Tails_Animate(self);
+            Tails_LoadGfx(self);
+            Sst_Draw(self);
         }
         break;
     case 6: // Dead (fell below the level): back above Sonic once he is well out of sight
-        if ((uint16_t)(limit_btm2 + 0x100) < (uint16_t)obj->pos.l.y.f.u) {
+        if ((uint16_t)(limit_btm2 + 0x100) < (uint16_t)self->y_pos.f.u) {
             // (Tails is not meant to wrap: with Sonic against the left boundary the word would put him past the right one, and he would fall and come back there over and over. The level's wraparound itself is
             // Sonic's, and stays.)
-            int16_t back = (int16_t)(player->pos.l.x.f.u - 0x40);
-            if (player->pos.l.x.f.u < 0x40 || back < (int16_t)(limit_left2 + 16))
+            int16_t back = (int16_t)(player->x_pos.f.u - 0x40);
+            if (player->x_pos.f.u < 0x40 || back < (int16_t)(limit_left2 + 16))
                 back = (int16_t)(limit_left2 + 16);
-            obj->pos.l.x.f.u = back;
-            obj->pos.l.y.f.u = player->pos.l.y.f.u - 0x80;
-            obj->routine = 2;
-            obj->tile &= ~TILE_PRIORITY_AND;
+            self->x_pos.f.u = back;
+            self->y_pos.f.u = player->y_pos.f.u - 0x80;
+            self->routine = 2;
+            self->art_tile &= ~TILE_PRIORITY_AND;
         } else {
-            ObjectFall(obj);
-            Tails_Animate(obj);
-            Tails_LoadGfx(obj);
-            DisplaySprite(obj);
+            Sst_MoveSprite(self);
+            Tails_Animate(self);
+            Tails_LoadGfx(self);
+            Sst_Draw(self);
         }
         break;
     }
@@ -1807,12 +1807,12 @@ void Game_LevelObjects(void) {
     if (cli_start_level >= 0) // a level started from the command line skipped the title, which loads the main art (HUD, rings, ...)
         AddPLC(PlcId_Main);
     hud_lives_slot = 20; // (the default, 29, is where Tails' tails are: the counter took the slot every frame and the tails never showed while he rolled or spin dashed)
-    Object *tails = &objects[TAILS_SLOT];
+    Sst *tails = SST_PLAYER_2;
     memset(tails, 0, sizeof(*tails));
-    tails->type = ObjId_02;
-    tails->pos.l.x.f.u = player->pos.l.x.f.u - 0x20;
-    tails->pos.l.y.f.u = player->pos.l.y.f.u;
-    memset(&objects[TAILSTAILS_SLOT], 0, sizeof(Object));
+    tails->code = sst_object_codes[ObjId_02];
+    tails->x_pos.f.u = player->x_pos.f.u - 0x20;
+    tails->y_pos.f.u = player->y_pos.f.u;
+    memset(SST_TAILS_TAILS, 0, sizeof(Sst));
     if (LEVEL_ZONE(level_id) == ZoneId_OOZ)
         objects[0x1E].type = 7; // (the oil, where Hidden Palace and the others have a water surface: Oil Ocean has no water)
     DustSplash_MakeTails(); // (the alpha's dust and splash for Tails)
@@ -1820,6 +1820,6 @@ void Game_LevelObjects(void) {
 }
 
 // While the level editor has the level, neither player runs or shows (the editor's cursor is where Sonic is: EditorLive.h)
-bool Game_EditorSkipObject(const void *obj) {
-    return obj == (const void *)player || obj == (const void *)TAILS_OBJ || ((const Object *)obj)->type == ObjId_HUD; // (and the HUD: the editor draws its own)
+bool Game_EditorSkipObject(const void *self) {
+    return self == (const void *)player || self == (const void *)TAILS_OBJ || ((const Object *)self)->type == ObjId_HUD; // (and the HUD: the editor draws its own)
 }

@@ -1,6 +1,5 @@
 #include "Oscillatory Routines.h"
 
-extern Object *const player;
 
 void OscillateNumInit(void) {
     Oscillator_Init(&oscillator_data);

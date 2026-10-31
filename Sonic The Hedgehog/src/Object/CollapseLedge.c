@@ -98,10 +98,10 @@ case 6: { // FragmentPiece — matches ASM's Ledge_FragmentPiece
         own->timedelay--;
         Ledge_WalkOff(self);
 
-        if (player->status.p.f.object_stand) {
+        if (((player->status & SST_PSTATUS_OBJECT_STAND) != 0)) {
             if (own->timedelay == 0) {
-                player->status.p.f.object_stand = false;
-                player->status.p.f.pushing = false;
+                player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+                player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
                 player->prev_anim = SonAnimId_Run;
             } else {
                 break;

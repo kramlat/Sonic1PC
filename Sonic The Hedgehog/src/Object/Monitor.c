@@ -11,14 +11,14 @@
 // Monitor solid routine
 static int32_t Mon_SolidSides(Object *obj, uint16_t x_rad, uint16_t y_rad, int16_t *x_off, int16_t *y_off) {
     // Check if player is in horizontal range
-    *x_off = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+    *x_off = player->x_pos.f.u - obj->pos.l.x.f.u + x_rad;
     uint16_t x_dia = x_rad << 1;
     if (*x_off < 0 || *x_off > x_dia)
         return 0;
 
     // Check if player is in vertical range
-    y_rad += player->y_rad;
-    *y_off = player->pos.l.y.f.u - obj->pos.l.y.f.u + y_rad;
+    y_rad += player->y_radius;
+    *y_off = player->y_pos.f.u - obj->pos.l.y.f.u + y_rad;
     uint16_t y_dia = y_rad << 1;
 
     if (*y_off < 0 || *y_off >= y_dia)
@@ -39,7 +39,7 @@ static int32_t Mon_SolidSides(Object *obj, uint16_t x_rad, uint16_t y_rad, int16
     x_rad = obj->width_pixels + 4;
     x_dia = x_rad << 1;
 
-    int16_t x_off2 = player->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+    int16_t x_off2 = player->x_pos.f.u - obj->pos.l.x.f.u + x_rad;
     if (x_off2 >= 0 && x_off2 < x_dia)
         return -1;
 
@@ -103,26 +103,26 @@ void Obj_Monitor(Object *obj) {
             // it, since Mon_SolidSides' own push/stand handling only backed
             // off for the Roll animation, not the (still curled-up, about
             // to release) Spin Dash animation.
-            if (solid && (player->ysp < 0 || (player->anim != SonAnimId_Roll && player->anim != SonAnimId_SpinDash))) {
+            if (solid && (player->y_vel < 0 || (player->anim != SonAnimId_Roll && player->anim != SonAnimId_SpinDash))) {
                 if (solid < 0) {
                     // Stand on monitor
-                    player->pos.l.y.f.u -= y_off;
+                    player->y_pos.f.u -= y_off;
                     Platform_SetStand(obj);
                     obj->routine_sec = 2;
                 } else {
                     // Check if player shall be clipped by monitor sides
-                    if ((x_off > 0 && player->xsp >= 0) || (x_off < 0 && player->xsp < 0)) {
-                        player->pos.l.x.f.u -= x_off;
-                        player->inertia = 0;
-                        player->xsp = 0;
+                    if ((x_off > 0 && player->x_vel >= 0) || (x_off < 0 && player->x_vel < 0)) {
+                        player->x_pos.f.u -= x_off;
+                        player->ground_vel = 0;
+                        player->x_vel = 0;
                     }
 
                     // Start or stop pushing
-                    if (!player->status.p.f.in_air) {
-                        player->status.p.f.pushing = true;
+                    if (!((player->status & SST_PSTATUS_IN_AIR) != 0)) {
+                        player->status |= SST_PSTATUS_PUSHING;
                         obj->status.o.f.player_push = true;
                     } else {
-                        player->status.p.f.pushing = false;
+                        player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
                         obj->status.o.f.player_push = false;
                     }
                 }
@@ -130,7 +130,7 @@ void Obj_Monitor(Object *obj) {
                 // Stop pushing
                 if (obj->status.o.f.player_push) {
                     // (no forced running animation here: the original's "walk-jump bug", see SolidObject)
-                    player->status.p.f.pushing = false;
+                    player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
                     obj->status.o.f.player_push = false;
                 }
             }
@@ -141,7 +141,7 @@ void Obj_Monitor(Object *obj) {
             // Handle player standing on the monitor
             uint16_t x_rad = obj->width_pixels + 11;
             ExitPlatform(obj, x_rad, x_rad, NULL);
-            if (!player->status.p.f.object_stand) // Checks player?
+            if (!((player->status & SST_PSTATUS_OBJECT_STAND) != 0)) // Checks player?
                 obj->routine_sec = 0;
             else
                 MvSonicOnPtfm(obj, obj->pos.l.y.f.u - 16, obj->pos.l.x.f.u);
@@ -246,7 +246,7 @@ void Obj_MonitorItem(Object *obj) {
             obj->frame_time.w = 29;
 
             // Give item
-            Scratch_Sonic* scratch = (Scratch_Sonic*)&player->scratch;
+            Scratch_Sonic* scratch = (Scratch_Sonic *)player->own.u8;
 
             switch (obj->anim) // I'm not doing an else if chain LOL
             {
@@ -257,7 +257,7 @@ void Obj_MonitorItem(Object *obj) {
                 // without these checks, the monitor would still hurt Sonic
                 // while invincible/flashing/already hurt.
                 if (!invincibility && scratch->flash_time == 0 && player->routine < 4) {
-                    player->pos.l.y.v -= (int32_t)player->ysp << 8;
+                    player->y_pos.v -= (int32_t)player->y_vel << 8;
                     HurtSonic(player, obj);
                 }
                 break;

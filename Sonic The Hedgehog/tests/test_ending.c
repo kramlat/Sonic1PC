@@ -6,6 +6,7 @@
 #include "Level.h"
 #include "Object.h"
 #include "Object/Ending.h"
+#include "Object/EndingSonic.h"
 #include "SpecialStage.h"
 
 // The ending sequence's objects (87-89) and the "TRY AGAIN" / "END" screens' (8B, 8C): the cutscene's state machine, the
@@ -28,9 +29,9 @@ static void RunSonic(int frames) {
 static void Ending_BadEndingLeapsAndShowsTheLogo(void) {
     Reset();
     emeralds = 3;
-    player->type = ObjId_87;
+    player->code = sst_object_codes[ObjId_87];
     RunSonic(1);
-    CHECK_EQ(player->routine_sec, 0x10); // skipped the emerald part
+    CHECK_EQ(player->routine_secondary, 0x10); // skipped the emerald part
     RunSonic((3 * 60) + 36);             // the wait before the leap
     CHECK_EQ(objects[ENDING_SLOT_LOGO].type, ObjId_89);
 }
@@ -38,22 +39,22 @@ static void Ending_BadEndingLeapsAndShowsTheLogo(void) {
 static void Ending_GoodEndingMakesSixSpinningEmeralds(void) {
     Reset();
     emeralds = 6;
-    player->type = ObjId_87;
+    player->code = sst_object_codes[ObjId_87];
     RunSonic(1);
-    CHECK_EQ(player->routine_sec, 2);
+    CHECK_EQ(player->routine_secondary, 2);
     RunSonic(79);                         // looking at the emeralds for a bit under 1.5 seconds
     CHECK_EQ(objects[ENDING_SLOT_EMERALDS].type, ObjId_88);
     Obj_EndChaos(&objects[ENDING_SLOT_EMERALDS]); // Sonic's "hold" animation hasn't reached its last frame: nothing yet
     CHECK_EQ(objects[ENDING_SLOT_EMERALDS + 1].type, 0);
 
-    player->frame = 2;
+    player->mapping_frame = 2;
     Obj_EndChaos(&objects[ENDING_SLOT_EMERALDS]);
     for (int i = 0; i < 6; i++) {
         CHECK_EQ(objects[ENDING_SLOT_EMERALDS + i].type, ObjId_88);
         CHECK_EQ(objects[ENDING_SLOT_EMERALDS + i].frame, 1 + i); // frame 0 is the white flash
     }
     // They widen to a radius of 0x20 and the sequence moves on to the white flash
-    player->routine_sec = 6;
+    player->routine_secondary = 6;
     for (int i = 0; i < 0x100; i++)
         for (int e = 0; e < 6; e++)
             Obj_EndChaos(&objects[ENDING_SLOT_EMERALDS + e]);

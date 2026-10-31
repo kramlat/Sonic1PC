@@ -2,6 +2,7 @@
 #define _SONIC_H
 
 #include "Object.h"
+#include "Sst.h"
 
 #include <stdint.h>
 #include "Types.h"
@@ -15,6 +16,8 @@
 
 #ifndef SONIC_DPLC_SIZE // (a game built on this one, Sonic 2, has bigger frames: Nick Arcade's Sonic has 32-tile ones)
 #define SONIC_DPLC_SIZE 0x2E0
+void Obj_Sonic(Sst *self);
+
 #endif
 
 //Sonic assets
@@ -94,15 +97,15 @@ typedef enum
 } SonAnimId;
 
 //Sonic functions
-void Sonic_Animate(Object *obj);
-void Sonic_LoadGfx(Object *obj);
-void Sonic_DebugMode(Object *obj); // object placement mode (debug_use != 0); shared with the special stage Sonic
-void Sonic_ResetOnFloor(Object *obj);
-void Sonic_ChkRoll(Object *obj);
+void Sonic_Animate(Sst *obj);
+void Sonic_LoadGfx(Sst *obj);
+void Sonic_DebugMode(Sst *obj); // object placement mode (debug_use != 0); shared with the special stage Sonic
+void Sonic_ResetOnFloor(Sst *obj);
+void Sonic_ChkRoll(Sst *obj);
 void Sonic_CancelSpindash(void); // drops a charging spin dash (flag, rev count, dust), e.g. when a seesaw launches Sonic
-int32_t HurtSonic(Object *obj, Object *src);
-int32_t HurtSonicFrom(Object *obj, int16_t src_x, bool spikes);
-int32_t KillSonic(Object *obj, Object *src);
-int32_t KillSonicFrom(Object *obj, bool spikes);
+int32_t HurtSonic(Sst *obj, Object *src);
+int32_t HurtSonicFrom(Sst *obj, int16_t src_x, bool spikes);
+int32_t KillSonic(Sst *obj, Object *src);
+int32_t KillSonicFrom(Sst *obj, bool spikes);
 
 #endif //_SONIC_H

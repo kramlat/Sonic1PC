@@ -220,7 +220,11 @@ static void emitProject(std::ostream &o, const Project &p, const std::map<std::s
 	if (!p.cmakeFragment.empty()) o << "include(" << qp(p.dir / p.cmakeFragment) << ")\n";
 	for (const auto &sg : p.songs)
 		o << "pm_add_song(" << tgt << " " << qp(p.dir / p.songDir) << " " << qp(p.dir / p.resourceOut / "Music") << " " << q(sg.first) << " " << sg.second << ")\n";
-	o << "pm_convert_resources(" << tgt << " " << qp(p.dir / p.resourceDir) << " " << qp(p.dir / p.resourceOut) << " ${PM_RESOURCES})\n";
+	// what a project assembles (asm -> res) is converted to its Resource headers as well, unless it lists the name in resources: itself
+	o << "pm_convert_resources(" << tgt << " " << qp(p.dir / p.resourceDir) << " " << qp(p.dir / p.resourceOut) << " ${PM_RESOURCES}";
+	for (const auto &a : p.assemble)
+		if (std::find(p.resources.begin(), p.resources.end(), a) == p.resources.end()) o << "\n  " << q(a);
+	o << ")\n";
 	if (!p.assemble.empty()) {
 		o << "pm_assemble(" << tgt << " " << qp(p.dir / p.asmDir) << " " << qp(p.dir / p.asmOut);
 		for (const auto &a : p.assemble) o << "\n  " << q(a);

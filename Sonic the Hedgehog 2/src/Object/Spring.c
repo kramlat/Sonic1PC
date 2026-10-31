@@ -34,20 +34,20 @@ static const int8_t slope_diag_down[] = {
 };
 
 // What a launch does to the character besides moving it: the tumble the subtype asks for, and the collision path
-static void Spring_FlipAndPath(Object *chr, uint8_t subtype, uint8_t flip_speed, uint8_t flips_weak, uint8_t flips_strong) {
-    Scratch_Sonic *sscratch = (Scratch_Sonic *)&chr->scratch;
+static void Spring_FlipAndPath(Sst *chr, uint8_t subtype, uint8_t flip_speed, uint8_t flips_weak, uint8_t flips_strong) {
+    Scratch_Sonic *sscratch = (Scratch_Sonic *)chr->own.u8;
 
     if (subtype & 1) {
-        chr->inertia = 1;
+        chr->ground_vel = 1;
         sscratch->flip_angle = 1;
         chr->anim = SonAnimId_Walk;
         sscratch->flips_remaining = flips_weak;
         sscratch->flip_speed = flip_speed;
         if (!(subtype & 2))
             sscratch->flips_remaining = flips_strong;
-        if (chr->status.p.f.x_flip) {
+        if (((chr->status & SST_PSTATUS_X_FLIP) != 0)) {
             sscratch->flip_angle = (uint8_t)-sscratch->flip_angle;
-            chr->inertia = -chr->inertia;
+            chr->ground_vel = -chr->ground_vel;
         }
     }
 
@@ -69,83 +69,83 @@ static void Spring_SetAnim(Object *obj, uint8_t anim) {
 }
 
 // Launches the character up (sub_E34E)
-static void Spring_LaunchUp(Object *obj, Object *chr, int16_t power, uint8_t subtype) {
+static void Spring_LaunchUp(Object *obj, Sst *chr, int16_t power, uint8_t subtype) {
     Spring_SetAnim(obj, SpringAnim_Up);
-    chr->pos.l.y.f.u += 8;
-    chr->ysp = power;
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
+    chr->y_pos.f.u += 8;
+    chr->y_vel = power;
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->anim = SonAnimId_Spring;
     chr->routine = 2;
     if (subtype & 0x80)
-        chr->xsp = 0;
+        chr->x_vel = 0;
     Spring_FlipAndPath(chr, subtype, 4, 0, 1);
     PlaySound(sfx_Spring);
 }
 
 // ... down (sub_E64E)
-static void Spring_LaunchDown(Object *obj, Object *chr, int16_t power, uint8_t subtype) {
+static void Spring_LaunchDown(Object *obj, Sst *chr, int16_t power, uint8_t subtype) {
     Spring_SetAnim(obj, SpringAnim_Up);
-    chr->pos.l.y.f.u -= 8;
-    chr->ysp = -power;
+    chr->y_pos.f.u -= 8;
+    chr->y_vel = -power;
     if (subtype & 0x80)
-        chr->xsp = 0;
+        chr->x_vel = 0;
     Spring_FlipAndPath(chr, subtype, 4, 0, 1);
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->routine = 2;
     PlaySound(sfx_Spring);
 }
 
 // ... sideways (sub_E474)
-static void Spring_LaunchSide(Object *obj, Object *chr, int16_t power, uint8_t subtype) {
-    Scratch_Sonic *sscratch = (Scratch_Sonic *)&chr->scratch;
+static void Spring_LaunchSide(Object *obj, Sst *chr, int16_t power, uint8_t subtype) {
+    Scratch_Sonic *sscratch = (Scratch_Sonic *)chr->own.u8;
 
     Spring_SetAnim(obj, SpringAnim_Side);
-    chr->xsp = power;
-    chr->pos.l.x.f.u += 8;
-    chr->status.p.f.x_flip = true;
+    chr->x_vel = power;
+    chr->x_pos.f.u += 8;
+    chr->status |= SST_PSTATUS_X_FLIP;
     if (!obj->status.o.f.x_flip) {
-        chr->status.p.f.x_flip = false;
-        chr->pos.l.x.f.u -= 0x10;
-        chr->xsp = -chr->xsp;
+        chr->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+        chr->x_pos.f.u -= 0x10;
+        chr->x_vel = -chr->x_vel;
     }
     sscratch->control_lock = 0xF;
-    chr->inertia = chr->xsp;
-    if (!chr->status.p.f.in_ball)
+    chr->ground_vel = chr->x_vel;
+    if (!((chr->status & SST_PSTATUS_IN_BALL) != 0))
         chr->anim = SonAnimId_Walk;
     if (subtype & 0x80)
-        chr->ysp = 0;
+        chr->y_vel = 0;
     Spring_FlipAndPath(chr, subtype, 8, 1, 3);
     obj->status.b &= (uint8_t)~((1 << 5) | (1 << 6));
-    chr->status.p.f.pushing = false;
+    chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
     PlaySound(sfx_Spring);
 }
 
 // ... diagonally up (sub_E73E), if the character is on the springy half; it takes off along the diagonal
-static void Spring_LaunchDiagUp(Object *obj, Object *chr, int16_t power, uint8_t subtype) {
+static void Spring_LaunchDiagUp(Object *obj, Sst *chr, int16_t power, uint8_t subtype) {
     int16_t x = obj->pos.l.x.f.u;
     if (!obj->status.o.f.x_flip) {
-        if (!((uint16_t)(x - 4) < (uint16_t)chr->pos.l.x.f.u))
+        if (!((uint16_t)(x - 4) < (uint16_t)chr->x_pos.f.u))
             return;
     } else {
-        if (!((uint16_t)(x + 4) >= (uint16_t)chr->pos.l.x.f.u))
+        if (!((uint16_t)(x + 4) >= (uint16_t)chr->x_pos.f.u))
             return;
     }
 
     Spring_SetAnim(obj, SpringAnim_Diag);
-    chr->ysp = power;
-    chr->xsp = power;
-    chr->pos.l.y.f.u += 6;
-    chr->pos.l.x.f.u += 6;
-    chr->status.p.f.x_flip = true;
+    chr->y_vel = power;
+    chr->x_vel = power;
+    chr->y_pos.f.u += 6;
+    chr->x_pos.f.u += 6;
+    chr->status |= SST_PSTATUS_X_FLIP;
     if (!obj->status.o.f.x_flip) {
-        chr->status.p.f.x_flip = false;
-        chr->pos.l.x.f.u -= 0xC;
-        chr->xsp = -chr->xsp;
+        chr->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+        chr->x_pos.f.u -= 0xC;
+        chr->x_vel = -chr->x_vel;
     }
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->anim = SonAnimId_Spring;
     chr->routine = 2;
     Spring_FlipAndPath(chr, subtype, 8, 1, 3);
@@ -153,27 +153,27 @@ static void Spring_LaunchDiagUp(Object *obj, Object *chr, int16_t power, uint8_t
 }
 
 // ... diagonally down (sub_E870), from underneath
-static void Spring_LaunchDiagDown(Object *obj, Object *chr, int16_t power, uint8_t subtype) {
+static void Spring_LaunchDiagDown(Object *obj, Sst *chr, int16_t power, uint8_t subtype) {
     Spring_SetAnim(obj, SpringAnim_Diag);
-    chr->ysp = -power;
-    chr->xsp = power;
-    chr->pos.l.y.f.u -= 6;
-    chr->pos.l.x.f.u += 6;
-    chr->status.p.f.x_flip = true;
+    chr->y_vel = -power;
+    chr->x_vel = power;
+    chr->y_pos.f.u -= 6;
+    chr->x_pos.f.u += 6;
+    chr->status |= SST_PSTATUS_X_FLIP;
     if (!obj->status.o.f.x_flip) {
-        chr->status.p.f.x_flip = false;
-        chr->pos.l.x.f.u -= 0xC;
-        chr->xsp = -chr->xsp;
+        chr->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+        chr->x_pos.f.u -= 0xC;
+        chr->x_vel = -chr->x_vel;
     }
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->routine = 2;
     Spring_FlipAndPath(chr, subtype, 8, 1, 3);
     PlaySound(sfx_Spring);
 }
 
 // A sideways spring also springs a character that runs at its face without having touched it (sub_E54C): in a box in front of it, running toward it
-static void Spring_RunInto(Object *obj, Object *chr, int16_t power, uint8_t subtype) {
+static void Spring_RunInto(Object *obj, Sst *chr, int16_t power, uint8_t subtype) {
     int16_t x0 = obj->pos.l.x.f.u;
     int16_t x1 = x0 + 0x28;
     if (obj->status.o.f.x_flip) {
@@ -182,28 +182,28 @@ static void Spring_RunInto(Object *obj, Object *chr, int16_t power, uint8_t subt
     }
     int16_t y0 = obj->pos.l.y.f.u - 0x18, y1 = obj->pos.l.y.f.u + 0x18;
 
-    if (chr->status.p.f.in_air)
+    if (((chr->status & SST_PSTATUS_IN_AIR) != 0))
         return;
-    int16_t speed = chr->inertia;
+    int16_t speed = chr->ground_vel;
     if (obj->status.o.f.x_flip)
         speed = -speed;
     if (speed < 0)
         return;
-    uint16_t cx = (uint16_t)chr->pos.l.x.f.u, cy = (uint16_t)chr->pos.l.y.f.u;
+    uint16_t cx = (uint16_t)chr->x_pos.f.u, cy = (uint16_t)chr->y_pos.f.u;
     if (cx < (uint16_t)x0 || cx >= (uint16_t)x1 || cy < (uint16_t)y0 || cy >= (uint16_t)y1)
         return;
     Spring_LaunchSide(obj, chr, power, subtype);
 }
 
 // The two characters, Sonic and then Tails if he is here: `who` is which, and `chr` the object to act on
-static Object *Spring_Character(int who) {
+static Sst *Spring_Character(int who) {
     if (who == SolidChar_Sonic)
         return player;
-    return TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL;
+    return TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL;
 }
 #define FOR_CHARACTERS(chr, who) \
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) \
-        for (Object *chr = Spring_Character(who); chr != NULL; chr = NULL)
+        for (Sst *chr = Spring_Character(who); chr != NULL; chr = NULL)
 
 void Obj_Spring(Object *obj) {
     Scratch_Spring *scratch = (Scratch_Spring *)&obj->scratch;
@@ -269,7 +269,7 @@ void Obj_Spring(Object *obj) {
             if (obj->status.b & (1 << (5 + who))) {
                 // (only from the side it faces)
                 uint8_t flip = obj->status.o.f.x_flip;
-                if (!(obj->pos.l.x.f.u < chr->pos.l.x.f.u))
+                if (!(obj->pos.l.x.f.u < chr->x_pos.f.u))
                     flip ^= 1;
                 if (!(flip & 1))
                     Spring_LaunchSide(obj, chr, scratch->power, scratch->subtype);

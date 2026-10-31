@@ -50,13 +50,13 @@ void Obj_SmashBlock(Sst *self) {
 
         item_bonus = own->combo;
 
-        player->status.p.f.in_ball = true;
-        player->y_rad = 28 / 2; // sonic_roll_height
-        player->x_rad = 14 / 2; // sonic_roll_width
+        player->status |= SST_PSTATUS_IN_BALL;
+        player->y_radius = 28 / 2; // sonic_roll_height
+        player->x_radius = 14 / 2; // sonic_roll_width
         player->anim = SonAnimId_Roll;
-        player->ysp = -0x300;
-        player->status.p.f.in_air = true;
-        player->status.p.f.object_stand = false;
+        player->y_vel = -0x300;
+        player->status |= SST_PSTATUS_IN_AIR;
+        player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
         player->routine = 2; // force Sonic to Sonic_Control
         self->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;
 

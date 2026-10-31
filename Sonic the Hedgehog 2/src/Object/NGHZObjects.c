@@ -24,7 +24,7 @@
 // What the object does for each of the two characters: `chr` is NULL for a Tails who is not there
 #define FOR_EACH_CHARACTER(chr, who) \
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) \
-        for (Object *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
+        for (Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
 
 void Obj_SwingingPlatform(Object *obj);
 
@@ -37,8 +37,8 @@ void Obj_SwingingPlatform(Object *obj);
 enum { ArrowRoutine_Init = 0, ArrowRoutine_Wait = 2, ArrowRoutine_Fire = 4, ArrowRoutine_ArrowInit = 6, ArrowRoutine_Arrow = 8 };
 
 // Within $40 pixels of the shooter along x
-static bool ArrowShooter_Near(const Object *obj, const Object *chr) {
-    int16_t d0 = (int16_t)(obj->pos.l.x.f.u - chr->pos.l.x.f.u);
+static bool ArrowShooter_Near(const Object *obj, const Sst *chr) {
+    int16_t d0 = (int16_t)(obj->pos.l.x.f.u - chr->x_pos.f.u);
     if (d0 < 0)
         d0 = (int16_t)-d0;
     return d0 < 0x40;
@@ -59,7 +59,7 @@ void Obj_ArrowShooter(Object *obj) {
     case ArrowRoutine_Wait:
         if (obj->anim != 2) { // (not already firing)
             uint8_t d2 = ArrowShooter_Near(obj, player);
-            if (TAILS_OBJ->type != 0 && ArrowShooter_Near(obj, TAILS_OBJ))
+            if (TAILS_OBJ->code != NULL && ArrowShooter_Near(obj, TAILS_OBJ))
                 d2 = 1;
             if (d2 == 0 && obj->anim != 0)
                 d2 = 2; // (draws back after he has left)
@@ -133,10 +133,10 @@ static const uint8_t leaves_collision[3] = { 0xD6, 0xD4, 0xD5 };
 static const int16_t leaves_speeds[4][2] = { { -0x80, -0x80 }, { 0xC0, -0x40 }, { -0xC0, 0x40 }, { 0x80, 0x80 } };
 
 // (false when the character is too slow: the box then forgets when it was touched)
-static bool Leaves_Create(Object *obj, const Object *chr) {
-    int16_t d0 = chr->xsp < 0 ? (int16_t)-chr->xsp : chr->xsp;
+static bool Leaves_Create(Object *obj, const Sst *chr) {
+    int16_t d0 = chr->x_vel < 0 ? (int16_t)-chr->x_vel : chr->x_vel;
     if (d0 < 0x200) {
-        d0 = chr->ysp < 0 ? (int16_t)-chr->ysp : chr->ysp;
+        d0 = chr->y_vel < 0 ? (int16_t)-chr->y_vel : chr->y_vel;
         if (d0 < 0x200)
             return false;
     }
@@ -148,11 +148,11 @@ static bool Leaves_Create(Object *obj, const Object *chr) {
         leaf->type = obj->type;
         leaf->routine = 4;
         const uint32_t random = RandomNumber();
-        leaf->pos.l.x.f.u = (int16_t)(chr->pos.l.x.f.u + (int16_t)((random & 0xF) - 8));
-        leaf->pos.l.y.f.u = (int16_t)(chr->pos.l.y.f.u + (int16_t)(((random >> 16) & 0xF) - 8));
+        leaf->pos.l.x.f.u = (int16_t)(chr->x_pos.f.u + (int16_t)((random & 0xF) - 8));
+        leaf->pos.l.y.f.u = (int16_t)(chr->y_pos.f.u + (int16_t)(((random >> 16) & 0xF) - 8));
         leaf->xsp = leaves_speeds[i][0];
         leaf->ysp = leaves_speeds[i][1];
-        if (chr->status.p.f.x_flip)
+        if (((chr->status & SST_PSTATUS_X_FLIP) != 0))
             leaf->xsp = (int16_t)-leaf->xsp;
         ls->x = (int32_t)leaf->pos.l.x.f.u << 16;
         ls->y = (int32_t)leaf->pos.l.y.f.u << 16;
@@ -214,7 +214,7 @@ void Obj_NGHZLeaves(Object *obj) {
             } else if (((phase + 8) & 0xF) == 0) {
                 if (obj->col_property & 2) {
                     obj->col_property &= (uint8_t)~2;
-                    if (TAILS_OBJ->type != 0 && !Leaves_Create(obj, TAILS_OBJ))
+                    if (TAILS_OBJ->code != NULL && !Leaves_Create(obj, TAILS_OBJ))
                         scratch->touched = 0;
                     if (scratch->touched == 0)
                         scratch->touched = (uint16_t)frame_count;
@@ -296,7 +296,7 @@ static uint8_t Swing_Spiked(Object *obj, Scratch_NGHZSwing *scratch) {
         return obj->angle;
     }
     if (!scratch->started) {
-        if ((uint16_t)(player->pos.l.x.f.u - scratch->base_x + 0x20) >= 0x40 || debug_use)
+        if ((uint16_t)(player->x_pos.f.u - scratch->base_x + 0x20) >= 0x40 || debug_use)
             return obj->angle;
         scratch->started = 1;
     }
@@ -476,11 +476,11 @@ void Obj_NGHZSwing(Object *obj) {
                 raft->xsp = obj->status.o.f.x_flip ? -0x200 : 0x200;
                 raft->status.b |= 2; // (falling)
                 const uint8_t old_slot = (uint8_t)(obj - objects), new_slot = (uint8_t)(raft - objects);
-                Scratch_Sonic *sonic = (Scratch_Sonic *)&player->scratch;
+                Scratch_Sonic *sonic = (Scratch_Sonic *)player->own.u8;
                 if (sonic->standing_obj == old_slot)
                     sonic->standing_obj = new_slot;
-                if (TAILS_OBJ->type != 0) {
-                    Scratch_Sonic *tails = (Scratch_Sonic *)&TAILS_OBJ->scratch;
+                if (TAILS_OBJ->code != NULL) {
+                    Scratch_Sonic *tails = (Scratch_Sonic *)TAILS_OBJ->own.u8;
                     if (tails->standing_obj == old_slot)
                         tails->standing_obj = new_slot;
                 }

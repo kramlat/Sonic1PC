@@ -61,8 +61,8 @@ void Peek_EditorState(EditorPeek *out) {
 	out->zone_count = ZoneId_Num;
 	out->camera_x = scrpos_x.f.u;
 	out->camera_y = scrpos_y.f.u;
-	out->player_x = player->pos.l.x.f.u;
-	out->player_y = player->pos.l.y.f.u;
+	out->player_x = player->x_pos.f.u;
+	out->player_y = player->y_pos.f.u;
 	out->objects = out->zone < ZoneId_Num && out->act < 4 ? level_obj[out->zone][out->act] : NULL;
 	out->rings = out->zone < ZoneId_Num && out->act < 4 ? level_ring[out->zone][out->act] : NULL;
 }

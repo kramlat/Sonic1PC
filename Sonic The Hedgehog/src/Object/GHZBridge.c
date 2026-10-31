@@ -76,10 +76,10 @@ static void Obj_GHZBridge_Solid(Sst *self) {
     uint16_t x_dia = self->subtype << 4;
 
     // Check if player is colliding with bridge
-    if (player->ysp < 0)
+    if (player->y_vel < 0)
         return;
 
-    int16_t off = player->pos.l.x.f.u - self->x_pos.f.u + x_rad;
+    int16_t off = player->x_pos.f.u - self->x_pos.f.u + x_rad;
     if (off < 0 || off >= x_dia)
         return;
 
@@ -92,7 +92,7 @@ static void Obj_GHZBridge_MoveSonic(Sst *self) {
 
     // Clip Sonic to the top of the bridge segment being stood on
     Sst *seg = &sst[own->seg[own->push_seg]];
-    player->pos.l.y.f.u = seg->y_pos.f.u - 8 - player->y_rad;
+    player->y_pos.f.u = seg->y_pos.f.u - 8 - player->y_radius;
 }
 
 static void Obj_GHZBridge_WalkOff(Sst *self) {

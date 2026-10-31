@@ -24,12 +24,12 @@ static void Reset(void) {
     limit_btm2 = 0x720;
     debug_use = false;
     jpad2_press = 0;
-    player->type = 1;
+    player->code = sst_object_codes[1];
     player->routine = 2;
-    player->y_rad = 19;
-    player->pos.l.x.f.u = 0x1000;
-    player->pos.l.y.f.u = 0x1000;
-    player->status.b = 0;
+    player->y_radius = 19;
+    player->x_pos.f.u = 0x1000;
+    player->y_pos.f.u = 0x1000;
+    player->status = 0;
     OBJ_CONTROL(player) = 0;
 }
 
@@ -46,11 +46,11 @@ static Object *Spawn(Object *slot, uint8_t type, uint8_t subtype, int16_t x, int
 
 // Sonic standing on something with its top at `top`
 static void StandOn(Object *obj, int16_t x, int16_t top) {
-    player->pos.l.x.f.u = x;
-    player->pos.l.y.f.u = (int16_t)(top - player->y_rad);
-    player->status.p.f.in_air = false;
-    player->status.p.f.object_stand = true;
-    player->xsp = player->ysp = player->inertia = 0;
+    player->x_pos.f.u = x;
+    player->y_pos.f.u = (int16_t)(top - player->y_radius);
+    player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
+    player->status |= SST_PSTATUS_OBJECT_STAND;
+    player->x_vel = player->y_vel = player->ground_vel = 0;
     obj->status.b |= 8;
 }
 
@@ -67,7 +67,7 @@ static void OOZ_TheOilKillsWhoeverStaysInIt(void) {
         player->routine = 2;
     }
     CHECK_EQ(player->routine, 2); // (still alive)
-    CHECK(player->pos.l.y.f.u > 0x758 - 0x30 - 19); // (it has gone down in it)
+    CHECK(player->y_pos.f.u > 0x758 - 0x30 - 19); // (it has gone down in it)
     for (int i = 0; i < 4; i++)
         Obj_OilSurface(oil);
     CHECK_EQ(player->routine, 6); // (dead)
@@ -81,8 +81,8 @@ static void OOZ_TheOilReleasesSonicWhenHeLeaves(void) {
     for (int i = 0; i < 10; i++)
         Obj_OilSurface(oil);
     CHECK_EQ(oil->scratch.u8[0x10], 0x30 - 10);
-    player->status.p.f.in_air = true; // (jumps out, well clear of it)
-    player->pos.l.y.f.u -= 0x40;
+    player->status |= SST_PSTATUS_IN_AIR; // (jumps out, well clear of it)
+    player->y_pos.f.u -= 0x40;
     for (int i = 0; i < 12; i++) // (one more sink in the frame he leaves, then a pixel a frame back up)
         Obj_OilSurface(oil);
     CHECK_EQ(oil->scratch.u8[0x10], 0x30); // (it comes back up: Sonic is not standing and the depth recovers)
@@ -103,8 +103,8 @@ static void SandOn(void) {
     }
     LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 2, 1, 0xFE); // (x $100 to $17F, y $80 to $FF: its top is at $80)
     Reset();
-    player->status.p.f.in_air = true;
-    player->pos.l.x.f.u = 0x140;
+    player->status |= SST_PSTATUS_IN_AIR;
+    player->x_pos.f.u = 0x140;
 }
 
 static void SandOff(void) {
@@ -114,32 +114,32 @@ static void SandOff(void) {
 
 static void SSZ_SandSinksACharacterSlowlyAndHoldsItBack(void) {
     SandOn();
-    player->pos.l.y.f.u = (int16_t)(0x84 - player->y_rad); // (feet in the first row)
-    player->ysp = 0x400;
-    player->xsp = 0x300;
+    player->y_pos.f.u = (int16_t)(0x84 - player->y_radius); // (feet in the first row)
+    player->y_vel = 0x400;
+    player->x_vel = 0x300;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, 0x40); // (a quarter of a pixel a frame at most)
-    CHECK(player->xsp < 0x300 && player->xsp > 0x200); // (and slowed in the way he goes)
+    CHECK_EQ(player->y_vel, 0x40); // (a quarter of a pixel a frame at most)
+    CHECK(player->x_vel < 0x300 && player->x_vel > 0x200); // (and slowed in the way he goes)
     SandOff();
 }
 
 static void SSZ_SandIsIgnoredOutsideIt(void) {
     SandOn();
-    player->pos.l.y.f.u = (int16_t)(0x60 - player->y_rad); // (above the sand)
-    player->ysp = 0x400;
+    player->y_pos.f.u = (int16_t)(0x60 - player->y_radius); // (above the sand)
+    player->y_vel = 0x400;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, 0x400);
+    CHECK_EQ(player->y_vel, 0x400);
     SandOff();
 }
 
 static void SSZ_AJumpInTheSandTakesHimUpWeakly(void) {
     SandOn();
-    player->pos.l.y.f.u = (int16_t)(0xA0 - player->y_rad);
-    player->ysp = 0x40;
+    player->y_pos.f.u = (int16_t)(0xA0 - player->y_radius);
+    player->y_vel = 0x40;
     jpad1_press2 = JPAD_A;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, -0x410); // (5/8 of a jump's $680)
-    CHECK(player->status.p.f.in_ball);
+    CHECK_EQ(player->y_vel, -0x410); // (5/8 of a jump's $680)
+    CHECK(((player->status & SST_PSTATUS_IN_BALL) != 0));
     jpad1_press2 = 0;
     SandOff();
 }
@@ -154,44 +154,44 @@ static void SandPut(uint16_t word) { // the whole test chunk is that cell word
 static void SSZ_ASandFallCarriesACharacterDownOrUpWithItsFlipAndDoesNotKill(void) {
     SandOn();
     SandPut(0x0051);
-    player->pos.l.y.f.u = (int16_t)(0xC0 - player->y_rad);
-    player->ysp = 0;
+    player->y_pos.f.u = (int16_t)(0xC0 - player->y_radius);
+    player->y_vel = 0;
     for (int i = 0; i < 30; i++)
         SandShower_LevelMisc();
-    CHECK(player->ysp > 0x100); // (carried down)
+    CHECK(player->y_vel > 0x100); // (carried down)
     CHECK_EQ(player->routine, 2);
     SandPut(0x0851); // (Y flip)
-    player->ysp = 0;
+    player->y_vel = 0;
     for (int i = 0; i < 30; i++)
         SandShower_LevelMisc();
-    CHECK(player->ysp < -0x100); // (carried up)
+    CHECK(player->y_vel < -0x100); // (carried up)
     SandOff();
 }
 
 static void SSZ_SandThatHoldsSticksACharacterAndCarriesItSidewaysUntilAJump(void) {
     SandOn();
     SandPut(0x0098);
-    player->pos.l.y.f.u = (int16_t)(0xC0 - player->y_rad);
-    player->ysp = 0x300;
+    player->y_pos.f.u = (int16_t)(0xC0 - player->y_radius);
+    player->y_vel = 0x300;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, 0);
-    CHECK_EQ(player->xsp, 0x200); // (to the right)
+    CHECK_EQ(player->y_vel, 0);
+    CHECK_EQ(player->x_vel, 0x200); // (to the right)
     SandPut(0x0498); // (X flip)
     SandShower_LevelMisc();
-    CHECK_EQ(player->xsp, -0x200);
+    CHECK_EQ(player->x_vel, -0x200);
     jpad1_press2 = JPAD_A;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, 0x680); // (a full jump out of it, downward)
+    CHECK_EQ(player->y_vel, 0x680); // (a full jump out of it, downward)
     jpad1_press2 = 0;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, 0x680); // (on his way out: it does not hold him again)
+    CHECK_EQ(player->y_vel, 0x680); // (on his way out: it does not hold him again)
     SandPut(0x0000); // (out of it: it can take him again)
     SandShower_LevelMisc();
     SandPut(0x0898); // (Y flip: up)
     SandShower_LevelMisc();
     jpad1_press2 = JPAD_A;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, -0x680);
+    CHECK_EQ(player->y_vel, -0x680);
     jpad1_press2 = 0;
     SandOff();
 }
@@ -200,31 +200,31 @@ static void SSZ_ASandFallLetsGoWhereASidewaysOneTakesOverAndAJumpAtItsEndIsHigh(
     SandOn();
     // a fall, then sand that holds: the new one takes over at once (his fall stops and the sideways flow starts)
     SandPut(0x0051);
-    player->pos.l.y.f.u = (int16_t)(0xC0 - player->y_rad);
-    player->ysp = 0x180;
+    player->y_pos.f.u = (int16_t)(0xC0 - player->y_radius);
+    player->y_vel = 0x180;
     SandShower_LevelMisc();
     SandPut(0x0098);
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, 0);
-    CHECK_EQ(player->xsp, 0x200);
+    CHECK_EQ(player->y_vel, 0);
+    CHECK_EQ(player->x_vel, 0x200);
     // and back: the sideways speed goes at once
     SandPut(0x0051);
     SandShower_LevelMisc();
-    CHECK_EQ(player->xsp, 0);
+    CHECK_EQ(player->x_vel, 0);
     // a jump from a fall that goes on is weak, and at its end (the block below is not a fall) a full one
     SandPut(0x0051);
-    player->ysp = 0;
+    player->y_vel = 0;
     jpad1_press2 = JPAD_A;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, -0x410);
-    player->status.p.f.in_ball = false;
+    CHECK_EQ(player->y_vel, -0x410);
+    player->status &= (uint8_t)~SST_PSTATUS_IN_BALL;
     for (int i = 48; i < 64; i++) // (the last two rows of the chunk are empty: the fall ends above them)
         level_map128[0x80 * 0xFE + i * 2 + 1] = 0;
-    player->pos.l.y.f.u = (int16_t)(0x80 + 5 * 16 + 8); // (his middle in the sixth row, the last of the fall: his feet are in the seventh)
-    player->ysp = 0;
-    player->status.p.f.in_air = true;
+    player->y_pos.f.u = (int16_t)(0x80 + 5 * 16 + 8); // (his middle in the sixth row, the last of the fall: his feet are in the seventh)
+    player->y_vel = 0;
+    player->status |= SST_PSTATUS_IN_AIR;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, -0x680);
+    CHECK_EQ(player->y_vel, -0x680);
     jpad1_press2 = 0;
     SandOff();
 }
@@ -238,26 +238,26 @@ static void SSZ_TheDoorOpensAsYouComeUpToItAndShutsBehindYou(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_SSZ, 0);
     Object *door = Spawn(SLOT(0x20), 0x2D, 0x00, 0x60, 0x80);
-    player->pos.l.x.f.u = 0x1000;
+    player->x_pos.f.u = 0x1000;
     DoorRun(door, 20);
     CHECK_EQ(door->pos.l.y.f.u, 0x80); // (shut: he is far away)
-    player->pos.l.x.f.u = 0x20; // (on its open side)
-    player->pos.l.y.f.u = 0x80;
+    player->x_pos.f.u = 0x20; // (on its open side)
+    player->y_pos.f.u = 0x80;
     DoorRun(door, 20);
     CHECK_EQ(door->pos.l.y.f.u, 0x80 - 0x40);
-    player->pos.l.x.f.u = 0x80; // (in the door)
+    player->x_pos.f.u = 0x80; // (in the door)
     DoorRun(door, 20);
     CHECK_EQ(door->pos.l.y.f.u, 0x80 - 0x40); // (it does not shut on him)
-    player->pos.l.x.f.u = 0xA0; // (past it)
+    player->x_pos.f.u = 0xA0; // (past it)
     DoorRun(door, 20);
     CHECK_EQ(door->pos.l.y.f.u, 0x80); // (it shuts behind him)
     // flipped, it opens from the other side
     Object *flipped = Spawn(SLOT(0x21), 0x2D, 0x00, 0x60, 0x80);
     flipped->status.o.f.x_flip = true;
-    player->pos.l.x.f.u = 0x20;
+    player->x_pos.f.u = 0x20;
     DoorRun(flipped, 20);
     CHECK_EQ(flipped->pos.l.y.f.u, 0x80); // (not from the left)
-    player->pos.l.x.f.u = 0xC0;
+    player->x_pos.f.u = 0xC0;
     DoorRun(flipped, 20);
     CHECK_EQ(flipped->pos.l.y.f.u, 0x80 - 0x40);
 }
@@ -267,8 +267,8 @@ static void SSZ_TheSwitchDoorWaitsForItsSwitchAndShutsOnceYouAreThrough(void) {
     level_id = LEVEL_ID(ZoneId_SSZ, 0);
     memset(f_switch, 0, sizeof(f_switch));
     Object *door = Spawn(SLOT(0x20), 0x2D, 0x10, 0x60, 0x80);
-    player->pos.l.x.f.u = 0x20; // (at it, but its switch is not pressed)
-    player->pos.l.y.f.u = 0x80;
+    player->x_pos.f.u = 0x20; // (at it, but its switch is not pressed)
+    player->y_pos.f.u = 0x80;
     DoorRun(door, 20);
     CHECK_EQ(door->pos.l.y.f.u, 0x80);
     f_switch[0] = 1; // (pressed, and let go: it stays up)
@@ -276,10 +276,10 @@ static void SSZ_TheSwitchDoorWaitsForItsSwitchAndShutsOnceYouAreThrough(void) {
     f_switch[0] = 0;
     DoorRun(door, 200);
     CHECK_EQ(door->pos.l.y.f.u, 0x80 - 0x40);
-    player->pos.l.x.f.u = 0x80; // (going through)
+    player->x_pos.f.u = 0x80; // (going through)
     DoorRun(door, 20);
     CHECK_EQ(door->pos.l.y.f.u, 0x80 - 0x40);
-    player->pos.l.x.f.u = 0xA0; // (through)
+    player->x_pos.f.u = 0xA0; // (through)
     DoorRun(door, 20);
     CHECK_EQ(door->pos.l.y.f.u, 0x80);
 }
@@ -289,15 +289,15 @@ static void SSZ_TheTimedSwitchDoorStaysUpForTheTimeOfItsSubtype(void) {
     level_id = LEVEL_ID(ZoneId_SSZ, 0);
     memset(f_switch, 0, sizeof(f_switch));
     Object *door = Spawn(SLOT(0x20), 0x2D, 0x20, 0x60, 0x80); // (3 seconds)
-    player->pos.l.x.f.u = 0x20; // (on its open side: it does not mind which side)
-    player->pos.l.y.f.u = 0x80;
+    player->x_pos.f.u = 0x20; // (on its open side: it does not mind which side)
+    player->y_pos.f.u = 0x80;
     DoorRun(door, 20);
     CHECK_EQ(door->pos.l.y.f.u, 0x80);
     f_switch[0] = 1;
     DoorRun(door, 2);
     f_switch[0] = 0;
-    player->pos.l.x.f.u = 0x1000;
-    player->pos.l.y.f.u = 0x1000;
+    player->x_pos.f.u = 0x1000;
+    player->y_pos.f.u = 0x1000;
     DoorRun(door, 150);
     CHECK_EQ(door->pos.l.y.f.u, 0x80 - 0x40); // (up after 2.5 seconds)
     DoorRun(door, 100);
@@ -308,8 +308,8 @@ static void SSZ_TheTimedSwitchDoorStaysUpForTheTimeOfItsSubtype(void) {
     f_switch[0] = 0;
     DoorRun(slow, 400);
     CHECK_EQ(slow->pos.l.y.f.u, 0x80 - 0x40);
-    player->pos.l.x.f.u = 0x80; // (in its way when the time is up: it shuts all the same)
-    player->pos.l.y.f.u = 0x80;
+    player->x_pos.f.u = 0x80; // (in its way when the time is up: it shuts all the same)
+    player->y_pos.f.u = 0x80;
     DoorRun(slow, 200);
     CHECK_EQ(slow->pos.l.y.f.u, 0x80);
 }
@@ -320,15 +320,15 @@ static void SSZ_TheTimedDoorCrushesWhoIsStillUnderItWhenTheTimeIsUp(void) {
     memset(f_switch, 0, sizeof(f_switch));
     Object *door = Spawn(SLOT(0x20), 0x2D, 0x20, 0x60, 0x80); // (3 seconds)
     door->render.f.on_screen = true;
-    player->pos.l.x.f.u = 0x1000; // (away while it opens)
+    player->x_pos.f.u = 0x1000; // (away while it opens)
     f_switch[0] = 1;
     DoorRun(door, 2);
     f_switch[0] = 0;
     DoorRun(door, 20);
-    player->pos.l.x.f.u = 0x70; // (under it)
-    player->pos.l.y.f.u = 0x95;
-    player->status.p.f.in_air = false;
-    player->ysp = 0;
+    player->x_pos.f.u = 0x70; // (under it)
+    player->y_pos.f.u = 0x95;
+    player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
+    player->y_vel = 0;
     for (int i = 0; i < 100; i++) {
         door->render.f.on_screen = true;
         Obj_CPZBarrier(door);
@@ -348,22 +348,22 @@ static void SSZ_AFallTurnsIntoTheSidewaysSandBesideItsEnd(void) {
         level_map128[0x80 * 0xFE + (row * 8) * 2 + 1] = 0x51;
     level_map128[0x80 * 0xFE + (3 * 8) * 2 + 1] = 0x97; // (its bend)
     level_map128[0x80 * 0xFE + (3 * 8 + 1) * 2 + 1] = 0x98; // (and sand that holds beside it)
-    player->pos.l.x.f.u = 0x108;
-    player->pos.l.y.f.u = (int16_t)(0x80 + 3 * 16 + 4);
-    player->ysp = 0x180;
-    player->xsp = 0;
+    player->x_pos.f.u = 0x108;
+    player->y_pos.f.u = (int16_t)(0x80 + 3 * 16 + 4);
+    player->y_vel = 0x180;
+    player->x_vel = 0;
     SandShower_LevelMisc();
-    CHECK_EQ(player->ysp, 0); // (not dropped)
-    CHECK_EQ(player->xsp, 0x200); // (carried round the corner)
+    CHECK_EQ(player->y_vel, 0); // (not dropped)
+    CHECK_EQ(player->x_vel, 0x200); // (carried round the corner)
     SandOff();
 }
 
 static void SSZ_SandKillsAtThirtyTwoPixelsOfDepthAndNotBefore(void) {
     SandOn();
-    player->pos.l.y.f.u = (int16_t)(0x80 + 0x2F - player->y_rad);
+    player->y_pos.f.u = (int16_t)(0x80 + 0x2F - player->y_radius);
     SandShower_LevelMisc();
     CHECK_EQ(player->routine, 2);
-    player->pos.l.y.f.u = (int16_t)(0x80 + 0x30 - player->y_rad);
+    player->y_pos.f.u = (int16_t)(0x80 + 0x30 - player->y_radius);
     SandShower_LevelMisc();
     CHECK_EQ(player->routine, 6);
     SandOff();
@@ -424,10 +424,10 @@ static void OOZ_TheLauncherCarriesWhoStandsInTheMiddleUpAndThrowsThem(void) {
         Obj_OOZLauncher(obj);
     CHECK_EQ(obj->routine_sec, 8);
     CHECK_EQ(obj->pos.l.y.f.u, 400 - 0x7D); // (the top of the rise)
-    CHECK_EQ(player->ysp, -0x1000);
-    CHECK_EQ(player->inertia, 0x800);
+    CHECK_EQ(player->y_vel, -0x1000);
+    CHECK_EQ(player->ground_vel, 0x800);
     CHECK_EQ(OBJ_CONTROL(player), 0);
-    CHECK(player->status.p.f.in_air);
+    CHECK(((player->status & SST_PSTATUS_IN_AIR) != 0));
 }
 
 static void OOZ_TheLauncherIgnoresSomeoneAtItsEdge(void) {
@@ -493,10 +493,10 @@ static void OOZ_ThePushSpringIsPressedByStandingAndThrowsOnceFullyPressed(void) 
         Obj_OOZPushSpring(obj);
         CHECK_EQ(obj->frame, i + 1);
     }
-    CHECK_EQ(player->ysp, 0);
+    CHECK_EQ(player->y_vel, 0);
     Obj_OOZPushSpring(obj); // (fully pressed: it throws)
-    CHECK_EQ(player->ysp, -0x1000);
-    CHECK(player->status.p.f.in_air);
+    CHECK_EQ(player->y_vel, -0x1000);
+    CHECK(((player->status & SST_PSTATUS_IN_AIR) != 0));
     CHECK_EQ(player->anim, SonAnimId_Spring);
 }
 
@@ -507,7 +507,7 @@ static void OOZ_TheWeakerPushSpringThrowsLessHigh(void) {
     StandOn(obj, 200, 400 - 0x14);
     for (int i = 0; i < 10; i++)
         Obj_OOZPushSpring(obj);
-    CHECK_EQ(player->ysp, -0xA00);
+    CHECK_EQ(player->y_vel, -0xA00);
 }
 
 static void OOZ_ThePusherReturnsToWhereItRests(void) {
@@ -572,30 +572,30 @@ static void OOZ_TheCannonCatchesACharacterAndFiresItOff(void) {
     Obj_OOZCannon(obj);
     CHECK_EQ(obj->width_pixels, 0x28);
     CHECK_EQ(obj->scratch.u8[0x2C - 0x28], 0);
-    player->pos.l.x.f.u = 205;
-    player->pos.l.y.f.u = 395;
+    player->x_pos.f.u = 205;
+    player->y_pos.f.u = 395;
     Obj_OOZCannon(obj);
     CHECK_EQ(obj->scratch.u8[0x2C - 0x28], 2); // (caught)
-    CHECK_EQ(player->pos.l.x.f.u, 200);
-    CHECK_EQ(player->pos.l.y.f.u, 400);
+    CHECK_EQ(player->x_pos.f.u, 200);
+    CHECK_EQ(player->y_pos.f.u, 400);
     CHECK_EQ(OBJ_CONTROL(player), 0x81);
-    CHECK_EQ(player->inertia, 0x1000);
+    CHECK_EQ(player->ground_vel, 0x1000);
     for (int i = 0; i < 100 && obj->scratch.u8[0x2C - 0x28] == 2; i++)
         Obj_OOZCannon(obj);
     CHECK_EQ(obj->scratch.u8[0x2C - 0x28], 4); // (fired)
-    CHECK_EQ(player->xsp, 0x1000); // (subtype 0 fires to the right)
-    CHECK_EQ(player->ysp, 0);
-    const int16_t x = player->pos.l.x.f.u;
+    CHECK_EQ(player->x_vel, 0x1000); // (subtype 0 fires to the right)
+    CHECK_EQ(player->y_vel, 0);
+    const int16_t x = player->x_pos.f.u;
     Obj_OOZCannon(obj);
-    CHECK_EQ(player->pos.l.x.f.u, x + 0x10); // ($1000 is 16 pixels a frame)
+    CHECK_EQ(player->x_pos.f.u, x + 0x10); // ($1000 is 16 pixels a frame)
 }
 
 static void OOZ_TheCannonIgnoresACharacterOutOfReach(void) {
     Reset();
     Object *obj = Spawn(SLOT(0x20), 0x48, 0, 200, 400);
     Obj_OOZCannon(obj);
-    player->pos.l.x.f.u = 200 + 0x10;
-    player->pos.l.y.f.u = 400;
+    player->x_pos.f.u = 200 + 0x10;
+    player->y_pos.f.u = 400;
     Obj_OOZCannon(obj);
     CHECK_EQ(obj->scratch.u8[0x2C - 0x28], 0);
 }
@@ -604,14 +604,14 @@ static void OOZ_ACannonWithBitSevenLetsGoAtOnce(void) {
     Reset();
     Object *obj = Spawn(SLOT(0x20), 0x48, 0x80, 200, 400);
     Obj_OOZCannon(obj);
-    player->pos.l.x.f.u = 200;
-    player->pos.l.y.f.u = 400;
+    player->x_pos.f.u = 200;
+    player->y_pos.f.u = 400;
     Obj_OOZCannon(obj);
     for (int i = 0; i < 100 && obj->scratch.u8[0x2C - 0x28] == 2; i++)
         Obj_OOZCannon(obj);
     CHECK_EQ(obj->scratch.u8[0x2C - 0x28], 6); // (waiting to be ready again)
     CHECK_EQ(OBJ_CONTROL(player), 0);
-    CHECK(player->status.p.f.in_air);
+    CHECK(((player->status & SST_PSTATUS_IN_AIR) != 0));
 }
 
 void RegisterOOZObjectTests(void) {

@@ -28,7 +28,7 @@ static int RunBlock(int act, int16_t start_x, int16_t start_y, int16_t speed, in
     LevelDataLoad();
     ColIndexLoad();
     memset(objects, 0, sizeof(objects));
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
     Sst_Reset();
     static const SstObjectIndex index_ = {sst_object_codes, 0x100};
@@ -51,10 +51,10 @@ static int RunBlock(int act, int16_t start_x, int16_t start_y, int16_t speed, in
     int sinking = 0;
     for (int frame = 0; frame < 6000; frame++) {
         FollowCamera(block);
-        player->pos.l.x.f.u = block->x_pos.f.u;
-        player->pos.l.y.f.u = (int16_t)(block->y_pos.f.u - 0x28);
-        player->y_rad = 19;
-        player->x_rad = 9;
+        player->x_pos.f.u = block->x_pos.f.u;
+        player->y_pos.f.u = (int16_t)(block->y_pos.f.u - 0x28);
+        player->y_radius = 19;
+        player->x_radius = 9;
         ExecuteObjects();
         if (block->code == NULL || block->routine != 2)
             break; // sunk: deleted, or reset to its origin

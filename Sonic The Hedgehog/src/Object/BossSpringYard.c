@@ -183,7 +183,7 @@ static void BSYZ_DropSetup(Object *obj, Scratch_BossSpringYard *scratch) {
     d0 -= 1;
 
     if (d0 <= 0 && !scratch->swept) {
-        int8_t player_col = (int8_t)((player->pos.l.x.f.u - SYZ_BOSS_X) >> 5);
+        int8_t player_col = (int8_t)((player->x_pos.f.u - SYZ_BOSS_X) >> 5);
         if (player_col == (int8_t)scratch->parent_index) {
             scratch->boss_x.f.u = (int16_t)(((int16_t)(int8_t)scratch->parent_index << 5) + SYZ_BOSS_X + 0x10);
             BossSpringYard_FindBlocks(scratch);

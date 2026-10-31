@@ -83,7 +83,7 @@ static void SpinC_Solid(Sst *self, Own_LCon *own) {
 
     // Spinning -- not solid
     if (((self->status & SST_STATUS_PLAYER_STAND) != 0)) {
-        player->status.p.f.object_stand = false;
+        player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
         self->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;
     }
     SpinC_Platform_Update(self, own);

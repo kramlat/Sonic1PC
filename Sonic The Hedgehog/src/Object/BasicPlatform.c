@@ -54,11 +54,11 @@ static void Plat_FallingDown(Sst *self, Own_BasicPlatform *own) {
     if (own->delay != 0) {
         if (--own->delay == 0) {
             if (((self->status & SST_STATUS_PLAYER_STAND) != 0)) {
-                player->status.p.f.in_air = true;
-                player->status.p.f.object_stand = false;
+                player->status |= SST_PSTATUS_IN_AIR;
+                player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
                 player->routine = 2; // force Sonic to Sonic_Control
                 self->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;
-                player->ysp = self->y_vel;
+                player->y_vel = self->y_vel;
             }
             self->routine = 8; // Plat_Action -- no longer calls PlatformObject, so it's no longer solid; also blocks re-entry
         }

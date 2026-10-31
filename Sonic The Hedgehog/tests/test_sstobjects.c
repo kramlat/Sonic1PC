@@ -8,6 +8,7 @@
 #include "SstLoad.h"
 #include "Object/Explosion.h"
 #include "Object/Sonic.h"
+#include "Mappings.h"
 
 // The Sonic 1 objects that have moved to the status table, loaded from a layout by the loader of that table and run by its handler.
 
@@ -97,9 +98,9 @@ static void SstObjects_PointsRiseAndSlowAndAreDeletedWhenTheySettle(void) {
 static void SstObjects_ABumperThrowsSonicAwayAndPaysTenPointsTenTimes(void) {
     Start();
     memset(objects, 0, sizeof(Object) * 0x20);
-    player->type = 1;
-    player->pos.l.x.f.u = 0x100;
-    player->pos.l.y.f.u = 0x120;
+    player->code = sst_object_codes[1];
+    player->x_pos.f.u = 0x100;
+    player->y_pos.f.u = 0x120;
     score = 0;
     Sst *bumper = Sst_Spawn(ObjId_Bumper, 0x100, 0x100);
     sst_respawn_table[0] = 0x80;
@@ -107,11 +108,11 @@ static void SstObjects_ABumperThrowsSonicAwayAndPaysTenPointsTenTimes(void) {
     Sst_Process(false);
     CHECK_EQ(bumper->routine, 2);
     CHECK_EQ(bumper->collision_flags, 0x17 | 0xC0);
-    CHECK_EQ(player->ysp, 0);                            // (not touched yet)
+    CHECK_EQ(player->y_vel, 0);                            // (not touched yet)
     for (int hit = 1; hit <= 12; hit++) {
         bumper->collision_property = 1;                  // (what the touch response does)
         Sst_Process(false);
-        CHECK_EQ(player->ysp, 0x700);                    // (the bumper is above him: thrown down)
+        CHECK_EQ(player->y_vel, 0x700);                    // (the bumper is above him: thrown down)
         CHECK_EQ(bumper->anim, 1);
         CHECK_EQ(score, hit <= 10 ? hit : 10);           // (the tenth hit is the last that pays)
         for (int i = SST_FIRST_DYNAMIC; i < SST_COUNT; i++)
@@ -157,21 +158,21 @@ static void SstObjects_AnOldObjectThatTurnsIntoAnExplosionLeavesOneOnTheTableAnd
     CHECK_EQ(animals, 1);
 }
 
-signed int ReactToItem(Object *obj); // Sonic.c: the touch response
+signed int ReactToItem(Sst *obj); // Sonic.c: the touch response
 
 static void Touch_Setup(void) {
     Start();
-    memset(player, 0, sizeof(Object));
-    player->type = ObjId_Sonic;
+    memset(player, 0, sizeof(Sst));
+    player->code = sst_object_codes[ObjId_Sonic];
     player->routine = 2;
-    player->y_rad = 14;
-    player->x_rad = 7;
-    player->pos.l.x.f.u = 0x100;
-    player->pos.l.y.f.u = 0x300;
+    player->y_radius = 14;
+    player->x_radius = 7;
+    player->x_pos.f.u = 0x100;
+    player->y_pos.f.u = 0x300;
     invincibility = 0;
     score = 0;
     item_bonus = 0;
-    ((Scratch_Sonic *)&player->scratch)->flash_time = 0;
+    ((Scratch_Sonic *)player->own.u8)->flash_time = 0;
 }
 
 static Sst *Touch_Chopper(void) {
@@ -188,15 +189,15 @@ static void SstObjects_SonicRollingIntoABadnikOnTheTableDestroysItAndScores(void
     Sst *chopper = Touch_Chopper();
     CHECK_EQ(chopper->collision_flags, 0x09);
     player->anim = SonAnimId_Roll;
-    player->pos.l.y.f.u = 0x2F0;                         // (landing on it from above)
-    player->ysp = 0x200;
+    player->y_pos.f.u = 0x2F0;                         // (landing on it from above)
+    player->y_vel = 0x200;
     ReactToItem(player);
     CHECK(chopper->code == sst_object_codes[ObjId_Explosion]);   // (it became the explosion where it was)
     CHECK_EQ(chopper->routine, 0);
     CHECK_EQ(chopper->own.u16[0xB], 0);                          // (the first of the chain: 100 points)
     CHECK_EQ(score, 10);
     CHECK_EQ(item_bonus, 2);
-    CHECK_EQ(player->ysp, -0x200);                               // (bounced)
+    CHECK_EQ(player->y_vel, -0x200);                               // (bounced)
     CHECK(chopper->status & 0x80);
 }
 
@@ -264,9 +265,9 @@ static void SstObjects_AHelixMakesItsSpikesAndTakesThemWhenItLeaves(void) {
 
 static void SstObjects_AnOrbinautCarriesFourSpikeballsAndTakesThemWhenItLeaves(void) {
     Start();
-    memset(player, 0, sizeof(Object));
-    player->pos.l.x.f.u = 0x2000;
-    player->pos.l.y.f.u = 0x2000;
+    memset(player, 0, sizeof(Sst));
+    player->x_pos.f.u = 0x2000;
+    player->y_pos.f.u = 0x2000;
     Sst *orb = Sst_Spawn(ObjId_Orbinaut, 0x100, 0x200);
     orb->subtype = 0;                                    // (LZ's: waits for Sonic)
     Sst_Process(false);
@@ -285,9 +286,9 @@ static void SstObjects_AnOrbinautCarriesFourSpikeballsAndTakesThemWhenItLeaves(v
 
 static void SstObjects_ABuzzBomberFiresAMissileThatGoesWhenItsParentExplodes(void) {
     Start();
-    memset(player, 0, sizeof(Object));
-    player->pos.l.x.f.u = 0x100 - 0x20;                  // (close to it)
-    player->pos.l.y.f.u = 0x200;
+    memset(player, 0, sizeof(Sst));
+    player->x_pos.f.u = 0x100 - 0x20;                  // (close to it)
+    player->y_pos.f.u = 0x200;
     Sst *buzz = Sst_Spawn(ObjId_BuzzBomber, 0x100, 0x200);
     Sst_Process(false);
     buzz->render_flags |= SST_RENDER_ON_SCREEN;
@@ -309,7 +310,29 @@ static void SstObjects_ABuzzBomberFiresAMissileThatGoesWhenItsParentExplodes(voi
     CHECK(missile->code == NULL);                        // (the missile goes with it)
 }
 
+// Every mapping that the status table draws is in its format: 6-byte pieces whose size byte has only its low four bits (the build had stale headers once: the arrays were the old 8-byte data)
+static void CheckMappings(const uint8_t *m, int frames) {
+    for (int f = 0; f < frames; f++) {
+        const uint8_t *pieces;
+        uint16_t count = Mappings_FramePieces(m, (unsigned)f, &pieces);
+        CHECK(count < 24);
+        for (uint16_t i = 0; i < count; i++)
+            CHECK((pieces[i * SPRITE_PIECE_SIZE_S3 + 1] & 0xF0) == 0);
+    }
+}
+
+extern const uint8_t Mappings_Sonic[];
+extern const uint8_t Mappings_Pylon[];
+extern const uint8_t Mappings_Points[];
+
+static void SstObjects_TheMappingsOfTheTableAreInItsFormat(void) {
+    CheckMappings(Mappings_Sonic, 0x40);
+    CheckMappings(Mappings_Pylon, 1);
+    CheckMappings(Mappings_Points, 7);
+}
+
 void RegisterSstObjectsTests(void) {
+    RUN_TEST(SstObjects_TheMappingsOfTheTableAreInItsFormat);
     RUN_TEST(SstObjects_ABuzzBomberFiresAMissileThatGoesWhenItsParentExplodes);
     RUN_TEST(SstObjects_AnOrbinautCarriesFourSpikeballsAndTakesThemWhenItLeaves);
     RUN_TEST(SstObjects_AHelixMakesItsSpikesAndTakesThemWhenItLeaves);

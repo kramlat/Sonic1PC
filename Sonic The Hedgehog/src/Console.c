@@ -14,7 +14,7 @@
 // Defined in Object/Sonic.c, no header declaration (matches how other
 // files in this codebase forward-declare it locally -- see e.g.
 // Object/Cannonball.c's own comment on this exact pattern).
-int32_t KillSonic(Object *obj, Object *src);
+int32_t KillSonicFrom(Sst *obj, bool spikes);
 
 // Defined in Backend/SDL2/System.c and Render.c respectively, same
 // no-header forward-declare convention as MegaDrive.c's own
@@ -142,11 +142,11 @@ static const ConsoleVar *FindVar(const char *name) {
     // address is only known at runtime.
     static ConsoleVar dynamic_var;
     if (strcmp(name, "sonic_x") == 0) {
-        dynamic_var = (ConsoleVar){"sonic_x", &player->pos.l.x.f.u, Var_I16};
+        dynamic_var = (ConsoleVar){"sonic_x", &player->x_pos.f.u, Var_I16};
         return &dynamic_var;
     }
     if (strcmp(name, "sonic_y") == 0) {
-        dynamic_var = (ConsoleVar){"sonic_y", &player->pos.l.y.f.u, Var_I16};
+        dynamic_var = (ConsoleVar){"sonic_y", &player->y_pos.f.u, Var_I16};
         return &dynamic_var;
     }
     for (int i = 0; i < CONSOLE_VAR_COUNT; i++)
@@ -254,8 +254,8 @@ static void CmdSpawn(char *args) {
             LogLine("no free object slot");
             return;
         }
-        spawned->pos.l.x.f.u = player->pos.l.x.f.u;
-        spawned->pos.l.y.f.u = player->pos.l.y.f.u - 32;
+        spawned->pos.l.x.f.u = player->x_pos.f.u;
+        spawned->pos.l.y.f.u = player->y_pos.f.u - 32;
         spawned->scratch.u8[0] = 0;
         spawned->type = spawn_names[i].id;
         LogLine("spawned %s at player", name);
@@ -277,7 +277,7 @@ static void CmdGive(char *args) {
 
 static void CmdKill(char *args) {
     (void)args;
-    KillSonic(player, player);
+    KillSonicFrom(player, false);
     LogLine("killed sonic");
 }
 

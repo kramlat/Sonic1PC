@@ -42,28 +42,28 @@ static void Show(Object *obj) {
 }
 
 // A player in a big bubble breathes (Offset_0x014C26/0x014C30: both players are tried)
-static void Breathe(Object *obj, Scratch_Vent *vent, Object *player) {
+static void Breathe(Object *obj, Scratch_Vent *vent, Sst *player) {
     if (OBJ_CONTROL(player) & 0x80)
         return;
-    if (player->pos.l.x.f.u <= obj->pos.l.x.f.u - 0x10 || player->pos.l.x.f.u > obj->pos.l.x.f.u + 0x10)
+    if (player->x_pos.f.u <= obj->pos.l.x.f.u - 0x10 || player->x_pos.f.u > obj->pos.l.x.f.u + 0x10)
         return;
-    if (player->pos.l.y.f.u <= obj->pos.l.y.f.u || player->pos.l.y.f.u > obj->pos.l.y.f.u + 0x10)
+    if (player->y_pos.f.u <= obj->pos.l.y.f.u || player->y_pos.f.u > obj->pos.l.y.f.u + 0x10)
         return;
     Countdown_ResumeMusic(player);
     PlaySound(sfx_Bubble);
-    player->xsp = 0;
-    player->ysp = 0;
-    player->inertia = 0;
+    player->x_vel = 0;
+    player->y_vel = 0;
+    player->ground_vel = 0;
     player->anim = SonAnimId_GetAir;
-    ((Scratch_Sonic *)&player->scratch)->control_lock = 0x23;
-    ((Scratch_Sonic *)&player->scratch)->jumping = false;
-    player->status.p.f.pushing = false;
-    player->status.p.f.roll_jump = false;
-    if (player->status.p.f.in_ball) {
-        player->status.p.f.in_ball = false;
-        player->y_rad = SONIC_HEIGHT;
-        player->x_rad = SONIC_WIDTH;
-        player->pos.l.y.f.u -= 5;
+    ((Scratch_Sonic *)player->own.u8)->control_lock = 0x23;
+    ((Scratch_Sonic *)player->own.u8)->jumping = false;
+    player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+    player->status &= (uint8_t)~SST_PSTATUS_ROLL_JUMP;
+    if (((player->status & SST_PSTATUS_IN_BALL) != 0)) {
+        player->status &= (uint8_t)~SST_PSTATUS_IN_BALL;
+        player->y_radius = SONIC_HEIGHT;
+        player->x_radius = SONIC_WIDTH;
+        player->y_pos.f.u -= 5;
     }
     if (obj->routine != 6) {
         obj->routine = 6;

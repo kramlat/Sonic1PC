@@ -38,11 +38,11 @@ static void Orb_DisplayAndMove(Sst *self, Own_Orbinaut *own) {
 }
 
 static void Orb_CheckSonic(Sst *self, Own_Orbinaut *own) {
-    int16_t dx = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+    int16_t dx = (int16_t)(player->x_pos.f.u - self->x_pos.f.u);
     if (dx < 0)
         dx = (int16_t)-dx;
     if (dx < 160) {
-        int16_t dy = (int16_t)(player->pos.l.y.f.u - self->y_pos.f.u);
+        int16_t dy = (int16_t)(player->y_pos.f.u - self->y_pos.f.u);
         if (dy < 0)
             dy = (int16_t)-dy;
         if (dy < 80 && !debug_use)

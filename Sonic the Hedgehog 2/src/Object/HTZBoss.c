@@ -143,7 +143,7 @@ static void Ship_Run(Object *obj, Scratch_AlphaBoss *scratch) {
             boss_move.ysp = (int16_t)0xFF20;
             scratch->anim_routine = Ship_Rise;
             scratch->flag = 0;
-            if ((int16_t)(player->pos.l.x.f.u - 0x2FEC) >= 0) {
+            if ((int16_t)(player->x_pos.f.u - 0x2FEC) >= 0) {
                 boss_move.y.f.u = 0x580;
                 obj->pos.l.x.f.u = 0x30A0;
                 scratch->side = 0xFF;
@@ -152,7 +152,7 @@ static void Ship_Run(Object *obj, Scratch_AlphaBoss *scratch) {
                 boss_move.y.f.u = 0x5D0;
                 scratch->side = 0;
             }
-            obj->render.f.x_flip = obj->pos.l.x.f.u <= (int16_t)player->pos.l.x.f.u; // (faces Sonic)
+            obj->render.f.x_flip = obj->pos.l.x.f.u <= (int16_t)player->x_pos.f.u; // (faces Sonic)
         }
         obj->pos.l.y.f.u = boss_move.y.f.u;
         Boss_Hit(obj, scratch);

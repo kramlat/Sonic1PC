@@ -50,10 +50,10 @@ typedef struct {
 
 static Where WhereIsSonic(const Object *obj) {
     Where w;
-    w.dx = (int16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
-    w.dy = (int16_t)(obj->pos.l.y.f.u - player->pos.l.y.f.u);
-    w.side = (uint16_t)obj->pos.l.x.f.u < (uint16_t)player->pos.l.x.f.u ? 2 : 0;
-    w.below = (uint16_t)obj->pos.l.y.f.u < (uint16_t)player->pos.l.y.f.u ? 2 : 0;
+    w.dx = (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
+    w.dy = (int16_t)(obj->pos.l.y.f.u - player->y_pos.f.u);
+    w.side = (uint16_t)obj->pos.l.x.f.u < (uint16_t)player->x_pos.f.u ? 2 : 0;
+    w.below = (uint16_t)obj->pos.l.y.f.u < (uint16_t)player->y_pos.f.u ? 2 : 0;
     return w;
 }
 

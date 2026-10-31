@@ -31,9 +31,9 @@ void Obj_HiddenBonus(Object *obj) {
         const int16_t radius = 0x10;
         const int16_t diameter = radius * 2;
 
-        int16_t x_diff = (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u + radius);
+        int16_t x_diff = (int16_t)(player->x_pos.f.u - obj->pos.l.x.f.u + radius);
         if ((uint16_t)x_diff < (uint16_t)diameter) {
-            int16_t y_diff = (int16_t)(player->pos.l.y.f.u - obj->pos.l.y.f.u + radius);
+            int16_t y_diff = (int16_t)(player->y_pos.f.u - obj->pos.l.y.f.u + radius);
             if ((uint16_t)y_diff < (uint16_t)diameter && !debug_use && !big_ring) {
                 // Touched -- advance to Display
                 obj->routine += 2;

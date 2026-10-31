@@ -142,7 +142,7 @@ static bool BLZ_ReachTarget(Object *obj, Scratch_BossLabyrinth *scratch, uint16_
 
 static void BLZ_ShipStart(Object *obj, Scratch_BossLabyrinth *scratch) {
     // Wait for Sonic to enter the shaft.
-    if ((uint16_t)player->pos.l.x.f.u >= LZ_BOSS_X - 0x40) {
+    if ((uint16_t)player->x_pos.f.u >= LZ_BOSS_X - 0x40) {
         obj->ysp = -0x180; // start rising up
         obj->xsp = 0x60;   // move a little to the right
         obj->routine_sec += 2;
@@ -196,7 +196,7 @@ static void BLZ_ShipMove3(Object *obj, Scratch_BossLabyrinth *scratch) {
     obj->pos.l.x.f.u = (int16_t)(scratch->boss_x.f.u + (sin >> 4));
 
     int16_t d0 = obj->ysp;
-    uint16_t py = (uint16_t)player->pos.l.y.f.u;
+    uint16_t py = (uint16_t)player->y_pos.f.u;
     uint16_t oy = (uint16_t)obj->pos.l.y.f.u;
     if (py >= oy) {
         uint16_t d1 = (uint16_t)(py - oy);
@@ -230,7 +230,7 @@ static void BLZ_ShipAtTop(Object *obj, Scratch_BossLabyrinth *scratch) {
 
 static void BLZ_ShipWait(Object *obj, Scratch_BossLabyrinth *scratch) {
     bool escape = scratch->early_defeat != 0;
-    if (!escape && player->pos.l.x.f.u >= LZ_BOSS_X + 0xE8 && player->pos.l.y.f.u <= LZ_BOSS_Y + 0x30) {
+    if (!escape && player->x_pos.f.u >= LZ_BOSS_X + 0xE8 && player->y_pos.f.u <= LZ_BOSS_Y + 0x30) {
         scratch->generic_timer = 50;
         escape = true;
     }

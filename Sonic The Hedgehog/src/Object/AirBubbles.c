@@ -50,14 +50,14 @@ static bool Bubble_ChkSonic(Object *obj) {
     if (lock_multi & 0x80)
         return false;
 
-    int16_t x = player->pos.l.x.f.u;
+    int16_t x = player->x_pos.f.u;
     int16_t left = (int16_t)(obj->pos.l.x.f.u - 16);
     if (left >= x)
         return false;
     if ((int16_t)(left + 32) < x)
         return false;
 
-    int16_t y = player->pos.l.y.f.u;
+    int16_t y = player->y_pos.f.u;
     int16_t top = obj->pos.l.y.f.u;
     if (top >= y)
         return false;
@@ -117,20 +117,20 @@ void Obj_Bubble(Object *obj) {
                     ResumeMusic();
                     PlaySound(sfx_Bubble);
 
-                    player->xsp = 0;
-                    player->ysp = 0;
-                    player->inertia = 0;
+                    player->x_vel = 0;
+                    player->y_vel = 0;
+                    player->ground_vel = 0;
                     player->anim = SonAnimId_GetAir;
-                    ((Scratch_Sonic*)&player->scratch)->control_lock = 35;
-                    ((Scratch_Sonic*)&player->scratch)->jumping = false;
-                    player->status.p.f.pushing = false;
-                    player->status.p.f.roll_jump = false;
+                    ((Scratch_Sonic *)player->own.u8)->control_lock = 35;
+                    ((Scratch_Sonic *)player->own.u8)->jumping = false;
+                    player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+                    player->status &= (uint8_t)~SST_PSTATUS_ROLL_JUMP;
 
-                    if (player->status.p.f.in_ball) {
-                        player->status.p.f.in_ball = false;
-                        player->y_rad = SONIC_HEIGHT;
-                        player->x_rad = SONIC_WIDTH;
-                        player->pos.l.y.f.u -= (SONIC_HEIGHT - SONIC_BALL_HEIGHT);
+                    if (((player->status & SST_PSTATUS_IN_BALL) != 0)) {
+                        player->status &= (uint8_t)~SST_PSTATUS_IN_BALL;
+                        player->y_radius = SONIC_HEIGHT;
+                        player->x_radius = SONIC_WIDTH;
+                        player->y_pos.f.u -= (SONIC_HEIGHT - SONIC_BALL_HEIGHT);
                     }
 
                     obj->routine = 6;

@@ -61,8 +61,8 @@ void Obj_CollapseFloor(Sst *self) {
         // SLZ-only (subtype's own top bit set): mirror the collapse
         // pattern to match which side of the platform Sonic is currently
         // standing on.
-        if (self->own.s8[0] < 0 && player->status.p.f.object_stand)
-            SST_RENDER_SET(self, SST_RENDER_X_FLIP, (player->pos.l.x.f.u < self->x_pos.f.u));
+        if (self->own.s8[0] < 0 && ((player->status & SST_PSTATUS_OBJECT_STAND) != 0))
+            SST_RENDER_SET(self, SST_RENDER_X_FLIP, (player->x_pos.f.u < self->x_pos.f.u));
         SstOnScreenTest(self);
         break;
     }
@@ -89,10 +89,10 @@ void Obj_CollapseFloor(Sst *self) {
             own->timedelay--;
             CFlo_WalkOff(self);
 
-            if (player->status.p.f.object_stand) {
+            if (((player->status & SST_PSTATUS_OBJECT_STAND) != 0)) {
                 if (own->timedelay == 0) {
-                    player->status.p.f.object_stand = false;
-                    player->status.p.f.pushing = false;
+                    player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+                    player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
                     player->prev_anim = SonAnimId_Run;
                 } else {
                     break;

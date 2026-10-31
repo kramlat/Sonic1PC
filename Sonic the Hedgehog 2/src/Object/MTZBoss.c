@@ -210,7 +210,7 @@ void Obj_MTZBossBall(Object *obj) {
         break;
 
     case BallRoutine_Walk: { // the small Robotnik walks towards Sonic
-        const int16_t d = (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u);
+        const int16_t d = (int16_t)(player->x_pos.f.u - obj->pos.l.x.f.u);
         obj->render.f.x_flip = d >= 0;
         obj->pos.l.x.f.u += obj->render.f.x_flip ? 1 : -1;
         DisplaySprite(obj);

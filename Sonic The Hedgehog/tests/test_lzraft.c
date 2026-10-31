@@ -25,10 +25,10 @@ static void SpawnRaft(uint8_t poison) {
     }
     level_id = LEVEL_ID(ZoneId_LZ, 0);
     memset(f_switch, 0, sizeof(f_switch));
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->pos.l.x.f.u = 0xA10;
-    player->pos.l.y.f.u = 0x2E0;
+    player->x_pos.f.u = 0xA10;
+    player->y_pos.f.u = 0x2E0;
     scrpos_x.f.u = 0x980;
     Camera(0x980);
 }

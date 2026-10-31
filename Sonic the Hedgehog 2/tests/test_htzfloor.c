@@ -27,15 +27,15 @@ static Object *Floor(uint8_t subtype) {
 }
 
 static void Roller(uint8_t top_solid_bit) {
-    Scratch_Sonic *scratch = (Scratch_Sonic *)&player->scratch;
-    player->pos.l.x.f.u = 100;
-    player->pos.l.y.f.u = 200 - 0x25 - 19;
-    player->y_rad = 14;
+    Scratch_Sonic *scratch = (Scratch_Sonic *)player->own.u8;
+    player->x_pos.f.u = 100;
+    player->y_pos.f.u = 200 - 0x25 - 19;
+    player->y_radius = 14;
     player->routine = 2;
     player->anim = SonAnimId_Roll;
-    player->status.b = 0;
-    player->status.p.f.object_stand = true;
-    player->status.p.f.in_ball = true;
+    player->status = 0;
+    player->status |= SST_PSTATUS_OBJECT_STAND;
+    player->status |= SST_PSTATUS_IN_BALL;
     scratch->top_solid_bit = top_solid_bit;
     scratch->lrb_solid_bit = (uint8_t)(top_solid_bit + 1);
 }
@@ -45,8 +45,8 @@ static void HTZFloor_ABallOnTheSecondPathBreaksIt(void) {
     Roller(0xE);
     Obj_HTZBreakFloor(obj);
     CHECK_EQ(obj->routine, 4); // it has become its first piece
-    CHECK(player->status.p.f.in_air);
-    CHECK(!player->status.p.f.object_stand);
+    CHECK(((player->status & SST_PSTATUS_IN_AIR) != 0));
+    CHECK(!((player->status & SST_PSTATUS_OBJECT_STAND) != 0));
 }
 
 static void HTZFloor_ABallOnTheFirstPathDoesNotBreakIt(void) {
@@ -54,8 +54,8 @@ static void HTZFloor_ABallOnTheFirstPathDoesNotBreakIt(void) {
     Roller(0xC);
     Obj_HTZBreakFloor(obj);
     CHECK_EQ(obj->routine, 2);
-    CHECK(!player->status.p.f.in_air);
-    CHECK_EQ(((Scratch_Sonic *)&player->scratch)->top_solid_bit, 0xC);
+    CHECK(!((player->status & SST_PSTATUS_IN_AIR) != 0));
+    CHECK_EQ(((Scratch_Sonic *)player->own.u8)->top_solid_bit, 0xC);
 }
 
 static void HTZFloor_SubtypeBitSevenBreaksItForAnyRoller(void) {
@@ -69,11 +69,11 @@ static void HTZFloor_AWalkerOnTheSecondPathIsPutBackOnTheFirst(void) {
     Object *obj = Floor(0);
     Roller(0xE);
     player->anim = SonAnimId_Walk;
-    player->status.p.f.in_ball = false;
+    player->status &= (uint8_t)~SST_PSTATUS_IN_BALL;
     Obj_HTZBreakFloor(obj);
     CHECK_EQ(obj->routine, 2);
-    CHECK_EQ(((Scratch_Sonic *)&player->scratch)->top_solid_bit, 0xC);
-    CHECK_EQ(((Scratch_Sonic *)&player->scratch)->lrb_solid_bit, 0xD);
+    CHECK_EQ(((Scratch_Sonic *)player->own.u8)->top_solid_bit, 0xC);
+    CHECK_EQ(((Scratch_Sonic *)player->own.u8)->lrb_solid_bit, 0xD);
 }
 
 // The see-saw's ball is the Sol badnik (the prototype's Obj14_Ball_Init: tile $3DE, over the art the zone's art list loads at $7BC0), not drawn from the see-saw's own tiles ($3C6)

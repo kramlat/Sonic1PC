@@ -65,7 +65,7 @@ static void Splash_Construct(Object *obj) {
 // via Obj08Ani_Skid's trailing "increment routine" (0xFC) animation command
 // once its 4-frame animation finishes -- matches Sonic 2's own Obj08_SkidDust
 // (a fresh temporary object per puff, not a mode on the fixed companion).
-void Splash_SpawnSkidDust(Object *parent) {
+void Splash_SpawnSkidDust(Sst *parent) {
     Object *puff = FindFreeObj();
     if (puff == NULL)
         return;
@@ -73,9 +73,9 @@ void Splash_SpawnSkidDust(Object *parent) {
     puff->type = ObjId_Splash;
     puff->routine = 2; // Main -- skip Init, set up directly below
     Splash_Construct(puff);
-    puff->pos.l.x.f.u = parent->pos.l.x.f.u;
-    puff->pos.l.y.f.u = (int16_t)(parent->pos.l.y.f.u + 0x10);
-    puff->status.o.f.x_flip = parent->status.p.f.x_flip; // see SplashAnim_Dash's comment in Obj_Splash
+    puff->pos.l.x.f.u = parent->x_pos.f.u;
+    puff->pos.l.y.f.u = (int16_t)(parent->y_pos.f.u + 0x10);
+    puff->status.o.f.x_flip = (parent->status & SST_PSTATUS_X_FLIP) != 0; // see SplashAnim_Dash's comment in Obj_Splash
     puff->anim = SplashAnim_Skid;
     puff->prev_anim = 0xFF; // force AnimateSprite to restart from frame 0
 }
@@ -97,7 +97,7 @@ void Obj_Splash(Object *obj) {
             // afterwards it just animates in place.
             obj->pos.l.y.f.u = wtr_pos1;
             if (obj->prev_anim != SplashAnim_Splash)
-                obj->pos.l.x.f.u = player->pos.l.x.f.u;
+                obj->pos.l.x.f.u = player->x_pos.f.u;
             break;
 
         case SplashAnim_Dash:
@@ -107,9 +107,9 @@ void Obj_Splash(Object *obj) {
             // every frame-advancing tick, so writing render.f.x_flip here
             // would only "stick" on the ticks where the animation doesn't
             // advance, producing a flip that alternates frame to frame.
-            obj->pos.l.x.f.u = player->pos.l.x.f.u;
-            obj->pos.l.y.f.u = player->pos.l.y.f.u;
-            obj->status.o.f.x_flip = player->status.p.f.x_flip;
+            obj->pos.l.x.f.u = player->x_pos.f.u;
+            obj->pos.l.y.f.u = player->y_pos.f.u;
+            obj->status.o.f.x_flip = ((player->status & SST_PSTATUS_X_FLIP) != 0);
             break;
 
         case SplashAnim_Skid:

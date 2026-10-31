@@ -26,14 +26,14 @@ static void Spike_Hurt(Sst *self) {
         return;
     // "Proper Spike Bug Fix" -- without this, touching spikes while still
     // flashing from a previous hit can hurt Sonic a second time.
-    Scratch_Sonic *scratch = (Scratch_Sonic *)&player->scratch;
+    Scratch_Sonic *scratch = (Scratch_Sonic *)player->own.u8;
     if (scratch->flash_time)
         return;
     if (player->routine >= 4)
         return;
 
     // Hurt player
-    player->pos.l.y.v -= player->ysp << 8;
+    player->y_pos.v -= player->y_vel << 8;
     HurtSonicFrom(player, self->x_pos.f.u, true);
 }
 

@@ -46,7 +46,7 @@ static void Spiny_Shoot(Object *obj, bool horizontal) {
     shot->pos.l.y.f.u = obj->pos.l.y.f.u;
     if (horizontal) { // thrown up and towards Sonic
         shot->ysp = (int16_t)0xFD00;
-        shot->xsp = (uint16_t)obj->pos.l.x.f.u < (uint16_t)player->pos.l.x.f.u ? 0x100 : -0x100;
+        shot->xsp = (uint16_t)obj->pos.l.x.f.u < (uint16_t)player->x_pos.f.u ? 0x100 : -0x100;
     } else { // thrown out of the wall, to the side that it faces
         shot->xsp = obj->render.f.x_flip ? -0x300 : 0x300;
     }
@@ -77,7 +77,7 @@ static void Spiny_Run(Object *obj, bool horizontal) {
         if (scratch->wait != 0) {
             scratch->wait--;
         } else {
-            const int16_t dx = (int16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
+            const int16_t dx = (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
             if ((uint16_t)(dx + 0x60) < 0xC0) { // Sonic is near: it stops, and its frame is the one that throws
                 obj->routine += 2;
                 scratch->wait = 0x28;

@@ -593,7 +593,7 @@ void MoveScreenHoriz(void) {
 		int16_t tracked_x = track_sonic[index >> 2][0];
 		distance_to_player = (int16_t)(tracked_x & 0x3FFF) - scrpos_x.f.u;
 	} else {
-		distance_to_player = player->pos.l.x.f.u - scrpos_x.f.u;
+		distance_to_player = player->x_pos.f.u - scrpos_x.f.u;
 	}
 #if SCP_FIX_BUGS
 	int16_t push_left = distance_to_player - follow;
@@ -631,7 +631,7 @@ static void LimitScrollTop(dword_s *scroll) {
 		if (scroll->f.u <= -0x100) 	{
 			// Perform vertical wrapping
 			scroll->f.u &= 0x7FF;
-			player->pos.l.y.f.u &= 0x7FF;
+			player->y_pos.f.u &= 0x7FF;
 			scrpos_y.f.u &= 0x7FF;
 			bg_scrpos_y.f.u &= 0x3FF;
 		} else
@@ -644,7 +644,7 @@ static void LimitScrollBottom(dword_s *scroll) {
 		if ((scroll->f.u - 0x800) >= 0) {
 			// Perform vertical wrapping
 			scroll->f.u -= 0x800;
-			player->pos.l.y.f.u &= 0x7FF;
+			player->y_pos.f.u &= 0x7FF;
 			scrpos_y.f.u -= 0x800;
 			bg_scrpos_y.f.u &= 0x3FF;
 		} else
@@ -660,7 +660,7 @@ static bool LevelWrapsVertically(void) {
 
 void ScrollVertical(void) {
 	dword_s scroll;
-	int16_t y = player->pos.l.y.f.u - scrpos_y.f.u;
+	int16_t y = player->y_pos.f.u - scrpos_y.f.u;
 	uint16_t speed = 0;
 	bool force_snap = false;
 
@@ -668,10 +668,10 @@ void ScrollVertical(void) {
 	if (LevelWrapsVertically())
 		y &= 0x7FF;
 
-	if (player->status.p.f.in_ball)
+	if (((player->status & SST_PSTATUS_IN_BALL) != 0))
 		y -= 5;
 
-	if (player->status.p.f.in_air) {
+	if (((player->status & SST_PSTATUS_IN_AIR) != 0)) {
 		y += 32 - look_shift;
 		if (y < 0 || (y - 64) >= 0)
 			speed = 0x1000;
@@ -686,7 +686,7 @@ void ScrollVertical(void) {
 		y -= look_shift;
 		if (y != 0) {
 			if (look_shift == (96 + SCREEN_TALLADD2)) {
-				uint16_t inertia_abs = (player->inertia < 0) ? -player->inertia : player->inertia;
+				uint16_t inertia_abs = (player->ground_vel < 0) ? -player->ground_vel : player->ground_vel;
 				speed = (inertia_abs < 0x800) ? 0x600 : 0x1000;
 			}
 			else {

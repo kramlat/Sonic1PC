@@ -22,7 +22,7 @@ static bool Burro_CheckDistanceAndFaceSonic(Sst *self, int16_t zone, int16_t *ou
     int16_t vel = 0x80;
     SST_STATUS_SET(self, SST_STATUS_X_FLIP, true);
 
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - self->x_pos.f.u);
     if (d0 < 0) {
         d0 = (int16_t)-d0;
         vel = (int16_t)-vel;
@@ -111,7 +111,7 @@ static void Burro_Action_ChkSonic(Sst *self, Own_Burrobot *own) {
     if (!Burro_CheckDistanceAndFaceSonic(self, 96, &vel))
         return;
 
-    int16_t dy = (int16_t)(player->pos.l.y.f.u - self->y_pos.f.u);
+    int16_t dy = (int16_t)(player->y_pos.f.u - self->y_pos.f.u);
     if (dy >= 0 || dy < -128 || debug_use)
         return;
 

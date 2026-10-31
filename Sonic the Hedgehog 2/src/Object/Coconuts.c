@@ -80,10 +80,10 @@ void Obj_Coconuts(Object *obj) {
 
     case CoconutsRoutine_Wait: {
         // It turns to Sonic
-        const int16_t dx = obj->pos.l.x.f.u - player->pos.l.x.f.u;
+        const int16_t dx = obj->pos.l.x.f.u - player->x_pos.f.u;
         obj->render.f.x_flip = false;
         obj->status.o.f.x_flip = false;
-        if (obj->pos.l.x.f.u < (uint16_t)player->pos.l.x.f.u) {
+        if (obj->pos.l.x.f.u < (uint16_t)player->x_pos.f.u) {
             obj->render.f.x_flip = true;
             obj->status.o.f.x_flip = true;
         }

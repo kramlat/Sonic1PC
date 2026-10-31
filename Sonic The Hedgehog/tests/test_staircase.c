@@ -20,10 +20,10 @@ static Sst *SpawnStairs(uint8_t subtype, int *parent_slot) {
         memset(&sst[i], 0xAB, sizeof(Sst));
         sst[i].code = NULL;
     }
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->pos.l.x.f.u = 0x1000; // far away
-    player->pos.l.y.f.u = 0x1000;
+    player->x_pos.f.u = 0x1000; // far away
+    player->y_pos.f.u = 0x1000;
     scrpos_x.f.u = 0x100;
     SstLoadCamera camera = {0x100, 0, false, 0xFFF};
     static const SstObjectIndex index_ = {sst_object_codes, 0x100};
@@ -59,11 +59,11 @@ static void Staircase_ParentIsSolidAndTriggersStairs(void) {
     Sst_Process(false); // spawn the 4 blocks
 
     // Stand Sonic on the first block.
-    player->pos.l.x.f.u = p->x_pos.f.u;
-    player->pos.l.y.f.u = p->y_pos.f.u - 16 - 20;
-    player->y_rad = 19;
-    player->x_rad = 9;
-    player->ysp = 0;
+    player->x_pos.f.u = p->x_pos.f.u;
+    player->y_pos.f.u = p->y_pos.f.u - 16 - 20;
+    player->y_radius = 19;
+    player->x_radius = 9;
+    player->y_vel = 0;
     for (int f = 0; f < 3; f++)
         Sst_Process(false);
     CHECK((p->status & SST_STATUS_PLAYER_STAND) || ps->touch == 1);

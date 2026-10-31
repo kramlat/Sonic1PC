@@ -14,7 +14,7 @@
 static void ADoor_OpenShut(Sst *self) {
     self->anim = 0; // closing, by default
 
-    int16_t sonic_x = player->pos.l.x.f.u;
+    int16_t sonic_x = player->x_pos.f.u;
     int16_t door_x = self->x_pos.f.u;
 
     if ((uint16_t)(sonic_x + 64) >= (uint16_t)door_x &&

@@ -21,7 +21,7 @@
 
 // Where Sonic is to the object (Object_Check_Player_Position): the distances, x and y less his
 static int16_t DistanceX(const Object *obj) {
-    return (int16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
+    return (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -208,8 +208,8 @@ void Obj_Sol(Object *obj) {
         break;
 
     case SolRoutine_Wait: { // it ignites when Sonic is within $A0 pixels across and $50 up or down
-        const uint16_t px = (uint16_t)player->pos.l.x.f.u, ox = (uint16_t)obj->pos.l.x.f.u;
-        const uint16_t py = (uint16_t)player->pos.l.y.f.u, oy = (uint16_t)obj->pos.l.y.f.u;
+        const uint16_t px = (uint16_t)player->x_pos.f.u, ox = (uint16_t)obj->pos.l.x.f.u;
+        const uint16_t py = (uint16_t)player->y_pos.f.u, oy = (uint16_t)obj->pos.l.y.f.u;
         const uint16_t dx = px >= ox ? (uint16_t)(px - ox) : (uint16_t)(ox - px);
         const uint16_t dy = py >= oy ? (uint16_t)(py - oy) : (uint16_t)(oy - py);
         if (dx < 0xA0 && dy < 0x50 && !debug_use)
@@ -305,13 +305,13 @@ STATIC_ASSERT(sizeof(Scratch_RexonHead) <= 0x18, "Scratch_RexonHead must fit the
 enum { RexonRoutine_Init = 0, RexonRoutine_Walk = 2, RexonRoutine_Still = 4, RexonRoutine_Reared = 6 };
 enum { HeadRoutine_Init = 0, HeadRoutine_Wait = 2, HeadRoutine_Rise = 4, HeadRoutine_Sway = 6, HeadRoutine_Fall = 8 };
 
-static Object *Character(int who) {
-    return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+static Sst *Character(int who) {
+    return who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
 }
 
 static void RexonSolid(Object *obj, int16_t d2, int16_t d3, int16_t old_x) {
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = Character(who);
+        Sst *chr = Character(who);
         if (chr != NULL)
             Solid_Character(obj, chr, who, 0x1B, d2, d3, old_x, NULL);
     }
@@ -320,7 +320,7 @@ static void RexonSolid(Object *obj, int16_t d2, int16_t d3, int16_t old_x) {
 // It looks at Sonic, stops, and sends up its five heads (Load_Rexon_Head_Obj)
 static void Rexon_RearUp(Object *obj, Scratch_RexonBody *scratch) {
     obj->routine = RexonRoutine_Reared;
-    obj->render.f.x_flip = (uint16_t)obj->pos.l.x.f.u < (uint16_t)player->pos.l.x.f.u;
+    obj->render.f.x_flip = (uint16_t)obj->pos.l.x.f.u < (uint16_t)player->x_pos.f.u;
     obj->xsp = 0;
     obj->ysp = 0;
     for (int i = 0; i < 5; i++) {

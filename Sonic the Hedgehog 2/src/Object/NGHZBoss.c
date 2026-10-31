@@ -27,7 +27,7 @@
 
 #define FOR_EACH_CHARACTER(chr, who) \
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) \
-        for (Object *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
+        for (Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
 
 
 #define ArtTile_NGHZBoss 0x3E0 // ($7C00: the alpha's list $2B)
@@ -425,7 +425,7 @@ void Obj_NGHZBoss(Object *obj) {
 
     switch (scratch->boss.boss_routine) {
     case Boss_Wait:
-        if (limit_left2 == 0x2A40 - SCREEN_WIDEADD2 && player->pos.l.x.f.u >= 0x2A68 && player->pos.l.x.f.u <= 0x2B48) {
+        if (limit_left2 == 0x2A40 - SCREEN_WIDEADD2 && player->x_pos.f.u >= 0x2A68 && player->x_pos.f.u <= 0x2B48) {
             dhz_shake = 1;
             obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_NGHZBoss);
             obj->mappings = Mappings_NGHZBoss;

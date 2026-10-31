@@ -12,7 +12,7 @@
 
 static void Oscillator_FlipsDownWhenValueEqualsAmplitude(void) {
     OscillateNumInit();
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
     oscillatory.direction = 0; // everything heading up
     // Entry 8 (SLZ circling platforms, amplitude $50): rate $FE+2 -> value
@@ -25,7 +25,7 @@ static void Oscillator_FlipsDownWhenValueEqualsAmplitude(void) {
 
 static void Oscillator_FlipsUpWhenValueBelowAmplitude(void) {
     OscillateNumInit();
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
     oscillatory.direction = 1 << (15 - 8); // entry 8 heading down
     // rate 0x0000 - 2 = -2, value $5100 + (-2) = $50FE: byte $50 == amplitude, stay down

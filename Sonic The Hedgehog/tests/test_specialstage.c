@@ -24,15 +24,15 @@ void SS_AniItems(void);
 // Sonic's position that puts the centre of cell (r, c) under the non-solid item check (it looks 80px above and
 // 32px left of Sonic).
 static void PlaceOnCell(int r, int c) {
-    player->pos.l.x.v = (int32_t)(c * SS_BLOCKSIZE - 32 + 12) << 16;
-    player->pos.l.y.v = (int32_t)(r * SS_BLOCKSIZE - 80 + 12) << 16;
+    player->x_pos.v = (int32_t)(c * SS_BLOCKSIZE - 32 + 12) << 16;
+    player->y_pos.v = (int32_t)(r * SS_BLOCKSIZE - 80 + 12) << 16;
 }
 
 static void Reset(void) {
     memset(ss_layout, 0, sizeof(ss_layout));
     SS_ClearAnimations();
-    memset(player, 0, sizeof(Object));
-    player->type = ObjId_SpecialSonic;
+    memset(player, 0, sizeof(Sst));
+    player->code = sst_object_codes[ObjId_SpecialSonic];
     ss_angle.v = 0;
     ss_rotate = SS_ROTATESPEED;
     emeralds = 0;
@@ -101,8 +101,8 @@ static void SSonic_GoalStartsTheExitSpin(void) {
     Reset();
     ss_layout[ROW(40) + 40] = SSB_GOAL;
     // GOAL is solid: Sonic overlapping it sets the touched block.
-    player->pos.l.x.v = (int32_t)(40 * SS_BLOCKSIZE - 20 + 4) << 16;
-    player->pos.l.y.v = (int32_t)(40 * SS_BLOCKSIZE - 68 + 4) << 16;
+    player->x_pos.v = (int32_t)(40 * SS_BLOCKSIZE - 20 + 4) << 16;
+    player->y_pos.v = (int32_t)(40 * SS_BLOCKSIZE - 68 + 4) << 16;
     Obj_SpecialSonic(player);
     CHECK_EQ(player->routine, 4);
 
@@ -116,8 +116,8 @@ static void SSonic_UpAndDownBlocksChangeTheSpinSpeed(void) {
     Reset();
     int r = 40, c = 40;
     ss_layout[ROW(r) + c] = SSB_UP;
-    player->pos.l.x.v = (int32_t)(c * SS_BLOCKSIZE - 20 + 4) << 16;
-    player->pos.l.y.v = (int32_t)(r * SS_BLOCKSIZE - 68 + 4) << 16;
+    player->x_pos.v = (int32_t)(c * SS_BLOCKSIZE - 20 + 4) << 16;
+    player->y_pos.v = (int32_t)(r * SS_BLOCKSIZE - 68 + 4) << 16;
     Obj_SpecialSonic(player);
     CHECK_EQ(ss_rotate, SS_ROTATESPEED * 2);
     CHECK_EQ(ss_layout[ROW(r) + c], SSB_DOWN); // it became a DOWN block
@@ -130,8 +130,8 @@ static void SSonic_UpAndDownBlocksChangeTheSpinSpeed(void) {
     Reset();
     ss_rotate = SS_ROTATESPEED * 2;
     ss_layout[ROW(r) + c] = SSB_DOWN;
-    player->pos.l.x.v = (int32_t)(c * SS_BLOCKSIZE - 20 + 4) << 16;
-    player->pos.l.y.v = (int32_t)(r * SS_BLOCKSIZE - 68 + 4) << 16;
+    player->x_pos.v = (int32_t)(c * SS_BLOCKSIZE - 20 + 4) << 16;
+    player->y_pos.v = (int32_t)(r * SS_BLOCKSIZE - 68 + 4) << 16;
     Obj_SpecialSonic(player);
     CHECK_EQ(ss_rotate, SS_ROTATESPEED);
     CHECK_EQ(ss_layout[ROW(r) + c], SSB_UP);
@@ -141,8 +141,8 @@ static void SSonic_RBlockReversesTheStage(void) {
     Reset();
     int r = 40, c = 40;
     ss_layout[ROW(r) + c] = SSB_R;
-    player->pos.l.x.v = (int32_t)(c * SS_BLOCKSIZE - 20 + 4) << 16;
-    player->pos.l.y.v = (int32_t)(r * SS_BLOCKSIZE - 68 + 4) << 16;
+    player->x_pos.v = (int32_t)(c * SS_BLOCKSIZE - 20 + 4) << 16;
+    player->y_pos.v = (int32_t)(r * SS_BLOCKSIZE - 68 + 4) << 16;
     Obj_SpecialSonic(player);
     CHECK_EQ((int16_t)ss_rotate, -SS_ROTATESPEED);
 }
@@ -151,11 +151,11 @@ static void SSonic_BumperThrowsSonicAway(void) {
     Reset();
     int r = 40, c = 40;
     ss_layout[ROW(r) + c] = SSB_Bumper;
-    player->pos.l.x.v = (int32_t)(c * SS_BLOCKSIZE - 20 + 4) << 16;
-    player->pos.l.y.v = (int32_t)(r * SS_BLOCKSIZE - 68 + 4) << 16;
+    player->x_pos.v = (int32_t)(c * SS_BLOCKSIZE - 20 + 4) << 16;
+    player->y_pos.v = (int32_t)(r * SS_BLOCKSIZE - 68 + 4) << 16;
     Obj_SpecialSonic(player);
-    CHECK(player->xsp != 0 || player->ysp != 0);
-    CHECK(player->status.p.f.in_air);
+    CHECK(player->x_vel != 0 || player->y_vel != 0);
+    CHECK(((player->status & SST_PSTATUS_IN_AIR) != 0));
     CHECK(SS_FindFreeAnimationSlot() != NULL);
     for (int i = 0; i < 60; i++)
         SS_AniItems();
@@ -167,8 +167,8 @@ static void SSonic_GlassWeakensThenBreaks(void) {
     int r = 40, c = 40;
     ss_layout[ROW(r) + c] = SSB_Glass1_Blue;
     for (int hit = 0; hit < 4; hit++) {
-        player->pos.l.x.v = (int32_t)(c * SS_BLOCKSIZE - 20 + 4) << 16;
-        player->pos.l.y.v = (int32_t)(r * SS_BLOCKSIZE - 68 + 4) << 16;
+        player->x_pos.v = (int32_t)(c * SS_BLOCKSIZE - 20 + 4) << 16;
+        player->y_pos.v = (int32_t)(r * SS_BLOCKSIZE - 68 + 4) << 16;
         Obj_SpecialSonic(player);
         for (int i = 0; i < 40; i++)
             SS_AniItems();
@@ -339,7 +339,7 @@ static void SSonic_DebugModeEntersPlacesAndExits(void) {
     jpad1_press1 = 0;
     CHECK_EQ(debug_use, 0);
     CHECK_EQ(ss_rotate, 0x40);
-    CHECK(player->status.p.f.in_air);
+    CHECK(((player->status & SST_PSTATUS_IN_AIR) != 0));
     debug_mode = false;
 }
 

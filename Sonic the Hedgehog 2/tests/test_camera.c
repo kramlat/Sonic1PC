@@ -32,10 +32,10 @@ static void Setup(bool split) {
     scrpos_x.f.u = 0x400;
     scrpos_y.f.u = 0x100;
     player->routine = 2;
-    player->status.b = 0;
-    player->inertia = 0;
-    player->pos.l.x.f.u = 0x400 + Follow;
-    player->pos.l.y.f.u = 0x100 + look_shift;
+    player->status = 0;
+    player->ground_vel = 0;
+    player->x_pos.f.u = 0x400 + Follow;
+    player->y_pos.f.u = 0x100 + look_shift;
     two_player_mode = split;
     SplitScreen_LoadLevel();
 }
@@ -49,7 +49,7 @@ static void Teardown(void) {
 
 static void Camera_StandingAtTheFollowingPlaceHoldsStill(void) {
     Setup(false);
-    player->pos.l.x.f.u = 0x400 + Follow + 10; // (a dead zone of 16 pixels to the right of the place)
+    player->x_pos.f.u = 0x400 + Follow + 10; // (a dead zone of 16 pixels to the right of the place)
     ScrollHoriz();
     CHECK_EQ(scrpos_x.f.u, 0x400);
     CHECK_EQ(scrshift_x, 0);
@@ -57,21 +57,21 @@ static void Camera_StandingAtTheFollowingPlaceHoldsStill(void) {
 
 static void Camera_RunsAheadByTheExcess(void) {
     Setup(false);
-    player->pos.l.x.f.u = 0x400 + Follow + 16 + 5;
+    player->x_pos.f.u = 0x400 + Follow + 16 + 5;
     ScrollHoriz();
     CHECK_EQ(scrpos_x.f.u, 0x405);
 }
 
 static void Camera_RunsAheadBySixteenAtMost(void) {
     Setup(false);
-    player->pos.l.x.f.u = 0x400 + Follow + 200;
+    player->x_pos.f.u = 0x400 + Follow + 200;
     ScrollHoriz();
     CHECK_EQ(scrpos_x.f.u, 0x410);
 }
 
 static void Camera_FallsBackWhenSonicIsBehind(void) {
     Setup(false);
-    player->pos.l.x.f.u = 0x400 + Follow - 6;
+    player->x_pos.f.u = 0x400 + Follow - 6;
     ScrollHoriz();
     CHECK_EQ(scrpos_x.f.u, 0x400 - 6);
 }
@@ -79,13 +79,13 @@ static void Camera_FallsBackWhenSonicIsBehind(void) {
 static void Camera_StopsAtTheLeftAndRightLimits(void) {
     Setup(false);
     limit_left2 = 0x3F0;
-    player->pos.l.x.f.u = 0x400 + Follow - 20; // (behind the following place: the camera would fall back 20)
+    player->x_pos.f.u = 0x400 + Follow - 20; // (behind the following place: the camera would fall back 20)
     ScrollHoriz();
     CHECK_EQ(scrpos_x.f.u, 0x3F0);
 
     Setup(false);
     limit_right2 = 0x408;
-    player->pos.l.x.f.u = 0x400 + Follow + 100;
+    player->x_pos.f.u = 0x400 + Follow + 100;
     ScrollHoriz();
     CHECK_EQ(scrpos_x.f.u, 0x408);
 }
@@ -98,7 +98,7 @@ static void Camera_StandingStillOnTheGroundIsNotScrolledVertically(void) {
 
 static void Camera_SnapsWhenCloseOnTheGround(void) {
     Setup(false);
-    player->pos.l.y.f.u += 4; // (inside the 6 pixels that a walking pace takes at once)
+    player->y_pos.f.u += 4; // (inside the 6 pixels that a walking pace takes at once)
     ScrollVertical();
     CHECK_EQ(scrpos_y.f.u, 0x104);
 }
@@ -106,7 +106,7 @@ static void Camera_SnapsWhenCloseOnTheGround(void) {
 static void Camera_VerticalIsCappedAtTheBottomLimit(void) {
     Setup(false);
     limit_btm2 = 0x102;
-    player->pos.l.y.f.u += 100;
+    player->y_pos.f.u += 100;
     ScrollVertical();
     CHECK_EQ(scrpos_y.f.u, 0x102);
 }
@@ -114,7 +114,7 @@ static void Camera_VerticalIsCappedAtTheBottomLimit(void) {
 static void Camera_VerticalIsCappedAtTheTopLimit(void) {
     Setup(false);
     limit_top2 = 0x0FE;
-    player->pos.l.y.f.u -= 100;
+    player->y_pos.f.u -= 100;
     ScrollVertical();
     CHECK_EQ(scrpos_y.f.u, 0x0FE);
 }
@@ -131,7 +131,7 @@ static void Lock_WithoutASplitScreenTheOneCameraIsLocked(void) {
 static void Lock_TheLockedCameraRunsToTheEnd(void) {
     Setup(false);
     SplitScreen_LockCameras(0x500, 24);
-    player->pos.l.x.f.u = 0x400 + Follow - 1;
+    player->x_pos.f.u = 0x400 + Follow - 1;
     ScrollHoriz();
     CHECK_EQ(scrpos_x.f.u, limit_right2);
 }
@@ -164,8 +164,8 @@ static void Split_SignInTheFirstViewLocksTheFirstOnly(void) {
     CHECK_EQ(limit_left2, limit_right2);
 
     // ... and the second camera is not held up by it: it follows Tails, to the left of where the first is locked
-    TAILS_OBJ->pos.l.x.f.u = 0x1000 + SplitScreen_FollowX();
-    TAILS_OBJ->pos.l.y.f.u = scrpos_y_p2.f.u + 96;
+    TAILS_OBJ->x_pos.f.u = 0x1000 + SplitScreen_FollowX();
+    TAILS_OBJ->y_pos.f.u = scrpos_y_p2.f.u + 96;
     SplitScreen_Scroll();
     CHECK_EQ(scrpos_x_p2.f.u, 0x1000);
     Teardown();
@@ -178,8 +178,8 @@ static void Split_SignInTheSecondViewLocksTheSecondOnly(void) {
     CHECK_EQ(limit_left2, 0); // (the first camera is free)
 
     // The second camera runs to the right limit and stays: Tails behind the following place does not draw it back
-    TAILS_OBJ->pos.l.x.f.u = 0x1000 + SplitScreen_FollowX();
-    TAILS_OBJ->pos.l.y.f.u = scrpos_y_p2.f.u + 96;
+    TAILS_OBJ->x_pos.f.u = 0x1000 + SplitScreen_FollowX();
+    TAILS_OBJ->y_pos.f.u = scrpos_y_p2.f.u + 96;
     SplitScreen_Scroll();
     CHECK_EQ(scrpos_x_p2.f.u, limit_right2);
     Teardown();
@@ -193,13 +193,13 @@ static void Split_TheEndOfTheLevelHoldsOnlyTheViewThatReachedIt(void) {
     limit_left2 = 0;
     CHECK(SplitScreen_ReachEnd(end_x)); // (the sign's art loads)
     CHECK_EQ(limit_left2, end_x);
-    TAILS_OBJ->pos.l.x.f.u = 0x400 + SplitScreen_FollowX() - 8;
-    TAILS_OBJ->pos.l.y.f.u = scrpos_y_p2.f.u + 96;
+    TAILS_OBJ->x_pos.f.u = 0x400 + SplitScreen_FollowX() - 8;
+    TAILS_OBJ->y_pos.f.u = scrpos_y_p2.f.u + 96;
     SplitScreen_Scroll();
     CHECK_EQ(scrpos_x_p2.f.u, 0x400 - 8); // (the second view is still free to go back)
     scrpos_x_p2.f.u = 0x1020; // now the second gets there: held, and no second load of the art
     CHECK(!SplitScreen_ReachEnd(end_x));
-    TAILS_OBJ->pos.l.x.f.u = 0x800; // (Tails far behind pulls the camera back, but not past the end's limit)
+    TAILS_OBJ->x_pos.f.u = 0x800; // (Tails far behind pulls the camera back, but not past the end's limit)
     for (int i = 0; i < 4; i++)
         SplitScreen_Scroll();
     CHECK_EQ(scrpos_x_p2.f.u, end_x);
@@ -211,8 +211,8 @@ static void Split_SignInSightOfNeitherViewLocksNeither(void) {
     scrpos_x_p2.f.u = 0x1000;
     SplitScreen_LockCameras(0x1800, 24);
     CHECK_EQ(limit_left2, 0);
-    TAILS_OBJ->pos.l.x.f.u = 0x1000 + SplitScreen_FollowX() - 8;
-    TAILS_OBJ->pos.l.y.f.u = scrpos_y_p2.f.u + 96;
+    TAILS_OBJ->x_pos.f.u = 0x1000 + SplitScreen_FollowX() - 8;
+    TAILS_OBJ->y_pos.f.u = scrpos_y_p2.f.u + 96;
     SplitScreen_Scroll();
     CHECK_EQ(scrpos_x_p2.f.u, 0x1000 - 8); // (free: it fell back after Tails)
     Teardown();
@@ -223,8 +223,8 @@ static void Split_SignInSightOfBothLocksBoth(void) {
     scrpos_x_p2.f.u = 0x400 + 8; // (the views overlap)
     SplitScreen_LockCameras(0x400 + 20, 24);
     CHECK_EQ(limit_left2, limit_right2);
-    TAILS_OBJ->pos.l.x.f.u = 0x400 + 8 + SplitScreen_FollowX();
-    TAILS_OBJ->pos.l.y.f.u = scrpos_y_p2.f.u + 96;
+    TAILS_OBJ->x_pos.f.u = 0x400 + 8 + SplitScreen_FollowX();
+    TAILS_OBJ->y_pos.f.u = scrpos_y_p2.f.u + 96;
     SplitScreen_Scroll();
     CHECK_EQ(scrpos_x_p2.f.u, limit_right2);
     Teardown();
@@ -250,8 +250,8 @@ static void Split_SecondViewsBackgroundLeavesTheFirstsPositionsAlone(void) {
     bg_scrpos_x.v = 0x12340000;
     bg_scrpos_y.v = 0x00560000;
     for (int i = 0; i < 60; i++) { // Tails runs ahead for 60 frames: the second camera, and so its background, moves some hundreds of pixels
-        TAILS_OBJ->pos.l.x.f.u = scrpos_x_p2.f.u + SplitScreen_FollowX() + 16 + 40;
-        TAILS_OBJ->pos.l.y.f.u = scrpos_y_p2.f.u + 96;
+        TAILS_OBJ->x_pos.f.u = scrpos_x_p2.f.u + SplitScreen_FollowX() + 16 + 40;
+        TAILS_OBJ->y_pos.f.u = scrpos_y_p2.f.u + 96;
         SplitScreen_Scroll();
     }
     CHECK(scrpos_x_p2.f.u > 0x400 + 300);

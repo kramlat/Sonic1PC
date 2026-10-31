@@ -20,7 +20,7 @@ static void Counter(Sst *self) {
 }
 
 static void Fresh(void) {
-    Sst_Reset();
+    Sst_ResetAll();
     memset(ran, 0, sizeof(ran));
     order_n = 0;
 }

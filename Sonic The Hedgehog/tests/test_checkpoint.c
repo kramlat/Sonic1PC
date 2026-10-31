@@ -14,7 +14,7 @@ void Obj_Checkpoint_StoreInfo(Object *obj, const void *scratch); // Checkpoint.h
 
 static void Checkpoint_RoundTripKeepsPositions(void) {
     memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     Object *lamp = &level_objects[0];
     lamp->type = ObjId_Checkpoint;
     lamp->pos.l.x.f.u = 0x1290;
@@ -33,15 +33,15 @@ static void Checkpoint_RoundTripKeepsPositions(void) {
     CHECK_EQ(last_lamp, 1);
 
     // The player has died and the level restarts: everything is reset.
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     scrpos_x.v = 0; scrpos_y.v = 0; bg_scrpos_x.v = 0; bg_scrpos_y.v = 0;
     bg2_scrpos_x.v = 0; bg2_scrpos_y.v = 0; bg3_scrpos_x.v = 0; bg3_scrpos_y.v = 0;
     rings = 77;
 
     Obj_Checkpoint_LoadInfo();
 
-    CHECK_EQ(player->pos.l.x.f.u, 0x1290);
-    CHECK_EQ(player->pos.l.y.f.u, 0x04AC);
+    CHECK_EQ(player->x_pos.f.u, 0x1290);
+    CHECK_EQ(player->y_pos.f.u, 0x04AC);
     CHECK_EQ(scrpos_x.f.u, 0x1150);
     CHECK_EQ(scrpos_y.f.u, 0x0420);
     CHECK_EQ(bg_scrpos_x.f.u, 0x0300);

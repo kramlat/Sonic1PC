@@ -58,10 +58,10 @@ void Obj_Spring(Sst *self) {
         self->routine += 2;
 
         // Launch Sonic
-        player->pos.l.y.f.u += 8;
-        player->ysp = own->power;
-        player->status.p.f.in_air = true;
-        player->status.p.f.object_stand = false;
+        player->y_pos.f.u += 8;
+        player->y_vel = own->power;
+        player->status |= SST_PSTATUS_IN_AIR;
+        player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
         player->anim = SonAnimId_Spring;
         player->routine = 2;
 
@@ -90,22 +90,22 @@ void Obj_Spring(Sst *self) {
 
         // Launch Sonic
         if ((self->status & SST_STATUS_X_FLIP)) {
-            player->xsp = own->power;
-            player->pos.l.x.f.u += 8;
+            player->x_vel = own->power;
+            player->x_pos.f.u += 8;
         } else {
-            player->xsp = -own->power;
-            player->pos.l.x.f.u -= 8;
+            player->x_vel = -own->power;
+            player->x_pos.f.u -= 8;
         }
-        Scratch_Sonic* sscratch = (Scratch_Sonic*)&player->scratch;
+        Scratch_Sonic* sscratch = (Scratch_Sonic *)player->own.u8;
         sscratch->control_lock = 15;
-        player->inertia = player->xsp;
-        player->status.p.f.x_flip ^= 1;
-        if (!player->status.p.f.in_ball)
+        player->ground_vel = player->x_vel;
+        player->status ^= SST_PSTATUS_X_FLIP;
+        if (!((player->status & SST_PSTATUS_IN_BALL) != 0))
             player->anim = SonAnimId_Walk;
 
         // Reset object state
         self->status &= (uint8_t)~SST_STATUS_PLAYER_PUSH;
-        player->status.p.f.pushing = false;
+        player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
         PlaySound(sfx_Spring);
         break;
     case 10: // Left/right bouncing
@@ -128,10 +128,10 @@ void Obj_Spring(Sst *self) {
         self->routine += 2;
 
         // Launch Sonic
-        player->pos.l.y.f.u -= 8;
-        player->ysp = -own->power;
-        player->status.p.f.in_air = true;
-        player->status.p.f.object_stand = false;
+        player->y_pos.f.u -= 8;
+        player->y_vel = -own->power;
+        player->status |= SST_PSTATUS_IN_AIR;
+        player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
         player->anim = SonAnimId_Spring;
         player->routine = 2;
 

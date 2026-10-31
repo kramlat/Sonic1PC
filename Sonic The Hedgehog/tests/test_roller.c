@@ -17,10 +17,10 @@ static void Roller_JumpComesDownSmoothlyAndLands(void) {
     LevelDataLoad();
     ColIndexLoad();
     memset(objects, 0, sizeof(objects));
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->pos.l.x.f.u = 0x100; // far away
-    player->pos.l.y.f.u = 0x100;
+    player->x_pos.f.u = 0x100; // far away
+    player->y_pos.f.u = 0x100;
     scrpos_x.f.u = 0x710 - 160;
     scrpos_y.f.u = 0x250 - 112;
 

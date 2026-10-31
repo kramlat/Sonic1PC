@@ -21,7 +21,7 @@ static void Flap_Animate(Sst *self) {
 
     f_wtunneldisallow = false;
 
-    if (self->mapping_frame != 0 || player->pos.l.x.f.u >= self->x_pos.f.u) {
+    if (self->mapping_frame != 0 || player->x_pos.f.u >= self->x_pos.f.u) {
         SstOnScreenTest(self);
         return;
     }

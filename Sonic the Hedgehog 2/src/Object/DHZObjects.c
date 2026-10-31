@@ -24,11 +24,11 @@
 extern const uint8_t Mappings_MTZPlatformA[]; // (defined with MTZObjects.c, whose platforms they are)
 
 // (the spikes' hurt, Touch_ChkHurt2: Spikes.c)
-void Spikes_HurtCharacter(Object *obj, Object *chr, int who);
+void Spikes_HurtCharacter(Object *obj, Sst *chr, int who);
 
 #define FOR_EACH_CHARACTER(chr, who) \
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) \
-        for (Object *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
+        for (Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
 
 // MarkObjGone2: gone, and forgotten (so that it can come back), when x is out of sight
 static void GoneIfOffscreen(Object *obj, int16_t x) {
@@ -434,14 +434,14 @@ void Obj_PlatformSpikes(Object *obj) {
     const int16_t old_x = obj->pos.l.x.f.u;
     if (scratch->state == 0) {
         FOR_EACH_CHARACTER(chr, who) {
-            if (chr->status.p.f.in_air)
+            if (((chr->status & SST_PSTATUS_IN_AIR) != 0))
                 continue;
-            int16_t d0 = (int16_t)(chr->pos.l.x.f.u - obj->pos.l.x.f.u + 0xC0);
+            int16_t d0 = (int16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u + 0xC0);
             if (obj->status.o.f.x_flip)
                 d0 -= 0x100;
             if ((uint16_t)d0 >= 0x80)
                 continue;
-            if ((uint16_t)(chr->pos.l.y.f.u - obj->pos.l.y.f.u + 0x10) >= 0x20)
+            if ((uint16_t)(chr->y_pos.f.u - obj->pos.l.y.f.u + 0x10) >= 0x20)
                 continue;
             scratch->state = 2;
             scratch->slide = 0x80;
@@ -504,7 +504,7 @@ void Obj_DHZGate(Object *obj) {
     } else {
         FOR_EACH_CHARACTER(chr, who) {
             if (obj->status.b & (1 << (3 + who)))
-                chr->status.p.f.object_stand = false;
+                chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
         }
         obj->status.b &= (uint8_t)~0x18;
     }

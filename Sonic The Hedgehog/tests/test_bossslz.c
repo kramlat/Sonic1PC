@@ -45,10 +45,10 @@ static Object *FindBall(void) {
 
 static void Spawn(void) {
     memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->pos.l.x.f.u = SLZ_X;
-    player->pos.l.y.f.u = SLZ_Y;
+    player->x_pos.f.u = SLZ_X;
+    player->y_pos.f.u = SLZ_Y;
     limit_right2 = SLZ_X + 0x100;
     lock_screen = true;
     boss_status = 0;
@@ -219,16 +219,16 @@ static void BossSLZ_RealSeesawsDontHang(void) {
         s->pos.l.x.f.u = (int16_t)(0x203C + i * 0x64);
         s->pos.l.y.f.u = 0x2D4;
     }
-    player->type = 1;
-    player->x_rad = 9; player->y_rad = 19;
-    player->pos.l.x.f.u = 0x20A0 - 20;
-    player->pos.l.y.f.u = 0x2A0;
-    player->status.p.f.in_air = true;
+    player->code = sst_object_codes[1];
+    player->x_radius = 9; player->y_radius = 19;
+    player->x_pos.f.u = 0x20A0 - 20;
+    player->y_pos.f.u = 0x2A0;
+    player->status |= SST_PSTATUS_IN_AIR;
     alarm(10);
     for (int f = 0; f < 3000; f++) {
         for (int i = 10; i < 13; i++)
             Obj_Seesaw(&level_objects[i]);
-        player->ysp += 0x38;
+        player->y_vel += 0x38;
         RunFrame();
     }
     alarm(0);

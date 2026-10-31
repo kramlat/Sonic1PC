@@ -2,6 +2,7 @@
 
 #include "Object.h"
 #include "Sst.h"
+#include "LevelCollision.h"
 
 // The solid and platform helpers of Object.c for the objects on the status table of Sonic 3 & Knuckles (Sst.h): the same code, for an `Sst` standing in the object's place. The character is still the old
 // `player` until it moves over too; what it stands on is remembered by Standing.h (so an old and a new object can hand it to each other).
@@ -21,7 +22,6 @@ int32_t SstSolidObject_Heightmap(Sst *obj, uint16_t x_rad, uint16_t y_rad, const
 #define SST_COLLAPSE_DELAY 0x10
 void SstSmashObject(Sst *obj, int count, const int16_t *frag_speeds);
 void SstFragmentatePlatform(Sst *obj, int count, const uint8_t *delays);
-int16_t SstFloorDist(Sst *obj, int16_t x);
 int16_t SstHitWallRight(Sst *obj, int16_t x_off);
 int16_t SstHitWallLeft(Sst *obj, int16_t x_off);
 int16_t SstHitCeiling(Sst *obj);

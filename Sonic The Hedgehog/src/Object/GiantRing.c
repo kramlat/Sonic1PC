@@ -56,7 +56,7 @@ void Obj_GiantRing(Object *obj) {
             flash->pos.l.x.f.u = obj->pos.l.x.f.u;
             flash->pos.l.y.f.u = obj->pos.l.y.f.u;
             ((Scratch_RingFlash *)&flash->scratch)->parent = obj;
-            if (player->pos.l.x.f.u >= obj->pos.l.x.f.u)
+            if (player->x_pos.f.u >= obj->pos.l.x.f.u)
                 flash->render.f.x_flip = true;
         }
         PlaySound(sfx_GiantRing);
@@ -92,8 +92,8 @@ void Obj_RingFlash(Object *obj) {
                 // (v_player).w", which zeroes the object's first word
                 // (type + render) rather than the fixed v_player address
                 // itself (player is a fixed slot here too, not reassignable).
-                player->type = ObjId_Null;
-                player->render.b = 0;
+                player->code = sst_object_codes[ObjId_Null];
+                player->render_flags = 0;
                 break;
             }
             if (obj->frame == 3) {

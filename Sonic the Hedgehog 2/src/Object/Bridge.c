@@ -155,24 +155,24 @@ static void Bridge_Characters(Object *obj, int16_t x_rad, int16_t width) {
     Scratch_Bridge *scratch = (Scratch_Bridge *)&obj->scratch;
 
     for (int who = SolidChar_Tails; who >= SolidChar_Sonic; who--) { // (Tails first)
-        Object *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+        Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
         if (chr == NULL)
             continue;
         uint8_t *log_of = (who == SolidChar_Sonic) ? &scratch->sonic_log : &scratch->tails_log;
         const uint8_t stand_bit = (uint8_t)(1 << (3 + who));
 
         if (obj->status.b & stand_bit) {
-            int16_t d0 = chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
-            if (chr->status.p.f.in_air || d0 < 0 || d0 >= width) {
-                chr->status.p.f.object_stand = false;
+            int16_t d0 = chr->x_pos.f.u - obj->pos.l.x.f.u + x_rad;
+            if (((chr->status & SST_PSTATUS_IN_AIR) != 0) || d0 < 0 || d0 >= width) {
+                chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
                 obj->status.b &= (uint8_t)~stand_bit;
                 continue;
             }
             int log = d0 >> 4;
             *log_of = (uint8_t)log;
-            chr->pos.l.y.f.u = Bridge_Log(scratch, log)->y - 8 - chr->y_rad;
+            chr->y_pos.f.u = Bridge_Log(scratch, log)->y - 8 - chr->y_radius;
         } else if (Solid_PlatformLand(obj, chr, who, x_rad, width, 8) || (obj->status.b & stand_bit)) {
-            int16_t d0 = chr->pos.l.x.f.u - obj->pos.l.x.f.u + x_rad;
+            int16_t d0 = chr->x_pos.f.u - obj->pos.l.x.f.u + x_rad;
             *log_of = (uint8_t)(d0 >> 4);
         }
     }
@@ -182,9 +182,9 @@ static void Bridge_Characters(Object *obj, int16_t x_rad, int16_t width) {
 static void Bridge_Wriggle(Object *obj) {
     Scratch_Bridge *scratch = (Scratch_Bridge *)&obj->scratch;
 
-    int beat = (player->xsp != 0) ? 0 : (frame_count & 0x1C) >> 1;
+    int beat = (player->x_vel != 0) ? 0 : (frame_count & 0x1C) >> 1;
     uint16_t sonic_low = wriggle[beat], sonic_high = wriggle[beat + 1];
-    beat = (TAILS_OBJ->xsp != 0) ? 0 : (frame_count & 0x1C) >> 1;
+    beat = (TAILS_OBJ->x_vel != 0) ? 0 : (frame_count & 0x1C) >> 1;
     uint16_t tails_low = wriggle[beat], tails_high = wriggle[beat + 1];
 
     int16_t d3 = -2, d4 = -2;

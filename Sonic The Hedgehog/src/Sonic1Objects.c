@@ -4,6 +4,10 @@
 #include "Object/AirBubbles.h"
 #include "Object/Bumper.h"
 #include "Object/Points.h"
+#include "Object/EndingSonic.h"
+#include "Object/ContinueSonic.h"
+#include "Object/SpecialSonic.h"
+#include "Object/Sonic.h"
 #include "Object/Caterkiller.h"
 #include "Object/Pole.h"
 #include "Object/PushBlock.h"
@@ -84,8 +88,6 @@
 #include "Object/Splash.h"
 #include "Object/WaterSurface.h"
 
-void Obj_Sonic(Object *obj);
-void Obj_SpecialSonic(Object *obj);
 void Obj_Signpost(Object *obj);
 void Obj_TitleSonic(Object *obj);
 void Obj_PSB(Object *obj);
@@ -103,14 +105,12 @@ void Obj_ShieldInvincibility(Object *obj);
 void Obj_GameOverCard(Object *obj);
 void Obj_SwingingPlatform(Object *obj);
 void Obj_Credits(Object *obj);
-void Obj_EndSonic(Object *obj);
 void Obj_EndChaos(Object *obj);
 void Obj_EndSTH(Object *obj);
 void Obj_EndEggman(Object *obj);
 void Obj_TryChaos(Object *obj);
 void Obj_EndEggmobile(Object *obj);
 void Obj_ContScrItem(Object *obj);
-void Obj_ContSonic(Object *obj);
 void Obj_GiantRing(Object *obj);
 void Obj_RingFlash(Object *obj);
 void Obj_HiddenBonus(Object *obj);
@@ -138,7 +138,7 @@ void Obj_VanishSonic(Object *obj);
 // runs as the null object.
 const ObjectFunc game_objects[] = {
 	/* 00 ObjId_Null                */ NULL,
-	/* 01 ObjId_Sonic               */ Obj_Sonic,
+	/* 01 ObjId_Sonic               */ NULL, // (moved to the status table: sst_object_codes)
 	/* 02 ObjId_02                  */ Obj_Null,
 	/* 03 ObjId_PathSwapper         */ Obj_PathSwapper,
 	/* 04 ObjId_04                  */ Obj_Null,
@@ -146,7 +146,7 @@ const ObjectFunc game_objects[] = {
 	/* 06 ObjId_06                  */ Obj_Null,
 	/* 07 ObjId_07                  */ Obj_Null,
 	/* 08 ObjId_Splash              */ Obj_Splash,
-	/* 09 ObjId_SpecialSonic        */ Obj_SpecialSonic,
+	/* 09 ObjId_SpecialSonic        */ NULL, // (moved to the status table: sst_object_codes)
 	/* 0A ObjId_DrownCount          */ Obj_DrownCount,
 	/* 0B ObjId_Pole                */ NULL, // (moved to the status table: sst_object_codes)
 	/* 0C ObjId_FlapDoor            */ NULL, // (moved to the status table: sst_object_codes)
@@ -266,13 +266,13 @@ const ObjectFunc game_objects[] = {
 	/* 7E ObjId_SSResult            */ Obj_SpecialResult,
 	/* 7F ObjId_SSRChaos            */ Obj_SpecialResultEmerald,
 	/* 80 ObjId_80                  */ Obj_ContScrItem,
-	/* 81 ObjId_81                  */ Obj_ContSonic,
+	/* 81 ObjId_81                  */ NULL, // (moved to the status table: sst_object_codes)
 	/* 82 ObjId_ScrapEggman         */ Obj_ScrapEggman,
 	/* 83 ObjId_FalseFloor          */ Obj_FalseFloor,
 	/* 84 ObjId_EggmanCylinder      */ Obj_EggmanCylinder,
 	/* 85 ObjId_BossFinal           */ Obj_BossFinal,
 	/* 86 ObjId_BossPlasma          */ Obj_BossPlasma,
-	/* 87 ObjId_87                  */ Obj_EndSonic,
+	/* 87 ObjId_87                  */ NULL, // (moved to the status table: sst_object_codes)
 	/* 88 ObjId_88                  */ Obj_EndChaos,
 	/* 89 ObjId_89                  */ Obj_EndSTH,
 	/* 8A ObjId_Credits             */ Obj_Credits,
@@ -285,6 +285,10 @@ const int game_object_count = (int)(sizeof(game_objects) / sizeof(game_objects[0
 // The objects that have moved over to the status table of Sonic 3 & Knuckles (engine/Sst.h), by id: the loader of that table (engine/SstLoad.c) loads their layout entries, and ObjectsManager.c leaves them alone.
 // An object moves over by its row here, its row above going NULL; the entries of its id in res/ObjectLayout lose their bit 15 (tools/objlayout_clear_remember.pl).
 const SstCode sst_object_codes[0x100] = {
+	[ObjId_87] = Obj_EndSonic,
+	[ObjId_81] = Obj_ContSonic,
+	[ObjId_SpecialSonic] = Obj_SpecialSonic,
+	[ObjId_Sonic] = Obj_Sonic,
 	[ObjId_Caterkiller] = Obj_Caterkiller,
 	[ObjId_Pole] = Obj_Pole,
 	[ObjId_PushBlock] = Obj_PushBlock,

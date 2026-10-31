@@ -13,11 +13,11 @@
 // Object 36, the spikes: the high nibble of the subtype is their size and direction (a table of frame and width), and they hurt Sonic who lands on them or touches them from the side.
 
 static Sst *Spawn(uint8_t subtype) {
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->y_rad = 19;
-    player->pos.l.x.f.u = 0x1000;
-    player->pos.l.y.f.u = 0x1000;
+    player->y_radius = 19;
+    player->x_pos.f.u = 0x1000;
+    player->y_pos.f.u = 0x1000;
     scrpos_x.f.u = 0xF00;
     scrpos_y.f.u = 0xF00;
     invincibility = 0;
@@ -44,13 +44,13 @@ static void Spikes_SizeAndDirectionComeFromTheHighNibble(void) {
 
 static void Spikes_HurtWhoLandsOnThem(void) {
     Sst *obj = Spawn(0x00); // up, $28 wide
-    player->pos.l.x.f.u = 0x1000;
-    player->pos.l.y.f.u = 0x1040 - 16 - 19 - 2;
-    player->ysp = 0x400;
-    player->status.p.f.in_air = true;
+    player->x_pos.f.u = 0x1000;
+    player->y_pos.f.u = 0x1040 - 16 - 19 - 2;
+    player->y_vel = 0x400;
+    player->status |= SST_PSTATUS_IN_AIR;
     for (int i = 0; i < 6 && player->routine < 4; i++) {
         Obj_Spikes(obj);
-        player->pos.l.y.f.u += 2; // (he is falling on them)
+        player->y_pos.f.u += 2; // (he is falling on them)
     }
     CHECK(player->routine >= 4); // hurt
 }
@@ -58,13 +58,13 @@ static void Spikes_HurtWhoLandsOnThem(void) {
 static void Spikes_DoNotHurtWhoIsInvincible(void) {
     Sst *obj = Spawn(0x00);
     invincibility = 1;
-    player->pos.l.x.f.u = 0x1000;
-    player->pos.l.y.f.u = 0x1040 - 16 - 19 - 2;
-    player->ysp = 0x400;
-    player->status.p.f.in_air = true;
+    player->x_pos.f.u = 0x1000;
+    player->y_pos.f.u = 0x1040 - 16 - 19 - 2;
+    player->y_vel = 0x400;
+    player->status |= SST_PSTATUS_IN_AIR;
     for (int i = 0; i < 6; i++) {
         Obj_Spikes(obj);
-        player->pos.l.y.f.u += 2;
+        player->y_pos.f.u += 2;
     }
     CHECK(player->routine < 4);
 }

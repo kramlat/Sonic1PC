@@ -68,12 +68,12 @@ static int16_t Tele_ComputeAxis(int16_t primary_diff, int16_t primary_speed, int
 // whenever a bend is hit.
 static void Tele_NextDirection(Sst *self, Own_Teleport *own) {
     (void)self;
-    int16_t raw_dx = (int16_t)(own->target_x - player->pos.l.x.f.u);
+    int16_t raw_dx = (int16_t)(own->target_x - player->x_pos.f.u);
     int16_t vx = 0x1000;
     if (raw_dx < 0)
         vx = (int16_t)-vx;
 
-    int16_t raw_dy = (int16_t)(own->target_y - player->pos.l.y.f.u);
+    int16_t raw_dy = (int16_t)(own->target_y - player->y_pos.f.u);
     int16_t vy = 0x1000;
     if (raw_dy < 0)
         vy = (int16_t)-vy;
@@ -84,12 +84,12 @@ static void Tele_NextDirection(Sst *self, Own_Teleport *own) {
     int16_t new_vel, time;
     if (dy < dx) {
         time = Tele_ComputeAxis(raw_dx, vx, raw_dy, &new_vel);
-        player->ysp = new_vel;
-        player->xsp = vx;
+        player->y_vel = new_vel;
+        player->x_vel = vx;
     } else {
         time = Tele_ComputeAxis(raw_dy, vy, raw_dx, &new_vel);
-        player->xsp = new_vel;
-        player->ysp = vy;
+        player->x_vel = new_vel;
+        player->y_vel = vy;
     }
     own->time = time;
 }
@@ -103,13 +103,13 @@ static void Tele_Main(Sst *self, Own_Teleport *own) {
 }
 
 static void Tele_Action(Sst *self, Own_Teleport *own) {
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - self->x_pos.f.u);
     if (((self->status & SST_STATUS_X_FLIP) != 0))
         d0 = (int16_t)(d0 + 15);
     if ((uint16_t)d0 >= 16)
         return;
 
-    int16_t d1 = (int16_t)(player->pos.l.y.f.u - self->y_pos.f.u + 32);
+    int16_t d1 = (int16_t)(player->y_pos.f.u - self->y_pos.f.u + 32);
     if ((uint16_t)d1 >= 64)
         return;
 
@@ -124,14 +124,14 @@ static void Tele_Action(Sst *self, Own_Teleport *own) {
     self->routine = 4; // advance to Tele_PreBump
     lock_multi = 0x81; // lock controls and disable object interaction
     player->anim = SonAnimId_Roll;
-    player->inertia = 0x800; // fast ground speed for fast rolling animation
-    player->xsp = 0;
-    player->ysp = 0;
+    player->ground_vel = 0x800; // fast ground speed for fast rolling animation
+    player->x_vel = 0;
+    player->y_vel = 0;
     self->status &= (uint8_t)~SST_STATUS_PLAYER_PUSH;
-    player->status.p.f.pushing = false;
-    player->status.p.f.in_air = true;
-    player->pos.l.x.f.u = self->x_pos.f.u;
-    player->pos.l.y.f.u = self->y_pos.f.u;
+    player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+    player->status |= SST_PSTATUS_IN_AIR;
+    player->x_pos.f.u = self->x_pos.f.u;
+    player->y_pos.f.u = self->y_pos.f.u;
     own->prebump = 0;
 
     QueueSound2(sfx_Roll);
@@ -143,7 +143,7 @@ static void Tele_PreBump(Sst *self, Own_Teleport *own) {
     own->prebump = (uint8_t)(own->prebump + 2);
 
     int16_t bump = (int16_t)(sin >> 5);
-    player->pos.l.y.f.u = (int16_t)(self->y_pos.f.u - bump);
+    player->y_pos.f.u = (int16_t)(self->y_pos.f.u - bump);
 
     if (own->prebump != 0x80)
         return;
@@ -156,13 +156,13 @@ static void Tele_PreBump(Sst *self, Own_Teleport *own) {
 static void Tele_Teleporting(Sst *self, Own_Teleport *own) {
     if (--own->time >= 0) {
         // Direct copy of SpeedToPos, targeting Sonic instead of this object.
-        player->pos.l.x.v += player->xsp << 8;
-        player->pos.l.y.v += player->ysp << 8;
+        player->x_pos.v += player->x_vel << 8;
+        player->y_pos.v += player->y_vel << 8;
         return;
     }
 
-    player->pos.l.x.f.u = own->target_x;
-    player->pos.l.y.f.u = own->target_y;
+    player->x_pos.f.u = own->target_x;
+    player->y_pos.f.u = own->target_y;
 
     uint8_t group = self->subtype;
     uint8_t next = (uint8_t)(own->current + 1);
@@ -174,11 +174,11 @@ static void Tele_Teleporting(Sst *self, Own_Teleport *own) {
         return;
     }
 
-    player->pos.l.y.f.u &= 0x7FF; // SBZ2 is a Y-wrapping level
+    player->y_pos.f.u &= 0x7FF; // SBZ2 is a Y-wrapping level
     self->routine = 0; // reset teleporter back to Tele_Main
     lock_multi = 0; // clear Sonic control override flags
-    player->xsp = 0;
-    player->ysp = 0x200; // quickly land on floor again
+    player->x_vel = 0;
+    player->y_vel = 0x200; // quickly land on floor again
 }
 
 void Obj_Teleporter(Sst *self) {

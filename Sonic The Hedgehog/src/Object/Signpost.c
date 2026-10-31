@@ -37,7 +37,7 @@ void Obj_Signpost(Object* obj) {
         // Fallthrough
     case 2: // Wait for contact
         // Check if player is touching signpost
-        if ((uint16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u) < 0x20) {
+        if ((uint16_t)(player->x_pos.f.u - obj->pos.l.x.f.u) < 0x20) {
             // Start spinning
             PlaySound(sfx_Signpost);
             time_count = false;
@@ -87,14 +87,14 @@ void Obj_Signpost(Object* obj) {
         // Lock player controls
         if (debug_use)
             break;
-        if (!player->status.p.f.in_air) {
+        if (!((player->status & SST_PSTATUS_IN_AIR) != 0)) {
             lock_ctrl = true;
             jpad1_hold2 = JPAD_RIGHT;
             jpad1_press2 = 0;
         }
 
         // Check if level end sequence should play
-        if (player->type != ObjId_Null && (uint16_t)player->pos.l.x.f.u < (limit_right2 + 296 + SCREEN_WIDEADD))
+        if (player->code != sst_object_codes[ObjId_Null] && (uint16_t)player->x_pos.f.u < (limit_right2 + 296 + SCREEN_WIDEADD))
             break;
 
         // Start level end sequence

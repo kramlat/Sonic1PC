@@ -49,7 +49,7 @@ void Obj_GeyserMaker(Sst *self) {
         if (--own->timer < 0) {
             own->timer = own->time;
 
-            int16_t sonic_y = player->pos.l.y.f.u;
+            int16_t sonic_y = player->y_pos.f.u;
             int16_t maker_y = self->y_pos.f.u;
             if (sonic_y < maker_y && sonic_y >= (int16_t)(maker_y - 0x170))
                 self->routine += 2;

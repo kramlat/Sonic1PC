@@ -102,7 +102,7 @@ static void PushB_SolidAction_NotOnPlatform(Sst *self, Own_PushBlock *own, uint1
     int16_t sonic_dx, ground_speed;
     if (x_off < 0) {
         // Sonic is on the right, pushing the block left -- requires facing left.
-        if (!player->status.o.f.x_flip)
+        if (!((player->status & 1) != 0))
             return;
         if (SstHitWallLeft(self, (int16_t)(~(uint16_t)self->width_pixels)) < 0)
             return;
@@ -111,7 +111,7 @@ static void PushB_SolidAction_NotOnPlatform(Sst *self, Own_PushBlock *own, uint1
         ground_speed = -0x40;
     } else {
         // Sonic is on the left, pushing the block right -- requires facing right.
-        if (player->status.o.f.x_flip)
+        if (((player->status & 1) != 0))
             return;
         if (SstHitWallRight(self, self->width_pixels) < 0)
             return;
@@ -120,9 +120,9 @@ static void PushB_SolidAction_NotOnPlatform(Sst *self, Own_PushBlock *own, uint1
         ground_speed = 0x40;
     }
 
-    player->pos.l.x.f.u = (int16_t)(player->pos.l.x.f.u + sonic_dx);
-    player->inertia = ground_speed;
-    player->xsp = 0;
+    player->x_pos.f.u = (int16_t)(player->x_pos.f.u + sonic_dx);
+    player->ground_vel = ground_speed;
+    player->x_vel = 0;
 
     QueueSound2(sfx_Push); // hardcoded in the sound driver to not be interruptible by itself
 
@@ -193,7 +193,7 @@ static void PushB_LavaPlatform(Sst *self, Own_PushBlock *own, int16_t prev_x) {
 }
 
 static void PushB_Sunken(Sst *self, Own_PushBlock *own) {
-    player->status.o.f.player_stand = false;
+    player->status &= (uint8_t)~8;
     self->status &= (uint8_t)~SST_STATUS_PLAYER_STAND;
     PushB_ChkWithinOrigin(self, own);
 }

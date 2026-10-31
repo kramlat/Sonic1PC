@@ -57,7 +57,8 @@ struct Sst {
     uint8_t y_radius, x_radius; // collision height / 2, width / 2
     uint8_t anim, prev_anim;    // when they differ the animation restarts
     uint8_t mapping_frame;
-    uint8_t anim_frame, anim_frame_timer;
+    uint8_t anim_frame;
+    int8_t anim_frame_timer;     // (a signed byte: the objects count it down past zero)
     uint8_t angle;
     uint8_t collision_flags;    // TT SSSSSS: collision type, size
     uint8_t collision_property;
@@ -87,13 +88,31 @@ struct Sst {
 #define SST_FIRST_DYNAMIC SST_RESERVED
 #define SST_FIRST_LEVEL   (SST_RESERVED + SST_DYNAMIC)
 
+// The game's table of the routine for each object id (Sprite_Listing): a game defines it (an id with NULL has not moved to the status table). The loader (SstLoad.h) and Sst_Spawn read it, and the characters'
+// routines are in it too
+extern const SstCode sst_object_codes[0x100];
+
 extern Sst sst[SST_COUNT];
 #define SST_PLAYER_1 (&sst[0])
 #define SST_PLAYER_2 (&sst[1])
+// The first character (Player_1: Sonic, in the special stage and the ending the games' own versions of him)
+extern Sst *const player;
+
+// A character's status bits (S3&K's `status` for Player_1 and Player_2): the facing, in the air, in a ball (rolling), on an object, jumped from a roll, pushing, under water, and made to roll by a tunnel
+#define SST_PSTATUS_X_FLIP       0x01
+#define SST_PSTATUS_IN_AIR       0x02
+#define SST_PSTATUS_IN_BALL      0x04
+#define SST_PSTATUS_OBJECT_STAND 0x08
+#define SST_PSTATUS_ROLL_JUMP    0x10
+#define SST_PSTATUS_PUSHING      0x20
+#define SST_PSTATUS_UNDERWATER   0x40
+#define SST_PSTATUS_MUST_ROLL    0x80
 
 // Process_Sprites: runs every slot's code in order. With `freeze_level` (the first player's routine is 6 or more and it is not a competition: it has died) the players and the dynamic objects still run but the level's
 // fixed objects only draw themselves (those that are on screen)
 void Sst_Process(bool freeze_level);
+// ... the characters' two slots first (they ran first in the old object table, ahead of everything the old handler runs), and then the rest (Sst_Process after it skips them)
+void Sst_ProcessPlayers(bool run);
 
 // Draw_Sprite: queues the object in its priority's draw queue (8 queues of 63 objects; a full one passes the object on to the next, and the last one drops it)
 void Sst_Draw(Sst *obj);
@@ -111,8 +130,9 @@ void Sst_Delete(Sst *obj);
 Sst *Sst_Allocate(void);
 Sst *Sst_AllocateAfter(const Sst *after);
 
-// Clears every slot and queue
+// Clears every slot but the characters' and the queues (a level starts: the characters are made before the level's objects), and every slot
 void Sst_Reset(void);
+void Sst_ResetAll(void);
 
 // MoveSprite and friends: the velocity added to the position (in 1/256 pixels); MoveSprite also adds gravity ($38) to the vertical speed after using it; the Test versions move the other way vertically when gravity
 // is reversed

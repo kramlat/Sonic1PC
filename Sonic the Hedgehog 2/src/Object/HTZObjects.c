@@ -25,8 +25,8 @@ extern const uint8_t Mappings_HTZLift[]; // (defined with Scenery.c, which draws
 #include "Resource/Mappings/HTZSeesaw.h"
 #include "Resource/Mappings/HTZSeesawBall.h"
 
-static Object *Character(int who) {
-    return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+static Sst *Character(int who) {
+    return who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -62,10 +62,10 @@ static const uint8_t seesaw_flat[0x30] = {
 };
 
 // Which end of the seesaw a character standing on it weighs down: 2 if he is on its left, 0 if on its right, 1 if he is in the middle (within 8 pixels of it)
-static int Seesaw_Side(const Object *obj, const Object *chr) {
-    uint16_t d0 = (uint16_t)(obj->pos.l.x.f.u - chr->pos.l.x.f.u);
+static int Seesaw_Side(const Object *obj, const Sst *chr) {
+    uint16_t d0 = (uint16_t)(obj->pos.l.x.f.u - chr->x_pos.f.u);
     int side = 2;
-    if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)chr->pos.l.x.f.u) { // (he is on its right)
+    if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)chr->x_pos.f.u) { // (he is on its right)
         d0 = (uint16_t)-(int16_t)d0;
         side = 0;
     }
@@ -128,10 +128,10 @@ static void Seesaw_Main(Object *obj, Scratch_Seesaw *scratch) {
     Seesaw_ChangeFrame(obj, scratch, wanted);
 
     const uint8_t *slope = (obj->frame & 1) ? seesaw_flat : seesaw_slope;
-    scratch->speed = player->ysp; // (how fast Sonic comes down on it, before he lands and his speed is lost)
+    scratch->speed = player->y_vel; // (how fast Sonic comes down on it, before he lands and his speed is lost)
     int16_t x = obj->pos.l.x.f.u;
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = Character(who);
+        Sst *chr = Character(who);
         if (chr != NULL)
             Solid_SlopedPlatform(obj, chr, who, obj->width_pixels, slope, x);
     }
@@ -218,11 +218,11 @@ static void Seesaw_MoveBall(Object *obj, Scratch_Seesaw *scratch) {
 }
 
 // The ball thrown by the seesaw launches whoever is standing on the end that it comes down on
-static void Seesaw_Launch(const Object *ball, Object *chr) {
-    chr->ysp = (int16_t)-ball->ysp;
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
-    ((Scratch_Sonic *)&chr->scratch)->jumping = 0;
+static void Seesaw_Launch(const Object *ball, Sst *chr) {
+    chr->y_vel = (int16_t)-ball->ysp;
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+    ((Scratch_Sonic *)chr->own.u8)->jumping = 0;
     chr->anim = SonAnimId_Spring;
     chr->routine = 2;
     PlaySound(sfx_Spring);
@@ -268,7 +268,7 @@ static void Seesaw_BallFall(Object *obj, Scratch_Seesaw *scratch) {
 static void Seesaw_BallAnimate(Object *obj) {
     if ((frame_count & 3) == 0)
         obj->tile ^= 0x2000;
-    obj->render.f.x_flip = (uint16_t)player->pos.l.x.f.u >= (uint16_t)obj->pos.l.x.f.u;
+    obj->render.f.x_flip = (uint16_t)player->x_pos.f.u >= (uint16_t)obj->pos.l.x.f.u;
 }
 
 void Obj_HTZSeesaw(Object *obj) {
@@ -369,7 +369,7 @@ void Obj_HTZLift(Object *obj) {
     }
 
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = Character(who);
+        Sst *chr = Character(who);
         if (chr != NULL)
             Solid_Platform(obj, chr, who, obj->width_pixels, -0x28, old_x);
     }
@@ -392,21 +392,21 @@ static const int16_t floor_pieces[32][2] = {
 };
 
 // loc_175AE and loc_175B4: a roller keeps rolling as he falls (loc_175CC: he is in the air and off the floor, whatever he was doing)
-static void BreakFloor_Drop(Object *chr, bool rolling) {
+static void BreakFloor_Drop(Sst *chr, bool rolling) {
     if (rolling) {
-        chr->status.p.f.in_ball = true;
-        chr->y_rad = 0xE;
-        chr->x_rad = 7;
+        chr->status |= SST_PSTATUS_IN_BALL;
+        chr->y_radius = 0xE;
+        chr->x_radius = 7;
         chr->anim = SonAnimId_Roll;
     }
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->routine = 2;
 }
 
 // $3E and $3F of the character, the solid bits of the first path ($C, $D)
-static void BreakFloor_PrimaryPath(Object *chr) {
-    Scratch_Sonic *scratch = (Scratch_Sonic *)&chr->scratch;
+static void BreakFloor_PrimaryPath(Sst *chr) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)chr->own.u8;
     scratch->top_solid_bit = 0xC;
     scratch->lrb_solid_bit = 0xD;
 }
@@ -437,14 +437,14 @@ void Obj_HTZBreakFloor(Object *obj) {
         return;
     }
 
-    Object *sidekick = TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL;
+    Sst *sidekick = TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL;
     const bool sonic_rolls = player->anim == SonAnimId_Roll, tails_rolls = sidekick != NULL && sidekick->anim == SonAnimId_Roll;
     const bool any = scratch->subtype & 0x80;
     // (a character's collision path is the solid bits he carries, the swappers' work: Game_CollisionPath; the floor puts whoever stands on it and does not break it back on the first path)
     const bool sonic_secondary = Game_CollisionPath(player) != 0, tails_secondary = sidekick != NULL && Game_CollisionPath(sidekick) != 0;
     if (obj->render.f.on_screen) {
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-            Object *chr = Character(who);
+            Sst *chr = Character(who);
             if (chr != NULL)
                 Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), obj->y_rad, (int16_t)(obj->y_rad + 1), obj->pos.l.x.f.u, NULL);
         }

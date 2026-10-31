@@ -449,7 +449,7 @@ static void Boss_Part(Object *obj) {
         }
         // with one hit left, it lunges when Sonic is in front of the ship (sub_17D6A)
         if (ship->col_property == 1) {
-            bool left = obj->pos.l.x.f.u - player->pos.l.x.f.u >= 0;
+            bool left = obj->pos.l.x.f.u - player->x_pos.f.u >= 0;
             bool flipped = (ship->status.b & 1) != 0;
             if (left ? !flipped : flipped)
                 ((Scratch_Boss *)&ship->scratch)->flags |= BossFlag_Beaten;

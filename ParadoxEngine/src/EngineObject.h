@@ -10,6 +10,7 @@
 #include "Mappings.h" // the sprite mappings format (every game on the engine uses it)
 #include "Sprites.h" // the sprite pipeline's configuration (sprite_view)
 #include "Backend/VDP.h"
+#include "Sst.h" // (the characters, `player`, are on the status table)
  // Sonic 1's (it brings Constants.h): the engine's VDP.h only has the engine ones
 
 //Object constants
@@ -135,7 +136,6 @@ typedef struct {
 
 //Object globals
 extern Object objects[OBJECTS];
-extern Object *const player;       //Slot 0
 extern Object *const level_objects; //The first level slot
 extern uint8_t objstate[0x100];
 extern int ExecuteObjects_i;

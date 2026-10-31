@@ -422,13 +422,13 @@ static void BSB_LaunchSonic(Object *obj, Scratch_BossSpikeball *scratch, Object 
         if (was_standing) {
             saw->routine_sec = 0;
             saw->routine = 2;
-            player->ysp = (int16_t)-obj->ysp;
+            player->y_vel = (int16_t)-obj->ysp;
             if (saw->frame == 1)
-                player->ysp >>= 1; // seesaw was flat -- half the launch
-            player->status.p.f.in_air = true;
+                player->y_vel >>= 1; // seesaw was flat -- half the launch
+            player->status |= SST_PSTATUS_IN_AIR;
             Sonic_CancelSpindash(); // same drop-dash fix as the seesaw's own ball
-            player->status.p.f.object_stand = false;
-            ((Scratch_Sonic *)&player->scratch)->jumping = 0;
+            player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+            ((Scratch_Sonic *)player->own.u8)->jumping = 0;
             Sonic_ChkRoll(player);
             player->routine = 2; // Sonic_Control
             QueueSound2(sfx_Spring);

@@ -69,11 +69,11 @@ void SplitScreen_LoadLevel(void) {
     VDP_SetSplitScreen(side_by_side ? VDP_SPLIT_SIDE : VDP_SPLIT_STACKED);
 
     // Both start from where Sonic is (Tails is put beside him), their cameras centred on them; the views are as wide as the narrower of the two
-    Object *tails = TAILS_OBJ;
-    tails->pos.l.x.f.u = player->pos.l.x.f.u;
-    tails->pos.l.y.f.u = player->pos.l.y.f.u;
+    Sst *tails = TAILS_OBJ;
+    tails->x_pos.f.u = player->x_pos.f.u;
+    tails->y_pos.f.u = player->y_pos.f.u;
     if (side_by_side) {
-        int16_t x = (int16_t)(player->pos.l.x.f.u - follow_x);
+        int16_t x = (int16_t)(player->x_pos.f.u - follow_x);
         if (x < 0)
             x = 0;
         if (x >= (int16_t)limit_right2)
@@ -132,12 +132,12 @@ bool SplitScreen_ReachEnd(int16_t end_x) {
 // The second camera: Sonic's own rules (a dead zone of 16 pixels at the following place, at most 16 pixels a frame, the level's limits), with a simpler vertical, which is Sonic's without the look
 // up and down
 static void MoveCameraP2(void) {
-    const Object *tails = TAILS_OBJ;
+    const Sst *tails = TAILS_OBJ;
 
     LevelPlane_ClearFlags(&level_plane_p2);
 
     int16_t old_x = scrpos_x_p2.f.u;
-    int16_t push = (int16_t)(tails->pos.l.x.f.u - old_x - follow_x);
+    int16_t push = (int16_t)(tails->x_pos.f.u - old_x - follow_x);
     int16_t step = 0;
     if (push < 0)
         step = push < -16 ? -16 : push;
@@ -154,11 +154,11 @@ static void MoveCameraP2(void) {
 
     int16_t old_y = scrpos_y_p2.f.u;
     int16_t look = (int16_t)(96 + SCREEN_TALLADD2);
-    int16_t y = (int16_t)(tails->pos.l.y.f.u - old_y);
-    if (tails->status.p.f.in_ball)
+    int16_t y = (int16_t)(tails->y_pos.f.u - old_y);
+    if (((tails->status & SST_PSTATUS_IN_BALL) != 0))
         y -= 5;
     uint16_t speed;
-    if (tails->status.p.f.in_air) {
+    if (((tails->status & SST_PSTATUS_IN_AIR) != 0)) {
         y += 32 - look;
         if (y < 0 || (y - 64) >= 0)
             speed = 0x1000;
@@ -166,7 +166,7 @@ static void MoveCameraP2(void) {
             speed = 0; // inside the window: stays
     } else {
         y -= look;
-        uint16_t inertia_abs = (tails->inertia < 0) ? -tails->inertia : tails->inertia;
+        uint16_t inertia_abs = (tails->ground_vel < 0) ? -tails->ground_vel : tails->ground_vel;
         speed = (inertia_abs < 0x800) ? 0x600 : 0x1000;
     }
     int16_t ny = old_y;

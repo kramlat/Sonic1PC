@@ -586,7 +586,7 @@ static uint64_t SonicZoneHash(int zone, int act, int start_x, int start_y) {
     bg_scrpos_x.v = bg_scrpos_y.v = bg2_scrpos_x.v = bg2_scrpos_y.v = bg3_scrpos_x.v = bg3_scrpos_y.v = 0;
     BgScrollSpeed(x, y);
     scrshift_x = scrshift_y = 0;
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
     vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
     LoadTilesFromStart();

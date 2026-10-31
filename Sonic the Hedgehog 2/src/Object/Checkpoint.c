@@ -43,8 +43,8 @@ void Obj_Checkpoint(Object *obj) {
             }
 
             /* .chkhit: Collision check with player */
-            int16_t dx = player->pos.l.x.f.u - obj->pos.l.x.f.u + 8;
-            int16_t dy = player->pos.l.y.f.u - obj->pos.l.y.f.u + 0x40;
+            int16_t dx = player->x_pos.f.u - obj->pos.l.x.f.u + 8;
+            int16_t dy = player->y_pos.f.u - obj->pos.l.y.f.u + 0x40;
 
             if ((uint16_t)dx < 0x10 && (uint16_t)dy < 0x68) {
                 PlaySound(sfx_Lamppost);

@@ -25,18 +25,18 @@ static void Conveyor_MoveSonic(Sst *self, Own_SBZConveyor *own) {
     int16_t half_width = own->width;
     int16_t full_width = (int16_t)(half_width * 2);
 
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u + half_width);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - self->x_pos.f.u + half_width);
     if ((uint16_t)d0 >= (uint16_t)full_width)
         return;
 
-    int16_t d1 = (int16_t)(player->pos.l.y.f.u - self->y_pos.f.u + 48);
+    int16_t d1 = (int16_t)(player->y_pos.f.u - self->y_pos.f.u + 48);
     if ((uint16_t)d1 >= 48)
         return;
 
-    if (player->status.p.f.in_air)
+    if (((player->status & SST_PSTATUS_IN_AIR) != 0))
         return;
 
-    player->pos.l.x.f.u = (int16_t)(player->pos.l.x.f.u + own->speed);
+    player->x_pos.f.u = (int16_t)(player->x_pos.f.u + own->speed);
 }
 
 static void Conv_Main(Sst *self, Own_SBZConveyor *own) {

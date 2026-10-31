@@ -72,12 +72,12 @@ static bool Bom_BurnFuseAndExplode(Sst *self, Own_Bomb *own) {
 // Checks if Sonic is close enough to start the fuse, and if so, spawns a
 // separate fuse object that burns down independently of this Bomb.
 static void Bom_CheckStartFuse(Sst *self, Own_Bomb *own) {
-    int16_t dx = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+    int16_t dx = (int16_t)(player->x_pos.f.u - self->x_pos.f.u);
     if (dx < 0) dx = (int16_t)-dx;
     if ((uint16_t)dx >= 96)
         return;
 
-    int16_t dy = (int16_t)(player->pos.l.y.f.u - self->y_pos.f.u);
+    int16_t dy = (int16_t)(player->y_pos.f.u - self->y_pos.f.u);
     if (dy < 0) dy = (int16_t)-dy;
     if ((uint16_t)dy >= 96)
         return;

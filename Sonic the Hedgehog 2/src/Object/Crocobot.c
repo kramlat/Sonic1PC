@@ -36,7 +36,7 @@ static void Crocobot_Face(Object *obj, bool flip) {
 
 // loc_1F3CE: its mouth opens when Sonic is within $40 pixels in the way it faces
 static void Crocobot_Look(Object *obj) {
-    const int16_t d = (int16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
+    const int16_t d = (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
     const bool facing_right = obj->status.o.f.x_flip;
     if (d >= 0) { // Sonic is to its left
         if (d > 0x40) {

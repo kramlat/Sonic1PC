@@ -122,7 +122,7 @@ static void CStom_SwitchActivated(Sst *self, Own_ChainStomp *own) {
 // Types 3/5 - waits until Sonic is horizontally in range, then switches
 // its own subtype to the next one along (always an auto-stomp type).
 static void CStom_WaitForSonic(Sst *self, Own_ChainStomp *own) {
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - self->x_pos.f.u);
     if (d0 < 0)
         d0 = (int16_t)-d0;
     if (d0 < 144)

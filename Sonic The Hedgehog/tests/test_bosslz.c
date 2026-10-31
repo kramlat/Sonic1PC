@@ -35,10 +35,10 @@ static int CountBossParts(void) {
 
 static void SpawnBoss(void) {
     memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->pos.l.x.f.u = LZ_BOSS_X - 0x80; // not in the shaft yet
-    player->pos.l.y.f.u = LZ_BOSS_Y + 0x500;
+    player->x_pos.f.u = LZ_BOSS_X - 0x80; // not in the shaft yet
+    player->y_pos.f.u = LZ_BOSS_Y + 0x500;
     limit_right2 = LZ_BOSS_X + 0x100;
     lock_screen = true;
     frame_count = 0;
@@ -54,7 +54,7 @@ static int RunUntil(uint8_t routine_sec, int max_frames) {
     for (int f = 0; f < max_frames; f++) {
         if (boss->routine_sec == routine_sec)
             return f;
-        player->pos.l.y.f.u = (int16_t)(boss->pos.l.y.f.u + 0x20);
+        player->y_pos.f.u = (int16_t)(boss->pos.l.y.f.u + 0x20);
         RunBossFrame();
     }
     return -1;
@@ -73,7 +73,7 @@ static void BossLZ_FullFlight(void) {
     CHECK_EQ(boss->routine_sec, 0);
     CHECK_EQ(boss->pos.l.y.f.u, LZ_BOSS_Y + 0x500);
 
-    player->pos.l.x.f.u = LZ_BOSS_X;
+    player->x_pos.f.u = LZ_BOSS_X;
     CHECK(RunUntil(0x8, 3000) >= 0); // climbed the shaft
     Scratch_BossLabyrinth *s = (Scratch_BossLabyrinth *)&boss->scratch;
     // Clamped to boss_lz_y+$40, then moved half a pixel by the new -$80 Y
@@ -91,8 +91,8 @@ static void BossLZ_FullFlight(void) {
         RunBossFrame();
     CHECK_EQ(boss->routine_sec, 0xA);
 
-    player->pos.l.x.f.u = LZ_BOSS_X + 0xE8;
-    player->pos.l.y.f.u = LZ_BOSS_Y + 0x30;
+    player->x_pos.f.u = LZ_BOSS_X + 0xE8;
+    player->y_pos.f.u = LZ_BOSS_Y + 0x30;
     RunBossFrame();
     CHECK_EQ(boss->routine_sec, 0xC);
     CHECK_EQ(s->generic_timer, 50);
@@ -117,13 +117,13 @@ static void BossLZ_FullFlight(void) {
 // Climb speed: full within 72px of Sonic, stopped when he's >152px below.
 static void BossLZ_ClimbWaitsForSonic(void) {
     SpawnBoss();
-    player->pos.l.x.f.u = LZ_BOSS_X;
+    player->x_pos.f.u = LZ_BOSS_X;
     CHECK(RunUntil(0x6, 600) >= 0);
     for (int i = 0; i < 30; i++) { // let him start climbing
-        player->pos.l.y.f.u = (int16_t)(boss->pos.l.y.f.u + 0x20);
+        player->y_pos.f.u = (int16_t)(boss->pos.l.y.f.u + 0x20);
         RunBossFrame();
     }
-    player->pos.l.y.f.u = (int16_t)(boss->pos.l.y.f.u + 200);
+    player->y_pos.f.u = (int16_t)(boss->pos.l.y.f.u + 200);
     int16_t y = boss->pos.l.y.f.u;
     for (int i = 0; i < 30; i++)
         RunBossFrame();
@@ -133,7 +133,7 @@ static void BossLZ_ClimbWaitsForSonic(void) {
 // 8 hits before the top: early-defeat flag, 1000 points, trailing explosions.
 static void BossLZ_EarlyDefeat(void) {
     SpawnBoss();
-    player->pos.l.x.f.u = LZ_BOSS_X;
+    player->x_pos.f.u = LZ_BOSS_X;
     CHECK(RunUntil(0x6, 600) >= 0);
 
     uint32_t before = score;
@@ -145,7 +145,7 @@ static void BossLZ_EarlyDefeat(void) {
     CHECK(score > before);
 
     // Flees straight through the wait at the top without Sonic.
-    player->pos.l.x.f.u = LZ_BOSS_X - 0x80;
+    player->x_pos.f.u = LZ_BOSS_X - 0x80;
     uint32_t after_first = score;
     CHECK(RunUntil(0xE, 3000) >= 0);
     // Real ASM quirk (kept -- harmless under C): BLZ_Escape1 clears the flag,

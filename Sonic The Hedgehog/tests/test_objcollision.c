@@ -18,10 +18,10 @@
 
 static Sst *SpawnBlock(int16_t x, int16_t y, uint8_t subtype) {
     Sst_Reset();
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->pos.l.x.f.u = 0x900;
-    player->pos.l.y.f.u = 0x100;
+    player->x_pos.f.u = 0x900;
+    player->y_pos.f.u = 0x100;
     scrpos_x.f.u = x - 160;
     scrpos_y.f.u = y - 112;
 

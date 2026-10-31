@@ -61,7 +61,7 @@ void GM_Continue(void) {
     sonframe_num = 0xFF;    // Sonic's graphics are always loaded afresh
     sonframe_chg = false;
 
-    player->type = ObjId_81;
+    player->code = sst_object_codes[ObjId_81];
     objects[CONTINUE_SLOT_TEXT].type = ObjId_80;
     objects[CONTINUE_SLOT_LIGHT].type = ObjId_80; // the light spot on the floor Sonic lies on
     objects[CONTINUE_SLOT_LIGHT].priority = 3;
@@ -84,7 +84,7 @@ void GM_Continue(void) {
         BuildSprites(NULL);
 
         // Sonic has run off the screen after using a continue: back to the level
-        if (player->pos.l.x.f.u >= 320 + 64 + SCREEN_WIDEADD)
+        if (player->x_pos.f.u >= 320 + 64 + SCREEN_WIDEADD)
             break;
         if (player->routine >= 6)
             continue; // still running off

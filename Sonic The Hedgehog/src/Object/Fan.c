@@ -16,14 +16,14 @@
 //   bit 1 = always on (skips the on/off timer entirely)
 
 static void Fan_Push(Sst *self) {
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - self->x_pos.f.u);
     if (!((self->status & SST_STATUS_X_FLIP) != 0))
         d0 = (int16_t)-d0;
     d0 = (int16_t)(d0 + 0x50);
     if ((uint16_t)d0 >= (0xA0 + 0x50))
         return; // too far horizontally
 
-    uint16_t d1 = (uint16_t)(player->pos.l.y.f.u + 0x60 - self->y_pos.f.u);
+    uint16_t d1 = (uint16_t)(player->y_pos.f.u + 0x60 - self->y_pos.f.u);
     if (d1 >= 0x70)
         return; // out of vertical range
 
@@ -48,7 +48,7 @@ static void Fan_Push(Sst *self) {
     if (self->subtype & 1) // blows backwards
         d0 = (int16_t)-d0;
 
-    player->pos.l.x.f.u = (int16_t)(player->pos.l.x.f.u + d0);
+    player->x_pos.f.u = (int16_t)(player->x_pos.f.u + d0);
 }
 
 static void Fan_Animate(Sst *self) {

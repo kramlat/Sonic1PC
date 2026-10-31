@@ -18,6 +18,6 @@ extern uint8_t splashdust_gfx_buffer[SPLASHDUST_GFX_SIZE];
 extern uint8_t splashdust_frame_chg;
 
 void Obj_Splash(Object *obj);
-void Splash_SpawnSkidDust(Object *parent);
+void Splash_SpawnSkidDust(Sst *parent);
 
 #endif

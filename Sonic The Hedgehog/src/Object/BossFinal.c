@@ -192,7 +192,7 @@ static void BF_Crush(Object *obj, Scratch_BossFinal *s) {
     }
 
     // Eggman is riding inside the cylinder (it writes his position); face Sonic and see whether he's being hit.
-    obj->status.o.f.x_flip = ((uint16_t)player->pos.l.x.f.u >= (uint16_t)obj->pos.l.x.f.u);
+    obj->status.o.f.x_flip = ((uint16_t)player->x_pos.f.u >= (uint16_t)obj->pos.l.x.f.u);
     int32_t side = SolidObject(obj, 64 / 2 + SOLID_SONIC_WIDTH, 40 / 2, 40 / 2, obj->pos.l.x.f.u, NULL, NULL);
 
     bool hit = false;
@@ -202,7 +202,7 @@ static void BF_Crush(Object *obj, Scratch_BossFinal *s) {
             int16_t kick = 0x300;
             if (!obj->status.o.f.x_flip)
                 kick = -kick;
-            player->xsp = kick; // bounce Sonic back
+            player->x_vel = kick; // bounce Sonic back
             hit = true;
         }
     }
@@ -269,7 +269,7 @@ static void BF_Run(Object *obj, Scratch_BossFinal *s) {
 
     // Run right, slowing down the further ahead of Sonic he gets.
     obj->xsp = 0x400;
-    int16_t gap = (int16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
+    int16_t gap = (int16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
     if (gap < 0) {
         obj->xsp = 0x500; // Sonic caught up: run faster
     } else {
@@ -363,16 +363,16 @@ static bool BF_Escape(Object *obj, Scratch_BossFinal *s) {
     }
 
     // Keep Sonic from running past the end, and freeze him once Eggman has gotten away.
-    if (player->pos.l.x.f.u >= FZ_END + 0x90) {
+    if (player->x_pos.f.u >= FZ_END + 0x90) {
         lock_ctrl = 1;
         jpad1_hold2 = 0;
         jpad1_press2 = 0;
-        player->inertia = 0;
+        player->ground_vel = 0;
         if (obj->ysp < 0)
             jpad1_hold2 = JPAD_UP; // look up as he escapes
     }
-    if (player->pos.l.x.f.u >= FZ_END + 0xE0)
-        player->pos.l.x.f.u = FZ_END + 0xE0; // the ledge
+    if (player->x_pos.f.u >= FZ_END + 0xE0)
+        player->x_pos.f.u = FZ_END + 0xE0; // the ledge
 
     if ((uint16_t)obj->pos.l.x.f.u >= FZ_END + 0x200 && !obj->render.f.on_screen) {
         gamemode = GameMode_Ending;
@@ -432,7 +432,7 @@ static Object *BF_Parent(Object *obj, Scratch_BossFinal *s) {
 static void BF_Panel(Object *obj, Scratch_BossFinal *s) {
     Object *boss = &objects[s->link];
     obj->frame = 0xB;
-    if ((uint16_t)player->pos.l.x.f.u >= (uint16_t)obj->pos.l.x.f.u && !obj->render.f.on_screen) {
+    if ((uint16_t)player->x_pos.f.u >= (uint16_t)obj->pos.l.x.f.u && !obj->render.f.on_screen) {
         ObjectDelete(obj); // Sonic is past it and it's off screen
         return;
     }
@@ -655,7 +655,7 @@ static bool Cyl_UpdatePos(Object *obj, Scratch_EggmanCylinder *c) {
     obj->frame = (uint8_t)frame;
 
     // Once Sonic is a screen past it, it can go (he can't walk back after Eggman is beaten).
-    int16_t dx = (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u);
+    int16_t dx = (int16_t)(player->x_pos.f.u - obj->pos.l.x.f.u);
     if (dx >= 0 && dx - 0x140 >= 0 && !obj->render.f.on_screen) {
         ObjectDelete(obj);
         return true;
@@ -718,7 +718,7 @@ static void Plasma_Main(Object *obj) {
 // Collision, then animate and display; deletes the launcher once Sonic is a screen past it.
 static void Plasma_Collision(Object *obj) {
     SolidObject(obj, 16 / 2 + SOLID_SONIC_WIDTH, 16 / 2, 34 / 2, obj->pos.l.x.f.u, NULL, NULL);
-    int16_t dx = (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u);
+    int16_t dx = (int16_t)(player->x_pos.f.u - obj->pos.l.x.f.u);
     if (dx >= 0 && dx - 0x140 >= 0 && !obj->render.f.on_screen) {
         ObjectDelete(obj);
         return;
@@ -835,7 +835,7 @@ static bool Ball_Routine(Object *obj, Scratch_BossPlasma *p) {
             obj->anim = 1; // attacking
             obj->col_type = 0x98; // col_24x24 | col_hurt
             p->timer = 180;
-            obj->xsp = (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u); // aim at Sonic
+            obj->xsp = (int16_t)(player->x_pos.f.u - obj->pos.l.x.f.u); // aim at Sonic
             obj->ysp = 0x140;
         }
         break;

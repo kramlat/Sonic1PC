@@ -30,16 +30,16 @@ static void Pole_Release(Sst *self, Own_Pole *own) {
 static void Pole_CheckMoveUpDown(Sst *self) {
     int16_t top = (int16_t)(self->y_pos.f.u - 24);
     if (jpad1_hold1 & JPAD_UP) {
-        player->pos.l.y.f.u--;
-        if (player->pos.l.y.f.u < top)
-            player->pos.l.y.f.u = top;
+        player->y_pos.f.u--;
+        if (player->y_pos.f.u < top)
+            player->y_pos.f.u = top;
     }
 
     int16_t bottom = (int16_t)(top + 12 + 24);
     if (jpad1_hold1 & JPAD_DOWN) {
-        player->pos.l.y.f.u++;
-        if (player->pos.l.y.f.u > bottom)
-            player->pos.l.y.f.u = bottom;
+        player->y_pos.f.u++;
+        if (player->y_pos.f.u > bottom)
+            player->y_pos.f.u = bottom;
     }
 }
 
@@ -72,7 +72,7 @@ static void Pole_Action(Sst *self, Own_Pole *own) {
     }
 
     int16_t target_x = (int16_t)(self->x_pos.f.u + 20);
-    if (target_x >= player->pos.l.x.f.u) {
+    if (target_x >= player->x_pos.f.u) {
         SstOnScreenTest(self);
         return;
     }
@@ -82,10 +82,10 @@ static void Pole_Action(Sst *self, Own_Pole *own) {
         return;
     }
 
-    player->xsp = 0;
-    player->ysp = 0;
-    player->pos.l.x.f.u = target_x;
-    player->status.p.f.x_flip = false;
+    player->x_vel = 0;
+    player->y_vel = 0;
+    player->x_pos.f.u = target_x;
+    player->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
     player->anim = SonAnimId_Hang;
     lock_multi = 1;
     f_wtunneldisallow = true;

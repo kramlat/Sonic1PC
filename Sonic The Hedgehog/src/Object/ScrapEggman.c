@@ -89,7 +89,7 @@ static bool SEgg_FindFloor(void) {
 static void SEgg_Eggman(Object *obj, Scratch_ScrapEggman *scratch) {
     switch (obj->routine_sec) {
     case 0: // ChkSonic
-        if ((uint16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u) < 128) { // Sonic within 128px
+        if ((uint16_t)(obj->pos.l.x.f.u - player->x_pos.f.u) < 128) { // Sonic within 128px
             obj->routine_sec += 2;
             scratch->timer = 180; // 3 seconds
             obj->anim = 1;        // laugh
@@ -204,7 +204,7 @@ static void FFloor_Solid(Object *obj, Scratch_FalseFloor *scratch) {
 
 static void FFloor_AllGone(Object *obj) {
     obj->status.o.f.player_stand = false;
-    player->status.p.f.object_stand = false;
+    player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     ObjectDelete(obj);
 }
 

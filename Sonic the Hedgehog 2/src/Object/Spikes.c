@@ -14,18 +14,18 @@
 // The size of each kind: half its width and its height (the mapping's frame is the kind)
 static const uint8_t spike_sizes[8][2] = { { 0x10, 0x10 }, { 0x20, 0x10 }, { 0x30, 0x10 }, { 0x40, 0x10 }, { 0x10, 0x10 }, { 0x10, 0x20 }, { 0x10, 0x30 }, { 0x10, 0x40 } };
 
-static Object *Character(int who) {
-    return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+static Sst *Character(int who) {
+    return who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
 }
 
 // Touch_ChkHurt2: the character is pushed back out of the spikes and hurt (unless he is invincible or already hurt)
-void Spikes_HurtCharacter(Object *obj, Object *chr, int who) {
+void Spikes_HurtCharacter(Object *obj, Sst *chr, int who) {
     if (invincibility)
         return;
     // (the prototype's Touch_ChkHurt2 has no check for the flashing after a hit -- Sonic 1's "Proper Spike Bug Fix" is not in it: spikes hurt a character who is still flashing, and the port keeps that)
     if (chr->routine >= 4)
         return;
-    chr->pos.l.y.v -= chr->ysp << 8;
+    chr->y_pos.v -= chr->y_vel << 8;
     if (who == SolidChar_Sonic)
         HurtSonic(chr, obj);
     else
@@ -101,7 +101,7 @@ void Obj_Spikes(Object *obj) {
     int16_t x = obj->routine == 4 ? old_x : obj->pos.l.x.f.u;
 
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = Character(who);
+        Sst *chr = Character(who);
         if (chr == NULL)
             continue;
         int32_t solid = Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), obj->y_rad, (int16_t)(obj->y_rad + 1), x, NULL);

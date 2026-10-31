@@ -37,11 +37,11 @@ static void Platform_ChangeMotion(Object *obj) {
 }
 
 // A player the falling platform lets go of (Offset_0x009492)
-static void Platform_Release(const Object *obj, Object *chr) {
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
+static void Platform_Release(const Object *obj, Sst *chr) {
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->routine = 2;
-    chr->ysp = obj->ysp;
+    chr->y_vel = obj->ysp;
 }
 
 // The movement of the subtype (sub_8926)
@@ -178,7 +178,7 @@ void Obj_BasicPlatform(Object *obj) {
         Platform_Move(obj, scratch);
         Platform_Sink(obj, scratch);
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) { // (even on the frame it starts to fall)
-            Object *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+            Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
             if (chr != NULL)
                 Solid_Platform(obj, chr, who, obj->width_pixels, 8, x);
         }
@@ -198,7 +198,7 @@ void Obj_BasicPlatform(Object *obj) {
         Platform_Sink(obj, scratch);
         if (obj->render.f.on_screen) {
             for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-                Object *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+                Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
                 if (chr != NULL)
                     Solid_Character(obj, chr, who, (int16_t)(obj->width_pixels + 0xB), obj->y_rad, (int16_t)(obj->y_rad + 1), x, NULL);
             }

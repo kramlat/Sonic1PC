@@ -21,6 +21,11 @@ Sst *Sst_QueueEntry(int q, int index) {
 }
 
 void Sst_Reset(void) {
+    memset(&sst[SST_PLAYERS], 0, sizeof(sst) - SST_PLAYERS * sizeof(Sst));
+    Sst_ClearQueues();
+}
+
+void Sst_ResetAll(void) {
     memset(sst, 0, sizeof(sst));
     Sst_ClearQueues();
 }
@@ -40,18 +45,30 @@ void Sst_Delete(Sst *obj) {
     memset(obj, 0, sizeof(*obj));
 }
 
+static bool players_ran; // (Sst_ProcessPlayers has run them this frame)
+
 static void RunRange(int first, int last) {
     for (int i = first; i <= last; i++)
         if (sst[i].code != NULL)
             sst[i].code(&sst[i]);
 }
 
+Sst *const player = &sst[0];
+
+void Sst_ProcessPlayers(bool run) {
+    if (run)
+        RunRange(0, SST_PLAYERS - 1);
+    players_ran = true;
+}
+
 void Sst_Process(bool freeze_level) {
+    const int first = players_ran ? SST_PLAYERS : 0;
+    players_ran = false;
     if (!freeze_level) {
-        RunRange(0, SST_COUNT - 1);
+        RunRange(first, SST_COUNT - 1);
         return;
     }
-    RunRange(0, SST_FIRST_LEVEL); // (the original runs one slot past the dynamic ones here: the first of the level's)
+    RunRange(first, SST_FIRST_LEVEL); // (the original runs one slot past the dynamic ones here: the first of the level's)
     for (int i = SST_FIRST_LEVEL + 1; i < SST_COUNT; i++)
         if (sst[i].code != NULL && (sst[i].render_flags & SST_RENDER_ON_SCREEN))
             Sst_Draw(&sst[i]);
@@ -128,7 +145,7 @@ static bool Restart(Sst *obj) {
         obj->anim_frame = 0;
         obj->anim_frame_timer = 0;
     }
-    return --obj->anim_frame_timer == 0xFF; // (subq.b #1 with a borrow: the timer ran out)
+    return --obj->anim_frame_timer == -1; // (subq.b #1 with a borrow: the timer ran out)
 }
 
 void Sst_Animate(Sst *obj, const uint8_t *table) {

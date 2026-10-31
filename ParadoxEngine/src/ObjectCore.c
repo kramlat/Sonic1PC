@@ -13,7 +13,6 @@
 
 // The object slots. The reserved ones (0..RESERVED_OBJECTS-1) hold the player and the things the game keeps alive; the rest are the level's.
 Object objects[OBJECTS];
-Object* const player = objects;
 Object* const level_objects = objects + RESERVED_OBJECTS;
 
 // Which level objects have been loaded and may come back (the object position loader's memory; see Level.c)
@@ -70,6 +69,7 @@ void ExecuteObjects(void) {
 	
 	Editor_Hold(); // (the level editor's cursor is where the first player is: see EditorLive.h)
 	
+	Sst_ProcessPlayers(!(editor_present && !editor_playtest && Game_EditorSkipObject(player))); // (the characters run first, as they always did)
 	if (player->routine < 6) {
 		//Run all objects
 		obj = objects;

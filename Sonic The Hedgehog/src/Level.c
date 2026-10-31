@@ -28,8 +28,8 @@ void Obj_Checkpoint_LoadInfo(void) {
     last_lamp = prev_lamp;
     // The saved values are pixel positions (the high word of the 16.16 fixed point
     // fields); writing them into .v put them in the fractional word, i.e. position 0.
-    LampSetPos(&player->pos.l.x, lamp_state.spawn.x);
-    LampSetPos(&player->pos.l.y, lamp_state.spawn.y);
+    LampSetPos(&player->x_pos, lamp_state.spawn.x);
+    LampSetPos(&player->y_pos, lamp_state.spawn.y);
     rings = 0;
     life_count = 0; // the original reloads the saved value and then immediately clears it
     level_time.pad = lamp_state.time.pad;
@@ -227,8 +227,8 @@ void LevelSizeLoad(void) {
     int16_t x, y;
     if (last_lamp) {
         Obj_Checkpoint_LoadInfo();
-        x = player->pos.l.x.f.u;
-        y = player->pos.l.y.f.u;
+        x = player->x_pos.f.u;
+        y = player->y_pos.f.u;
     } else {
         if (demo < 0) {
             // In an ending (credits) demo: where each of them starts, indexed by the credits page after it
@@ -245,8 +245,8 @@ void LevelSizeLoad(void) {
             y = StartLocArray[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)][1];
         }
 
-        player->pos.l.x.f.u = x;
-        player->pos.l.y.f.u = y;
+        player->x_pos.f.u = x;
+        player->y_pos.f.u = y;
     }
 
     // CLI test hook: override Sonic's start position (e.g. to drop straight
@@ -255,8 +255,8 @@ void LevelSizeLoad(void) {
         x = (int16_t)cli_start_x;
     if (cli_start_y >= 0)
         y = (int16_t)cli_start_y;
-    player->pos.l.x.f.u = x;
-    player->pos.l.y.f.u = y;
+    player->x_pos.f.u = x;
+    player->y_pos.f.u = y;
 
     // Clip camera position against left and right
     if ((x -= (SCREEN_WIDTH / 2)) < 0) // 0 instead of limit_left
@@ -468,7 +468,7 @@ void DynamicLevelEvents(void) {
         case 3: // Act 4 (SBZ3): reaching the top of the level at the far right drops into Final Zone (DLE_SBZ3)
             if ((uint16_t)scrpos_x.f.u < (0xD00 - SCREEN_WIDEADD2))
                 break;
-            if (player->pos.l.y.f.u >= 0x18) // not at the top yet
+            if (player->y_pos.f.u >= 0x18) // not at the top yet
                 break;
             last_lamp = 0;
             restart = true;
@@ -625,7 +625,7 @@ void DynamicLevelEvents(void) {
             if ((uint16_t)scrpos_x.f.u < (0x25A0 - SCREEN_WIDEADD2))
                 break;
             limit_btm1 = 0x420 - SCREEN_TALLADD;
-            if ((uint16_t)player->pos.l.y.f.u < 0x4D0)
+            if ((uint16_t)player->y_pos.f.u < 0x4D0)
                 break;
             limit_btm1 = 0x520 - SCREEN_TALLADD;
             break;
@@ -717,8 +717,8 @@ void DynamicLevelEvents(void) {
             // bottom-boundary check, which let SBZ2 fall out past x $2000 instead of dying.
             // Sonic must be past the end-of-act sign (the signpost object is at x $1EE0 in SBZ2), as well as in
             // the cutscene room.
-            if (dle_routine >= 6 && player->pos.l.x.f.u > 0x1EE0 && player->pos.l.x.f.u >= 0x2000 &&
-                (uint16_t)player->pos.l.y.f.u > 0x510 + 0xE0) { // boss_sbz2_y+$E0, just under the false floor
+            if (dle_routine >= 6 && player->x_pos.f.u > 0x1EE0 && player->x_pos.f.u >= 0x2000 &&
+                (uint16_t)player->y_pos.f.u > 0x510 + 0xE0) { // boss_sbz2_y+$E0, just under the false floor
                 last_lamp = 0;
                 restart = true;
                 level_id = LEVEL_ID(ZoneId_LZ, 3); // 0x0103
@@ -772,7 +772,7 @@ void DynamicLevelEvents(void) {
         limit_btm2 -= spd;
         bgscrollvert = true;
     } else if (scroll_diff > 0) {
-        if (((uint16_t)scrpos_y.f.u + 8) >= limit_btm2 && player->status.p.f.in_air)
+        if (((uint16_t)scrpos_y.f.u + 8) >= limit_btm2 && ((player->status & SST_PSTATUS_IN_AIR) != 0))
             spd *= 4;
         limit_btm2 += spd;
         bgscrollvert = true;

@@ -15,7 +15,7 @@ static inline uint8_t RenderFlags_AfterFirstRun(int id) {
     memset(objects, 0, sizeof(Object) * 0x60);
     level_id = LEVEL_ID(0, 0);
     scrpos_x.v = scrpos_y.v = 0;
-    player->type = 1;
+    player->code = sst_object_codes[1];
     player->routine = 2;
     if (sst_object_codes[id] != NULL) {
         Sst_Reset();

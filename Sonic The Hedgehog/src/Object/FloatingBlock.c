@@ -66,7 +66,7 @@ static void FBlock_LZSmallDoor_Open(Sst *self, Own_FloatingBlock *own) {
     if (!own->moving) {
         if (is_lz1 && own->switch_id == 3) {
             f_wtunneldisallow = false;
-            if (player->pos.l.x.f.u < self->x_pos.f.u)
+            if (player->x_pos.f.u < self->x_pos.f.u)
                 f_wtunneldisallow = true;
         }
 

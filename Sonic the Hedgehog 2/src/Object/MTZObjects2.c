@@ -26,10 +26,10 @@ extern Oscillatory oscillatory;
 
 #define FOR_EACH_CHARACTER(chr, who) \
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) \
-        for (Object *chr = Character(who); chr != NULL; chr = NULL)
+        for (Sst *chr = Character(who); chr != NULL; chr = NULL)
 
-static Object *Character(int who) {
-    return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+static Sst *Character(int who) {
+    return who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
 }
 
 // The oscillators of the prototype's Oscillating_Data, by their offset (4 bytes each): the high byte of the value
@@ -147,9 +147,9 @@ static const uint8_t Animation_MTZTeleport[] = {
 #define TELEPORT_SPEED 0x1000
 
 // loc_1B2DC: sets the character's speed to go from where he is to (tx, ty) at TELEPORT_SPEED along the longer axis, and how many frames it takes
-static void Teleport_Aim(Object *chr, TeleportChar *tc, int16_t tx, int16_t ty) {
+static void Teleport_Aim(Sst *chr, TeleportChar *tc, int16_t tx, int16_t ty) {
     int16_t sx = TELEPORT_SPEED, sy = TELEPORT_SPEED;
-    int16_t dx = (int16_t)(tx - chr->pos.l.x.f.u), dy = (int16_t)(ty - chr->pos.l.y.f.u);
+    int16_t dx = (int16_t)(tx - chr->x_pos.f.u), dy = (int16_t)(ty - chr->y_pos.f.u);
     int16_t ax = dx, ay = dy;
     if (dx < 0) {
         ax = (int16_t)-dx;
@@ -164,50 +164,50 @@ static void Teleport_Aim(Object *chr, TeleportChar *tc, int16_t tx, int16_t ty) 
         int16_t vx = 0;
         if (dx != 0 && frames != 0)
             vx = (int16_t)(((int32_t)dx * 65536) / frames);
-        chr->xsp = vx;
-        chr->ysp = sy;
+        chr->x_vel = vx;
+        chr->y_vel = sy;
         tc->time = (int8_t)((uint16_t)(frames < 0 ? -frames : frames) >> 8);
     } else { // along x
         int16_t frames = (int16_t)(((int32_t)dx * 65536) / sx);
         int16_t vy = 0;
         if (dy != 0 && frames != 0)
             vy = (int16_t)(((int32_t)dy * 65536) / frames);
-        chr->ysp = vy;
-        chr->xsp = sx;
+        chr->y_vel = vy;
+        chr->x_vel = sx;
         tc->time = (int8_t)((uint16_t)(frames < 0 ? -frames : frames) >> 8);
     }
 }
 
 // loc_1B278: the path starts at its first point (or, for a negative subtype, its last)
-static void Teleport_Start(Scratch_Teleport *scratch, Object *chr, TeleportChar *tc) {
+static void Teleport_Start(Scratch_Teleport *scratch, Sst *chr, TeleportChar *tc) {
     const bool back = (int8_t)scratch->subtype < 0;
     const int number = (back ? -(int8_t)scratch->subtype : scratch->subtype) & 0xF;
     const uint16_t *p = teleport_paths[number];
     const int words = teleport_path_bytes[number] / 2;
     tc->count = (int16_t)(teleport_path_bytes[number] - 4);
     if (back) {
-        chr->pos.l.x.f.u = (int16_t)p[words - 2];
-        chr->pos.l.y.f.u = (int16_t)p[words - 1];
+        chr->x_pos.f.u = (int16_t)p[words - 2];
+        chr->y_pos.f.u = (int16_t)p[words - 1];
         tc->pos = (uint16_t)(words - 4);
     } else {
-        chr->pos.l.x.f.u = (int16_t)p[0];
-        chr->pos.l.y.f.u = (int16_t)p[1];
+        chr->x_pos.f.u = (int16_t)p[0];
+        chr->y_pos.f.u = (int16_t)p[1];
         tc->pos = 2;
     }
     Teleport_Aim(chr, tc, (int16_t)p[tc->pos], (int16_t)p[tc->pos + 1]);
 }
 
-static void Teleport_Step(Object *obj, Scratch_Teleport *scratch, Object *chr, TeleportChar *tc) {
+static void Teleport_Step(Object *obj, Scratch_Teleport *scratch, Sst *chr, TeleportChar *tc) {
     switch (tc->state) {
     case TeleportState_Free: { // loc_1B138
         if (debug_use)
             return;
-        int16_t d0 = (int16_t)(chr->pos.l.x.f.u - obj->pos.l.x.f.u + 3);
+        int16_t d0 = (int16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u + 3);
         if (obj->status.b & 1)
             d0 += 0x0A;
         if ((uint16_t)d0 >= 0x10)
             return;
-        int16_t d1 = (int16_t)(chr->pos.l.y.f.u - obj->pos.l.y.f.u + 0x20);
+        int16_t d1 = (int16_t)(chr->y_pos.f.u - obj->pos.l.y.f.u + 0x20);
         if ((uint16_t)d1 >= 0x40)
             return;
         if (OBJ_CONTROL(chr) != 0)
@@ -215,14 +215,14 @@ static void Teleport_Step(Object *obj, Scratch_Teleport *scratch, Object *chr, T
         tc->state += 2;
         OBJ_CONTROL(chr) = 0x81;
         chr->anim = SonAnimId_Roll;
-        chr->inertia = 0x800;
-        chr->xsp = 0;
-        chr->ysp = 0;
+        chr->ground_vel = 0x800;
+        chr->x_vel = 0;
+        chr->y_vel = 0;
         obj->status.b &= (uint8_t)~0x20;
-        chr->status.p.f.pushing = false;
-        chr->status.p.f.in_air = true;
-        chr->pos.l.x.f.u = obj->pos.l.x.f.u;
-        chr->pos.l.y.f.u = obj->pos.l.y.f.u;
+        chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+        chr->status |= SST_PSTATUS_IN_AIR;
+        chr->x_pos.f.u = obj->pos.l.x.f.u;
+        chr->y_pos.f.u = obj->pos.l.y.f.u;
         tc->angle = 0;
         PlaySound(sfx_Roll);
         obj->anim = 1;
@@ -233,7 +233,7 @@ static void Teleport_Step(Object *obj, Scratch_Teleport *scratch, Object *chr, T
         int16_t sin, cos;
         CalcSine(tc->angle, &sin, &cos);
         tc->angle = (uint8_t)(tc->angle + 2);
-        chr->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u - (sin >> 5));
+        chr->y_pos.f.u = (int16_t)(obj->pos.l.y.f.u - (sin >> 5));
         if (tc->angle == 0x80) {
             Teleport_Start(scratch, chr, tc);
             tc->state += 2;
@@ -243,24 +243,24 @@ static void Teleport_Step(Object *obj, Scratch_Teleport *scratch, Object *chr, T
     }
     case TeleportState_Path: { // loc_1B1FC
         if (--tc->time >= 0) {
-            chr->pos.l.x.v += chr->xsp * 256;
-            chr->pos.l.y.v += chr->ysp * 256;
+            chr->x_pos.v += chr->x_vel * 256;
+            chr->y_pos.v += chr->y_vel * 256;
             return;
         }
         const bool back = (int8_t)scratch->subtype < 0;
         const int number = (back ? -(int8_t)scratch->subtype : scratch->subtype) & 0xF;
         const uint16_t *p = teleport_paths[number];
-        chr->pos.l.x.f.u = (int16_t)p[tc->pos];
-        chr->pos.l.y.f.u = (int16_t)p[tc->pos + 1];
+        chr->x_pos.f.u = (int16_t)p[tc->pos];
+        chr->y_pos.f.u = (int16_t)p[tc->pos + 1];
         tc->pos = (uint16_t)(tc->pos + (back ? -2 : 2));
         tc->count -= 4;
         if (tc->count == 0) { // loc_1B256: the end
-            chr->pos.l.y.f.u &= 0x07FF;
+            chr->y_pos.f.u &= 0x07FF;
             tc->state = TeleportState_Free;
             OBJ_CONTROL(chr) = 0;
             if (!(scratch->subtype & 0x10)) {
-                chr->xsp = 0;
-                chr->ysp = 0;
+                chr->x_vel = 0;
+                chr->y_vel = 0;
             }
             return;
         }
@@ -282,7 +282,7 @@ void Obj_MTZTeleport(Object *obj) {
         obj->priority = 5;
     } else {
         Teleport_Step(obj, scratch, player, &scratch->chr[0]);
-        if (TAILS_OBJ->type != 0)
+        if (TAILS_OBJ->code != NULL)
             Teleport_Step(obj, scratch, TAILS_OBJ, &scratch->chr[1]);
     }
 
@@ -674,17 +674,17 @@ typedef struct {
     uint8_t range;     // 0x38
 } Scratch_Conveyor;
 
-static void Conveyor_Carry(Object *obj, Scratch_Conveyor *scratch, Object *chr) {
+static void Conveyor_Carry(Object *obj, Scratch_Conveyor *scratch, Sst *chr) {
     const int16_t range = scratch->range;
-    int16_t d0 = (int16_t)(chr->pos.l.x.f.u - obj->pos.l.x.f.u + range);
+    int16_t d0 = (int16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u + range);
     if ((uint16_t)d0 >= (uint16_t)(range * 2))
         return;
-    int16_t d1 = (int16_t)(chr->pos.l.y.f.u - obj->pos.l.y.f.u + 0x30);
+    int16_t d1 = (int16_t)(chr->y_pos.f.u - obj->pos.l.y.f.u + 0x30);
     if ((uint16_t)d1 >= 0x30)
         return;
-    if (chr->status.p.f.in_air)
+    if (((chr->status & SST_PSTATUS_IN_AIR) != 0))
         return;
-    chr->pos.l.x.f.u = (int16_t)(chr->pos.l.x.f.u + scratch->speed);
+    chr->x_pos.f.u = (int16_t)(chr->x_pos.f.u + scratch->speed);
 }
 
 void Obj_MTZConveyor(Object *obj) {
@@ -696,7 +696,7 @@ void Obj_MTZConveyor(Object *obj) {
         scratch->speed = (obj->status.b & 1) ? -2 : 2;
     }
     Conveyor_Carry(obj, scratch, player);
-    if (TAILS_OBJ->type != 0)
+    if (TAILS_OBJ->code != NULL)
         Conveyor_Carry(obj, scratch, TAILS_OBJ);
 
     if (IS_OFFSCREEN(obj->pos.l.x.f.u)) { // MarkObjGone3

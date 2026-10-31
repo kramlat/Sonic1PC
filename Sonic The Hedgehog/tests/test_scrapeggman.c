@@ -39,7 +39,7 @@ static void RunObjects(void) {
 
 static void Reset(uint16_t id) {
     memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
     level_id = id;
     dle_routine = 0;
@@ -49,7 +49,7 @@ static void Reset(uint16_t id) {
     lock_multi = 0;
     limit_btm1 = limit_btm2 = 0x800;
     limit_left2 = 0;
-    player->pos.l.y.f.u = SBZ2_Y;
+    player->y_pos.f.u = SBZ2_Y;
 }
 
 static void SBZ2_EventsSpawnTheCutscene(void) {
@@ -103,7 +103,7 @@ static void SBZ2_EggmanPressesTheSwitch(void) {
     scrpos_x.f.u = SBZ2_X - 0xF0;
     level_objects[0].type = ObjId_FalseFloor;
     level_objects[20].type = ObjId_ScrapEggman;
-    player->pos.l.x.f.u = SBZ2_X + 0x80; // far from Eggman (0x2160)
+    player->x_pos.f.u = SBZ2_X + 0x80; // far from Eggman (0x2160)
     RunObjects();
     CHECK_EQ(Count(ObjId_ScrapEggman), 2); // Eggman + his switch
     Object *eggman = &level_objects[20];
@@ -114,7 +114,7 @@ static void SBZ2_EggmanPressesTheSwitch(void) {
         RunObjects();
     CHECK_EQ(eggman->routine_sec, 0);
 
-    player->pos.l.x.f.u = SBZ2_X + 0xC0; // within 128px
+    player->x_pos.f.u = SBZ2_X + 0xC0; // within 128px
     for (int i = 0; i < 400 && eggman->routine_sec != 6; i++)
         RunObjects();
     CHECK_EQ(eggman->routine_sec, 6);                 // leapt, landed and set the floor off
@@ -125,12 +125,12 @@ static void SBZ2_EggmanPressesTheSwitch(void) {
 static void SBZ3_TopOfTheLevelLeadsToFinalZone(void) {
     Reset(LEVEL_ID(ZoneId_LZ, 3));
     scrpos_x.f.u = 0xD00;
-    player->pos.l.y.f.u = 0x100; // not at the top yet
+    player->y_pos.f.u = 0x100; // not at the top yet
     DynamicLevelEvents();
     CHECK(!restart);
 
     scrpos_x.f.u = 0xCF0; // not far enough right
-    player->pos.l.y.f.u = 0x10;
+    player->y_pos.f.u = 0x10;
     DynamicLevelEvents();
     CHECK(!restart);
 
@@ -189,10 +189,10 @@ static void SBZ2_GotThroughCardLeadsIntoTheCutscene(void) {
 // trigger, only once the cutscene is under way, and never kills Sonic on the way.
 static void SBZ2_FallingThroughTheFloorLoadsSBZ3(void) {
     Reset(LEVEL_ID(ZoneId_SBZ, 1));
-    player->pos.l.x.f.u = SBZ2_X + 0x40;
+    player->x_pos.f.u = SBZ2_X + 0x40;
 
     scrpos_x.f.u = SBZ2_X - 0x200; // camera still far away: Eggman isn't spawned and the cutscene hasn't started
-    player->pos.l.y.f.u = SBZ2_Y + 0x300; // below the room anyway
+    player->y_pos.f.u = SBZ2_Y + 0x300; // below the room anyway
     dle_routine = 4;
     DynamicLevelEvents();
     CHECK_EQ(dle_routine, 4);
@@ -201,16 +201,16 @@ static void SBZ2_FallingThroughTheFloorLoadsSBZ3(void) {
     scrpos_x.f.u = SBZ2_X;
 
     dle_routine = 6; // cutscene running
-    player->pos.l.y.f.u = SBZ2_Y + 0xA0; // standing on the floor
+    player->y_pos.f.u = SBZ2_Y + 0xA0; // standing on the floor
     DynamicLevelEvents();
     CHECK(!restart);
 
-    player->pos.l.x.f.u = 0x1F00; // below the floor, but not in the cutscene room
-    player->pos.l.y.f.u = SBZ2_Y + 0x300;
+    player->x_pos.f.u = 0x1F00; // below the floor, but not in the cutscene room
+    player->y_pos.f.u = SBZ2_Y + 0x300;
     DynamicLevelEvents();
     CHECK(!restart);
 
-    player->pos.l.x.f.u = SBZ2_X + 0x40;
+    player->x_pos.f.u = SBZ2_X + 0x40;
     DynamicLevelEvents(); // fell through
     CHECK(restart);
     CHECK_EQ(level_id, 0x0103);

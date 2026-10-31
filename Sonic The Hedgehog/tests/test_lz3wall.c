@@ -87,9 +87,9 @@ static void LZBlocks_BlockFrameMatchesROM(void) {
 // first frame and routine 3 snapped the water to $188.
 static void LZ3Water_StaysShallowAtLamppost(void) {
     level_id = LEVEL_ID(ZoneId_LZ, 2);
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->pos.l.y.f.u = 0x4EC;
+    player->y_pos.f.u = 0x4EC;
     nobgscroll = 0;
     wtr_routine = 2;
     wtr_pos2 = wtr_pos3 = 0x508;
@@ -133,15 +133,15 @@ static void LZ1Tunnel_OffUntilDoorFullyOpen(void) {
     Sst *door = Sst_Spawn(ObjId_FloatingBlock, 0xB08, 0x2E0);
     door->subtype = 0xE3; // small LZ door, switch 3
 
-    memset(player, 0, sizeof(Object));
-    player->type = ObjId_Sonic;
+    memset(player, 0, sizeof(Sst));
+    player->code = sst_object_codes[ObjId_Sonic];
     player->routine = 2;
 
     // Sonic in the tunnel box but RIGHT of the shut door: the original
     // position check would have let the tunnel run here.
     for (int f = 0; f < 5; f++) {
-        player->pos.l.x.f.u = 0xB40;
-        player->pos.l.y.f.u = 0x340;
+        player->x_pos.f.u = 0xB40;
+        player->y_pos.f.u = 0x340;
         door->code(door);
         LZWaterFeatures();
         CHECK_EQ(tunnel_mode, 0);
@@ -151,8 +151,8 @@ static void LZ1Tunnel_OffUntilDoorFullyOpen(void) {
     f_switch[3] = 1;
     int frames = 0;
     for (; frames < 200 && !f_lz1tunnel_open; frames++) {
-        player->pos.l.x.f.u = 0xAE0;
-        player->pos.l.y.f.u = 0x340;
+        player->x_pos.f.u = 0xAE0;
+        player->y_pos.f.u = 0x340;
         door->code(door);
         LZWaterFeatures();
         if (!f_lz1tunnel_open)
@@ -162,12 +162,12 @@ static void LZ1Tunnel_OffUntilDoorFullyOpen(void) {
     CHECK(f_lz1tunnel_open);
 
     // Fully open: the tunnel carries Sonic.
-    player->pos.l.x.f.u = 0xAE0;
-    player->pos.l.y.f.u = 0x340;
+    player->x_pos.f.u = 0xAE0;
+    player->y_pos.f.u = 0x340;
     door->code(door);
     LZWaterFeatures();
     CHECK_EQ(tunnel_mode, 1);
-    CHECK_EQ(player->pos.l.x.f.u, 0xAE4);
+    CHECK_EQ(player->x_pos.f.u, 0xAE4);
 }
 
 void RegisterLZ3WallTests(void) {

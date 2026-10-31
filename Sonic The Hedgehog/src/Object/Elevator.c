@@ -82,8 +82,8 @@ static void Elev_FromSpawner(Sst *self, Own_Elevator *own) {
         return;
 
     if (((self->status & SST_STATUS_PLAYER_STAND) != 0)) {
-        player->status.p.f.in_air = true;
-        player->status.p.f.object_stand = false;
+        player->status |= SST_PSTATUS_IN_AIR;
+        player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
         player->routine = 2; // Sonic_Control
     }
     Sst_Delete(self);

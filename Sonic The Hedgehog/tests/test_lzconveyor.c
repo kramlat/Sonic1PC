@@ -54,10 +54,10 @@ static Sst *spawner_slot;
 
 static void SpawnGroup5(uint8_t poison) {
     ClearTable(poison);
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->pos.l.x.f.u = 0x1000; // well away, never standing on a platform
-    player->pos.l.y.f.u = 0x700;
+    player->x_pos.f.u = 0x1000; // well away, never standing on a platform
+    player->y_pos.f.u = 0x700;
     level_id = LEVEL_ID(ZoneId_LZ, 2);
     memset(obj63_loaded, 0, sizeof(obj63_loaded));
     memset(f_switch, 0, sizeof(f_switch));
@@ -119,10 +119,10 @@ static void LZConveyor_PlatformsInitInDirtySlots(void) {
 // that did not fit were silently dropped, leaving a rope loop with one or two platforms instead of the full set.
 static void LZConveyor_SpawnerLateInThePoolStillMakesTheWholeGroup(void) {
     ClearTable(0);
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->pos.l.x.f.u = 0x100;
-    player->pos.l.y.f.u = 0x100;
+    player->x_pos.f.u = 0x100;
+    player->y_pos.f.u = 0x100;
     level_id = LEVEL_ID(ZoneId_LZ, 1);
     memset(obj63_loaded, 0, sizeof(obj63_loaded));
     memset(f_switch, 0, sizeof(f_switch));

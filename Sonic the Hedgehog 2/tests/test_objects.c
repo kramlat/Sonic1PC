@@ -32,7 +32,7 @@
 #include "EngineSound.h"
 #include "Backend/VDP.h"
 
-void Obj_TailsTails(Object *obj);
+void Obj_TailsTails(Sst *obj);
 void Obj_Signpost(Object *obj);
 void ScrollVertical(void);
 
@@ -157,13 +157,13 @@ static void DebugMarkers_TheCornersOfABoxAreMarkedOnlyWithTheCheat(void) {
 
 // The tails (object 05) of a Tails who rolls or spin dashes: the prototype draws them (frames $49 to $58 for a roll, $81 to $84 for the dash) from their art window
 static bool TailsTailsShows(uint8_t tails_anim, int16_t xsp) {
-    memset(&objects[TAILS_SLOT], 0, sizeof(Object));
-    memset(&objects[0x1D], 0, sizeof(Object));
-    Object *tails = TAILS_OBJ;
+    memset(TAILS_OBJ, 0, sizeof(Sst));
+    memset(&sst[2], 0, sizeof(Sst));
+    Sst *tails = TAILS_OBJ;
     tails->anim = tails_anim;
-    tails->xsp = xsp;
-    tails->inertia = xsp;
-    Object *tail = &objects[0x1D];
+    tails->x_vel = xsp;
+    tails->ground_vel = xsp;
+    Sst *tail = &sst[2];
     bool shown = false;
     for (int i = 0; i < 12; i++) {
         Obj_TailsTails(tail);
@@ -171,23 +171,23 @@ static bool TailsTailsShows(uint8_t tails_anim, int16_t xsp) {
         bool art = false;
         for (int b = 0; b < 0x40; b++)
             art |= tiles[b] != 0;
-        shown |= art && tail->frame >= 0x49;
+        shown |= art && tail->mapping_frame >= 0x49;
     }
     return shown;
 }
 
 // The alpha's tails of a Tails who pushes: animation 4's (the wag of frames $87-$8A), whatever his own animation says
 static void TailsTails_WagWhileHePushes(void) {
-    memset(&objects[TAILS_SLOT], 0, sizeof(Object));
-    memset(&objects[0x1D], 0, sizeof(Object));
-    Object *tails = TAILS_OBJ;
+    memset(TAILS_OBJ, 0, sizeof(Sst));
+    memset(&sst[2], 0, sizeof(Sst));
+    Sst *tails = TAILS_OBJ;
     tails->anim = 0;
-    tails->status.p.f.pushing = true;
-    Object *tail = &objects[0x1D];
+    tails->status |= SST_PSTATUS_PUSHING;
+    Sst *tail = &sst[2];
     bool wagging = false;
     for (int i = 0; i < 12; i++) {
         Obj_TailsTails(tail);
-        wagging |= tail->frame >= 0x87 && tail->frame <= 0x8A;
+        wagging |= tail->mapping_frame >= 0x87 && tail->mapping_frame <= 0x8A;
     }
     CHECK(wagging);
 }
@@ -223,14 +223,14 @@ static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
 // Super Sonic runs on his own table of animations (the alpha's, which follows Sonic's in the data): his standing and walking frames are not Sonic's
 static uint8_t SonicWalkFrame(bool super) {
     super_sonic_flag = super;
-    Object sonic;
+    Sst sonic;
     memset(&sonic, 0, sizeof(sonic));
     sonic.anim = SonAnimId_Walk;
     sonic.prev_anim = 0xFF;
-    sonic.inertia = 0x100;
+    sonic.ground_vel = 0x100;
     Sonic_Animate(&sonic);
     super_sonic_flag = false;
-    return sonic.frame;
+    return sonic.mapping_frame;
 }
 
 static void Sonic_SuperSonicHasHisOwnAnimations(void) {
@@ -245,10 +245,10 @@ static void Sonic_SuperSonicHasHisOwnAnimations(void) {
 
 // The alpha's dust and splash: the dust of a spin dash appears where the player is, with its tiles brought to the window ($49C for Sonic), the splash at the water's height, and neither while he has no air to spare
 static void DustSplash_FollowsTheSpinDashAndSplashesAtTheWater(void) {
-    memset(&objects[0], 0, sizeof(Object));
-    objects[0].pos.l.x.f.u = 0x123;
-    objects[0].pos.l.y.f.u = 0x234;
-    ((Scratch_Sonic *)&objects[0].scratch)->air = 30;
+    memset(player, 0, sizeof(Sst));
+    player->x_pos.f.u = 0x123;
+    player->y_pos.f.u = 0x234;
+    ((Scratch_Sonic *)player->own.u8)->air = 30;
     Object *dust = &objects[0x1B];
     memset(dust, 0, sizeof(*dust));
     dust->type = ObjId_Splash;
@@ -266,10 +266,10 @@ static void DustSplash_FollowsTheSpinDashAndSplashesAtTheWater(void) {
         art |= tiles[b] != 0;
     CHECK(art);
 
-    ((Scratch_Sonic *)&objects[0].scratch)->air = 5; // (about to drown: no dust)
+    ((Scratch_Sonic *)player->own.u8)->air = 5; // (about to drown: no dust)
     Obj_DustSplash(dust);
     CHECK_EQ(dust->anim, DUST_NULL);
-    ((Scratch_Sonic *)&objects[0].scratch)->air = 30;
+    ((Scratch_Sonic *)player->own.u8)->air = 30;
 
     wtr_pos1 = 0x300;
     DustSplash_Show(dust, DUST_SPLASH);
@@ -291,32 +291,32 @@ static int CountdownObjects(void) {
 static void Countdown_CountsAPlayersAirAndDrownsHim(void) {
     for (int i = 0; i < 0x40; i++)
         memset(&objects[i], 0, sizeof(Object));
-    Object *sonic = &objects[0];
-    sonic->type = ObjId_Sonic;
+    Sst *sonic = player;
+    sonic->code = sst_object_codes[ObjId_Sonic];
     sonic->routine = 2;
-    sonic->status.p.f.underwater = true;
-    sonic->pos.l.x.f.u = 0x200;
-    sonic->pos.l.y.f.u = 0x400;
+    sonic->status |= SST_PSTATUS_UNDERWATER;
+    sonic->x_pos.f.u = 0x200;
+    sonic->y_pos.f.u = 0x400;
     wtr_pos1 = 0x100;
-    ((Scratch_Sonic *)&sonic->scratch)->air = 30;
+    ((Scratch_Sonic *)sonic->own.u8)->air = 30;
     Countdown_Make(13, false);
     Object *counter = &objects[13];
 
     Obj_Countdown(counter); // the first frame counts at once
-    CHECK_EQ(((Scratch_Sonic *)&sonic->scratch)->air, 29);
+    CHECK_EQ(((Scratch_Sonic *)sonic->own.u8)->air, 29);
     for (int f = 0; f < 59; f++)
         Obj_Countdown(counter);
-    CHECK_EQ(((Scratch_Sonic *)&sonic->scratch)->air, 29);
+    CHECK_EQ(((Scratch_Sonic *)sonic->own.u8)->air, 29);
     Obj_Countdown(counter);
-    CHECK_EQ(((Scratch_Sonic *)&sonic->scratch)->air, 28);
+    CHECK_EQ(((Scratch_Sonic *)sonic->own.u8)->air, 28);
     CHECK(CountdownObjects() > 1); // (bubbles)
 
     // Out of air: he drowns
-    ((Scratch_Sonic *)&sonic->scratch)->air = 0;
+    ((Scratch_Sonic *)sonic->own.u8)->air = 0;
     for (int f = 0; f < 60; f++)
         Obj_Countdown(counter);
     CHECK_EQ(sonic->anim, SonAnimId_Drown);
-    CHECK_EQ(((Scratch_Sonic *)&sonic->scratch)->air, 30);
+    CHECK_EQ(((Scratch_Sonic *)sonic->own.u8)->air, 30);
     CHECK_EQ(sonic->routine, 2);
     for (int f = 0; f < 0x80; f++)
         Obj_Countdown(counter);
@@ -372,9 +372,9 @@ static void Animals_ZonesHaveTheirPairAndEndAnimalsTheirOwnMovement(void) {
 static void Coconuts_ThrowACoconutWhenSonicIsNear(void) {
     for (int i = 0; i < 0x40; i++)
         memset(&objects[i], 0, sizeof(Object));
-    objects[0].type = ObjId_Sonic;
-    objects[0].pos.l.x.f.u = 0x400;
-    objects[0].pos.l.y.f.u = 0x300;
+    player->code = sst_object_codes[ObjId_Sonic];
+    player->x_pos.f.u = 0x400;
+    player->y_pos.f.u = 0x300;
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x200;
     Object *monkey = &objects[0x20];
@@ -431,9 +431,9 @@ static void BossExplosion_RunsSevenFramesAndGoes(void) {
 static void Slicer_RaisesItsBladesAndSendsTwoPincers(void) {
     for (int i = 0; i < 0x40; i++)
         memset(&objects[i], 0, sizeof(Object));
-    objects[0].type = ObjId_Sonic;
-    objects[0].pos.l.x.f.u = 0x400;
-    objects[0].pos.l.y.f.u = 0x300;
+    player->code = sst_object_codes[ObjId_Sonic];
+    player->x_pos.f.u = 0x400;
+    player->y_pos.f.u = 0x300;
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x200;
     Object *slicer = &objects[0x20];
@@ -518,11 +518,11 @@ static void EHZBoss_TheEventPutsTheAlphasShipInTheArena(void) {
 static void Cylinder_TakesACharacterAndLetsGoAtTheEnd(void) {
     for (int i = 0; i < 0x40; i++)
         memset(&objects[i], 0, sizeof(Object));
-    objects[0].type = ObjId_Sonic;
-    objects[0].y_rad = 0x13;
-    objects[0].pos.l.x.f.u = 0x500;
-    objects[0].pos.l.y.f.u = 0x429; // (his feet 4 pixels into the cylinder's top)
-    objects[0].inertia = 0x700;
+    player->code = sst_object_codes[ObjId_Sonic];
+    player->y_radius = 0x13;
+    player->x_pos.f.u = 0x500;
+    player->y_pos.f.u = 0x429; // (his feet 4 pixels into the cylinder's top)
+    player->ground_vel = 0x700;
     scrpos_x.f.u = 0x400;
     scrpos_y.f.u = 0x300;
     Object *cyl = &objects[0x20];
@@ -533,34 +533,34 @@ static void Cylinder_TakesACharacterAndLetsGoAtTheEnd(void) {
     Obj_Spiral(cyl);
     CHECK_EQ(cyl->routine, 4);
     CHECK(cyl->status.b & 8); // (he is on it)
-    CHECK_EQ(objects[0].pos.l.y.f.u, 0x428);
+    CHECK_EQ(player->y_pos.f.u, 0x428);
     Obj_Spiral(cyl);
-    const int16_t y_start = objects[0].pos.l.y.f.u;
+    const int16_t y_start = player->y_pos.f.u;
     for (int f = 0; f < 4; f++)
         Obj_Spiral(cyl);
-    CHECK(objects[0].pos.l.y.f.u != y_start || ((Scratch_Sonic *)&objects[0].scratch)->flip_angle != 0); // (round it)
-    objects[0].pos.l.x.f.u = 0x500 + 0x100; // (past its end)
+    CHECK(player->y_pos.f.u != y_start || ((Scratch_Sonic *)player->own.u8)->flip_angle != 0); // (round it)
+    player->x_pos.f.u = 0x500 + 0x100; // (past its end)
     Obj_Spiral(cyl);
     CHECK(!(cyl->status.b & 8));
-    CHECK(objects[0].status.p.f.in_air);
+    CHECK(((player->status & SST_PSTATUS_IN_AIR) != 0));
 }
 
 // The end of an act: the characters that run on to the right are despawned when they leave the screen (not before), so they do not fall out of the level and die under the results card
 static void Signpost_LevelEndDespawnsCharactersThatLeaveTheScreen(void) {
     for (int i = 0; i < 0x40; i++)
         memset(&objects[i], 0, sizeof(Object));
-    objects[0].type = ObjId_Sonic;
+    player->code = sst_object_codes[ObjId_Sonic];
     scrpos_x.f.u = 0x1000;
     Object *sign = &objects[0x20];
     sign->type = ObjId_Signpost;
     sign->routine = 8;
     sign->pos.l.x.f.u = 0x1000 + 0x80;
-    objects[0].pos.l.x.f.u = 0x1000 + SCREEN_WIDTH - 8; // (still on the screen)
+    player->x_pos.f.u = 0x1000 + SCREEN_WIDTH - 8; // (still on the screen)
     Obj_Signpost(sign);
-    CHECK_EQ(objects[0].type, ObjId_Sonic);
-    objects[0].pos.l.x.f.u = 0x1000 + SCREEN_WIDTH + 8; // (gone off its right)
+    CHECK(player->code == sst_object_codes[ObjId_Sonic]);
+    player->x_pos.f.u = 0x1000 + SCREEN_WIDTH + 8; // (gone off its right)
     Obj_Signpost(sign);
-    CHECK_EQ(objects[0].type, ObjId_Null);
+    CHECK(player->code == NULL);
 }
 
 // A level that wraps vertically (its top limit is exactly $FF00, its bottom $800: Metropolis): with the camera near the bottom of the level and the character just over the wrap (at the top), the camera goes on (it is
@@ -568,22 +568,22 @@ static void Signpost_LevelEndDespawnsCharactersThatLeaveTheScreen(void) {
 static void Scroll_AWrappingLevelKeepsTheCameraWithACharacterOverTheWrap(void) {
     for (int i = 0; i < 0x40; i++)
         memset(&objects[i], 0, sizeof(Object));
-    objects[0].type = ObjId_Sonic;
+    player->code = sst_object_codes[ObjId_Sonic];
     limit_top2 = 0xFF00;
     limit_btm2 = 0x800;
     look_shift = 0x60;
     bgscrollvert = false;
     scrpos_y.v = 0x7C0 << 16;
-    objects[0].pos.l.y.f.u = 0x7C0 + 0x60; // (the character is where the camera wants him: $60 down)
-    objects[0].pos.l.y.f.u &= 0x7FF;       // (= $20, over the wrap)
+    player->y_pos.f.u = 0x7C0 + 0x60; // (the character is where the camera wants him: $60 down)
+    player->y_pos.f.u &= 0x7FF;       // (= $20, over the wrap)
     ScrollVertical();
     CHECK(scrpos_y.f.u == 0x7C0 || scrpos_y.f.u == 0x7C0 - 0x800 + 0x800); // (it stays)
     CHECK(scrshift_y == 0);
-    objects[0].pos.l.y.f.u = 0x7E0; // (above where he should be: the camera goes up a little, not a level's height)
+    player->y_pos.f.u = 0x7E0; // (above where he should be: the camera goes up a little, not a level's height)
     ScrollVertical();
     CHECK(scrpos_y.f.u < 0x7C0 && scrpos_y.f.u > 0x7C0 - 0x20);
     scrpos_y.v = 0x7F0 << 16;
-    objects[0].pos.l.y.f.u = 0x10; // (over the wrap, $20 below the camera's top: well above its reference, $40 up)
+    player->y_pos.f.u = 0x10; // (over the wrap, $20 below the camera's top: well above its reference, $40 up)
     ScrollVertical();
     CHECK(scrpos_y.f.u < 0x7F0 && scrpos_y.f.u > 0x7F0 - 0x20);
     limit_top2 = 0;
@@ -594,9 +594,9 @@ static void Scroll_AWrappingLevelKeepsTheCameraWithACharacterOverTheWrap(void) {
 static void Spiker_FiresItsDrillOnceWhenSonicIsAbove(void) {
     for (int i = 0; i < 0x40; i++)
         memset(&objects[i], 0, sizeof(Object));
-    objects[0].type = ObjId_Sonic;
-    objects[0].pos.l.x.f.u = 0x410;
-    objects[0].pos.l.y.f.u = 0x200;
+    player->code = sst_object_codes[ObjId_Sonic];
+    player->x_pos.f.u = 0x410;
+    player->y_pos.f.u = 0x200;
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x100;
     Object *spiker = &objects[0x20];
@@ -622,9 +622,9 @@ static void HTZBoss_FiresItsJetThenThrowsTwoLavaBalls(void) {
         memset(&objects[i], 0, sizeof(Object));
     memset(&boss_move, 0, sizeof(boss_move));
     boss_status = 0;
-    objects[0].type = ObjId_Sonic;
-    objects[0].pos.l.x.f.u = 0x3000;
-    objects[0].pos.l.y.f.u = 0x500;
+    player->code = sst_object_codes[ObjId_Sonic];
+    player->x_pos.f.u = 0x3000;
+    player->y_pos.f.u = 0x500;
     scrpos_x.f.u = 0x2F00;
     scrpos_y.f.u = 0x400;
     Object *boss = &objects[0x20];
@@ -676,8 +676,8 @@ static void HTZBoss_FiresItsJetThenThrowsTwoLavaBalls(void) {
 static void Rhinobot_SetsItselfUpAndWalksOff(void) {
     for (int i = 0; i < 0x40; i++)
         memset(&objects[i], 0, sizeof(Object));
-    objects[0].type = ObjId_Sonic;
-    objects[0].pos.l.x.f.u = 0x400;
+    player->code = sst_object_codes[ObjId_Sonic];
+    player->x_pos.f.u = 0x400;
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x280;
     Object *rhino = &objects[0x20];
@@ -861,8 +861,8 @@ static void Music_SongKeepsItsNoiseAndVoicesAfterTheExtraLifeJingle(void) {
 static void Sol_MakesFourFireballs(void) {
     for (int i = 0; i < 0x40; i++)
         memset(&objects[i], 0, sizeof(Object));
-    objects[0].type = ObjId_Sonic;
-    objects[0].pos.l.x.f.u = 0x1000;
+    player->code = sst_object_codes[ObjId_Sonic];
+    player->x_pos.f.u = 0x1000;
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x100;
     Object *sol = &objects[0x20];
@@ -883,8 +883,8 @@ static void Sol_MakesFourFireballs(void) {
 static void Rexon_RearsUpIntoFiveHeads(void) {
     for (int i = 0; i < 0x40; i++)
         memset(&objects[i], 0, sizeof(Object));
-    objects[0].type = ObjId_Sonic;
-    objects[0].pos.l.x.f.u = 0x1000; // (far)
+    player->code = sst_object_codes[ObjId_Sonic];
+    player->x_pos.f.u = 0x1000; // (far)
     scrpos_x.f.u = 0x300;
     scrpos_y.f.u = 0x100;
     Object *rexon = &objects[0x20];
@@ -896,8 +896,8 @@ static void Rexon_RearsUpIntoFiveHeads(void) {
     CHECK_EQ(rexon->frame, 2);
     Obj_RexonBody(rexon);
     CHECK_EQ(rexon->routine, 2); // (nothing yet)
-    objects[0].pos.l.x.f.u = 0x420;
-    objects[0].pos.l.y.f.u = 0x300;
+    player->x_pos.f.u = 0x420;
+    player->y_pos.f.u = 0x300;
     Obj_RexonBody(rexon);
     CHECK_EQ(rexon->routine, 6);
     int heads = 0;

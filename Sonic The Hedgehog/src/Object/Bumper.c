@@ -19,19 +19,19 @@ static void Bump_Hit(Sst *self) {
     if (self->collision_property) {
         self->collision_property = 0;
 
-        int16_t dx = (int16_t)(self->x_pos.f.u - player->pos.l.x.f.u);
-        int16_t dy = (int16_t)(self->y_pos.f.u - player->pos.l.y.f.u);
+        int16_t dx = (int16_t)(self->x_pos.f.u - player->x_pos.f.u);
+        int16_t dy = (int16_t)(self->y_pos.f.u - player->y_pos.f.u);
         uint16_t angle = CalcAngle(dx, dy);
         int16_t sin, cos;
         CalcSine((uint8_t)angle, &sin, &cos);
 
-        player->xsp = (int16_t)(((int32_t)cos * -0x700) >> 8);
-        player->ysp = (int16_t)(((int32_t)sin * -0x700) >> 8);
+        player->x_vel = (int16_t)(((int32_t)cos * -0x700) >> 8);
+        player->y_vel = (int16_t)(((int32_t)sin * -0x700) >> 8);
 
-        player->status.p.f.in_air = true;
-        player->status.p.f.roll_jump = false;
-        player->status.p.f.pushing = false;
-        Scratch_Sonic *pscratch = (Scratch_Sonic *)&player->scratch;
+        player->status |= SST_PSTATUS_IN_AIR;
+        player->status &= (uint8_t)~SST_PSTATUS_ROLL_JUMP;
+        player->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+        Scratch_Sonic *pscratch = (Scratch_Sonic *)player->own.u8;
         pscratch->jumping = false;
 
         self->anim = 1; // bumper "hit" animation

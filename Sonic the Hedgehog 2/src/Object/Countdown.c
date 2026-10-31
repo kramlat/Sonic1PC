@@ -52,11 +52,11 @@ const uint8_t *Countdown_WobbleTable(void) {
     return Animation_CountdownWobble;
 }
 
-static inline Scratch_Sonic *PlayerScratch(Object *player) {
-    return (Scratch_Sonic *)&player->scratch;
+static inline Scratch_Sonic *PlayerScratch(Sst *player) {
+    return (Scratch_Sonic *)player->own.u8;
 }
 
-void Countdown_ResumeMusic(Object *player) {
+void Countdown_ResumeMusic(Sst *player) {
     Scratch_Sonic *p = PlayerScratch(player);
     if (p->air <= 12) {
         // (the alpha plays the S1 music ids $82, $87 and $8C here: the level's, the invincibility's and the boss's)
@@ -76,7 +76,7 @@ void Countdown_Make(uint8_t slot, bool tails) {
     counter->type = ObjId_DrownCount;
     Scratch_Countdown *c = (Scratch_Countdown *)&counter->scratch;
     c->subtype = COUNTDOWN_MASTER_BIT | 1;
-    c->owner = tails ? TAILS_SLOT : 0;
+    c->owner = tails ? 1 : 0; // (the character: 0 is Sonic, 1 Tails)
     c->tails = tails;
 }
 
@@ -115,21 +115,21 @@ static void ShowBubble(Object *obj) {
 
 // The counter (routine $A): every second of a player's underwater air it counts one, warns at 25, 20 and 15, plays the drowning music at 12, makes the bubbles (and, from 12 down, the numbers), and drowns him at 0
 static void Count(Object *obj, Scratch_Countdown *c) {
-    Object *owner = &objects[c->owner];
-    Scratch_Sonic *p = PlayerScratch(owner);
+    Sst *chr = c->owner ? SST_PLAYER_2 : player;
+    Scratch_Sonic *p = PlayerScratch(chr);
     bool spawn_now = false; // (the alpha's branch past the wait for the next bubble)
     bool check_gap = false;
 
     if (c->drown_timer) {
         if (--c->drown_timer == 0) {
-            owner->routine = 6; // dead
+            chr->routine = 6; // dead
             return;
         }
-        SpeedToPos(owner);
-        owner->ysp += 0x10; // he sinks faster
+        Sst_MoveSprite2(chr);
+        chr->y_vel += 0x10; // he sinks faster
         check_gap = true;
     } else {
-        if (owner->routine >= 6 || !owner->status.p.f.underwater)
+        if (chr->routine >= 6 || !((chr->status & SST_PSTATUS_UNDERWATER) != 0))
             return;
         if (--c->timer >= 0) {
             check_gap = true;
@@ -154,22 +154,22 @@ static void Count(Object *obj, Scratch_Countdown *c) {
                 spawn_now = true;
             } else {
                 // He drowns
-                OBJ_CONTROL(owner) = 0x81;
+                OBJ_CONTROL(chr) = 0x81;
                 PlaySound(sfx_Drown);
                 c->bubbles_left = 10;
                 c->flags = 1;
                 c->drown_timer = 0x78;
-                Countdown_ResumeMusic(owner); // (his air was $FF: no music, only the air back to 30)
+                Countdown_ResumeMusic(chr); // (his air was $FF: no music, only the air back to 30)
                 if (c->tails)
-                    Tails_ResetOnFloor(owner);
+                    Tails_ResetOnFloor(chr);
                 else
-                    Sonic_ResetOnFloor(owner);
-                owner->anim = SonAnimId_Drown;
-                owner->status.p.f.in_air = true;
-                owner->tile |= TILE_PRIORITY_AND;
-                owner->ysp = 0;
-                owner->xsp = 0;
-                owner->inertia = 0;
+                    Sonic_ResetOnFloor(chr);
+                chr->anim = SonAnimId_Drown;
+                chr->status |= SST_PSTATUS_IN_AIR;
+                chr->art_tile |= TILE_PRIORITY_AND;
+                chr->y_vel = 0;
+                chr->x_vel = 0;
+                chr->ground_vel = 0;
                 if (!c->tails)
                     nobgscroll = true; // (the alpha stops the scrolling for either player)
                 check_gap = true;
@@ -197,17 +197,17 @@ static void Count(Object *obj, Scratch_Countdown *c) {
     b->owner = c->owner;
     b->tails = c->tails; // (the alpha does not hand this on: its Tails' bubbles would use Sonic's mappings and window)
     int16_t side = 6;
-    if (owner->status.p.f.x_flip) {
+    if (((chr->status & SST_PSTATUS_X_FLIP) != 0)) {
         side = -6;
         bubble->angle = 0x40;
     }
-    bubble->pos.l.x.f.u = (int16_t)(owner->pos.l.x.f.u + side);
-    bubble->pos.l.y.f.u = owner->pos.l.y.f.u;
+    bubble->pos.l.x.f.u = (int16_t)(chr->x_pos.f.u + side);
+    bubble->pos.l.y.f.u = chr->y_pos.f.u;
     b->subtype = 6; // a small bubble
 
     if (c->drown_timer) {
         c->gap &= 7;
-        bubble->pos.l.y.f.u = (int16_t)(owner->pos.l.y.f.u - 12);
+        bubble->pos.l.y.f.u = (int16_t)(chr->y_pos.f.u - 12);
         bubble->angle = (uint8_t)RandomNumber();
         if (!(frame_count & 3))
             b->subtype = 0xE; // a medium one
@@ -297,8 +297,8 @@ void Obj_Countdown(Object *obj) {
         Count(obj, c);
         break;
     case 0xC: { // a number fixed on the screen: its last moments
-        Object *owner = &objects[c->owner];
-        if (PlayerScratch(owner)->air > 12) {
+        Sst *chr = c->owner ? SST_PLAYER_2 : player;
+        if (PlayerScratch(chr)->air > 12) {
             ObjectDelete(obj);
             return;
         }
@@ -318,8 +318,8 @@ void Obj_Countdown(Object *obj) {
         break;
     }
     case 0xE: {
-        Object *owner = &objects[c->owner];
-        if (PlayerScratch(owner)->air > 12) {
+        Sst *chr = c->owner ? SST_PLAYER_2 : player;
+        if (PlayerScratch(chr)->air > 12) {
             ObjectDelete(obj);
             return;
         }

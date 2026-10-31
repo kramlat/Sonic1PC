@@ -34,12 +34,12 @@ void Obj_Newtron(Sst *self) {
         {
             // Get X difference and check if we're close enough to Sonic
             uint16_t x_off;
-            if (self->x_pos.f.u < player->pos.l.x.f.u) {
+            if (self->x_pos.f.u < player->x_pos.f.u) {
                 SST_STATUS_SET(self, SST_STATUS_X_FLIP, true);
-                x_off = player->pos.l.x.f.u - self->x_pos.f.u;
+                x_off = player->x_pos.f.u - self->x_pos.f.u;
             } else {
                 SST_STATUS_SET(self, SST_STATUS_X_FLIP, false);
-                x_off = self->x_pos.f.u - player->pos.l.x.f.u;
+                x_off = self->x_pos.f.u - player->x_pos.f.u;
             }
             if (x_off >= 0x80)
                 break;
@@ -59,7 +59,7 @@ void Obj_Newtron(Sst *self) {
         {
             // Wait until animation has finished
             if (self->mapping_frame < 4) {
-                if (self->x_pos.f.u < player->pos.l.x.f.u)
+                if (self->x_pos.f.u < player->x_pos.f.u)
                     SST_STATUS_SET(self, SST_STATUS_X_FLIP, true);
                 else
                     SST_STATUS_SET(self, SST_STATUS_X_FLIP, false);

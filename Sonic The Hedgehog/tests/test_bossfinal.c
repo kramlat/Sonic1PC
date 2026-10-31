@@ -45,10 +45,10 @@ static Scratch_BossFinal *S(void) { return (Scratch_BossFinal *)&boss->scratch; 
 
 static void Spawn(void) {
     memset(level_objects, 0, sizeof(Object) * LEVEL_OBJECTS);
-    memset(player, 0, sizeof(Object));
+    memset(player, 0, sizeof(Sst));
     player->routine = 2;
-    player->pos.l.x.f.u = FZ_X + 0x20; // far from the action (left of the cylinders)
-    player->pos.l.y.f.u = FZ_Y + 0x60;
+    player->x_pos.f.u = FZ_X + 0x20; // far from the action (left of the cylinders)
+    player->y_pos.f.u = FZ_Y + 0x60;
     plc_buffer[0].art = NULL;
     scrpos_x.f.u = FZ_X;
     limit_right2 = FZ_X + 0x100;
@@ -107,7 +107,7 @@ static void BossFinal_DefeatEscapeAndTheEndingFlag(void) {
     CHECK_EQ(boss->pos.l.x.f.u, FZ_X + 0x170);
 
     uint8_t dle = dle_routine;
-    player->pos.l.x.f.u = FZ_X + 0x180;
+    player->x_pos.f.u = FZ_X + 0x180;
     CHECK(RunUntilPhase(8, 200) >= 0); // lands
     CHECK_EQ(dle_routine, dle + 2);    // lets the level scroll on
     CHECK(RunUntilPhase(0xA, 600) >= 0); // runs to the ship
@@ -130,7 +130,7 @@ static void BossFinal_FleeingShipThatIsNotHitLeavesNormally(void) {
     boss->col_property = 0;
     for (int f = 0; f < 3000 && S()->link != 0xE; f++) {
         if (S()->link >= 6) // he waits for Sonic to keep up while running to the ship
-            player->pos.l.x.f.u = (int16_t)(boss->pos.l.x.f.u - 0x20);
+            player->x_pos.f.u = (int16_t)(boss->pos.l.x.f.u - 0x20);
         RunFrame();
     }
     CHECK_EQ(S()->link, 0xE);

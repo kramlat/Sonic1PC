@@ -144,7 +144,7 @@ static void SS_RunStage(void) {
 	scrpos_x.v = 0;
 	scrpos_y.v = 0;
 	
-	player->type = ObjId_SpecialSonic;
+	player->code = sst_object_codes[ObjId_SpecialSonic];
 	PCycle_SS();
 	
 	ss_angle.v = 0;

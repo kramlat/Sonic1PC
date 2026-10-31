@@ -445,7 +445,7 @@ void GM_Title(void) {
     // The title has a camera of its own (Deform_TitleScreen runs it on from 0). What ends it (below) counts from where Sonic 1's level start put the player.
     scrpos_x.f.u = 0;
     bg_scrpos_y.v = 0;
-    player->pos.l.x.f.u = 0x50 + SCREEN_WIDEADD2;
+    player->x_pos.f.u = 0x50 + SCREEN_WIDEADD2;
 
     // Fade out
     PaletteFadeOut();
@@ -519,7 +519,7 @@ void GM_Title(void) {
 
         // Move Sonic object (yep, this is how they scroll the camera)
         //...and return to the Sega screen after a minute?
-        if ((player->pos.l.x.f.u += 2) >= 0x1C00) {
+        if ((player->x_pos.f.u += 2) >= 0x1C00) {
             gamemode = GameMode_Sega;
             return;
         }
@@ -554,7 +554,7 @@ void GM_Title(void) {
                 RunPLC();
 
                 // Move Sonic object
-                if ((player->pos.l.x.f.u += 2) >= 0x1C00) {
+                if ((player->x_pos.f.u += 2) >= 0x1C00) {
                     gamemode = GameMode_Sega;
                     return;
                 }

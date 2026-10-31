@@ -20,18 +20,18 @@
 
 // Object 44: the round bumper with a star. Whoever touches it (its collision is the special kind, which only counts the touch: col_property) is thrown away from it at $700/$100 pixels a frame, whatever the
 // direction (the angle from the bumper to him, with the frame counter's low two bits added to it), is in the air from then on and loses his jump; it flashes, sounds, and gives ten points (up to ten times)
-static void Bumper_Throw(Object *bumper, Object *chr) {
-    const int16_t dx = (int16_t)(bumper->pos.l.x.f.u - chr->pos.l.x.f.u);
-    const int16_t dy = (int16_t)(bumper->pos.l.y.f.u - chr->pos.l.y.f.u);
+static void Bumper_Throw(Object *bumper, Sst *chr) {
+    const int16_t dx = (int16_t)(bumper->pos.l.x.f.u - chr->x_pos.f.u);
+    const int16_t dy = (int16_t)(bumper->pos.l.y.f.u - chr->y_pos.f.u);
     const uint8_t angle = (uint8_t)(CalcAngle(dx, dy) + (frame_count & 3));
     int16_t sin, cos;
     CalcSine(angle, &sin, &cos);
-    chr->xsp = (int16_t)(((int32_t)cos * -0x700) >> 8);
-    chr->ysp = (int16_t)(((int32_t)sin * -0x700) >> 8);
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.roll_jump = false;
-    chr->status.p.f.pushing = false;
-    ((Scratch_Sonic *)&chr->scratch)->jumping = false;
+    chr->x_vel = (int16_t)(((int32_t)cos * -0x700) >> 8);
+    chr->y_vel = (int16_t)(((int32_t)sin * -0x700) >> 8);
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_ROLL_JUMP;
+    chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
+    ((Scratch_Sonic *)chr->own.u8)->jumping = false;
 }
 
 void Obj_CNZBumper(Object *obj) {
@@ -51,7 +51,7 @@ void Obj_CNZBumper(Object *obj) {
             obj->col_property = 0;
             if (touched & 1)
                 Bumper_Throw(obj, player);
-            if ((touched & 2) && TAILS_OBJ->type != 0)
+            if ((touched & 2) && TAILS_OBJ->code != NULL)
                 Bumper_Throw(obj, TAILS_OBJ);
             obj->anim = 1;
             QueueSound2(sfx_Bumper);
@@ -78,17 +78,17 @@ void Obj_CNZBumper(Object *obj) {
 
 // Object 84: the auto spin, an invisible box (only shown with debug mode on) that rolls whoever touches it into a ball (Hill Top's, Hidden Palace's and Casino Night's use it): the subtype is its size (the
 // frame: 0 is 32 pixels across, 1 is 96 and 2 is 224), and the collision it has ($C6, the special kind that counts the touch; the subtypes 1 and 2's $94 and $95 are the hurting kinds, which nothing uses)
-static void AutoSpin_Roll(Object *chr) {
-    if (chr->status.p.f.in_ball)
+static void AutoSpin_Roll(Sst *chr) {
+    if (((chr->status & SST_PSTATUS_IN_BALL) != 0))
         return;
-    chr->status.p.f.in_ball = true;
-    chr->y_rad = 0x0E;
-    chr->x_rad = 7;
+    chr->status |= SST_PSTATUS_IN_BALL;
+    chr->y_radius = 0x0E;
+    chr->x_radius = 7;
     chr->anim = SonAnimId_Roll;
-    chr->pos.l.y.f.u += 5;
+    chr->y_pos.f.u += 5;
     QueueSound2(sfx_Roll);
-    if (chr->inertia == 0)
-        chr->inertia = 0x200;
+    if (chr->ground_vel == 0)
+        chr->ground_vel = 0x200;
 }
 
 void Obj_AutoSpin(Object *obj) {
@@ -110,7 +110,7 @@ void Obj_AutoSpin(Object *obj) {
         obj->col_property = 0;
         if (touched & 1)
             AutoSpin_Roll(player);
-        if ((touched & 2) && TAILS_OBJ->type != 0)
+        if ((touched & 2) && TAILS_OBJ->code != NULL)
             AutoSpin_Roll(TAILS_OBJ);
         return;
     }

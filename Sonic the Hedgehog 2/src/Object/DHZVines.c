@@ -21,7 +21,7 @@
 
 #define FOR_EACH_CHARACTER(chr, who) \
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) \
-        for (Object *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
+        for (Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
 
 #define VINE_ANIM 0x14 // the animation of a character hanging from a root
 
@@ -72,7 +72,7 @@ static void Roots_Frame(Object *obj, const Scratch_Roots *scratch) {
     obj->frame = (scratch->hanging[0] || scratch->hanging[1]) ? 1 : 0;
 }
 
-static void Roots_Character(Object *obj, Scratch_Roots *scratch, Object *chr, int who) {
+static void Roots_Character(Object *obj, Scratch_Roots *scratch, Sst *chr, int who) {
     const Pad pad = PadOf(who);
     if (scratch->hanging[who]) {
         if (!(pad.pressed & 0x70))
@@ -80,24 +80,24 @@ static void Roots_Character(Object *obj, Scratch_Roots *scratch, Object *chr, in
         OBJ_CONTROL(chr) = 0;
         scratch->hanging[who] = 0;
         scratch->cooldown[who] = (pad.held & 0x0F) ? 0x3C : 0x12;
-        chr->ysp = (int16_t)0xFD00;
+        chr->y_vel = (int16_t)0xFD00;
         SwitchSet(scratch, false);
         Roots_Frame(obj, scratch);
         return;
     }
     if (scratch->cooldown[who] != 0 && --scratch->cooldown[who] != 0)
         return;
-    if ((uint16_t)(chr->pos.l.x.f.u - obj->pos.l.x.f.u + 0x0C) >= 0x18)
+    if ((uint16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u + 0x0C) >= 0x18)
         return;
-    if ((uint16_t)(chr->pos.l.y.f.u - obj->pos.l.y.f.u - 0x28) >= 0x10)
+    if ((uint16_t)(chr->y_pos.f.u - obj->pos.l.y.f.u - 0x28) >= 0x10)
         return;
     if (chr->routine >= 4)
         return;
-    chr->xsp = 0;
-    chr->ysp = 0;
-    chr->inertia = 0;
-    chr->pos.l.x.f.u = obj->pos.l.x.f.u;
-    chr->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + 0x30);
+    chr->x_vel = 0;
+    chr->y_vel = 0;
+    chr->ground_vel = 0;
+    chr->x_pos.f.u = obj->pos.l.x.f.u;
+    chr->y_pos.f.u = (int16_t)(obj->pos.l.y.f.u + 0x30);
     chr->anim = VINE_ANIM;
     OBJ_CONTROL(chr) = 1;
     scratch->hanging[who] = 1;
@@ -126,39 +126,39 @@ void Obj_DHZVinesSwitch(Object *obj) {
 // Object 80: roots that hang down and carry. They are as long as the frame says (up to $B0 pixels, in steps of $20) and grow while someone hangs from them (shrink when nobody does; or the other way round,
 // with bit 4-6 of the subtype), a character takes hold from below as with 7F, and a jump lets go, to either side if the pad says so; with bit 7 of the subtype they are a switch as well
 // ---------------------------------------------------------------------------------------------------------------------------------------
-static void Vines_Character(Object *obj, Scratch_Roots *scratch, Object *chr, int who) {
+static void Vines_Character(Object *obj, Scratch_Roots *scratch, Sst *chr, int who) {
     const Pad pad = PadOf(who);
     if (scratch->hanging[who]) {
         if (!(pad.pressed & 0x70)) { // hangs on: he goes with the roots
-            chr->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + 0x94);
+            chr->y_pos.f.u = (int16_t)(obj->pos.l.y.f.u + 0x94);
             return;
         }
         OBJ_CONTROL(chr) = 0;
         scratch->hanging[who] = 0;
         scratch->cooldown[who] = (pad.held & 0x0F) ? 0x3C : 0x12;
         if (pad.held & JPAD_LEFT)
-            chr->xsp = -0x200;
+            chr->x_vel = -0x200;
         if (pad.held & JPAD_RIGHT)
-            chr->xsp = 0x200;
-        chr->ysp = (int16_t)0xFC80;
-        chr->status.p.f.in_air = true;
+            chr->x_vel = 0x200;
+        chr->y_vel = (int16_t)0xFC80;
+        chr->status |= SST_PSTATUS_IN_AIR;
         if (scratch->linked)
             SwitchSet(scratch, false);
         return;
     }
     if (scratch->cooldown[who] != 0 && --scratch->cooldown[who] != 0)
         return;
-    if ((uint16_t)(chr->pos.l.x.f.u - obj->pos.l.x.f.u + 0x10) >= 0x20)
+    if ((uint16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u + 0x10) >= 0x20)
         return;
-    if ((uint16_t)(chr->pos.l.y.f.u - obj->pos.l.y.f.u - 0x88) >= 0x18)
+    if ((uint16_t)(chr->y_pos.f.u - obj->pos.l.y.f.u - 0x88) >= 0x18)
         return;
     if (chr->routine >= 4)
         return;
-    chr->xsp = 0;
-    chr->ysp = 0;
-    chr->inertia = 0;
-    chr->pos.l.x.f.u = obj->pos.l.x.f.u;
-    chr->pos.l.y.f.u = (int16_t)(obj->pos.l.y.f.u + 0x94);
+    chr->x_vel = 0;
+    chr->y_vel = 0;
+    chr->ground_vel = 0;
+    chr->x_pos.f.u = obj->pos.l.x.f.u;
+    chr->y_pos.f.u = (int16_t)(obj->pos.l.y.f.u + 0x94);
     chr->anim = VINE_ANIM;
     OBJ_CONTROL(chr) = 1;
     scratch->hanging[who] = 1;

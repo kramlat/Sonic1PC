@@ -49,20 +49,20 @@ static const int8_t slope_pressed[0x28] = {
 };
 
 // The tumble and the collision path the subtype asks for (the same as the other springs')
-static void DiagSpring_Tumble(Object *chr, uint8_t subtype) {
-    Scratch_Sonic *sscratch = (Scratch_Sonic *)&chr->scratch;
+static void DiagSpring_Tumble(Sst *chr, uint8_t subtype) {
+    Scratch_Sonic *sscratch = (Scratch_Sonic *)chr->own.u8;
 
     if (subtype & 1) {
-        chr->inertia = 1;
+        chr->ground_vel = 1;
         sscratch->flip_angle = 1;
         chr->anim = SonAnimId_Walk;
         sscratch->flips_remaining = 1;
         sscratch->flip_speed = 8;
         if (!(subtype & 2))
             sscratch->flips_remaining = 3;
-        if (chr->status.p.f.x_flip) {
+        if (((chr->status & SST_PSTATUS_X_FLIP) != 0)) {
             sscratch->flip_angle = (uint8_t)-sscratch->flip_angle;
-            chr->inertia = -chr->inertia;
+            chr->ground_vel = -chr->ground_vel;
         }
     }
     switch (subtype & 0xC) {
@@ -78,13 +78,13 @@ static void DiagSpring_Tumble(Object *chr, uint8_t subtype) {
 }
 
 // The character stands on the spring (loc_1A3BA): on its springy side (past $10 pixels from the middle towards its low end) it starts to compress; once compressed back to the open frame it throws him
-static void DiagSpring_Stand(Object *obj, Object *chr, uint8_t subtype) {
+static void DiagSpring_Stand(Object *obj, Sst *chr, uint8_t subtype) {
     const bool flipped = obj->status.o.f.x_flip;
     if (!flipped) {
-        if (!((uint16_t)(obj->pos.l.x.f.u - 0x10) < (uint16_t)chr->pos.l.x.f.u))
+        if (!((uint16_t)(obj->pos.l.x.f.u - 0x10) < (uint16_t)chr->x_pos.f.u))
             return;
     } else {
-        if (!((uint16_t)(obj->pos.l.x.f.u + 0x10) >= (uint16_t)chr->pos.l.x.f.u))
+        if (!((uint16_t)(obj->pos.l.x.f.u + 0x10) >= (uint16_t)chr->x_pos.f.u))
             return;
     }
 
@@ -97,24 +97,24 @@ static void DiagSpring_Stand(Object *obj, Object *chr, uint8_t subtype) {
         return;
 
     // The throw (loc_1A3FA): further along the slope throws harder
-    int16_t d0 = (int16_t)(chr->pos.l.x.f.u - (obj->pos.l.x.f.u - 0x1C));
+    int16_t d0 = (int16_t)(chr->x_pos.f.u - (obj->pos.l.x.f.u - 0x1C));
     if (flipped)
         d0 = (int16_t)(0x26 - d0);
     if (d0 < 0)
         d0 = 0;
     int boost = d0 < 0x48 ? launch_boost[d0] : 0;
 
-    chr->ysp = (int16_t)((0xFC - boost) << 8);
-    chr->status.p.f.x_flip = true;
+    chr->y_vel = (int16_t)((0xFC - boost) << 8);
+    chr->status |= SST_PSTATUS_X_FLIP;
     if (!flipped) {
-        chr->status.p.f.x_flip = false;
+        chr->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
         boost = -boost;
     }
-    int16_t xs = chr->xsp < 0 ? (int16_t)-chr->xsp : chr->xsp;
+    int16_t xs = chr->x_vel < 0 ? (int16_t)-chr->x_vel : chr->x_vel;
     if (xs >= 0x400)
-        chr->xsp = (int16_t)(chr->xsp - (boost << 8));
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
+        chr->x_vel = (int16_t)(chr->x_vel - (boost << 8));
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->anim = 0x10;
     chr->routine = 2;
     DiagSpring_Tumble(chr, subtype);
@@ -136,8 +136,8 @@ void Obj_DiagSpring(Object *obj) {
     AnimateSprite(obj, Animation_DiagSpring);
     const int8_t *slope = obj->frame == 0 ? slope_open : slope_pressed;
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = who == SolidChar_Sonic ? player : TAILS_OBJ;
-        if (who == SolidChar_Tails && chr->type == 0)
+        Sst *chr = who == SolidChar_Sonic ? player : TAILS_OBJ;
+        if (who == SolidChar_Tails && chr->code == NULL)
             continue;
         Solid_Character(obj, chr, who, 0x27, 8, 8, obj->pos.l.x.f.u, slope);
         if (obj->status.b & (1 << (3 + who)))

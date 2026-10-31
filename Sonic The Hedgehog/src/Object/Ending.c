@@ -8,10 +8,8 @@
 #include "MathUtil.h"
 #include "SpecialStage.h"
 
-#include "Resource/Animation/EndingSonic.h"
 #include "Resource/Animation/TryAgainEggman.h"
 #include "Resource/Mappings/EndingEmeralds.h"
-#include "Resource/Mappings/EndingSonic.h"
 #include "Resource/Mappings/EndingSTH.h"
 #include "Resource/Mappings/TryAgainEggman.h"
 
@@ -22,115 +20,6 @@
 static void SetAngle16(Object *obj, uint16_t angle) {
     obj->scratch.u16[0] = angle;
     obj->angle = (uint8_t)(angle >> 8);
-}
-
-// ---------------------------------------------------------------------------
-// Object 87 - Sonic on the ending sequence. Works hand in hand with End_MoveSonic (GM_Ending.c); uses the secondary
-// routine because it is swapped in for the real Sonic object.
-// ---------------------------------------------------------------------------
-
-enum {
-    ESON_MAIN = 0,
-    ESON_MAKE_EMERALDS = 2,
-    ESON_ANIMATE = 4,
-    ESON_LOOK_UP = 6,
-    ESON_DELETE_EMERALDS = 8,
-    ESON_ANIMATE2 = 0xA,
-    ESON_MAKE_LOGO = 0xC,
-    ESON_ANIMATE3 = 0xE,
-    ESON_BAD_ENDING = 0x10,
-    ESON_ANIMATE4 = 0x12,
-};
-
-#define eson_time scratch.u16[4] // 0x30: time to wait between events
-
-static void ESon_Animate(Object *obj) { AnimateSprite(obj, Animation_EndingSonic); }
-
-static void ESon_MakeEmeralds(Object *obj) {
-    if (--obj->eson_time != 0)
-        return;
-    obj->routine_sec += 2;
-    obj->anim = 0;          // "hold" animation, restarted at once
-    obj->prev_anim = 0xFF;
-    objects[ENDING_SLOT_EMERALDS].type = ObjId_88;
-}
-
-static void ESon_Main(Object *obj) {
-    if (emeralds != EMERALDS_ALL) { // bad ending: skip the emerald sequence
-        obj->routine_sec += 0x10;
-        obj->eson_time = (3 * 60) + 36;
-        return;
-    }
-    obj->routine_sec += 2;
-    obj->mappings = Mappings_EndingSonic;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Sonic);
-    obj->render.b = 0;
-    obj->render.f.level_fg = true;
-    obj->status.b = 0;
-    obj->priority = 2;
-    obj->frame = 0; // looking at the emeralds
-    obj->eson_time = (1 * 60) + 20;
-    ESon_MakeEmeralds(obj);
-}
-
-static void ESon_LookUp(Object *obj) {
-    if (objects[ENDING_SLOT_EMERALDS].scratch.u16[10] != 0x20 * 0x100) // the emeralds spin at full radius
-        return;
-    restart = 1; // End_ChkEmerald: start the white flash
-    obj->eson_time = (1 * 60) + 30;
-    obj->routine_sec += 2;
-}
-
-static void ESon_DeleteEmeralds(Object *obj) {
-    if (--obj->eson_time != 0)
-        return;
-    for (int i = ENDING_SLOT_EMERALDS; i < 32; i++)
-        memset(&objects[i], 0, sizeof(Object));
-    restart = 1; // End_SlowFade: the emeralds are gone
-    obj->routine_sec += 2;
-    obj->anim = 1; // confused
-    obj->eson_time = 1 * 60;
-}
-
-static void ESon_MakeLogo(Object *obj) {
-    if (--obj->eson_time != 0)
-        return;
-    obj->routine_sec += 2;
-    obj->eson_time = 3 * 60; // unused
-    obj->anim = 2;           // leap at the screen
-    objects[ENDING_SLOT_LOGO].type = ObjId_89;
-}
-
-static void ESon_BadEnding(Object *obj) {
-    if (--obj->eson_time != 0)
-        return;
-    obj->routine_sec += 2;
-    obj->mappings = Mappings_EndingSonic;
-    obj->tile = TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Sonic);
-    obj->render.b = 0;
-    obj->render.f.level_fg = true;
-    obj->status.b = 0;
-    obj->priority = 2;
-    obj->frame = 5; // first leaping frame
-    obj->anim = 2;
-    objects[ENDING_SLOT_LOGO].type = ObjId_89;
-    ESon_Animate(obj);
-}
-
-void Obj_EndSonic(Object *obj) {
-    switch (obj->routine_sec) {
-    case ESON_MAIN: ESon_Main(obj); break;
-    case ESON_MAKE_EMERALDS: ESon_MakeEmeralds(obj); break;
-    case ESON_ANIMATE:
-    case ESON_ANIMATE2:
-    case ESON_ANIMATE3:
-    case ESON_ANIMATE4: ESon_Animate(obj); break;
-    case ESON_LOOK_UP: ESon_LookUp(obj); break;
-    case ESON_DELETE_EMERALDS: ESon_DeleteEmeralds(obj); break;
-    case ESON_MAKE_LOGO: ESon_MakeLogo(obj); break;
-    case ESON_BAD_ENDING: ESon_BadEnding(obj); break;
-    }
-    DisplaySprite(obj);
 }
 
 // ---------------------------------------------------------------------------
@@ -160,10 +49,10 @@ static void ECha_Move(Object *obj) {
 
 void Obj_EndChaos(Object *obj) {
     if (obj->routine == 0) {
-        if (player->frame != 2) // wait until Sonic's "hold" animation has reached its last frame
+        if (player->mapping_frame != 2) // wait until Sonic's "hold" animation has reached its last frame
             return;
-        obj->pos.l.x.f.u = player->pos.l.x.f.u;
-        obj->pos.l.y.f.u = player->pos.l.y.f.u;
+        obj->pos.l.x.f.u = player->x_pos.f.u;
+        obj->pos.l.y.f.u = player->y_pos.f.u;
         uint8_t angle = 0;
         for (int i = 0; i < EMERALDS_ALL; i++) {
             Object *e = obj + i;

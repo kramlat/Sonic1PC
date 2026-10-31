@@ -10,13 +10,13 @@
 #include "Resource/Mappings/UnusedSwitch.h"
 
 static bool Swi_ChkTouch(Sst *self, int16_t trig_w) {
-    int16_t d0 = (int16_t)(player->pos.l.x.f.u - self->x_pos.f.u + trig_w);
+    int16_t d0 = (int16_t)(player->x_pos.f.u - self->x_pos.f.u + trig_w);
     if (d0 < 0)
         return false; // Sonic is left of switch
     if ((uint16_t)d0 >= (uint16_t)(trig_w * 2))
         return false; // Sonic is right of switch
 
-    int16_t feet = (int16_t)(player->y_rad + player->pos.l.y.f.u);
+    int16_t feet = (int16_t)(player->y_radius + player->y_pos.f.u);
     int16_t d0b = (int16_t)((self->y_pos.f.u - 16) - feet);
     if (d0b > 0)
         return false; // Sonic is above switch

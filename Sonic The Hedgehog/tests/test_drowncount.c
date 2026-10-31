@@ -14,12 +14,12 @@
 static void DrownCount_NumbersAreShownAndStayShown(void) {
     level_id = LEVEL_ID(ZoneId_LZ, 0);
     memset(objects, 0, sizeof(objects));
-    memset(player, 0, sizeof(Object));
-    player->type = ObjId_Sonic;
+    memset(player, 0, sizeof(Sst));
+    player->code = sst_object_codes[ObjId_Sonic];
     player->routine = 2;
-    player->status.p.f.underwater = true;
-    player->pos.l.x.f.u = 0x1200;
-    player->pos.l.y.f.u = 0x400;
+    player->status |= SST_PSTATUS_UNDERWATER;
+    player->x_pos.f.u = 0x1200;
+    player->y_pos.f.u = 0x400;
     scrpos_x.f.u = 0x1200 - 160;
     scrpos_y.f.u = 0x400 - 112;
     wtr_pos1 = 0x300;

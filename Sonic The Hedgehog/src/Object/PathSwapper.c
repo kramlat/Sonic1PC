@@ -38,7 +38,7 @@ static const int16_t PSwapper_Sizes[4] = { 0x20, 0x40, 0x80, 0x100 };
 // updates Sonic's draw priority.
 static void PSwapper_Trigger(Object *obj, Scratch_PathSwapper *scratch, bool forward) {
     if (scratch->subtype & PSWAP_BIT_GROUNDONLY) {
-        if (player->status.p.f.in_air)
+        if (((player->status & SST_PSTATUS_IN_AIR) != 0))
             return;
     }
 
@@ -50,9 +50,9 @@ static void PSwapper_Trigger(Object *obj, Scratch_PathSwapper *scratch, bool for
 
     bool priority = forward ? (scratch->subtype & PSWAP_BIT_PRIORITY_FORWARD) != 0
                              : (scratch->subtype & PSWAP_BIT_PRIORITY_BACKWARD) != 0;
-    player->tile &= ~0x8000;
+    player->art_tile &= ~0x8000;
     if (priority)
-        player->tile |= 0x8000;
+        player->art_tile |= 0x8000;
 
     if (debug_cheat)
         PlaySound(sfx_Lamppost);
@@ -64,7 +64,7 @@ static void PSwapper_MainX(Object *obj) {
         return;
 
     int16_t obj_x = obj->pos.l.x.f.u;
-    int16_t player_x = player->pos.l.x.f.u;
+    int16_t player_x = player->x_pos.f.u;
     bool forward = !scratch->passed;
 
     if (forward) {
@@ -79,7 +79,7 @@ static void PSwapper_MainX(Object *obj) {
 
     int16_t top = obj->pos.l.y.f.u - scratch->size;
     int16_t bottom = obj->pos.l.y.f.u + scratch->size;
-    int16_t player_y = player->pos.l.y.f.u;
+    int16_t player_y = player->y_pos.f.u;
     if (player_y < top || player_y >= bottom)
         return;
 
@@ -92,7 +92,7 @@ static void PSwapper_MainY(Object *obj) {
         return;
 
     int16_t obj_y = obj->pos.l.y.f.u;
-    int16_t player_y = player->pos.l.y.f.u;
+    int16_t player_y = player->y_pos.f.u;
     bool forward = !scratch->passed;
 
     if (forward) {
@@ -107,7 +107,7 @@ static void PSwapper_MainY(Object *obj) {
 
     int16_t left = obj->pos.l.x.f.u - scratch->size;
     int16_t right = obj->pos.l.x.f.u + scratch->size;
-    int16_t player_x = player->pos.l.x.f.u;
+    int16_t player_x = player->x_pos.f.u;
     if (player_x < left || player_x >= right)
         return;
 
@@ -135,11 +135,11 @@ void Obj_PathSwapper(Object *obj) {
             obj->routine = 4; // PSwapper_MainY
             // If Sonic spawned already below the trigger line, treat it as
             // already-crossed so the first real trigger is the reverse one.
-            if (obj->pos.l.y.f.u < player->pos.l.y.f.u)
+            if (obj->pos.l.y.f.u < player->y_pos.f.u)
                 scratch->passed = true;
         } else {
             obj->routine = 2; // PSwapper_MainX
-            if (obj->pos.l.x.f.u < player->pos.l.x.f.u)
+            if (obj->pos.l.x.f.u < player->x_pos.f.u)
                 scratch->passed = true;
         }
         break;

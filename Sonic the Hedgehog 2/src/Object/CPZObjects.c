@@ -39,7 +39,7 @@ extern Oscillatory oscillatory;
 // What the object does for each of the two characters: `chr` is NULL for a Tails who is not there
 #define FOR_EACH_CHARACTER(chr, who) \
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) \
-        for (Object *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
+        for (Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
 
 // The object is out of range: it goes, and forgets that it was loaded so that it can come back (MarkObjGone)
 static void GoneIfOffscreen(Object *obj, int16_t x) {
@@ -175,21 +175,21 @@ typedef struct {
 
 #define ARTTILE_BOOSTER 0x39C // ($7380 in the zone's art list)
 
-static void Booster_Give(Object *obj, Object *chr, int16_t speed) {
-    if ((uint16_t)(chr->xsp < 0 ? -chr->xsp : chr->xsp) >= 0x1000) { // (the alpha's: a character who is going that fast already is left as he is, and the booster only sounds)
+static void Booster_Give(Object *obj, Sst *chr, int16_t speed) {
+    if ((uint16_t)(chr->x_vel < 0 ? -chr->x_vel : chr->x_vel) >= 0x1000) { // (the alpha's: a character who is going that fast already is left as he is, and the booster only sounds)
         PlaySound(sfx_Spring);
         return;
     }
-    chr->xsp = speed; // (goes super fast)
-    chr->status.p.f.x_flip = false;
+    chr->x_vel = speed; // (goes super fast)
+    chr->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
     if (obj->status.o.f.x_flip) {
-        chr->status.p.f.x_flip = true;
-        chr->xsp = (int16_t)-chr->xsp;
+        chr->status |= SST_PSTATUS_X_FLIP;
+        chr->x_vel = (int16_t)-chr->x_vel;
     }
-    ((Scratch_Sonic *)&chr->scratch)->control_lock = 0xF; // (not to turn round for a few frames)
-    chr->inertia = chr->xsp;
+    ((Scratch_Sonic *)chr->own.u8)->control_lock = 0xF; // (not to turn round for a few frames)
+    chr->ground_vel = chr->x_vel;
     obj->status.b &= (uint8_t)~((1 << 5) | (1 << 6));
-    chr->status.p.f.pushing = false;
+    chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
     PlaySound(sfx_Spring);
 }
 
@@ -211,9 +211,9 @@ void Obj_CPZBooster(Object *obj) {
     const int16_t y0 = (int16_t)(obj->pos.l.y.f.u - 0x10), y1 = (int16_t)(obj->pos.l.y.f.u + 0x10);
     FOR_EACH_CHARACTER(chr, who) {
         (void)who;
-        if (chr->status.p.f.in_air)
+        if (((chr->status & SST_PSTATUS_IN_AIR) != 0))
             continue;
-        uint16_t cx = (uint16_t)chr->pos.l.x.f.u, cy = (uint16_t)chr->pos.l.y.f.u;
+        uint16_t cx = (uint16_t)chr->x_pos.f.u, cy = (uint16_t)chr->y_pos.f.u;
         if (cx >= (uint16_t)x0 && cx < (uint16_t)x1 && cy >= (uint16_t)y0 && cy < (uint16_t)y1)
             Booster_Give(obj, chr, scratch->speed);
     }
@@ -279,7 +279,7 @@ void Obj_CPZPipeTipper(Object *obj) {
     } else { // tipped: whoever stands on it falls
         FOR_EACH_CHARACTER(chr, who) {
             if (obj->status.b & (1 << (3 + who))) {
-                chr->status.p.f.object_stand = false;
+                chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
                 obj->status.b &= (uint8_t)~(1 << (3 + who));
             }
         }
@@ -474,7 +474,7 @@ void Obj_CPZBarrier(Object *obj) {
         const bool flipped = obj->status.o.f.x_flip;
         bool in_way = false;   // (in the door's place: it must not shut on him)
         FOR_EACH_CHARACTER(chr, who) {
-            const int16_t cx = chr->pos.l.x.f.u, cy = chr->pos.l.y.f.u;
+            const int16_t cx = chr->x_pos.f.u, cy = chr->y_pos.f.u;
             if (cx >= x - 8 && cx < x + 40 && cy >= scratch->base_y - 0x60 && cy < scratch->base_y + 0x30)
                 in_way = true;
         }
@@ -493,7 +493,7 @@ void Obj_CPZBarrier(Object *obj) {
             const int16_t d3 = flipped ? x + 0x200 : (obj->routine_sec ? x + 0x38 : x);
             bool in_strip = false;
             FOR_EACH_CHARACTER(chr, who) {
-                const int16_t cx = chr->pos.l.x.f.u;
+                const int16_t cx = chr->x_pos.f.u;
                 if (cx >= d2 && cx < d3)
                     in_strip = true;
             }
@@ -520,7 +520,7 @@ void Obj_CPZBarrier(Object *obj) {
     }
     obj->routine_sec = 0; // (down, unless a character is in the strip)
     FOR_EACH_CHARACTER(chr, who) {
-        const uint16_t cx = (uint16_t)chr->pos.l.x.f.u;
+        const uint16_t cx = (uint16_t)chr->x_pos.f.u;
         if (cx >= (uint16_t)d2 && cx < (uint16_t)d3)
             obj->routine_sec = 2;
     }
@@ -557,20 +557,20 @@ static const int16_t cover_pieces[4][2] = { { -0x100, -0x200 }, { 0x100, -0x200 
 static const int16_t rock_pieces[6][2] = { { -0x200, -0x200 }, { 0, -0x280 }, { 0x200, -0x200 }, { -0x1C0, -0x1C0 }, { 0, -0x200 }, { 0x1C0, -0x1C0 } };
 
 // loc_17778: a rolling character bounces off what he has broken, curled up
-static void Cover_Bounce(Object *chr) {
-    chr->status.p.f.in_ball = true;
-    chr->y_rad = 0xE;
-    chr->x_rad = 7;
+static void Cover_Bounce(Sst *chr) {
+    chr->status |= SST_PSTATUS_IN_BALL;
+    chr->y_radius = 0xE;
+    chr->x_radius = 7;
     chr->anim = SonAnimId_Roll;
-    chr->ysp = -0x300;
+    chr->y_vel = -0x300;
 }
 
 // loc_17796 (and loc_17772 above it): he is in the air, and no longer on the cover
-static void Cover_Launch(Object *chr, bool rolling) {
+static void Cover_Launch(Sst *chr, bool rolling) {
     if (rolling)
         Cover_Bounce(chr);
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->routine = 2;
 }
 
@@ -643,7 +643,7 @@ void Obj_TubeCover(Object *obj) {
         return;
     }
 
-    Object *sidekick = TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL;
+    Sst *sidekick = TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL;
     const bool sonic_rolls = player->anim == SonAnimId_Roll, tails_rolls = sidekick != NULL && sidekick->anim == SonAnimId_Roll;
     if (obj->render.f.on_screen) {
         FOR_EACH_CHARACTER(chr, who)

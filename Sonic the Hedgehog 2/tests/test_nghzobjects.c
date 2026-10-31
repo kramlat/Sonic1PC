@@ -20,8 +20,8 @@ static void Reset(void) {
     scrpos_x.v = scrpos_y.v = 0;
     frame_count = 0;
     player->routine = 2;
-    player->pos.l.x.f.u = 0x1000;
-    player->pos.l.y.f.u = 0x1000;
+    player->x_pos.f.u = 0x1000;
+    player->y_pos.f.u = 0x1000;
 }
 
 static Object *Spawn(uint8_t type, uint8_t subtype, int16_t x, int16_t y) {
@@ -47,11 +47,11 @@ static void NGHZObjects_TheShooterFiresWhenSonicHasBeenNearAndGoes(void) {
     for (int i = 0; i < 100; i++)
         Obj_ArrowShooter(obj);
     CHECK_EQ(Count(0x22, 6) + Count(0x22, 8), 0); // (nobody near: no arrow)
-    player->pos.l.x.f.u = 120; // within $40: it is ready
+    player->x_pos.f.u = 120; // within $40: it is ready
     for (int i = 0; i < 40; i++)
         Obj_ArrowShooter(obj);
     CHECK_EQ(Count(0x22, 6) + Count(0x22, 8), 0); // (and still holds its fire)
-    player->pos.l.x.f.u = 0x1000; // he leaves: now it draws back and shoots
+    player->x_pos.f.u = 0x1000; // he leaves: now it draws back and shoots
     int frames = 0;
     while (frames++ < 400 && Count(0x22, 6) + Count(0x22, 8) == 0)
         Obj_ArrowShooter(obj);
@@ -97,9 +97,9 @@ static void NGHZObjects_FastSonicInTheBoxMakesFourLeaves(void) {
     Reset();
     Object *obj = Spawn(0x2C, 0, 100, 200);
     Obj_NGHZLeaves(obj);
-    player->pos.l.x.f.u = 100;
-    player->pos.l.y.f.u = 200;
-    player->xsp = 0x400; // fast
+    player->x_pos.f.u = 100;
+    player->y_pos.f.u = 200;
+    player->x_vel = 0x400; // fast
     obj->col_property = 1; // (the touch response: Sonic is in the box)
     frame_count = 0x10;     // (a frame that is a multiple of 16: Sonic's turn)
     Obj_NGHZLeaves(obj);
@@ -110,8 +110,8 @@ static void NGHZObjects_SlowSonicMakesNoLeaves(void) {
     Reset();
     Object *obj = Spawn(0x2C, 0, 100, 200);
     Obj_NGHZLeaves(obj);
-    player->xsp = 0x100;
-    player->ysp = 0x100;
+    player->x_vel = 0x100;
+    player->y_vel = 0x100;
     obj->col_property = 1;
     frame_count = 0x10;
     Obj_NGHZLeaves(obj);
@@ -147,10 +147,10 @@ static void NGHZObjects_TheBossWaitsForSonicInTheArenaThenDescendsWithItsLaunche
     level_id = LEVEL_ID(ZoneId_ARZ, 1);
     Object *boss = Spawn(0x89, 0, 0, 0);
     limit_left2 = 0x2A40 - SCREEN_WIDEADD2;
-    player->pos.l.x.f.u = 0x2A00; // (not yet in)
+    player->x_pos.f.u = 0x2A00; // (not yet in)
     Obj_NGHZBoss(boss);
     CHECK_EQ(boss->routine, 0);
-    player->pos.l.x.f.u = 0x2AD8;
+    player->x_pos.f.u = 0x2AD8;
     Obj_NGHZBoss(boss);
     CHECK_EQ(boss->child_count, 3);
     CHECK_EQ(boss->col_type, 0x0F);
@@ -165,8 +165,8 @@ static void NGHZObjects_TheBossWaitsForSonicInTheArenaThenDescendsWithItsLaunche
 static void NGHZObjects_TheWhispFollowsSonicWithinItsSpeedLimit(void) {
     Reset();
     Object *whisp = Spawn(0x8C, 0, 400, 300);
-    player->pos.l.x.f.u = 600;
-    player->pos.l.y.f.u = 200;
+    player->x_pos.f.u = 600;
+    player->y_pos.f.u = 200;
     Obj_Whisp(whisp);
     CHECK_EQ(whisp->col_type, 0x0B);
     for (int i = 0; i < 0x11; i++)
@@ -182,11 +182,11 @@ static void NGHZObjects_TheWhispFollowsSonicWithinItsSpeedLimit(void) {
 static void NGHZObjects_TheGrounderBreaksItsWallAndWalksToSonic(void) {
     Reset();
     Object *grounder = Spawn(0x8D, 0, 500, 300);
-    player->pos.l.x.f.u = 700; // (far)
+    player->x_pos.f.u = 700; // (far)
     Obj_Grounder(grounder);
     CHECK_EQ(grounder->col_type, 0x02);
     CHECK_EQ(Count(0x8F, 0), 4); // (four bricks)
-    player->pos.l.x.f.u = 540; // (near)
+    player->x_pos.f.u = 540; // (near)
     Obj_Grounder(grounder);
     CHECK_EQ(grounder->routine, 4);
     CHECK_EQ(Count(0x90, 0), 5); // (five rocks)
@@ -205,15 +205,15 @@ static void NGHZObjects_TheGrounderBreaksItsWallAndWalksToSonic(void) {
 static void NGHZObjects_TheChopChopSwimsAndSpitsBubblesAndDashesAtSonic(void) {
     Reset();
     Object *fish = Spawn(0x91, 0, 400, 300);
-    player->pos.l.x.f.u = 1000;
-    player->pos.l.y.f.u = 300;
+    player->x_pos.f.u = 1000;
+    player->y_pos.f.u = 300;
     Obj_ChopChop(fish);
     CHECK_EQ(fish->xsp, -0x40);
     CHECK_EQ(fish->col_type, 0x02);
     for (int i = 0; i < 20; i++)
         Obj_ChopChop(fish);
     CHECK(fish->pos.l.x.f.u < 400);
-    player->pos.l.x.f.u = (int16_t)(fish->pos.l.x.f.u - 0x60); // ahead of it, near
+    player->x_pos.f.u = (int16_t)(fish->pos.l.x.f.u - 0x60); // ahead of it, near
     Obj_ChopChop(fish);
     CHECK_EQ(fish->routine, 4); // (it stops)
     for (int i = 0; i < 0x12; i++)

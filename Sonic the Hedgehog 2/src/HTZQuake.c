@@ -465,8 +465,8 @@ static const uint8_t quake_slope[204] = {
     0xD3, 0xD3, 0xD2, 0xD2, 0xD1, 0xD1, 0xD0, 0xD0, 0xD0, 0xD0, 0xD0, 0xD0,
 };
 
-static Object *Char(int who) {
-    return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+static Sst *Char(int who) {
+    return who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
 }
 
 void Obj_HTZQuakeBlock(Object *obj) {
@@ -511,17 +511,17 @@ void Obj_HTZQuakeBlock(Object *obj) {
         break;
     }
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = Char(who);
+        Sst *chr = Char(who);
         if (chr != NULL)
             Solid_Character(obj, chr, who, x_rad, y_rad, (int16_t)(y_rad + 1), x, ((scratch->subtype >> 1) % 5) == 4 ? (const int8_t *)quake_slope : NULL);
     }
     // loc_FBF4: whoever stands on it is let go when the level's own floor is at or under his feet (the ground moves up through him)
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = Char(who);
+        Sst *chr = Char(who);
         if (chr == NULL || !(obj->status.b & (1 << (3 + who))))
             continue;
-        if (ObjFloorDist(chr, chr->pos.l.x.f.u) <= 0) {
-            chr->status.p.f.object_stand = false;
+        if (SstFloorDist(chr, chr->x_pos.f.u) <= 0) {
+            chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
             obj->status.b &= (uint8_t)~(1 << (3 + who));
         }
     }
@@ -529,8 +529,8 @@ void Obj_HTZQuakeBlock(Object *obj) {
     const int kind = (scratch->subtype >> 1) % 5;
     if (kind == 2 || kind == 3) { // the lava's top (kinds 4 and 6) hurts whoever stands on it (Touch_ChkHurt: not while invincible or flashing)
         for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-            Object *chr = Char(who);
-            if (chr == NULL || !(obj->status.b & (1 << (3 + who))) || invincibility || ((Scratch_Sonic *)&chr->scratch)->flash_time)
+            Sst *chr = Char(who);
+            if (chr == NULL || !(obj->status.b & (1 << (3 + who))) || invincibility || ((Scratch_Sonic *)chr->own.u8)->flash_time)
                 continue;
             if (who == SolidChar_Sonic)
                 HurtSonic(chr, obj);

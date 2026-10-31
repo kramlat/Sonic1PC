@@ -17,8 +17,8 @@
 #include "Resource/Mappings/LedgeGHZ.h"
 #include "Resource/Mappings/LedgeHPZ.h"
 
-static Object *Character(int who) {
-    return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+static Sst *Character(int who) {
+    return who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -34,7 +34,7 @@ void Obj_HPZEmerald(Object *obj) {
         obj->priority = 4;
     }
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = Character(who);
+        Sst *chr = Character(who);
         if (chr != NULL)
             Solid_Character(obj, chr, who, 0x20, 0x10, 0x10, obj->pos.l.x.f.u, NULL);
     }
@@ -197,7 +197,7 @@ static bool Ledge_IsHPZ(void) {
 static void Ledge_Platform(Object *obj) {
     const uint8_t *slope = Ledge_IsHPZ() ? ledge_slope_hpz : ledge_slope_ghz;
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-        Object *chr = Character(who);
+        Sst *chr = Character(who);
         if (chr != NULL)
             Solid_SlopedPlatform(obj, chr, who, obj->width_pixels, slope, obj->pos.l.x.f.u);
     }
@@ -260,10 +260,10 @@ void Obj_CollapsingLedge(Object *obj) {
         RememberState(obj);
         if (--scratch->timer == 0) {
             for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
-                Object *chr = Character(who);
-                if (chr != NULL && chr->status.p.f.object_stand) {
-                    chr->status.p.f.object_stand = false;
-                    chr->status.p.f.pushing = false;
+                Sst *chr = Character(who);
+                if (chr != NULL && ((chr->status & SST_PSTATUS_OBJECT_STAND) != 0)) {
+                    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+                    chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
                     chr->prev_anim = 1;
                 }
             }

@@ -40,9 +40,9 @@ void Obj_ShieldInvincibility(Object* obj) {
         }
 
         // Update shield position
-        obj->pos.l.x.f.u = player->pos.l.x.f.u;
-        obj->pos.l.y.f.u = player->pos.l.y.f.u;
-        obj->status.b = player->status.b;
+        obj->pos.l.x.f.u = player->x_pos.f.u;
+        obj->pos.l.y.f.u = player->y_pos.f.u;
+        obj->status.b = player->status;
 
         // Animate and draw shield
         AnimateSprite(obj, Animation_ShieldInvincibility);
@@ -67,7 +67,7 @@ void Obj_ShieldInvincibility(Object* obj) {
         int16_t* pos = track_sonic[track_ind >> 2];
         obj->pos.l.x.f.u = *pos++;
         obj->pos.l.y.f.u = *pos++;
-        obj->status.b = player->status.b;
+        obj->status.b = player->status;
 
         // Animate and draw object
         AnimateSprite(obj, Animation_ShieldInvincibility);

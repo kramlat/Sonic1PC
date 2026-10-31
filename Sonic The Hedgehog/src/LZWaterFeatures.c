@@ -31,7 +31,7 @@ static void DynWater_LZ1(void) {
         if (x < 0x600) goto setTarget;
         target = 0x108;
 
-        if (player->pos.l.y.f.u < 0x200) {
+        if (player->y_pos.f.u < 0x200) {
             // Secret top path
             if (x < 0xC80) goto setTarget;
             target = 0xE8;
@@ -54,7 +54,7 @@ static void DynWater_LZ1(void) {
         if (target == wtr_pos2)
             wtr_routine = 1;
     } else if (wtr_routine == 1) {
-        if (player->pos.l.y.f.u >= 0x2E0)
+        if (player->y_pos.f.u >= 0x2E0)
             return;
         target = 0x3A8;
 
@@ -88,7 +88,7 @@ static void DynWater_LZ3(void) {
     if (wtr_routine == 0) {
         target = 0x900; // Below 0x800 -- water doesn't appear at all
 
-        if (x >= 0x600 && player->pos.l.y.f.u >= 0x3C0 && player->pos.l.y.f.u < 0x600) {
+        if (x >= 0x600 && player->y_pos.f.u >= 0x3C0 && player->y_pos.f.u < 0x600) {
             target = 0x4C8;
             // Opens a wall: row 5, FG columns 12-13 -> chunks F8, F9.
             LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 12, 5, 0xF8);
@@ -110,7 +110,7 @@ static void DynWater_LZ3(void) {
         // x=0x1400 if the target's already been set to it, or Sonic is at
         // the end via the underwater bottom path (y>=0x600), or Sonic is
         // NOT on the waterslide/top path (y<0x280).
-        if (x >= 0x1400 && (wtr_pos3 == 0x508 || player->pos.l.y.f.u >= 0x600 || player->pos.l.y.f.u < 0x280)) {
+        if (x >= 0x1400 && (wtr_pos3 == 0x508 || player->y_pos.f.u >= 0x600 || player->y_pos.f.u < 0x280)) {
             target = 0x508;
             wtr_pos2 = target;
             if (x >= 0x1770)
@@ -243,9 +243,9 @@ static void LZWindTunnels(void) {
         const int16_t *zone = LZWind_Data[base_row + i];
         int16_t left = zone[0], top = zone[1], right = zone[2], bottom = zone[3];
 
-        if (player->pos.l.x.f.u < left || player->pos.l.x.f.u >= right)
+        if (player->x_pos.f.u < left || player->x_pos.f.u >= right)
             continue;
-        if (player->pos.l.y.f.u < top || player->pos.l.y.f.u >= bottom)
+        if (player->y_pos.f.u < top || player->y_pos.f.u >= bottom)
             continue;
 
         // Inside a tunnel zone
@@ -266,27 +266,27 @@ static void LZWindTunnels(void) {
 
         // "Suction" pre-zone: nudge Sonic towards the tunnel mouth before
         // he's actually inside it.
-        int16_t d0 = (int16_t)(player->pos.l.x.f.u - 128);
+        int16_t d0 = (int16_t)(player->x_pos.f.u - 128);
         if (d0 < left) {
             int16_t dy = (act == 1) ? -2 : 2; // LZ act 2 nudges the opposite way
-            player->pos.l.y.f.u = (int16_t)(player->pos.l.y.f.u + dy);
+            player->y_pos.f.u = (int16_t)(player->y_pos.f.u + dy);
         }
 
-        player->pos.l.x.f.u = (int16_t)(player->pos.l.x.f.u + 4);
-        player->xsp = 0x400;
-        player->ysp = 0;
+        player->x_pos.f.u = (int16_t)(player->x_pos.f.u + 4);
+        player->x_vel = 0x400;
+        player->y_vel = 0;
         player->anim = SonAnimId_Float2;
-        player->status.p.f.in_air = true;
-        player->status.p.f.roll_jump = false; // Bug fix (Knuckles in Sonic 2's own equivalent)
+        player->status |= SST_PSTATUS_IN_AIR;
+        player->status &= (uint8_t)~SST_PSTATUS_ROLL_JUMP; // Bug fix (Knuckles in Sonic 2's own equivalent)
 
         if (jpad1_hold2 & JPAD_UP) {
             // Bug fix (also from Knuckles in Sonic 2): don't let Sonic rise
             // above the tunnel's own top boundary.
-            if (player->pos.l.y.f.u > top)
-                player->pos.l.y.f.u--;
+            if (player->y_pos.f.u > top)
+                player->y_pos.f.u--;
         }
         if (jpad1_hold2 & JPAD_DOWN)
-            player->pos.l.y.f.u++;
+            player->y_pos.f.u++;
 
         return;
     }

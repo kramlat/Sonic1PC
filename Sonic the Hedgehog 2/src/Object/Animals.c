@@ -92,8 +92,8 @@ static bool IsOnScreen(const Object *obj) {
 
 // Offset_0x00A734: the one set free goes when it is off the screen and in the stretch ahead of the player
 static void Gone(Object *obj) {
-    const uint16_t ahead = (uint16_t)(obj->pos.l.x.f.u - player->pos.l.x.f.u);
-    if (obj->pos.l.x.f.u >= player->pos.l.x.f.u && ahead < 0x180 && !IsOnScreen(obj)) {
+    const uint16_t ahead = (uint16_t)(obj->pos.l.x.f.u - player->x_pos.f.u);
+    if (obj->pos.l.x.f.u >= player->x_pos.f.u && ahead < 0x180 && !IsOnScreen(obj)) {
         ObjectDelete(obj);
         return;
     }
@@ -102,11 +102,11 @@ static void Gone(Object *obj) {
 
 // Offset_0x00A914: how far the player is, less $B8; the alpha tests it by its sign (Reach) and the flickies by the carry (PlayerClose)
 static int16_t Reach(const Object *obj) {
-    return (int16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u - 0xB8);
+    return (int16_t)(player->x_pos.f.u - obj->pos.l.x.f.u - 0xB8);
 }
 
 static bool PlayerClose(const Object *obj) {
-    return (uint16_t)(player->pos.l.x.f.u - obj->pos.l.x.f.u) < 0xB8;
+    return (uint16_t)(player->x_pos.f.u - obj->pos.l.x.f.u) < 0xB8;
 }
 
 // Offset_0x00A8D4: the frame, and the landing, of a jump
@@ -125,7 +125,7 @@ static void JumpFrame(Object *obj, const Scratch_Flicky *a) {
 // Offset_0x00A8FC: it turns to the player
 static void FacePlayer(Object *obj) {
     obj->render.b |= 1;
-    if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)player->pos.l.x.f.u)
+    if ((uint16_t)obj->pos.l.x.f.u < (uint16_t)player->x_pos.f.u)
         obj->render.b &= (uint8_t)~1;
 }
 

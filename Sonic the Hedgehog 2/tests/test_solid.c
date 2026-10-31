@@ -21,15 +21,15 @@ static void Solid_StandingOnASlopeIsAtTheTablesHeight(void) {
     obj->pos.l.x.f.u = 100;
     obj->pos.l.y.f.u = 200;
     obj->status.b = 1 << 3; // Sonic stands on it
-    player->pos.l.x.f.u = 100;
-    player->pos.l.y.f.u = 0;
-    player->y_rad = 19;
-    player->status.p.f.object_stand = true;
-    player->status.p.f.in_air = false;
+    player->x_pos.f.u = 100;
+    player->y_pos.f.u = 0;
+    player->y_radius = 19;
+    player->status |= SST_PSTATUS_OBJECT_STAND;
+    player->status &= (uint8_t)~SST_PSTATUS_IN_AIR;
     player->routine = 2;
 
     Solid_Character(obj, player, SolidChar_Sonic, 0x10, 0x10, 0x11, 100, slope);
-    CHECK_EQ(player->pos.l.y.f.u, 200 - 8 - 19); // (the table's value 8 above the object's y, then his own radius: he stands on it, not 16 pixels in it)
+    CHECK_EQ(player->y_pos.f.u, 200 - 8 - 19); // (the table's value 8 above the object's y, then his own radius: he stands on it, not 16 pixels in it)
 }
 
 static void Solid_StandingOnAFlatTopIsAtItsWalkingHeight(void) {
@@ -37,13 +37,13 @@ static void Solid_StandingOnAFlatTopIsAtItsWalkingHeight(void) {
     obj->pos.l.x.f.u = 100;
     obj->pos.l.y.f.u = 200;
     obj->status.b = 1 << 3;
-    player->pos.l.x.f.u = 100;
-    player->y_rad = 19;
-    player->status.p.f.object_stand = true;
+    player->x_pos.f.u = 100;
+    player->y_radius = 19;
+    player->status |= SST_PSTATUS_OBJECT_STAND;
     player->routine = 2;
 
     Solid_Character(obj, player, SolidChar_Sonic, 0x10, 0x10, 0x11, 100, NULL);
-    CHECK_EQ(player->pos.l.y.f.u, 200 - 0x11 - 19);
+    CHECK_EQ(player->y_pos.f.u, 200 - 0x11 - 19);
 }
 
 static void Solid_WalkingOffTheEdgeLetsGo(void) {
@@ -51,13 +51,13 @@ static void Solid_WalkingOffTheEdgeLetsGo(void) {
     obj->pos.l.x.f.u = 100;
     obj->pos.l.y.f.u = 200;
     obj->status.b = 1 << 3;
-    player->pos.l.x.f.u = 100 + 0x40; // far past the edge
-    player->y_rad = 19;
-    player->status.p.f.object_stand = true;
+    player->x_pos.f.u = 100 + 0x40; // far past the edge
+    player->y_radius = 19;
+    player->status |= SST_PSTATUS_OBJECT_STAND;
     player->routine = 2;
 
     Solid_Character(obj, player, SolidChar_Sonic, 0x10, 0x10, 0x11, 100, NULL);
-    CHECK(!player->status.p.f.object_stand);
+    CHECK(!((player->status & SST_PSTATUS_OBJECT_STAND) != 0));
     CHECK((obj->status.b & (1 << 3)) == 0);
 }
 

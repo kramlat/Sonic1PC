@@ -26,10 +26,10 @@
 
 #define FOR_EACH_CHARACTER(chr, who) \
     for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) \
-        for (Object *chr = Character(who); chr != NULL; chr = NULL)
+        for (Sst *chr = Character(who); chr != NULL; chr = NULL)
 
-static Object *Character(int who) {
-    return who == SolidChar_Sonic ? player : (TAILS_OBJ->type != 0 ? TAILS_OBJ : NULL);
+static Sst *Character(int who) {
+    return who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
 }
 
 static void ForgetIfRemembered(Object *obj) {
@@ -80,16 +80,16 @@ static void SteamVent_Puff(Object *obj, Scratch_SteamVent *scratch, int16_t dx, 
     puff->priority = 4;
 }
 
-static void SteamVent_Throw(Object *obj, Scratch_SteamVent *scratch, Object *chr) {
+static void SteamVent_Throw(Object *obj, Scratch_SteamVent *scratch, Sst *chr) {
     if (obj->routine_sec != SteamState_Rise)
         return;
-    chr->ysp = -0xA00; // (Nick Arcade's was -$600: the alpha's vent throws harder)
-    chr->status.p.f.in_air = true;
-    chr->status.p.f.object_stand = false;
+    chr->y_vel = -0xA00; // (Nick Arcade's was -$600: the alpha's vent throws harder)
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->anim = SonAnimId_Spring;
     chr->routine = 2;
     if (scratch->subtype & 0x80)
-        chr->xsp = 0;
+        chr->x_vel = 0;
     CharThrow_Tumble(chr, scratch->subtype, 4, 0, 1);
     PlaySound(sfx_Spring);
 }
@@ -363,7 +363,7 @@ void Obj_MTZPlatform(Object *obj) {
     }
 
     const int16_t old_x = obj->pos.l.x.f.u;
-    Object *sonic = player, *tails = TAILS_OBJ;
+    Sst *sonic = player, *tails = TAILS_OBJ;
     switch (scratch->subtype) {
     case 0:
         break;
@@ -432,8 +432,8 @@ void Obj_MTZPlatform(Object *obj) {
         const int16_t y0 = (int16_t)(obj->pos.l.y.f.u - 0x10), y1 = (int16_t)(obj->pos.l.y.f.u + 0x40);
         bool near = false;
         for (int i = 0; i < 2; i++) {
-            Object *chr = i == 0 ? sonic : tails;
-            if ((uint16_t)(chr->pos.l.x.f.u - x0) < (uint16_t)(x1 - x0) && (uint16_t)(chr->pos.l.y.f.u - y0) < (uint16_t)(y1 - y0))
+            Sst *chr = i == 0 ? sonic : tails;
+            if ((uint16_t)(chr->x_pos.f.u - x0) < (uint16_t)(x1 - x0) && (uint16_t)(chr->y_pos.f.u - y0) < (uint16_t)(y1 - y0))
                 near = true;
         }
         if (near) {
@@ -487,23 +487,23 @@ typedef struct {
     uint8_t subtype;   // 0x28
 } Scratch_WallSpring;
 
-static void WallSpring_Throw(Object *obj, Scratch_WallSpring *scratch, Object *chr, int who) {
-    chr->xsp = -0x800;
-    chr->ysp = -0x800;
-    chr->status.p.f.x_flip = true;
+static void WallSpring_Throw(Object *obj, Scratch_WallSpring *scratch, Sst *chr, int who) {
+    chr->x_vel = -0x800;
+    chr->y_vel = -0x800;
+    chr->status |= SST_PSTATUS_X_FLIP;
     if (!obj->status.o.f.x_flip) {
-        chr->status.p.f.x_flip = false;
-        chr->xsp = (int16_t)-chr->xsp;
+        chr->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+        chr->x_vel = (int16_t)-chr->x_vel;
     }
-    ((Scratch_Sonic *)&chr->scratch)->control_lock = 0xF;
-    chr->inertia = chr->xsp;
-    if (!chr->status.p.f.in_ball)
+    ((Scratch_Sonic *)chr->own.u8)->control_lock = 0xF;
+    chr->ground_vel = chr->x_vel;
+    if (!((chr->status & SST_PSTATUS_IN_BALL) != 0))
         chr->anim = SonAnimId_Walk;
     if (scratch->subtype & 0x80)
-        chr->ysp = 0;
+        chr->y_vel = 0;
     CharThrow_Tumble(chr, scratch->subtype, 8, 1, 3);
     obj->status.b &= (uint8_t)~0x60;
-    chr->status.p.f.pushing = false;
+    chr->status &= (uint8_t)~SST_PSTATUS_PUSHING;
     PlaySound(sfx_Spring);
     (void)who;
 }
@@ -528,10 +528,10 @@ void Obj_MTZSpringWall(Object *obj) {
         const uint8_t height = (uint8_t)obj->y_rad;
         if (Solid_Character(obj, chr, who, 0x13, height, (int16_t)(height + 1), obj->pos.l.x.f.u, NULL) != 1)
             continue;
-        if (!chr->status.p.f.in_air)
+        if (!((chr->status & SST_PSTATUS_IN_AIR) != 0))
             continue;
         uint8_t d1 = obj->status.b;
-        if (obj->pos.l.x.f.u >= chr->pos.l.x.f.u)
+        if (obj->pos.l.x.f.u >= chr->x_pos.f.u)
             d1 ^= 1;
         if (!(d1 & 1))
             WallSpring_Throw(obj, scratch, chr, who);
@@ -720,7 +720,7 @@ static void ScrewNut_Frame(Object *obj, Scratch_ScrewNut *scratch) {
     obj->pos.l.y.f.u = (int16_t)(scratch->base_y - d1);
 }
 
-static void ScrewNut_Char(Object *obj, Scratch_ScrewNut *scratch, Object *chr, int who) {
+static void ScrewNut_Char(Object *obj, Scratch_ScrewNut *scratch, Sst *chr, int who) {
     uint8_t *state = &scratch->state[who];
     uint8_t *side = &scratch->side[who];
     if (!(obj->status.b & (8 << who)))
@@ -730,23 +730,23 @@ static void ScrewNut_Char(Object *obj, Scratch_ScrewNut *scratch, Object *chr, i
         if (!(obj->status.b & (8 << who)))
             return;
         *state += 2;
-        *side = (uint8_t)(obj->pos.l.x.f.u < chr->pos.l.x.f.u);
+        *side = (uint8_t)(obj->pos.l.x.f.u < chr->x_pos.f.u);
         // Fallthrough
     case 2: {
-        int16_t d0 = (int16_t)(chr->pos.l.x.f.u - obj->pos.l.x.f.u);
+        int16_t d0 = (int16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u);
         if (*side)
             d0 += 0xF;
         if ((uint16_t)d0 < 0x10) {
-            chr->pos.l.x.f.u = obj->pos.l.x.f.u;
+            chr->x_pos.f.u = obj->pos.l.x.f.u;
             *state += 2;
         }
         return;
     }
     default: {
-        const int16_t d0 = (int16_t)(chr->pos.l.x.f.u - obj->pos.l.x.f.u);
+        const int16_t d0 = (int16_t)(chr->x_pos.f.u - obj->pos.l.x.f.u);
         if (d0 < 0) { // walking left of the middle turns it down
             scratch->turn += d0;
-            chr->pos.l.x.f.u = obj->pos.l.x.f.u;
+            chr->x_pos.f.u = obj->pos.l.x.f.u;
             ScrewNut_Frame(obj, scratch);
             const int16_t depth = (int16_t)(-(scratch->turn >> 3));
             if (depth < scratch->range)
@@ -760,7 +760,7 @@ static void ScrewNut_Char(Object *obj, Scratch_ScrewNut *scratch, Object *chr, i
                 obj->routine = NutRoutine_Fall;
         } else { // ... and right turns it up
             scratch->turn += d0;
-            chr->pos.l.x.f.u = obj->pos.l.x.f.u;
+            chr->x_pos.f.u = obj->pos.l.x.f.u;
             ScrewNut_Frame(obj, scratch);
         }
         return;
