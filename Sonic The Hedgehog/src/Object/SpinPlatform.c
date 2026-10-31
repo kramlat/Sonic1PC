@@ -36,7 +36,7 @@ static void Spin_Trapdoor(Sst *self, Own_SpinPlatform *own) {
             QueueSound2(sfx_Door);
     }
 
-    Sst_Animate(self, Animation_SpinPlatform); // stays on last trapdoor frame indefinitely
+    Sst_AnimateFlips(self, Animation_SpinPlatform); // stays on last trapdoor frame indefinitely
     Spin_SolidAndDisplay(self, 128 / 2, 24 / 2);
 }
 
@@ -52,7 +52,7 @@ static void Spin_Spinner(Sst *self, Own_SpinPlatform *own) {
         }
     }
 
-    Sst_Animate(self, Animation_SpinPlatform); // stays on last frame (ID 0) indefinitely
+    Sst_AnimateFlips(self, Animation_SpinPlatform); // stays on last frame (ID 0) indefinitely
     Spin_SolidAndDisplay(self, 32 / 2, 14 / 2);
 }
 

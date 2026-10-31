@@ -153,7 +153,7 @@ static void BossFire_Action(Sst *self, Own_BossFire *own) {
     }
 
     Sst_MoveSprite2(self);
-    Sst_Animate(self, Animation_Fireballs);
+    Sst_AnimateFlips(self, Animation_Fireballs);
 
     if ((uint16_t)self->y_pos.f.u > (uint16_t)(0x210 + 0xD8)) { // boss_mz_y+0xD8 -- fallen into the lava
         Sst_Delete(self);
@@ -166,7 +166,7 @@ static void BossFire_TempFire(Sst *self, Own_BossFire *own) {
     self->art_tile |= 0x8000; // high priority
 
     if (--own->generic_timer != 0) {
-        Sst_Animate(self, Animation_Fireballs);
+        Sst_AnimateFlips(self, Animation_Fireballs);
         Sst_Draw(self);
         return;
     }
@@ -175,7 +175,7 @@ static void BossFire_TempFire(Sst *self, Own_BossFire *own) {
     self->y_pos.f.u -= 4;
     self->collision_flags = 0;
 
-    Sst_Animate(self, Animation_Fireballs);
+    Sst_AnimateFlips(self, Animation_Fireballs);
     Sst_Draw(self);
 }
 

@@ -71,7 +71,7 @@ static void SpinC_Platform_Update(Sst *self, Own_LCon *own) {
 }
 
 static void SpinC_Solid(Sst *self, Own_LCon *own) {
-    Sst_Animate(self, Animation_SpinConveyor);
+    Sst_AnimateFlips(self, Animation_SpinConveyor);
 
     if (self->mapping_frame == 0) { // upright -- solid from all sides
         int16_t prev_x = self->x_pos.f.u;

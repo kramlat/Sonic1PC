@@ -145,7 +145,11 @@ void Sst_MoveSpriteTestGravity2(Sst *obj);
 // Animate_Sprite: `table` is the animation scripts (a big-endian word offset for each animation, from the table's start); a script is a delay, the frames, and an end code: $FF back to the first frame, $FE back
 // by the byte after it, $FD another animation (the byte after it), $FC the routine counter on by 2, $FB off to the side (x $7F00). Animate_SpriteIrregularDelay's scripts are pairs of a frame and its own delay, with
 // the same codes (each its own pair)
+// Animate_Sprite as Sonic 3 & Knuckles has it: a frame byte is a frame (up to $7F)
 void Sst_Animate(Sst *obj, const uint8_t *table);
+// ... for a Sonic 1 / Sonic 2 script, whose frame byte is the frame in its low 5 bits and two flip bits ($20: X, $40: Y, each against the object's status; their AnimateSprite does `andi.b #$1F`). A table that has
+// those bits is animated with this, not the one above, so that the objects of a later game (frames above $1F) are not changed by it
+void Sst_AnimateFlips(Sst *obj, const uint8_t *table);
 void Sst_AnimateIrregular(Sst *obj, const uint8_t *table);
 
 // Render_Sprites for one draw queue of the Sonic 3 objects, into the sprite table (Sprites.c: BuildSprites calls it for each queue of each view, and empties the queues; `clear_on_screen` is for the first view: the on-screen flag then says whether the object was in either)

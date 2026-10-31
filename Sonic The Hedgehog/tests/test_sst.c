@@ -168,6 +168,40 @@ static void Sst_AnimateWalksTheScript(void) {
     CHECK_EQ(o->render_flags & 0xFC, 0x84); // (the other bits stay)
 }
 
+// A Sonic 1 / Sonic 2 script: the frame in 5 bits, $20 flips it in X and $40 in Y against the status (their AnimateSprite); Sst_Animate leaves the byte alone
+static const uint8_t flip_scripts[] = {
+    0x00, 0x02,
+    0x00, 1, 0x22, 0x43, 0x64, 0xFF, // frames 1, 2 flipped in X, 3 flipped in Y, 4 flipped both ways
+};
+
+static void Sst_AnimateFlipsTakesTheFlipBitsOutOfTheFrame(void) {
+    Fresh();
+    Sst *o = &sst[5];
+    o->anim = o->prev_anim = 0;
+    o->status = 0;
+    o->render_flags = 0x80;
+    o->anim_frame_timer = 0;
+    Sst_AnimateFlips(o, flip_scripts);
+    CHECK_EQ(o->mapping_frame, 1);
+    CHECK_EQ(o->render_flags & 3, 0);
+    Sst_AnimateFlips(o, flip_scripts);
+    CHECK_EQ(o->mapping_frame, 2);
+    CHECK_EQ(o->render_flags & 3, 1);
+    Sst_AnimateFlips(o, flip_scripts);
+    CHECK_EQ(o->mapping_frame, 3);
+    CHECK_EQ(o->render_flags & 3, 2);
+    o->status = SST_STATUS_X_FLIP; // (against the status: the object's own flip cancels the frame's)
+    Sst_AnimateFlips(o, flip_scripts);
+    CHECK_EQ(o->mapping_frame, 4);
+    CHECK_EQ(o->render_flags & 3, 2);
+    CHECK_EQ(o->render_flags & 0x80, 0x80);
+    // the Sonic 3 & Knuckles one does not: the byte is the frame
+    o->anim_frame = 1;
+    o->anim_frame_timer = 0;
+    Sst_Animate(o, flip_scripts);
+    CHECK_EQ(o->mapping_frame, 0x22);
+}
+
 static void Sst_AnimateCodes(void) {
     Fresh();
     Sst *o = &sst[5];
@@ -325,6 +359,7 @@ static void Sst_RenderStaticMappingsAreOneLonePiece(void) {
 }
 
 void RegisterSstTests(void) {
+    RUN_TEST(Sst_AnimateFlipsTakesTheFlipBitsOutOfTheFrame);
     RUN_TEST(Sst_ProcessRunsEverySlotInOrderAndSkipsFreeOnes);
     RUN_TEST(Sst_AFrozenLevelOnlyDrawsItsOnScreenObjects);
     RUN_TEST(Sst_DrawQueuesByPriorityAndPassesOnWhenFull);

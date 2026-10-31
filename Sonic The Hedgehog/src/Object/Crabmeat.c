@@ -175,7 +175,7 @@ void Obj_Crabmeat(Sst *self) {
         }
 
         // Animate, draw, and unload when off-screen
-        Sst_Animate(self, Animation_Crabmeat);
+        Sst_AnimateFlips(self, Animation_Crabmeat);
         SstOnScreenTest(self);
         break;
     case 4: // Delete
@@ -187,7 +187,7 @@ void Obj_Crabmeat(Sst *self) {
     case 8: // Projectile move
         // Move and animate
         Sst_MoveSprite(self);
-        Sst_Animate(self, Animation_Crabmeat);
+        Sst_AnimateFlips(self, Animation_Crabmeat);
         Sst_Draw(self);
 
         // Delete if fallen below stage

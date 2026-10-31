@@ -135,10 +135,16 @@ static const uint8_t *Script(const uint8_t *table, unsigned anim) {
     return table + ((table[anim * 2] << 8) | table[anim * 2 + 1]);
 }
 
-// The frame is set, and the flips of `status` go into the render flags
-static void SetFrame(Sst *obj, uint8_t frame) {
+// The frame is set, and the flips of `status` go into the render flags. A Sonic 1 / Sonic 2 script (`frame_flips`) holds the frame in its low 5 bits and two flip bits in the others
+// ($20 flips it in X, $40 in Y, each against the object's status: their AnimateSprite); Sonic 3 & Knuckles' frames are up to $7F
+static void SetFrame(Sst *obj, uint8_t frame, bool frame_flips) {
+    uint8_t flips = obj->status & 3;
+    if (frame_flips) {
+        flips ^= (uint8_t)((frame >> 5) & 3);
+        frame &= 0x1F;
+    }
     obj->mapping_frame = frame;
-    obj->render_flags = (uint8_t)((obj->render_flags & 0xFC) | (obj->status & 3));
+    obj->render_flags = (uint8_t)((obj->render_flags & 0xFC) | flips);
     obj->anim_frame++;
 }
 
@@ -151,7 +157,7 @@ static bool Restart(Sst *obj) {
     return --obj->anim_frame_timer == -1; // (subq.b #1 with a borrow: the timer ran out)
 }
 
-void Sst_Animate(Sst *obj, const uint8_t *table) {
+static void AnimateScript(Sst *obj, const uint8_t *table, bool frame_flips) {
     if (!Restart(obj))
         return;
     const uint8_t *s = Script(table, obj->anim);
@@ -159,19 +165,19 @@ void Sst_Animate(Sst *obj, const uint8_t *table) {
     unsigned d1 = obj->anim_frame;
     uint8_t d0 = s[1 + d1];
     if (!(d0 & 0x80)) {
-        SetFrame(obj, d0);
+        SetFrame(obj, d0, frame_flips);
         return;
     }
     switch (d0) {
     case 0xFF: // back to the first frame
         obj->anim_frame = 0;
-        SetFrame(obj, s[1]);
+        SetFrame(obj, s[1], frame_flips);
         break;
     case 0xFE: { // back by the byte after the code
         uint8_t back = s[2 + d1];
         obj->anim_frame = (uint8_t)(obj->anim_frame - back);
         d1 = (uint8_t)(d1 - back);
-        SetFrame(obj, s[1 + d1]);
+        SetFrame(obj, s[1 + d1], frame_flips);
         break;
     }
     case 0xFD: // another animation
@@ -188,6 +194,14 @@ void Sst_Animate(Sst *obj, const uint8_t *table) {
     default:
         break;
     }
+}
+
+void Sst_Animate(Sst *obj, const uint8_t *table) {
+    AnimateScript(obj, table, false);
+}
+
+void Sst_AnimateFlips(Sst *obj, const uint8_t *table) {
+    AnimateScript(obj, table, true);
 }
 
 void Sst_AnimateIrregular(Sst *obj, const uint8_t *table) {
@@ -223,5 +237,5 @@ void Sst_AnimateIrregular(Sst *obj, const uint8_t *table) {
         }
     }
     obj->anim_frame_timer = s[d1 + 1];
-    SetFrame(obj, d0);
+    SetFrame(obj, d0, false);
 }

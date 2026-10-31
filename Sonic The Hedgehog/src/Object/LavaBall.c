@@ -134,7 +134,7 @@ void Obj_LavaBall(Sst *self) {
         }
 
         Sst_MoveSprite2(self);
-        Sst_Animate(self, Animation_Fireballs); // wall/ceiling/floor-collided balls advance obRoutine to LBall_Delete themselves
+        Sst_AnimateFlips(self, Animation_Fireballs); // wall/ceiling/floor-collided balls advance obRoutine to LBall_Delete themselves
 
         SstOnScreenTest(self);
         break;

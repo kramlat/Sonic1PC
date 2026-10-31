@@ -15,7 +15,7 @@
 // enough, see LargeGrass.c's own LGrass_Burnable)
 
 static void GFire_Animate(Sst *self) {
-    Sst_Animate(self, Animation_GrassFire);
+    Sst_AnimateFlips(self, Animation_GrassFire);
     Sst_Draw(self);
 }
 
