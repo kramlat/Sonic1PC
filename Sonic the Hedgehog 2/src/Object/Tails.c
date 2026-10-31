@@ -2,6 +2,7 @@
 // which a stub of a "CPU" fills with Sonic's own pad from 16 frames ago; he has no water code, no debug mode and no flight yet; hurting him loses SONIC'S rings (the copy of the hurt
 // code works on the shared ring count); he does not die from enemies, only from falling below the level, and then he comes back above Sonic.
 #include "Standing.h"
+void Obj_Explosion(Sst *self);
 #include "SstLoad.h"
 #include "ObjectSst.h"
 #include "Object.h"
@@ -783,7 +784,7 @@ static signed int React_Enemy(Sst *self, Sst *hit)
         AddPoints(point_bonus);
 
         // Explode object and bounce
-        hit->code = sst_object_codes[ObjId_Explosion];
+        hit->code = Obj_Explosion;
         hit->routine = 0;
 
         if (self->y_vel >= 0) {
@@ -923,7 +924,7 @@ static signed int HurtTails(Sst *self, int16_t src_x, bool spikes)
             // Spawn lost rings object
             Sst *rings = Sst_Allocate();
             if (rings != NULL) {
-                rings->code = sst_object_codes[ObjId_RingLoss];
+                rings->code = Obj_RingLoss;
                 rings->x_pos.f.u = self->x_pos.f.u;
                 rings->y_pos.f.u = self->y_pos.f.u;
             }
@@ -1702,7 +1703,7 @@ void Obj_Tails(Sst *self) {
         pad_head = 0;
         control_counter = 0;
         last_frame_tails = 0xFF;
-        SST_TAILS_TAILS->code = sst_object_codes[ObjId_05]; // (his tails)
+        SST_TAILS_TAILS->code = Obj_TailsTails; // (his tails)
         // Fallthrough
     case 2: // Regular movement
         Tails_Control();
@@ -1810,7 +1811,7 @@ void Game_LevelObjects(void) {
         AddPLC(PlcId_Main);
     Sst *tails = SST_PLAYER_2;
     memset(tails, 0, sizeof(*tails));
-    tails->code = sst_object_codes[ObjId_02];
+    tails->code = Obj_Tails;
     tails->x_pos.f.u = player->x_pos.f.u - 0x20;
     tails->y_pos.f.u = player->y_pos.f.u;
     memset(SST_TAILS_TAILS, 0, sizeof(Sst));

@@ -67,7 +67,7 @@ static void CSI_MakeMiniSonic(Sst *self) {
         if (mini == NULL)
             break;
         last = mini;
-        mini->code = sst_object_codes[ObjId_80];
+        mini->code = Obj_ContScrItem;
         mini->x_pos.f.u = (int16_t)csi_mini_sonic_x[i] - (odd_shift ? 10 : 0) + SCREEN_WIDEADD2;
         mini->y_pos.f.u = 0x80 + 0x50 + SCREEN_TALLADD2;
         mini->mapping_frame = CSI_FRAME_MINI_FOOT_DOWN;

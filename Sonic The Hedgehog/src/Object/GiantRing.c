@@ -53,7 +53,7 @@ void Obj_GiantRing(Sst *self) {
 
         Sst *flash = Sst_Allocate();
         if (flash != NULL) {
-            flash->code = sst_object_codes[ObjId_RingFlash];
+            flash->code = Obj_RingFlash;
             flash->x_pos.f.u = self->x_pos.f.u;
             flash->y_pos.f.u = self->y_pos.f.u;
             ((Own_RingFlash *)flash->own.u8)->parent = self;

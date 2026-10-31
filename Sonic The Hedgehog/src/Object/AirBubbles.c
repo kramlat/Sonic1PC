@@ -201,7 +201,7 @@ void Obj_Bubble(Sst *self) {
 
             Sst *bub = Sst_Allocate();
             if (bub != NULL) {
-                bub->code = sst_object_codes[ObjId_Bubble];
+                bub->code = Obj_Bubble;
                 bub->x_pos.f.u = (int16_t)(self->x_pos.f.u + (int16_t)((RandomNumber() & 0xF) - 8));
                 bub->y_pos.f.u = self->y_pos.f.u;
 

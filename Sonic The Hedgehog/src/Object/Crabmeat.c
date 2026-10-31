@@ -57,7 +57,7 @@ void Obj_Crabmeat_TurnAround(Sst *self, Own_Crabmeat *own) {
 }
 
 void Obj_Crabmeat_Fire_Projectile(Sst *self, uint8_t routine, int16_t x, int16_t y, int16_t xsp) {
-    Sst *proj = Sst_Spawn(ObjId_Crabmeat, self->x_pos.f.u + x, self->y_pos.f.u + y);
+    Sst *proj = Sst_SpawnCode(Obj_Crabmeat, self->x_pos.f.u + x, self->y_pos.f.u + y);
     if (proj != NULL) {
         proj->routine = routine;
         proj->x_vel = xsp;

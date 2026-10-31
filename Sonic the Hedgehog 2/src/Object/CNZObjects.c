@@ -1,5 +1,6 @@
 // Casino Night's objects for Sonic 2, as the alpha has them (see CNZObjects.h)
 #include "Object/CNZObjects.h"
+void Obj_Points(Sst *self);
 #include "ObjectSst.h"
 #include "Object.h"
 #include "Constants.h"
@@ -66,7 +67,7 @@ void Obj_CNZBumper(Sst *self) {
             }
             if (award) {
                 AddPoints(1);
-                Sst *points = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
+                Sst *points = Sst_SpawnCode(Obj_Points, self->x_pos.f.u, self->y_pos.f.u);
                 if (points != NULL) {
                     points->mapping_frame = 4;
                 }

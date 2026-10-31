@@ -29,7 +29,7 @@ static void Van_DeleteSonic(Sst *self) {
 static void Van_ReloadSonic(Sst *self, Own_VanishSonic *own) {
     if (--own->time != 0)
         return; // wait for timer to run out (object stays invisible meanwhile)
-    player->code = sst_object_codes[ObjId_Sonic]; // reload Sonic
+    player->code = Obj_Sonic; // reload Sonic
     Sst_Delete(self);
 }
 

@@ -64,7 +64,7 @@ static void SEgg_Main(Sst *self, Own_ScrapEggman *own) {
     Sst *sw = Sst_AllocateAfter(self);
     if (sw != NULL) {
         memset(sw->own.u8, 0, sizeof(sw->own));
-        sw->code = sst_object_codes[ObjId_ScrapEggman];
+        sw->code = Obj_ScrapEggman;
         sw->x_pos.f.u = SBZ2_X + 0xE0;
         sw->y_pos.f.u = SBZ2_Y + 0xAC;
         SEgg_Setup(sw, 4, 0, 3, Mappings_Button, TILE_MAP(0, 0, 0, 0, ArtTile_Eggman_Button), 32 / 2);
@@ -80,7 +80,7 @@ static void SEgg_Main(Sst *self, Own_ScrapEggman *own) {
 static bool SEgg_FindFloor(void) {
     for (int i = 0; i < SST_COUNT; i++) {
         Sst *floor = &sst[i];
-        if (floor->code != NULL && floor->code == sst_object_codes[ObjId_FalseFloor] && floor->routine == 2) {
+        if (floor->code != NULL && floor->code == Obj_FalseFloor && floor->routine == 2) {
             ((Own_FalseFloor *)floor->own.u8)->cmd = CMD_GO;
             return true;
         }
@@ -179,7 +179,7 @@ static void FFloor_Main(Sst *self, Own_FalseFloor *own) {
         if (block == NULL)
             break;
         own->blocks[i] = (uint8_t)(block - sst);
-        block->code = sst_object_codes[ObjId_FalseFloor];
+        block->code = Obj_FalseFloor;
         block->mappings = Mappings_EggmanTrapFloor;
         block->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_Eggman_Trap_Floor); // | Tile_Pal3
         block->render_flags = SST_RENDER_LEVEL;

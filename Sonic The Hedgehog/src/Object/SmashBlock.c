@@ -1,5 +1,6 @@
 #include "SmashBlock.h"
 #include "ObjectSst.h"
+#include "Object/Points.h"
 #include "Object.h"
 #include "Resource/Mappings/SmashableGreenBlock.h"
 
@@ -67,7 +68,7 @@ void Obj_SmashBlock(Sst *self) {
 
         SstSmashObject(self, 4, &smab_speeds[0][0]);
 
-        Sst *points = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
+        Sst *points = Sst_SpawnCode(Obj_Points, self->x_pos.f.u, self->y_pos.f.u);
         if (points != NULL) {
 
             uint16_t combo = item_bonus;

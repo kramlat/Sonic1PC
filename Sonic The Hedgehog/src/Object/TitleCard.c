@@ -63,7 +63,7 @@ static const uint16_t level_order[ZoneId_Num][4] = {
 static bool GotCard_SlideOutStarted(void) {
     for (int i = 0; i < SST_COUNT; i++) {
         const Sst *o = &sst[i];
-        if (o->code != NULL && o->code == sst_object_codes[ObjId_GotThroughCard] && o->mapping_frame == 4)
+        if (o->code != NULL && o->code == Obj_GotThroughCard && o->mapping_frame == 4)
             return o->routine == 0xE;
     }
     return false;
@@ -111,7 +111,7 @@ void Obj_GotThroughCard(Sst *self) {
                     break;
             }
             Own_TitleCard *scratch_a1 = (Own_TitleCard *)a1->own.u8;
-            a1->code = sst_object_codes[ObjId_GotThroughCard];
+            a1->code = Obj_GotThroughCard;
             a1->x_pos.f.u = item->x0;
             scratch_a1->final_x = item->x0;
             scratch_a1->main_x = item->x1;
@@ -221,7 +221,7 @@ void Obj_GotThroughCard(Sst *self) {
 // The four elements of the level's title card, in the order they were made (NULL where the card is not there)
 static Sst *TitleCard_Element(int n) {
     for (int i = 0; i < SST_COUNT; i++)
-        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_TitleCard] && n-- == 0)
+        if (sst[i].code != NULL && sst[i].code == Obj_TitleCard && n-- == 0)
             return &sst[i];
     return NULL;
 }
@@ -291,7 +291,7 @@ void Obj_TitleCard(Sst *self) {
             }
             // Write object info from configuration
             Own_TitleCard *scratch_a1 = (Own_TitleCard *)a1->own.u8;
-            a1->code = sst_object_codes[ObjId_TitleCard];
+            a1->code = Obj_TitleCard;
             a1->x_pos.f.u = config->x0;
             scratch_a1->final_x = config->x0;
             scratch_a1->main_x = config->x1;

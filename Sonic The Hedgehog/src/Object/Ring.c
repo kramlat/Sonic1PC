@@ -48,7 +48,7 @@ static bool Obj_Ring_ShiftChk(uint8_t* state) {
 static void Obj_Ring_SetupRing(Sst *self, uint8_t index, int16_t x, int16_t y, Sst *ring) {
     Own_Ring *own = (Own_Ring *)ring->own.u8;
     // Set type and routine
-    ring->code = sst_object_codes[ObjId_Ring];
+    ring->code = Obj_Ring;
     ring->routine += 2;
 
     // Set position
@@ -181,7 +181,7 @@ void Obj_Ring(Sst *self) {
 // Ring loss object
 static void Obj_RingLoss_SetupRing(Sst *self, int16_t *xsp, int16_t *ysp, word_u *angle, Sst *ring) {
     // Set object type and routine
-    ring->code = sst_object_codes[ObjId_RingLoss];
+    ring->code = Obj_RingLoss;
     ring->routine += 2;
 
     // Set collision and position

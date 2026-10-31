@@ -1,6 +1,7 @@
 #include "ObjectSst.h"
 
 #include "Level.h"
+#include "Object/Explosion.h"
 #include "SstLoad.h"
 #include "MathUtil.h"
 #include "LevelScroll.h"
@@ -394,7 +395,7 @@ void SstBossDefeated(const Sst *obj) {
 	if ((uint8_t)frame_count & 7)
 		return;
 
-	Sst *exp = Sst_Spawn(ObjId_ExplosionBomb, obj->x_pos.f.u, obj->y_pos.f.u);
+	Sst *exp = Sst_SpawnCode(Obj_ExplosionBomb, obj->x_pos.f.u, obj->y_pos.f.u);
 	if (exp == NULL)
 		return;
 

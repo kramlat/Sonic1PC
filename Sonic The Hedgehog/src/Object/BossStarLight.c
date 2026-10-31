@@ -1,5 +1,6 @@
 #include "BossStarLight.h"
 #include "SstLoad.h"
+#include "Object/Explosion.h"
 #include "ObjectSst.h"
 #include "Object.h"
 #include "Constants.h"
@@ -77,7 +78,7 @@ static void BossStarLight_Main(Sst *self, Own_BossStarLight *own) {
             if (sub == NULL)
                 break;
             memset(sub->own.u8, 0, sizeof(sub->own));
-            sub->code = sst_object_codes[ObjId_BossStarLight];
+            sub->code = Obj_BossStarLight;
             sub->x_pos.f.u = self->x_pos.f.u;
             sub->y_pos.f.u = self->y_pos.f.u;
         }
@@ -103,7 +104,7 @@ static void BossStarLight_Main(Sst *self, Own_BossStarLight *own) {
     own->seesaw_count = 0;
     for (int i = 0; i < SST_COUNT && own->seesaw_count < 3; i++) {
         Sst *saw = &sst[i];
-        if (saw->code == sst_object_codes[ObjId_Seesaw] && saw->subtype != 0)
+        if (saw->code == Obj_Seesaw && saw->subtype != 0)
             own->seesaws[own->seesaw_count++] = (uint8_t)(saw - sst);
     }
 
@@ -201,7 +202,7 @@ static void BSLZ_MakeBall(Sst *self, Own_BossStarLight *own) {
             // Is there already a ball linked to this seesaw?
             for (int i = 0; i < SST_COUNT; i++) {
                 Sst *ball = &sst[i];
-                if (ball->code == sst_object_codes[ObjId_BossSpikeball] && ball->routine != 0xA &&
+                if (ball->code == Obj_BossSpikeball && ball->routine != 0xA &&
                     ((Own_BossSpikeball *)ball->own.u8)->seesaw_index == saw_index) {
                     abort_drop = true;
                     break;
@@ -213,7 +214,7 @@ static void BSLZ_MakeBall(Sst *self, Own_BossStarLight *own) {
             if (ball == NULL) {
                 abort_drop = true;
             } else {
-                ball->code = sst_object_codes[ObjId_BossSpikeball];
+                ball->code = Obj_BossSpikeball;
                 ball->x_pos.f.u = self->x_pos.f.u;
                 ball->y_pos.f.u = (int16_t)(self->y_pos.f.u + 0x20); // out of the ball launcher
                 ball->status = saw->status;
@@ -554,7 +555,7 @@ static void BSB_HitBoss(Sst *self, Own_BossSpikeball *own) {
     Sst *boss = NULL;
     for (int i = 0; i < SST_COUNT; i++) {
         Sst *o = &sst[i];
-        if (o->code == sst_object_codes[ObjId_BossStarLight] && o->routine == 2) { // the ship, not its face/flame/pipe
+        if (o->code == Obj_BossStarLight && o->routine == 2) { // the ship, not its face/flame/pipe
             boss = o;
             break;
         }
@@ -593,7 +594,7 @@ static void BSB_HitBoss(Sst *self, Own_BossSpikeball *own) {
 }
 
 static void BSB_Explode(Sst *self, Own_BossSpikeball *own) {
-    self->code = sst_object_codes[ObjId_ExplosionBomb]; // real id_Explosion (Object 3F)
+    self->code = Obj_ExplosionBomb; // real id_Explosion (Object 3F)
     self->routine = 0;
     if (own->timer != 32)
         return;
@@ -604,7 +605,7 @@ static void BSB_Explode(Sst *self, Own_BossSpikeball *own) {
         Sst *frag = Sst_Allocate();
         if (frag == NULL)
             continue; // the real loop doesn't consume a table entry here either
-        frag->code = sst_object_codes[ObjId_BossSpikeball];
+        frag->code = Obj_BossSpikeball;
         frag->routine = 0xA;
         frag->mappings = Mappings_BossSpikeball;
         frag->priority = 3 * 0x80;

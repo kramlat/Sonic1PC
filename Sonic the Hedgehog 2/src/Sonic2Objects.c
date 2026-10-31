@@ -297,7 +297,6 @@ const SstCode sst_object_codes[0x100] = {
 	[ObjId_SwingingPlatform] = Obj_SwingDispatch,
 	[ObjId_Jaws] = Obj_NGHZLeaves,
 	[ObjId_BuzzBomber] = Obj_ArrowShooter,
-	[ObjId_HUD] = Obj_HUD,
 	[ObjId_GotThroughCard] = Obj_GotThroughCard,
 	[ObjId_TitleCard] = Obj_TitleCard,
 	[ObjId_Animal] = Obj_FlickyAnimals,

@@ -1,5 +1,6 @@
 #include "Object/Signpost.h"
 #include "SstLoad.h"
+void Obj_Ring(Sst *self);
 #include "ObjectSst.h"
 #include "Object.h"
 
@@ -81,7 +82,7 @@ void Obj_Signpost(Sst *self) {
             Sst *sparkle = Sst_Allocate();
             if (sparkle != NULL) {
                 // Set sparkle type and routine
-                sparkle->code = sst_object_codes[ObjId_Ring];
+                sparkle->code = Obj_Ring;
                 sparkle->routine = 6;
 
                 // Set sparkle position

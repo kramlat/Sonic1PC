@@ -50,7 +50,7 @@ static void SSR_Main(Sst *self) {
         }
         if (i == 4)
             ssr_continue_element = a1;
-        a1->code = sst_object_codes[ObjId_SSResult];
+        a1->code = Obj_SpecialResult;
         a1->x_pos.f.u = SSR_ItemData[i].x0;
         SR(a1)->main_x = SSR_ItemData[i].x1;
         a1->y_pos.f.u = SSR_ItemData[i].y;
@@ -89,7 +89,7 @@ void Obj_SpecialResult(Sst *self) {
             if (self->mapping_frame == 2) { // the ring bonus element drives the sequence
                 self->routine += 2;
                 SR(self)->timer = 3 * 60;
-                Sst_Spawn(ObjId_SSRChaos, 0, 0);
+                Sst_SpawnCode(Obj_SpecialResultEmerald, 0, 0);
                 // fall through into the wait (below)
                 if (--SR(self)->timer == 0)
                     self->routine += 2;
@@ -165,7 +165,7 @@ void Obj_SpecialResultEmerald(Sst *self) {
                 if (a1 == NULL)
                     break;
             }
-            a1->code = sst_object_codes[ObjId_SSRChaos];
+            a1->code = Obj_SpecialResultEmerald;
             a1->x_pos.f.u = SSRC_PosData[i];
             a1->y_pos.f.u = 0xF0;
             uint8_t colour = emerald_list[i];

@@ -1,5 +1,6 @@
 #include "Signpost.h"
 #include "Resource/Mappings/Signpost.h"
+#include "Object/Ring.h"
 #include "Resource/Animation/Signpost.h"
 #include "SstLoad.h"
 #include "ObjectSst.h"
@@ -70,7 +71,7 @@ void Obj_Signpost(Sst *self) {
             Sst *sparkle = Sst_Allocate();
             if (sparkle != NULL) {
                 // Set sparkle type and routine
-                sparkle->code = sst_object_codes[ObjId_Ring];
+                sparkle->code = Obj_Ring;
                 sparkle->routine = 6;
 
                 // Set sparkle position

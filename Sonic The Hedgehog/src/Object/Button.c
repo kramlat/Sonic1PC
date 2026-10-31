@@ -1,5 +1,6 @@
 #include "Button.h"
 #include "Resource/Mappings/Button.h"
+#include "Object/PushBlock.h"
 #include "SstLoad.h"
 #include "ObjectSst.h"
 #include "Object.h"
@@ -22,7 +23,7 @@ static bool But_MZBlock(Sst *self) {
 
     for (int i = 0; i < SST_COUNT; i++) {
         const Sst *block = &sst[i];
-        if (!(block->render_flags & SST_RENDER_ON_SCREEN) || block->code == NULL || block->code != sst_object_codes[ObjId_PushBlock])
+        if (!(block->render_flags & SST_RENDER_ON_SCREEN) || block->code == NULL || block->code != Obj_PushBlock)
             continue;
 
         // Real ASM's interval test isn't a simple one-sided range -- it

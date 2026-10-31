@@ -103,7 +103,7 @@ static void SStom_Main(Sst *self, Own_SideStomp *own) {
         }
 
         seg->routine = sstom_vars[i].routine;
-        seg->code = sst_object_codes[ObjId_SidewaysStomper];
+        seg->code = Obj_SidewaysStomper;
         seg->y_pos.f.u = self->y_pos.f.u;
         seg->x_pos.f.u = (int16_t)(self->x_pos.f.u + sstom_vars[i].xoff);
         seg->mappings = Mappings_SidewaysStomper;

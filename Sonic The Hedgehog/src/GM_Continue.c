@@ -1,5 +1,6 @@
 #include "SstLoad.h"
 #include "GM_Continue.h"
+#include "Object/ContinueSonic.h"
 #include "Viewport.h"
 #include "Constants.h"
 
@@ -62,14 +63,14 @@ void GM_Continue(void) {
     sonframe_chg = false;
 
     Sst_ResetAll();
-    player->code = sst_object_codes[ObjId_81];
-    Sst_Spawn(ObjId_80, 0, 0);
-    Sst *light = Sst_Spawn(ObjId_80, 0, 0); // the light spot on the floor Sonic lies on
+    player->code = Obj_ContSonic;
+    Sst_SpawnCode(Obj_ContScrItem, 0, 0);
+    Sst *light = Sst_SpawnCode(Obj_ContScrItem, 0, 0); // the light spot on the floor Sonic lies on
     if (light != NULL) {
         light->priority = 3 * 0x80;
         light->mapping_frame = 4;
     }
-    Sst *icon = Sst_Spawn(ObjId_80, 0, 0); // the mini Sonics
+    Sst *icon = Sst_SpawnCode(Obj_ContScrItem, 0, 0); // the mini Sonics
     if (icon != NULL)
         icon->routine = 4;
 

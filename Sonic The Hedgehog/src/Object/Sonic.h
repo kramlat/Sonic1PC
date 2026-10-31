@@ -16,9 +16,9 @@
 
 #ifndef SONIC_DPLC_SIZE // (a game built on this one, Sonic 2, has bigger frames: Nick Arcade's Sonic has 32-tile ones)
 #define SONIC_DPLC_SIZE 0x2E0
-void Obj_Sonic(Sst *self);
-
 #endif
+
+void Obj_Sonic(Sst *self);
 
 //Sonic assets
 extern const uint8_t Mappings_Sonic[];

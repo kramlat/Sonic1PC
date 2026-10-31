@@ -151,7 +151,7 @@ static void SpinC_Main_Spawner(Sst *self, uint8_t subtype) {
             memset(plat, 0, sizeof(Sst));
         }
 
-        plat->code = sst_object_codes[ObjId_SpinConvey];
+        plat->code = Obj_SpinConveyor;
         plat->x_pos.f.u = (int16_t)((data[0] << 8) | data[1]);
         plat->y_pos.f.u = (int16_t)((data[2] << 8) | data[3]);
         plat->subtype = data[5]; // subtype (stored as a word; low byte only is ever nonzero)

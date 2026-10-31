@@ -2,6 +2,7 @@
 // that make its staircases (6B, Obj_0x6B_Mz_Platform at loc_1BCEC), the one way barrier (2D), the tube cover (32), the rotating platforms (78), the sliding platforms (7A), the invisible block (74)
 // and the droplet chain badnik (1D). Each is a port of its routine in the prototype's disassembly.
 #include "Object/CPZObjects.h"
+void Obj_Points(Sst *self);
 #include "ObjectSst.h"
 #include "Object.h"
 #include "Constants.h"
@@ -579,7 +580,7 @@ static void Cover_Launch(Sst *chr, bool rolling) {
 
 // loc_17818: the score for it, as for a badnik (Obj29, 10, 20, 50 then 100 and, after fifteen in a row, 1000)
 void ObjectChainScore(Sst *self) {
-    Sst *points = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
+    Sst *points = Sst_SpawnCode(Obj_Points, self->x_pos.f.u, self->y_pos.f.u);
     if (points == NULL)
         return;
     static const uint16_t scores[4] = { 10, 20, 50, 100 };

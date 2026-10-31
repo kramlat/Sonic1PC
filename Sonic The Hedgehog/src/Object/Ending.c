@@ -1,5 +1,6 @@
 #include "SstLoad.h"
 #include "ObjectSst.h"
+#include "Object/Credits.h"
 #include "Object.h"
 #include "Ending.h"
 #include "Constants.h"
@@ -64,7 +65,7 @@ void Obj_EndChaos(Sst *self) {
                 if (e == NULL)
                     break;
             }
-            e->code = sst_object_codes[ObjId_88];
+            e->code = Obj_EndChaos;
             e->routine += 2;
             e->mappings = Mappings_EndingEmeralds;
             e->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Emeralds);
@@ -158,9 +159,9 @@ void Obj_EndEggman(Sst *self) {
         self->priority = 2 * 0x80; // behind the emeralds
         self->anim = 2;     // the "END" tantrum, for a good ending
         if (emeralds != EMERALDS_ALL) {
-            Sst_Spawn(ObjId_Credits, 0, 0);
+            Sst_SpawnCode(Obj_Credits, 0, 0);
             credits_num = 9; // the "TRY AGAIN" text page
-            Sst_Spawn(ObjId_8C, 0, 0);
+            Sst_SpawnCode(Obj_TryChaos, 0, 0);
             self->anim = 0;
         }
         EEgg_Animate(self);
@@ -194,7 +195,7 @@ static void TCha_Load(Sst *self) {
                 break;
         }
         tcha_list[tcha_count++] = e;
-        e->code = sst_object_codes[ObjId_8C];
+        e->code = Obj_TryChaos;
         e->routine += 2;
         e->mappings = Mappings_EndingEmeralds; // the ending's own emerald frames
         e->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Try_Again_Emeralds);

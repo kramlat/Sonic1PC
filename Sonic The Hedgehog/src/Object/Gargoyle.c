@@ -38,7 +38,7 @@ static void Gar_MakeFire(Sst *self, Own_Gargoyle *own) {
     if (!SstChkObjectVisible(self))
         return;
 
-    Sst *fire = Sst_Spawn(ObjId_Gargoyle, self->x_pos.f.u, self->y_pos.f.u);
+    Sst *fire = Sst_SpawnCode(Obj_Gargoyle, self->x_pos.f.u, self->y_pos.f.u);
     if (fire == NULL)
         return;
 

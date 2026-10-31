@@ -1,5 +1,13 @@
 #include "EditorLive.h"
 #include "Level.h"
+#include "Object/ScrapEggman.h"
+#include "Object/BossStarLight.h"
+#include "Object/BossSpringYard.h"
+#include "Object/BossMarble.h"
+#include "Object/BossLabyrinth.h"
+#include "Object/BossGreenHill.h"
+#include "Object/BossFinal.h"
+#include "Object/BossBlock.h"
 #include "SstLoad.h"
 #include "Object/Ring.h"
 #include "ScrollEngine.h"
@@ -401,7 +409,7 @@ void DynamicLevelEvents(void) {
                 if ((uint16_t)scrpos_x.f.u < (0x2960 - SCREEN_WIDEADD2))
                     break;
                 {
-                    Sst_Spawn(ObjId_BossGreenHill, 0x2960 + 0x100, 0x300 - 0x80);
+                    Sst_SpawnCode(Obj_BossGreenHill, 0x2960 + 0x100, 0x300 - 0x80);
                 }
                 QueueSound1(bgm_Boss);
                 lock_screen = true;
@@ -443,7 +451,7 @@ void DynamicLevelEvents(void) {
 #endif
                 if ((uint16_t)scrpos_x.f.u >= (uint16_t)(boss_cam_x - SCREEN_WIDEADD2) &&
                     (uint16_t)scrpos_y.f.u < 0xC0 + 0x540) { // boss_lz_y+$540
-                    Sst_Spawn(ObjId_BossLabyrinth, 0, 0);
+                    Sst_SpawnCode(Obj_BossLabyrinth, 0, 0);
                     QueueSound1(bgm_Boss);
                     lock_screen = true;
                     dle_routine += 2;
@@ -555,7 +563,7 @@ void DynamicLevelEvents(void) {
                 if ((uint16_t)scrpos_x.f.u < (0x17F0 - SCREEN_WIDEADD2)) // boss_mz_x-0x10
                     break;
                 {
-                    Sst_Spawn(ObjId_BossMarble, 0x1800 + 0x1F0, 0x210 + 0x1C); // boss_mz_x+0x1F0, boss_mz_y+0x1C
+                    Sst_SpawnCode(Obj_BossMarble, 0x1800 + 0x1F0, 0x210 + 0x1C); // boss_mz_x+0x1F0, boss_mz_y+0x1C
                 }
                 QueueSound1(bgm_Boss);
                 lock_screen = true;
@@ -583,7 +591,7 @@ void DynamicLevelEvents(void) {
             if ((uint16_t)scrpos_x.f.u < (0x2000 - SCREEN_WIDEADD2)) // boss_slz_x
                 break;
             {
-                Sst_Spawn(ObjId_BossStarLight, 0, 0);
+                Sst_SpawnCode(Obj_BossStarLight, 0, 0);
             }
             QueueSound1(bgm_Boss);
             lock_screen = true;
@@ -614,7 +622,7 @@ void DynamicLevelEvents(void) {
                 if ((uint16_t)scrpos_x.f.u < (0x2AC0 - SCREEN_WIDEADD2)) // boss_syz_x-0x140
                     break;
                 {
-                    Sst_Spawn(ObjId_BossBlock, 0, 0);
+                    Sst_SpawnCode(Obj_BossBlock, 0, 0);
                 }
                 dle_routine += 2;
                 break;
@@ -623,7 +631,7 @@ void DynamicLevelEvents(void) {
                     break;
                 limit_btm1 = 0x4CC - SCREEN_TALLADD; // boss_syz_y
                 {
-                    Sst_Spawn(ObjId_BossSpringYard, 0, 0);
+                    Sst_SpawnCode(Obj_BossSpringYard, 0, 0);
                 }
                 QueueSound1(bgm_Boss);
                 lock_screen = true;
@@ -663,7 +671,7 @@ void DynamicLevelEvents(void) {
                 if ((uint16_t)scrpos_x.f.u < (0x2050 - 0x1A0 - SCREEN_WIDEADD2)) // boss_sbz2_x-$1A0
                     break;
                 {
-                    if (Sst_Spawn(ObjId_FalseFloor, 0, 0) == NULL)
+                    if (Sst_SpawnCode(Obj_FalseFloor, 0, 0) == NULL)
                         break;
                 }
                 dle_routine += 2;
@@ -671,7 +679,7 @@ void DynamicLevelEvents(void) {
                 break;
             case 4: // DLE_SBZ2_Eggman
                 if ((uint16_t)scrpos_x.f.u >= (0x2050 - 0xF0 - SCREEN_WIDEADD2)) { // boss_sbz2_x-$F0
-                    if (Sst_Spawn(ObjId_ScrapEggman, 0, 0) != NULL)
+                    if (Sst_SpawnCode(Obj_ScrapEggman, 0, 0) != NULL)
                         dle_routine += 2;
                     lock_screen = true;
                 }
@@ -705,7 +713,7 @@ void DynamicLevelEvents(void) {
                 break;
             case 2: // DLE_FZ_Boss
                 if ((uint16_t)scrpos_x.f.u >= (0x2450 - 0x150 - SCREEN_WIDEADD2)) { // boss_fz_x-$150
-                    if (Sst_Spawn(ObjId_BossFinal, 0, 0) != NULL) {
+                    if (Sst_SpawnCode(Obj_BossFinal, 0, 0) != NULL) {
                         dle_routine += 2;
                         lock_screen = true;
                     }
@@ -847,7 +855,7 @@ void Level_LoadWaterPalettes(bool sonic) {
 void Level_MakeWaterSurfaces(void) {
     static const int16_t xs[3] = { 0x60, 0x120, 0x1E0 };
     for (int i = 0; i < 3; i++)
-        Sst_Spawn(ObjId_WaterSurface, xs[i], 0);
+        Sst_SpawnCode(Obj_WaterSurface, xs[i], 0);
 }
 
 // The level's music: one song per zone in Sonic 1's order, except Scrap Brain act 3 (stored under Labyrinth's slot, 0103) and the Final Zone (under Scrap Brain's, 0502)

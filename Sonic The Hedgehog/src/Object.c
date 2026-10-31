@@ -1,5 +1,6 @@
 #include "SstLoad.h"
 #include "Object.h"
+#include "Object/TitleCard.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -27,7 +28,7 @@ static const uint16_t time_bonuses[TIME_BONUSES_NUM] = {
 // safe to call from multiple objects/frames.
 void GotThroughAct(void) {
     for (int i = 0; i < SST_COUNT; i++)
-        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_GotThroughCard])
+        if (sst[i].code != NULL && sst[i].code == Obj_GotThroughCard)
             return;
 
     // Reset game state
@@ -36,7 +37,7 @@ void GotThroughAct(void) {
     time_count = false;
 
     // Load "Got through" card
-    Sst_Spawn(ObjId_GotThroughCard, 0, 0);
+    Sst_SpawnCode(Obj_GotThroughCard, 0, 0);
     NewPLC(PlcId_TitleCard);
     endact_bonus = true;
 

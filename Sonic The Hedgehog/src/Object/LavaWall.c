@@ -95,7 +95,7 @@ static void LWall_Main(Sst *self, Own_LavaWall *own) {
                 break;
         }
 
-        seg->code = sst_object_codes[ObjId_LavaWall];
+        seg->code = Obj_LavaWall;
         seg->mappings = Mappings_LavaWall;
         seg->art_tile = TILE_MAP(0, 3, 0, 0, ArtTile_MZ_Lava); // | Tile_Pal4
         seg->render_flags = SST_RENDER_LEVEL;

@@ -1,5 +1,6 @@
 #include "SstLoad.h"
 #include "GM_Special.h"
+#include "Object/SpecialSonic.h"
 #include "Viewport.h"
 
 #include "Game.h"
@@ -143,7 +144,7 @@ static void SS_RunStage(void) {
 	scrpos_y.v = 0;
 	
 	Sst_ResetAll();
-	player->code = sst_object_codes[ObjId_SpecialSonic];
+	player->code = Obj_SpecialSonic;
 	PCycle_SS();
 	
 	ss_angle.v = 0;
@@ -282,7 +283,7 @@ void SS_Results(void) {
 	PlaySound(bgm_GotThrough);
 
 	Sst_Reset();
-	Sst_Spawn(ObjId_SSResult, 0, 0);
+	Sst_SpawnCode(Obj_SpecialResult, 0, 0);
 	restart = false;
 
 	do {

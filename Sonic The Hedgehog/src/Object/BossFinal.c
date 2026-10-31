@@ -1,5 +1,6 @@
 #include "BossFinal.h"
 #include "SstLoad.h"
+#include "Object/Explosion.h"
 #include "ObjectSst.h"
 #include "Object.h"
 #include "Constants.h"
@@ -78,7 +79,7 @@ static void BossFinal_Main(Sst *self, Own_BossFinal *s) {
                 break;
             memset(o->own.u8, 0, sizeof(o->own));
         }
-        o->code = sst_object_codes[ObjId_BossFinal];
+        o->code = Obj_BossFinal;
         o->x_pos.f.u = BF_ObjData[i].x;
         o->y_pos.f.u = BF_ObjData[i].y;
         o->art_tile = TILE_MAP(0, 0, 0, 0, BF_ObjData[i].tile);
@@ -101,7 +102,7 @@ static void BossFinal_Main(Sst *self, Own_BossFinal *s) {
     // The plasma launcher, then the 4 cylinders.
     Sst *plasma = Sst_Allocate();
     if (plasma != NULL) {
-        plasma->code = sst_object_codes[ObjId_BossPlasma];
+        plasma->code = Obj_BossPlasma;
         s->plasma_index = (uint8_t)(plasma - sst);
         ((Own_BossPlasma *)plasma->own.u8)->parent_index = self_index;
 
@@ -110,7 +111,7 @@ static void BossFinal_Main(Sst *self, Own_BossFinal *s) {
             if (cyl == NULL)
                 break;
             s->cylinders[i] = (uint8_t)(cyl - sst);
-            cyl->code = sst_object_codes[ObjId_EggmanCylinder];
+            cyl->code = Obj_EggmanCylinder;
             ((Own_EggmanCylinder *)cyl->own.u8)->parent_index = self_index;
             ((Own_EggmanCylinder *)cyl->own.u8)->number = (uint8_t)(i * 2);
         }
@@ -730,7 +731,7 @@ static void Plasma_Collision(Sst *self) {
 static void Plasma_Generator(Sst *self, Own_BossPlasma *p) {
     Sst *boss = &sst[p->parent_index];
     if (BF(boss)->link == PH_FALL) { // the boss has fallen: the launcher blows up
-        self->code = sst_object_codes[ObjId_ExplosionBomb]; // real id_Explosion
+        self->code = Obj_ExplosionBomb; // real id_Explosion
         self->routine = 0;
         Sst_Draw(self);
         return;
@@ -753,7 +754,7 @@ static void Plasma_MakeBalls(Sst *self, Own_BossPlasma *p) {
             Sst *ball = Sst_AllocateAfter(self);
             if (ball == NULL)
                 break;
-            ball->code = sst_object_codes[ObjId_BossPlasma];
+            ball->code = Obj_BossPlasma;
             ball->x_pos.f.u = self->x_pos.f.u;
             ball->y_pos.f.u = FZ_Y + 0x2C;
             ball->routine = 8;

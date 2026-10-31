@@ -1,5 +1,6 @@
 #include "Monitor.h"
 #include "Resource/Animation/Monitor.h"
+#include "Object/Explosion.h"
 #include "Resource/Mappings/Monitor.h"
 #include "SstLoad.h"
 #include "ObjectSst.h"
@@ -173,7 +174,7 @@ void Obj_Monitor(Sst *self) {
         // Create item object
         Sst *item = Sst_Allocate();
         if (item != NULL) {
-            item->code = sst_object_codes[ObjId_MonitorItem];
+            item->code = Obj_MonitorItem;
             item->x_pos.f.u = self->x_pos.f.u;
             item->y_pos.f.u = self->y_pos.f.u;
             item->anim = self->anim;
@@ -182,7 +183,7 @@ void Obj_Monitor(Sst *self) {
         // Create explosion object
         Sst *explosion = Sst_Allocate();
         if (explosion != NULL) {
-            explosion->code = sst_object_codes[ObjId_Explosion];
+            explosion->code = Obj_Explosion;
             explosion->routine += 2;
             explosion->x_pos.f.u = self->x_pos.f.u;
             explosion->y_pos.f.u = self->y_pos.f.u;

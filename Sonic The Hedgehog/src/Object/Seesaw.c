@@ -111,7 +111,7 @@ static void See_Main(Sst *self, Own_Seesaw *own) {
     if (self->subtype == 0) { // spawn a spikeball? (boss-fight seesaws don't)
         Sst *ball = Sst_AllocateAfter(self);
         if (ball != NULL) {
-            ball->code = sst_object_codes[ObjId_Seesaw];
+            ball->code = Obj_Seesaw;
             ball->routine = 6; // See_Spikeball_Setup
             ball->x_pos.f.u = self->x_pos.f.u;
             ball->y_pos.f.u = self->y_pos.f.u;

@@ -1,6 +1,7 @@
 // Monitors for Sonic 2 (Nick Arcade's objects 26 and 2E): Sonic 1's Monitor.c with Nick Arcade's changes: its items are numbered 1 Sonic, 2 Tails, 4 rings, 5 shoes, 6 shield, 7 invincibility, 3 Eggman (hurts), and 8 and 9, which do nothing as in
 // the prototype (8 shows a "?": the final game's versus monitor that hides and randomizes its item; 9 a spring, where the final's teleporter goes), the icons are mapping frame subtype + 1, and a broken monitor plays animation 10.
 #include "Object/Monitor.h"
+void Obj_Explosion(Sst *self);
 #include "Resource/Mappings/Monitor.h"
 #include "Resource/Animation/Monitor.h"
 #include "SstLoad.h"
@@ -174,7 +175,7 @@ void Obj_Monitor(Sst *self) {
         // Create item object
         Sst *item = Sst_Allocate();
         if (item != NULL) {
-            item->code = sst_object_codes[ObjId_MonitorItem];
+            item->code = Obj_MonitorItem;
             item->x_pos.f.u = self->x_pos.f.u;
             item->y_pos.f.u = self->y_pos.f.u;
             item->anim = self->anim;
@@ -183,7 +184,7 @@ void Obj_Monitor(Sst *self) {
         // Create explosion object
         Sst *explosion = Sst_Allocate();
         if (explosion != NULL) {
-            explosion->code = sst_object_codes[ObjId_Explosion];
+            explosion->code = Obj_Explosion;
             explosion->routine += 2;
             explosion->x_pos.f.u = self->x_pos.f.u;
             explosion->y_pos.f.u = self->y_pos.f.u;

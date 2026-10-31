@@ -354,14 +354,18 @@ void SstDeleteIfNotInRange(Sst *obj) {
     }
 }
 
-Sst *Sst_Spawn(uint8_t id, int16_t x, int16_t y) {
+Sst *Sst_SpawnCode(SstCode code, int16_t x, int16_t y) {
     Sst *o = Sst_Allocate();
     if (o == NULL)
         return NULL;
-    o->code = sst_object_codes[id];
+    o->code = code;
     o->x_pos.f.u = x;
     o->y_pos.f.u = y;
     return o;
+}
+
+Sst *Sst_Spawn(uint8_t id, int16_t x, int16_t y) {
+    return Sst_SpawnCode(sst_object_codes[id], x, y);
 }
 
 void SstDeleteIfNotInRange2(Sst *obj, int16_t x) {

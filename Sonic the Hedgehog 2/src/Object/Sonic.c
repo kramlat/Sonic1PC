@@ -1,5 +1,7 @@
 // Sonic for Sonic 2: a copy of Sonic 1's Sonic.c (Sonic 1 keeps its own), with Nick Arcade's animation code below; his art, mappings, DPLC, animations and palette are Nick Arcade's (res/).
 #include "Standing.h"
+void Obj_GameOverCard(Sst *self);
+void Obj_Explosion(Sst *self);
 #include "SstLoad.h"
 #include "ObjectSst.h"
 #include "Object.h"
@@ -791,7 +793,7 @@ static signed int React_Enemy(Sst *self, Sst *hit)
         AddPoints(point_bonus);
 
         // Explode object and bounce
-        hit->code = sst_object_codes[ObjId_Explosion];
+        hit->code = Obj_Explosion;
         hit->routine = 0;
 
         if (self->y_vel >= 0) {
@@ -929,7 +931,7 @@ signed int HurtSonicFrom(Sst *self, int16_t src_x, bool spikes)
             // Spawn lost rings object
             Sst *rings = Sst_Allocate();
             if (rings != NULL) {
-                rings->code = sst_object_codes[ObjId_RingLoss];
+                rings->code = Obj_RingLoss;
                 rings->x_pos.f.u = self->x_pos.f.u;
                 rings->y_pos.f.u = self->y_pos.f.u;
             }
@@ -1823,8 +1825,8 @@ static void GameOver(Sst *self) {
         scratch->death_timer = 0;
 
         // Load 'GAME OVER' objects
-        Sst_Spawn(ObjId_GameOverCard, 0, 0); // GAME
-        Sst *over = Sst_Spawn(ObjId_GameOverCard, 0, 0); // OVER
+        Sst_SpawnCode(Obj_GameOverCard, 0, 0); // GAME
+        Sst *over = Sst_SpawnCode(Obj_GameOverCard, 0, 0); // OVER
         if (over != NULL)
             over->mapping_frame = 1;
 
@@ -1841,8 +1843,8 @@ static void GameOver(Sst *self) {
             scratch->death_timer = 0;
 
             // Load 'TIME OVER' objects
-            Sst *time_card = Sst_Spawn(ObjId_GameOverCard, 0, 0); // TIME
-            Sst *over_card = Sst_Spawn(ObjId_GameOverCard, 0, 0); // OVER
+            Sst *time_card = Sst_SpawnCode(Obj_GameOverCard, 0, 0); // TIME
+            Sst *over_card = Sst_SpawnCode(Obj_GameOverCard, 0, 0); // OVER
             if (time_card != NULL)
                 time_card->mapping_frame = 2;
             if (over_card != NULL)

@@ -86,3 +86,5 @@ void SstDeleteIfNotInRange2(Sst *obj, int16_t x);
 // Creates an object of the id at a position, as the objects that make others do (AllocateObject, then the routine, x_pos, y_pos): the dynamic slot, or NULL when there is none. The object has no place in the
 // respawn table, and its routine counter is 0: it sets itself up on its first run.
 Sst *Sst_Spawn(uint8_t id, int16_t x, int16_t y);
+// ... from the routine itself: an object that no layout places (the HUD, the title card, the effects) needs no id and no place in the table: `Sst_SpawnCode(Obj_HUD, 0, 0)`
+Sst *Sst_SpawnCode(SstCode code, int16_t x, int16_t y);

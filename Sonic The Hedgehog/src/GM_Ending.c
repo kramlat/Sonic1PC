@@ -1,5 +1,8 @@
 #include "SstLoad.h"
 #include "GM_Ending.h"
+#include "Object/HUD.h"
+#include "Object/EndingSonic.h"
+#include "Object/Credits.h"
 #include "Viewport.h"
 #include "Constants.h"
 
@@ -64,7 +67,7 @@ static void End_MoveSonic(void) {
     case 4:
         sonicend += 2;
         player->x_pos.f.u = SCREEN_WIDTH / 2;
-        player->code = sst_object_codes[ObjId_87]; // the ending-only Sonic replaces the real one
+        player->code = Obj_EndSonic; // the ending-only Sonic replaces the real one
         player->routine = 0;
         player->routine_secondary = 0;
         break;
@@ -80,6 +83,7 @@ static void End_Frame(void) {
     frame_count++;
     End_MoveSonic();
     ExecuteObjects();
+    HUD_Draw();
     DeformLayers();
     BuildSprites(NULL);
     ObjPosLoad();
@@ -119,17 +123,18 @@ void GM_Ending(void) {
         debug_mode = true;
 
     // Sonic runs in from the right, controls locked on a simulated left press
-    player->code = sst_object_codes[ObjId_Sonic];
+    player->code = Obj_Sonic;
     player->status |= SST_PSTATUS_X_FLIP;
     lock_ctrl = true;
     jpad1_hold2 = JPAD_LEFT;
     jpad1_press2 = 0;
     player->ground_vel = -0x800; // capped to -0x600 straight away
-    Sst_Spawn(ObjId_HUD, 0, 0);
+    hud_visible = true;
     if (ending_eggmobile_exploding) // Eggman's ship was wrecked in the Final Zone: it falls in the distance
-        Sst_Spawn(ObjId_8D, 0, 0);
+        Sst_SpawnCode(Obj_EndEggmobile, 0, 0);
     ObjPosLoad();
     ExecuteObjects();
+    HUD_Draw();
     BuildSprites(NULL);
 
     rings = 0;
@@ -276,7 +281,7 @@ static void TryAgainEnd(void) {
     PalLoad1(PalId_Ending);
     dry_palette_dup[2][0] = 0; // keep the backdrop black
 
-    Sst_Spawn(ObjId_8B, 0, 0);
+    Sst_SpawnCode(Obj_EndEggman, 0, 0);
     ExecuteObjects();
     BuildSprites(NULL);
 
@@ -310,7 +315,7 @@ void GM_Credits(void) {
     PalLoad1(PalId_Sonic);
 
     Sst_Reset();
-    Sst_Spawn(ObjId_Credits, 0, 0);
+    Sst_SpawnCode(Obj_Credits, 0, 0);
     ExecuteObjects();
     BuildSprites(NULL);
 

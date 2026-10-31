@@ -52,7 +52,7 @@ static void BossBlock_Main(Sst *self) {
 
         Own_BossBlock *bscratch = (Own_BossBlock *)block->own.u8;
 
-        block->code = sst_object_codes[ObjId_BossBlock];
+        block->code = Obj_BossBlock;
         block->mappings = Mappings_SYZBossBlocks;
         block->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_Level); // | Tile_Pal3
         // A freshly-Sst_Allocate()'d slot can carry a stale self->mapping_frame from

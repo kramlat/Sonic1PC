@@ -55,7 +55,7 @@ static void BossMarble_Main(Sst *self, Own_BossMarble *own) {
         sub->routine = BMZ_ObjData[i].routine;
         sub->anim = BMZ_ObjData[i].anim;
         sub->priority = (uint16_t)(BMZ_ObjData[i].priority * 0x80);
-        sub->code = sst_object_codes[ObjId_BossMarble];
+        sub->code = Obj_BossMarble;
         sub->x_pos.f.u = self->x_pos.f.u;
         sub->y_pos.f.u = self->y_pos.f.u;
         sub->mappings = Mappings_Eggman;
@@ -139,7 +139,7 @@ static void BMZ_ShipUpdate(Sst *self, Own_BossMarble *own) {
 static void BossMarble_MakeLava(Sst *self, Own_BossMarble *own) {
     if (own->lava_timer-- == 0) {
         uint32_t rand = RandomNumber();
-        Sst *ball = Sst_Spawn(ObjId_LavaBall, (int16_t)(0x1800 + 0x78 + ((uint16_t)rand % 0x50)), (int16_t)(0x210 + 0xD8)); // boss_mz_x+0x78, clamped to a 0x50-wide range; boss_mz_y+0xD8
+        Sst *ball = Sst_SpawnCode(Obj_LavaBall, (int16_t)(0x1800 + 0x78 + ((uint16_t)rand % 0x50)), (int16_t)(0x210 + 0xD8)); // boss_mz_x+0x78, clamped to a 0x50-wide range; boss_mz_y+0xD8
         if (ball != NULL) {
             ball->subtype = 0; // subtype -- LBall_RiseAndFall
             ((Own_LavaBall *)ball->own.u8)->from_boss = 0xFF;
@@ -202,7 +202,7 @@ static void BMZ_DropFire(Sst *self, Own_BossMarble *own) {
         own->generic_timer = 80;
         SST_STATUS_SET(self, SST_STATUS_X_FLIP, !((self->status & SST_STATUS_X_FLIP) != 0)); // turn back to the screen bound
 
-        Sst *fire = Sst_Spawn(ObjId_BossFire, own->boss_x.f.u, (int16_t)(own->boss_y.f.u + 0x18));
+        Sst *fire = Sst_SpawnCode(Obj_BossFire, own->boss_x.f.u, (int16_t)(own->boss_y.f.u + 0x18));
         if (fire != NULL) {
             fire->subtype = 1; // subtype -- real fire, not a floor warning
         }

@@ -72,7 +72,7 @@ static Sst *Spawn(uint8_t routine, uint8_t frame, int32_t x, int32_t y, int16_t 
     Sst *child = Sst_Allocate();
     if (child == NULL)
         return NULL;
-    child->code = sst_object_codes[ObjId_8D];
+    child->code = Obj_EndEggmobile;
     child->routine = routine;
     child->mappings = Mappings_EndingEggmobile;
     child->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_Ending_Eggman);

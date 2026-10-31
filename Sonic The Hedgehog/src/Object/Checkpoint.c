@@ -59,7 +59,7 @@ void Obj_Checkpoint(Sst *self) {
                 Sst *ball = Sst_Allocate();
                 if (ball) {
                     Own_Checkpoint *ball_scratch = (Own_Checkpoint *)ball->own.u8;
-                    ball->code = sst_object_codes[ObjId_Checkpoint];
+                    ball->code = Obj_Checkpoint;
                     ball->routine = 6; /* Lamp_Twirl */
 
                     /* Store original center position for rotation */

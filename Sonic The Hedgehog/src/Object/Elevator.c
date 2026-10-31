@@ -158,7 +158,7 @@ static void Elev_Spawner(Sst *self, Own_Elevator *own) {
 
         Sst *plat = Sst_Allocate();
         if (plat != NULL) {
-            plat->code = sst_object_codes[ObjId_Elevator];
+            plat->code = Obj_Elevator;
             plat->x_pos.f.u = self->x_pos.f.u;
             plat->y_pos.f.u = self->y_pos.f.u;
             plat->subtype = 0xE; // Elev_Var2 entry $E -> action type 9

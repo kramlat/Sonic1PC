@@ -117,7 +117,7 @@ static void Jun_Main(Sst *self, Own_Junction *own) {
         Sst *filler = Sst_Allocate();
         if (filler == NULL)
             continue;
-        filler->code = sst_object_codes[ObjId_Junction];
+        filler->code = Obj_RotatingJunction;
         filler->routine = 4; // Jun_Display -- do nothing but display
         filler->x_pos.f.u = self->x_pos.f.u;
         filler->y_pos.f.u = self->y_pos.f.u;

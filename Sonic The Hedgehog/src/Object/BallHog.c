@@ -40,7 +40,7 @@ static void Hog_Main(Sst *self) {
 static void Hog_LaunchBall(Sst *self, Own_BallHog *own) {
     own->launched = 1; // cannonball already launched this animation cycle
 
-    Sst *ball = Sst_Spawn(ObjId_Cannonball, self->x_pos.f.u, self->y_pos.f.u);
+    Sst *ball = Sst_SpawnCode(Obj_Cannonball, self->x_pos.f.u, self->y_pos.f.u);
     if (ball == NULL)
         return;
     ball->x_vel = (int16_t)-0x100; // bounce left by default

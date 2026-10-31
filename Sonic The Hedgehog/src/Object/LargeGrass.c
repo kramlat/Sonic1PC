@@ -97,7 +97,7 @@ static void LGrass_Burnable(Sst *self, Own_LargeGrass *own) {
 
         Sst *flame = Sst_AllocateAfter(self);
         if (flame != NULL) {
-            flame->code = sst_object_codes[ObjId_GrassFire];
+            flame->code = Obj_GrassFire;
             flame->x_pos.f.u = (int16_t)(self->x_pos.f.u - 128 / 2);
 
             Own_GrassFire *fscratch = (Own_GrassFire *)flame->own.u8;

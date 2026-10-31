@@ -141,7 +141,6 @@ const SstCode sst_object_codes[0x100] = {
 	[ObjId_Splash] = Obj_Splash,
 	[ObjId_Bubble] = Obj_Bubble,
 	[ObjId_DrownCount] = Obj_DrownCount,
-	[ObjId_HUD] = Obj_HUD,
 	[ObjId_GotThroughCard] = Obj_GotThroughCard,
 	[ObjId_TitleCard] = Obj_TitleCard,
 	[ObjId_MonitorItem] = Obj_MonitorItem,

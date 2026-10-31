@@ -1,5 +1,6 @@
 #include "Newtron.h"
 #include "Resource/Mappings/Newtron.h"
+#include "Object/BuzzBomber.h"
 #include "Resource/Animation/Newtron.h"
 #include "Object.h"
 #include "ObjectSst.h"
@@ -119,7 +120,7 @@ void Obj_Newtron(Sst *self) {
                 if (msl == NULL)
                     break;
 
-                msl->code = sst_object_codes[ObjId_BuzzMissile];
+                msl->code = Obj_BuzzMissile;
                 msl->x_pos.f.u = self->x_pos.f.u;
                 msl->y_pos.f.u = self->y_pos.f.u - 8;
                 if (((self->status & SST_STATUS_X_FLIP) != 0)) {

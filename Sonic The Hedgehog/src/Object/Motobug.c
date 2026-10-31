@@ -83,7 +83,7 @@ void Obj_Motobug(Sst *self) {
                     own->smoke_delay = 15;
 
                     // Setup smoke object
-                    Sst *smoke = Sst_Spawn(ObjId_Motobug, self->x_pos.f.u, self->y_pos.f.u);
+                    Sst *smoke = Sst_SpawnCode(Obj_Motobug, self->x_pos.f.u, self->y_pos.f.u);
                     if (smoke == NULL)
                         break;
                     smoke->status = self->status;

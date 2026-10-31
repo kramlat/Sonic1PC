@@ -1,5 +1,6 @@
 #define Animals_Build
 #include "Animal.h"
+#include "Object/Points.h"
 #include "ObjectSst.h"
 #include "Object.h"
 #include <stdio.h>
@@ -222,7 +223,7 @@ void Obj_Animals_FromEnemy(Sst *self, Own_Animals *own) {
     self->y_vel = -0x400;
 
     if (boss_status == 0) {
-        Sst* newObj = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
+        Sst* newObj = Sst_SpawnCode(Obj_Points, self->x_pos.f.u, self->y_pos.f.u);
         if (newObj != NULL) {
             newObj->x_pos.v = self->x_pos.v;
             newObj->y_pos.v = self->y_pos.v;

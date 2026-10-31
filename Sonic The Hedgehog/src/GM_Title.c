@@ -1,5 +1,8 @@
 #include "SstLoad.h"
 #include "GM_Title.h"
+#include "Object/TitleSonic.h"
+#include "Object/PSB.h"
+#include "Object/Credits.h"
 #include "Viewport.h"
 #include "Constants.h"
 
@@ -489,7 +492,7 @@ void GM_Title(void) {
 
     // Load "SONIC TEAM PRESENTS" object
     Sst_ResetAll(); // (the level's Sonic must not stay on the title screen)
-    Sst_Spawn(ObjId_Credits, 0, 0);
+    Sst_SpawnCode(Obj_Credits, 0, 0);
 
     ExecuteObjects();
     BuildSprites(NULL);
@@ -540,14 +543,14 @@ void GM_Title(void) {
 
     // Load title objects
     Sst_ResetAll();
-    Sst_Spawn(ObjId_TitleSonic, 0, 0);
-    Sst_Spawn(ObjId_PSB, 0, 0);
+    Sst_SpawnCode(Obj_TitleSonic, 0, 0);
+    Sst_SpawnCode(Obj_PSB, 0, 0);
 #ifndef SCP_JP
-    Sst *tm = Sst_Spawn(ObjId_PSB, 0, 0);
+    Sst *tm = Sst_SpawnCode(Obj_PSB, 0, 0);
     if (tm != NULL)
         tm->mapping_frame = 3;
 #endif
-    Sst *mask = Sst_Spawn(ObjId_PSB, 0, 0);
+    Sst *mask = Sst_SpawnCode(Obj_PSB, 0, 0);
     if (mask != NULL)
         mask->mapping_frame = 2;
 

@@ -1,5 +1,6 @@
 #include "Bomb.h"
 #include "Object.h"
+#include "Object/Explosion.h"
 #include "ObjectSst.h"
 #include "SstLoad.h"
 
@@ -141,7 +142,7 @@ static void Bom_Action_Walking(Sst *self, Own_Bomb *own) {
 static void Bom_Action_WaitAndExplode(Sst *self, Own_Bomb *own) {
     if (--own->time >= 0)
         return;
-    self->code = sst_object_codes[ObjId_ExplosionBomb]; // real Object 3F "Explosion" (Map_ExplodeBomb + sfx_Bomb); the actual shrapnel burst comes from the separate fuse object's own Bom_BurnFuseAndExplode
+    self->code = Obj_ExplosionBomb; // real Object 3F "Explosion" (Map_ExplodeBomb + sfx_Bomb); the actual shrapnel burst comes from the separate fuse object's own Bom_BurnFuseAndExplode
     self->routine = 0;
 }
 

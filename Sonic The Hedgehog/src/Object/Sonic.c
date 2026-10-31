@@ -1,5 +1,7 @@
 #include "Standing.h"
 #include "ObjectSst.h"
+#include "Object/Spikes.h"
+#include "Object/GameOverCard.h"
 #include "Object.h"
 #include "Sonic.h"
 #include "SstLoad.h"
@@ -661,7 +663,7 @@ static signed int React_ChkHurt(Sst *self, Sst *hit) {
         return -1;
     if (scratch->flash_time)
         return -1;
-    return HurtSonicFrom(self, hit->x_pos.f.u, sst_object_codes[ObjId_Spikes] != NULL && hit->code == sst_object_codes[ObjId_Spikes]);
+    return HurtSonicFrom(self, hit->x_pos.f.u, Obj_Spikes != NULL && hit->code == Obj_Spikes);
 }
 
 // An object made into another one (a badnik into its explosion)
@@ -803,7 +805,7 @@ signed int HurtSonicFrom(Sst *self, int16_t src_x, bool spikes)
             // Spawn lost rings object
             Sst *rings = Sst_Allocate();
             if (rings != NULL) {
-                rings->code = sst_object_codes[ObjId_RingLoss];
+                rings->code = Obj_RingLoss;
                 rings->x_pos.f.u = self->x_pos.f.u;
                 rings->y_pos.f.u = self->y_pos.f.u;
             }
@@ -1630,8 +1632,8 @@ static void GameOver(Sst *self) {
         scratch->death_timer = 0;
 
         // Load 'GAME OVER' objects
-        Sst_Spawn(ObjId_GameOverCard, 0, 0); // GAME
-        Sst *over = Sst_Spawn(ObjId_GameOverCard, 0, 0); // OVER
+        Sst_SpawnCode(Obj_GameOverCard, 0, 0); // GAME
+        Sst *over = Sst_SpawnCode(Obj_GameOverCard, 0, 0); // OVER
         if (over != NULL)
             over->mapping_frame = 1;
 
@@ -1648,8 +1650,8 @@ static void GameOver(Sst *self) {
             scratch->death_timer = 0;
 
             // Load 'TIME OVER' objects
-            Sst *time_card = Sst_Spawn(ObjId_GameOverCard, 0, 0); // TIME
-            Sst *over_card = Sst_Spawn(ObjId_GameOverCard, 0, 0); // OVER
+            Sst *time_card = Sst_SpawnCode(Obj_GameOverCard, 0, 0); // TIME
+            Sst *over_card = Sst_SpawnCode(Obj_GameOverCard, 0, 0); // OVER
             if (time_card != NULL)
                 time_card->mapping_frame = 2;
             if (over_card != NULL)

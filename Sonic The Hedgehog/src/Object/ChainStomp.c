@@ -217,7 +217,7 @@ static void CStom_Main(Sst *self, Own_ChainStomp *own) {
         }
 
         seg->routine = cstom_vars[i].routine;
-        seg->code = sst_object_codes[ObjId_ChainStomp];
+        seg->code = Obj_ChainStomp;
         seg->x_pos.f.u = self->x_pos.f.u;
         seg->y_pos.f.u = (int16_t)(self->y_pos.f.u + cstom_vars[i].yoff);
         seg->mappings = Mappings_ChainedStompers;

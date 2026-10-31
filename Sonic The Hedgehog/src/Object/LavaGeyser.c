@@ -101,7 +101,7 @@ static void Geyser_Main(Sst *self, Own_LavaGeyser *own) {
                 break;
             middle = seg;
         }
-        seg->code = sst_object_codes[ObjId_LavaGeyser];
+        seg->code = Obj_LavaGeyser;
         seg->mappings = Mappings_LavaGeyser;
         seg->art_tile = TILE_MAP(0, 3, 0, 0, ArtTile_MZ_Lava); // | Tile_Pal4
         seg->render_flags = SST_RENDER_LEVEL;
@@ -131,7 +131,7 @@ static void Geyser_Main(Sst *self, Own_LavaGeyser *own) {
     if (subtype != 0) {
         Sst *bottom = Sst_AllocateAfter(middle);
         if (bottom != NULL) {
-            bottom->code = sst_object_codes[ObjId_LavaGeyser];
+            bottom->code = Obj_LavaGeyser;
             bottom->mappings = Mappings_LavaGeyser;
             bottom->art_tile = TILE_MAP(0, 3, 0, 0, (ArtTile_MZ_Lava+0x10)); // | Tile_Pal4
             bottom->render_flags = SST_RENDER_LEVEL;

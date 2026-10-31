@@ -46,7 +46,7 @@ void ResumeMusic(void) {
 // The tracker that rides along while Sonic is underwater (the one with the master bit)
 Sst *DrownCount_Master(void) {
     for (int i = 0; i < SST_COUNT; i++)
-        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_DrownCount] && (sst[i].subtype & DROWNCOUNT_MASTER_BIT))
+        if (sst[i].code != NULL && sst[i].code == Obj_DrownCount && (sst[i].subtype & DROWNCOUNT_MASTER_BIT))
             return &sst[i];
     return NULL;
 }
@@ -54,7 +54,7 @@ Sst *DrownCount_Master(void) {
 void DrownCount_StartMaster(void) {
     Sst *master = DrownCount_Master();
     if (master == NULL)
-        master = Sst_Spawn(ObjId_DrownCount, 0, 0);
+        master = Sst_SpawnCode(Obj_DrownCount, 0, 0);
     if (master == NULL)
         return;
     master->routine = 0;
@@ -266,7 +266,7 @@ void Obj_DrownCount(Sst *self) {
 
                 Sst *bub = Sst_Allocate();
                 if (bub != NULL) {
-                    bub->code = sst_object_codes[ObjId_DrownCount];
+                    bub->code = Obj_DrownCount;
                     Own_DrownCount *bubScratch = (Own_DrownCount *)bub->own.u8;
 
                     int16_t off = 6;

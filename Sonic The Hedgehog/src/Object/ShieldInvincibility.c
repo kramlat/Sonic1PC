@@ -15,7 +15,7 @@ void ShieldInvincibility_Make(uint8_t anim) {
     for (int i = 0; i < SST_COUNT; i++)
         if (sst[i].code == Obj_ShieldInvincibility && sst[i].anim == anim)
             return;
-    Sst *self = Sst_Spawn(ObjId_ShieldInvincibility, 0, 0);
+    Sst *self = Sst_SpawnCode(Obj_ShieldInvincibility, 0, 0);
     if (self != NULL)
         self->anim = anim;
 }

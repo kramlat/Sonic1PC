@@ -1,5 +1,6 @@
 #include "BossBall.h"
 #include "SstLoad.h"
+#include "Object/Explosion.h"
 #include "ObjectSst.h"
 #include "Object.h"
 #include "Constants.h"
@@ -79,7 +80,7 @@ static void GBall_UpdateBase(Sst *self, Own_BossBall *own) {
     self->status = parent->status;
 
     if (((parent->status & 0x80) != 0)) { // has boss been beaten?
-        self->code = sst_object_codes[ObjId_ExplosionBomb];
+        self->code = Obj_ExplosionBomb;
         self->routine = 0;
     }
 }
@@ -103,7 +104,7 @@ static void GBall_Main(Sst *self, Own_BossBall *own) {
             cur = Sst_AllocateAfter(self);
             if (cur == NULL)
                 break;
-            cur->code = sst_object_codes[ObjId_BossBall];
+            cur->code = Obj_BossBall;
             cur->routine = 6; // GBall_Link
             cur->mappings = Mappings_GHZSwing;
             cur->art_tile = TILE_MAP(0, 0, 0, 0, ArtTile_GHZ_MZ_Swing);
@@ -164,7 +165,7 @@ static void GBall_Base2(Sst *self, Own_BossBall *own) {
 static void GBall_Link(Sst *self, Own_BossBall *own) {
     Sst *parent = &sst[own->parent_index];
     if (((parent->status & 0x80) != 0)) { // has Eggman's defeated flag been set?
-        self->code = sst_object_codes[ObjId_ExplosionBomb];
+        self->code = Obj_ExplosionBomb;
         self->routine = 0;
         return;
     }
@@ -190,7 +191,7 @@ static void GBall_Ball(Sst *self, Own_BossBall *own) {
         return;
     }
 
-    self->code = sst_object_codes[ObjId_ExplosionBomb];
+    self->code = Obj_ExplosionBomb;
     self->routine = 0;
 }
 

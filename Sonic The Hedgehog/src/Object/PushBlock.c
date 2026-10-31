@@ -75,7 +75,7 @@ static void PushB_SpawnLavaGeysers(Sst *self) {
     Sst *geyser = Sst_Allocate();
     if (geyser == NULL)
         return;
-    geyser->code = sst_object_codes[ObjId_GeyserMaker];
+    geyser->code = Obj_GeyserMaker;
     geyser->x_pos.f.u = (int16_t)(self->x_pos.f.u + offset);
     geyser->y_pos.f.u = (int16_t)(self->y_pos.f.u + 16);
     ((Own_GeyserMaker *)geyser->own.u8)->parent_index = (uint8_t)(self - sst);

@@ -1,5 +1,6 @@
 #include "SstLoad.h"
 #include "Object/TitleCard.h"
+#include "Object/HUD.h"
 #include "Object/Splash.h"
 #include "GM_Level.h"
 #include "Viewport.h"
@@ -250,6 +251,7 @@ GM_Level_Branch:;
     }
 
     Level_ClearState();
+    hud_visible = false;
     Sst_ResetAll(); // (the characters too: the previous level's Sonic, his routine and speeds, must not carry over)
 
     // Clear screen
@@ -301,7 +303,7 @@ GM_Level_Branch:;
 
         // Start title card (the prototypes had none: their levels start straight away, once the art is loaded)
         if (!game_info.no_title_card)
-            Sst_Spawn(ObjId_TitleCard, 0, 0);
+            Sst_SpawnCode(Obj_TitleCard, 0, 0);
 
         do {
             // Run game and load PLCs
@@ -326,11 +328,10 @@ GM_Level_Branch:;
     FloorLog_Unk();
     ColIndexLoad();
 
-    // Create player and HUD objects
-    player->code = sst_object_codes[ObjId_Sonic];
+    // Create the player (and show the HUD)
+    player->code = Obj_Sonic;
     Splash_Make(); // Spin Dash dust / skid dust / water splash companion
-    if (demo >= 0)
-        Sst_Spawn(ObjId_HUD, 0, 0);
+    hud_visible = demo >= 0; // (the HUD is drawn by the frame, not an object)
     Game_LevelObjects();
 
     if (Level_HasWater())
@@ -354,6 +355,7 @@ GM_Level_Branch:;
     // Load level objects
     ObjPosLoad();
     ExecuteObjects();
+    HUD_Draw();
     BuildSprites(NULL);
 
     // Initialize game state
@@ -443,6 +445,7 @@ GM_Level_Branch:;
 
         // Run game
         ExecuteObjects();
+        HUD_Draw();
         // Restart level gamemode if restart flag set
         if (restart)
             goto GM_Level_Branch;
@@ -489,6 +492,7 @@ GM_Level_Branch:;
 
                     // Run game
                     ExecuteObjects();
+                    HUD_Draw();
                     BuildSprites(NULL);
                     ObjPosLoad();
 

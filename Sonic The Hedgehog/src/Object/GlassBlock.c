@@ -171,7 +171,7 @@ static void Glass_Main(Sst *self, Own_GlassBlock *own) {
             sheen = seg;
         }
         seg->routine = vars[i].routine;
-        seg->code = sst_object_codes[ObjId_GlassBlock];
+        seg->code = Obj_GlassBlock;
         seg->x_pos.f.u = self->x_pos.f.u;
         seg->y_pos.f.u = self->y_pos.f.u;
         seg->mappings = Mappings_MZLargeGreenGlassBlocks;

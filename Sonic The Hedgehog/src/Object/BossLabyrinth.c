@@ -68,7 +68,7 @@ static void BossLabyrinth_Main(Sst *self, Own_BossLabyrinth *own) {
                 break;
             // Same stale-slot guard as BossSpringYard.c.
             memset(sub->own.u8, 0, sizeof(sub->own));
-            sub->code = sst_object_codes[ObjId_BossLabyrinth];
+            sub->code = Obj_BossLabyrinth;
             sub->x_pos.f.u = self->x_pos.f.u;
             sub->y_pos.f.u = self->y_pos.f.u;
         }

@@ -1,5 +1,6 @@
 #include "PrisonCapsule.h"
 #include "SstLoad.h"
+#include "Object/Explosion.h"
 #include "ObjectSst.h"
 #include "Object.h"
 
@@ -67,7 +68,7 @@ static Sst *Pri_NewAnimal(void) {
     Sst *animal = Sst_Allocate();
     if (animal != NULL) {
         memset(animal, 0, sizeof(Sst));
-        animal->code = sst_object_codes[ObjId_Animal];
+        animal->code = Obj_Animals;
     }
     return animal;
 }
@@ -120,7 +121,7 @@ static void Pri_Explosion(Sst *self, Own_PrisonCapsule *own) {
     if (((uint8_t)frame_count & 7) == 0) { // only spawn an explosion every 8 frames
         Sst *exp = Sst_Allocate();
         if (exp != NULL) {
-            exp->code = sst_object_codes[ObjId_ExplosionBomb]; // the fiery explosion (Object 3F, with the bomb's sound) a destroyed boss makes: not the badnik's, which lets an animal out
+            exp->code = Obj_ExplosionBomb; // the fiery explosion (Object 3F, with the bomb's sound) a destroyed boss makes: not the badnik's, which lets an animal out
             exp->routine = 0;
             exp->x_pos.f.u = self->x_pos.f.u;
             exp->y_pos.f.u = self->y_pos.f.u;
@@ -164,7 +165,7 @@ static void Pri_Animals(Sst *self, Own_PrisonCapsule *own) {
 // end-of-act sequence and deleted itself (caller must not touch it further).
 static bool Pri_EndAct(Sst *self) {
     for (int i = 0; i < SST_COUNT; i++) {
-        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_Animal])
+        if (sst[i].code != NULL && sst[i].code == Obj_Animals)
             return false; // still animals present -- not there yet
     }
 

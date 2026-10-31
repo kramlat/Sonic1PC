@@ -1,6 +1,7 @@
 #include "Bumper.h"
 
 #include "Level.h"
+#include "Object/Points.h"
 #include "SstLoad.h"
 #include "LevelScroll.h"
 #include "Macros.h"
@@ -48,7 +49,7 @@ static void Bump_Hit(Sst *self) {
         if (award_points) {
             AddPoints(1); // 10 points (AddPoints counts in tens)
 
-            Sst *points = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
+            Sst *points = Sst_SpawnCode(Obj_Points, self->x_pos.f.u, self->y_pos.f.u);
             if (points != NULL) {
                 points->mapping_frame = 4; // "10" frame
             }

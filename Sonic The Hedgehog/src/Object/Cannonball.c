@@ -1,5 +1,6 @@
 #include "Cannonball.h"
 #include "Object.h"
+#include "Object/Explosion.h"
 #include "ObjectSst.h"
 #include "SstLoad.h"
 #include "Constants.h"
@@ -31,7 +32,7 @@ static bool CBal_ChkExplode(Sst *self, Own_Cannonball *own) {
     if (--own->time >= 0)
         return false;
 
-    self->code = sst_object_codes[ObjId_ExplosionBomb]; // real Object 3F "Explosion" (Map_ExplodeBomb + sfx_Bomb)
+    self->code = Obj_ExplosionBomb; // real Object 3F "Explosion" (Map_ExplodeBomb + sfx_Bomb)
     self->routine = 0;
     self->code(self); // real falls straight into the explosion object's own code this same frame
     return true;

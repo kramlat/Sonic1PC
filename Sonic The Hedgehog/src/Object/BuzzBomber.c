@@ -1,5 +1,6 @@
 #include "BuzzBomber.h"
 #include "Constants.h"
+#include "Object/Explosion.h"
 
 #include "Level.h"
 #include "LevelScroll.h"
@@ -41,7 +42,7 @@ static bool BuzzMissile_CheckNewtron(Sst *self) {
 
 static void BuzzMissile_Charge(Sst *self, Own_BuzzMissile *own) {
     // Delete object if parent Buzz Bomber has exploded
-    if (sst[own->parent_index].code == sst_object_codes[ObjId_Explosion])
+    if (sst[own->parent_index].code == Obj_Explosion)
         Sst_Delete(self);
 
     // Animate and draw
@@ -69,7 +70,7 @@ static void BuzzMissile_Fire(Sst *self) {
 
     } else {
         // Explode
-        self->code = sst_object_codes[ObjId_BuzzExplode];
+        self->code = Obj_BuzzExplode;
         self->routine = 0;
         self->code(self);
     }
@@ -140,7 +141,7 @@ static void Obj_BuzzBomber_Fly(Sst *self, Own_BuzzBomber *own) {
 static void Obj_BuzzBomber_Fire(Sst *self, Sst *missile, Own_BuzzBomber *own) {
     Own_BuzzMissile *mscratch = (Own_BuzzMissile *)missile->own.u8;
 
-    missile->code = sst_object_codes[ObjId_BuzzMissile];
+    missile->code = Obj_BuzzMissile;
     missile->x_pos.f.u = self->x_pos.f.u;
     missile->y_pos.f.u = self->y_pos.f.u + 28;
     missile->y_vel = 0x200;

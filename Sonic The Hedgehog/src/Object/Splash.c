@@ -73,7 +73,7 @@ void Splash_SpawnSkidDust(Sst *parent) {
     if (puff == NULL)
         return;
 
-    puff->code = sst_object_codes[ObjId_Splash];
+    puff->code = Obj_Splash;
     puff->routine = 2; // Main -- skip Init, set up directly below
     Splash_Construct(puff);
     puff->x_pos.f.u = parent->x_pos.f.u;
@@ -87,13 +87,13 @@ void Splash_SpawnSkidDust(Sst *parent) {
 static Sst *splash_companion;
 
 void Splash_Make(void) {
-    splash_companion = Sst_Spawn(ObjId_Splash, 0, 0);
+    splash_companion = Sst_SpawnCode(Obj_Splash, 0, 0);
     if (splash_companion != NULL)
         splash_companion->subtype = 1;
 }
 
 Sst *Splash_Companion(void) {
-    return splash_companion != NULL && splash_companion->code == sst_object_codes[ObjId_Splash] && splash_companion->subtype == 1 ? splash_companion : NULL;
+    return splash_companion != NULL && splash_companion->code == Obj_Splash && splash_companion->subtype == 1 ? splash_companion : NULL;
 }
 
 void Splash_SetAnim(uint8_t anim) {

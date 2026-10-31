@@ -69,7 +69,7 @@ void Obj_GeyserMaker(Sst *self) {
 
         Sst *geyser = Sst_AllocateAfter(self);
         if (geyser != NULL) {
-            geyser->code = sst_object_codes[ObjId_LavaGeyser];
+            geyser->code = Obj_LavaGeyser;
             geyser->x_pos.f.u = self->x_pos.f.u;
             geyser->y_pos.f.u = self->y_pos.f.u;
             geyser->subtype = self->subtype;

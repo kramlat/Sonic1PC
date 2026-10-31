@@ -1,6 +1,7 @@
 // Object 28 of the alpha (Aug 21st 1992): the animals that jump out of a destroyed badnik. It is Sonic 1's (Sonic 1's Animal.c) with twelve kinds of animal, a pair for each zone (the alpha's Offset_0x00A42A),
 // the speeds and frames of each, and the routine of each kind of movement by number as the alpha numbers them: its own table, not Sonic 1's (where the routines of the end of a level are 18 and up).
 #include "Object/Animals.h"
+void Obj_Points(Sst *self);
 #include "ObjectSst.h"
 #include "Object.h"
 
@@ -190,7 +191,7 @@ static void Init(Sst *self, Own_Flicky *a) {
         self->routine = 0x1C;
         self->x_vel = 0;
     } else {
-        Sst *points = Sst_Spawn(ObjId_Points, self->x_pos.f.u, self->y_pos.f.u);
+        Sst *points = Sst_SpawnCode(Obj_Points, self->x_pos.f.u, self->y_pos.f.u);
         if (points != NULL) {
             points->mapping_frame = (uint8_t)(a->points >> 1);
         }

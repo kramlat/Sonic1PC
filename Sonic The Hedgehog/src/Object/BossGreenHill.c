@@ -41,7 +41,7 @@ static void BGHZ_Main(Sst *self, Own_BossGreenHill *own) {
         }
 
         sub->routine = BGHZ_ObjData[i].routine;
-        sub->code = sst_object_codes[ObjId_BossGreenHill];
+        sub->code = Obj_BossGreenHill;
         sub->x_pos.f.u = self->x_pos.f.u;
         sub->y_pos.f.u = self->y_pos.f.u;
         sub->mappings = Mappings_Eggman;
@@ -128,7 +128,7 @@ static void BGHZ_MakeBall(Sst *self, Own_BossGreenHill *own) {
 
     Sst *ball = Sst_Allocate();
     if (ball != NULL) {
-        ball->code = sst_object_codes[ObjId_BossBall];
+        ball->code = Obj_BossBall;
         ball->x_pos.f.u = own->boss_x.f.u;
         ball->y_pos.f.u = own->boss_y.f.u;
         ((Own_BossBall *)ball->own.u8)->parent_index = (uint8_t)(self - sst);

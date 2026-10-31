@@ -1,5 +1,6 @@
 #include "Caterkiller.h"
 #include "SstLoad.h"
+#include "Object/Explosion.h"
 #include "ObjectSst.h"
 #include "Object.h"
 
@@ -164,7 +165,7 @@ static void Cat_BodySeg_ChkBroken(Sst *self, Sst *parent) {
         Cat_FragmentateBody_NotifyHead(self, parent);
         return;
     }
-    if (parent->code == sst_object_codes[ObjId_Explosion]) { // parent was stomped/rolled into normally
+    if (parent->code == Obj_Explosion) { // parent was stomped/rolled into normally
         self->routine = 0xA;
         return; // don't display -- our own child will delete us next
     }
@@ -311,7 +312,7 @@ void Obj_Caterkiller(Sst *self) {
                 Cat_Despawn(self);
                 return;
             }
-            seg->code = sst_object_codes[ObjId_Caterkiller];
+            seg->code = Obj_Caterkiller;
             seg->routine = routine;
             routine += 2;
             seg->mappings = self->mappings;

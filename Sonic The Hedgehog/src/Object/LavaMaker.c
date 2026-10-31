@@ -58,7 +58,7 @@ void Obj_LavaMaker(Sst *self) {
             self->anim_frame_timer = (int8_t)own->fire_interval;
 
             if (SstChkObjectVisible(self)) {
-                Sst *ball = Sst_Spawn(ObjId_LavaBall, self->x_pos.f.u, self->y_pos.f.u);
+                Sst *ball = Sst_SpawnCode(Obj_LavaBall, self->x_pos.f.u, self->y_pos.f.u);
                 if (ball != NULL) {
                     ball->subtype = self->subtype; // subtype
                 }
