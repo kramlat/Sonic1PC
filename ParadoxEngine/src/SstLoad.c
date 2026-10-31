@@ -12,9 +12,15 @@ static const uint8_t empty_layout[ENTRY_SIZE] = {0xFF, 0xFF, 0, 0, 0, 0};
 
 static SstObjectIndex object_index;
 static const uint8_t *layout = empty_layout;
-static int front, back;             // Object_load_addr_front / _back (and the respawn indexes): the entries from back up to front are the ones in the load window
-static int16_t x_coarse, y_coarse;  // Camera_X_pos_coarse / Camera_Y_pos_coarse
-static int16_t x_coarse_back, y_coarse_back;
+// One load window, for one camera. The second is the other player's camera in a split screen (S3&K keeps a second set of these for Player_2's camera); both fill the one respawn table, so an object in range of both is loaded once.
+typedef struct {
+    int front, back;             // Object_load_addr_front / _back (and the respawn indexes): the entries from back up to front are the ones in the load window
+    int16_t x_coarse, y_coarse;  // Camera_X_pos_coarse / Camera_Y_pos_coarse
+    int16_t x_coarse_back, y_coarse_back;
+} LoadWindow;
+static LoadWindow windows[2];
+static LoadWindow *w = &windows[0];  // the window the passes below work on
+static bool second_active;
 static Sst *slot;                   // the free slot the next object goes in (a1)
 
 static uint16_t Word(int entry, int offset) {
@@ -31,11 +37,11 @@ bool SstLoad_Handles(uint8_t id) {
 }
 
 int16_t SstLoad_CoarseBackX(void) {
-    return x_coarse_back;
+    return windows[0].x_coarse_back;
 }
 
 int16_t SstLoad_CoarseBackY(void) {
-    return y_coarse_back;
+    return windows[0].y_coarse_back;
 }
 
 // The next free slot after `from` (a slot index), as the original looks for one: up to and including the first of the level's fixed slots (see Sst_Allocate)
@@ -99,13 +105,8 @@ static void Window(const SstLoadCamera *c, uint16_t *d3, uint16_t *d4, bool *wra
     }
 }
 
-void SstLoad_Init(const SstObjectIndex *index, const uint8_t *entries, bool keep_table, const SstLoadCamera *camera) {
-    object_index = *index;
-    layout = entries != NULL ? entries : empty_layout;
-    if (!keep_table)
-        memset(sst_respawn_table, 0, sizeof(sst_respawn_table));
-
-    // Seek the window to the camera: the front to the first entry at or past one chunk left of the camera, the back one chunk before that
+// Seeks the current window to a camera: the front to the first entry at or past one chunk left of the camera, the back one chunk before that
+static void SeekWindow(const SstLoadCamera *camera) {
     uint16_t d6 = (uint16_t)camera->x - 0x80;
     if ((uint16_t)camera->x < 0x80)
         d6 = 0;
@@ -113,32 +114,42 @@ void SstLoad_Init(const SstObjectIndex *index, const uint8_t *entries, bool keep
     int i = 0;
     while (EntryX(i) < d6)
         i++;
-    front = i;
+    w->front = i;
     i = 0;
     if (d6 >= 0x80) {
         d6 = (uint16_t)(d6 - 0x80);
         while (EntryX(i) < d6)
             i++;
     }
-    back = i;
+    w->back = i;
 
-    x_coarse = -1;
-    y_coarse = (int16_t)((uint16_t)camera->y & 0xFF80);
+    w->x_coarse = -1;
+    w->y_coarse = (int16_t)((uint16_t)camera->y & 0xFF80);
+}
+
+void SstLoad_Init(const SstObjectIndex *index, const uint8_t *entries, bool keep_table, const SstLoadCamera *camera) {
+    object_index = *index;
+    layout = entries != NULL ? entries : empty_layout;
+    if (!keep_table)
+        memset(sst_respawn_table, 0, sizeof(sst_respawn_table));
+    second_active = false;
+    w = &windows[0];
+    SeekWindow(camera);
     SstLoad_Update(camera);
 }
 
 // The pass for a camera that has moved to another column. The original does all of it only when there is a free slot to load into; the pointers move on either way.
 static void ColumnPass(const SstLoadCamera *c, uint16_t d3, uint16_t d4, bool wrapped) {
     uint16_t d6 = (uint16_t)c->x & 0xFF80;
-    if ((int16_t)d6 == x_coarse)
+    if ((int16_t)d6 == w->x_coarse)
         return;
     slot = FreeAfter(SST_FIRST_DYNAMIC);
-    if ((int16_t)d6 < x_coarse) {
+    if ((int16_t)d6 < w->x_coarse) {
         // Moving left: load the entries now in range at the back, and give up the ones past the front
-        x_coarse = (int16_t)d6;
+        w->x_coarse = (int16_t)d6;
         bool borrow = d6 < 0x80;
         d6 = (uint16_t)(d6 - 0x80);
-        int a = back;
+        int a = w->back;
         if (!borrow && slot != NULL) {
             while (a > 0 && (int16_t)d6 < (int16_t)EntryX(a - 1)) {
                 a--;
@@ -146,19 +157,19 @@ static void ColumnPass(const SstLoadCamera *c, uint16_t d3, uint16_t d4, bool wr
                     break; // (the slots are full: the original is a pair of pointers off here, which loads the entries just before it twice; it is kept to the entry)
             }
         }
-        back = a;
-        a = front;
+        w->back = a;
+        a = w->front;
         d6 = (uint16_t)(d6 + 0x300);
         while (a > 0 && !((int16_t)d6 > (int16_t)EntryX(a - 1)))
             a--;
-        front = a;
+        w->front = a;
         return;
     }
 
     // Moving right: load the entries now in range at the front, and give up the ones past the back
-    x_coarse = (int16_t)d6;
+    w->x_coarse = (int16_t)d6;
     d6 = (uint16_t)(d6 + 0x280);
-    int a = front;
+    int a = w->front;
     if (slot != NULL) {
         while (EntryX(a) < d6) {
             bool full = Check(a, d3, d4, wrapped);
@@ -167,31 +178,31 @@ static void ColumnPass(const SstLoadCamera *c, uint16_t d3, uint16_t d4, bool wr
                 break;
         }
     }
-    front = a;
-    a = back;
+    w->front = a;
+    a = w->back;
     bool borrow = d6 < 0x300;
     d6 = (uint16_t)(d6 - 0x300);
     if (!borrow) {
         while (EntryX(a) < d6)
             a++;
     }
-    back = a;
+    w->back = a;
 }
 
 // The pass for a camera that has moved to another row (loc_1B91A): the entries in the window whose Y has come into range
 static void RowPass(const SstLoadCamera *c) {
     uint16_t d6 = (uint16_t)c->y & 0xFF80;
     uint16_t d3 = d6;
-    if ((int16_t)d6 == y_coarse)
+    if ((int16_t)d6 == w->y_coarse)
         return;
 
     bool load = true;
-    if ((int16_t)d6 < y_coarse) { // moving up
+    if ((int16_t)d6 < w->y_coarse) { // moving up
         if (!c->wraps_y) {
             d3 -= 0x80;
             if ((int16_t)d3 < 0)
                 load = false;
-        } else if (d6 != 0 || y_coarse == 0x80) {
+        } else if (d6 != 0 || w->y_coarse == 0x80) {
             d3 -= 0x80; // (loc_1B940)
             if ((int16_t)d3 < 0)
                 d3 &= c->y_wrap;
@@ -205,7 +216,7 @@ static void RowPass(const SstLoadCamera *c) {
             d3 += 0x180;
             if (d3 > c->y_wrap)
                 load = false;
-        } else if (y_coarse != 0 || d6 == 0x80) {
+        } else if (w->y_coarse != 0 || d6 == 0x80) {
             d3 += 0x180;
             if (d3 >= c->y_wrap)
                 d3 &= c->y_wrap;
@@ -219,7 +230,7 @@ static void RowPass(const SstLoadCamera *c) {
     if (load) {
         slot = FreeAfter(SST_FIRST_DYNAMIC);
         uint16_t d4 = (uint16_t)(d3 + 0x80);
-        for (int a = back; slot != NULL && a < front; a++) {
+        for (int a = w->back; slot != NULL && a < w->front; a++) {
             if ((sst_respawn_table[a] & 0x80) || a >= SST_RESPAWN_COUNT)
                 continue;
             if (!SstLoad_Handles(layout[a * ENTRY_SIZE + 4]))
@@ -230,12 +241,12 @@ static void RowPass(const SstLoadCamera *c) {
             Place(a, y, Word(a, 2));
         }
     }
-    y_coarse = (int16_t)d6;
+    w->y_coarse = (int16_t)d6;
 }
 
-void SstLoad_Update(const SstLoadCamera *camera) {
-    y_coarse_back = (int16_t)(((uint16_t)camera->y - 0x80) & 0xFF80);
-    x_coarse_back = (int16_t)(((uint16_t)camera->x - 0x80) & 0xFF80);
+static void UpdateWindow(const SstLoadCamera *camera) {
+    w->y_coarse_back = (int16_t)(((uint16_t)camera->y - 0x80) & 0xFF80);
+    w->x_coarse_back = (int16_t)(((uint16_t)camera->x - 0x80) & 0xFF80);
     uint16_t d3, d4;
     bool wrapped;
     Window(camera, &d3, &d4, &wrapped);
@@ -243,39 +254,59 @@ void SstLoad_Update(const SstLoadCamera *camera) {
     RowPass(camera);
 }
 
+void SstLoad_Update(const SstLoadCamera *camera) {
+    w = &windows[0];
+    UpdateWindow(camera);
+}
+
+void SstLoad_UpdateSecond(const SstLoadCamera *camera) {
+    w = &windows[1];
+    if (!second_active) {
+        SeekWindow(camera);
+        second_active = true;
+    }
+    UpdateWindow(camera);
+    w = &windows[0];
+}
+
+void SstLoad_EndSecond(void) {
+    second_active = false;
+}
+
 void SstLoad_Seek(int16_t camera_x) {
+    w = &windows[0];
     uint16_t d6 = (uint16_t)((uint16_t)camera_x + 0x400) & 0xFF80;
-    if ((int16_t)d6 == x_coarse)
+    if ((int16_t)d6 == w->x_coarse)
         return;
-    if ((int16_t)d6 < x_coarse) {
-        x_coarse = (int16_t)d6;
-        int a = back;
+    if ((int16_t)d6 < w->x_coarse) {
+        w->x_coarse = (int16_t)d6;
+        int a = w->back;
         bool borrow = d6 < 0x80;
         d6 = (uint16_t)(d6 - 0x80);
         if (!borrow)
             while (a > 0 && (int16_t)d6 < (int16_t)EntryX(a - 1))
                 a--;
-        back = a;
-        a = front;
+        w->back = a;
+        a = w->front;
         d6 = (uint16_t)(d6 + 0x300);
         while (a > 0 && !((int16_t)d6 > (int16_t)EntryX(a - 1)))
             a--;
-        front = a;
+        w->front = a;
         return;
     }
-    x_coarse = (int16_t)d6;
+    w->x_coarse = (int16_t)d6;
     d6 = (uint16_t)(d6 + 0x280);
-    int a = front;
+    int a = w->front;
     while (EntryX(a) < d6)
         a++;
-    front = a;
-    a = back;
+    w->front = a;
+    a = w->back;
     bool borrow = d6 < 0x300;
     d6 = (uint16_t)(d6 - 0x300);
     if (!borrow)
         while (EntryX(a) < d6)
             a++;
-    back = a;
+    w->back = a;
 }
 
 void SstLoad_ClearLoaded(void) {
@@ -291,15 +322,20 @@ void SstLoad_Forget(const Sst *obj) {
 
 bool sst_load_everything_in_range; // (the tests that place objects anywhere in a level: nothing is out of range)
 
+// Whether an X is more than 0x280 past the coarse back edge of a window's camera
+static bool PastWindow(const LoadWindow *win, int16_t x) {
+    return (uint16_t)((uint16_t)((uint16_t)x & 0xFF80) - (uint16_t)win->x_coarse_back) > 0x280;
+}
+
+// Out of range is out of range of both cameras
 bool SstOutOfRange(int16_t x) {
     if (sst_load_everything_in_range)
         return false;
-    return (uint16_t)((uint16_t)((uint16_t)x & 0xFF80) - (uint16_t)x_coarse_back) > 0x280;
+    return PastWindow(&windows[0], x) && (!second_active || PastWindow(&windows[1], x));
 }
 
 void SstOnScreenTest2(Sst *obj, int16_t x) {
-    uint16_t d0 = (uint16_t)((uint16_t)x & 0xFF80) - (uint16_t)x_coarse_back;
-    if (d0 > 0x280 && !sst_load_everything_in_range) {
+    if (SstOutOfRange(x)) {
         SstLoad_Forget(obj);
         Sst_Delete(obj);
         return;
@@ -312,8 +348,7 @@ void SstOnScreenTest(Sst *obj) {
 }
 
 void SstDeleteIfNotInRange(Sst *obj) {
-    uint16_t d0 = (uint16_t)((uint16_t)obj->x_pos.f.u & 0xFF80) - (uint16_t)x_coarse_back;
-    if (d0 > 0x280 && !sst_load_everything_in_range) {
+    if (SstOutOfRange(obj->x_pos.f.u)) {
         SstLoad_Forget(obj);
         Sst_Delete(obj);
     }

@@ -482,6 +482,12 @@ static SstLoadCamera SstCamera(void) {
     return c;
 }
 
+// The second player's camera (the split screen), for the loader's second window
+static SstLoadCamera SstCamera2(void) {
+    SstLoadCamera c = {scrpos_x_p2.f.u, scrpos_y_p2.f.u, (int16_t)limit_top1 < 0, level_screen_y_wrap};
+    return c;
+}
+
 void ObjPosLoad(void) {
     if (Editor_TakeReload()) { // (the level editor changed the layouts: the level's objects are made again from them)
         Editor_ClearLevelObjects();
@@ -497,10 +503,20 @@ void ObjPosLoad(void) {
         Sst_Reset();
         SstLoadCamera sst_camera = SstCamera();
         SstLoad_Init(&sst_object_index, Editor_ObjectLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_obj[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), false, &sst_camera);
+        if (camera_split) {
+            SstLoadCamera sst_camera2 = SstCamera2();
+            SstLoad_UpdateSecond(&sst_camera2);
+        }
         Rings_Init(Editor_RingLayout(LEVEL_ZONE(level_id), LEVEL_ACT(level_id), level_ring[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)]), scrpos_x.f.u);
     } else {
         SstLoadCamera sst_camera = SstCamera();
         SstLoad_Update(&sst_camera);
+        if (camera_split) {
+            SstLoadCamera sst_camera2 = SstCamera2();
+            SstLoad_UpdateSecond(&sst_camera2);
+        } else {
+            SstLoad_EndSecond();
+        }
         Rings_Update(scrpos_x.f.u); // (the rings only load around the first camera)
     }
 }

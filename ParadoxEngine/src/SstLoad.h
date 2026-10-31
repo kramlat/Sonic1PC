@@ -38,6 +38,12 @@ typedef struct {
 // load window to the camera and loads what is in range
 void SstLoad_Init(const SstObjectIndex *index, const uint8_t *layout, bool keep_table, const SstLoadCamera *camera);
 
+// The other player's camera in a split screen (S3&K keeps a second set of the loader's pointers for Player_2's camera): a second window over the same layout and respawn table, so the objects near either camera are
+// there and an object in range of both is made once. The first call seeks the window to the camera; call it every frame after SstLoad_Update while the split screen is on. An object is out of range only when it is
+// out of range of both cameras. SstLoad_EndSecond when the split screen ends.
+void SstLoad_UpdateSecond(const SstLoadCamera *camera);
+void SstLoad_EndSecond(void);
+
 // Load_Sprites, every frame after (loc_1B7F2): loads what has come into range of the camera, and moves the bookkeeping on. Nothing happens until the camera is in another 128-pixel column or row
 void SstLoad_Update(const SstLoadCamera *camera);
 

@@ -238,8 +238,28 @@ static void SstLoad_ALevelWithNoObjectsLoadsNothing(void) {
     CHECK_EQ(Count(), 0);
 }
 
+static void SstLoad_ASecondCameraLoadsItsOwnWindowAndKeepsItsObjectsInRange(void) {
+    Start(layout, 0, 0);
+    CHECK(Of(6) == NULL);
+    CHECK(SstOutOfRange(0x1000));
+    SstLoadCamera c2 = Cam(0x1000, 0);
+    SstLoad_UpdateSecond(&c2);
+    CHECK(Of(6) != NULL);                       // (the entries around the other player's camera)
+    CHECK(Of(7) != NULL);
+    CHECK(Of(0) != NULL);                       // (the first window's are still there)
+    CHECK_EQ(Count(), 4);
+    CHECK(!SstOutOfRange(0x1000));              // out of range only of both cameras
+    SstLoad_UpdateSecond(&c2);
+    CHECK_EQ(Count(), 4);                       // (an object in range of both is made once)
+    Move(0, 0);
+    CHECK_EQ(Count(), 4);
+    SstLoad_EndSecond();
+    CHECK(SstOutOfRange(0x1000));
+}
+
 void RegisterSstLoadTests(void) {
     RUN_TEST(SstLoad_StartLoadsTheWindowOfTheCamera);
+    RUN_TEST(SstLoad_ASecondCameraLoadsItsOwnWindowAndKeepsItsObjectsInRange);
     RUN_TEST(SstLoad_MovingRightLoadsWhatComesInAndTakesTheFlipsFromTheEntry);
     RUN_TEST(SstLoad_AColumnThatIsNotNewLoadsNothing);
     RUN_TEST(SstLoad_TheYWindowKeepsOutWhatIsFarBelowUnlessBit15Says);
