@@ -14,7 +14,7 @@ sub asm_to_mappings {
         $line =~ s/;.*//;
         if ($line =~ /^(\w+):\s*spriteHeader/) { $current = $1; $frame{$current} = []; next }
         next unless defined $current && $line =~ /^\s*spritePiece\s+(.*\S)/;
-        my ($x, $y, $w, $h, $tile, $xf, $yf, $pal, $pri) = map { my $v = $_; $v =~ s/^\s+|\s+$//g; $v =~ s/^\$/0x/; $v =~ /^-?0x/i ? hex($v) : $v + 0 } split /,/, $1;
+        my ($x, $y, $w, $h, $tile, $xf, $yf, $pal, $pri) = map { my $v = $_; $v =~ s/^\s+|\s+$//g; my $neg = $v =~ s/^-// ? -1 : 1; $v =~ s/^\$/0x/; $neg * ($v =~ /^0x/i ? hex($v) : $v + 0) } split /,/, $1;
         my $flags = ($pri << 15) | ($pal << 13) | ($yf << 12) | ($xf << 11);
         push @{ $frame{$current} }, pack('cCnnn', $y, (($w - 1) << 2) | ($h - 1), $flags | $tile, $flags | ($tile >> 1), $x & 0xFFFF);
     }

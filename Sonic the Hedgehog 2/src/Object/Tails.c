@@ -68,7 +68,7 @@ static int16_t tails_look_shift;
 #define TAILS_ANIM_SWIMUP   0x27
 #define TAILS_ANIM_SWIMCARRY 0x28
 #define TAILS_ANIM_SWIMTIRED 0x29
-#define TAILS_FLIGHT_ART    0 // 1 once Tails' flight art is in (frames $8B on, his tails separate sprites: tools/tails_flight_animation.pl --art): then his tails are drawn by his other object while he flies
+#define TAILS_FLIGHT_ART    1 // 1 once Tails' flight art is in (frames $8B on, his tails separate sprites: tools/tails_flight_animation.pl --art): then his tails are drawn by his other object while he flies
 #define SONIC_ANIM_HANG2    0x20 // Sonic hanging from Tails (frames $6B, $6C: the animation was added to Sonic's table)
 
 // Spin Dash state
