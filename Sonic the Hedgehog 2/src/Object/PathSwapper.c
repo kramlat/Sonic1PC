@@ -1,8 +1,9 @@
-// The path swapper for Sonic 2 (Nick Arcade's object 03, "colichg"): an invisible line that sends Sonic or Tails onto the other collision path (the other 16x16 collision index and the other solid bits of the
-// level's blocks) and behind or in front of the foreground as they leave the strip it watches. Each character is tracked on his own (a bit of `inside` says he was inside last frame), and the switch happens on
-// the frame he is found outside again: on the object's far side from the line's start (to the right or below) it is the "forward" crossing, the other side the "backward" one.
-// Subtype: bits 0-1 half the strip's length ($20, $40, $80 or $100), bit 2 a horizontal line (the strip runs across, for characters crossing it up or down), bit 3 the path after a forward crossing
-// (1 the second), bit 4 the same for a backward one, bits 5 and 6 whether the character is in front (1) after a forward / backward crossing, bit 7 only when on the ground.
+// The path swapper for Sonic 2 (the pre-beta's object $03, the final game's): an invisible line that sends Sonic or Tails onto the other collision path (the other 16x16 collision index and the other solid bits of
+// the level's blocks) and behind or in front of the foreground as they cross it. Each character has a side of the line he was last found on (set when the object is made, from where he stands); when he is found
+// on the other side the side turns over, and if he is in the strip's length along the line the path and the priority are set by the way he went (the Nick Arcade version it replaces watched the character leave a strip).
+// Subtype: bits 0-1 half the strip's length ($20, $40, $80 or $100), bit 2 a horizontal line (it runs across, for characters crossing it up or down), bit 3 the path after a crossing to the right or down (1 the second),
+// bit 4 the same for a crossing to the left or up, bits 5 and 6 whether the character is in front (1) after a crossing to the right or down / to the left or up, bit 7 only when on the ground. An object turned to the
+// left (X flip) leaves the path as it is and sets only the priority.
 #include "Object/PathSwapper.h"
 #include "SstLoad.h"
 #include "ObjectSst.h"
@@ -19,68 +20,63 @@
 #include "Resource/Mappings/PathSwapper.h"
 
 typedef struct {
-    uint8_t inside; // bit 7 Sonic, bit 6 Tails: inside the strip last frame
-    int16_t size;   // half the strip's length
+    uint8_t side[2]; // Sonic's and Tails': 1 when he was found past the line (to the right of it, or below it)
+    int16_t size;    // half the strip's length
 } Own_Swapper;
 
 static const int16_t swapper_sizes[4] = { 0x20, 0x40, 0x80, 0x100 };
 
-// The character has left the strip: switch his path and priority by which side he left on
-static void Swapper_Cross(const Sst *self, Sst *chr, bool forward, uint8_t subtype) {
-    Scratch_Sonic *sscratch = (Scratch_Sonic *)chr->own.u8;
-    bool second = (subtype & (forward ? 0x08 : 0x10)) != 0;
-    bool front = (subtype & (forward ? 0x20 : 0x40)) != 0;
-    (void)self;
+static Sst *Swapper_Character(int who) {
+    return who == 0 ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
+}
 
-    sscratch->top_solid_bit = second ? 0xE : 0xC;
-    sscratch->lrb_solid_bit = second ? 0xF : 0xD;
+// The character crossed the line (to the right or down, or the other way): his path and priority by the subtype
+static void Swapper_Cross(const Sst *self, Sst *chr, bool forward) {
+    Scratch_Sonic *sscratch = (Scratch_Sonic *)chr->own.u8;
+    const uint8_t subtype = self->subtype;
+    if (!(self->render_flags & SST_RENDER_X_FLIP)) {
+        const bool second = (subtype & (forward ? 0x08 : 0x10)) != 0;
+        sscratch->top_solid_bit = second ? 0xE : 0xC;
+        sscratch->lrb_solid_bit = second ? 0xF : 0xD;
+    }
     chr->art_tile &= ~0x8000;
-    if (front)
+    if (subtype & (forward ? 0x20 : 0x40))
         chr->art_tile |= 0x8000;
     if (debug_cheat)
         PlaySound(sfx_Lamppost);
 }
 
-// Both of the characters against the strip (Pathswapper_MainX / _MainY: the strip is 16 across and `size` each way along the line)
+// Both of the characters against the line (Offset_0x01A828 for the vertical one, Offset_0x01A942 for the horizontal)
 static void Swapper_Watch(Sst *self, bool horizontal) {
     Own_Swapper *own = (Own_Swapper *)self->own.u8;
     if (debug_use)
         return;
 
-    int16_t x0, x1, y0, y1;
-    if (!horizontal) {
-        x0 = self->x_pos.f.u - 8;
-        x1 = self->x_pos.f.u + 8;
-        y0 = self->y_pos.f.u - own->size;
-        y1 = self->y_pos.f.u + own->size;
-    } else {
-        x0 = self->x_pos.f.u - own->size;
-        x1 = self->x_pos.f.u + own->size;
-        y0 = self->y_pos.f.u - 8;
-        y1 = self->y_pos.f.u + 8;
-    }
-
+    const uint16_t line = (uint16_t)(horizontal ? self->y_pos.f.u : self->x_pos.f.u);
+    const int16_t centre = horizontal ? self->x_pos.f.u : self->y_pos.f.u; // (the middle of the strip, along the line)
     for (int who = 0; who < 2; who++) {
-        Sst *chr = (who == 0) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
+        Sst *chr = Swapper_Character(who);
         if (chr == NULL)
             continue;
-        const uint8_t bit = (uint8_t)(0x80 >> who);
-
-        uint16_t cx = (uint16_t)chr->x_pos.f.u, cy = (uint16_t)chr->y_pos.f.u;
-        if (cx >= (uint16_t)x0 && cx < (uint16_t)x1 && cy >= (uint16_t)y0 && cy < (uint16_t)y1) {
-            own->inside |= bit;
-            continue;
+        const uint16_t pos = (uint16_t)(horizontal ? chr->y_pos.f.u : chr->x_pos.f.u);
+        bool forward;
+        if (!own->side[who]) {
+            if (line > pos)
+                continue;
+            own->side[who] = 1;
+            forward = true;
+        } else {
+            if (line <= pos)
+                continue;
+            own->side[who] = 0;
+            forward = false;
         }
-        if (!(own->inside & bit))
+        const int16_t along = horizontal ? chr->x_pos.f.u : chr->y_pos.f.u;
+        if (along < centre - own->size || along >= centre + own->size)
             continue;
-
-        // He was inside and is outside now (unless on the ground is asked for and he is in the air: then nothing, and he is let go)
-        own->inside &= (uint8_t)~bit;
-        if ((self->subtype & 0x80) && ((chr->status & SST_PSTATUS_IN_AIR) != 0))
+        if ((self->subtype & 0x80) && (chr->status & SST_PSTATUS_IN_AIR))
             continue;
-        bool forward = !horizontal ? !((uint16_t)chr->x_pos.f.u < (uint16_t)self->x_pos.f.u)
-                                   : !((uint16_t)chr->y_pos.f.u < (uint16_t)self->y_pos.f.u);
-        Swapper_Cross(self, chr, forward, self->subtype);
+        Swapper_Cross(self, chr, forward);
     }
 }
 
@@ -95,13 +91,18 @@ void Obj_PathSwapper(Sst *self) {
         self->render_flags |= SST_RENDER_LEVEL;
         self->width_pixels = 0x10;
         self->priority = 5 * 0x80;
-        self->mapping_frame = self->subtype & 7;
         own->size = swapper_sizes[self->subtype & 3];
-        if (self->subtype & 4) {
-            self->routine += 2;
-            Swapper_Watch(self, true);
-        } else {
-            Swapper_Watch(self, false);
+        {
+            const bool horizontal = (self->subtype & 4) != 0;
+            self->mapping_frame = self->subtype & (horizontal ? 7 : 3);
+            if (horizontal)
+                self->routine += 2;
+            for (int who = 0; who < 2; who++) { // (which side of the line each stands on to begin with)
+                Sst *chr = Swapper_Character(who);
+                if (chr != NULL)
+                    own->side[who] = (uint16_t)(horizontal ? self->y_pos.f.u : self->x_pos.f.u) < (uint16_t)(horizontal ? chr->y_pos.f.u : chr->x_pos.f.u);
+            }
+            Swapper_Watch(self, horizontal);
         }
         break;
     case 2:

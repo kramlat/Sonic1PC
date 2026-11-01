@@ -421,7 +421,7 @@ static void Coconuts_ThrowACoconutWhenSonicIsNear(void) {
         Obj_EnemyWeapon(nut);
         CHECK_EQ(nut->collision_flags, 0x8B);
         Obj_EnemyWeapon(nut);
-        CHECK_EQ(nut->y_vel, 0x20);
+        CHECK_EQ(nut->y_vel, -0x100 + 0x20); // (thrown up at -$100 in the pre-beta, then the first frame of gravity)
     }
 }
 

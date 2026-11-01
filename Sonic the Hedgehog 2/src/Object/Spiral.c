@@ -10,6 +10,7 @@
 #include "LevelScroll.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
+#include "Object/CharControl.h"
 #include "Solid.h"
 
 #include "MathUtil.h"
@@ -72,6 +73,8 @@ static void Spiral_Character(Sst *self, Sst *chr, int who) {
         }
         int16_t d1 = chr->y_pos.f.u - self->y_pos.f.u - 0x10;
         if ((uint16_t)d1 >= 0x30)
+            return;
+        if (CharObjControl(chr) != 0) // (the pre-beta's: a character that an object holds is not taken up)
             return;
         Solid_Ride(self, chr, who);
         return;

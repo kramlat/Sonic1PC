@@ -56,7 +56,7 @@ static void ThrowCoconut(Sst *self) {
     ((Own_Weapon *)nut->own.u8)->weapon = Weapon_Coconut;
     nut->x_pos.f.u = self->x_pos.f.u;
     nut->y_pos.f.u = self->y_pos.f.u - 13;
-    nut->collision_flags |= 0x80;
+    nut->y_vel = -0x100; // (the pre-beta's: the coconut is thrown up a little, the alpha's dropped from the hand)
     if (((self->render_flags & SST_RENDER_X_FLIP) != 0)) {
         nut->x_pos.f.u -= 11;
         nut->x_vel = 0x100;
