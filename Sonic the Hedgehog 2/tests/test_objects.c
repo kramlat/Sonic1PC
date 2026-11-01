@@ -65,7 +65,7 @@ static const Pending pending[] = {
     { ZoneId_CPZ, 0, { 0 } },
     { ZoneId_SFZ, 0, { 0 } },
     { ZoneId_DEZ, 2, { 0xC6, 0xC7 } }, // (Death Egg's two bosses: they wait)
-    { ZoneId_SCZ, 2, { 0x99, 0x9A } }, // (Sky Chase's own: the Nebula and the Turtloid) // (Sky Fortress's own objects: not ported yet)
+    { ZoneId_SCZ, 0, { 0 } },
     { ZoneId_ARZ, 0, { 0 } },
     { ZoneId_MCZ, 0, { 0 } }, // (Dust Hill)
     { ZoneId_OOZ, 0, { 0 } }, // (Oil Ocean)

@@ -20,4 +20,10 @@ void SkyBadniks_MakeBoost(Sst *parent, const uint8_t *animation);
 // of the weapon object)
 void Obj_Clucker(Sst *self);
 
+// $99: the Nebula (Sky Chase's bomber: it flies left; when a character is to its left within $80 it rises, and when one is under it it drops a bomb (the weapon object's), once), $9A: the Turtloid (it flies left slowly
+// with a turret ($9B) on its back and a boost; its top is a platform; when a character is within $80 to its left it stops and fires a bullet to the left, and goes on)
+void Obj_Nebula(Sst *self);
+void Obj_Turtloid(Sst *self);
+void Obj_TurtloidTurret(Sst *self);
+
 #endif //_SKYBADNIKS_H

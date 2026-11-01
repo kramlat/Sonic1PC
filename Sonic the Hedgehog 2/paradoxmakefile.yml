@@ -573,6 +573,7 @@ resources:
   - "Animation/TurtloidShot"
   - "Animation/TurtloidBoost"
   - "Animation/BalkiryBoost"
+  - "Animation/Nebula"
   - "Animation/SFZCluckerShot"
   - "Animation/SFZClucker"
   - "Animation/SFZClucker1"

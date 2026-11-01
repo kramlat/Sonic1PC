@@ -825,6 +825,54 @@ static void SkyBadniks_TheCluckerWaitsForSomeoneNearThenAimsAndFiresEverySixtyFo
     CHECK(shots >= 2 && shots <= 6);
 }
 
+static void SkyBadniks_TheNebulaRisesWhenSomeoneIsToItsLeftAndDropsOneBombOverHim(void) {
+    Reset();
+    scrpos_x.f.u = 400;
+    Sst *nebula = Spawn(0x99, 0x12, 500, 300);
+    player->x_pos.f.u = 420; // (to its left, within $80)
+    player->y_pos.f.u = 500;
+    Frames(2);
+    CHECK_EQ(nebula->routine, 4);
+    CHECK(nebula->y_vel < 0);
+    player->x_pos.f.u = nebula->x_pos.f.u; // (under it)
+    Frames(1);
+    int bombs = 0;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_EnemyWeapon && sst[i].mapping_frame == 4)
+            bombs++;
+    CHECK_EQ(bombs, 1);
+    Frames(5);
+    bombs = 0;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_EnemyWeapon && sst[i].mapping_frame == 4)
+            bombs++;
+    CHECK(bombs <= 1); // (once: the weapon is a kind of its own)
+}
+
+static void SkyBadniks_TheTurtloidIsAPlatformThatStopsAndFiresLeft(void) {
+    Reset();
+    scrpos_x.f.u = 400;
+    player->code = NULL;
+    Sst *turtloid = Spawn(0x9A, 0x16, 500, 300);
+    Frames(2);
+    CHECK_EQ(turtloid->x_vel, (int16_t)0xFF80);
+    player->x_pos.f.u = turtloid->x_pos.f.u - 0x40; // (to its left: it is the side the characters come from)
+    Frames(1);
+    CHECK_EQ(turtloid->x_vel, 0);
+    CHECK_EQ(turtloid->mapping_frame, 1);
+    bool fired = false;
+    for (int i = 0; i < 12; i++) {
+        Frames(1);
+        for (int k = 0; k < SST_COUNT; k++)
+            if (sst[k].code == Obj_EnemyWeapon && sst[k].mapping_frame == 6)
+                fired = true;
+    }
+    CHECK(fired);
+    Frames(20);
+    CHECK_EQ(turtloid->mapping_frame, 0);
+    CHECK_EQ(turtloid->x_vel, (int16_t)0xFF80); // (and it goes on)
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -862,6 +910,8 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SkyBadniks_TheBalkiryGoesLeftWithItsBoostAndTheBoostGoesWhenItIsGone);
     RUN_TEST(SkyBadniks_TheWeaponObjectHasTheTurtloidsBulletAndTheNebulasBomb);
     RUN_TEST(SkyBadniks_TheCluckerWaitsForSomeoneNearThenAimsAndFiresEverySixtyFourFrames);
+    RUN_TEST(SkyBadniks_TheNebulaRisesWhenSomeoneIsToItsLeftAndDropsOneBombOverHim);
+    RUN_TEST(SkyBadniks_TheTurtloidIsAPlatformThatStopsAndFiresLeft);
     RUN_TEST(SFZObjects_TheLaserWaitsToBeSeenThenCrossesLeftAndGoes);
     RUN_TEST(SFZObjects_TheBossSwitchIsDestroyedByARollingLandingAndChangesTheLayout);
 }
