@@ -44,6 +44,6 @@ The pre-beta's SEGA screen is the final game's (its art, `Sega_Screen`, and obje
 
 1. **DONE** The logo where it ends (art, map, palette: `res/S2Sega`), the trademark hidden by object $B1 (`Object/SegaScreen.c`; the Japanese console, `SCP_JP`, keeps it), the pre-beta's timing (about 80 frames of the animation, the voice, 180 frames of hold, Start leaves).
 2. **DONE** Sonic running across the logo (object $B0: his art cut from `Sonic.dat`, tiles $2B6 to $301, doubled in RAM by `Sub_Sega_Intro`, at tile $88; frames 0-3 of `asm/Mappings/SegaSprites.asm`; it runs left, is out of sight for a sweep, runs right, then the voice).
-3. The letters' lines pushed aside (35 offsets, the even lines on the way in and the odd ones on the way back) and the palette sweeps (the lists at $FB10 and $FB00).
+3. **DONE** The blinds and the palette sweeps: plane A strips of the block graphic ($80-$87) on every second line (even lines right to left, then odd lines left to right, 35 lines from line 78 with the pre-beta's ragged offsets), and the two seven-step palette sweeps of $B0 (four frames a step). The screen's planes are 128 tiles wide while it runs (`SEGA_PLANE_WIDTH`), as the pre-beta's are; the others' 64 come back on leaving.
 4. **The last stage: the SEGA voice is replaced with the final game's. Ask the user for the sample rate when it is time for that one.**
 

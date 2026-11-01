@@ -6,6 +6,10 @@
 #include "ObjectSst.h"
 #include "Object.h"
 
+#include "Video.h"
+#include "Viewport.h"
+#include "Palette.h"
+
 #include "Backend/VDP.h"
 #include "Object/SegaScreen.h"
 #include "Resource/Art/SegaSonic.h"
@@ -113,14 +117,107 @@ static void SegaMakeSonicArt(void) {
     VDP_WriteVRAM(sega_ram + 0x0B00, 0x2C00);
 }
 
-// ---- Sonic ($B0) -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// He runs left across the logo (twelve frames of $20 pixels), is out of sight while the first sweep goes (28 frames), runs back right (twelve frames) and is out of sight while the second goes: the voice
-// is then played (GM_Sega.c). A wide picture has more to run: the frames it takes to cross it are added to both runs.
-enum { SEGA_RUN_FRAMES = 12, SEGA_SWEEP_FRAMES = 28 };
+// ---- The blocks over the letters --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Plane A holds a strip of the block graphic (tiles $80-$87: seven steps of a gradient and a solid block, repeated), in rows 9 to 18 of the picture, and the scroll of every second line moves it across: a
+// line is a pixel high, so the letters are covered in blinds. The first sweep is on the even lines, a strip with the gradient in front from the right edge going left; the second on the odd lines, from
+// the left (the plane wraps) going right with the gradient at its end. How far each line is from the others (SEGA_LINE_OFFSETS) is what makes the edge ragged.
+#define SEGA_STRIP_ROWS 10
+#define SEGA_STRIP_FIRST_ROW 9
+#define SEGA_LINES 35
+#define SEGA_FIRST_LINE 78
 
+static const uint8_t sega_line_offsets[SEGA_LINES] = {
+    0x12, 0x04, 0x04, 0x02, 0x02, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x04, 0x06,
+    0x0A, 0x08, 0x06, 0x04, 0x04, 0x04, 0x04, 0x06, 0x06, 0x08, 0x08, 0x0A, 0x0A, 0x0C, 0x0E, 0x10, 0x16,
+};
+
+// A row's words, written one after another from `col` (past the plane's row it goes on in the next, as the VDP's autoincrement does): a word with $0400 set is the solid block, 42 times
+static void SegaWriteStrip(unsigned col, const uint16_t *words, int count) {
+    for (int row = 0; row < SEGA_STRIP_ROWS; row++) {
+        size_t at = (size_t)(SEGA_STRIP_FIRST_ROW + SegaPlaneRows() + row) * SEGA_PLANE_WIDTH * 2 + col * 2;
+        for (int i = 0; i < count; i++) {
+            const bool solid = (words[i] & 0x0400) != 0;
+            for (int n = 0; n < (solid ? 42 : 1); n++, at += 2)
+                Plane_Put(&screen1p.plane_a, at, (uint16_t)(words[i] & ~0x0400));
+        }
+    }
+}
+
+static void SegaStripFirst(void) { // the gradient at the left end, from just past the right edge
+    static const uint16_t words[8] = { 0xA080, 0xA081, 0xA082, 0xA083, 0xA084, 0xA085, 0xA086, 0xA487 };
+    SegaWriteStrip((unsigned)((SCREEN_WIDTH + 7) / 8), words, 8);
+}
+
+static void SegaStripSecond(void) { // the solid block first, the gradient at the right end, ending where the plane's row does
+    static const uint16_t words[8] = { 0xA487, 0xA086, 0xA085, 0xA084, 0xA083, 0xA082, 0xA081, 0xA080 };
+    SegaWriteStrip(80, words, 8);
+}
+
+// Every second line from `odd`'s (0: the even ones the first sweep moves, 1: the odd ones): by `step`, or put at the offsets of the table (by `sign` times it)
+static int16_t *SegaLine(int line, int odd) {
+    return &hscroll_buffer[SEGA_FIRST_LINE + SegaPlaneRows() * 8 + line * 2 + odd][0];
+}
+
+static void SegaLinesStep(int odd, int16_t step) {
+    for (int i = 0; i < SEGA_LINES; i++)
+        *SegaLine(i, odd) = (int16_t)(*SegaLine(i, odd) + step);
+}
+
+static void SegaLinesOffset(int odd, int sign) {
+    for (int i = 0; i < SEGA_LINES; i++)
+        *SegaLine(i, odd) = (int16_t)(*SegaLine(i, odd) + sign * sega_line_offsets[i]);
+}
+
+// ---- The palette sweeps ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Seven steps of eight colours, one every four frames (the lists of the pre-beta's $B0); the first goes to colours 8-15 of the first line, the second to colours 0-7
+static const uint16_t sega_sweep_a[7][8] = {
+    { 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0EEE },
+    { 0x0E62, 0x0EEE, 0x0EEE, 0x0EEE, 0x0EEE, 0x0EEE, 0x0EEE, 0x0EEE },
+    { 0x0E84, 0x0E62, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0EEE },
+    { 0x0EA6, 0x0E84, 0x0E62, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0EEE },
+    { 0x0EC8, 0x0EA6, 0x0E84, 0x0E62, 0x0E60, 0x0E60, 0x0E60, 0x0EEE },
+    { 0x0EEC, 0x0EC8, 0x0EA6, 0x0E84, 0x0E62, 0x0E60, 0x0E60, 0x0EEE },
+    { 0x0EEE, 0x0EEC, 0x0EC8, 0x0EA6, 0x0E84, 0x0E62, 0x0E60, 0x0EEE },
+};
+static const uint16_t sega_sweep_b[7][8] = {
+    { 0x0EEE, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0E60 },
+    { 0x0EEE, 0x0E62, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0E60 },
+    { 0x0EEE, 0x0E84, 0x0E62, 0x0E60, 0x0E60, 0x0E60, 0x0E60, 0x0E60 },
+    { 0x0EEE, 0x0EA6, 0x0E84, 0x0E62, 0x0E60, 0x0E60, 0x0E60, 0x0E60 },
+    { 0x0EEE, 0x0EC8, 0x0EA6, 0x0E84, 0x0E62, 0x0E60, 0x0E60, 0x0E60 },
+    { 0x0EEE, 0x0EEC, 0x0EC8, 0x0EA6, 0x0E84, 0x0E62, 0x0E60, 0x0E60 },
+    { 0x0EEE, 0x0EEE, 0x0EEC, 0x0EC8, 0x0EA6, 0x0E84, 0x0E62, 0x0E60 },
+};
+enum { SEGA_SWEEP_STEPS = 7, SEGA_SWEEP_DELAY = 4 };
+
+// Offset_0x0347BC: true once the last step has had its four frames
 typedef struct {
     int16_t timer;
+    uint8_t sweep_delay, sweep_step;
 } Own_SegaSonic;
+
+static void SegaSweepStart(Own_SegaSonic *own) {
+    own->sweep_delay = 1;
+    own->sweep_step = 0xFF;
+}
+
+static bool SegaSweep(Own_SegaSonic *own, const uint16_t (*list)[8], int first_colour) {
+    if (--own->sweep_delay != 0)
+        return false;
+    const uint8_t step = (uint8_t)(own->sweep_step + 1);
+    if (step >= SEGA_SWEEP_STEPS)
+        return true;
+    own->sweep_step = step;
+    own->sweep_delay = SEGA_SWEEP_DELAY;
+    for (int i = 0; i < 8; i++)
+        dry_palette[0][first_colour + i] = list[step][i];
+    return false;
+}
+
+// ---- Sonic ($B0) -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// He runs left across the logo (twelve frames of $20 pixels) while the first strip goes by on the even lines, is out of sight for the first palette sweep, runs back right (twelve frames) with the second strip
+// on the odd lines, and is out of sight for the second sweep: the voice is then played (GM_Sega.c). A wide picture has more to run: the frames it takes to cross it are added to both runs.
+enum { SEGA_RUN_STEPS = 11, SEGA_TAIL_STEPS = 12 };
 
 static const uint8_t sega_sonic_anim[] = { 0x00, 0x02, 0x00, 0x00, 0x01, 0x02, 0x03, 0xFF }; // (every frame, 0-3 round)
 
@@ -143,39 +240,56 @@ void Obj_SegaSonic(Sst *self) {
         self->width_pixels = 0x10;
         self->x_pos.f.u = 0x1E8 + (PLANE_WIDEADD * 8);
         self->y_pos.f.u = 0xF0 + SCREEN_TALLADD2;
-        own->timer = SEGA_RUN_FRAMES - 1 + SegaExtraFrames();
+        own->timer = SEGA_RUN_STEPS + SegaExtraFrames();
+        SegaStripFirst();
+        SegaLinesOffset(0, 1);
         break;
-    case 2: // runs left
+    case 2: // runs left, the even lines go with the strip
         self->x_pos.f.u -= 0x20;
         if (--own->timer >= 0) {
+            SegaLinesStep(0, -0x20);
             Sst_Animate(self, sega_sonic_anim);
-            Sst_Draw(self);
         } else {
             self->routine += 2;
-            own->timer = SEGA_SWEEP_FRAMES;
+            own->timer = SEGA_TAIL_STEPS;
+            SegaSweepStart(own);
         }
+        Sst_Draw(self);
         break;
-    case 4: // out of sight: the first sweep
-        if (--own->timer < 0) {
+    case 4: // out of sight: the strip goes on, and the first palette sweep
+        if (own->timer != 0) {
+            own->timer--;
+            SegaLinesStep(0, -0x20);
+        }
+        if (SegaSweep(own, sega_sweep_a, 8)) {
             self->routine += 2;
-            self->render_flags &= (uint8_t)~SST_RENDER_X_FLIP; // (turns round)
-            self->status &= (uint8_t)~SST_STATUS_X_FLIP;
+            self->status &= (uint8_t)~SST_STATUS_X_FLIP; // (turns round: the render flags follow with his animation)
             self->x_pos.f.u -= 0x28;
-            own->timer = SEGA_RUN_FRAMES - 1 + SegaExtraFrames();
+            own->timer = SEGA_RUN_STEPS + SegaExtraFrames();
+            memset(hscroll_buffer, 0, sizeof(hscroll_buffer));
+            SegaLinesOffset(1, -1);
+            Plane_Clear(&screen1p.plane_a);
+            SegaStripSecond();
         }
         break;
-    case 6: // runs right
-        self->x_pos.f.u += 0x20;
+    case 6: // runs right, the odd lines go with the second strip
         if (--own->timer >= 0) {
+            self->x_pos.f.u += 0x20;
+            SegaLinesStep(1, 0x20);
             Sst_Animate(self, sega_sonic_anim);
-            Sst_Draw(self);
         } else {
             self->routine += 2;
-            own->timer = SEGA_SWEEP_FRAMES;
+            own->timer = SEGA_TAIL_STEPS;
+            SegaSweepStart(own);
         }
+        Sst_Draw(self);
         break;
-    case 8: // out of sight: the second sweep; then the voice
-        if (--own->timer < 0) {
+    case 8: // out of sight: the second palette sweep; then the voice
+        if (own->timer != 0) {
+            own->timer--;
+            SegaLinesStep(1, 0x20);
+        }
+        if (SegaSweep(own, sega_sweep_b, 0)) {
             self->routine += 2;
             sega_animation_done = true;
         }
