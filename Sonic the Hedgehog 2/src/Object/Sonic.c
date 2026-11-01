@@ -44,6 +44,7 @@ uint8_t sgfx_buffer[SONIC_DPLC_SIZE];
 
 int16_t track_sonic[0x40][2];
 word_u track_pos;
+uint8_t sonic_rec_hold[0x40], sonic_rec_press[0x40], sonic_rec_status[0x40]; // (Sonic_Stat_Record_Buf: his pad and status, an entry for each of track_sonic's)
 
 // Spin Dash state (no room left in Scratch_Sonic, so kept here like track_sonic/track_pos)
 static uint8_t spindash_flag;
@@ -105,6 +106,11 @@ static void Sonic_RecordPosition(Sst *self) {
     int16_t* write = &track_sonic[0][0] + (track_pos.v >> 1);
     *write++ = self->x_pos.f.u;
     *write++ = self->y_pos.f.u;
+    // (and his pad and status with it: what Tails' CPU follows)
+    const int at = (track_pos.f.l >> 2) & 0x3F;
+    sonic_rec_hold[at] = jpad1_hold1;
+    sonic_rec_press[at] = jpad1_press1;
+    sonic_rec_status[at] = self->status;
     track_pos.f.l += 4;
 }
 

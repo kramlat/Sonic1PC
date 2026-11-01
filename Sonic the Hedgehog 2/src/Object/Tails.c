@@ -1,6 +1,6 @@
-// Tails (Nick Arcade's objects 02 and 05), made as Sonic Team made him: a copy of Sonic's object (Sonic.c) with the changes Tails needs, and the same copy's quirks. His control is pad 2,
-// which a stub of a "CPU" fills with Sonic's own pad from 16 frames ago; he has no water code, no debug mode and no flight yet; hurting him loses SONIC'S rings (the copy of the hurt
-// code works on the shared ring count); he does not die from enemies, only from falling below the level, and then he comes back above Sonic.
+// Tails (Nick Arcade's objects 02 and 05), made as Sonic Team made him: a copy of Sonic's object (Sonic.c) with the changes Tails needs, and the same copy's quirks. His control is pad 2, which the pre-beta's CPU
+// plays when no real pad 2 has him (Tails_Control: five states, he follows what Sonic did 16 frames before, and when left behind flies in from above); he has no water code of his own to speak of, no debug mode and no
+// carrying flight yet; hurting him loses SONIC'S rings (the copy of the hurt code works on the shared ring count); he does not die from enemies, only from falling below the level, and then he comes back above Sonic.
 #include "ScrollEngine.h"
 #include "Standing.h"
 void Obj_Explosion(Sst *self);
@@ -58,6 +58,7 @@ static int16_t tails_look_shift;
 // His animations, as the alpha's table has them (ids 0-8 are Sonic 1's names; its 9 is the spin dash, where the port's Sonic has had 31, and its entry 31 the script of his fastest running)
 #define TAILS_ANIM_SPINDASH 9
 #define TAILS_ANIM_PEELOUT  31
+#define TAILS_ANIM_FLY      0x20 // (the pre-beta's last animation: the two frames of him flying in)
 
 // Spin Dash state
 static uint8_t spindash_flag;
@@ -65,10 +66,14 @@ static uint8_t spindash_flag;
 static int16_t tails_speed_max = 0x600, tails_speed_acc = 0xC, tails_speed_dec = 0x80;
 static uint16_t spindash_count;
 
-// Sonic's pad for the last 64 frames (Sonic_Stat_Record_Buf), and how long a real pad 2 has had Tails (Tails_control_counter)
-static uint8_t pad_hold[0x40], pad_press[0x40];
-static uint8_t pad_head;
-static uint16_t control_counter;
+// Tails' CPU (the pre-beta's Miles_CPU_Control: its states are the word at $FFFFF708): how long a real pad 2 has had him (Tails_control_counter, $F702), how long he has been out of sight ($F704), the place he flies to
+// ($F70A, $F70C), the id of what he stood on when last in sight ($F70E), and whether he is about to jump after Sonic ($F70F)
+enum { CPU_INIT, CPU_SPAWNING, CPU_FLYING, CPU_NORMAL, CPU_PANIC };
+static uint8_t cpu_state;
+static uint16_t control_counter, cpu_lost_timer;
+static int16_t cpu_target_x, cpu_target_y;
+static const void *cpu_stand_code;
+static bool cpu_jump_pending;
 
 // The last frame loaded of each of Tails' art windows
 static uint8_t last_frame_tails = 0xFF, last_frame_tail = 0xFF;
@@ -192,26 +197,268 @@ static void Tails_LoadGfx(Sst *self) {
     Tails_LoadDPLC(self->mapping_frame, &last_frame_tails, ArtTile_Tails);
 }
 
-// Tails_Control and TailsCPU_Control: a pad 2 that is being used keeps Tails for 300 frames; otherwise he copies Sonic's pad from 16 frames back (the CPU's other states
-// only pass on to this one)
-static void Tails_Control(void) {
-    // (The prototype's TailsCPU_Control runs in the split screen too, with no check of the mode: while pad 2 is idle Tails copies Sonic's pad, and the second player's pad takes him over for 5 seconds)
-    // (Sonic_RecordPos: Sonic's pad this frame)
-    pad_head = (uint8_t)((pad_head + 1) & 0x3F);
-    pad_hold[pad_head] = jpad1_hold1;
-    pad_press[pad_head] = jpad1_press1;
+// The state Tails is put in when he is left behind: he is out of sight at the top of the level ($0,$0), held (no movements of his own, no touching of objects) and flying (Offset_0x016B8E)
+static void TailsCPU_GiveUp(Sst *self) {
+    control_counter = 0;
+    cpu_lost_timer = 0;
+    cpu_state = CPU_SPAWNING;
+    OBJ_CONTROL(self) = 0x81;
+    self->status = SST_PSTATUS_IN_AIR;
+    self->x_pos.f.u = 0;
+    self->y_pos.f.u = 0;
+    self->anim = TAILS_ANIM_FLY;
+}
 
-    if (jpad2_hold & 0x7F) {
-        control_counter = 0x12C;
+// Left behind (Offset_0x016BC0): out of sight for $12C frames, or standing on something that is not what he last stood on in sight, and he is given up on
+static void TailsCPU_Lost(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
+    if (!(self->render_flags & SST_RENDER_ON_SCREEN)) {
+        if (self->status & SST_PSTATUS_OBJECT_STAND) {
+            if (sst[scratch->standing_obj].code != cpu_stand_code) {
+                TailsCPU_GiveUp(self);
+                return;
+            }
+        }
+        if (++cpu_lost_timer >= 0x12C) {
+            TailsCPU_GiveUp(self);
+            return;
+        }
+    } else {
+        cpu_lost_timer = 0;
+    }
+    cpu_stand_code = (const void *)sst[scratch->standing_obj].code;
+}
+
+// Sonic's record 16 frames back (the index is the position buffer's: the entry after the newest, less $44)
+static uint8_t TailsCPU_RecordIndex(void) {
+    return (uint8_t)((track_pos.f.l - 0x44) >> 2) & 0x3F;
+}
+
+// Tails' own pad for this frame: pad 2 if it is used (it has him for 600 frames after), else made by the CPU
+static void TailsCPU_Normal(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
+    TailsCPU_Lost(self);
+    if (cpu_state != CPU_NORMAL)
+        return;
+    if (control_counter || (OBJ_CONTROL(self) & 0x80)) {
+        if (control_counter)
+            control_counter--;
         return;
     }
-    if (control_counter) {
-        control_counter--;
-        return;
+    if (scratch->control_lock && self->ground_vel == 0)
+        cpu_state = CPU_PANIC;
+
+    const int rec = TailsCPU_RecordIndex();
+    int16_t d2 = track_sonic[rec][0];
+    int16_t d3 = track_sonic[rec][1];
+    uint16_t pad = (uint16_t)((sonic_rec_hold[rec] << 8) | sonic_rec_press[rec]);
+    const uint8_t sonic_status = sonic_rec_status[rec];
+    bool jump_now = false;
+
+    if ((self->status & SST_PSTATUS_PUSHING) && !(sonic_status & SST_PSTATUS_PUSHING)) {
+        jump_now = true; // pushing something that Sonic was not: a jump
+    } else {
+        d2 = (int16_t)(d2 - self->x_pos.f.u);
+        if (d2 == 0) {
+            self->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+            if (sonic_status & SST_PSTATUS_X_FLIP)
+                self->status |= SST_PSTATUS_X_FLIP;
+        } else if (d2 < 0) { // Sonic's record is to the left
+            d2 = (int16_t)-d2;
+            if (d2 >= 0x10)
+                pad = (uint16_t)((pad & 0xF3F3) | 0x0404);
+            if (self->ground_vel != 0 && (self->status & SST_PSTATUS_X_FLIP))
+                self->x_pos.f.u--;
+        } else { // to the right
+            if (d2 >= 0x10)
+                pad = (uint16_t)((pad & 0xF3F3) | 0x0808);
+            if (self->ground_vel != 0 && !(self->status & SST_PSTATUS_X_FLIP))
+                self->x_pos.f.u++;
+        }
+        if (cpu_jump_pending) {
+            pad |= 0x7000;
+            if (self->status & SST_PSTATUS_IN_AIR) {
+                jpad2_hold = (uint8_t)(pad >> 8);
+                jpad2_press = (uint8_t)pad;
+                return;
+            }
+            cpu_jump_pending = false;
+        }
+        if ((frame_count & 0xFF) == 0 || d2 < 0x40) {
+            int16_t dy = (int16_t)(d3 - self->y_pos.f.u);
+            if (dy < 0 && -dy >= 0x20)
+                jump_now = true; // Sonic's record is well above him: a jump
+        }
+        if (!jump_now) {
+            jpad2_hold = (uint8_t)(pad >> 8);
+            jpad2_press = (uint8_t)pad;
+            return;
+        }
     }
-    uint8_t at = (uint8_t)((pad_head - 16) & 0x3F);
-    jpad2_hold = pad_hold[at];
-    jpad2_press = pad_press[at];
+    // (Offset_0x016B60) a jump, every 64 frames, and not while he ducks
+    if ((frame_count & 0x3F) == 0 && self->anim != SonAnimId_Duck) {
+        pad |= 0x7070;
+        cpu_jump_pending = true;
+    }
+    jpad2_hold = (uint8_t)(pad >> 8);
+    jpad2_press = (uint8_t)pad;
+}
+
+// Stuck (the panic): he ducks, revs his spin dash and lets it go (Miles_CPU_Panic)
+static void TailsCPU_Panic(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
+    TailsCPU_Lost(self);
+    if (cpu_state != CPU_PANIC || control_counter || scratch->control_lock)
+        return;
+    uint16_t pad;
+    if (spindash_flag & 1) {
+        pad = 0x0202;
+        const uint8_t t = (uint8_t)(frame_count & 0x7F);
+        if (t == 0) {
+            jpad2_hold = jpad2_press = 0;
+            cpu_state = CPU_NORMAL;
+            return;
+        }
+        if (!(t & 0x1F))
+            pad |= 0x7070;
+    } else {
+        if (self->ground_vel != 0)
+            return;
+        pad = 0x0202;
+        const uint8_t t = (uint8_t)(frame_count & 0x7F);
+        if (t == 0) {
+            jpad2_hold = jpad2_press = 0;
+            cpu_state = CPU_NORMAL;
+            return;
+        }
+        if (self->anim != SonAnimId_Duck) {
+            jpad2_hold = (uint8_t)(pad >> 8);
+            jpad2_press = (uint8_t)pad;
+            return;
+        }
+        pad = 0x7272;
+    }
+    jpad2_hold = (uint8_t)(pad >> 8);
+    jpad2_press = (uint8_t)pad;
+}
+
+// Out of sight, waiting for a moment when Sonic is on solid ground (or for Tails' own pad: A, B, C or Start) to fly in (Miles_CPU_Spawning)
+static void TailsCPU_Spawning(Sst *self) {
+    if (!(jpad2_hold & 0xF0)) {
+        if ((frame_count & 0x3F) != 0 || CharObjControl(player) != 0 || (player->status & (SST_PSTATUS_MUST_ROLL | SST_PSTATUS_UNDERWATER | SST_PSTATUS_ROLL_JUMP | SST_PSTATUS_IN_AIR)))
+            return;
+    }
+    cpu_state = CPU_FLYING;
+    self->x_pos.f.u = player->x_pos.f.u;
+    cpu_target_x = player->x_pos.f.u;
+    cpu_target_y = player->y_pos.f.u;
+    self->y_pos.f.u = (int16_t)(player->y_pos.f.u - 0xC0);
+    self->art_tile |= TILE_PRIORITY_AND;
+    spindash_flag = 0;
+    spindash_count = 0;
+}
+
+// Flying in to where Sonic was 16 frames ago, a little faster the faster Sonic goes, and down or up a pixel a frame (Miles_CPU_Flying)
+static void TailsCPU_Flying(Sst *self) {
+    Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
+    if (!(self->render_flags & SST_RENDER_ON_SCREEN)) {
+        if (++cpu_lost_timer >= 0x12C) {
+            cpu_lost_timer = 0;
+            cpu_state = CPU_SPAWNING;
+            OBJ_CONTROL(self) = 0x81;
+            self->status = SST_PSTATUS_IN_AIR;
+            self->x_pos.f.u = 0;
+            self->y_pos.f.u = 0;
+            self->anim = TAILS_ANIM_FLY;
+            return;
+        }
+    } else {
+        cpu_lost_timer = 0;
+    }
+    const int rec = TailsCPU_RecordIndex();
+    cpu_target_x = track_sonic[rec][0];
+    cpu_target_y = track_sonic[rec][1];
+
+    int16_t d0 = (int16_t)(self->x_pos.f.u - cpu_target_x);
+    if (d0 != 0) {
+        int16_t d2 = d0 < 0 ? (int16_t)-d0 : d0;
+        d2 >>= 4;
+        if (d2 >= 0xC)
+            d2 = 0xC;
+        int8_t sx = (int8_t)(player->x_vel >> 8);
+        d2 = (int16_t)(d2 + (sx < 0 ? -sx : sx) + 1);
+        if (d0 >= 0) {
+            self->status |= SST_PSTATUS_X_FLIP;
+            if (d2 >= d0) {
+                d2 = d0;
+                d0 = 0;
+            }
+            d2 = (int16_t)-d2;
+        } else {
+            self->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+            d0 = (int16_t)-d0;
+            if (d2 >= d0) {
+                d2 = (int16_t)(d0 & 0xFF); // (a byte move, as the original has it)
+                d0 = 0;
+            }
+        }
+        self->x_pos.f.u = (int16_t)(self->x_pos.f.u + d2);
+    }
+    int16_t d1 = (int16_t)(self->y_pos.f.u - cpu_target_y);
+    if (d1 != 0)
+        self->y_pos.f.u = (int16_t)(self->y_pos.f.u + (d1 > 0 ? -1 : 1));
+
+    if ((sonic_rec_status[rec] & 0xD2) != 0)
+        return;
+    if ((d0 | d1) != 0)
+        return;
+    // He is at Sonic's place: control is his again
+    cpu_state = CPU_NORMAL;
+    OBJ_CONTROL(self) = 0;
+    self->anim = 0;
+    self->x_vel = 0;
+    self->y_vel = 0;
+    self->ground_vel = 0;
+    self->status = SST_PSTATUS_IN_AIR;
+    scratch->control_lock = 0;
+    self->art_tile &= (uint16_t)~TILE_PRIORITY_AND;
+    if (player->art_tile & TILE_PRIORITY_AND)
+        self->art_tile |= TILE_PRIORITY_AND;
+    scratch->top_solid_bit = ((Scratch_Sonic *)player->own.u8)->top_solid_bit;
+    scratch->lrb_solid_bit = ((Scratch_Sonic *)player->own.u8)->lrb_solid_bit;
+}
+
+// Tails_Control and Miles_CPU_Control: a pad 2 that is being used keeps Tails for 600 frames; otherwise the CPU plays him (the pre-beta's, in five states: Init, Spawning, Flying, Normal and Panic). It does
+// not run in a two-player level, where pad 2 is the second player's.
+static void Tails_Control(Sst *self) {
+    if (two_player_mode)
+        return;
+    if (jpad2_hold & 0x7F)
+        control_counter = 0x258;
+    switch (cpu_state) {
+    case CPU_INIT:
+        cpu_state = CPU_NORMAL;
+        OBJ_CONTROL(self) = 0;
+        self->anim = 0;
+        self->x_vel = 0;
+        self->y_vel = 0;
+        self->ground_vel = 0;
+        self->status = SST_PSTATUS_IN_AIR;
+        cpu_lost_timer = 0;
+        break;
+    case CPU_SPAWNING:
+        TailsCPU_Spawning(self);
+        break;
+    case CPU_FLYING:
+        TailsCPU_Flying(self);
+        break;
+    case CPU_NORMAL:
+        TailsCPU_Normal(self);
+        break;
+    case CPU_PANIC:
+        TailsCPU_Panic(self);
+        break;
+    }
 }
 
 // The animation of Tails and of his tails. Tails' (Tails_Animate): like Sonic's, but his walking sets are 8 frames apart and his running ones 6, and he tumbles from frame $75 (a spring flips him); the command
@@ -1699,15 +1946,16 @@ void Obj_Tails(Sst *self) {
         scratch->flip_speed = 4;
         spindash_flag = 0;
         spindash_count = 0;
-        memset(pad_hold, 0, sizeof(pad_hold));
-        memset(pad_press, 0, sizeof(pad_press));
-        pad_head = 0;
+        cpu_state = CPU_INIT;
+        cpu_lost_timer = 0;
+        cpu_jump_pending = false;
+        cpu_stand_code = NULL;
         control_counter = 0;
         last_frame_tails = 0xFF;
         SST_TAILS_TAILS->code = Obj_TailsTails; // (his tails)
         // Fallthrough
     case 2: // Regular movement
-        Tails_Control();
+        Tails_Control(self);
 
         if (!(CharObjControl(self) & 1)) {
             switch ((((self->status & SST_PSTATUS_IN_BALL) != 0) << 2) | (((self->status & SST_PSTATUS_IN_AIR) != 0) << 1)) {
