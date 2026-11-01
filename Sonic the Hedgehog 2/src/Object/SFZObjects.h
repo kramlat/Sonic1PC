@@ -58,6 +58,15 @@ const uint8_t *SFZ_CluckerShotAnimation(void);
 // the wall breaks into four pieces)
 void Obj_SFZBreakableWall(Sst *self);
 
+// The pre-beta's other objects of Sky Fortress that its layout does not place: $B3 the clouds (three sizes by subtype, which drift to the left at their own speeds and with the level's scroll), $BB the chain hook (a hurting
+// thing that hangs), $BC the rocket boost (a flame that shows every other frame), $BE the hatchways (a platform that opens and shuts in a random time under $80 and then every $C0 frames) and $BF the engine part (three
+// frames that turn)
+void Obj_SFZClouds(Sst *self);
+void Obj_SFZChainHook(Sst *self);
+void Obj_SFZRocketBoost(Sst *self);
+void Obj_SFZHatchway(Sst *self);
+void Obj_SFZEnginePart(Sst *self);
+
 // (PaletteCycle.c: which of the zone's two sets of cycle colours is on)
 extern uint8_t sfz_cycle_second;
 

@@ -707,6 +707,56 @@ static void SFZObjects_TheBreakableWallLetsGoWhenItsTimeIsOut(void) {
     CHECK_EQ(OBJ_CONTROL(player), 0);
 }
 
+static void SFZObjects_TheCloudsDriftLeftAtTheirOwnSpeedsAndTheRestStay(void) {
+    Reset();
+    scrpos_x.f.u = 400;
+    Sst *near_cloud = Spawn(0xB3, 0x56, 500, 300);
+    Sst *far_cloud = Spawn(0xB3, 0x5A, 500, 320);
+    Frames(1);
+    CHECK_EQ(near_cloud->mapping_frame, 0);
+    CHECK_EQ(far_cloud->mapping_frame, 2);
+    CHECK_EQ(near_cloud->x_vel, (int16_t)0xFF80);
+    CHECK_EQ(far_cloud->x_vel, (int16_t)0xFFE0);
+    Frames(256);
+    CHECK_EQ(near_cloud->x_pos.f.u, 500 - 128);
+    CHECK_EQ(far_cloud->x_pos.f.u, 500 - 32);
+    Sst *hook = Spawn(0xBB, 0, 500, 300);
+    Frames(3);
+    CHECK_EQ(hook->collision_flags, 0x09);
+    CHECK_EQ(hook->x_pos.f.u, 500);
+}
+
+static void SFZObjects_TheRocketBoostShowsEveryOtherFrameAndTheEnginePartTurns(void) {
+    Reset();
+    Sst *boost = Spawn(0xBC, 0, 500, 300);
+    Sst *part = Spawn(0xBF, 0, 520, 300);
+    Frames(1);
+    uint8_t seen = 0;
+    for (int i = 0; i < 12; i++) {
+        Frames(1);
+        seen |= (uint8_t)(1 << part->mapping_frame);
+    }
+    CHECK_EQ(seen, 7);
+    CHECK_EQ(boost->width_pixels, 0x10);
+}
+
+static void SFZObjects_AHatchwayOpensToBeStoodOnAndShutsAgain(void) {
+    Reset();
+    player->code = NULL;
+    Sst *hatch = Spawn(0xBE, 0, 500, 300);
+    Frames(1);
+    bool open = false, shut_after = false;
+    for (int i = 0; i < 0x200; i++) {
+        Frames(1);
+        if (hatch->mapping_frame == 3 || hatch->mapping_frame == 4)
+            open = true;
+        else if (open && hatch->mapping_frame == 0)
+            shut_after = true;
+    }
+    CHECK(open);
+    CHECK(shut_after);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -738,6 +788,9 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SFZObjects_TheCannonDoesNotFireAtWhoIsAboveItOrFarOff);
     RUN_TEST(SFZObjects_TheBreakableWallHoldsWhoTouchesItAndBreaksIntoFourPieces);
     RUN_TEST(SFZObjects_TheBreakableWallLetsGoWhenItsTimeIsOut);
+    RUN_TEST(SFZObjects_TheCloudsDriftLeftAtTheirOwnSpeedsAndTheRestStay);
+    RUN_TEST(SFZObjects_TheRocketBoostShowsEveryOtherFrameAndTheEnginePartTurns);
+    RUN_TEST(SFZObjects_AHatchwayOpensToBeStoodOnAndShutsAgain);
     RUN_TEST(SFZObjects_TheLaserWaitsToBeSeenThenCrossesLeftAndGoes);
     RUN_TEST(SFZObjects_TheBossSwitchIsDestroyedByARollingLandingAndChangesTheLayout);
 }

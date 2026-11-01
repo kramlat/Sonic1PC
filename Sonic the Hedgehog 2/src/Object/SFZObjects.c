@@ -24,6 +24,13 @@
 #include "Resource/Animation/SFZPlatformHelix.h"
 #include "Resource/Mappings/SFZHorizontalHelix.h"
 #include "Resource/Mappings/SFZCannon.h"
+#include "Resource/Mappings/SFZClouds.h"
+#include "Resource/Mappings/SFZChainHook.h"
+#include "Resource/Mappings/SFZRocketBoost.h"
+#include "Resource/Mappings/SFZEnginePart.h"
+#include "Resource/Mappings/SFZHatchway.h"
+#include "Resource/Animation/SFZEnginePart.h"
+#include "Resource/Animation/SFZHatchway.h"
 #include "Resource/Mappings/SFZBreakableWall.h"
 #include "Resource/Animation/SFZBreakableWall.h"
 #include "Resource/Animation/SFZCannonShot.h"
@@ -1227,4 +1234,122 @@ void Obj_SFZBreakableWall(Sst *self) {
         Sst_Draw(self);
         return;
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// The pre-beta's other objects of Sky Fortress (placed by no layout of it)
+// ---------------------------------------------------------------------------------------------------------------------------------------
+
+// $B3, the clouds (Obj_0xB3_Clouds): Object_Settings' entry (their mappings, art at $54F, palette line 3, render 4, priority 6, width $30); the subtype less $56 is the cloud (frame 0, 1 or 2, going left at $80, $40 or $20
+// of 256ths of a pixel a frame), and each also goes with the level's own scroll; gone when it is behind the picture
+void Obj_SFZClouds(Sst *self) {
+    if (self->routine == 0) {
+        static const int16_t speeds[3] = { (int16_t)0xFF80, (int16_t)0xFFC0, (int16_t)0xFFE0 };
+        const int index = ((self->subtype - 0x56) >> 1) % 3;
+        self->mappings = Mappings_SFZClouds;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, 0x54F);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 6 * 0x80;
+        self->width_pixels = 0x30;
+        self->collision_flags = 0;
+        self->x_vel = speeds[index];
+        self->mapping_frame = (uint8_t)index;
+        self->routine += 2;
+        return;
+    }
+    Sst_MoveSprite2(self);
+    self->x_pos.f.u = (int16_t)(self->x_pos.f.u + tornado_scroll_x);
+    SstDeleteIfNotInRange(self);
+    if (self->code != NULL)
+        Sst_Draw(self);
+}
+
+// $BB, the chain hook (Obj_0xBB): Object_Settings' entry (its mappings, art at $3FA on palette line 2, render 4, priority 4, width $C, collision $09) and it stays
+void Obj_SFZChainHook(Sst *self) {
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZChainHook;
+        self->art_tile = TILE_MAP(0, 1, 0, 0, 0x3FA);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x0C;
+        self->collision_flags = 0x09;
+        self->routine += 2;
+        return;
+    }
+    SstOnScreenTest(self);
+}
+
+// $BC, the rocket boost (Obj_0xBC_Rocket_Boost): Object_Settings' entry (its mappings, art at $40E in front on palette line 3, render 4, priority 4, width $10) and it shows every other frame
+void Obj_SFZRocketBoost(Sst *self) {
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZRocketBoost;
+        self->art_tile = TILE_MAP(1, 2, 0, 0, 0x40E);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x10;
+        self->collision_flags = 0;
+        self->routine += 2;
+        return;
+    }
+    self->own.u8[0x2A - 0x28] ^= 1;
+    if (self->own.u8[0x2A - 0x28] & 1)
+        SstOnScreenTest(self);
+}
+
+// $BF, the engine part (Obj_0xBF_Engine_Part): Object_Settings' entry (its mappings, art at $458 on palette line 4 in front, render 4, priority 4, width 4) and its three frames, two ticks each
+void Obj_SFZEnginePart(Sst *self) {
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZEnginePart;
+        self->art_tile = TILE_MAP(1, 3, 0, 0, 0x458);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 4;
+        self->collision_flags = 0;
+        self->routine += 2;
+        return;
+    }
+    Sst_Animate(self, Animation_SFZEnginePart);
+    SstOnScreenTest(self);
+}
+
+// $BE, the hatchways (Obj_0xBE_Hatchways): Object_Settings' entry (its mappings, art at $422 on palette line 4, render 4, priority 4, width $18) and a random wait under $80 frames; then it opens and shuts (the
+// script says when: the routine counter goes on by 2 at its end), and while its frame is 3 or 4 (open) it is a platform ($23 wide, $19 high); shut, what stands on it is let go; and then $C0 frames to the next time
+void Obj_SFZHatchway(Sst *self) {
+    Own_SFZHelix *own = (Own_SFZHelix *)self->own.u8;
+    switch (self->routine) {
+    case 0:
+        self->mappings = Mappings_SFZHatchway;
+        self->art_tile = TILE_MAP(1, 3, 0, 0, 0x422);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x18;
+        self->collision_flags = 0;
+        Helix_RandomWait(self, own);
+        self->routine += 2;
+        return;
+    case 2:
+        if (--own->timer < 0) {
+            self->routine += 2;
+            self->anim = 0;
+        }
+        break;
+    case 4:
+        if (self->mapping_frame == 3 || self->mapping_frame == 4) {
+            const int16_t x = self->x_pos.f.u;
+            for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+                Sst *chr = who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
+                if (chr != NULL)
+                    Solid_Platform(self, chr, who, 0x23, 0x19, x);
+            }
+        } else {
+            PlatformHelix_Release(self);
+        }
+        Sst_Animate(self, Animation_SFZHatchway);
+        break;
+    case 6:
+        self->routine = 2;
+        own->timer = 0xC0;
+        break;
+    }
+    SstOnScreenTest(self);
 }
