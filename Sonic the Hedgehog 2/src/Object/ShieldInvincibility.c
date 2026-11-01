@@ -12,8 +12,18 @@ extern const uint8_t Mappings_Sonic[];
 
 #include "Level.h"
 #include "Object/Sonic.h"
+#include "Object/InvincibilityStars.h"
 
 void ShieldInvincibility_Make(uint8_t anim) {
+    if (anim == 1) { // (the pre-beta's stars are one object: the monitor asks for four of Nick Arcade's, the others are not made)
+        for (int i = 0; i < SST_COUNT; i++)
+            if (sst[i].code == Obj_InvincibilityStars)
+                return;
+        Sst_SpawnCode(Obj_InvincibilityStars, 0, 0);
+        return;
+    }
+    if (anim > 1)
+        return;
     for (int i = 0; i < SST_COUNT; i++)
         if (sst[i].code == Obj_ShieldInvincibility && sst[i].anim == anim)
             return;

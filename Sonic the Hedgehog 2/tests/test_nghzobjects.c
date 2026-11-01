@@ -1,3 +1,4 @@
+#include "Object/InvincibilityStars.h"
 #include "test.h"
 
 #include <string.h>
@@ -288,6 +289,28 @@ static void SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt(void) {
     CHECK_EQ(swing->x_pos.f.u, 600);
 }
 
+static void Stars_TheInvincibilityStarsAreOneObjectOfEightAndGoWithTheInvincibility(void) {
+    Reset();
+    invincibility = true;
+    player->x_pos.f.u = 300;
+    player->y_pos.f.u = 200;
+    player->status = 0;
+    player->angle = 0;
+    Sst *stars = SpawnSst(0x35, 0, 0, 0);
+    stars->code = Obj_InvincibilityStars;
+    Obj_InvincibilityStars(stars);
+    CHECK_EQ(stars->child_count, 8);
+    CHECK((stars->render_flags & SST_RENDER_MULTI_DRAW));
+    CHECK_EQ(stars->x_pos.f.u, 300);
+    for (int i = 0; i < 8; i++) { // (all of them near Sonic)
+        CHECK(stars->children[i].x > 300 - 0x30 && stars->children[i].x < 300 + 0x30);
+        CHECK(stars->children[i].y > 200 - 0x30 && stars->children[i].y < 200 + 0x30);
+    }
+    invincibility = false;
+    Obj_InvincibilityStars(stars);
+    CHECK(stars->code == NULL); // (it is gone)
+}
+
 static void SSZObjects_TheSwitchIsAButtonAndABaseFromTheLevelsTiles(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_SSZ, 0);
@@ -316,4 +339,5 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(SSZObjects_TheSwitchIsAButtonAndABaseFromTheLevelsTiles);
     RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
     RUN_TEST(SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt);
+    RUN_TEST(Stars_TheInvincibilityStarsAreOneObjectOfEightAndGoWithTheInvincibility);
 }
