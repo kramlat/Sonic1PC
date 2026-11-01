@@ -177,6 +177,7 @@ static void LevelData_CyberCityLightsPulseBetweenTheirTwoColours(void) {
 // Hill Top's tiles and blocks are Emerald Hill's with its own written over them from the supplement's start (HTZ_SUPPLEMENT_TILE and _BLOCK in Sonic2LevelData.c, which the editor
 // shows and can move to try out: a note to make and a number to change there): the data must agree with those numbers. Hill Top's are Emerald Hill's up to the start, and the first
 // tile (or block) that differs is the start
+extern const uint8_t S2Art_EHZ[], S2Art_HTZ[], S2Map16_EHZ[], S2Map16_HTZ[]; // (the whole files, as the editor and the importer still have them)
 static void LevelData_HillTopsSupplementStartsWhereTheSymbolsSay(void) {
     int tile_start = 0, block_start = 0;
     CHECK(Peek_LevelSupplement(ZoneId_HTZ, &tile_start, &block_start));
@@ -184,18 +185,40 @@ static void LevelData_HillTopsSupplementStartsWhereTheSymbolsSay(void) {
     CHECK(!Peek_LevelSupplement(ZoneId_EHZ, &other_tile, &other_block)); // (the base has none)
     static uint8_t base[0x20000], top[0x20000];
     for (int kind = 0; kind < 2; kind++) {
-        const uint8_t *base_data = kind ? level_load_block[ZoneId_EHZ][0].map16[0] : level_load_block[ZoneId_EHZ][0].art[0];
-        const uint8_t *top_data = kind ? level_load_block[ZoneId_HTZ][0].map16[0] : level_load_block[ZoneId_HTZ][0].art[0];
+        // (each level's groups: the primary, then its secondary straight after it)
+        const uint8_t *const *base_group = kind ? level_load_block[ZoneId_EHZ][0].map16 : level_load_block[ZoneId_EHZ][0].art;
+        const uint8_t *const *top_group = kind ? level_load_block[ZoneId_HTZ][0].map16 : level_load_block[ZoneId_HTZ][0].art;
         const int unit = kind ? 8 : 32, start = kind ? block_start : tile_start;
+        CHECK(base_group[0] == top_group[0]);   // the two levels share their primary group
+        CHECK(base_group[1] != top_group[1]);   // and have a secondary each
         memset(base, 0, sizeof(base));
         memset(top, 0, sizeof(top));
-        KosDec(base_data, base);
-        KosDec(top_data, top);
+        LevelLoadBlock_Unpack(base_group, base);
+        LevelLoadBlock_Unpack(top_group, top);
         int first = -1;
         for (int k = 0; k < (int)sizeof(base) && first < 0; k++)
             if (base[k] != top[k])
                 first = k / unit;
         CHECK_EQ(first, start);
+        // the secondary starts where the primary ends: the supplement's start
+        memset(base, 0, sizeof(base));
+        const size_t primary = (size_t)(KosDec(base_group[0], base) - base);
+        CHECK_EQ((int)(primary / unit), start);
+    }
+    // the groups put together are the files as they were whole (the editor and the importer still have those)
+    {
+        static uint8_t whole[0x20000];
+        const uint8_t *whole_files[2][2] = { { S2Art_EHZ, S2Art_HTZ }, { S2Map16_EHZ, S2Map16_HTZ } };
+        for (int kind = 0; kind < 2; kind++)
+            for (int zone = 0; zone < 2; zone++) {
+                const LevelLoadBlock *llb = &level_load_block[zone ? ZoneId_HTZ : ZoneId_EHZ][0];
+                memset(top, 0, sizeof(top));
+                memset(whole, 0, sizeof(whole));
+                const size_t a = (size_t)(LevelLoadBlock_Unpack(kind ? llb->map16 : llb->art, top) - top);
+                const size_t b = (size_t)(KosDec(whole_files[kind][zone], whole) - whole);
+                CHECK_EQ((int)a, (int)b);
+                CHECK(memcmp(top, whole, b) == 0);
+            }
     }
 }
 

@@ -188,6 +188,13 @@ resources:
   - "S2Art/NGHZWaterfall3"
   - "S2Art/SSZCactusTop"
   - "S2Art/CPZAnimBack"
+  # The primary and secondary groups of Emerald Hill and Hill Top (LevelLoadBlock.h; ParadoxEngine/tools/kossplit): the first $1FC tiles and $130 blocks are the same in both, each has its own after them
+  - "S2Art/EHZPrimary"
+  - "S2Art/EHZSecondary"
+  - "S2Art/HTZSecondary"
+  - "S2Map16/EHZPrimary"
+  - "S2Map16/EHZSecondary"
+  - "S2Map16/HTZSecondary"
   # BEGIN levels (tools/import_s2sw_levels.pl)
   - "S2Art/EHZ"
   - "S2Map16/EHZ"

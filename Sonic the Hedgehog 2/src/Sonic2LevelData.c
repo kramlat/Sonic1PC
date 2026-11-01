@@ -13,6 +13,10 @@
 // EHZ
 #include "Resource/S2Art/EHZ.h"
 #include "Resource/S2Map16/EHZ.h"
+#include "Resource/S2Art/EHZPrimary.h"
+#include "Resource/S2Art/EHZSecondary.h"
+#include "Resource/S2Map16/EHZPrimary.h"
+#include "Resource/S2Map16/EHZSecondary.h"
 #include "Resource/S2Map128/EHZ.h"
 #include "Resource/S2Collision/EHZ1.h"
 #include "Resource/S2Collision/EHZ2.h"
@@ -40,6 +44,8 @@
 #include "Resource/S2Collision/MTZ2.h"
 // HTZ
 #include "Resource/S2Art/HTZ.h"
+#include "Resource/S2Art/HTZSecondary.h"
+#include "Resource/S2Map16/HTZSecondary.h"
 #include "Resource/S2Map16/HTZ.h"
 #include "Resource/S2Map128/HTZ.h"
 #include "Resource/S2Collision/HTZ1.h"
@@ -293,11 +299,12 @@ const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
 
 // The load block table, one entry for each zone and act (LevelLoadBlock.h; each is written out with its sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's (and its chunks, which were Emerald Hill's until that came from the alpha)
 const LevelLoadBlock level_load_block[ZoneId_Num][4] = {
-    [0x00] = LLB_ACTS(LLB(PlcId_SLZ, S2Art_EHZ, 0, S2Map16_EHZ, PalId_EHZ, S2Map128_EHZ)),
+    // (Emerald Hill and Hill Top share the first $1FC tiles and $130 blocks: the primary groups; each has its own secondary after them, which the loader puts straight after the primary)
+    [0x00] = LLB_ACTS({ PlcId_SLZ, 0, PalId_EHZ, { S2Art_EHZPrimary, S2Art_EHZSecondary }, { S2Map16_EHZPrimary, S2Map16_EHZSecondary }, { S2Map128_EHZ, S2Map128_EHZ } }),
     [0x02] = LLB_ACTS(LLB(0, S2Art_WZ, PlcId_SLZ2, S2Map16_WZ, PalId_WZ, S2Map128_WZ)),
     [0x03] = LLB_ACTS(LLB(PlcId_SSZ, S2Art_SSZ, PlcId_SSZ2, S2Map16_SSZ, PalId_SSZ, S2Map128_SSZ)),
     [0x04] = LLB_ACTS(LLB(PlcId_MTZ, S2Art_MTZ, PlcId_MTZ2, S2Map16_MTZ, PalId_MTZ, S2Map128_MTZ)),
-    [0x07] = LLB_ACTS(LLB(PlcId_SBZ, S2Art_HTZ, PlcId_SBZ2, S2Map16_HTZ, PalId_HTZ, S2Map128_HTZ)),
+    [0x07] = LLB_ACTS({ PlcId_SBZ, PlcId_SBZ2, PalId_HTZ, { S2Art_EHZPrimary, S2Art_HTZSecondary }, { S2Map16_EHZPrimary, S2Map16_HTZSecondary }, { S2Map128_HTZ, S2Map128_HTZ } }),
     [0x08] = LLB_ACTS(LLB(PlcId_SYZ, S2Art_HPZ, 0, S2Map16_HPZ, PalId_HPZ, S2Map128_HPZ)),
     [0x0A] = LLB_ACTS(LLB(PlcId_OOZ, S2Art_OOZ, PlcId_OOZ2, S2Map16_OOZ, PalId_OOZ, S2Map128_OOZ)),
     [0x0B] = LLB_ACTS(LLB(PlcId_DHZ, S2Art_DHZ, PlcId_DHZ2, S2Map16_DHZ, PalId_DHZ, S2Map128_DHZ)),

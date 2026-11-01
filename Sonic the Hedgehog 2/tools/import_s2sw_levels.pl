@@ -388,6 +388,8 @@ EOT
 for my $z (@built) {
     $c .= "// $z\n";
     $c .= "#include \"Resource/S2$_/$z.h\"\n" for qw(Art Map16 Map128 Collision/x);
+    if ($z eq 'EHZ') { $c .= "#include \"Resource/S2Art/EHZPrimary.h\"\n#include \"Resource/S2Art/EHZSecondary.h\"\n#include \"Resource/S2Map16/EHZPrimary.h\"\n#include \"Resource/S2Map16/EHZSecondary.h\"\n" }
+    if ($z eq 'HTZ') { $c .= "#include \"Resource/S2Art/HTZSecondary.h\"\n#include \"Resource/S2Map16/HTZSecondary.h\"\n" }
 }
 $c =~ s{#include "Resource/S2Collision/x/(\w+)\.h"\n}{#include "Resource/S2Collision/${1}1.h"\n#include "Resource/S2Collision/${1}2.h"\n}g;
 for my $z (@built) {
@@ -447,6 +449,10 @@ for my $s (@slots) {
         $c .= sprintf("    [%s] = { // (the alpha's Casino Night has a palette for each act)\n", zid($s));
         $c .= sprintf("        LLB(%s, S2Art_%s, %s, S2Map16_%s, %s, S2Map128_%s),\n", $plc{$z} // 'PlcId_SBZ', $z, $plc2{$z} // '0', $z, $_ == 1 ? 'PalId_CNZ2' : $pal{$z}, $chunks) for 0 .. 3;
         $c .= "    },\n";
+        next;
+    }
+    if ($z eq 'EHZ' || $z eq 'HTZ') { # (Emerald Hill and Hill Top share the first $1FC tiles and $130 blocks, the primary groups; each has its own secondary: ParadoxEngine/tools/kossplit)
+        $c .= sprintf("    [%s] = LLB_ACTS({ %s, %s, %s, { S2Art_EHZPrimary, S2Art_%sSecondary }, { S2Map16_EHZPrimary, S2Map16_%sSecondary }, { S2Map128_%s, S2Map128_%s } }),\n", zid($s), $plc{$z} // 'PlcId_SBZ', $plc2{$z} // '0', $pal{$z}, $z, $z, $chunks, $chunks);
         next;
     }
     $c .= sprintf("    [%s] = LLB_ACTS(LLB(%s, S2Art_%s, %s, S2Map16_%s, %s, S2Map128_%s)),\n", zid($s), $plc{$z} // 'PlcId_SBZ', $z, $plc2{$z} // '0', $z, $pal{$z}, $chunks);
