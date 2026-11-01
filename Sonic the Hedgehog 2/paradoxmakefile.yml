@@ -349,6 +349,7 @@ resources:
   - "S2Sega/Blocks"
   - "S2Sega/Map"
   - "S2Sega/Palette"
+  - "PCM/SegaFinal"   # the final game's "SEGA!" voice (16500 Hz, 24948 bytes): the sound bank's sega_pcm
   - "Art/EHZBridge"
   - "Animation/Scenery"
   - "Mappings/ArrowShooter"

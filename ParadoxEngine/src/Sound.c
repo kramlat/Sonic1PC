@@ -393,6 +393,11 @@ static const int8_t dac_delta_table[16] = {
 // value has to match whichever sample actually ends up in res/PCM/sega.
 #define SEGA_PCM_HZ 16000
 
+// The game's own voice if its sound bank has one, else the engine's
+static const uint8_t *SegaPCM(void) { return game_sound_bank.sega_pcm != NULL ? game_sound_bank.sega_pcm : PCM_sega; }
+static size_t SegaPCMSize(void) { return game_sound_bank.sega_pcm != NULL ? game_sound_bank.sega_pcm_size : sizeof(PCM_sega); }
+static uint32_t SegaPCMHz(void) { return game_sound_bank.sega_pcm != NULL && game_sound_bank.sega_pcm_hz != 0 ? game_sound_bank.sega_pcm_hz : SEGA_PCM_HZ; }
+
 static void PlaySegaSound_Trigger(SoundChipSet *cs) {
     cs->pcm_pos = 0;
     cs->pcm_playing = 1;
@@ -407,17 +412,17 @@ static void PCM_Generate(SoundChipSet *cs, int32_t *out, uint32_t count, uint32_
     for (uint32_t i = 0; i < count; i++) {
         if (!cs->pcm_playing)
             break;
-        int32_t s = ((int32_t)PCM_sega[cs->pcm_pos] - 0x80) << 6; // roughly matches PSG/DPCM amplitude scale
+        int32_t s = ((int32_t)SegaPCM()[cs->pcm_pos] - 0x80) << 6; // roughly matches PSG/DPCM amplitude scale
         if (left)
             out[2 * i + 0] += s;
         if (right)
             out[2 * i + 1] += s;
 
-        cs->pcm_phase += SEGA_PCM_HZ;
+        cs->pcm_phase += SegaPCMHz();
         while (cs->pcm_phase >= sample_rate) {
             cs->pcm_phase -= sample_rate;
             cs->pcm_pos++;
-            if (cs->pcm_pos >= sizeof(PCM_sega)) {
+            if (cs->pcm_pos >= SegaPCMSize()) {
                 cs->pcm_playing = 0;
                 break;
             }

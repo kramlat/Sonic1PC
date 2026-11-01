@@ -418,6 +418,9 @@ typedef struct {
     size_t speedup_tempo_count;      // (songs past the table keep their own tempo)
     const SoundFMAlgorithm *fm_algorithms; // optional: the game's own routings for FM algorithms 8-F, replacing fmcore's defaults (NULL = keep them)
     int fm_algorithm_count;
+    const uint8_t *sega_pcm;         // optional: the game's own "SEGA!" voice (plain unsigned 8-bit mono), its size and its rate; NULL = the engine's (res/PCM/sega, 16000 Hz)
+    size_t sega_pcm_size;
+    uint32_t sega_pcm_hz;
     const SoundInspectEntry *inspect_entries; // the SMPS Inspector's list of sounds
     int inspect_entry_count;
 } SoundBank;

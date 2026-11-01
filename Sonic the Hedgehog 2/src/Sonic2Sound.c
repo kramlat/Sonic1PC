@@ -4,6 +4,7 @@
 // (Its sources are SMPS driver 2 files, converted to res/SMPS/converted; the compiler knows their drum names.)
 
 
+#include "Resource/PCM/SegaFinal.h"
 #include "Resource/Music/S2Mus_VsRes_81.h"
 #include "Resource/Music/S2Mus_GHz_82.h"
 #include "Resource/Music/S2Mus_HPz_83.h"
@@ -637,6 +638,9 @@ const SoundBank game_sound_bank = {
     .push_sfx = sfx_Push,
     .speedup_tempo = speedup_index,
     .speedup_tempo_count = sizeof(speedup_index) / sizeof(speedup_index[0]),
+    .sega_pcm = PCM_SegaFinal, // (the final game's voice, from the s2disasm: 16500 Hz)
+    .sega_pcm_size = sizeof(PCM_SegaFinal),
+    .sega_pcm_hz = 16500,
     .inspect_entries = inspect_entries,
     .inspect_entry_count = (int)(sizeof(inspect_entries) / sizeof(inspect_entries[0])),
 };
