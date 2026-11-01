@@ -33,3 +33,7 @@ The special stage is saved for last in M4: it is the biggest payload.
 * Zone slots: Cyber City $09, Sky Chase $10.
 * The title cards (object $34 of the pre-beta, `Object/TitleCard.c`, `tools/import_s2prebeta_titlecards.pl`): the pre-beta's names as they are (Emerald Hill's card says GREEN HILL: its first slot's name there), Wood, Sand Shower, Cyber City and Hidden Palace written from the same alphabet. The card brings its own art (`game_info.title_card_own_art`: no pattern load cue), loaded when the level's first lists are done; the zone's second list waits for the card to go (the water zones' bubbles are in the letters' tiles).
 
+## Known pre-beta bugs and what the port does
+
+* **Water levels' bubbles load over the title card's art** (the user, 2026-10-31: a known bug of the real pre-beta ROM): the card's letters are at tile $5DE on, where the water zones' countdown bubbles are loaded ($BD00, tile $5E8), so the card is garbled in the real ROM. The port does not keep it (the user: no problem, the port is not held to the hardware's limits): the card's art goes in after the level's first pattern lists, and the zone's second list waits for the card to go (`Object/TitleCard.c`, `Level.c`). Putting the original order back is the two lines marked there if it is ever wanted behind `SCP_FIX_BUGS` (the port's rule for original bugs that do not crash is to keep them unless that is on).
+
