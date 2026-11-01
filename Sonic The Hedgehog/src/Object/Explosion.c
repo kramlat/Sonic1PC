@@ -16,7 +16,7 @@
 #include "Resource/Mappings/ExplodeBomb.h"
 
 static void Explosion_Animal(Sst *self) {
-    Sst *animal = Sst_SpawnCode(Obj_Animals, self->x_pos.f.u, self->y_pos.f.u);
+    Sst *animal = Sst_Spawn(ObjId_Animal, self->x_pos.f.u, self->y_pos.f.u) /* (by the table: Sonic 2 has its own animals) */;
     if (animal != NULL)
         animal->own.u16[0xB] = self->own.u16[0xB];
 }

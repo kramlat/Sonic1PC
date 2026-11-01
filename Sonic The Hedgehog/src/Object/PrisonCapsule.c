@@ -68,7 +68,7 @@ static Sst *Pri_NewAnimal(void) {
     Sst *animal = Sst_Allocate();
     if (animal != NULL) {
         memset(animal, 0, sizeof(Sst));
-        animal->code = Obj_Animals;
+        animal->code = sst_object_codes[ObjId_Animal];
     }
     return animal;
 }
@@ -165,7 +165,7 @@ static void Pri_Animals(Sst *self, Own_PrisonCapsule *own) {
 // end-of-act sequence and deleted itself (caller must not touch it further).
 static bool Pri_EndAct(Sst *self) {
     for (int i = 0; i < SST_COUNT; i++) {
-        if (sst[i].code != NULL && sst[i].code == Obj_Animals)
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[ObjId_Animal])
             return false; // still animals present -- not there yet
     }
 
