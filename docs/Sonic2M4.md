@@ -6,6 +6,8 @@ The reference is Neto's disassembly of the pre-beta, https://github.com/NyperYuh
 
 * **Hidden Palace (HPZ) data.** Sonic Team is in the middle of removing Hidden Palace in this build, and we do not want that state (the user, 2026-10-31). Nothing of the pre-beta's Hidden Palace is imported in M4: not its layout (the header of `S2140992.asm` says it is a copy of Oil Ocean act 1's), not its art, objects, music assignment, demo or events. Hidden Palace stays in this port exactly as M2 and M3 left it (zone slot $08, with the versus page and the music plan in the notes): the port only adds, moves and replaces zones, it never removes them, so the pre-beta's removal is not followed.
 
+* **Wood Zone (WZ) data**, the same (the user, 2026-10-31: "same with WZ"). Nothing of the pre-beta's Wood Zone is imported in M4 (its `Data/Wz`, layout, art, objects, music assignment, demo `Demo_Wood`, events). Wood Zone stays in this port as M2 and M3 left it (zone slot $02), for the same reason: zones are only added, moved or replaced here, never removed.
+
 ## Notes from the pre-beta's own header
 
 * The title card object refers to Sonic 1's oval and Final Zone mappings.
