@@ -29,6 +29,7 @@
 #include "Resource/Mappings/SFZRocketBoost.h"
 #include "Resource/Mappings/SFZEnginePart.h"
 #include "Resource/Mappings/SFZHatchway.h"
+#include "Resource/Mappings/SFZRotatingPlatforms.h"
 #include "Resource/Animation/SFZEnginePart.h"
 #include "Resource/Animation/SFZHatchway.h"
 #include "Resource/Mappings/SFZBreakableWall.h"
@@ -1350,6 +1351,21 @@ void Obj_SFZHatchway(Sst *self) {
         self->routine = 2;
         own->timer = 0xC0;
         break;
+    }
+    SstOnScreenTest(self);
+}
+
+// $C3, the rotating platforms (Obj_0xC3_SFz_Rotating_Platforms): Object_Settings' entry (its mappings, art at $46D on palette line 2, render 4, priority 4, width $20, collision $2A) and it stays
+void Obj_SFZRotatingPlatforms(Sst *self) {
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZRotatingPlatforms;
+        self->art_tile = TILE_MAP(1, 1, 0, 0, 0x46D);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x20;
+        self->collision_flags = 0x2A;
+        self->routine += 2;
+        return;
     }
     SstOnScreenTest(self);
 }

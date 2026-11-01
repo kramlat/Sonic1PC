@@ -322,6 +322,7 @@ const SstCode sst_object_codes[0x100] = {
 	[0xB9] = Obj_SFZLaser,
 	[0xC1] = Obj_SFZBreakableWall,
 	[0xC2] = Obj_SFZBossSwitch,
+	[0xC3] = Obj_SFZRotatingPlatforms,
 	[0xC4] = Obj_SFZTornadoSmoke,
 	[0xD9] = Obj_SFZHang,
 	[ObjId_FalseFloor] = Obj_NGHZRotator,

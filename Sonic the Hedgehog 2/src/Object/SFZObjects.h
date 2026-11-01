@@ -67,6 +67,9 @@ void Obj_SFZRocketBoost(Sst *self);
 void Obj_SFZHatchway(Sst *self);
 void Obj_SFZEnginePart(Sst *self);
 
+// $C3: the rotating platforms (a picture of the platforms that turn round, 64 wide, with its own collision $2A; nothing of it moves in the pre-beta)
+void Obj_SFZRotatingPlatforms(Sst *self);
+
 // (PaletteCycle.c: which of the zone's two sets of cycle colours is on)
 extern uint8_t sfz_cycle_second;
 
