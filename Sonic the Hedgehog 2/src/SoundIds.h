@@ -34,7 +34,7 @@ enum SoundID {
 	mus_GameOver, // $9B (Game Over)
 	mus_Continue, // $9C (Continue)
 	mus_Emerald, // $9D (Got an Emerald)
-	mus_HPZCopy, // $9E (a copy of $90 in the prototype and the alpha)
+	mus_Credits, // $9E: the credits theme (the final game's; a copy of $90 in the prototype and the alpha, which have none, and in this port until M4)
 	mus_Blank, // $9F (an empty song there)
 	mus_MzSwap, // $20 here, past the final game's music ids: Metropolis with major and minor swapped (Cyber City's)
 
@@ -139,7 +139,7 @@ enum SoundID {
 	bgm_GotThrough = mus_ActClear,
 	bgm_GameOver = mus_GameOver,
 	bgm_Continue = mus_Continue,
-	bgm_Credits = mus_Title,
+	bgm_Credits = mus_Credits,
 	bgm_Drowning = mus_Menu,
 	bgm_Emerald = mus_Emerald,
 	bgm_SSRG = mus_Emerald,

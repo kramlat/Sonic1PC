@@ -768,6 +768,7 @@ songs:
   - {file: "music/TGOvr_9B.jsonc", name: S2Mus_TGOvr_9B}
   - {file: "music/Cont_9C.jsonc", name: S2Mus_Cont_9C}
   - {file: "music/Emrld_9D.jsonc", name: S2Mus_Emrld_9D}
+  - {file: "music/Credt_9E.jsonc", name: S2Mus_Credt_9E}
   - {file: "music/Blank_9F.jsonc", name: S2Mus_Blank_9F}
   - {file: "sfx/D0 - Alpha.jsonc", name: S2Sfx_D0}
   - {file: "sfx/D1 - Alpha.jsonc", name: S2Sfx_D1}

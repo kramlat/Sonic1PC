@@ -219,7 +219,8 @@ static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
     }
     CHECK_EQ(game_sound_bank.music_first, 1);
     CHECK_EQ(game_sound_bank.music_last, 0x20);
-    CHECK(game_sound_bank.songs[0x1E] == game_sound_bank.songs[0x10]); // $9E is a copy of $90, $9F (the last) an empty song
+    CHECK(game_sound_bank.songs[0x1E] != game_sound_bank.songs[0x10]); // $9E is the credits theme, the final game's (M4 has it: the prototype and the alpha have a copy of $90 there), $9F (the last) an empty song
+    CHECK(game_sound_bank.songs[0x1E] != game_sound_bank.songs[0x1F]);
     static const uint8_t alpha_music_list[16] = { 0x82, 0x82, 0x85, 0x84, 0x85, 0x85, 0x8C, 0x86, 0x83, 0x8D, 0x88, 0x8B, 0x89, 0x8E, 0x8E, 0x87 };
     for (int zone = 0; zone < 16; zone++) {
         if (zone == 8)
@@ -760,10 +761,10 @@ static void Music_BlankSongSilencesAndNineEIsHiddenPalace(void) {
     for (int i = 0; i < SOUND_CHANNELS; i++)
         active += sound_music.channels[i].active;
     CHECK_EQ(active, 0);
-    PlayMusic(mus_HPZCopy);
+    PlayMusic(mus_Credits);
     Sound_Frame();
     Sound_Frame();
-    CHECK_EQ(sound_music.current_music_id, mus_HPZCopy);
+    CHECK_EQ(sound_music.current_music_id, mus_Credits);
 }
 
 // The song that comes back after the 1-up jingle has the voices it had: the operator registers of every FM channel (the voices, not the levels) are what they were when the jingle cut in

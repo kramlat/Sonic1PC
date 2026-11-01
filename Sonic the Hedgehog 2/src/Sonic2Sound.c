@@ -29,6 +29,7 @@
 #include "Resource/Music/S2Mus_Super_96.h"
 #include "Resource/Music/S2Mus_Invcb_97.h"
 #include "Resource/Music/S2Mus_1Up_98.h"
+#include "Resource/Music/S2Mus_Credt_9E.h"
 #include "Resource/Music/S2Mus_Blank_9F.h"
 #include "Resource/Music/S2Mus_TScr_99.h"
 #include "Resource/Music/S2Mus_LRes_9A.h"
@@ -60,6 +61,7 @@
 #include "Resource/Music/S2Mus_Super_96_json.h"
 #include "Resource/Music/S2Mus_Invcb_97_json.h"
 #include "Resource/Music/S2Mus_1Up_98_json.h"
+#include "Resource/Music/S2Mus_Credt_9E_json.h"
 #include "Resource/Music/S2Mus_Blank_9F_json.h"
 #include "Resource/Music/S2Mus_TScr_99_json.h"
 #include "Resource/Music/S2Mus_LRes_9A_json.h"
@@ -247,7 +249,7 @@ static const uint8_t *const sound_table[0x100] = {
     [mus_GameOver] = S2Mus_TGOvr_9B,
     [mus_Continue] = S2Mus_Cont_9C,
     [mus_Emerald] = S2Mus_Emrld_9D,
-    [mus_HPZCopy] = S2Mus_HPz_90,
+    [mus_Credits] = S2Mus_Credt_9E,
     [mus_Blank] = S2Mus_Blank_9F,
     [mus_MzSwap] = S2Mus_MzSwap,
 
@@ -357,7 +359,7 @@ static const char *const sound_table_json[0x100] = {
     [mus_GameOver] = S2Mus_TGOvr_9B_json,
     [mus_Continue] = S2Mus_Cont_9C_json,
     [mus_Emerald] = S2Mus_Emrld_9D_json,
-    [mus_HPZCopy] = S2Mus_HPz_90_json,
+    [mus_Credits] = S2Mus_Credt_9E_json,
     [mus_Blank] = S2Mus_Blank_9F_json,
     [mus_MzSwap] = S2Mus_MzSwap_json,
 
@@ -456,7 +458,6 @@ static const uint8_t sound_table_driver_ver[0x100] = {
     [mus_CPZ] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_WFZ] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_HPZ] = SOUND_DRIVER_VERSION_2_TEMPO,
-    [mus_HPZCopy] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_Blank] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_MzSwap] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_Menu] = SOUND_DRIVER_VERSION_2_TEMPO,
@@ -523,7 +524,7 @@ static const SoundInspectEntry inspect_entries[] = {
     INSPECT_ENTRY(mus_GameOver, 1, "Game Over"),
     INSPECT_ENTRY(mus_Continue, 1, "Continue"),
     INSPECT_ENTRY(mus_Emerald, 1, "Got an Emerald"),
-    INSPECT_ENTRY(mus_HPZCopy, 1, "Hidden Palace (copy)"),
+    INSPECT_ENTRY(mus_Credits, 1, "Credits"),
     INSPECT_ENTRY(mus_Blank, 1, "Empty"),
     INSPECT_ENTRY(mus_MzSwap, 1, "Metropolis (major/minor swapped)"),
     INSPECT_ENTRY(sfx_Jump, 0, "Jump"),
