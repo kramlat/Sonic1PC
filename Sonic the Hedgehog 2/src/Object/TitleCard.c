@@ -316,7 +316,7 @@ static void TitleCard_Squeeze(int index, uint8_t frame, unsigned *next_tile, int
     for (unsigned p = 0; p < count && p < 24; p++, pieces += SPRITE_PIECE_SIZE_S3, out += SPRITE_PIECE_SIZE_S3) {
         const uint8_t size = Mappings_PieceSize(pieces);
         const int wc = ((size >> 2) & 3) + 1, hc = (size & 3) + 1, wc2 = (wc + 1) / 2;
-        const unsigned tile = Mappings_PieceTile(pieces) & 0x7FF;
+        const unsigned tile_word = Mappings_PieceTile(pieces), tile = tile_word & 0x7FF; // (the word's flags and palette line stay: the number is on line 1)
         // the source, a pixel at a time (the cells go down a column and then across), and the squeezed cells
         static uint8_t cells[16 * TILE_SIZE];
         memset(cells, 0, sizeof(cells));
@@ -347,7 +347,7 @@ static void TitleCard_Squeeze(int index, uint8_t frame, unsigned *next_tile, int
         const int x = (Mappings_PieceXS3(pieces) >> 1);
         out[0] = pieces[0];
         out[1] = (uint8_t)(((wc2 - 1) << 2) | (hc - 1));
-        out[2] = (uint8_t)(*next_tile >> 8);
+        out[2] = (uint8_t)(((tile_word & 0xF800) | *next_tile) >> 8);
         out[3] = (uint8_t)*next_tile;
         out[4] = (uint8_t)((uint16_t)x >> 8);
         out[5] = (uint8_t)x;
