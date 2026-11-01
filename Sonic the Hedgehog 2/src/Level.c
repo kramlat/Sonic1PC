@@ -3,6 +3,7 @@
 #include "SstLoad.h"
 #include "Object/Ring.h"
 #include "ScrollEngine.h"
+#include "LevelSolids.h"
 #include "BackgroundLayer.h"
 #include "HTZQuake.h"
 #include "Object/DHZBoss.h"
@@ -346,13 +347,11 @@ void LevelDataLoad(void) {
 }
 
 void ColIndexLoad(void) {
-    // Decode the zone's two independent Kosinski-compressed collision
-    // indices, one per path. Both currently hold identical data (no real
-    // content path-swaps exist yet -- Obj03 isn't ported to C), but they're
-    // separate resources, not a single blob decoded twice.
+    // The zone's solid index: one Kosinski compressed file for both paths (LevelSolids.h)
     int zone = LEVEL_ZONE(level_id);
-    Editor_NoteSolids(0, (size_t)(KosDec(level_coli[zone][0], coll_index[0]) - coll_index[0]));
-    Editor_NoteSolids(1, (size_t)(KosDec(level_coli[zone][1], coll_index[1]) - coll_index[1]));
+    const size_t blocks = LevelSolids_LoadKosinski(level_solids[zone]);
+    Editor_NoteSolids(0, blocks);
+    Editor_NoteSolids(1, blocks);
     collision_path = 0;
 }
 

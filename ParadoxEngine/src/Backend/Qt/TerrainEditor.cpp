@@ -5,6 +5,7 @@
 extern "C" {
 #include "../../Kosinski.h"
 #include "../../LevelLayout.h"
+#include "../../LevelSolids.h"
 }
 
 #include <QCheckBox>
@@ -1207,9 +1208,16 @@ bool Save(const QString &slot, int zone, int act, QString *message) {
 	items << Item{ 1, "", blocks, bytes };
 	const uint8_t *chunks = Editor_Chunks(&bytes);
 	items << Item{ 2, "", chunks, bytes };
-	for (int path = 0; path < 2; path++) {
-		const uint8_t *solids = Editor_Solids(path, &bytes);
-		items << Item{ 3, QString::number(path + 1), solids, bytes };
+	// the level's solid index: both paths in one file, interleaved (the Sonic 3 & Knuckles layout: LevelSolids.h)
+	static uint8_t solids_file[0x800];
+	{
+		size_t b0, b1;
+		const uint8_t *p0 = Editor_Solids(0, &b0), *p1 = Editor_Solids(1, &b1);
+		size_t blocks = b0 > b1 ? b0 : b1;
+		if (blocks > 0x400)
+			blocks = 0x400;
+		LevelSolids_Pack(p0, p1, blocks, solids_file); // (the arrays are 0x400 bytes each, zero beyond what a path holds)
+		items << Item{ 3, "", solids_file, blocks * 2 };
 	}
 	bool ok = true;
 	const char *code = Peek_ZoneCode(zone);

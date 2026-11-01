@@ -59,18 +59,12 @@
 
 // Collision indices, one file per path (1 = primary, 2 = secondary; both
 // currently identical since no real content path-swaps yet)
-#include "Resource/Collision/GHZ1.h"
-#include "Resource/Collision/GHZ2.h"
-#include "Resource/Collision/LZ1.h"
-#include "Resource/Collision/LZ2.h"
-#include "Resource/Collision/MZ1.h"
-#include "Resource/Collision/MZ2.h"
-#include "Resource/Collision/SBZ1.h"
-#include "Resource/Collision/SBZ2.h"
-#include "Resource/Collision/SLZ1.h"
-#include "Resource/Collision/SLZ2.h"
-#include "Resource/Collision/SYZ1.h"
-#include "Resource/Collision/SYZ2.h"
+#include "Resource/Collision/GHZ.h"
+#include "Resource/Collision/LZ.h"
+#include "Resource/Collision/MZ.h"
+#include "Resource/Collision/SBZ.h"
+#include "Resource/Collision/SLZ.h"
+#include "Resource/Collision/SYZ.h"
 
 // Object positions
 #include "Resource/ObjectLayout/GHZ1.h"
@@ -273,16 +267,15 @@ const LevelLoadBlock level_load_block[ZoneId_Num][4] = {
     LLB_ACTS(LLB(0, Art_GHZ2, 0, Map16_GHZ, PalId_Ending, Map128_GHZ)),
 };
 
-// Level collision indices, one file per path (real data, not a
-// decode-the-same-blob-twice shim -- GHZ1/GHZ2 etc are currently identical
-// since no content path-swaps yet, but are independent resources)
-const uint8_t* level_coli[ZoneId_Num - 1][2] = {
-    { Collision_GHZ1, Collision_GHZ2 },
-    { Collision_LZ1, Collision_LZ2 },
-    { Collision_MZ1, Collision_MZ2 },
-    { Collision_SLZ1, Collision_SLZ2 },
-    { Collision_SYZ1, Collision_SYZ2 },
-    { Collision_SBZ1, Collision_SBZ2 },
+// Level solid indices, one file for both paths of a zone's blocks (LevelSolids.h: the Sonic 3 & Knuckles layout, interleaved, Kosinski compressed). The two paths hold identical data so far (no
+// content path swap exists yet), as the two files did
+const uint8_t* level_solids[ZoneId_Num - 1] = {
+    Collision_GHZ,
+    Collision_LZ,
+    Collision_MZ,
+    Collision_SLZ,
+    Collision_SYZ,
+    Collision_SBZ,
 };
 
 // Level object layouts (Sonic 2 format: SstLoad.h)

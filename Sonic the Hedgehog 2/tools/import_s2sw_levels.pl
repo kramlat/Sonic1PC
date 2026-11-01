@@ -7,12 +7,12 @@
 #   chunks     128x128 chunk mappings (Kosinski already, Sonic 2's final format: copied as they are)                                                          res/S2Map128/<ZONE>
 #   fg/bglayout  the layouts, stored apart (a width-1, height-1 header, then the rows): written as the Sonic 3 & Knuckles layout file (header with the size, row pointers, the rows: see s3_layout), Kosinski   res/S2Layout/<ZONE><ACT>
 #   objects    Sonic 1's kind of entries (flips in the Y word's bits 14-15, remember-state in the id): to the engine's (flips in 13-14, remember state in Y bit 15)           res/S2Objects/<ZONE><ACT>
-#   rings, colind1/2, palette                                                                                                                               res/S2Rings, res/S2Collision/<ZONE>1,2, res/S2Palette/<ZONE>
+#   rings, colind1/2, palette                                                                                                                               res/S2Rings, res/S2Collision/<ZONE> (both paths, one file), res/S2Palette/<ZONE>
 #
 # and the level size and start position tables (from s2b.asm and the start position files). The disassembly calls its first zone Green Hill, but it is Emerald Hill (EHZ here), the zone its data and objects are.
 # The zones the Sonic 2 alpha (Aug 21st 1992, ~/Projects/s2aug21-disasm, S2ALPHA to use another) has data for (%alpha below) take that data instead, as the project moves toward that build (M3): its level files, level size table and
 # start positions. Its objects are in the engine's format already (flips in bits 13-14 and remember state in bit 15 of the Y word, the whole id byte).
-# Needs the kosenc and nem2kos tools (KOSENC and NEM2KOS give their paths; they build from ParadoxEngine/tools). Run it in the Sonic 2 folder: import_s2sw_levels.pl
+# Needs the kosenc, nem2kos and solids2s3 tools (KOSENC, NEM2KOS and SOLIDS2S3 give their paths; they build from ParadoxEngine/tools). Run it in the Sonic 2 folder: import_s2sw_levels.pl
 use strict;
 use warnings;
 use File::Path qw(make_path);
@@ -391,7 +391,7 @@ for my $z (@built) {
     if ($z eq 'EHZ') { $c .= "#include \"Resource/S2Art/EHZPrimary.h\"\n#include \"Resource/S2Art/EHZSecondary.h\"\n#include \"Resource/S2Map16/EHZPrimary.h\"\n#include \"Resource/S2Map16/EHZSecondary.h\"\n" }
     if ($z eq 'HTZ') { $c .= "#include \"Resource/S2Art/HTZSecondary.h\"\n#include \"Resource/S2Map16/HTZSecondary.h\"\n" }
 }
-$c =~ s{#include "Resource/S2Collision/x/(\w+)\.h"\n}{#include "Resource/S2Collision/${1}1.h"\n#include "Resource/S2Collision/${1}2.h"\n}g;
+$c =~ s{#include "Resource/S2Collision/x/(\w+)\.h"\n}{#include "Resource/S2Collision/${1}.h"\n}g;
 for my $z (@built) {
     for my $a (sort { $a <=> $b } keys %{ $info{$z}{acts} }) {
         my $k = $info{$z}{acts}{$a}{key};
@@ -457,8 +457,8 @@ for my $s (@slots) {
     }
     $c .= sprintf("    [%s] = LLB_ACTS(LLB(%s, S2Art_%s, %s, S2Map16_%s, %s, S2Map128_%s)),\n", zid($s), $plc{$z} // 'PlcId_SBZ', $z, $plc2{$z} // '0', $z, $pal{$z}, $chunks);
 }
-$c .= "};\n\n// Level collision indices, one file per path\nconst uint8_t* level_coli[ZoneId_Num - 1][2] = {\n";
-$c .= sprintf("    [%s] = { S2Collision_%s1, S2Collision_%s2 },\n", zid($_), $slot{$_}{0}{zone}, $slot{$_}{0}{zone}) for @slots;
+$c .= "};\n\n// Level solid indices, one file for both paths of a zone's blocks (LevelSolids.h: the Sonic 3 & Knuckles layout, interleaved, Kosinski compressed)\nconst uint8_t* level_solids[ZoneId_Num - 1] = {\n";
+$c .= sprintf("    [%s] = S2Collision_%s,\n", zid($_), $slot{$_}{0}{zone}) for @slots;
 $c .= "};\n\n// Level object layouts (Sonic 2 format: ObjectsManager.h), and the ring layouts in the same places\n";
 for my $kind (['Objects', 'level_obj'], ['Rings', 'level_ring']) {
     $c .= "const uint8_t* " . $kind->[1] . "[ZoneId_Num][4] = {\n";
@@ -484,6 +484,18 @@ spit('src/Sonic2LevelData.c', $c);
 
 # the resource list of the project file, between its markers
 my $yml = slurp('paradoxmakefile.yml');
+# the solid indices: the two path files made above (or copied from the staging folder) become one file each, the Sonic 3 & Knuckles layout (interleaved: ParadoxEngine/tools/solids2s3; SOLIDS2S3 gives its path)
+{
+    my $solids2s3 = $ENV{SOLIDS2S3} // 'solids2s3';
+    my %seen;
+    @resources = grep { !$seen{$_}++ } map { s{^(S2Collision/\w+?)[12]$}{$1}r } @resources;
+    for my $r (grep { m{^S2Collision/} } @resources) {
+        my ($z) = $r =~ m{^S2Collision/(\w+)$};
+        next unless -e "$res/S2Collision/${z}1" && -e "$res/S2Collision/${z}2";
+        system($solids2s3, "$res/S2Collision/$z", "$res/S2Collision/${z}1", "$res/S2Collision/${z}2") == 0 or die "solids2s3 failed\n";
+        unlink "$res/S2Collision/${z}1", "$res/S2Collision/${z}2";
+    }
+}
 my $block = "  # BEGIN levels (tools/import_s2sw_levels.pl)\n" . join('', map { "  - \"$_\"\n" } @resources) . "  # END levels\n";
 if ($yml =~ /  # BEGIN levels.*?  # END levels\n/s) { $yml =~ s/  # BEGIN levels.*?  # END levels\n/$block/s }
 else { die "no '# BEGIN levels' marker in paradoxmakefile.yml: put one in the resources list\n" }

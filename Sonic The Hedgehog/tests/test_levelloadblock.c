@@ -5,6 +5,7 @@
 
 #include "Kosinski.h"
 #include "Level.h"
+#include "LevelSolids.h"
 
 // The load block table (LevelLoadBlock.h) and the way a primary and a secondary group are unpacked.
 
@@ -56,7 +57,33 @@ static void LevelLoadBlock_EveryLevelOfTheGameHasItsGroups(void) {
     CHECK(levels >= 4);
 }
 
+// The solid index (LevelSolids.h): one file for both paths, a byte for each block of each, interleaved
+static void LevelSolids_TheTwoPathsAreInterleavedInOneFile(void) {
+    uint8_t p1[6] = { 1, 2, 3, 4, 5, 6 }, p2[6] = { 9, 8, 7, 6, 5, 4 }, file[12], a[6], b[6];
+    LevelSolids_Pack(p1, p2, 6, file);
+    CHECK_EQ(file[0], 1);
+    CHECK_EQ(file[1], 9);  // (path 1's byte, then path 2's, for block 0)
+    CHECK_EQ(file[10], 6);
+    CHECK_EQ(file[11], 4);
+    CHECK_EQ((int)LevelSolids_Unpack(file, 12, a, b), 6);
+    CHECK(memcmp(a, p1, 6) == 0 && memcmp(b, p2, 6) == 0);
+}
+
+static void LevelSolids_EveryZoneHasAFileThatLoads(void) {
+    int zones = 0;
+    for (int zone = 0; zone < ZoneId_Num - 1; zone++) {
+        if (level_solids[zone] == NULL)
+            continue;
+        const size_t blocks = LevelSolids_LoadKosinski(level_solids[zone]);
+        CHECK(blocks > 0 && blocks <= sizeof(coll_index[0]));
+        zones++;
+    }
+    CHECK(zones >= 6);
+}
+
 void RegisterLevelLoadBlockTests(void) {
+    RUN_TEST(LevelSolids_TheTwoPathsAreInterleavedInOneFile);
+    RUN_TEST(LevelSolids_EveryZoneHasAFileThatLoads);
     RUN_TEST(LevelLoadBlock_TheSecondGroupGoesStraightAfterThePrimary);
     RUN_TEST(LevelLoadBlock_AGroupNamedTwiceIsLoadedOnce);
     RUN_TEST(LevelLoadBlock_EveryLevelOfTheGameHasItsGroups);

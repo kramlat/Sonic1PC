@@ -85,7 +85,7 @@ extern const struct LevelLayout level_layouts[ZoneId_Num][4];
 const int16_t *LevelSizes(int zone, int act);  // the level's boundaries and camera shifts; they depend on the picture size, so the table is built when it is read
 extern const int16_t StartLocArray[ZoneId_Num][4][2];
 extern const int16_t BGScrollBlockSizes[ZoneId_Num][4];
-extern const uint8_t *level_coli[ZoneId_Num - 1][2];
+extern const uint8_t *level_solids[ZoneId_Num - 1]; // each zone's solid index, both paths in one file (LevelSolids.h)
 extern const uint8_t *level_obj[ZoneId_Num][4];
 extern const uint8_t *level_ring[ZoneId_Num][4];
 

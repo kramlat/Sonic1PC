@@ -18,14 +18,12 @@
 #include "Resource/S2Map16/EHZPrimary.h"
 #include "Resource/S2Map16/EHZSecondary.h"
 #include "Resource/S2Map128/EHZ.h"
-#include "Resource/S2Collision/EHZ1.h"
-#include "Resource/S2Collision/EHZ2.h"
+#include "Resource/S2Collision/EHZ.h"
 // WZ
 #include "Resource/S2Art/WZ.h"
 #include "Resource/S2Map16/WZ.h"
 #include "Resource/S2Map128/WZ.h"
-#include "Resource/S2Collision/WZ1.h"
-#include "Resource/S2Collision/WZ2.h"
+#include "Resource/S2Collision/WZ.h"
 // The null level (an empty layout, no objects, no rings): what the acts that a zone does not have are
 #include "Resource/S2Layout/Null.h"
 #include "Resource/S2Objects/Null.h"
@@ -34,64 +32,54 @@
 #include "Resource/S2Art/SSZ.h"
 #include "Resource/S2Map16/SSZ.h"
 #include "Resource/S2Map128/SSZ.h"
-#include "Resource/S2Collision/SSZ1.h"
-#include "Resource/S2Collision/SSZ2.h"
+#include "Resource/S2Collision/SSZ.h"
 // MTZ
 #include "Resource/S2Art/MTZ.h"
 #include "Resource/S2Map16/MTZ.h"
 #include "Resource/S2Map128/MTZ.h"
-#include "Resource/S2Collision/MTZ1.h"
-#include "Resource/S2Collision/MTZ2.h"
+#include "Resource/S2Collision/MTZ.h"
 // HTZ
 #include "Resource/S2Art/HTZ.h"
 #include "Resource/S2Art/HTZSecondary.h"
 #include "Resource/S2Map16/HTZSecondary.h"
 #include "Resource/S2Map16/HTZ.h"
 #include "Resource/S2Map128/HTZ.h"
-#include "Resource/S2Collision/HTZ1.h"
-#include "Resource/S2Collision/HTZ2.h"
+#include "Resource/S2Collision/HTZ.h"
 // HPZ
 #include "Resource/S2Art/HPZ.h"
 #include "Resource/S2Map16/HPZ.h"
 #include "Resource/S2Map128/HPZ.h"
-#include "Resource/S2Collision/HPZ1.h"
-#include "Resource/S2Collision/HPZ2.h"
+#include "Resource/S2Collision/HPZ.h"
 // OOZ
 #include "Resource/S2Art/OOZ.h"
 #include "Resource/S2Map16/OOZ.h"
 #include "Resource/S2Map128/OOZ.h"
-#include "Resource/S2Collision/OOZ1.h"
-#include "Resource/S2Collision/OOZ2.h"
+#include "Resource/S2Collision/OOZ.h"
 // DHZ
 #include "Resource/S2Art/DHZ.h"
 #include "Resource/S2Map16/DHZ.h"
 #include "Resource/S2Map128/DHZ.h"
-#include "Resource/S2Collision/DHZ1.h"
-#include "Resource/S2Collision/DHZ2.h"
+#include "Resource/S2Collision/DHZ.h"
 // CNZ
 #include "Resource/S2Art/CNZ.h"
 #include "Resource/S2Map16/CNZ.h"
 #include "Resource/S2Map128/CNZ.h"
-#include "Resource/S2Collision/CNZ1.h"
-#include "Resource/S2Collision/CNZ2.h"
+#include "Resource/S2Collision/CNZ.h"
 // CPZ
 #include "Resource/S2Art/CPZ.h"
 #include "Resource/S2Map16/CPZ.h"
 #include "Resource/S2Map128/CPZ.h"
-#include "Resource/S2Collision/CPZ1.h"
-#include "Resource/S2Collision/CPZ2.h"
+#include "Resource/S2Collision/CPZ.h"
 // GCZ
 #include "Resource/S2Art/GCZ.h"
 #include "Resource/S2Map16/GCZ.h"
 #include "Resource/S2Map128/GCZ.h"
-#include "Resource/S2Collision/GCZ1.h"
-#include "Resource/S2Collision/GCZ2.h"
+#include "Resource/S2Collision/GCZ.h"
 // NGHZ
 #include "Resource/S2Art/NGHZ.h"
 #include "Resource/S2Map16/NGHZ.h"
 #include "Resource/S2Map128/NGHZ.h"
-#include "Resource/S2Collision/NGHZ1.h"
-#include "Resource/S2Collision/NGHZ2.h"
+#include "Resource/S2Collision/NGHZ.h"
 #include "Resource/S2Layout/EHZ1.h"
 #include "Resource/S2Objects/EHZ1.h"
 #include "Resource/S2Rings/EHZ1.h"
@@ -319,20 +307,20 @@ const LevelLoadBlock level_load_block[ZoneId_Num][4] = {
     [0x0F] = LLB_ACTS(LLB(PlcId_GHZ, S2Art_NGHZ, PlcId_GHZ2, S2Map16_NGHZ, PalId_NGHZ, S2Map128_NGHZ)),
 };
 
-// Level collision indices, one file per path
-const uint8_t* level_coli[ZoneId_Num - 1][2] = {
-    [0x00] = { S2Collision_EHZ1, S2Collision_EHZ2 },
-    [0x02] = { S2Collision_WZ1, S2Collision_WZ2 },
-    [0x03] = { S2Collision_SSZ1, S2Collision_SSZ2 },
-    [0x04] = { S2Collision_MTZ1, S2Collision_MTZ2 },
-    [0x07] = { S2Collision_HTZ1, S2Collision_HTZ2 },
-    [0x08] = { S2Collision_HPZ1, S2Collision_HPZ2 },
-    [0x0A] = { S2Collision_OOZ1, S2Collision_OOZ2 },
-    [0x0B] = { S2Collision_DHZ1, S2Collision_DHZ2 },
-    [0x0C] = { S2Collision_CNZ1, S2Collision_CNZ2 },
-    [0x0D] = { S2Collision_CPZ1, S2Collision_CPZ2 },
-    [0x0E] = { S2Collision_GCZ1, S2Collision_GCZ2 },
-    [0x0F] = { S2Collision_NGHZ1, S2Collision_NGHZ2 },
+// Level solid indices, one file for both paths of a zone's blocks (LevelSolids.h: the Sonic 3 & Knuckles layout, interleaved, Kosinski compressed)
+const uint8_t* level_solids[ZoneId_Num - 1] = {
+    [0x00] = S2Collision_EHZ,
+    [0x02] = S2Collision_WZ,
+    [0x03] = S2Collision_SSZ,
+    [0x04] = S2Collision_MTZ,
+    [0x07] = S2Collision_HTZ,
+    [0x08] = S2Collision_HPZ,
+    [0x0A] = S2Collision_OOZ,
+    [0x0B] = S2Collision_DHZ,
+    [0x0C] = S2Collision_CNZ,
+    [0x0D] = S2Collision_CPZ,
+    [0x0E] = S2Collision_GCZ,
+    [0x0F] = S2Collision_NGHZ,
 };
 
 // Level object layouts (Sonic 2 format: SstLoad.h), and the ring layouts in the same places
