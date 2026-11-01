@@ -819,6 +819,9 @@ songs:
   - {file: "sfx/E9 - Alpha.jsonc", name: S2Sfx_E9}
   - {file: "sfx/EA - Laser Burst.jsonc", name: S2Sfx_EA}
   - {file: "sfx/EB - Scatter.jsonc", name: S2Sfx_EB}
+  - {file: "sfx/EC - Grab.jsonc", name: S2Sfx_EC}      # Tails' flight (Sonic 3 & Knuckles' sounds $4A, $BA and $BB, from skdisasm: the guide's)
+  - {file: "sfx/ED - Flying.jsonc", name: S2Sfx_ED}
+  - {file: "sfx/EE - Flying (Tired).jsonc", name: S2Sfx_EE}
   - {file: "sfx/A0 - SW.jsonc", name: S2Sfx_A0}
   - {file: "sfx/A1 - SW.jsonc", name: S2Sfx_A1}
   - {file: "sfx/A2 - SW.jsonc", name: S2Sfx_A2}

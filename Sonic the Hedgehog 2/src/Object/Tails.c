@@ -218,9 +218,11 @@ static void Tails_LoadGfx(Sst *self) {
 
 // ---- Tails' flight (the Sonic Retro guide "Add Tails' flying and swimming to Sonic 2", by Painto: the Sonic 3 & Knuckles way: a second jump press makes him fly, and he carries Sonic) ----------------------------------------
 
-// The sounds of his flight (the guide ports Sonic 3 & Knuckles' Grab, Flying and Flying (Tired)): not in yet, so these are where they will play
+// The sounds of his flight (the guide ports Sonic 3 & Knuckles' Grab, Flying and Flying (Tired): $EC-$EE here): 1 flying, 2 tired flying, 3 the grab
 static void Tails_PlayFlightSound(int sound) {
-    (void)sound;
+    static const uint8_t ids[4] = { 0, sfx_Flying, sfx_FlyingTired, sfx_Grab };
+    if (sound > 0 && sound < 4)
+        PlaySound(ids[sound]);
 }
 
 // Picks the animation by what he does: up or down, carrying, tired, swimming (the guide's Tails_FlyingAnimation: its 4 x 4 table is by the row of the state and the column of the movement)

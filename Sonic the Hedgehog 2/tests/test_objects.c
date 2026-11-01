@@ -222,7 +222,8 @@ static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
     CHECK(game_sound_bank.songs[0x1E] != game_sound_bank.songs[0x10]); // $9E is the credits theme, the final game's (M4 has it: the prototype and the alpha have a copy of $90 there), $9F (the last) an empty song
     CHECK(game_sound_bank.songs[0x1E] != game_sound_bank.songs[0x1F]);
     CHECK(game_sound_bank.songs[sfx_LaserBurst] != NULL && game_sound_bank.songs[sfx_Scatter] != NULL); // $EA and $EB, the final game's: the pre-beta has them
-    CHECK_EQ(SOUND_ID_LAST, sfx_Scatter);
+    CHECK(game_sound_bank.songs[sfx_Grab] != NULL && game_sound_bank.songs[sfx_Flying] != NULL && game_sound_bank.songs[sfx_FlyingTired] != NULL); // $EC-$EE: Tails' flight (Sonic 3 & Knuckles' $4A, $BA and $BB)
+    CHECK_EQ(SOUND_ID_LAST, sfx_FlyingTired);
     static const uint8_t alpha_music_list[16] = { 0x82, 0x82, 0x85, 0x84, 0x85, 0x85, 0x8C, 0x86, 0x83, 0x8D, 0x88, 0x8B, 0x89, 0x8E, 0x8E, 0x87 };
     for (int zone = 0; zone < 16; zone++) {
         if (zone == 8)

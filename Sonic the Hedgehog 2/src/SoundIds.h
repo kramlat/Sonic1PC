@@ -114,6 +114,9 @@ enum SoundID {
 	sfx_DHZRoots2, // $E9 (the same bridge's)
 	sfx_LaserBurst, // $EA (the final game's: the pre-beta has it)
 	sfx_Scatter, // $EB (the final game's: the pre-beta has it)
+	sfx_Grab, // $EC (Tails grabs Sonic: Sonic 3 & Knuckles' $4A, for his flight)
+	sfx_Flying, // $ED (Tails flying: Sonic 3 & Knuckles' $BA)
+	sfx_FlyingTired, // $EE (Tails flying, tired: Sonic 3 & Knuckles' $BB)
 
 	bgm_Fade = 0xF0,
 	sfx_Sega,
@@ -122,7 +125,7 @@ enum SoundID {
 	bgm_Stop,
 
 	// The last sound the sound test can reach
-	SOUND_ID_LAST = sfx_Scatter,
+	SOUND_ID_LAST = sfx_FlyingTired,
 
 	// Sonic 1's names, for the code shared with it: what plays for each
 	bgm_GHZ = mus_VsResults, // (the first music)
