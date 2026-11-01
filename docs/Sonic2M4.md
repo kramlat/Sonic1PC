@@ -23,3 +23,13 @@ The reference is Neto's disassembly of the pre-beta, https://github.com/NyperYuh
 
 Cyber City moved from slot $0E to $09, Sky Chase has slot $10 (no data yet), the slot $0E is empty, and a slot $11 exists for Sonic 1's zone names that the shared Sonic 1 code tests for (ZONE_SLOTS is 18). Hidden Palace ($08) and Wood ($02) keep their slots and stay as they are (see above).
 
+## Order (the user, 2026-10-31)
+
+The special stage is saved for last in M4: it is the biggest payload.
+
+## Done so far
+
+* The credits theme ($9E) and the effects $EA and $EB, from the final game (the pre-beta has them).
+* Zone slots: Cyber City $09, Sky Chase $10.
+* The title cards (object $34 of the pre-beta, `Object/TitleCard.c`, `tools/import_s2prebeta_titlecards.pl`): the pre-beta's names as they are (Emerald Hill's card says GREEN HILL: its first slot's name there), Wood, Sand Shower, Cyber City and Hidden Palace written from the same alphabet. The card brings its own art (`game_info.title_card_own_art`: no pattern load cue), loaded when the level's first lists are done; the zone's second list waits for the card to go (the water zones' bubbles are in the letters' tiles).
+

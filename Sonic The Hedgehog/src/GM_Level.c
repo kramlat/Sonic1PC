@@ -241,7 +241,7 @@ GM_Level_Branch:;
     // Load art if not in credits
     if (demo >= 0) {
         // Load title card art
-        if (!game_info.no_title_card)
+        if (!game_info.no_title_card && !game_info.title_card_own_art)
             NewPLC(PlcId_TitleCard);
 
         // Load level art and general art

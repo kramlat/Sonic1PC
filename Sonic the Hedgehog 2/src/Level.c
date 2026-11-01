@@ -1,4 +1,5 @@
 #include "EditorLive.h"
+#include "GameInterface.h"
 #include "Level.h"
 #include "SstLoad.h"
 #include "Object/Ring.h"
@@ -337,8 +338,9 @@ void LevelDataLoad(void) {
     // Load level palette
     PalLoad1(header->pal);
 
-    // Load level art
-    if (header->plc2 != 0)
+    // Load level art: the second list. Under a title card it waits until the card has gone (TitleCard.c): the card's letters are in tiles the zones' art lists use ($5E8 on: the water zones' bubbles),
+    // which the card keeps while it is on the screen, over the first seconds of the level
+    if (header->plc2 != 0 && !(demo >= 0 && !game_info.no_title_card))
         AddPLC(header->plc2);
 
     // The animated art's first frames, at once (see S2_PrimeLevelArt): Hill Top's mountains are tiles that only its animated art puts in VRAM, and that otherwise runs once the level loop does, after the title

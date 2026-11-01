@@ -10,6 +10,12 @@
 #include "Sound.h"
 
 #include "Resource/Mappings/TitleCard.h"
+#include "Resource/Mappings/TitleCardNames.h"
+#include "Resource/Art/TitleCardZone.h"
+#include "Resource/Art/TitleCardLetters.h"
+#include "Nemesis.h"
+#include "Backend/VDP.h"
+#include "ScrollEngine.h"
 #include "Resource/Mappings/GotThrough.h"
 #include "Resource/Mappings/SpecialResult.h"
 
@@ -217,7 +223,7 @@ static uint8_t TitleCard_AnimalsPlc(int zone) {
     }
 }
 
-// The four elements of the level's title card, in the order they were made (NULL where the card is not there)
+// The elements of the level's title card, in the order they were made: the name, ZONE and the act number (NULL where the card is not there)
 static Sst *TitleCard_Element(int n) {
     for (int i = 0; i < SST_COUNT; i++)
         if (sst[i].code != NULL && sst[i].code == Obj_TitleCard && n-- == 0)
@@ -226,17 +232,59 @@ static Sst *TitleCard_Element(int n) {
 }
 
 bool TitleCard_Arrived(void) {
-    const Sst *zone = TitleCard_Element(2);
+    const Sst *zone = TitleCard_Element(0); // (the level waits for the name: the pre-beta's `cmp.w ($FFFFB0B0).w,D0`)
     return zone == NULL || zone->x_pos.f.u == ((const Own_TitleCard *)zone->own.u8)->main_x;
 }
 
 void TitleCard_Leave(void) {
-    static const uint8_t add[4] = { 2, 4, 4, 4 };
-    for (int i = 0; i < 4; i++) {
+    static const uint8_t add[3] = { 2, 4, 4 }; // (the name loads the animals' art as it goes: routine 4; the others 6)
+    for (int i = 0; i < 3; i++) {
         Sst *e = TitleCard_Element(i);
         if (e != NULL)
             e->routine = (uint8_t)(e->routine + add[i]);
     }
+}
+
+// The title cards of the Sonic 2 pre-beta (September 14, 1992: its object $34, Obj_0x34_Title_Cards; art, mappings and letter tables from tools/import_s2prebeta_titlecards.pl). Three elements slide
+// in: the name of the zone (from the right), ZONE and the act number (from the left); they wait a second after the level has been loaded and slide away, the name's end loading the explosion's and the
+// animals' art. Its frames: the names (the pre-beta's own, and Wood's, Sand Shower's, Cyber City's and Hidden Palace's written from its alphabet: the user), ZONE, ACT 1 to 3
+enum { TC_FRAME_ZONE = 15, TC_FRAME_ACT1 = 16 };
+extern const uint8_t titlecard_letters[][20];
+#define TC_ART_FIXED 0x580   // the fixed part (E, N, O, ZONE, the numbers)
+#define TC_ART_LETTERS 0x5DE // where the letters a name needs are copied to
+
+// The name's frame by zone slot (a zone that has no name of its own is Green Hill, as the pre-beta's placeholder slots are)
+static uint8_t TitleCard_NameFrame(int zone) {
+    switch (zone) {
+    case ZoneId_MTZ: return 1;
+    case ZoneId_HTZ: return 2;
+    case ZoneId_OOZ: return 3;
+    case ZoneId_MCZ: return 4;  // Dust Hill
+    case ZoneId_CNZ: return 5;
+    case ZoneId_CPZ: return 6;
+    case ZoneId_ARZ: return 7;  // Neo Green Hill
+    case ZoneId_SCZ: return 8;
+    case ZoneId_WZ: return 11;
+    case ZoneId_SSZ: return 12;
+    case ZoneId_GCZ: return 13;
+    case ZoneId_HPZ: return 14;
+    default: return 0;          // Green Hill (Emerald Hill's card says so too: the pre-beta has no other name for its first slot)
+    }
+}
+
+// The card's art goes into VRAM when the level's first pattern load cues have finished, not when the card is made: those lists (the water zones' bubbles at $5E8, Hidden Palace's bat at $5A8) have
+// art in tiles the card uses, and the card would show what they write over it
+static bool titlecard_art_loaded;
+
+// Load_Title_Cards_Art: the fixed part at tile $580, then the letters the name uses, from the alphabet, one after the other from tile $5DE
+static void TitleCard_LoadArt(uint8_t name) {
+    static uint8_t alphabet[0x1000];
+    VDP_SeekVRAM(ART_VRAM(TC_ART_FIXED));
+    NemDec(Art_TitleCardZone);
+    NemDecToRAM(Art_TitleCardLetters, alphabet);
+    VDP_SeekVRAM(ART_VRAM(TC_ART_LETTERS));
+    for (const uint8_t *l = titlecard_letters[name]; *l != 0xFF; l += 2)
+        VDP_WriteVRAM(alphabet + l[0] * TILE_SIZE, (size_t)l[1] * TILE_SIZE);
 }
 
 // Title card object
@@ -245,102 +293,86 @@ void Obj_TitleCard(Sst *self) {
 
     switch (self->routine) {
     case 0: {
-        Sst *a1 = self;
+        const int zone = LEVEL_ZONE(level_id);
+        const uint8_t name = TitleCard_NameFrame(zone);
+        titlecard_art_loaded = false; // (the art goes in once the level's first pattern load cues are done: see routine 2)
 
-        // The card of the zone: the name on it is the mapping frame of the zone's number (the prototype has only the cards of Sonic 1's six zones and Final Zone, so a zone past them gets no name)
-        // and the card is placed by the zone's row of the prototype's table
-        int zone = LEVEL_ZONE(level_id);
-        uint8_t d0;
-        uint16_t d2 = (uint16_t)zone;
-
-        // Get configuration (built now: it depends on the size of the picture)
+        // Get configuration (built now: it depends on the size of the picture): where each element starts and where it stops
         const int16_t to_add = SCREEN_WIDEADD2;
         const int16_t from_add = to_add + ((SCREEN_WIDEADD2 + 0xF) & ~0xF);
         const int16_t from_sub = (0x10 - to_add) & 0xF;
-        (void)from_add; (void)from_sub;
-        const struct TitleCard_Item titlecard_item[4] = {
-    { 0x00D0 + SCREEN_TALLADD2, 0x02, 0x00 },
-    { 0x00E4 + SCREEN_TALLADD2, 0x02, 0x06 },
-    { 0x00EA + SCREEN_TALLADD2, 0x02, 0x07 },
-    { 0x00E0 + SCREEN_TALLADD2, 0x02, 0x0A },
-};
-        const struct TitleCard_Config card_a[4] = { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x0104 - from_sub, 0x013C + to_add }, { 0x0414 + from_add, 0x0154 + to_add }, { 0x0214 + from_add, 0x0154 + to_add } };
-        const struct TitleCard_Config card_b[4] = { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x010C - from_sub, 0x0134 + to_add }, { 0x040C + from_add, 0x014C + to_add }, { 0x020C + from_add, 0x014C + to_add } };
-        const struct TitleCard_Config card_c[4] = { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x0120 - from_sub, 0x0120 + to_add }, { 0x03F8 + from_add, 0x0138 + to_add }, { 0x01F8 + from_add, 0x0138 + to_add } };
-        const struct TitleCard_Config card_d[4] = { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x00FC - from_sub, 0x0144 + to_add }, { 0x041C + from_add, 0x015C + to_add }, { 0x021C + from_add, 0x015C + to_add } };
-        const struct TitleCard_Config card_e[4] = { { 0x0000 - from_sub, 0x0120 + to_add }, { -0x011C - from_sub, 0x0124 + to_add }, { 0x03EC + from_add, 0x03EC + to_add }, { 0x01EC + from_add, 0x012C + to_add } };
-        const struct TitleCard_Config* config = zone == 1 ? card_b : zone == 2 ? card_c : zone == 4 || zone == 5 ? card_d : zone == 0 || zone == 3 ? card_a : card_e;
-        const struct TitleCard_Item* item = titlecard_item;
+        const struct { int16_t x0, x1; int16_t y; uint8_t frame; } card[3] = {
+            { 0x0240 + from_add, 0x0120 + to_add, 0x00B8 + SCREEN_TALLADD2, name },
+            { 0x0028 - from_sub, 0x0148 + to_add, 0x00D0 + SCREEN_TALLADD2, TC_FRAME_ZONE },
+            { 0x0068 - from_sub, 0x0188 + to_add, 0x00D0 + SCREEN_TALLADD2, (uint8_t)(TC_FRAME_ACT1 + LEVEL_ACT(level_id)) },
+        };
+        // (Sky Chase, Sky Fortress and Death Egg are not played in acts: their card has no number)
+        const int count = (zone == ZoneId_SCZ || zone == 6 || zone == 0x0E) ? 2 : 3;
 
-        // Create card objects
-        for (int i = 0; i < 4; i++, config++, item++) {
+        Sst *a1 = self;
+        for (int i = 0; i < count; i++) {
             if (i > 0) {
                 a1 = Sst_AllocateAfter(a1);
                 if (a1 == NULL)
                     break;
             }
-            // Write object info from configuration
             Own_TitleCard *scratch_a1 = (Own_TitleCard *)a1->own.u8;
             a1->code = Obj_TitleCard;
-            a1->x_pos.f.u = config->x0;
-            scratch_a1->final_x = config->x0;
-            scratch_a1->main_x = config->x1;
-            a1->y_pos.f.u = item->y;
-            a1->routine = item->routine;
-            if ((d0 = item->frame) == 0)
-                d0 = d2;
-
-            // Initialize object graphics (a frame past the mapping's twelve is nothing to draw; the act is not added to the ACT frame, as Sonic 1 does)
-            a1->mapping_frame = d0 < 12 ? d0 : 0xFF;
-            a1->mappings = Mappings_TitleCard;
-            a1->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_Title_Card);
-            a1->width_pixels = 0;
+            a1->x_pos.f.u = card[i].x0;
+            scratch_a1->final_x = card[i].x0;
+            scratch_a1->main_x = card[i].x1;
+            a1->y_pos.f.u = card[i].y;
+            a1->routine = 2;
+            a1->mapping_frame = card[i].frame;
+            a1->mappings = Mappings_TitleCardNames;
+            a1->art_tile = TILE_MAP(1, 0, 0, 0, 0); // (priority; the pieces hold their tiles: $580 on)
+            a1->width_pixels = 0x60;
             a1->render_flags = 0;
             a1->priority = 0 * 0x80;
             a1->anim_frame_timer = 60;
         }
     }
         // Fallthrough
-    case 2: // Moving to on-screen position
-        // Move
+    case 2: // Moving to on-screen position, 16 pixels a frame
+        if (!titlecard_art_loaded) {
+            if (plc_buffer[0].art != NULL)
+                break; // (the queue is still being drained: nothing of the card shows yet)
+            TitleCard_LoadArt(TitleCard_NameFrame(LEVEL_ZONE(level_id)));
+            titlecard_art_loaded = true;
+        }
         if (self->x_pos.f.u > own->main_x)
             self->x_pos.f.u -= 16;
         else if (self->x_pos.f.u < own->main_x)
             self->x_pos.f.u += 16;
-
-        // Draw
-        if (self->mapping_frame != 0xFF && self->x_pos.f.u >= 0 && self->x_pos.f.u < (0x200 + SCREEN_WIDEADD))
+        if (self->x_pos.f.u >= 0 && self->x_pos.f.u < (0x200 + SCREEN_WIDEADD))
             Sst_Draw(self);
         break;
-    case 4: // Moving off-screen
+    case 4: // Waits, then moves off-screen, 32 pixels a frame
     case 6:
-        // Wait for timer to expire
         if (self->anim_frame_timer) {
             self->anim_frame_timer--;
-            if (self->mapping_frame != 0xFF)
-                Sst_Draw(self);
-            break;
-        }
-
-        // Delete and/or load level art once off-screen
-        if (!(self->render_flags & SST_RENDER_ON_SCREEN) || self->x_pos.f.u == own->final_x) {
-            if (self->routine == 4) {
-                AddPLC(PlcId_Explode);
-                AddPLC(TitleCard_AnimalsPlc(LEVEL_ZONE(level_id)));
-            }
-            Sst_Delete(self);
-            break;
-        }
-
-        // Move
-        if (self->x_pos.f.u >= own->final_x)
-            self->x_pos.f.u -= 16;
-        else
-            self->x_pos.f.u += 16;
-
-        // Draw
-        if (self->mapping_frame != 0xFF && self->x_pos.f.u >= 0 && self->x_pos.f.u < (0x200 + SCREEN_WIDEADD))
             Sst_Draw(self);
+            break;
+        }
+        if (self->render_flags & SST_RENDER_ON_SCREEN) {
+            if (self->x_pos.f.u != own->final_x) {
+                if (self->x_pos.f.u > own->final_x)
+                    self->x_pos.f.u -= 32;
+                else
+                    self->x_pos.f.u += 32;
+                if (self->x_pos.f.u >= 0 && self->x_pos.f.u < (0x200 + SCREEN_WIDEADD))
+                    Sst_Draw(self);
+                break;
+            }
+        }
+        // (gone, or back where it started) the name's end loads the explosions' and the animals' art
+        if (self->routine == 4) {
+            AddPLC(PlcId_Explode);
+            AddPLC(TitleCard_AnimalsPlc(LEVEL_ZONE(level_id)));
+            if (LEVEL_LOAD_BLOCK(level_id)->plc2 != 0)
+                AddPLC(LEVEL_LOAD_BLOCK(level_id)->plc2); // (the zone's second list, which LevelDataLoad leaves for here)
+        }
+        Sst_Delete(self);
         break;
     }
 }

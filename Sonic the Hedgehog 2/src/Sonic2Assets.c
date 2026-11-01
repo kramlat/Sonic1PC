@@ -34,7 +34,8 @@ const GameInfo game_info = {
     .credits = credits,
     .settings_file = "Sonic2Settings.cfg",
     .settings_title = "Sonic 2 PC settings",
-    .no_title_card = true,
+    .no_title_card = false, // the pre-beta has title cards (its object $34: TitleCard.c)
+    .title_card_own_art = true,
     .split_screen = true,
 	.plc_capacity = 32, // (the level starts without a title card, so its queue is not drained as it is filled) // the prototypes have no title cards
 };
