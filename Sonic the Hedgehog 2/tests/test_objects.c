@@ -495,7 +495,7 @@ static void MTZBoss_MakesSevenBallsThatOrbitTheShip(void) {
 }
 
 
-// The alpha's Emerald Hill boss, from the level's event to its parts: in act 2, as the camera reaches $26E0, the event puts the ship (object 56, subtype $81) in the arena, locks the screen and starts the boss's music; the ship makes
+// The pre-beta's Emerald Hill boss (the alpha's before it), from the level's event to its parts: in act 2, as the camera reaches $26E0, the event puts the ship (object 56, subtype $81) in the arena, locks the screen and starts the boss's music; the ship makes
 // its face and the car's parts (objects 5B), and the explosions of its wreck are object 58
 static void EHZBoss_TheEventPutsTheAlphasShipInTheArena(void) {
     SstTestClear();
@@ -516,13 +516,13 @@ static void EHZBoss_TheEventPutsTheAlphasShipInTheArena(void) {
         return;
     CHECK_EQ(ship->x_pos.f.u, 0x29D0);
     Obj_EHZBoss(ship);
-    CHECK_EQ(ship->x_pos.f.u, 0x2A00); // (the ship is put at $2A00,$2C0, out of the arena, and slides in from the right)
-    CHECK_EQ(ship->y_pos.f.u, 0x2C0);
+    CHECK_EQ(ship->x_pos.f.u, 0x2AA0); // (the pre-beta puts the ship at $2AA0,$348, out of the arena, and it slides in from the right once the arena's edge is set)
+    CHECK_EQ(ship->y_pos.f.u, 0x348);
     int parts = 0;
     for (int i = 1; i < 0x80; i++)
         if (sst[i].code == sst_object_codes[0x5B])
             parts++;
-    CHECK_EQ(parts, 6); // (the car's body, its three wheels and spike, and the cockpit's glass, as the alpha makes them)
+    CHECK_EQ(parts, 7); // (Eggman's face, the car's body, its three wheels and spike, and the blades, as the pre-beta makes them)
 }
 
 // The rotating cylinder of Metropolis (object 06 with bit 7 in its subtype): a character level with its middle is taken onto it and carried round (his height follows a cosine, his flip angle goes on by 4), and let go at its end
