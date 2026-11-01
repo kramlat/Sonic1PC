@@ -433,7 +433,24 @@ void Obj_NGHZSwing(Sst *self) {
         own->radius = (uint8_t)(links * 16 + 8);
         int16_t y = self->y_pos.f.u;
         Sst *chain = Sst_AllocateAfter(self);
-        if (chain != NULL) {
+        if (chain != NULL && (self->subtype & 0x70) == 0x20) { // (the pre-beta's: a column of its own, frame 3, $40 below the hub, and the platform $48 below that; Dust Hill's frame is the chain, the others' is empty)
+            chain->code = self->code;
+            chain->mappings = self->mappings;
+            chain->art_tile = self->art_tile;
+            chain->routine = 4;
+            chain->render_flags = SST_RENDER_LEVEL;
+            chain->priority = 4 * 0x80;
+            chain->width_pixels = 0x10;
+            chain->height_pixels = 0x50;
+            chain->y_radius = 0x50;
+            chain->mapping_frame = 3;
+            chain->x_pos.f.u = self->x_pos.f.u;
+            chain->y_pos.f.u = (int16_t)(y + 0x40);
+            own->chain = (uint8_t)(chain - sst);
+            self->y_pos.f.u = (int16_t)(y + 0x88);
+            self->angle = 0x80;
+            self->subtype &= 0x70;
+        } else if (chain != NULL) {
             chain->code = self->code;
             chain->mappings = self->mappings;
             chain->art_tile = self->art_tile;
@@ -454,10 +471,14 @@ void Obj_NGHZSwing(Sst *self) {
             chain->x_pos.f.u = self->x_pos.f.u;
             chain->y_pos.f.u = y;
             own->chain = (uint8_t)(chain - sst);
+            self->y_pos.f.u = (int16_t)(y + 8);
+            self->angle = 0x80;
+            self->subtype &= 0x70;
+        } else { // (no room for the chain: as it was)
+            self->y_pos.f.u = (int16_t)(y + 8);
+            self->angle = 0x80;
+            self->subtype &= 0x70;
         }
-        self->y_pos.f.u = (int16_t)(y + 8);
-        self->angle = 0x80;
-        self->subtype &= 0x70;
     }
         // Fallthrough
     case SwingRoutine_Swing: {
@@ -495,6 +516,9 @@ void Obj_NGHZSwing(Sst *self) {
         Swing_Display(self, own);
         break;
     }
+    case 4: // (the pre-beta's column: a picture)
+        Sst_Draw(self);
+        break;
     case SwingRoutine_Empty:
         Swing_Move(self, own);
         Swing_Display(self, own);

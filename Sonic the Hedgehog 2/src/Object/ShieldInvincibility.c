@@ -59,6 +59,8 @@ void Obj_ShieldInvincibility(Sst *self) {
         self->x_pos.f.u = player->x_pos.f.u;
         self->y_pos.f.u = player->y_pos.f.u;
         self->status = player->status;
+        // The pre-beta's: it is in front of the level's tiles when Sonic is
+        self->art_tile = (uint16_t)((self->art_tile & 0x7FFF) | (player->art_tile & 0x8000));
 
         // Animate and draw shield
         Sst_Animate(self, Animation_ShieldInvincibility);

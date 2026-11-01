@@ -269,6 +269,25 @@ static void SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain(vo
     CHECK_EQ(chains, 1);
 }
 
+static void SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_SSZ, 0);
+    Sst *swing = SpawnSst(0x15, 0x28, 600, 400); // (the pre-beta's kind 2)
+    Obj_SwingDispatch(swing);
+    CHECK_EQ(swing->y_pos.f.u, 400 + 0x88);
+    int columns = 0;
+    for (int i = 0; i < SST_COUNT; i++) {
+        if (sst[i].code != NULL && sst[i].code == sst_object_codes[0x15] && &sst[i] != swing && sst[i].routine == 4) {
+            columns++;
+            CHECK_EQ(sst[i].mapping_frame, 3);
+            CHECK_EQ(sst[i].y_pos.f.u, 400 + 0x40);
+        }
+    }
+    CHECK_EQ(columns, 1);
+    Obj_SwingDispatch(swing); // (and it does not move)
+    CHECK_EQ(swing->x_pos.f.u, 600);
+}
+
 static void SSZObjects_TheSwitchIsAButtonAndABaseFromTheLevelsTiles(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_SSZ, 0);
@@ -296,4 +315,5 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(SSZObjects_TheCrocobotIsSetUpAndFallsUntilItMeetsTheFloor);
     RUN_TEST(SSZObjects_TheSwitchIsAButtonAndABaseFromTheLevelsTiles);
     RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
+    RUN_TEST(SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt);
 }
