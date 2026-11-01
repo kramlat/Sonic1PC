@@ -7,6 +7,7 @@
 #include "SstLoad.h"
 #include "Object/CPZBadniks.h"
 #include "Object/CPZObjects.h"
+#include "Object/CPZBoss.h"
 #include "Object/Coconuts.h"
 #include "Object/Sonic.h"
 #include "Object/CharControl.h"
@@ -313,6 +314,37 @@ static void CPZObjects_HoldingOneSideDoesNotFreeWhoIsHeld(void) {
     (void)grabber;
 }
 
+
+static int CountCode(SstCode code) {
+    int n = 0;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == code)
+            n++;
+    return n;
+}
+
+static void CPZObjects_TheBossHasOneShipWhateverItDoes(void) {
+    Reset();
+    Sst *boss = Sst_Spawn(0x5D, 0x2B80, 0x4B0);
+    CHECK(boss != NULL);
+    Frames(1);
+    const int parts = CountCode(boss->code);
+    CHECK(parts >= 5 && parts <= 8);
+    int ships = 0;
+    for (int frame = 0; frame < 600; frame++) {
+        Frames(1);
+        ships = 0;
+        for (int i = 0; i < SST_COUNT; i++)
+            if (sst[i].code == boss->code && sst[i].routine == 2 && sst[i].collision_flags != 0xFF && sst[i].width_pixels == 0x20 && sst[i].mappings == boss->mappings)
+                ships++;
+        CHECK_EQ(ships, 1);
+        if (ships != 1)
+            break;
+        player->x_pos.f.u = 0x2B00;
+        player->y_pos.f.u = 0x520;
+    }
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -327,4 +359,5 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_TheGrabberExplodesAndLetsGoAfterFlashing);
     RUN_TEST(CPZObjects_FourChangesOfSideInThirtyTwoFramesFreeWhoIsHeld);
     RUN_TEST(CPZObjects_HoldingOneSideDoesNotFreeWhoIsHeld);
+    RUN_TEST(CPZObjects_TheBossHasOneShipWhateverItDoes);
 }

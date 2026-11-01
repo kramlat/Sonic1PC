@@ -398,6 +398,8 @@ static void Segment_Run(Sst *self, Own_CPZBoss *own) {
 static void PipeMaker_Segment(Sst *maker, Sst *segment, bool first) {
     Own_CPZBoss *own = OWN(maker);
     if (--own->count < 0) {
+        if (segment != maker) // (the pre-beta gives the slot its id only after this: it is not an object)
+            Sst_Delete(segment);
         maker->routine_secondary = 0;
         maker->routine = Routine_PipeEnd;
         Segment_Run(maker, own);
