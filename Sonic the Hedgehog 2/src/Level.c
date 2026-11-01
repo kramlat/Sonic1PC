@@ -206,6 +206,7 @@ void LoadLevelLayout(void) {
     // The layout file is the Sonic 3 & Knuckles format (LevelLayout.h: a header with the level's size, then the rows), Kosinski compressed; it fills level_layout
     // (the fixed buffer, zero where the file has no chunk) and level_layout_size
     LevelLayout_LoadKosinski(level_layouts[LEVEL_ZONE(level_id)][LEVEL_ACT(level_id)].layout);
+    ScrollEngine_ResetLevelMasks(); // (every level wraps at the engine's sizes so far: a layout holds what is in the level, not where it wraps; see ScrollEngine.h)
     LevelScroll_BackgroundReset(); // (the zone's background layer)
 }
 

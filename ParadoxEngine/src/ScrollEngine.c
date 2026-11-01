@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "LevelDrawCore.h"
+#include "LevelLayout.h"
 
 static ScrollZone zones[SCROLL_MAX_ZONES][SCROLL_MAX_ACTS];
 static bool zone_set[SCROLL_MAX_ZONES][SCROLL_MAX_ACTS];
@@ -15,6 +16,27 @@ void ScrollEngine_SetLevelMasks(unsigned col_mask, unsigned row_mask) {
     level_layout_row_mask = row_mask;
     level_screen_y_wrap = (uint16_t)(((row_mask + 1) << 7) - 1); // (a chunk is 128 pixels tall)
     level_camera_y_mask = (uint16_t)(level_screen_y_wrap & ~0xF);
+}
+
+static unsigned MaskFor(unsigned count) {
+    unsigned size = 1;
+    while (size < count)
+        size <<= 1;
+    return size - 1;
+}
+
+bool ScrollEngine_LevelLoops(int16_t limit_top) {
+    return limit_top == (int16_t)0xFF00;
+}
+
+void ScrollEngine_SetLevelMasksForLayout(const LevelLayoutSize *size, bool looping) {
+    const unsigned width = size->fg_width > size->bg_width ? size->fg_width : size->bg_width;
+    const unsigned rows = size->fg_rows > size->bg_rows ? size->fg_rows : size->bg_rows;
+    ScrollEngine_SetLevelMasks(MaskFor(width ? width : 1), looping ? 0xF : MaskFor(rows ? rows : 1));
+}
+
+void ScrollEngine_ResetLevelMasks(void) {
+    ScrollEngine_SetLevelMasks(0x7F, 0xF);
 }
 
 void ScrollEngine_SetZone(int zone, int act, const ScrollZone *routines) {

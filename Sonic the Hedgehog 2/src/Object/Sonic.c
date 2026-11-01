@@ -1,4 +1,5 @@
 // Sonic for Sonic 2: a copy of Sonic 1's Sonic.c (Sonic 1 keeps its own), with Nick Arcade's animation code below; his art, mappings, DPLC, animations and palette are Nick Arcade's (res/).
+#include "ScrollEngine.h"
 #include "Standing.h"
 void Obj_GameOverCard(Sst *self);
 void Obj_Explosion(Sst *self);
@@ -2291,7 +2292,7 @@ void Obj_Sonic(Sst *self) {
         }
 
         // In a level that wraps vertically (its top limit is exactly $FF00: Metropolis) his height is kept to $7FF, whichever way he left it
-        if (limit_top2 == 0xFF00)
+        if (ScrollEngine_LevelLoops((int16_t)limit_top2))
             self->y_pos.f.u &= 0x7FF;
 
         // Handle general player state stuff

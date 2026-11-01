@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "LevelLayout.h" // LevelLayoutSize
+
 // The scrolling engine's frame (sonic3k.asm: LevelSetup, line 102216, and ScreenEvents, line 102264). Each zone and act has four routines, found in a table:
 //   screen_init       draws the foreground when the level starts          (S3&K: <Z>_ScreenInit)
 //   background_init   the same for the background                         (<Z>_BackgroundInit)
@@ -34,6 +36,14 @@ void ScrollEngine_Events(int zone, int act); // every frame: its screen event, t
 extern unsigned level_layout_col_mask, level_layout_row_mask;
 extern uint16_t level_camera_y_mask, level_screen_y_wrap;
 void ScrollEngine_SetLevelMasks(unsigned col_mask, unsigned row_mask); // also sets the two pixel masks from the rows
+// The masks of a level from the size its layout file gives, as S3&K sets them per level (LevelSetup): a *looping* level (S3&K: Camera_Y_pos_mask $7F0, Layout_row_index_mask $3C, Screen_Y_wrap_value $7FF; the
+// games' own: a level whose top limit is $FF00, i.e. -$100: Labyrinth act 3, Metropolis, ...) goes round a drum of 16 rows of 128 pixels whatever its layout holds, and every other level wraps at the
+// next power of two that holds what its layout has (so a taller one than 16 rows is possible, as S3&K's $FFF/$FF0/$7C are). A width wraps the same way. Not what the games' levels do today: they keep the
+// defaults (a layout holds what is in the level, not where it wraps, so a Sonic 2 layout of 8 rows would wrap at 1,024 pixels where the original wraps at 2,048); a level that is optimised for the new
+// format is where it is used, with its start position and its dynamic events adjusted.
+bool ScrollEngine_LevelLoops(int16_t limit_top);  // the top limit that makes a level loop: $FF00
+void ScrollEngine_SetLevelMasksForLayout(const LevelLayoutSize *size, bool looping);
+void ScrollEngine_ResetLevelMasks(void); // the defaults back (128 across, 16 down)
 
 // ---- Deformation by band tables (sonic3k.asm: ApplyDeformation 103695, Draw_BG 103247, Get_DeformDrawPosVert 103322) ----
 // A layer that scrolls in bands (a background, or a foreground that is deformed) is described by a table of band heights, top of the layer down, in pixels (a word each). Bit 15

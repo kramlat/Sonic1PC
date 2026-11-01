@@ -1,6 +1,7 @@
 // Tails (Nick Arcade's objects 02 and 05), made as Sonic Team made him: a copy of Sonic's object (Sonic.c) with the changes Tails needs, and the same copy's quirks. His control is pad 2,
 // which a stub of a "CPU" fills with Sonic's own pad from 16 frames ago; he has no water code, no debug mode and no flight yet; hurting him loses SONIC'S rings (the copy of the hurt
 // code works on the shared ring count); he does not die from enemies, only from falling below the level, and then he comes back above Sonic.
+#include "ScrollEngine.h"
 #include "Standing.h"
 void Obj_Explosion(Sst *self);
 #include "SstLoad.h"
@@ -1758,7 +1759,7 @@ void Obj_Tails(Sst *self) {
             }
         }
 
-        if (limit_top2 == 0xFF00) // (a level that wraps vertically: see Sonic.c)
+        if (ScrollEngine_LevelLoops((int16_t)limit_top2)) // (a level that wraps vertically: see Sonic.c)
             self->y_pos.f.u &= 0x7FF;
 
         Tails_Display(self);

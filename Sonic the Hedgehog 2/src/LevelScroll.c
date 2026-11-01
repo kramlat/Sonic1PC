@@ -661,7 +661,7 @@ static void LimitScrollBottom(dword_s *scroll) {
 // A level whose top limit is exactly $FF00 wraps vertically (Metropolis, above all, uses it in both directions): the camera and the characters go on past the top or the bottom as if the level's 8 rows were
 // round a drum, so everything that compares places in height does it modulo $800
 static bool LevelWrapsVertically(void) {
-	return limit_top2 == 0xFF00;
+	return ScrollEngine_LevelLoops((int16_t)limit_top2);
 }
 
 void ScrollVertical(void) {

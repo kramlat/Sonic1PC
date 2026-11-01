@@ -244,6 +244,37 @@ static void ScrollEngine_RunsAZonesRoutinesInTheOriginalsOrder(void) {
     CHECK(ScrollEngine_GetZone(52, 1) == NULL);
 }
 
+static void ScrollEngine_TheMasksComeFromTheLayoutsSize(void) {
+    LevelLayoutSize size = { 83, 60, 16, 16 };
+    ScrollEngine_SetLevelMasksForLayout(&size, false);
+    CHECK_EQ(level_layout_col_mask, 0x7F); // (83 chunks wrap at the next power of two: 128)
+    CHECK_EQ(level_layout_row_mask, 0xF);
+    size = (LevelLayoutSize){ 64, 64, 8, 2 };
+    ScrollEngine_SetLevelMasksForLayout(&size, false);
+    CHECK_EQ(level_layout_col_mask, 0x3F);
+    CHECK_EQ(level_layout_row_mask, 7);
+    CHECK_EQ(level_screen_y_wrap, 0x3FF);
+    size = (LevelLayoutSize){ 90, 64, 20, 4 }; // (taller than 16 rows: a level that does not loop may be)
+    ScrollEngine_SetLevelMasksForLayout(&size, false);
+    CHECK_EQ(level_layout_row_mask, 0x1F);
+    CHECK_EQ(level_screen_y_wrap, 0xFFF);
+    size = (LevelLayoutSize){ 98, 56, 8, 2 }; // (a looping level goes round its 16 rows, whatever the layout holds)
+    ScrollEngine_SetLevelMasksForLayout(&size, true);
+    CHECK_EQ(level_layout_col_mask, 0x7F);
+    CHECK_EQ(level_layout_row_mask, 0xF);
+    CHECK_EQ(level_screen_y_wrap, 0x7FF);
+    CHECK_EQ(level_camera_y_mask, 0x7F0);
+    CHECK(ScrollEngine_LevelLoops((int16_t)0xFF00)); // (the top limit of Metropolis and of Labyrinth act 3: -$100)
+    CHECK(!ScrollEngine_LevelLoops(0));
+    size = (LevelLayoutSize){ 0, 0, 0, 0 }; // (no layout: one chunk)
+    ScrollEngine_SetLevelMasksForLayout(&size, false);
+    CHECK_EQ(level_layout_col_mask, 0);
+    ScrollEngine_ResetLevelMasks();
+    CHECK_EQ(level_layout_col_mask, 0x7F);
+    CHECK_EQ(level_layout_row_mask, 0xF);
+    CHECK_EQ(level_screen_y_wrap, 0x7FF);
+}
+
 static void ScrollEngine_ALevelsMasksSetHowItWraps(void) {
     LevelLayout_Resize(LEVEL_LAYOUT_PLANE_FG, 0, 0);
     LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 3, 2, 9);
@@ -651,6 +682,7 @@ void RegisterLevelPlaneTests(void) {
     RUN_TEST(ScrollEngine_TheRestOfSonic1sBackgroundsShowWhatTheOriginalsDid);
     RUN_TEST(ScrollEngine_RunsAZonesRoutinesInTheOriginalsOrder);
     RUN_TEST(ScrollEngine_ALevelsMasksSetHowItWraps);
+    RUN_TEST(ScrollEngine_TheMasksComeFromTheLayoutsSize);
     RUN_TEST(ScrollEngine_GreenHillsLinesAreTheOriginalsBands);
     RUN_TEST(ScrollBands_FindTheBandAndTheLineInIt);
     RUN_TEST(ScrollEngine_ApplyDeformationFillsTheLinesLikeTheOriginal);
