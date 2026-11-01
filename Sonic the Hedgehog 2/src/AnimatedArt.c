@@ -2,6 +2,7 @@
 #include "Level.h"
 #include "Constants.h"
 #include "Video.h"
+#include "Object/BossCommon.h"
 
 #include <string.h>
 
@@ -123,7 +124,7 @@ static const AnimScript AnimCue_CPZ[] = {
 static const uint8_t ARZ1_Frames[] = { 0x00, 0x04 };
 static const uint8_t ARZ2_Frames[] = { 0x04, 0x00 };
 static const AnimScript AnimCue_ARZ[] = {
-    { S2Art_NGHZWaterfall1, 0x8780, 2, 4, 5, ARZ1_Frames },
+    { S2Art_NGHZWaterfall1, 0xAAE0, 2, 4, 5, ARZ1_Frames }, // (the pre-beta's address: tile $557, not the alpha's $3BC where the level's blocks have this waterfall, so its first one does not move there)
     { S2Art_NGHZWaterfall1, 0x8600, 2, 4, 5, ARZ2_Frames },
     { S2Art_NGHZWaterfall2, 0x8580, 2, 4, 5, ARZ1_Frames },
     { S2Art_NGHZWaterfall3, 0x8500, 2, 4, 5, ARZ1_Frames },
@@ -235,6 +236,8 @@ void S2_AnimateLevelArt(void) {
         Dynamic_Normal(AnimCue_CNZ, (int)(sizeof(AnimCue_CNZ) / sizeof(AnimCue_CNZ[0])));
         break;
     case ZoneId_ARZ:
+        if (boss_flag) // (NGHz_Animate_Routine: the waterfalls stand still during the boss)
+            break;
         Dynamic_Normal(AnimCue_ARZ, (int)(sizeof(AnimCue_ARZ) / sizeof(AnimCue_ARZ[0])));
         break;
     case ZoneId_SSZ:

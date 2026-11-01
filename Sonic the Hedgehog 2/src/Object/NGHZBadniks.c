@@ -76,83 +76,102 @@ static void Settings(Sst *self, const void *mappings, uint16_t tile, uint8_t ren
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
-// The Whisp (8C): a fly that flutters at Sonic. After a short wait it goes up (it does that up to 7 times: the count is at $2B, the wait at $2A), follows Sonic for $60 frames with a speed that is kept to $200 either
-// way and then waits again; the eighth time it flies off to the left
+// The Whisp (8C): a fly that flutters at Sonic. It waits until it is on screen, goes up and follows Sonic for $60 frames with a speed that is kept to $200 either way, stops and waits $10 frames, and
+// starts again; the fifth time it flies off to the left. The pre-beta's table of routines has one more entry than the alpha's, so the leaving routine is 8 and what the code sets as the leaving one (6)
+// is the wait: it flies off $11 frames late, and does so one frame at a time, as the pre-beta does
 // ---------------------------------------------------------------------------------------------------------------------------------------
 typedef struct {
     uint8_t subtype;
     uint8_t pad;
     uint8_t timer; // 0x2A
-    uint8_t count; // 0x2B
+    uint8_t count; // 0x2B: the rounds left
 } Own_Whisp;
 
-enum { WhispRoutine_Init = 0, WhispRoutine_Wait = 2, WhispRoutine_Chase = 4, WhispRoutine_Leave = 6 };
+enum { WhispRoutine_Init = 0, WhispRoutine_Wait = 2, WhispRoutine_Chase = 4, WhispRoutine_Timer = 6, WhispRoutine_Leave = 8 };
+
+static void Whisp_Animate(Sst *self) {
+    AlphaAnimate(self, Animation_Whisp);
+    SstOnScreenTest(self);
+}
+
+// Offset_0x030E7E
+static void Whisp_Leave(Sst *self) {
+    Sst_MoveSprite2(self);
+    Whisp_Animate(self);
+}
+
+// Offset_0x030E18
+static void Whisp_Chase(Sst *self, Own_Whisp *own) {
+    if ((int8_t)--own->timer < 0) { // done: stops, waits $10 and starts again
+        self->routine -= 2;
+        own->timer = 0x10;
+        self->x_vel = 0;
+        self->y_vel = 0;
+        Whisp_Animate(self);
+        return;
+    }
+    const Where w = WhereIsSonic(self);
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, w.side != 0);
+    self->x_vel += w.side ? 0x10 : -0x10;
+    self->y_vel += w.below ? 0x10 : -0x10;
+    if (self->x_vel > 0x200)
+        self->x_vel = 0x200;
+    else if (self->x_vel < -0x200)
+        self->x_vel = -0x200;
+    if (self->y_vel > 0x200)
+        self->y_vel = 0x200;
+    else if (self->y_vel < -0x200)
+        self->y_vel = -0x200;
+    Sst_MoveSprite2(self);
+    Whisp_Animate(self);
+}
+
+// Offset_0x030DE2
+static void Whisp_Start(Sst *self, Own_Whisp *own) {
+    if ((int8_t)--own->count >= 0) { // up it goes (and on with the chase in the same frame)
+        self->routine += 2;
+        self->y_vel = (int16_t)0xFF00;
+        own->timer = 0x60;
+        Whisp_Chase(self, own);
+        return;
+    }
+    self->routine = WhispRoutine_Timer; // (the leaving routine of the alpha's table)
+    SST_STATUS_SET(self, SST_STATUS_X_FLIP, false);
+    self->x_vel = (int16_t)0xFE00;
+    self->y_vel = (int16_t)0xFE00;
+    Whisp_Leave(self);
+}
 
 void Obj_Whisp(Sst *self) {
     Own_Whisp *own = (Own_Whisp *)self->own.u8;
 
     switch (self->routine) {
     case WhispRoutine_Init:
-        Settings(self, Mappings_Whisp, TILE_MAP(0, 1, 0, 0, 0x500), 4, 4, 0x0C, 0x0B);
+        Settings(self, Mappings_Whisp, TILE_MAP(1, 1, 0, 0, 0x500), 4, 4, 0x0C, 0x0B);
         own->timer = 0x10;
-        own->count = 6;
+        own->count = 4;
         return;
 
     case WhispRoutine_Wait:
-        if ((int8_t)--own->timer < 0) {
-            if ((int8_t)--own->count >= 0) { // up it goes
-                self->routine += 2;
-                self->y_vel = (int16_t)0xFF00;
-                own->timer = 0x60;
-            } else { // the last: away to the left
-                self->routine = WhispRoutine_Leave;
-                SST_STATUS_SET(self, SST_STATUS_X_FLIP, false);
-                self->x_vel = (int16_t)0xFE00;
-                self->y_vel = 0;
-                Sst_MoveSprite2(self);
-                AlphaAnimate(self, Animation_Whisp);
-                SstOnScreenTest(self);
-                return;
-            }
-            // (it goes on with the chase's code in the same frame)
-        } else {
-            AlphaAnimate(self, Animation_Whisp);
-            SstOnScreenTest(self);
-            return;
-        }
-        // fallthrough
-    case WhispRoutine_Chase: {
-        if ((int8_t)--own->timer < 0) { // done: stops, waits $10 and starts again
-            self->routine -= 2;
-            own->timer = 0x10;
-            self->x_vel = 0;
-            self->y_vel = 0;
-            AlphaAnimate(self, Animation_Whisp);
-            SstOnScreenTest(self);
-            return;
-        }
-        const Where w = WhereIsSonic(self);
-        SST_STATUS_SET(self, SST_STATUS_X_FLIP, w.side != 0);
-        self->x_vel += w.side ? 0x10 : -0x10;
-        self->y_vel += w.below ? 0x10 : -0x10;
-        if (self->x_vel > 0x200)
-            self->x_vel = 0x200;
-        else if (self->x_vel < -0x200)
-            self->x_vel = -0x200;
-        if (self->y_vel > 0x200)
-            self->y_vel = 0x200;
-        else if (self->y_vel < -0x200)
-            self->y_vel = -0x200;
-        Sst_MoveSprite2(self);
-        AlphaAnimate(self, Animation_Whisp);
-        SstOnScreenTest(self);
+        if ((self->render_flags & SST_RENDER_ON_SCREEN))
+            Whisp_Start(self, own);
+        else
+            Whisp_Animate(self);
         return;
-    }
+
+    case WhispRoutine_Chase:
+        Whisp_Chase(self, own);
+        return;
+
+    case WhispRoutine_Timer:
+        if ((int8_t)--own->timer < 0)
+            Whisp_Start(self, own);
+        else
+            Whisp_Animate(self);
+        return;
 
     case WhispRoutine_Leave:
-        Sst_MoveSprite2(self);
-        AlphaAnimate(self, Animation_Whisp);
-        SstOnScreenTest(self);
+        Whisp_Leave(self);
         return;
     }
 }
@@ -198,7 +217,7 @@ static void Grounder_Rocks(Sst *self) {
 
 // Offset_0x028274: the bricks (4) round it
 static void Grounder_Bricks(Sst *self) {
-    static const int8_t offsets[8] = { 0x00, (int8_t)0xEC, 0x10, 0x00, 0x00, 0x0C, (int8_t)0xF0, 0x00 };
+    static const int8_t offsets[8] = { 0x00, (int8_t)0xEC, 0x10, (int8_t)0xFC, 0x00, 0x0C, (int8_t)0xF0, (int8_t)0xFC }; // (the pre-beta moved the sides' bricks up 4)
     uint16_t index = 0;
     for (int i = 0; i < 4; i++) {
         Sst *brick = Sst_Allocate();
@@ -220,7 +239,12 @@ void Obj_Grounder(Sst *self) {
 
     switch (self->routine) {
     case GrounderRoutine_Init:
-        Settings(self, Mappings_Grounder, TILE_MAP(0, 1, 0, 0, 0x509), 4, 5, 0x10, 0x02);
+        Settings(self, Mappings_Grounder, TILE_MAP(1, 1, 0, 0, 0x509), 4, 5, 0x10, 0x02);
+        if ((self->render_flags & SST_RENDER_Y_FLIP)) { // (a Grounder the layout flips is behind the level's front: the flip is not its own)
+            self->render_flags &= (uint8_t)~SST_RENDER_Y_FLIP;
+            self->status &= (uint8_t)~SST_STATUS_Y_FLIP;
+            self->art_tile &= 0x7FFF;
+        }
         self->y_radius = 0x14;
         self->x_radius = 0x10;
         {
@@ -267,7 +291,7 @@ void Obj_Grounder(Sst *self) {
     case GrounderRoutine_Walk: {
         Sst_MoveSprite2(self);
         const int16_t dist = SstFloorDist(self, self->x_pos.f.u);
-        if (dist >= -2 && dist < 0x0C) {
+        if (dist >= -1 && dist < 0x0C) { // (the alpha's was -2)
             self->y_pos.f.u += dist;
             AlphaAnimate(self, Animation_GrounderWalk);
         } else {
@@ -296,7 +320,7 @@ void Obj_GrounderWall(Sst *self) {
 
     switch (self->routine) {
     case 0:
-        Settings(self, Mappings_GrounderWall, TILE_MAP(0, 1, 0, 0, 0x434), 0x84, 4, 0x10, 0);
+        Settings(self, Mappings_GrounderWall, 0, 0x84, 4, 0x10, 0); // (the pre-beta: the level's own tiles, the mapping has the palette)
         return;
 
     case 2:
