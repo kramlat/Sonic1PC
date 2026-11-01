@@ -16,6 +16,7 @@
 #include "Object/DustSplash.h"
 #include "Object/EHZBadniks.h"
 #include "Object/CPZBoss.h"
+#include "Object/SFZObjects.h"
 #include "Object/EHZBoss.h"
 #include "Object/EHZWaterfall.h"
 #include "Object/HPZBadniks.h"
@@ -298,6 +299,8 @@ const SstCode sst_object_codes[0x100] = {
 	[0xA9] = Obj_GrabberHead,
 	[0xAA] = Obj_GrabberStrand,
 	[0xAB] = Obj_GrabberUnused,
+	[0xBA] = Obj_SFZConveyorWheels,
+	[0xD9] = Obj_SFZHang,
 	[ObjId_FalseFloor] = Obj_NGHZRotator,
 	[ObjId_SwingingPlatform] = Obj_SwingDispatch,
 	[ObjId_Jaws] = Obj_NGHZLeaves,

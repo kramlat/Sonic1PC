@@ -345,6 +345,64 @@ static void CPZObjects_TheBossHasOneShipWhateverItDoes(void) {
     }
 }
 
+// Sky Fortress's hang place ($D9) and conveyor wheels ($BA)
+static void SFZObjects_AHangPlaceHoldsWhoIsInItAndAJumpLetsGoWithAThrow(void) {
+    Reset();
+    player->code = NULL;
+    Sst *hang = Spawn(0xD9, 0, 500, 300);
+    player->x_pos.f.u = 510;
+    player->y_pos.f.u = 305;
+    player->routine = 2;
+    player->x_vel = 0x200;
+    Frames(1);
+    CHECK_EQ(OBJ_CONTROL(player), 1);
+    CHECK_EQ(player->x_vel, 0);
+    CHECK_EQ(player->y_pos.f.u, 300); // (at the bar's height)
+    CHECK_EQ(player->anim, 0x14);
+    Frames(30);
+    CHECK_EQ(OBJ_CONTROL(player), 1); // (he stays)
+    jpad1_press2 = JPAD_C;
+    jpad1_hold2 = JPAD_RIGHT;
+    Frames(1);
+    jpad1_press2 = jpad1_hold2 = 0;
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+    CHECK_EQ(player->y_vel, (int16_t)0xFD00);
+    Frames(0x30); // (a direction held with the jump: $3C frames before he can take hold again)
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+    Frames(0x20);
+    CHECK_EQ(OBJ_CONTROL(player), 1);
+    (void)hang;
+}
+
+static void SFZObjects_AHangPlaceLeavesWhoIsOutsideItAlone(void) {
+    Reset();
+    player->code = NULL;
+    Spawn(0xD9, 0, 500, 300);
+    player->routine = 2;
+    player->x_pos.f.u = 500 + 0x40; // (beside it)
+    player->y_pos.f.u = 305;
+    Frames(3);
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+    player->x_pos.f.u = 500;
+    player->y_pos.f.u = 290; // (above it)
+    Frames(3);
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+    player->y_pos.f.u = 305;
+    player->routine = 6; // (hurt)
+    Frames(3);
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+}
+
+static void SFZObjects_TheConveyorWheelsStay(void) {
+    Reset();
+    Sst *wheels = Spawn(0xBA, 0, 500, 300);
+    Frames(1);
+    CHECK_EQ(wheels->width_pixels, 0x10);
+    CHECK_EQ(wheels->collision_flags, 0);
+    Frames(20);
+    CHECK_EQ(wheels->x_pos.f.u, 500);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -360,4 +418,7 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_FourChangesOfSideInThirtyTwoFramesFreeWhoIsHeld);
     RUN_TEST(CPZObjects_HoldingOneSideDoesNotFreeWhoIsHeld);
     RUN_TEST(CPZObjects_TheBossHasOneShipWhateverItDoes);
+    RUN_TEST(SFZObjects_AHangPlaceHoldsWhoIsInItAndAJumpLetsGoWithAThrow);
+    RUN_TEST(SFZObjects_AHangPlaceLeavesWhoIsOutsideItAlone);
+    RUN_TEST(SFZObjects_TheConveyorWheelsStay);
 }
