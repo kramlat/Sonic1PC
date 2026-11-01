@@ -63,7 +63,7 @@ static const Pending pending[] = {
     { ZoneId_HTZ, 0, { 0 } },
     { ZoneId_HPZ, 0, { 0 } },
     { ZoneId_CPZ, 0, { 0 } },
-    { ZoneId_SFZ, 1, { 0xC1 } }, // (Sky Fortress's own objects: not ported yet)
+    { ZoneId_SFZ, 0, { 0 } }, // (Sky Fortress's own objects: not ported yet)
     { ZoneId_ARZ, 0, { 0 } },
     { ZoneId_MCZ, 0, { 0 } }, // (Dust Hill)
     { ZoneId_OOZ, 0, { 0 } }, // (Oil Ocean)

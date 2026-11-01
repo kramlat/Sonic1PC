@@ -311,6 +311,7 @@ const SstCode sst_object_codes[0x100] = {
 	[0xB7] = Obj_SFZLargeLaser,
 	[0xB8] = Obj_SFZCannon,
 	[0xB9] = Obj_SFZLaser,
+	[0xC1] = Obj_SFZBreakableWall,
 	[0xC2] = Obj_SFZBossSwitch,
 	[0xC4] = Obj_SFZTornadoSmoke,
 	[0xD9] = Obj_SFZHang,

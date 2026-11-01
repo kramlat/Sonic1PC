@@ -24,9 +24,13 @@
 #include "Resource/Animation/SFZPlatformHelix.h"
 #include "Resource/Mappings/SFZHorizontalHelix.h"
 #include "Resource/Mappings/SFZCannon.h"
+#include "Resource/Mappings/SFZBreakableWall.h"
+#include "Resource/Animation/SFZBreakableWall.h"
 #include "Resource/Animation/SFZCannonShot.h"
 #include "Resource/Animation/SFZCluckerShot.h"
 #include "Object/Coconuts.h"
+#include "Sound.h"
+#include "SoundIds.h"
 #include "Resource/Mappings/SFZPlatformHelix.h"
 #include "Resource/Mappings/SFZLargeLaser.h"
 #include "Oscillatory Routines.h"
@@ -1098,5 +1102,129 @@ void Obj_SFZCannon(Sst *self) {
         SstOnScreenTest(self);
         return;
     }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $C1, the breakable wall (Obj_0xC1_SFz_Breakable_Wall): Object_Settings' entry $80 (its mappings, art at $48C, render 4, priority 4, width $40, collision $E1: the special kind that counts the touches). Its time (var_04)
+// is the subtype times $3C frames. Touched on its left, by a character who is to its right of $14 before it, he is put there ($14 off, facing left, still, in the hang pose and held) and the wall is held (var_06). While it is
+// held Up and Down move him by one a frame between $18 above its middle and $18 below; when its time is out, or he jumps, he is let go and it breaks into four pieces (sound $CB), each of which waits a time of its own and goes
+// left with $400, falling a little more each frame
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype;  // 0x28
+    uint8_t pad0[3];
+    int16_t time;     // 0x2C (var_04)
+    uint8_t held;     // 0x2E (var_06)
+    uint8_t wait;     // 0x3F (var_13): a piece's wait
+} Own_SFZWall;
+
+enum { WallRoutine_Init = 0, WallRoutine_Hold = 2, WallRoutine_Piece = 4 };
+
+static void Wall_Break(Sst *self) {
+    static const int16_t offsets[4][2] = { { -0x10, -0x10 }, { -0x10, 0x10 }, { -0x30, -0x10 }, { -0x30, 0x10 } };
+    static const uint8_t waits[4] = { 0x00, 0x04, 0x18, 0x20 };
+    const int16_t x = self->x_pos.f.u, y = self->y_pos.f.u;
+    for (int i = 0; i < 4; i++) {
+        Sst *piece = i == 0 ? self : Sst_AllocateAfter(self);
+        if (piece == NULL)
+            break;
+        piece->code = Obj_SFZBreakableWall;
+        piece->routine = WallRoutine_Piece;
+        piece->mappings = Mappings_SFZBreakableWall;
+        piece->art_tile = self->art_tile;
+        piece->render_flags = (uint8_t)(SST_RENDER_LEVEL | SST_RENDER_ON_SCREEN); // ($84: it counts as seen until it is drawn)
+        piece->x_pos.f.u = (int16_t)(x + offsets[i][0]);
+        piece->y_pos.f.u = (int16_t)(y + offsets[i][1]);
+        piece->priority = (uint16_t)(3 * 0x80);
+        piece->width_pixels = 0x10;
+        piece->mapping_frame = 1;
+        piece->x_vel = (int16_t)0xFC00;
+        piece->y_vel = 0;
+        piece->collision_flags = 0;
+        ((Own_SFZWall *)piece->own.u8)->wait = waits[i];
+    }
+    PlaySound(sfx_WallSmash);
+}
+
+void Obj_SFZBreakableWall(Sst *self) {
+    Own_SFZWall *own = (Own_SFZWall *)self->own.u8;
+    switch (self->routine) {
+    case WallRoutine_Init:
+        self->mappings = Mappings_SFZBreakableWall;
+        self->art_tile = TILE_MAP(1, 3, 0, 0, 0x48C);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x40;
+        self->collision_flags = 0xE1;
+        own->time = (int16_t)(self->subtype * 0x3C);
+        self->routine += 2;
+        // Fallthrough
+    case WallRoutine_Hold:
+        if (!own->held) {
+            if (self->collision_property != 0) {
+                const int16_t edge = (int16_t)(self->x_pos.f.u - 0x14);
+                if ((uint16_t)edge < (uint16_t)player->x_pos.f.u) {
+                    self->collision_property = 0;
+                    if (player->routine < 4) {
+                        player->x_vel = 0;
+                        player->y_vel = 0;
+                        player->x_pos.f.u = edge;
+                        player->status |= SST_PSTATUS_X_FLIP;
+                        player->anim = 0x11;
+                        OBJ_CONTROL(player) = 1;
+                        own->held = 1;
+                    }
+                }
+            }
+            SstOnScreenTest(self);
+            return;
+        }
+        {
+            bool let_go = false;
+            if (own->time != 0 && --own->time == 0) {
+                let_go = true;
+            } else {
+                int16_t top = (int16_t)(self->y_pos.f.u - 0x18);
+                if (jpad1_hold2 & JPAD_UP) {
+                    player->y_pos.f.u--;
+                    if ((uint16_t)top >= (uint16_t)player->y_pos.f.u)
+                        player->y_pos.f.u = top;
+                }
+                const int16_t bottom = (int16_t)(top + 0x30);
+                if (jpad1_hold2 & JPAD_DOWN) {
+                    player->y_pos.f.u++;
+                    if ((uint16_t)bottom < (uint16_t)player->y_pos.f.u)
+                        player->y_pos.f.u = bottom;
+                }
+                if (jpad1_press2 & (JPAD_A | JPAD_B | JPAD_C))
+                    let_go = true;
+            }
+            if (!let_go) {
+                SstOnScreenTest(self);
+                return;
+            }
+        }
+        self->collision_flags = 0;
+        OBJ_CONTROL(player) = 0;
+        own->held = 0;
+        Wall_Break(self);
+        // Fallthrough
+    case WallRoutine_Piece:
+        if (self->routine != WallRoutine_Piece)
+            self->routine = WallRoutine_Piece;
+        if (own->wait != 0) {
+            own->wait--;
+        } else {
+            Sst_MoveSprite2(self);
+            self->y_vel = (int16_t)(self->y_vel + 8);
+            Sst_Animate(self, Animation_SFZBreakableWall);
+        }
+        if (!(self->render_flags & SST_RENDER_ON_SCREEN)) { // (gone when it has left the picture)
+            Sst_Delete(self);
+            return;
+        }
+        Sst_Draw(self);
+        return;
     }
 }

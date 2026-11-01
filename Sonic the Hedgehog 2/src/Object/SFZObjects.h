@@ -54,6 +54,10 @@ const uint8_t *SFZ_CluckerMappings(void);
 const uint8_t *SFZ_CannonShotAnimation(void);
 const uint8_t *SFZ_CluckerShotAnimation(void);
 
+// $C1: the breakable wall (a character who touches its side grabs on and hangs there, Up and Down take him a little way along it; after the subtype times a second he lets go, or at once with a jump, and
+// the wall breaks into four pieces)
+void Obj_SFZBreakableWall(Sst *self);
+
 // (PaletteCycle.c: which of the zone's two sets of cycle colours is on)
 extern uint8_t sfz_cycle_second;
 

@@ -663,6 +663,50 @@ static void SFZObjects_TheCannonDoesNotFireAtWhoIsAboveItOrFarOff(void) {
     CHECK_EQ(cannon->routine, 2);
 }
 
+static void SFZObjects_TheBreakableWallHoldsWhoTouchesItAndBreaksIntoFourPieces(void) {
+    Reset();
+    player->code = NULL;
+    Sst *wall = Spawn(0xC1, 2, 500, 300); // (two seconds)
+    Frames(1);
+    CHECK_EQ(wall->collision_flags, 0xE1);
+    player->routine = 2;
+    player->x_pos.f.u = 500 - 0x10; // (right of the grab place, which is $14 before the wall)
+    player->y_pos.f.u = 300;
+    wall->collision_property = 1; // (what a touch of Sonic's makes it)
+    Frames(1);
+    CHECK_EQ(OBJ_CONTROL(player), 1);
+    CHECK_EQ(player->x_pos.f.u, 500 - 0x14);
+    CHECK_EQ(player->anim, 0x11);
+    jpad1_hold2 = JPAD_UP;
+    Frames(5);
+    CHECK_EQ(player->y_pos.f.u, 295);
+    jpad1_hold2 = 0;
+    jpad1_press2 = JPAD_A; // (a jump lets go, and the wall breaks)
+    Frames(1);
+    jpad1_press2 = 0;
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+    int pieces = 0;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_SFZBreakableWall && sst[i].routine == 4)
+            pieces++;
+    CHECK_EQ(pieces, 4);
+}
+
+static void SFZObjects_TheBreakableWallLetsGoWhenItsTimeIsOut(void) {
+    Reset();
+    player->code = NULL;
+    Sst *wall = Spawn(0xC1, 1, 500, 300); // (one second: $3C frames)
+    Frames(1);
+    player->routine = 2;
+    player->x_pos.f.u = 500 - 0x10;
+    player->y_pos.f.u = 300;
+    wall->collision_property = 1;
+    Frames(1);
+    CHECK_EQ(OBJ_CONTROL(player), 1);
+    Frames(0x3C);
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -692,6 +736,8 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SFZObjects_TheLargeLaserFlickersForThirtyTwoFramesAndGoes);
     RUN_TEST(SFZObjects_TheCannonTurnsToWhoIsBelowItAndFiresEverySixtyFourFrames);
     RUN_TEST(SFZObjects_TheCannonDoesNotFireAtWhoIsAboveItOrFarOff);
+    RUN_TEST(SFZObjects_TheBreakableWallHoldsWhoTouchesItAndBreaksIntoFourPieces);
+    RUN_TEST(SFZObjects_TheBreakableWallLetsGoWhenItsTimeIsOut);
     RUN_TEST(SFZObjects_TheLaserWaitsToBeSeenThenCrossesLeftAndGoes);
     RUN_TEST(SFZObjects_TheBossSwitchIsDestroyedByARollingLandingAndChangesTheLayout);
 }
