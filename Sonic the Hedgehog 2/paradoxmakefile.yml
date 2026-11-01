@@ -674,6 +674,7 @@ mappings_SonicTheHedgehog2:
   - "Mappings/SFZConveyorWheels"
   - "Mappings/SFZTornado"
   - "Mappings/SFZClucker"
+  - "Mappings/SFZElevator"
   - "Mappings/CPZBlock"
   - "Mappings/CPZInvisibleBlock"
   - "Mappings/CPZSlider"

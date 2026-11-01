@@ -449,6 +449,49 @@ static void SFZObjects_TheCluckerPlatformIsSolidAndStays(void) {
     CHECK(player->status & SST_PSTATUS_OBJECT_STAND);
 }
 
+static Sst *FindElevator(void) {
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_SFZElevator && sst[i].routine == 4)
+            return &sst[i];
+    return NULL;
+}
+
+static void SFZObjects_AnElevatorMakerMakesAnElevatorThatOpensCarriesAndGoes(void) {
+    Reset();
+    player->code = NULL;
+    Spawn(0xBD, 0x76, 500, 300);
+    Frames(3);
+    Sst *lift = FindElevator();
+    CHECK(lift != NULL);
+    if (lift == NULL)
+        return;
+    CHECK_EQ(lift->y_pos.f.u, 300); // (it opens first: it does not move)
+    Frames(20);
+    CHECK(lift->y_pos.f.u < 300); // (then it goes up, one a frame)
+    const int16_t y = lift->y_pos.f.u;
+    Frames(10);
+    CHECK_EQ(lift->y_pos.f.u, y - 10);
+    Frames(0xC8);
+    CHECK(lift->code != Obj_SFZElevator || lift->routine_secondary >= 6); // (it closes and goes)
+    Frames(20);
+    int lifts = 0;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_SFZElevator && sst[i].routine == 4)
+            lifts++;
+    CHECK(lifts >= 1 && lifts <= 5); // (a new one every $40 frames, each gone after about $E0)
+}
+
+static void SFZObjects_AnElevatorOfSubtype78GoesDown(void) {
+    Reset();
+    player->code = NULL;
+    Spawn(0xBD, 0x78, 500, 300);
+    Frames(40);
+    Sst *lift = FindElevator();
+    CHECK(lift != NULL);
+    if (lift != NULL)
+        CHECK(lift->y_pos.f.u > 300);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -469,4 +512,6 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SFZObjects_TheConveyorWheelsStay);
     RUN_TEST(SFZObjects_ThePaletteSwitchSetsTheCycleByTheSideACharacterCrossesFrom);
     RUN_TEST(SFZObjects_TheCluckerPlatformIsSolidAndStays);
+    RUN_TEST(SFZObjects_AnElevatorMakerMakesAnElevatorThatOpensCarriesAndGoes);
+    RUN_TEST(SFZObjects_AnElevatorOfSubtype78GoesDown);
 }

@@ -28,6 +28,9 @@ void Obj_SFZPaletteSwitch(Sst *self);
 // $AD: a platform of the Clucker's own picture (its frame $C), solid, that stays
 void Obj_SFZCluckerPlatform(Sst *self);
 
+// $BD: a maker of elevators (invisible; subtype $76 sends them up, $78 down): one every $40 frames comes out of it, opens, carries what stands on it for 200 frames at a speed of one a frame, and closes and goes
+void Obj_SFZElevator(Sst *self);
+
 // (PaletteCycle.c: which of the zone's two sets of cycle colours is on)
 extern uint8_t sfz_cycle_second;
 

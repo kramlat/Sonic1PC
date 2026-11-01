@@ -14,6 +14,7 @@
 #include "Resource/Animation/SFZTornado.h"
 #include "Resource/Mappings/SFZConveyorWheels.h"
 #include "Resource/Mappings/SFZClucker.h"
+#include "Resource/Mappings/SFZElevator.h"
 #include "Resource/Mappings/SFZTornado.h"
 #include "Object/Explosion.h"
 #include "MathUtil.h"
@@ -455,6 +456,100 @@ void Obj_SFZCluckerPlatform(Sst *self) {
         Sst *chr = who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
         if (chr != NULL)
             Solid_Character(self, chr, who, 0x1B, 8, 8, x, NULL);
+    }
+    SstOnScreenTest(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $BD, the elevators of Sky Fortress (Obj_0xBD_SFz_Elevators): the placed object (routine 0 and 2) makes one every $40 frames (the first at once); each opens (frames 2, 1, 0, four frames each), is a platform ($23 wide) for
+// $C8 frames moving by its subtype ($76 up, $78 down: $100 a frame), and closes (frames 0, 1, 2, two frames each) and goes
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype;  // 0x28
+    uint8_t pad0;
+    int16_t timer;    // 0x2A
+    uint8_t frame;    // 0x2C: where it is in the opening or closing
+    uint8_t beat;     // 0x2D: frames to the next one of them
+} Own_SFZElevator;
+
+enum { ElevatorRoutine_Init = 0, ElevatorRoutine_Maker = 2, ElevatorRoutine_Elevator = 4 };
+enum { ElevatorState_Init = 0, ElevatorState_Open = 2, ElevatorState_Carry = 4, ElevatorState_Close = 6, ElevatorState_Gone = 8 };
+
+// The animation of its scripts: `delay`+1 frames of each of the three, and then (the pre-beta's $FA) the next state
+static bool Elevator_Animate(Sst *self, Own_SFZElevator *own, bool opening) {
+    if ((int8_t)--own->beat >= 0)
+        return false;
+    own->beat = opening ? 3 : 1;
+    if (own->frame >= 3) {
+        self->routine_secondary += 2;
+        return true;
+    }
+    self->mapping_frame = opening ? (uint8_t)(2 - own->frame) : own->frame;
+    own->frame++;
+    return false;
+}
+
+void Obj_SFZElevator(Sst *self) {
+    Own_SFZElevator *own = (Own_SFZElevator *)self->own.u8;
+
+    switch (self->routine) {
+    case ElevatorRoutine_Init:
+        self->routine += 2;
+        own->timer = 1;
+        return;
+    case ElevatorRoutine_Maker:
+        if (--own->timer == 0) {
+            own->timer = 0x40;
+            Sst *lift = Sst_AllocateAfter(self);
+            if (lift != NULL) {
+                lift->code = Obj_SFZElevator;
+                lift->x_pos = self->x_pos;
+                lift->y_pos = self->y_pos;
+                lift->routine = ElevatorRoutine_Elevator;
+                lift->subtype = self->subtype;
+            }
+        }
+        SstDeleteIfNotInRange(self);
+        return;
+    }
+    switch (self->routine_secondary) {
+    case ElevatorState_Init:
+        self->mappings = Mappings_SFZElevator;
+        self->art_tile = TILE_MAP(1, 3, 0, 0, 0x416);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x18;
+        self->collision_flags = 0;
+        self->routine_secondary += 2;
+        own->timer = 0xC7;
+        self->y_vel = (self->subtype == 0x76) ? (int16_t)0xFF00 : 0x0100;
+        own->frame = 0;
+        own->beat = 0;
+        break;
+    case ElevatorState_Open:
+        Elevator_Animate(self, own, true);
+        break;
+    case ElevatorState_Carry:
+        if (--own->timer < 0) {
+            self->routine_secondary += 2;
+            own->frame = 0;
+            own->beat = 0;
+        } else {
+            const int16_t old_x = self->x_pos.f.u;
+            Sst_MoveSprite2(self);
+            for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+                Sst *chr = who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
+                if (chr != NULL)
+                    Solid_Platform(self, chr, who, 0x23, 5, old_x);
+            }
+        }
+        break;
+    case ElevatorState_Close:
+        Elevator_Animate(self, own, false);
+        break;
+    case ElevatorState_Gone:
+        Sst_Delete(self);
+        return;
     }
     SstOnScreenTest(self);
 }

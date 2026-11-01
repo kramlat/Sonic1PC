@@ -303,6 +303,7 @@ const SstCode sst_object_codes[0x100] = {
 	[0xAD] = Obj_SFZCluckerPlatform,
 	[0xB2] = Obj_SFZTornado,
 	[0xBA] = Obj_SFZConveyorWheels,
+	[0xBD] = Obj_SFZElevator,
 	[0xC4] = Obj_SFZTornadoSmoke,
 	[0xD9] = Obj_SFZHang,
 	[ObjId_FalseFloor] = Obj_NGHZRotator,
