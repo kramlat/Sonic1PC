@@ -31,6 +31,10 @@ void Obj_SFZCluckerPlatform(Sst *self);
 // $BD: a maker of elevators (invisible; subtype $76 sends them up, $78 down): one every $40 frames comes out of it, opens, carries what stands on it for 200 frames at a speed of one a frame, and closes and goes
 void Obj_SFZElevator(Sst *self);
 
+// $C0: the speed booster, a platform that throws what stands on it: it speeds up along its way (subtype times 16 pixels, to the left unless it is flipped), takes them along, and at the end throws them with
+// its speed and up at $400
+void Obj_SFZSpeedBooster(Sst *self);
+
 // (PaletteCycle.c: which of the zone's two sets of cycle colours is on)
 extern uint8_t sfz_cycle_second;
 

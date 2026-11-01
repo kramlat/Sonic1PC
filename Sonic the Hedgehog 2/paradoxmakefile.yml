@@ -675,6 +675,7 @@ mappings_SonicTheHedgehog2:
   - "Mappings/SFZTornado"
   - "Mappings/SFZClucker"
   - "Mappings/SFZElevator"
+  - "Mappings/SFZSpeedBooster"
   - "Mappings/CPZBlock"
   - "Mappings/CPZInvisibleBlock"
   - "Mappings/CPZSlider"

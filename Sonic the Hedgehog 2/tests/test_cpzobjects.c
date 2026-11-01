@@ -492,6 +492,31 @@ static void SFZObjects_AnElevatorOfSubtype78GoesDown(void) {
         CHECK(lift->y_pos.f.u > 300);
 }
 
+static void SFZObjects_TheSpeedBoosterCarriesWhoStandsOnItAndThrowsHim(void) {
+    Reset();
+    player->code = NULL;
+    Sst *booster = Spawn(0xC0, 4, 500, 300); // (it goes 64 pixels to the left)
+    Frames(1);
+    CHECK_EQ(booster->routine_secondary, 0);
+    booster->status |= 0x08; // (he stands on it)
+    player->routine = 2;
+    player->x_pos.f.u = 500;
+    player->y_pos.f.u = 300 - 0x11 - 0x13;
+    Frames(2);
+    CHECK_EQ(booster->routine_secondary, 2);
+    CHECK_EQ(player->x_vel, 0);
+    CHECK(player->status & SST_PSTATUS_X_FLIP); // (he faces the way it goes: left)
+    int frames = 0;
+    while (booster->routine_secondary == 2 && frames++ < 200) {
+        booster->status |= 0x08;
+        Frames(1);
+    }
+    CHECK_EQ(booster->routine_secondary, 4);
+    CHECK_EQ(booster->x_pos.f.u, 500 - 64);
+    CHECK_EQ(player->y_vel, (int16_t)0xFC00); // (thrown up, with its speed)
+    CHECK(player->x_vel < 0);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -514,4 +539,5 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SFZObjects_TheCluckerPlatformIsSolidAndStays);
     RUN_TEST(SFZObjects_AnElevatorMakerMakesAnElevatorThatOpensCarriesAndGoes);
     RUN_TEST(SFZObjects_AnElevatorOfSubtype78GoesDown);
+    RUN_TEST(SFZObjects_TheSpeedBoosterCarriesWhoStandsOnItAndThrowsHim);
 }

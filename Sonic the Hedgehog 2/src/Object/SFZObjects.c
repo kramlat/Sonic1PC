@@ -15,6 +15,7 @@
 #include "Resource/Mappings/SFZConveyorWheels.h"
 #include "Resource/Mappings/SFZClucker.h"
 #include "Resource/Mappings/SFZElevator.h"
+#include "Resource/Mappings/SFZSpeedBooster.h"
 #include "Resource/Mappings/SFZTornado.h"
 #include "Object/Explosion.h"
 #include "MathUtil.h"
@@ -550,6 +551,92 @@ void Obj_SFZElevator(Sst *self) {
     case ElevatorState_Gone:
         Sst_Delete(self);
         return;
+    }
+    SstOnScreenTest(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $C0, the speed booster (Obj_0xC0_Speed_Booster): Object_Settings' entry $7E (its mappings, art at $464, render 4, priority 4, width $10) and a platform ($10 wide, $11 high). The place it goes to (var_06) is its
+// own, a number of 16 pixels (the subtype) to the left, or to the right if flipped
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype;  // 0x28
+    uint8_t pad0[5];
+    int16_t accel;    // 0x2C (var_04): $80 a frame, as it goes
+    int16_t target;   // 0x2E (var_06)
+} Own_SFZBooster;
+
+enum { BoosterState_Wait = 0, BoosterState_Go = 2, BoosterState_Done = 4 };
+
+// Whoever is on the platform is put on its middle with no speed of his own, facing the way it goes
+static void Booster_Attach(Sst *self, Sst *chr) {
+    chr->ground_vel = 0;
+    chr->x_vel = 0;
+    chr->x_pos.f.u = self->x_pos.f.u;
+    chr->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+    if (!(self->status & SST_STATUS_X_FLIP))
+        chr->status |= SST_PSTATUS_X_FLIP;
+}
+
+static void Booster_Throw(Sst *self, Sst *chr) {
+    chr->x_vel = self->x_vel;
+    chr->y_vel = (int16_t)0xFC00;
+    chr->status |= SST_PSTATUS_IN_AIR;
+}
+
+static void Booster_Riders(Sst *self, void (*each)(Sst *, Sst *)) {
+    if ((self->status & 0x08) != 0)
+        each(self, player);
+    if ((self->status & 0x10) != 0 && TAILS_OBJ->code != NULL)
+        each(self, TAILS_OBJ);
+}
+
+void Obj_SFZSpeedBooster(Sst *self) {
+    Own_SFZBooster *own = (Own_SFZBooster *)self->own.u8;
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_SFZSpeedBooster;
+        self->art_tile = TILE_MAP(1, 1, 0, 0, 0x464);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x10;
+        self->collision_flags = 0;
+        int16_t reach = (int16_t)(self->subtype << 4);
+        if (!(self->status & SST_STATUS_X_FLIP))
+            reach = (int16_t)-reach;
+        own->target = (int16_t)(reach + self->x_pos.f.u);
+    }
+    switch (self->routine_secondary) {
+    case BoosterState_Wait:
+        if ((self->status & 0x18) != 0) {
+            self->routine_secondary += 2;
+            self->x_vel = 0x0C00;
+            own->accel = 0x80;
+            if (!(self->status & SST_STATUS_X_FLIP)) {
+                self->x_vel = (int16_t)-self->x_vel;
+                own->accel = (int16_t)-own->accel;
+                Sst_MoveSprite2(self);
+            }
+            Booster_Riders(self, Booster_Attach);
+        }
+        break;
+    case BoosterState_Go:
+        self->x_vel = (int16_t)(self->x_vel + own->accel);
+        Sst_MoveSprite2(self);
+        if ((uint16_t)own->target > (uint16_t)self->x_pos.f.u) { // it is there
+            self->routine_secondary += 2;
+            self->x_pos.f.u = own->target;
+            Booster_Riders(self, Booster_Throw);
+        } else {
+            Booster_Riders(self, Booster_Attach);
+        }
+        break;
+    }
+    const int16_t x = self->x_pos.f.u;
+    for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+        Sst *chr = who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
+        if (chr != NULL)
+            Solid_Platform(self, chr, who, 0x10, 0x11, x);
     }
     SstOnScreenTest(self);
 }
