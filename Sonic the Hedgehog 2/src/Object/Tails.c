@@ -2167,7 +2167,7 @@ static bool Tails_SpinDash(Sst *self) {
 
 // The tails (object 05): follows Tails, turning with his animation. His own art window, and the animation of the tails for each of Tails' animations (the alpha's table at $0124CA; a Tails who pushes
 // has the tails of animation 4).
-static const uint8_t TailsTails_Animations[34] = {
+static const uint8_t TailsTails_Animations[0x2A] = {
     0, 0, 3, 3, 9, 1, 0, 2, 1, 7, 0, 0, 0, 8, 0, 0,
     0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 #if TAILS_FLIGHT_ART
