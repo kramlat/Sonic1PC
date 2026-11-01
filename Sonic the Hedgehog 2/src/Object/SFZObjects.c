@@ -13,6 +13,7 @@
 
 #include "Resource/Animation/SFZTornado.h"
 #include "Resource/Mappings/SFZConveyorWheels.h"
+#include "Resource/Mappings/SFZClucker.h"
 #include "Resource/Mappings/SFZTornado.h"
 #include "Object/Explosion.h"
 #include "MathUtil.h"
@@ -382,4 +383,78 @@ void Obj_SFZTornadoSmoke(Sst *self) {
         }
     }
     Sst_Draw(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $8B, the switch of the palette cycle (Obj_0x8B_Palette_Cycling_Switch)
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype;  // 0x28
+    uint8_t pad0[5];
+    int16_t reach;    // 0x2E (var_06)
+    uint8_t right[2]; // 0x30 (var_08 and var_09): the character is to the right of the line
+} Own_SFZSwitch;
+
+static void PaletteSwitch_Character(Sst *self, Own_SFZSwitch *own, int who, const Sst *chr) {
+    const int16_t line = self->x_pos.f.u;
+    const bool flipped = (self->render_flags & SST_RENDER_X_FLIP) != 0;
+    if (!own->right[who]) {
+        if ((uint16_t)line > (uint16_t)chr->x_pos.f.u)
+            return; // (still on the left)
+        own->right[who] = 1;
+        if ((uint16_t)chr->y_pos.f.u < (uint16_t)(self->y_pos.f.u - own->reach) || (uint16_t)chr->y_pos.f.u >= (uint16_t)(self->y_pos.f.u + own->reach))
+            return;
+        sfz_cycle_second = flipped ? 0 : 1;
+    } else {
+        if ((uint16_t)line <= (uint16_t)chr->x_pos.f.u)
+            return; // (still on the right)
+        own->right[who] = 0;
+        if ((uint16_t)chr->y_pos.f.u < (uint16_t)(self->y_pos.f.u - own->reach) || (uint16_t)chr->y_pos.f.u >= (uint16_t)(self->y_pos.f.u + own->reach))
+            return;
+        sfz_cycle_second = flipped ? 1 : 0;
+    }
+}
+
+void Obj_SFZPaletteSwitch(Sst *self) {
+    static const int16_t reaches[4] = { 0x20, 0x40, 0x80, 0x100 };
+    Own_SFZSwitch *own = (Own_SFZSwitch *)self->own.u8;
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x10;
+        self->priority = 5 * 0x80;
+        own->reach = reaches[self->subtype & 3];
+        own->right[0] = (uint16_t)self->x_pos.f.u < (uint16_t)player->x_pos.f.u;
+        own->right[1] = TAILS_OBJ->code != NULL && (uint16_t)self->x_pos.f.u < (uint16_t)TAILS_OBJ->x_pos.f.u;
+    }
+    if (!debug_use) {
+        PaletteSwitch_Character(self, own, 0, player);
+        if (TAILS_OBJ->code != NULL)
+            PaletteSwitch_Character(self, own, 1, TAILS_OBJ);
+    }
+    SstDeleteIfNotInRange(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $AD, the Clucker's platform (Obj_0xAD_Clucker_Platform): Object_Settings' entry (the Clucker's mappings, art at $379, render 4, priority 4, width $18), frame $C, and solid ($1B wide, 8 and 8 high)
+// ---------------------------------------------------------------------------------------------------------------------------------------
+void Obj_SFZCluckerPlatform(Sst *self) {
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZClucker;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, 0x379);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x18;
+        self->collision_flags = 0;
+        self->mapping_frame = 0x0C;
+        self->routine += 2;
+        return;
+    }
+    const int16_t x = self->x_pos.f.u;
+    for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+        Sst *chr = who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
+        if (chr != NULL)
+            Solid_Character(self, chr, who, 0x1B, 8, 8, x, NULL);
+    }
+    SstOnScreenTest(self);
 }

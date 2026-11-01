@@ -8,6 +8,7 @@
 #include "Object/CPZBadniks.h"
 #include "Object/CPZObjects.h"
 #include "Object/CPZBoss.h"
+#include "Object/SFZObjects.h"
 #include "Object/Coconuts.h"
 #include "Object/Sonic.h"
 #include "Object/CharControl.h"
@@ -403,6 +404,51 @@ static void SFZObjects_TheConveyorWheelsStay(void) {
     CHECK_EQ(wheels->x_pos.f.u, 500);
 }
 
+static void SFZObjects_ThePaletteSwitchSetsTheCycleByTheSideACharacterCrossesFrom(void) {
+    Reset();
+    player->code = NULL;
+    Sst *sw = Spawn(0x8B, 1, 500, 300); // (it reaches $40 up and down)
+    player->x_pos.f.u = 480;
+    player->y_pos.f.u = 300;
+    sfz_cycle_second = 0;
+    Frames(2);
+    CHECK_EQ(sfz_cycle_second, 0);
+    player->x_pos.f.u = 510; // across, from the left: the second set
+    Frames(1);
+    CHECK_EQ(sfz_cycle_second, 1);
+    player->x_pos.f.u = 490; // and back: the first
+    Frames(1);
+    CHECK_EQ(sfz_cycle_second, 0);
+    player->y_pos.f.u = 300 + 0x50; // out of its reach: it does nothing
+    player->x_pos.f.u = 510;
+    Frames(1);
+    CHECK_EQ(sfz_cycle_second, 0);
+    sw->render_flags |= SST_RENDER_X_FLIP; // (flipped, it is the other way)
+    player->y_pos.f.u = 300;
+    player->x_pos.f.u = 490;
+    Frames(1);
+    player->x_pos.f.u = 510;
+    Frames(1);
+    CHECK_EQ(sfz_cycle_second, 0);
+}
+
+static void SFZObjects_TheCluckerPlatformIsSolidAndStays(void) {
+    Reset();
+    player->code = NULL;
+    Sst *platform = Spawn(0xAD, 0, 500, 300);
+    Frames(1);
+    CHECK_EQ(platform->mapping_frame, 0x0C);
+    player->routine = 2;
+    player->x_pos.f.u = 500;
+    player->y_radius = 0x13;
+    player->x_radius = 9;
+    player->y_pos.f.u = 300 - 8 - 0x13 + 2; // (landing on its top)
+    player->y_vel = 0x100;
+    player->status |= SST_PSTATUS_IN_AIR;
+    Frames(4);
+    CHECK(player->status & SST_PSTATUS_OBJECT_STAND);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -421,4 +467,6 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SFZObjects_AHangPlaceHoldsWhoIsInItAndAJumpLetsGoWithAThrow);
     RUN_TEST(SFZObjects_AHangPlaceLeavesWhoIsOutsideItAlone);
     RUN_TEST(SFZObjects_TheConveyorWheelsStay);
+    RUN_TEST(SFZObjects_ThePaletteSwitchSetsTheCycleByTheSideACharacterCrossesFrom);
+    RUN_TEST(SFZObjects_TheCluckerPlatformIsSolidAndStays);
 }

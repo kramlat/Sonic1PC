@@ -21,4 +21,14 @@ void Obj_SFZTornadoSmoke(Sst *self);
 // How fast Sky Chase's level scrolls by itself (the pre-beta's $FFFFF736 and $FFFFF738: its dynamic events set them; the Tornado keeps up with it). They are 0 in a zone that does not scroll
 extern int16_t tornado_scroll_x, tornado_scroll_y;
 
+// $8B: the switch of the palette cycle (invisible; the first of the zone's cycles is on, or the second, as a character crosses its line from one side and back from the other: the object's X flip says which). Its subtype's
+// low two bits are how far it reaches up and down from it: $20, $40, $80 or $100. It is seen only in debug mode in the pre-beta (a picture of the path swapper's): not here
+void Obj_SFZPaletteSwitch(Sst *self);
+
+// $AD: a platform of the Clucker's own picture (its frame $C), solid, that stays
+void Obj_SFZCluckerPlatform(Sst *self);
+
+// (PaletteCycle.c: which of the zone's two sets of cycle colours is on)
+extern uint8_t sfz_cycle_second;
+
 #endif //_SFZOBJECTS_H
