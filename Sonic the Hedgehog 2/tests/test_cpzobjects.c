@@ -517,6 +517,60 @@ static void SFZObjects_TheSpeedBoosterCarriesWhoStandsOnItAndThrowsHim(void) {
     CHECK(player->x_vel < 0);
 }
 
+static void SFZObjects_TheVerticalHelixHurtsAndTurns(void) {
+    Reset();
+    Sst *helix = Spawn(0xB4, 0, 500, 300);
+    Frames(1);
+    CHECK_EQ(helix->collision_flags, 0xA8);
+    uint8_t seen = 0;
+    for (int i = 0; i < 12; i++) {
+        Frames(1);
+        seen |= (uint8_t)(1 << helix->mapping_frame);
+    }
+    CHECK_EQ(seen, 7); // (its three frames)
+}
+
+static void SFZObjects_TheLaserWaitsToBeSeenThenCrossesLeftAndGoes(void) {
+    Reset();
+    scrpos_x.f.u = 400;
+    Sst *laser = Spawn(0xB9, 0, 500, 300);
+    Frames(1);
+    laser->render_flags &= (uint8_t)~SST_RENDER_ON_SCREEN;
+    Frames(3);
+    CHECK_EQ(laser->x_pos.f.u, 500); // (nobody has seen it)
+    laser->render_flags |= SST_RENDER_ON_SCREEN;
+    Frames(1);
+    Frames(2);
+    CHECK(laser->x_pos.f.u < 500 - 16); // (16 a frame)
+    for (int i = 0; i < 40 && laser->code != NULL; i++)
+        Frames(1);
+    CHECK(laser->code == NULL); // (gone past the edge of the picture)
+}
+
+static void SFZObjects_TheBossSwitchIsDestroyedByARollingLandingAndChangesTheLayout(void) {
+    Reset();
+    player->code = NULL;
+    Sst *sw = Spawn(0xC2, 0, 500, 300);
+    Frames(1);
+    player->routine = 2;
+    player->y_radius = 0x13;
+    player->x_radius = 9;
+    player->x_pos.f.u = 500;
+    player->y_pos.f.u = 300 - 8 - 0x13 + 2;
+    player->y_vel = 0x100;
+    player->anim = 0; // (not rolling: it stays)
+    player->status |= SST_PSTATUS_IN_AIR;
+    Frames(3);
+    CHECK(sw->code == Obj_SFZBossSwitch);
+    player->anim = 2; // (rolling)
+    player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+    player->status |= SST_PSTATUS_IN_AIR;
+    player->y_pos.f.u = 300 - 8 - 0x13 + 2;
+    player->y_vel = 0x100;
+    Frames(4);
+    CHECK(sw->code != Obj_SFZBossSwitch);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -540,4 +594,7 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SFZObjects_AnElevatorMakerMakesAnElevatorThatOpensCarriesAndGoes);
     RUN_TEST(SFZObjects_AnElevatorOfSubtype78GoesDown);
     RUN_TEST(SFZObjects_TheSpeedBoosterCarriesWhoStandsOnItAndThrowsHim);
+    RUN_TEST(SFZObjects_TheVerticalHelixHurtsAndTurns);
+    RUN_TEST(SFZObjects_TheLaserWaitsToBeSeenThenCrossesLeftAndGoes);
+    RUN_TEST(SFZObjects_TheBossSwitchIsDestroyedByARollingLandingAndChangesTheLayout);
 }

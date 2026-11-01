@@ -35,6 +35,12 @@ void Obj_SFZElevator(Sst *self);
 // its speed and up at $400
 void Obj_SFZSpeedBooster(Sst *self);
 
+// $B4: a vertical helix (a spiked screw that turns: it hurts), $B9: the laser that comes from the fortress at the start (it waits until it is on the screen, and then crosses it to the left at 16 a frame),
+// $C2: the switch that opens the way into the boss's plane (a character who lands on it rolling destroys it and opens the way: some chunks of the level's layout are put over)
+void Obj_SFZVerticalHelix(Sst *self);
+void Obj_SFZLaser(Sst *self);
+void Obj_SFZBossSwitch(Sst *self);
+
 // (PaletteCycle.c: which of the zone's two sets of cycle colours is on)
 extern uint8_t sfz_cycle_second;
 

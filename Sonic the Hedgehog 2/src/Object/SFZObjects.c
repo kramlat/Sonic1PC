@@ -16,6 +16,11 @@
 #include "Resource/Mappings/SFZClucker.h"
 #include "Resource/Mappings/SFZElevator.h"
 #include "Resource/Mappings/SFZSpeedBooster.h"
+#include "Resource/Mappings/SFZVerticalHelix.h"
+#include "Resource/Mappings/SFZLaser.h"
+#include "Resource/Mappings/SFZBossSwitch.h"
+#include "Resource/Animation/SFZVerticalHelix.h"
+#include "LevelData.h"
 #include "Resource/Mappings/SFZTornado.h"
 #include "Object/Explosion.h"
 #include "MathUtil.h"
@@ -639,4 +644,94 @@ void Obj_SFZSpeedBooster(Sst *self) {
             Solid_Platform(self, chr, who, 0x10, 0x11, x);
     }
     SstOnScreenTest(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $B4, the vertical helix (Obj_0xB4_Vertical_Helix): Object_Settings' entry (its mappings, art at $561, render 4, priority 4, width 4, collision $A8: it hurts) and its three frames turning
+// ---------------------------------------------------------------------------------------------------------------------------------------
+void Obj_SFZVerticalHelix(Sst *self) {
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZVerticalHelix;
+        self->art_tile = TILE_MAP(1, 1, 0, 0, 0x561);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 4;
+        self->collision_flags = 0xA8;
+        self->routine += 2;
+        return;
+    }
+    Sst_Animate(self, Animation_SFZVerticalHelix);
+    SstOnScreenTest(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $B9, the laser (Obj_0xB9_Laser): Object_Settings' entry (its mappings, art at $3C3, render 4, priority 4, width $60); when it has been on the screen once it goes left at 16 a frame, and it is gone when it is $40
+// behind the screen's left edge
+// ---------------------------------------------------------------------------------------------------------------------------------------
+void Obj_SFZLaser(Sst *self) {
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZLaser;
+        self->art_tile = TILE_MAP(1, 2, 0, 0, 0x3C3);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x60;
+        self->collision_flags = 0;
+        self->routine += 2;
+        return;
+    }
+    if (self->routine == 2) {
+        if (self->render_flags & SST_RENDER_ON_SCREEN) {
+            self->routine += 2;
+            self->x_vel = (int16_t)0xF000;
+        }
+    } else {
+        Sst_MoveSprite2(self);
+    }
+    if ((int16_t)self->x_pos.f.u < (int16_t)(scrpos_x.f.u - 0x40)) {
+        Sst_Delete(self);
+        return;
+    }
+    Sst_Draw(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $C2, the switch that lets Sonic into the boss's plane (Obj_0xC2_SFz_Boss_Access_Switch): Object_Settings' entry (its mappings, art at $469, render 4, priority 4, width $10) and solid ($1B wide, 8 and 9 high).
+// Landed on rolling it is the explosion, Sonic is in the air again, and the chunks of the level (the second row of the fortress's plane: row 8 and 9, from the $50th chunk) are put over
+// ---------------------------------------------------------------------------------------------------------------------------------------
+void Obj_SFZBossSwitch(Sst *self) {
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZBossSwitch;
+        self->art_tile = TILE_MAP(1, 1, 0, 0, 0x469);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x10;
+        self->collision_flags = 0;
+        self->routine += 2;
+        return;
+    }
+    const uint8_t rolling = player->anim;
+    const int16_t x = self->x_pos.f.u;
+    for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+        Sst *chr = who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
+        if (chr != NULL)
+            Solid_Character(self, chr, who, 0x1B, 8, 9, x, NULL);
+    }
+    if (!(self->status & 0x08)) {
+        SstOnScreenTest(self);
+        return;
+    }
+    self->status &= (uint8_t)~0x08;
+    if (rolling != 2) {
+        SstOnScreenTest(self);
+        return;
+    }
+    self->code = Obj_Explosion;
+    self->routine = 2;
+    player->status |= SST_PSTATUS_IN_AIR;
+    player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+    static const uint8_t above[6] = { 0x8A, 0x70, 0x71, 0x72, 0x73, 0x74 }, below[6] = { 0x6E, 0x78, 0x79, 0x78, 0x78, 0x7A };
+    for (int i = 0; i < 6; i++) {
+        LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 0x50 + i, 8, above[i]);
+        LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 0x50 + i, 9, below[i]);
+    }
 }
