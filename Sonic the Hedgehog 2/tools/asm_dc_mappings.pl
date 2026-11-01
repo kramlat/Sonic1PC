@@ -12,7 +12,7 @@ close $f;
 s/;.*// for @lines;
 my (%body, $current);
 for (@lines) {
-    if (/^(\w+):\s*$/) { $current = $1; $body{$current} = []; next }
+    if (/^(\w+):?\s*$/) { $current = $1; $body{$current} = []; next }
     push @{ $body{$current} }, $_ if defined $current;
 }
 my @names = map { /^\s*dc\.w\s+(\w+)-\Q$table\E\s*$/ ? $1 : () } @{ $body{$table} // die "no table $table in $src\n" };

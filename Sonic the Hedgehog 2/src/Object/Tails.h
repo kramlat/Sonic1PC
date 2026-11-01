@@ -8,6 +8,7 @@
 #define TAILS_SLOT 0x1C // Tails' fixed object slot (the sidekick)
 
 // Tails, for the code that has to treat him like Sonic (the solid objects touch both)
+void Tails_LoadPilotFrame(uint8_t frame);
 #define TAILS_OBJ SST_PLAYER_2 // Tails: the second character (Player_2)
 // What Sonic.c records for each frame beside his position (track_sonic): his pad, held and pressed, and his status; Tails' CPU follows them
 extern uint8_t sonic_rec_hold[0x40], sonic_rec_press[0x40], sonic_rec_status[0x40];

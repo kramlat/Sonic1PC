@@ -212,6 +212,12 @@ static void Tails_LoadDPLC(uint8_t frame, uint8_t *last, uint16_t tile) {
     }
 }
 
+// The pilot's frame of Sky Fortress's Tornado (Load_Miles_Dynamic_PLC_D0 with the frame): his tiles to where his art is
+void Tails_LoadPilotFrame(uint8_t frame) {
+    static uint8_t last = 0xFF;
+    Tails_LoadDPLC(frame, &last, ArtTile_Tails);
+}
+
 static void Tails_LoadGfx(Sst *self) {
     Tails_LoadDPLC(self->mapping_frame, &last_frame_tails, ArtTile_Tails);
 }
@@ -2360,13 +2366,17 @@ void Game_LevelObjects(void) {
         AddPLC(PlcId_Main);
     Sst *tails = SST_PLAYER_2;
     memset(tails, 0, sizeof(*tails));
-    tails->code = Obj_Tails;
-    tails->x_pos.f.u = player->x_pos.f.u - 0x20;
-    tails->y_pos.f.u = player->y_pos.f.u;
     memset(SST_TAILS_TAILS, 0, sizeof(Sst));
+    // Where the Tornado is (Sky Fortress's start, and Sky Chase) Tails is its pilot, drawn by it: there is no second character
+    if (LEVEL_ZONE(level_id) != ZoneId_SFZ && LEVEL_ZONE(level_id) != ZoneId_SCZ) {
+        tails->code = Obj_Tails;
+        tails->x_pos.f.u = player->x_pos.f.u - 0x20;
+        tails->y_pos.f.u = player->y_pos.f.u;
+    }
     if (LEVEL_ZONE(level_id) == ZoneId_OOZ)
         Sst_Spawn(7, 0, 0); // (the oil, where Hidden Palace and the others have a water surface: Oil Ocean has no water)
-    DustSplash_MakeTails(); // (the alpha's dust and splash for Tails)
+    if (tails->code != NULL)
+        DustSplash_MakeTails(); // (the alpha's dust and splash for Tails)
     SplitScreen_LoadLevel(); // (a level picked with B in the level select is a two-player one: Tails is its second player)
 }
 

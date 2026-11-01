@@ -21,6 +21,10 @@ static void Explosion_Animal(Sst *self) {
         animal->own.u16[0xB] = self->own.u16[0xB];
 }
 
+const uint8_t *Explosion_Mappings(void) {
+    return Mappings_Explosion;
+}
+
 static void Explosion_Construct(Sst *self, const uint8_t *mappings, uint8_t sound) {
     // Set object drawing information
     self->mappings = mappings;
