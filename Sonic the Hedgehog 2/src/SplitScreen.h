@@ -16,6 +16,7 @@ void SplitScreen_LoadLevel(void);
 
 // Is the level a split screen now?
 bool SplitScreen_Active(void);
+bool SplitScreen_SideBySide(void); // the split screen is on and its views are next to each other (a wide picture): each is half as wide as the picture
 
 // How far from the view's left edge the first camera keeps Sonic (144 in the original's whole picture)
 int16_t SplitScreen_FollowX(void);

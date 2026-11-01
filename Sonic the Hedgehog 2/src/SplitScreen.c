@@ -34,6 +34,10 @@ bool SplitScreen_Active(void) {
     return camera_split;
 }
 
+bool SplitScreen_SideBySide(void) {
+    return camera_split && side_by_side;
+}
+
 int16_t SplitScreen_FollowX(void) {
     return (camera_split && side_by_side) ? follow_x : 144;
 }

@@ -1,3 +1,4 @@
+#include "SplitScreen.h"
 #include "Backend/MegaDrive.h"
 
 #include "Console.h"
@@ -61,6 +62,8 @@ static void ParseCommandLine(int argc, char *argv[]) {
 			act = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--no-debug"))
 			cli_no_debug = true;
+		else if (!strcmp(argv[i], "--split"))
+			two_player_mode = 1; // (the level starts in the split screen: for looking at it)
 		else if (!strcmp(argv[i], "--resolution") && i + 1 < argc)
 			cli_resolution = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--ending") && i + 1 < argc)

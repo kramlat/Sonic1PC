@@ -16,6 +16,9 @@
 #include "Nemesis.h"
 #include "Backend/VDP.h"
 #include "ScrollEngine.h"
+#include "SplitScreen.h"
+#include <string.h>
+#include "Mappings.h"
 #include "Resource/Mappings/GotThrough.h"
 #include "Resource/Mappings/SpecialResult.h"
 
@@ -287,6 +290,110 @@ static void TitleCard_LoadArt(uint8_t name) {
         VDP_WriteVRAM(alphabet + l[0] * TILE_SIZE, (size_t)l[1] * TILE_SIZE);
 }
 
+// The card in the split screen, side by side: each view is half as wide as the picture and the card is drawn in both (an object that is not in the level is at the same place in each view), so it has
+// to fit and sit in the middle of each. Its art is squeezed to half its width (the pieces of every element are made again from the unscaled ones: a letter is two cells wide, so it becomes one; where two
+// pixels meet the brighter one stays, the white of the letter before its outline) and the elements are put so that the name, and ZONE with the number after it, are centred in the view.
+#define TC_SCALED_TILES 0x600 // where the squeezed pieces' tiles go
+static uint8_t titlecard_scaled_map[3][4 + 24 * SPRITE_PIECE_SIZE_S3];
+
+static bool TitleCard_SplitWanted(void) {
+    return SplitScreen_SideBySide();
+}
+
+// One element's pieces squeezed: its mapping in titlecard_scaled_map[index] and its extent (the pieces' leftmost and rightmost pixel); `next_tile` is where the next piece's tiles go
+static void TitleCard_Squeeze(int index, uint8_t frame, unsigned *next_tile, int *left, int *right) {
+    const uint8_t *pieces;
+    const uint16_t count = Mappings_FramePieces(Mappings_TitleCardNames, frame, &pieces);
+    uint8_t *map = titlecard_scaled_map[index];
+    map[0] = 0;
+    map[1] = 2;
+    map[2] = 0;
+    map[3] = (uint8_t)count;
+    uint8_t *out = map + 4;
+    const uint8_t *vram = VDP_PeekVRAM();
+    *left = 0x7FFF;
+    *right = -0x7FFF;
+    for (unsigned p = 0; p < count && p < 24; p++, pieces += SPRITE_PIECE_SIZE_S3, out += SPRITE_PIECE_SIZE_S3) {
+        const uint8_t size = Mappings_PieceSize(pieces);
+        const int wc = ((size >> 2) & 3) + 1, hc = (size & 3) + 1, wc2 = (wc + 1) / 2;
+        const unsigned tile = Mappings_PieceTile(pieces) & 0x7FF;
+        // the source, a pixel at a time (the cells go down a column and then across), and the squeezed cells
+        static uint8_t cells[16 * TILE_SIZE];
+        memset(cells, 0, sizeof(cells));
+        int first = 8 * wc2, last = -1;
+        for (int y = 0; y < hc * 8; y++) {
+            for (int dx = 0; dx < wc2 * 8; dx++) {
+                uint8_t best = 0;
+                for (int k = 0; k < 2; k++) {
+                    const int sx = dx * 2 + k;
+                    if (sx >= wc * 8)
+                        continue;
+                    const uint8_t *row = vram + (size_t)(tile + (size_t)(sx >> 3) * hc + (size_t)(y >> 3)) * TILE_SIZE + (size_t)(y & 7) * 4;
+                    const uint8_t b = row[(sx & 7) >> 1];
+                    const uint8_t px = (sx & 1) ? (b & 0xF) : (b >> 4);
+                    if (px > best)
+                        best = px;
+                }
+                if (best) {
+                    if (dx < first) first = dx;
+                    if (dx > last) last = dx;
+                }
+                uint8_t *dst = cells + (size_t)((dx >> 3) * hc + (y >> 3)) * TILE_SIZE + (size_t)(y & 7) * 4 + (size_t)((dx & 7) >> 1);
+                *dst = (dx & 1) ? (uint8_t)((*dst & 0xF0) | best) : (uint8_t)((*dst & 0x0F) | (best << 4));
+            }
+        }
+        VDP_SeekVRAM(ART_VRAM(*next_tile));
+        VDP_WriteVRAM(cells, (size_t)wc2 * hc * TILE_SIZE);
+        const int x = (Mappings_PieceXS3(pieces) >> 1);
+        out[0] = pieces[0];
+        out[1] = (uint8_t)(((wc2 - 1) << 2) | (hc - 1));
+        out[2] = (uint8_t)(*next_tile >> 8);
+        out[3] = (uint8_t)*next_tile;
+        out[4] = (uint8_t)((uint16_t)x >> 8);
+        out[5] = (uint8_t)x;
+        *next_tile += (unsigned)(wc2 * hc);
+        if (last >= first) {
+            if (x + first < *left) *left = x + first;
+            if (x + last + 1 > *right) *right = x + last + 1;
+        }
+    }
+    if (*left > *right)
+        *left = *right = 0;
+}
+
+// Makes the card fit the views: all three elements, once the split screen is on (the card is made before it is: the level is loaded under it)
+static void TitleCard_FitSplit(void) {
+    Sst *e[3] = { TitleCard_Element(0), TitleCard_Element(1), TitleCard_Element(2) };
+    if (e[0] == NULL || e[0]->routine_secondary)
+        return;
+    const int view_w = SCREEN_WIDTH / 2;
+    const int centre = 128 + view_w / 2; // (an object's x counts from 128 to the view's left edge)
+    unsigned next_tile = TC_SCALED_TILES;
+    int left[3] = { 0, 0, 0 }, right[3] = { 0, 0, 0 };
+    for (int i = 0; i < 3; i++)
+        if (e[i] != NULL)
+            TitleCard_Squeeze(i, e[i]->status_secondary, &next_tile, &left[i], &right[i]);
+    // where each stands when it has arrived: the name in the middle; ZONE and the number after it as one, in the middle
+    int target[3];
+    target[0] = centre - (left[0] + right[0]) / 2;
+    const int zone_w = right[1] - left[1], number_w = e[2] != NULL ? right[2] - left[2] : 0, gap = e[2] != NULL ? 6 : 0;
+    const int start = centre - (zone_w + gap + number_w) / 2;
+    target[1] = start - left[1];
+    target[2] = start + zone_w + gap - left[2];
+    for (int i = 0; i < 3; i++) {
+        if (e[i] == NULL)
+            continue;
+        Own_TitleCard *own = (Own_TitleCard *)e[i]->own.u8;
+        const int dx = target[i] - own->main_x;       // (the element keeps how far it still has to go, and how far out it starts and goes)
+        e[i]->x_pos.f.u = (int16_t)(e[i]->x_pos.f.u + dx);
+        own->final_x = (int16_t)(own->final_x + dx);
+        own->main_x = (int16_t)target[i];
+        e[i]->mappings = titlecard_scaled_map[i];
+        e[i]->mapping_frame = 0;
+        e[i]->routine_secondary = 1;
+    }
+}
+
 // Title card object
 void Obj_TitleCard(Sst *self) {
     Own_TitleCard *own = (Own_TitleCard *)self->own.u8;
@@ -324,6 +431,8 @@ void Obj_TitleCard(Sst *self) {
             a1->y_pos.f.u = card[i].y;
             a1->routine = 2;
             a1->mapping_frame = card[i].frame;
+            a1->status_secondary = card[i].frame; // (the unscaled frame, for the split screen)
+            a1->routine_secondary = 0;
             a1->mappings = Mappings_TitleCardNames;
             a1->art_tile = TILE_MAP(1, 0, 0, 0, 0); // (priority; the pieces hold their tiles: $580 on)
             a1->width_pixels = 0x60;
@@ -334,6 +443,8 @@ void Obj_TitleCard(Sst *self) {
     }
         // Fallthrough
     case 2: // Moving to on-screen position, 16 pixels a frame
+        if (TitleCard_SplitWanted())
+            TitleCard_FitSplit();
         if (!titlecard_art_loaded) {
             if (plc_buffer[0].art != NULL)
                 break; // (the queue is still being drained: nothing of the card shows yet)
@@ -349,6 +460,8 @@ void Obj_TitleCard(Sst *self) {
         break;
     case 4: // Waits, then moves off-screen, 32 pixels a frame
     case 6:
+        if (TitleCard_SplitWanted())
+            TitleCard_FitSplit();
         if (self->anim_frame_timer) {
             self->anim_frame_timer--;
             Sst_Draw(self);
