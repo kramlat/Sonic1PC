@@ -327,6 +327,8 @@ static const uint16_t title_demos[] = {
 // Title
 #include "Resource/Art/TitleFG.h"
 #include "Resource/Art/TitleSonic.h"
+#include "Resource/Art/TitleMenu.h"
+#include "Object/TitleMenu.h"
 #include "Resource/Art/TitleTM.h"
 #include "Resource/Tilemap/TitleFG.h"
 
@@ -365,7 +367,7 @@ static void Tit_ChkLevSel(bool level_select_cheat) {
     if ((jpad1_hold1 & 0xFF) == (JPAD_A | JPAD_START)) {
         LevelSelect();
     } else {
-        two_player_mode = 0;
+        two_player_mode = TitleMenu_TwoPlayers(); // (the menu's choice: Up and Down turn it over, Start takes it)
         level_id = LEVEL_ID(ZoneId_ARZ, 0);
         PlayLevel(true);
     }
@@ -433,6 +435,8 @@ void GM_Title(void) {
     NemDec(S2Title_Art);
     VDP_SeekVRAM(0x4000);
     NemDec(S2Title_SonicTails);
+    VDP_SeekVRAM(0x5E00); // (tile $2F0: the menu, 1 PLAYER and 2 PLAYER VS)
+    NemDec(Art_TitleMenu);
     VDP_SeekVRAM(0xA200);
     NemDec(Art_TitleTM);
 
@@ -476,6 +480,7 @@ void GM_Title(void) {
     Sst *tails = Sst_Spawn(ObjId_TitleSonic, 0, 0);
     if (tails != NULL)
         tails->mapping_frame = 1;
+    Sst_SpawnCode(Obj_TitleMenu, 0, 0); // 1 PLAYER / 2 PLAYER VS (the pre-beta's object $0F)
     // (Sonic 1's "PRESS START BUTTON" object, its trademark sign and its sprite mask are not loaded: Sonic 2 disables the PSB object.)
 
     ExecuteObjects();

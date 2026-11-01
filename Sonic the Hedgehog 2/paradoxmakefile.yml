@@ -376,6 +376,7 @@ resources:
   # the pre-beta's title cards (tools/import_s2prebeta_titlecards.pl)
   - "Art/TitleCardZone"
   - "Art/TitleCardLetters"
+  - "Art/TitleMenu" # (the title screen's 1 PLAYER / 2 PLAYER VS, the pre-beta's 1p2pVs.nem)
   - "Art/BossEHZ"
   - "Art/BossEHZBlades"
   - "Mappings/BossEHZFlame"
@@ -534,6 +535,7 @@ sources:
   - "src/Demo.c"
   - "src/Object/TitleCard.c"
   - "src/TitleCardData.c"
+  - "src/Object/TitleMenu.c"
   - "src/Object/Signpost.c"
   - "src/Object/Platform.c"
   - "src/Object/EHZWaterfall.c"
@@ -589,6 +591,7 @@ sources:
 mappings_SonicTheHedgehog2:
   - "Mappings/Sonic"
   - "Mappings/TitleCardNames"
+  - "Mappings/TitleMenu"
   - "Mappings/Tails"
   - "Mappings/SuperSonicStars"
   - "Mappings/ShieldInvincibility"
@@ -740,6 +743,7 @@ assemble:
   - "Mappings/NAWaterSurface"
   - "Mappings/HTZSeesaw"
   - "Mappings/TitleCardNames" # (the pre-beta's title cards: tools/import_s2prebeta_titlecards.pl)
+  - "Mappings/TitleMenu"
 cmake: paradoxmake.cmake
 
 # Sonic 2's own music: the final game's 29 tracks (the alpha's sound test order; SMPS driver 2 sources, converted with asm2json, files named by the final game's names and ids: HPz_83 is the Mystic Cave 2P theme, OOz_88 the Casino Night 2P one), and the Simon Wai prototype's effects

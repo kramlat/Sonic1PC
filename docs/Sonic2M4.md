@@ -29,6 +29,7 @@ The special stage is saved for last in M4: it is the biggest payload.
 
 ## Done so far
 
+* The title screen's menu, 1 PLAYER / 2 PLAYER VS (the pre-beta's object $0F; `Object/TitleMenu.c`, art `Art/TitleMenu` = `1p2pVs.nem` at tile $2F0, `asm/Mappings/TitleMenu.asm`): Up and Down turn it over, Start takes the choice as `two_player_mode`.
 * The credits theme ($9E) and the effects $EA and $EB, from the final game (the pre-beta has them).
 * Zone slots: Cyber City $09, Sky Chase $10.
 * The title cards (object $34 of the pre-beta, `Object/TitleCard.c`, `tools/import_s2prebeta_titlecards.pl`): the pre-beta's names as they are (Emerald Hill's card says GREEN HILL: its first slot's name there), Wood, Sand Shower, Cyber City and Hidden Palace written from the same alphabet. The card brings its own art (`game_info.title_card_own_art`: no pattern load cue), loaded when the level's first lists are done; the zone's second list waits for the card to go (the water zones' bubbles are in the letters' tiles).
