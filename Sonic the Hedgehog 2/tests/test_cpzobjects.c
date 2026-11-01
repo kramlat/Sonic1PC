@@ -9,6 +9,8 @@
 #include "Object/CPZObjects.h"
 #include "Object/Coconuts.h"
 #include "Object/Sonic.h"
+#include "Object/CharControl.h"
+#include "Game.h"
 
 // Chemical Plant's objects: the one way barrier (2D), the speed booster (1B) and the staircase blocks (6B), as the prototype's routines have them.
 
@@ -169,15 +171,146 @@ static void CPZObjects_TheSpinyWalksToAndFroAndThrowsAShotWhenSonicIsNear(void) 
     }
 }
 
-static void CPZObjects_TheGrabberOnlyStays(void) {
+// The Grabber (A7, with the head A9, the claw A8 and the thread AA)
+static void Frames(int n) {
+    for (int i = 0; i < n; i++) {
+        Sst_ClearQueues();
+        Sst_Process(false);
+    }
+}
+
+static Sst *Part(Sst *body, SstCode code) {
+    for (int i = (int)(body - sst) + 1; i < SST_COUNT; i++)
+        if (sst[i].code == code)
+            return &sst[i];
+    return NULL;
+}
+
+static Sst *GrabberSetUp(void) {
     Reset();
-    Sst *grabber = Spawn(0xA7, 0x36, 300, 300);
-    Obj_Grabber(grabber);
+    player->code = NULL;
+    Sst *grabber = Spawn(0xA7, 0x36, 500, 300);
+    grabber->render_flags = 0; // (it goes to the left first)
+    Frames(1);
+    return grabber;
+}
+
+static void CPZObjects_TheGrabberGoesToAndFroAndMakesItsParts(void) {
+    Sst *grabber = GrabberSetUp();
     CHECK_EQ(grabber->collision_flags, 0x0B);
-    for (int i = 0; i < 20; i++)
-        Obj_Grabber(grabber);
-    CHECK_EQ(grabber->x_pos.f.u, 300);
-    CHECK_EQ(grabber->x_vel, 0);
+    CHECK(Part(grabber, Obj_GrabberClaw) != NULL);
+    CHECK(Part(grabber, Obj_GrabberHead) != NULL);
+    CHECK(Part(grabber, Obj_GrabberStrand) != NULL);
+    CHECK_EQ(grabber->x_vel, -0x40);
+    Frames(0x100);
+    CHECK(grabber->x_pos.f.u < 500 - 60);                // (a quarter of a pixel a frame, for 256 frames)
+    CHECK_EQ(grabber->x_vel, 0x40);                      // (then back)
+    CHECK(grabber->render_flags & SST_RENDER_X_FLIP);
+    CHECK_EQ(Part(grabber, Obj_GrabberClaw)->x_pos.f.u, grabber->x_pos.f.u);
+}
+
+static void CPZObjects_TheGrabberGoesDownAndUpWhenACharacterIsUnderIt(void) {
+    Sst *grabber = GrabberSetUp();
+    player->x_pos.f.u = 500;
+    player->y_pos.f.u = 340; // (below it, not more than $7F)
+    Frames(1);
+    CHECK_EQ(grabber->x_vel, 0); // (it waits...)
+    Frames(0x11);
+    CHECK_EQ(grabber->y_vel, 0x200); // (... $10 frames and goes)
+    Frames(0x1F);
+    CHECK_EQ(grabber->y_vel, 0x200);
+    Frames(2);
+    CHECK_EQ(grabber->y_vel, -0x200); // (half way, it turns)
+    player->x_pos.f.u = 0x1000; // (he goes: it does not go for him again)
+    Frames(0x20);
+    CHECK_EQ(grabber->y_pos.f.u, 300);
+    CHECK_EQ(grabber->x_vel, -0x40); // (and goes on)
+    CHECK_EQ(Part(grabber, Obj_GrabberClaw)->y_pos.f.u, 300 + 0x10);
+}
+
+static void CPZObjects_TheGrabberDoesNotGoForWhoIsBesideItOrAboveIt(void) {
+    Sst *grabber = GrabberSetUp();
+    player->x_pos.f.u = 500 + 0x50;
+    player->y_pos.f.u = 340;
+    Frames(5);
+    CHECK_EQ(grabber->x_vel, -0x40);
+    player->x_pos.f.u = 500;
+    player->y_pos.f.u = 250; // (above)
+    Frames(5);
+    CHECK_EQ(grabber->x_vel, -0x40);
+    player->y_pos.f.u = 300 + 0x90; // (too far below)
+    Frames(5);
+    CHECK_EQ(grabber->x_vel, -0x40);
+}
+
+// Takes the character with the claw on the way down
+static Sst *Seize(Sst *grabber) {
+    player->x_pos.f.u = 500;
+    player->y_pos.f.u = 340;
+    Frames(0x18);
+    Sst *claw = Part(grabber, Obj_GrabberClaw);
+    claw->collision_property = 1; // (what a touch of Sonic's makes it)
+    Frames(1);
+    return claw;
+}
+
+static void CPZObjects_TheClawTakesWhoTouchesItAndTheGrabberCarriesHimUp(void) {
+    Sst *grabber = GrabberSetUp();
+    Sst *claw = Seize(grabber);
+    CHECK_EQ(claw->collision_flags, 0);
+    Frames(1);
+    CHECK_EQ(OBJ_CONTROL(player), 0x81);
+    CHECK_EQ(grabber->mapping_frame, 1); // (the claw closed)
+    CHECK(grabber->y_vel < 0);
+    Frames(1);
+    CHECK_EQ(player->x_pos.f.u, claw->x_pos.f.u); // (he is where the claw is)
+    CHECK_EQ(player->y_pos.f.u, claw->y_pos.f.u);
+    Frames(0x40);
+    CHECK_EQ(grabber->y_vel, 0);
+    CHECK(grabber->y_pos.f.u <= 300);
+}
+
+static void CPZObjects_TheGrabberExplodesAndLetsGoAfterFlashing(void) {
+    Sst *grabber = GrabberSetUp();
+    Seize(grabber);
+    Frames(120);
+    CHECK(grabber->code == Obj_Grabber);
+    CHECK_EQ(OBJ_CONTROL(player), 0x81);
+    Frames(40);
+    CHECK(grabber->code != Obj_Grabber); // (it is an explosion)
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+    CHECK(player->status & SST_PSTATUS_IN_AIR);
+    Frames(1);
+    CHECK(Part(grabber, Obj_GrabberClaw) == NULL); // (the parts are gone with it)
+}
+
+static void CPZObjects_FourChangesOfSideInThirtyTwoFramesFreeWhoIsHeld(void) {
+    Sst *grabber = GrabberSetUp();
+    Seize(grabber);
+    Frames(2);
+    for (int i = 0; i < 40; i++) {
+        jpad1_hold2 = (i & 1) ? JPAD_LEFT : JPAD_RIGHT;
+        Frames(1);
+        if (OBJ_CONTROL(player) == 0)
+            break;
+    }
+    jpad1_hold2 = 0;
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+    CHECK(player->status & SST_PSTATUS_IN_AIR);
+    CHECK(grabber->code == Obj_Grabber); // (it goes on flashing, and explodes with nobody in it)
+    Frames(200);
+    CHECK(grabber->code != Obj_Grabber);
+}
+
+static void CPZObjects_HoldingOneSideDoesNotFreeWhoIsHeld(void) {
+    Sst *grabber = GrabberSetUp();
+    Seize(grabber);
+    Frames(2);
+    jpad1_hold2 = JPAD_LEFT;
+    Frames(60);
+    jpad1_hold2 = 0;
+    CHECK_EQ(OBJ_CONTROL(player), 0x81);
+    (void)grabber;
 }
 
 void RegisterCPZObjectTests(void) {
@@ -187,5 +320,11 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_ABoosterLeavesWhoIsInTheAirAlone);
     RUN_TEST(CPZObjects_ABlockFallsOnceItIsStoodOn);
     RUN_TEST(CPZObjects_TheSpinyWalksToAndFroAndThrowsAShotWhenSonicIsNear);
-    RUN_TEST(CPZObjects_TheGrabberOnlyStays);
+    RUN_TEST(CPZObjects_TheGrabberGoesToAndFroAndMakesItsParts);
+    RUN_TEST(CPZObjects_TheGrabberGoesDownAndUpWhenACharacterIsUnderIt);
+    RUN_TEST(CPZObjects_TheGrabberDoesNotGoForWhoIsBesideItOrAboveIt);
+    RUN_TEST(CPZObjects_TheClawTakesWhoTouchesItAndTheGrabberCarriesHimUp);
+    RUN_TEST(CPZObjects_TheGrabberExplodesAndLetsGoAfterFlashing);
+    RUN_TEST(CPZObjects_FourChangesOfSideInThirtyTwoFramesFreeWhoIsHeld);
+    RUN_TEST(CPZObjects_HoldingOneSideDoesNotFreeWhoIsHeld);
 }

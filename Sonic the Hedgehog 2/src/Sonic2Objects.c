@@ -77,6 +77,10 @@ void Obj_EnemyWeapon(Sst *self);
 void Obj_Flasher(Sst *self);
 void Obj_FloatingPlatform(Sst *self);
 void Obj_Grabber(Sst *self);
+void Obj_GrabberClaw(Sst *self);
+void Obj_GrabberHead(Sst *self);
+void Obj_GrabberStrand(Sst *self);
+void Obj_GrabberUnused(Sst *self);
 void Obj_Grounder(Sst *self);
 void Obj_GrounderRock(Sst *self);
 void Obj_GrounderWall(Sst *self);
@@ -288,10 +292,10 @@ const SstCode sst_object_codes[0x100] = {
 	[0xA5] = Obj_Spiny,
 	[0xA6] = Obj_SpinyVertical,
 	[0xA7] = Obj_Grabber,
-	[0xA8] = Obj_Grabber,
-	[0xA9] = Obj_Grabber,
-	[0xAA] = Obj_Grabber,
-	[0xAB] = Obj_Grabber,
+	[0xA8] = Obj_GrabberClaw,
+	[0xA9] = Obj_GrabberHead,
+	[0xAA] = Obj_GrabberStrand,
+	[0xAB] = Obj_GrabberUnused,
 	[ObjId_FalseFloor] = Obj_NGHZRotator,
 	[ObjId_SwingingPlatform] = Obj_SwingDispatch,
 	[ObjId_Jaws] = Obj_NGHZLeaves,
