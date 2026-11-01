@@ -183,6 +183,9 @@ static void AnimateScript(Sst *obj, const uint8_t *table, bool frame_flips) {
     case 0xFD: // another animation
         obj->anim = s[2 + d1];
         break;
+    case 0xFA: // the second routine counter on by 2 (Sonic 2's: the script that ends in it stays on it until the object changes the animation)
+        obj->routine_secondary = (uint8_t)(obj->routine_secondary + 2);
+        break;
     case 0xFC: // the routine counter on by 2
         obj->routine = (uint8_t)(obj->routine + 2);
         obj->anim_frame_timer = 0;

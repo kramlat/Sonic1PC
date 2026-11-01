@@ -571,6 +571,53 @@ static void SFZObjects_TheBossSwitchIsDestroyedByARollingLandingAndChangesTheLay
     CHECK(sw->code != Obj_SFZBossSwitch);
 }
 
+static void SFZObjects_TheHorizontalHelixCatchesWhoIsOverItWhileItSpinsAtFullSpeed(void) {
+    Reset();
+    player->code = NULL;
+    Sst *helix = Spawn(0xB5, 0x5E, 500, 300);
+    Frames(1);
+    CHECK_EQ(helix->routine, 2);
+    CHECK_EQ(helix->anim, 4); // (it starts at its full speed)
+    player->routine = 2;
+    player->x_pos.f.u = 500;
+    player->y_pos.f.u = 300 - 0x30;
+    Frames(1);
+    CHECK(player->status & SST_PSTATUS_IN_AIR);
+    CHECK_EQ(player->anim, 0x0F);
+    helix->anim = 5; // (slowing: it does not)
+    Scratch_Sonic *sc = (Scratch_Sonic *)player->own.u8;
+    sc->flip_angle = 0;
+    player->anim = 0;
+    Frames(1);
+    CHECK_EQ(player->anim, 0);
+}
+
+static void SFZObjects_APlatformHelixIsAPlatformThatFoldsAwayAndComesBack(void) {
+    Reset();
+    player->code = NULL;
+    Sst *helix = Spawn(0xB6, 0x62, 500, 300);
+    Frames(2);
+    CHECK_EQ(helix->routine, 2);
+    CHECK_EQ(helix->routine_secondary, 2); // (a platform for a while: under $80 frames)
+    Frames(0x90);
+    CHECK(helix->routine_secondary == 4 || helix->routine_secondary == 6 || helix->routine_secondary == 2); // (it folds: and back to a platform after $C0)
+    bool folded = false;
+    for (int i = 0; i < 0x200 && !folded; i++) {
+        Frames(1);
+        folded = helix->routine_secondary == 4;
+    }
+    CHECK(folded);
+}
+
+static void SFZObjects_TheLargeLaserFlickersForThirtyTwoFramesAndGoes(void) {
+    Reset();
+    Sst *laser = Spawn(0xB7, 0x6A, 500, 300);
+    Frames(1);
+    CHECK_EQ(laser->collision_flags, 0xA9);
+    Frames(40);
+    CHECK(laser->code == NULL);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -595,6 +642,9 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SFZObjects_AnElevatorOfSubtype78GoesDown);
     RUN_TEST(SFZObjects_TheSpeedBoosterCarriesWhoStandsOnItAndThrowsHim);
     RUN_TEST(SFZObjects_TheVerticalHelixHurtsAndTurns);
+    RUN_TEST(SFZObjects_TheHorizontalHelixCatchesWhoIsOverItWhileItSpinsAtFullSpeed);
+    RUN_TEST(SFZObjects_APlatformHelixIsAPlatformThatFoldsAwayAndComesBack);
+    RUN_TEST(SFZObjects_TheLargeLaserFlickersForThirtyTwoFramesAndGoes);
     RUN_TEST(SFZObjects_TheLaserWaitsToBeSeenThenCrossesLeftAndGoes);
     RUN_TEST(SFZObjects_TheBossSwitchIsDestroyedByARollingLandingAndChangesTheLayout);
 }

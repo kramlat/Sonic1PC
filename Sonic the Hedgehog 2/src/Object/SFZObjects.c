@@ -20,6 +20,12 @@
 #include "Resource/Mappings/SFZLaser.h"
 #include "Resource/Mappings/SFZBossSwitch.h"
 #include "Resource/Animation/SFZVerticalHelix.h"
+#include "Resource/Animation/SFZHorizontalHelix.h"
+#include "Resource/Animation/SFZPlatformHelix.h"
+#include "Resource/Mappings/SFZHorizontalHelix.h"
+#include "Resource/Mappings/SFZPlatformHelix.h"
+#include "Resource/Mappings/SFZLargeLaser.h"
+#include "Oscillatory Routines.h"
 #include "LevelData.h"
 #include "Resource/Mappings/SFZTornado.h"
 #include "Object/Explosion.h"
@@ -734,4 +740,283 @@ void Obj_SFZBossSwitch(Sst *self) {
         LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 0x50 + i, 8, above[i]);
         LevelLayout_SetChunk(LEVEL_LAYOUT_PLANE_FG, 0x50 + i, 9, below[i]);
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $B5, the horizontal helix (Obj_0xB5_Horizontal_Helix): Object_Settings' entry (its mappings, art at $3CD, render 4, priority 4, width $40); its time starts at a random one under $80, and from there it
+// spins at its full speed (animation 4) for $100 frames (until its time is out, and a character over it is caught) and slows (animation 5) for $100, and speeds up again (animation 0)
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype;  // 0x28
+    uint8_t pad0;
+    int16_t timer;    // 0x2A
+    int16_t start;    // 0x2C (var_00)
+} Own_SFZHelix;
+
+extern Oscillatory oscillatory;
+
+static void Helix_RandomWait(Sst *self, Own_SFZHelix *own) { // (Offset_0x0356C0)
+    own->timer = (int16_t)(RandomNumber() & 0x7F);
+    own->start = own->timer;
+    (void)self;
+}
+
+// A character over the helix at its full speed is put on it and thrown into a spin (Offset_0x0353C2)
+static void Helix_Catch(Sst *self, Sst *chr) {
+    if ((uint16_t)(chr->x_pos.f.u - self->x_pos.f.u + 0x40) >= 0x80)
+        return;
+    const uint16_t sum = (uint16_t)((uint8_t)(oscillatory.state[5][0] >> 8) + chr->y_pos.f.u + 0x60);
+    if (sum < (uint16_t)self->y_pos.f.u)
+        return;
+    int16_t d1 = (int16_t)(sum - (uint16_t)self->y_pos.f.u);
+    if ((uint16_t)d1 >= 0x90)
+        return;
+    d1 = (int16_t)(d1 - 0x60);
+    if (d1 >= 0) { // (no borrow: at or below $60 under it: the step is twice what is left of the $60)
+        d1 = (int16_t)~d1;
+        d1 = (int16_t)(d1 + d1);
+    }
+    d1 = (int16_t)(d1 + 0x60);
+    d1 = (int16_t)(-d1 >> 4);
+    chr->y_pos.f.u = (int16_t)(chr->y_pos.f.u + d1);
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->y_vel = 0;
+    chr->ground_vel = 1;
+    Scratch_Sonic *sc = (Scratch_Sonic *)chr->own.u8;
+    if (sc->flip_angle == 0) {
+        sc->flip_angle = 1;
+        chr->anim = 0x0F;
+        sc->flips_remaining = 0x7F;
+        sc->flip_speed = 8;
+    }
+}
+
+static void Helix_CatchAll(Sst *self) {
+    if (self->anim != 4)
+        return;
+    Helix_Catch(self, player);
+    if (TAILS_OBJ->code != NULL)
+        Helix_Catch(self, TAILS_OBJ);
+}
+
+void Obj_SFZHorizontalHelix(Sst *self) {
+    Own_SFZHelix *own = (Own_SFZHelix *)self->own.u8;
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZHorizontalHelix;
+        self->art_tile = TILE_MAP(1, 1, 0, 0, 0x3CD);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x40;
+        self->collision_flags = 0;
+        Helix_RandomWait(self, own);
+        self->anim = 4;
+        self->routine = (uint8_t)(self->subtype - 0x5C);
+        return;
+    }
+    if (self->routine == 2) {
+        if (self->routine_secondary == 0) {
+            Helix_CatchAll(self);
+            if (--own->timer < 0) {
+                self->routine_secondary += 2;
+                self->anim = 5;
+                own->timer = 0x100;
+            }
+        } else {
+            Helix_CatchAll(self);
+            if (--own->timer < 0) {
+                self->routine_secondary -= 2;
+                self->anim = 0;
+                own->timer = 0x100;
+            }
+        }
+    }
+    Sst_Animate(self, Animation_SFZHorizontalHelix);
+    SstOnScreenTest(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $B7, the large vertical laser (Obj_0xB7_Vertical_Large_Laser): Object_Settings' entry (its mappings, art at $39F, render 4, priority 4, width $18, collision $A9: it hurts); it is there $20 frames and shows every
+// other one
+// ---------------------------------------------------------------------------------------------------------------------------------------
+void Obj_SFZLargeLaser(Sst *self) {
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZLargeLaser;
+        self->art_tile = TILE_MAP(1, 2, 0, 0, 0x39F);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x18;
+        self->collision_flags = 0xA9;
+        self->routine += 2;
+        self->own.u8[0x2A - 0x28] = 0x20;
+        return;
+    }
+    if (--self->own.u8[0x2A - 0x28] == 0) {
+        Sst_Delete(self);
+        return;
+    }
+    self->own.u8[0x2B - 0x28] ^= 1;
+    if (self->own.u8[0x2B - 0x28] & 1)
+        SstOnScreenTest(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $B6, the helix with a platform (Obj_0xB6_Platform_Helix): Object_Settings' entry (its mappings, art at $393, render 4, priority 4, width $10), and four kinds by the subtype less $60: routine 2 a platform ($23
+// wide) that is there for a random time under $80 and then folds away (animations 0 to 2) and comes back after $C0 frames, 4 one that is a platform for $20 frames and then fires a laser ($B7), 6 one that folds away
+// when it is stood on, and 8 a small one ($F wide and $18 high) that is there for a random time. What is on it when it folds is let go
+// ---------------------------------------------------------------------------------------------------------------------------------------
+static void PlatformHelix_Solid(Sst *self, int16_t x_rad, int16_t y_air, int16_t y_walk) {
+    const int16_t x = self->x_pos.f.u;
+    for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) {
+        Sst *chr = who == SolidChar_Sonic ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL);
+        if (chr != NULL)
+            Solid_Character(self, chr, who, x_rad, y_air, y_walk, x, NULL);
+    }
+}
+
+static void PlatformHelix_Release(Sst *self) { // (Offset_0x035704)
+    if ((self->status & 0x18) == 0)
+        return;
+    if (self->status & 0x08) {
+        self->status &= (uint8_t)~0x08;
+        player->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+        player->status |= SST_PSTATUS_IN_AIR;
+    }
+    if (self->status & 0x10) {
+        self->status &= (uint8_t)~0x10;
+        if (TAILS_OBJ->code != NULL) {
+            TAILS_OBJ->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+            TAILS_OBJ->status |= SST_PSTATUS_IN_AIR;
+        }
+    }
+}
+
+static void PlatformHelix_Laser(Sst *self) { // (Offset_0x035740)
+    Sst *laser = Sst_AllocateAfter(self);
+    if (laser == NULL)
+        return;
+    laser->code = Obj_SFZLargeLaser;
+    laser->subtype = 0x6A;
+    laser->x_pos = self->x_pos;
+    laser->y_pos = self->y_pos;
+}
+
+void Obj_SFZPlatformHelix(Sst *self) {
+    Own_SFZHelix *own = (Own_SFZHelix *)self->own.u8;
+    if (self->routine == 0) {
+        self->mappings = Mappings_SFZPlatformHelix;
+        self->art_tile = TILE_MAP(1, 1, 0, 0, 0x393);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x10;
+        self->collision_flags = 0;
+        self->routine = (uint8_t)(self->subtype - 0x60);
+        return;
+    }
+    switch (self->routine) {
+    case 2:
+        switch (self->routine_secondary) {
+        case 0:
+            self->routine_secondary += 2;
+            Helix_RandomWait(self, own);
+            break;
+        case 2:
+            PlatformHelix_Solid(self, 0x23, 4, 4);
+            if (--own->timer < 0) {
+                self->routine_secondary += 2;
+                self->anim = 0;
+                PlatformHelix_Release(self);
+            }
+            break;
+        case 4:
+            Sst_Animate(self, Animation_SFZPlatformHelix);
+            break;
+        case 6:
+            self->routine_secondary = 2;
+            own->timer = 0xC0;
+            break;
+        }
+        break;
+    case 4:
+        switch (self->routine_secondary) {
+        case 0:
+            self->routine_secondary += 2;
+            Helix_RandomWait(self, own);
+            break;
+        case 2:
+            PlatformHelix_Solid(self, 0x23, 4, 4);
+            if (--own->timer < 0) {
+                self->routine_secondary += 2;
+                own->timer = 0x20;
+                self->anim = 3;
+                self->anim_frame = 0;
+                self->anim_frame_timer = 0;
+                PlatformHelix_Release(self);
+                PlatformHelix_Laser(self);
+            }
+            break;
+        case 4:
+            if ((int8_t)--own->timer < 0) {
+                self->routine_secondary = 2;
+                self->mapping_frame = 0;
+                own->timer = 0xC0;
+            } else {
+                Sst_Animate(self, Animation_SFZPlatformHelix);
+            }
+            break;
+        }
+        break;
+    case 6:
+        switch (self->routine_secondary) {
+        case 0:
+            PlatformHelix_Solid(self, 0x23, 4, 4);
+            if (self->status & 0x18) {
+                self->routine_secondary += 2;
+                own->timer = 0x10;
+            }
+            break;
+        case 2:
+            PlatformHelix_Solid(self, 0x23, 4, 4);
+            if (--own->timer < 0) {
+                self->routine_secondary += 2;
+                self->anim = 0;
+                self->status &= (uint8_t)~SST_STATUS_X_FLIP;
+                if ((uint16_t)self->x_pos.f.u >= (uint16_t)player->x_pos.f.u)
+                    self->status |= SST_STATUS_X_FLIP;
+                PlatformHelix_Release(self);
+            }
+            break;
+        case 4:
+            Sst_Animate(self, Animation_SFZPlatformHelix);
+            break;
+        case 6:
+            self->routine_secondary = 0;
+            break;
+        }
+        break;
+    case 8:
+        switch (self->routine_secondary) {
+        case 0:
+            self->routine_secondary += 2;
+            self->mapping_frame = 2;
+            Helix_RandomWait(self, own);
+            break;
+        case 2:
+            PlatformHelix_Solid(self, 0x0F, 0x18, 0x18);
+            if (--own->timer < 0) {
+                self->routine_secondary += 2;
+                self->anim = 4;
+                PlatformHelix_Release(self);
+            }
+            break;
+        case 4:
+            Sst_Animate(self, Animation_SFZPlatformHelix);
+            break;
+        case 6:
+            self->routine_secondary = 2;
+            own->timer = 0xC0;
+            break;
+        }
+        break;
+    }
+    SstOnScreenTest(self);
 }

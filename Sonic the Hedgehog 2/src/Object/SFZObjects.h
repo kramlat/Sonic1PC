@@ -41,6 +41,12 @@ void Obj_SFZVerticalHelix(Sst *self);
 void Obj_SFZLaser(Sst *self);
 void Obj_SFZBossSwitch(Sst *self);
 
+// $B5: the horizontal helix (a long spiral that turns up to speed and slows again, over and over: while it is at its full speed it takes a character who is over it and throws him spinning), $B6: the helix with a
+// platform (four kinds by subtype: a platform that folds away and comes back, one that does when it is stood on, one that fires a laser, and a small one), $B7: the laser that it fires (it flickers for $20 frames)
+void Obj_SFZHorizontalHelix(Sst *self);
+void Obj_SFZPlatformHelix(Sst *self);
+void Obj_SFZLargeLaser(Sst *self);
+
 // (PaletteCycle.c: which of the zone's two sets of cycle colours is on)
 extern uint8_t sfz_cycle_second;
 
