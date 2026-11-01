@@ -27,6 +27,10 @@ bool f_conveyrev = false;
 #include "Resource/S2Palette/GCZCycle2.h"
 #include "Resource/S2Palette/CPZCycle2.h"
 #include "Resource/S2Palette/CPZCycle3.h"
+#include "Resource/S2Palette/SFZCycle1.h"
+#include "Resource/S2Palette/SFZCycle2.h"
+#include "Resource/S2Palette/SFZCycle3.h"
+#include "Resource/S2Palette/SFZCycle4.h"
 #include "Resource/S2Palette/HPZCycle.h"
 #include "Resource/S2Palette/HPZCycleWet.h"
 #include "Resource/S2Palette/HTZCycle.h"
@@ -185,6 +189,37 @@ static void PCycle_CPZ(void) {
         frame2 = 0;
     dry_palette[2][15] = PCyc_Word(S2Palette_CPZCycle3 + frame3);
     frame3 = (uint16_t)((frame3 + 2) & 0x1E);
+}
+
+// Sky Fortress (PalCycle_SFz of the pre-beta, which Sky Chase shares): four cycles of line 3, each with its own timer: colours 7-10 (every 2 ticks, or every 6 when the zone's second set is on: its boss's, a switch of
+// the zone's events) from 4 frames of 8 bytes, colour 14 (every 4 ticks) from 34 words, colour 15 (every 6 ticks) from 12
+uint8_t sfz_cycle_second;
+static void PCycle_SFZ(void) {
+    static int16_t time1, time3, time4;
+    static uint16_t frame1, frame3, frame4;
+    if (--time1 < 0) {
+        time1 = sfz_cycle_second ? 5 : 1;
+        const uint8_t *from = (sfz_cycle_second ? S2Palette_SFZCycle2 : S2Palette_SFZCycle1) + frame1;
+        frame1 += 8;
+        if (frame1 >= 0x20)
+            frame1 = 0;
+        for (int i = 0; i < 4; i++)
+            dry_palette[2][7 + i] = PCyc_Word(from + i * 2);
+    }
+    if (--time3 < 0) {
+        time3 = 3;
+        dry_palette[2][14] = PCyc_Word(S2Palette_SFZCycle3 + frame3);
+        frame3 += 2;
+        if (frame3 >= 0x44)
+            frame3 = 0;
+    }
+    if (--time4 < 0) {
+        time4 = 5;
+        dry_palette[2][15] = PCyc_Word(S2Palette_SFZCycle4 + frame4);
+        frame4 += 2;
+        if (frame4 >= 0x18)
+            frame4 = 0;
+    }
 }
 
 // Hidden Palace (PalCycle_HPZ): every 5 ticks colours 9-12 of line 4, dry and underwater, from 4 frames of 8 bytes, stepping backwards
@@ -651,6 +686,9 @@ void PaletteCycle(void) {
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_CPZ:
         PCycle_CPZ();
+        break;
+    case ZoneId_SFZ:
+        PCycle_SFZ();
         break;
     case ZoneId_EHZ:
         PCycle_EHZ();

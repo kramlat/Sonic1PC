@@ -63,6 +63,7 @@ static const Pending pending[] = {
     { ZoneId_HTZ, 0, { 0 } },
     { ZoneId_HPZ, 0, { 0 } },
     { ZoneId_CPZ, 0, { 0 } },
+    { ZoneId_SFZ, 13, { 0x8B, 0xAD, 0xB2, 0xB4, 0xB5, 0xB6, 0xB8, 0xB9, 0xBA, 0xBD, 0xC0, 0xC1, 0xC2 } }, // (Sky Fortress's own objects, the Tornado ($B2) among them: not ported yet)
     { ZoneId_ARZ, 0, { 0 } },
     { ZoneId_MCZ, 0, { 0 } }, // (Dust Hill)
     { ZoneId_OOZ, 0, { 0 } }, // (Oil Ocean)
@@ -86,7 +87,6 @@ static void ObjectCoverage_BuiltZonesPortEveryObjectTheyPlace(void) {
                 if (!ported && !IsPending(p, id)) {
                     printf("\n    zone %d act %d places object %02X, which is not ported", p->zone, act, id);
                     CHECK(ported);
-                    break; // (one report for each zone and act is enough)
                 }
             }
         }
@@ -232,6 +232,8 @@ static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), mus_MzSwap); // Cyber City (it was in the alpha's Genocide City slot, $0E, and moved to $09) has the Metropolis theme with major and minor swapped (id $20), where the alpha has Chemical Plant's
         else if (zone == 14)
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), 0); // the empty slot Cyber City left
+        else if (zone == 6)
+            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), mus_WFZ); // Sky Fortress (the pre-beta's zone $06: its music list has $8F there; the alpha's slot has the Emerald Hill 2P theme)
         else
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), alpha_music_list[zone] - 0x80);
     }

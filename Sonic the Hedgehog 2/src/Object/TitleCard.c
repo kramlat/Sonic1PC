@@ -257,6 +257,7 @@ static uint8_t TitleCard_NameFrame(int zone) {
     case ZoneId_CPZ: return 6;
     case ZoneId_ARZ: return 7;  // Neo Green Hill
     case ZoneId_SCZ: return 8;
+    case ZoneId_SFZ: return 9;  // Sky Fortress
     case ZoneId_WZ: return 11;
     case ZoneId_SSZ: return 12;
     case ZoneId_GCZ: return 13;

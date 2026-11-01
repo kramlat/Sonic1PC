@@ -18,6 +18,8 @@ use File::Temp qw(tempdir);
 # the zones: where its files are in Data and how they are named
 my %zones = (
     CPZ => { dir => 'CPz', prefix => 'CPz', pal => 'CPz.pal', water => 'CPz_UW.pal', water_res => 'CPZWater' },
+    # Sky Fortress: one layout, one object list and one ring list for both acts (the pre-beta's labels for the second are the first's), and its files are named a little differently
+    SFZ => { dir => 'SFz', prefix => 'SFz', pal => 'SFz.pal', blocks => 'Blocks.Kos', chunks => 'Chunks.Kos', maps => ['SFz_Map.Kos', 'SFz_Map.Kos'], objects => ['Obj_Act.dat', 'Obj_Act.dat'], rings => ['Rng_Act.dat', 'Rng_Act.dat'] },
 );
 my $zone = shift or die "usage: $0 ZONE\n";
 my $z = $zones{$zone} or die "no zone $zone: ", join(', ', sort keys %zones), "\n";
@@ -63,8 +65,8 @@ sub sort_rings {
 }
 
 run($nem2kos, "$res/S2Art/$zone", "$src/Tiles.nem");
-kos("$res/S2Map16/$zone", unkos("$src/Blocks.kos"));
-spit("$res/S2Map128/$zone", slurp("$src/Chunks.kos"));
+kos("$res/S2Map16/$zone", unkos("$src/" . ($z->{blocks} // 'Blocks.kos')));
+spit("$res/S2Map128/$zone", slurp("$src/" . ($z->{chunks} // 'Chunks.kos')));
 kos("$res/S2Collision/${zone}1", slurp("$src/$z->{prefix}_Col1.dat"));
 kos("$res/S2Collision/${zone}2", slurp("$src/$z->{prefix}_Col2.dat"));
 run($solids2s3, "$res/S2Collision/$zone", "$res/S2Collision/${zone}1", "$res/S2Collision/${zone}2");
@@ -73,12 +75,12 @@ spit("$res/S2Palette/$zone", slurp("$src/$z->{pal}"));
 spit("$res/S2Palette/$z->{water_res}", slurp("$src/$z->{water}")) if $z->{water};
 
 for my $act (1, 2) {
-    my $blob = unkos("$src/$z->{prefix}_Map$act.Kos");
+    my $blob = unkos("$src/" . ($z->{maps} ? $z->{maps}[$act - 1] : "$z->{prefix}_Map$act.Kos"));
     die "act $act: the layout is not 16 rows\n" unless length $blob == 16 * 0x100;
     kos("$res/S2Layout/$zone$act", s3_layout($blob));
-    my $o = slurp("$src/Obj_Act$act.dat");
+    my $o = slurp("$src/" . ($z->{objects} ? $z->{objects}[$act - 1] : "Obj_Act$act.dat"));
     $o = substr($o, 0, rindex($o, pack('n', 0xFFFF))) if $o =~ /\xFF\xFF/;
     spit("$res/S2Objects/$zone$act", $o . pack('nnCC', 0xFFFF, 0, 0, 0));
-    spit("$res/S2Rings/$zone$act", sort_rings(slurp("$src/Rng_Act$act.dat")));
+    spit("$res/S2Rings/$zone$act", sort_rings(slurp("$src/" . ($z->{rings} ? $z->{rings}[$act - 1] : "Rng_Act$act.dat"))));
 }
 print "$zone (the pre-beta's) imported\n";

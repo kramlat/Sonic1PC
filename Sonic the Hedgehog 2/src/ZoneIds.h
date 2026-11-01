@@ -10,7 +10,7 @@ typedef enum {
 	ZoneId_SSZ = 0x03, // Sand Shower (the final game's data: see the importer)
 	ZoneId_MTZ = 0x04,
 	ZoneId_Empty05, // (the prototype's Metropolis third act: it is the third act of Metropolis' slot now)
-	ZoneId_Empty06,
+	ZoneId_SFZ = 0x06, // Sky Fortress (Wing Fortress: the pre-beta's data, see the importer); the slot Sonic 1's Marble Zone name pointed at, which points at the empty slot $0E now
 	ZoneId_HTZ = 0x07,
 	ZoneId_HPZ = 0x08,
 	ZoneId_GCZ = 0x09, // Cyber City (the final game's data: see the importer); it was the alpha's Genocide City slot, $0E, and moved to leave the slots after Neo Green Hill for the zones that are yet to be ported
@@ -28,7 +28,7 @@ typedef enum {
 	// zone that is built, or that code would take it for a Sonic 1 zone: Sky Chase and Cyber City had them before they moved)
 	ZoneId_GHZ = ZoneId_Empty01,
 	ZoneId_LZ = ZoneId_Empty11,
-	ZoneId_MZ = ZoneId_Empty06,
+	ZoneId_MZ = ZoneId_Empty0E,
 	ZoneId_SLZ = ZoneId_Empty05,
 	ZoneId_SYZ = ZoneId_Empty11,
 	ZoneId_SBZ = ZoneId_Empty11,

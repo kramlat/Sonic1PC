@@ -22,6 +22,27 @@
 #include "Resource/Art/HTZBossFire.h"
 #include "Resource/Art/DHZBoss.h"
 #include "Resource/Art/CPZBoss.h"
+#include "Resource/Art/SFZRobotnikShip.h"
+#include "Resource/Art/SFZTornado.h"
+#include "Resource/Art/SFZClouds.h"
+#include "Resource/Art/SFZVerticalHelix.h"
+#include "Resource/Art/SFZHorizontalHelix.h"
+#include "Resource/Art/SFZBalkiry.h"
+#include "Resource/Art/SFZBreakableWall.h"
+#include "Resource/Art/SFZClucker.h"
+#include "Resource/Art/SFZSmallHelix.h"
+#include "Resource/Art/SFZVerticalLaser.h"
+#include "Resource/Art/SFZCannon.h"
+#include "Resource/Art/SFZHorizontalLaser.h"
+#include "Resource/Art/SFZConveyorWheels.h"
+#include "Resource/Art/SFZChainHook.h"
+#include "Resource/Art/SFZRocketFlame.h"
+#include "Resource/Art/SFZElevators.h"
+#include "Resource/Art/SFZHatchways.h"
+#include "Resource/Art/SFZEnginePart.h"
+#include "Resource/Art/SFZSpeedBoost.h"
+#include "Resource/Art/SFZBossSwitch.h"
+#include "Resource/Art/SFZPlatform.h"
 #include "Resource/Art/CNZBoss.h"
 #include "Resource/Art/NGHZBoss.h"
 #include "Resource/Art/NGHZAutoDoor.h"
@@ -893,6 +914,41 @@ static const PLCList PLC_DHZBoss = { // the alpha's list $2C: Dust Hill's boss: 
     }
 };
 
+static const PLCList PLC_SFZ = { // Sky Fortress's primary list, the pre-beta's $0E (its tiles are the level's own; the list's second Tornado and Clouds, which it loads twice, are here once)
+    9,
+    (const PLC[]) {
+        { Art_SFZRobotnikShip, ART_VRAM(0x60E0 >> 5) },
+        { Art_SFZTornado, ART_VRAM(0xA000 >> 5) },
+        { Art_SFZClouds, ART_VRAM(0xA9E0 >> 5) },
+        { Art_SFZVerticalHelix, ART_VRAM(0xAC20 >> 5) },
+        { Art_SFZHorizontalHelix, ART_VRAM(0x79A0 >> 5) },
+        { Art_SFZBalkiry, ART_VRAM(0xACA0 >> 5) },
+        { Art_SFZBreakableWall, ART_VRAM(0x9180 >> 5) },
+        { Art_SFZClucker, ART_VRAM(0x6F20 >> 5) },
+        { Art_SFZSmallHelix, ART_VRAM(0x7260 >> 5) },
+    }
+};
+
+static const PLCList PLC_SFZ2 = { // Sky Fortress's secondary list, the pre-beta's $11
+    14,
+    (const PLC[]) {
+        { Art_SFZVerticalHelix, ART_VRAM(0xAC20 >> 5) },
+        { Art_SFZHorizontalHelix, ART_VRAM(0x79A0 >> 5) },
+        { Art_SFZVerticalLaser, ART_VRAM(0x73E0 >> 5) },
+        { Art_SFZCannon, ART_VRAM(0x7560 >> 5) },
+        { Art_SFZHorizontalLaser, ART_VRAM(0x7860 >> 5) },
+        { Art_SFZConveyorWheels, ART_VRAM(0x7D40 >> 5) },
+        { Art_SFZChainHook, ART_VRAM(0x7F40 >> 5) },
+        { Art_SFZRocketFlame, ART_VRAM(0x81C0 >> 5) },
+        { Art_SFZElevators, ART_VRAM(0x82C0 >> 5) },
+        { Art_SFZHatchways, ART_VRAM(0x8440 >> 5) },
+        { Art_SFZEnginePart, ART_VRAM(0x8B00 >> 5) },
+        { Art_SFZSpeedBoost, ART_VRAM(0x8C80 >> 5) },
+        { Art_SFZBossSwitch, ART_VRAM(0x8D20 >> 5) },
+        { Art_SFZPlatform, ART_VRAM(0x8DA0 >> 5) },
+    }
+};
+
 static const PLCList PLC_CPZBoss = { // the pre-beta's list $28: Chemical Plant's boss: the ship's art (Robotnik), the boss, the ship's boost, the smoke and the explosions
     5,
     (const PLC[]) {
@@ -1001,6 +1057,8 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_SSZ2        */ &PLC_SSZ2,
     /* PlcId_CNZBoss     */ &PLC_CNZBoss,
     /* PlcId_DHZBoss     */ &PLC_DHZBoss,
+    /* PlcId_SFZ         */ &PLC_SFZ,
+    /* PlcId_SFZ2        */ &PLC_SFZ2,
     /* PlcId_CPZBoss     */ &PLC_CPZBoss,
 };
 

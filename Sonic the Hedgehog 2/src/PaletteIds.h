@@ -37,6 +37,7 @@ enum {
 	PalId_CNZ2, // the alpha's Casino Night act 2 palette
 	PalId_GCZ,  // Cyber City's
 	PalId_SSZ,  // Sand Shower's
+	PalId_SFZ,  // Sky Fortress's (the pre-beta's)
 
 	PalId_EHZ = PalId_SLZ,
 	PalId_CPZ = PalId_MZ,
