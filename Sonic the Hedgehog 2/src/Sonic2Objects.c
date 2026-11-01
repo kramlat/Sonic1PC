@@ -15,6 +15,7 @@
 #include "Object/DiagSpring.h"
 #include "Object/DustSplash.h"
 #include "Object/EHZBadniks.h"
+#include "Object/CPZBoss.h"
 #include "Object/EHZBoss.h"
 #include "Object/EHZWaterfall.h"
 #include "Object/HPZBadniks.h"
@@ -240,6 +241,7 @@ const SstCode sst_object_codes[0x100] = {
 	[0x57] = Obj_DHZBoss,
 	[0x58] = Obj_BossExplosion,
 	[0x5B] = Obj_EHZBossPart,
+	[0x5D] = Obj_CPZBoss,
 	[0x5C] = Obj_Masher,
 	[0x64] = Obj_MTZPiston,
 	[0x65] = Obj_MTZPlatform,

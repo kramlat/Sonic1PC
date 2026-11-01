@@ -23,3 +23,4 @@ PlcId_SSZ,  // Sand Shower's primary list: the Crocobot's art
 PlcId_SSZ2, // Sand Shower's secondary list
 PlcId_CNZBoss, // the alpha's list $2D: Casino Night's boss
 PlcId_DHZBoss, // the alpha's list $2C: Dust Hill's boss (the ship, the boss, the explosions)
+PlcId_CPZBoss, // the pre-beta's list $28: Chemical Plant's boss (the ship, its boost, the boss, the smoke and the explosions)

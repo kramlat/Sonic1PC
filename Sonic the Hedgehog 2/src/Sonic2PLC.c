@@ -21,6 +21,7 @@
 #include "Resource/Art/Rexon.h"
 #include "Resource/Art/HTZBossFire.h"
 #include "Resource/Art/DHZBoss.h"
+#include "Resource/Art/CPZBoss.h"
 #include "Resource/Art/CNZBoss.h"
 #include "Resource/Art/NGHZBoss.h"
 #include "Resource/Art/NGHZAutoDoor.h"
@@ -892,6 +893,17 @@ static const PLCList PLC_DHZBoss = { // the alpha's list $2C: Dust Hill's boss: 
     }
 };
 
+static const PLCList PLC_CPZBoss = { // the pre-beta's list $28: Chemical Plant's boss: the ship's art (Robotnik), the boss, the ship's boost, the smoke and the explosions
+    5,
+    (const PLC[]) {
+        { Art_BossShip,      ART_VRAM(0x8400 >> 5) },
+        { Art_CPZBoss,       ART_VRAM(0xA000 >> 5) },
+        { Art_ShipBoost,     ART_VRAM(0x8300 >> 5) },
+        { Art_BossSmoke,     ART_VRAM(0xAE00 >> 5) },
+        { Art_BossExplosion, ART_VRAM(0xB000 >> 5) },
+    }
+};
+
 static const PLCList PLC_CNZBoss = { // the alpha's list $2D: Casino Night's boss: the ship's art (Robotnik), the boss and the explosions
     3,
     (const PLC[]) {
@@ -989,5 +1001,6 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_SSZ2        */ &PLC_SSZ2,
     /* PlcId_CNZBoss     */ &PLC_CNZBoss,
     /* PlcId_DHZBoss     */ &PLC_DHZBoss,
+    /* PlcId_CPZBoss     */ &PLC_CPZBoss,
 };
 

@@ -83,6 +83,7 @@ static const char *const object_names[0x100] = {
     [0x58] = "Boss Explosion",
     [0x5B] = "EHZ Boss Part",
     [0x5C] = "Masher",
+    [0x5D] = "Boss",
     [0x64] = "MTZ Piston",
     [0x65] = "MTZ Platform",
     [0x66] = "MTZ Spring Wall",
