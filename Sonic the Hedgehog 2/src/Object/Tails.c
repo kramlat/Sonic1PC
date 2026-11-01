@@ -58,7 +58,18 @@ static int16_t tails_look_shift;
 // His animations, as the alpha's table has them (ids 0-8 are Sonic 1's names; its 9 is the spin dash, where the port's Sonic has had 31, and its entry 31 the script of his fastest running)
 #define TAILS_ANIM_SPINDASH 9
 #define TAILS_ANIM_PEELOUT  31
-#define TAILS_ANIM_FLY      0x20 // (the pre-beta's last animation: the two frames of him flying in)
+#define TAILS_ANIM_FLY      0x20 // (the pre-beta's last animation: the two frames of him flying in; the guide's flight uses it for his flight too)
+#define TAILS_ANIM_FLYUP    0x21 // his flight, as the guide has it (Add Tails' flying and swimming to Sonic 2): $20-$29 are Fly, FlyUp, Carry, CarryUp, Tired, CarryTired, Swim, SwimUp, SwimCarry and SwimTired
+#define TAILS_ANIM_CARRY    0x22
+#define TAILS_ANIM_CARRYUP  0x23
+#define TAILS_ANIM_TIRED    0x24
+#define TAILS_ANIM_CARRYTIRED 0x25
+#define TAILS_ANIM_SWIM     0x26
+#define TAILS_ANIM_SWIMUP   0x27
+#define TAILS_ANIM_SWIMCARRY 0x28
+#define TAILS_ANIM_SWIMTIRED 0x29
+#define TAILS_FLIGHT_ART    0 // 1 once Tails' flight art is in (frames $8B on, his tails separate sprites: tools/tails_flight_animation.pl --art): then his tails are drawn by his other object while he flies
+#define SONIC_ANIM_HANG2    0x20 // Sonic hanging from Tails (frames $6B, $6C: the animation was added to Sonic's table)
 
 // Spin Dash state
 static uint8_t spindash_flag;
@@ -68,12 +79,20 @@ static uint16_t spindash_count;
 
 // Tails' CPU (the pre-beta's Miles_CPU_Control: its states are the word at $FFFFF708): how long a real pad 2 has had him (Tails_control_counter, $F702), how long he has been out of sight ($F704), the place he flies to
 // ($F70A, $F70C), the id of what he stood on when last in sight ($F70E), and whether he is about to jump after Sonic ($F70F)
-enum { CPU_INIT, CPU_SPAWNING, CPU_FLYING, CPU_NORMAL, CPU_PANIC };
+enum { CPU_INIT, CPU_SPAWNING, CPU_FLYING, CPU_NORMAL, CPU_PANIC, CPU_ASSIST, CPU_CARRY }; // (the last two are the guide's $A and $C: Tails called to fly by Sonic's jump and Up, and Tails carrying Sonic with Sonic's pad)
 static uint8_t cpu_state;
 static uint16_t control_counter, cpu_lost_timer;
 static int16_t cpu_target_x, cpu_target_y;
 static const void *cpu_stand_code;
-static bool cpu_jump_pending;
+static bool cpu_jump_pending, cpu_assist_flew;
+
+// Tails' flight (the guide's variables: flying 0 normal, 1 flying, 2 and more flying unaffected by gravity; flying_timer how much flight is left, in half frames; carry_delay frames before he can carry Sonic again)
+static uint8_t tails_flying, tails_flying_timer, tails_carry_delay;
+static int16_t sidekick_x_vel_copy, sidekick_y_vel_copy; // (Tails' speeds of the last frame: Sonic is let go when his own are not the same)
+bool sonic_carried;                                       // Sonic's status_secondary.carry: he hangs from Tails
+
+bool Tails_IsFlying(void) { return tails_flying != 0; }
+bool Tails_IsRespawning(void) { return cpu_state == CPU_FLYING; }
 
 // The last frame loaded of each of Tails' art windows
 static uint8_t last_frame_tails = 0xFF, last_frame_tail = 0xFF;
@@ -197,13 +216,226 @@ static void Tails_LoadGfx(Sst *self) {
     Tails_LoadDPLC(self->mapping_frame, &last_frame_tails, ArtTile_Tails);
 }
 
+// ---- Tails' flight (the Sonic Retro guide "Add Tails' flying and swimming to Sonic 2", by Painto: the Sonic 3 & Knuckles way: a second jump press makes him fly, and he carries Sonic) ----------------------------------------
+
+// The sounds of his flight (the guide ports Sonic 3 & Knuckles' Grab, Flying and Flying (Tired)): not in yet, so these are where they will play
+static void Tails_PlayFlightSound(int sound) {
+    (void)sound;
+}
+
+// Picks the animation by what he does: up or down, carrying, tired, swimming (the guide's Tails_FlyingAnimation: its 4 x 4 table is by the row of the state and the column of the movement)
+static void Tails_FlyingAnimation(Sst *self) {
+    static const uint8_t table[4][4] = {
+        { TAILS_ANIM_FLY, TAILS_ANIM_FLYUP, TAILS_ANIM_CARRY, TAILS_ANIM_CARRYUP },                      // normal
+        { TAILS_ANIM_TIRED, TAILS_ANIM_TIRED, TAILS_ANIM_CARRYTIRED, TAILS_ANIM_CARRYTIRED },              // tired
+        { TAILS_ANIM_SWIM, TAILS_ANIM_SWIMUP, TAILS_ANIM_SWIMCARRY, TAILS_ANIM_SWIMCARRY },                // swimming
+        { TAILS_ANIM_SWIMTIRED, TAILS_ANIM_SWIMTIRED, TAILS_ANIM_SWIMCARRY, TAILS_ANIM_SWIMCARRY },        // swimming, tired
+    };
+    int column = self->y_vel < 0 ? 1 : 0;
+    int row = 0;
+    int sound = 1; // (flying)
+    bool tired_check = true;
+    if (cpu_state == CPU_FLYING) // (flying in to respawn: only the water changes it)
+        tired_check = false;
+    else if (sonic_carried)
+        column += 2;
+    if (tired_check && tails_flying_timer == 0) {
+        row += 1;
+        sound = 2; // (tired flying)
+    }
+    if (self->status & SST_PSTATUS_UNDERWATER) {
+        row += 2;
+        sound = 0; // (no sound underwater)
+    }
+    self->anim = table[row][column];
+    if (sound != 0 && ((frame_count + 8) & 0xF) == 0 && (self->render_flags & SST_RENDER_ON_SCREEN))
+        Tails_PlayFlightSound(sound);
+}
+
+// Starts the flight when a jump button is pressed in the air of a jump (Tails_CheckFlying): at once for a pad 2 that is used, for the AI only when Sonic has called him
+static void Tails_CheckFlying(Sst *self) {
+    if (tails_flying || !(jpad2_press & (JPAD_A | JPAD_B | JPAD_C)))
+        return;
+    if (!two_player_mode && control_counter == 0 && cpu_state != CPU_ASSIST && cpu_state != CPU_CARRY)
+        return;
+    self->status &= (uint8_t)~(SST_PSTATUS_IN_BALL | SST_PSTATUS_ROLL_JUMP);
+    self->y_radius = TAILS_HEIGHT;
+    self->x_radius = TAILS_WIDTH;
+    self->y_pos.f.u++;
+    tails_flying = 1;
+    tails_flying_timer = (8 * 60) / 2; // (8 seconds, in half frames)
+    Tails_FlyingAnimation(self);
+}
+
+// The flight itself (Tails_Flying): a press of a jump button gives him a push up that lasts while the flag counts up, a weak gravity otherwise, and the top of the level stops him
+static void Tails_Flying(Sst *self) {
+    if ((frame_count & 1) && tails_flying_timer)
+        tails_flying_timer--;
+
+    if (tails_flying == 1) {
+        bool gravity = true;
+        if ((jpad2_press & (JPAD_A | JPAD_B | JPAD_C)) && self->y_vel >= -0x100 && tails_flying_timer != 0) {
+            // (not while he carries Sonic underwater)
+            if (!((self->status & SST_PSTATUS_UNDERWATER) && sonic_carried)) {
+                tails_flying = 2; // (and the delay code runs on the next frame)
+            }
+        }
+        if (gravity)
+            self->y_vel += 8;
+    } else {
+        if (self->y_vel < -0x100) {
+            tails_flying = 1;
+        } else {
+            self->y_vel -= 0x20;
+            tails_flying++;
+            if (tails_flying == 0x20)
+                tails_flying = 1;
+        }
+    }
+
+    if ((int16_t)(limit_top2 + 0x10) >= self->y_pos.f.u && self->y_vel < 0)
+        self->y_vel = 0;
+    Tails_FlyingAnimation(self);
+}
+
+// Sonic hangs from Tails: his place, his flips and his speeds are Tails' (Tails_CarryUpdatePosition), and his collision is done here
+static void Tails_CarryUpdatePosition(Sst *self) {
+    Sst *sonic = player;
+    sonic->x_pos.f.u = self->x_pos.f.u;
+    sonic->y_pos.f.u = (int16_t)(self->y_pos.f.u + 0x1D);
+    sonic->render_flags &= (uint8_t)~SST_RENDER_X_FLIP;
+    sonic->status &= (uint8_t)~SST_PSTATUS_X_FLIP;
+    if (self->status & SST_PSTATUS_X_FLIP) {
+        sonic->render_flags |= SST_RENDER_X_FLIP;
+        sonic->status |= SST_PSTATUS_X_FLIP;
+    }
+    sonic->x_vel = self->x_vel;
+    sonic->y_vel = self->y_vel;
+    sidekick_x_vel_copy = self->x_vel;
+    sidekick_y_vel_copy = self->y_vel;
+    Sonic_CarryCollision(sonic);
+}
+
+static void Tails_CheckCarry(Sst *self) {
+    Sst *sonic = player;
+    if (tails_carry_delay) {
+        if (--tails_carry_delay != 0)
+            return;
+    }
+    if (CharObjControl(sonic) != 0 || sonic->routine >= 4 || debug_use || Sonic_Spindashing())
+        return;
+    const int16_t dx = (int16_t)(sonic->x_pos.f.u - self->x_pos.f.u + 0x10);
+    if ((uint16_t)dx >= 0x20)
+        return;
+    const int16_t dy = (int16_t)(sonic->y_pos.f.u - self->y_pos.f.u - 0x20);
+    if ((uint16_t)dy >= 0x10)
+        return;
+
+    if (control_counter == 0) { // (the AI: Sonic's pad takes him over, and he gives a slight push up)
+        cpu_state = CPU_CARRY;
+        jpad2_hold = jpad2_press = 0;
+        if (self->y_vel < 0) {
+            self->y_vel = 0;
+            jpad2_hold = jpad2_press = JPAD_A | JPAD_B | JPAD_C;
+        }
+    }
+    sonic->x_vel = 0;
+    sonic->y_vel = 0;
+    sonic->ground_vel = 0;
+    sonic->angle = 0;
+    ((Scratch_Sonic *)sonic->own.u8)->jumping = 0;
+    sonic_carried = true;
+    sonic->status |= SST_PSTATUS_IN_AIR;
+    sonic->status &= (uint8_t)~SST_PSTATUS_ROLL_JUMP;
+    sonic->anim = SONIC_ANIM_HANG2; // (forced: it starts from its first frame)
+    sonic->prev_anim = 0xFF;
+    Tails_PlayFlightSound(3); // (the grab)
+    Tails_CarryUpdatePosition(self);
+}
+
+// Sonic carried by Tails in flight (Tails_CarrySonic)
+static void Tails_CarrySonic(Sst *self) {
+    Sst *sonic = player;
+    if (two_player_mode)
+        return;
+    if (!sonic_carried) {
+        Tails_CheckCarry(self);
+        return;
+    }
+    bool bump = false;
+    if (sonic->routine >= 4 || (CharObjControl(sonic) & 0x80)) {
+        sonic_carried = false; // (let go by outside means)
+        tails_carry_delay = 60;
+        if (cpu_state == CPU_CARRY || cpu_state == CPU_ASSIST)
+            cpu_state = CPU_NORMAL;
+        return;
+    }
+    if (!(sonic->status & SST_PSTATUS_IN_AIR))
+        bump = true;
+    else if (sidekick_y_vel_copy != sonic->y_vel) {
+        sonic_carried = false;
+        tails_carry_delay = 60;
+        if (cpu_state == CPU_CARRY || cpu_state == CPU_ASSIST)
+            cpu_state = CPU_NORMAL;
+        return;
+    } else if (sidekick_x_vel_copy != sonic->x_vel)
+        bump = true;
+    if (bump) {
+        sonic->y_vel = -0x100; // (a slight push up)
+        sonic_carried = false;
+        tails_carry_delay = 60;
+        if (cpu_state == CPU_CARRY || cpu_state == CPU_ASSIST)
+            cpu_state = CPU_NORMAL;
+        return;
+    }
+    if (!(jpad1_press1 & (JPAD_A | JPAD_B | JPAD_C))) {
+        Tails_CarryUpdatePosition(self);
+        return;
+    }
+    // Sonic lets go on demand: a jump of his own, left or right with it
+    sonic_carried = false;
+    tails_carry_delay = 18;
+    if (jpad1_hold1 & (JPAD_LEFT | JPAD_RIGHT))
+        tails_carry_delay = 60;
+    if (jpad1_hold1 & JPAD_LEFT)
+        sonic->x_vel = -0x200;
+    if (jpad1_hold1 & JPAD_RIGHT)
+        sonic->x_vel = 0x200;
+    sonic->y_vel = -0x380;
+    sonic->status |= SST_PSTATUS_IN_AIR | SST_PSTATUS_IN_BALL;
+    sonic->status &= (uint8_t)~SST_PSTATUS_ROLL_JUMP;
+    ((Scratch_Sonic *)sonic->own.u8)->jumping = 1;
+    sonic->y_radius = 0xE;
+    sonic->x_radius = 7;
+    sonic->anim = SonAnimId_Roll;
+    if (cpu_state == CPU_CARRY || cpu_state == CPU_ASSIST)
+        cpu_state = CPU_NORMAL;
+}
+
+// Sonic's jump and Up with a Tails that the AI plays make him fly (the guide's optional single player assist: Sonic_CheckGoSuper's lines)
+void Tails_CallToCarry(void) {
+    if (two_player_mode || control_counter != 0)
+        return;
+    if (!(jpad1_press1 & (JPAD_A | JPAD_B | JPAD_C)))
+        return;
+    if (cpu_state <= CPU_FLYING || cpu_state >= CPU_ASSIST)
+        return;
+    if (!((jpad1_hold1 | jpad1_press1) & JPAD_UP))
+        return;
+    cpu_state = CPU_ASSIST;
+    cpu_assist_flew = false;
+}
+
+// ---- Tails' CPU ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 // The state Tails is put in when he is left behind: he is out of sight at the top of the level ($0,$0), held (no movements of his own, no touching of objects) and flying (Offset_0x016B8E)
 static void TailsCPU_GiveUp(Sst *self) {
     control_counter = 0;
     cpu_lost_timer = 0;
     cpu_state = CPU_SPAWNING;
+    tails_flying = 0;
     OBJ_CONTROL(self) = 0x81;
-    self->status = SST_PSTATUS_IN_AIR;
+    self->status = (uint8_t)((self->status & SST_PSTATUS_UNDERWATER) | SST_PSTATUS_IN_AIR);
     self->x_pos.f.u = 0;
     self->y_pos.f.u = 0;
     self->anim = TAILS_ANIM_FLY;
@@ -234,11 +466,29 @@ static uint8_t TailsCPU_RecordIndex(void) {
     return (uint8_t)((track_pos.f.l - 0x44) >> 2) & 0x3F;
 }
 
-// Tails' own pad for this frame: pad 2 if it is used (it has him for 600 frames after), else made by the CPU
+// Tails' own pad for this frame; a Tails that Sonic has called (the assist) is also made to jump, fly and climb to where Sonic is
+static void TailsCPU_Emit(Sst *self, uint16_t pad) {
+    if (cpu_state == CPU_ASSIST) {
+        if (!tails_flying) {
+            if (cpu_assist_flew && !(self->status & SST_PSTATUS_IN_AIR))
+                cpu_state = CPU_NORMAL; // (he is down again)
+            else
+                pad |= 0x7070; // (a jump on the ground, and a press in the air that makes him fly)
+        } else {
+            cpu_assist_flew = true;
+            if (self->y_pos.f.u > player->y_pos.f.u - 0x24) // (a flap while he is below the place above Sonic where he can catch him)
+                pad |= 0x7070;
+        }
+    }
+    jpad2_hold = (uint8_t)(pad >> 8);
+    jpad2_press = (uint8_t)pad;
+}
+
+// The AI proper (Miles_CPU_Normal): follows what Sonic did 16 frames before
 static void TailsCPU_Normal(Sst *self) {
     Scratch_Sonic *scratch = (Scratch_Sonic *)self->own.u8;
     TailsCPU_Lost(self);
-    if (cpu_state != CPU_NORMAL)
+    if (cpu_state != CPU_NORMAL && cpu_state != CPU_ASSIST)
         return;
     if (control_counter || (OBJ_CONTROL(self) & 0x80)) {
         if (control_counter)
@@ -278,8 +528,7 @@ static void TailsCPU_Normal(Sst *self) {
         if (cpu_jump_pending) {
             pad |= 0x7000;
             if (self->status & SST_PSTATUS_IN_AIR) {
-                jpad2_hold = (uint8_t)(pad >> 8);
-                jpad2_press = (uint8_t)pad;
+                TailsCPU_Emit(self, pad);
                 return;
             }
             cpu_jump_pending = false;
@@ -290,8 +539,7 @@ static void TailsCPU_Normal(Sst *self) {
                 jump_now = true; // Sonic's record is well above him: a jump
         }
         if (!jump_now) {
-            jpad2_hold = (uint8_t)(pad >> 8);
-            jpad2_press = (uint8_t)pad;
+            TailsCPU_Emit(self, pad);
             return;
         }
     }
@@ -300,8 +548,7 @@ static void TailsCPU_Normal(Sst *self) {
         pad |= 0x7070;
         cpu_jump_pending = true;
     }
-    jpad2_hold = (uint8_t)(pad >> 8);
-    jpad2_press = (uint8_t)pad;
+    TailsCPU_Emit(self, pad);
 }
 
 // Stuck (the panic): he ducks, revs his spin dash and lets it go (Miles_CPU_Panic)
@@ -342,10 +589,11 @@ static void TailsCPU_Panic(Sst *self) {
     jpad2_press = (uint8_t)pad;
 }
 
-// Out of sight, waiting for a moment when Sonic is on solid ground (or for Tails' own pad: A, B, C or Start) to fly in (Miles_CPU_Spawning)
+// Out of sight, waiting for a moment when Sonic is on solid ground (or for Tails' own pad: A, B, C or Start) to fly in (Miles_CPU_Spawning). (The guide takes out the pre-beta's check of Sonic's being in the air, rolling or
+// underwater: there is a swimming Tails now.)
 static void TailsCPU_Spawning(Sst *self) {
     if (!(jpad2_hold & 0xF0)) {
-        if ((frame_count & 0x3F) != 0 || CharObjControl(player) != 0 || (player->status & (SST_PSTATUS_MUST_ROLL | SST_PSTATUS_UNDERWATER | SST_PSTATUS_ROLL_JUMP | SST_PSTATUS_IN_AIR)))
+        if ((frame_count & 0x3F) != 0 || CharObjControl(player) != 0)
             return;
     }
     cpu_state = CPU_FLYING;
@@ -356,6 +604,9 @@ static void TailsCPU_Spawning(Sst *self) {
     self->art_tile |= TILE_PRIORITY_AND;
     spindash_flag = 0;
     spindash_count = 0;
+    tails_speed_max = 0x600; // (his speeds come back to the ones of dry land: the water code sets the others again if he is in it)
+    tails_speed_acc = 0xC;
+    tails_speed_dec = 0x80;
 }
 
 // Flying in to where Sonic was 16 frames ago, a little faster the faster Sonic goes, and down or up a pixel a frame (Miles_CPU_Flying)
@@ -366,14 +617,15 @@ static void TailsCPU_Flying(Sst *self) {
             cpu_lost_timer = 0;
             cpu_state = CPU_SPAWNING;
             OBJ_CONTROL(self) = 0x81;
-            self->status = SST_PSTATUS_IN_AIR;
+            self->status = (uint8_t)((self->status & SST_PSTATUS_UNDERWATER) | SST_PSTATUS_IN_AIR);
             self->x_pos.f.u = 0;
             self->y_pos.f.u = 0;
-            self->anim = TAILS_ANIM_FLY;
+            Tails_FlyingAnimation(self);
             return;
         }
     } else {
         cpu_lost_timer = 0;
+        Tails_FlyingAnimation(self);
     }
     const int rec = TailsCPU_RecordIndex();
     cpu_target_x = track_sonic[rec][0];
@@ -408,7 +660,7 @@ static void TailsCPU_Flying(Sst *self) {
     if (d1 != 0)
         self->y_pos.f.u = (int16_t)(self->y_pos.f.u + (d1 > 0 ? -1 : 1));
 
-    if ((sonic_rec_status[rec] & 0xD2) != 0)
+    if (player->routine >= 6) // (Sonic is dead: he waits, as the pre-beta's check of Sonic's status did while Sonic was in the air)
         return;
     if ((d0 | d1) != 0)
         return;
@@ -419,7 +671,7 @@ static void TailsCPU_Flying(Sst *self) {
     self->x_vel = 0;
     self->y_vel = 0;
     self->ground_vel = 0;
-    self->status = SST_PSTATUS_IN_AIR;
+    self->status = (uint8_t)((self->status & SST_PSTATUS_UNDERWATER) | SST_PSTATUS_IN_AIR);
     scratch->control_lock = 0;
     self->art_tile &= (uint16_t)~TILE_PRIORITY_AND;
     if (player->art_tile & TILE_PRIORITY_AND)
@@ -428,8 +680,24 @@ static void TailsCPU_Flying(Sst *self) {
     scratch->lrb_solid_bit = ((Scratch_Sonic *)player->own.u8)->lrb_solid_bit;
 }
 
-// Tails_Control and Miles_CPU_Control: a pad 2 that is being used keeps Tails for 600 frames; otherwise the CPU plays him (the pre-beta's, in five states: Init, Spawning, Flying, Normal and Panic). It does
-// not run in a two-player level, where pad 2 is the second player's.
+// Tails carrying Sonic with Sonic's pad (the guide's TailsCPU_Carry): left and right move him, and Up flaps (a press of a jump button, which the flight takes as a push up)
+static void TailsCPU_Carry(Sst *self) {
+    (void)self;
+    if (control_counter)
+        return;
+    jpad2_hold = jpad2_press = 0;
+    uint16_t pad = (uint16_t)((jpad1_hold1 << 8) | jpad1_press1);
+    pad &= (uint16_t)(((JPAD_LEFT | JPAD_RIGHT) << 8) | (JPAD_LEFT | JPAD_RIGHT));
+    jpad2_hold = (uint8_t)(pad >> 8);
+    jpad2_press = (uint8_t)pad;
+    if (jpad1_press1 & JPAD_UP) {
+        jpad2_hold |= JPAD_A | JPAD_B | JPAD_C;
+        jpad2_press |= JPAD_A | JPAD_B | JPAD_C;
+    }
+}
+
+// Tails_Control and Miles_CPU_Control: a pad 2 that is being used keeps Tails for 600 frames; otherwise the CPU plays him (the pre-beta's, in five states: Init, Spawning, Flying, Normal and Panic; and the guide's two:
+// called by Sonic, and carrying). It does not run in a two-player level, where pad 2 is the second player's.
 static void Tails_Control(Sst *self) {
     if (two_player_mode)
         return;
@@ -443,7 +711,7 @@ static void Tails_Control(Sst *self) {
         self->x_vel = 0;
         self->y_vel = 0;
         self->ground_vel = 0;
-        self->status = SST_PSTATUS_IN_AIR;
+        self->status = (uint8_t)((self->status & SST_PSTATUS_UNDERWATER) | SST_PSTATUS_IN_AIR);
         cpu_lost_timer = 0;
         break;
     case CPU_SPAWNING:
@@ -453,10 +721,14 @@ static void Tails_Control(Sst *self) {
         TailsCPU_Flying(self);
         break;
     case CPU_NORMAL:
+    case CPU_ASSIST:
         TailsCPU_Normal(self);
         break;
     case CPU_PANIC:
         TailsCPU_Panic(self);
+        break;
+    case CPU_CARRY:
+        TailsCPU_Carry(self);
         break;
     }
 }
@@ -628,10 +900,11 @@ void Tails_ResetOnFloor(Sst *self) {
 
     scratch->flip_angle = 0;
     scratch->jumping = false;
+    tails_flying = 0; // (the flight can be used again)
     item_bonus = 0;
     scratch->flips_remaining = 0;
-    if (self->anim == 0x14)
-        self->anim = SonAnimId_Walk; // (the alpha: a landing ends a flip's animation)
+    if (self->anim == 0x14 || self->anim >= TAILS_ANIM_FLY)
+        self->anim = SonAnimId_Walk; // (the alpha: a landing ends a flip's animation; and the guide's: the flight's animations end too)
 }
 
 static int16_t Tails_Angle(Sst *self, int16_t dist0, int16_t dist1) {
@@ -982,9 +1255,14 @@ static signed int React_ChkHurt(Sst *self, Sst *hit) {
 
 static signed int React_Enemy(Sst *self, Sst *hit)
 {
-    // Check if we can hurt the enemy
-    if (!(invincibility || self->anim == SonAnimId_Roll))
-        return React_ChkHurt(self, hit);
+    // Check if we can hurt the enemy: rolling, invincible, or flying (not under water) with the enemy above him, within a quarter turn on each side of straight up (the guide: Tails hits from the bottom with his tails)
+    if (!(invincibility || self->anim == SonAnimId_Roll)) {
+        if (!tails_flying || (self->status & SST_PSTATUS_UNDERWATER))
+            return React_ChkHurt(self, hit);
+        const uint8_t angle = (uint8_t)(CalcAngle((int16_t)(self->x_pos.f.u - hit->x_pos.f.u), (int16_t)(self->y_pos.f.u - hit->y_pos.f.u)) - 0x20);
+        if (angle >= 0x40)
+            return React_ChkHurt(self, hit);
+    }
 
     // The alpha's bosses are multi-sprite objects whose hit counter Sonic's touch counts down (the touch code of the alpha)
     if ((hit->render_flags & SST_RENDER_MULTI_DRAW)) {
@@ -1672,8 +1950,12 @@ static void Tails_JumpHeight(Sst *self) {
     if (scratch->jumping) {
         // Get minimum jump speed and apply if ABC isn't held
         int16_t spd = ((self->status & SST_PSTATUS_UNDERWATER) != 0) ? -0x200 : -0x400;
-        if (self->y_vel < spd && !(jpad2_hold & (JPAD_A | JPAD_C | JPAD_B)))
-            self->y_vel = spd;
+        if (self->y_vel < spd) {
+            if (!(jpad2_hold & (JPAD_A | JPAD_C | JPAD_B)))
+                self->y_vel = spd;
+        } else {
+            Tails_CheckFlying(self); // (a jump button pressed once he is no longer rising fast: the flight)
+        }
     } else {
         // Cap upwards speed
         if (self->y_vel < -0xFC0)
@@ -1888,7 +2170,11 @@ static bool Tails_SpinDash(Sst *self) {
 static const uint8_t TailsTails_Animations[34] = {
     0, 0, 3, 3, 9, 1, 0, 2, 1, 7, 0, 0, 0, 8, 0, 0,
     0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0,
+#if TAILS_FLIGHT_ART
+    11, 12, 11, 12, 11, 11, 0, 0, 0, 0, // (his flight, from the new art: the tails spin by themselves, faster when he flies up; swimming has none: the guide's Obj05AniSelection)
+#else
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // (his flight frames have the tails on them)
+#endif
 };
 static uint8_t tails_tails_prev_anim = 0xFF;
 
@@ -1957,6 +2243,8 @@ void Obj_Tails(Sst *self) {
     case 2: // Regular movement
         Tails_Control(self);
 
+        if (CharObjControl(self) & 1)
+            tails_flying = 0; // (an object holds him: the flight ends, as the guide has it)
         if (!(CharObjControl(self) & 1)) {
             switch ((((self->status & SST_PSTATUS_IN_BALL) != 0) << 2) | (((self->status & SST_PSTATUS_IN_AIR) != 0) << 1)) {
             case 0: // Not in ball, not in air
@@ -1973,6 +2261,16 @@ void Obj_Tails(Sst *self) {
                 Tails_SlopeRepel(self);
                 break;
             case 2: // Not in ball, in air
+                if (tails_flying) { // flying (Obj02_MdFly: no gravity of the jump, no jump height)
+                    Tails_Flying(self);
+                    Tails_JumpDirection(self);
+                    Tails_LevelBound(self);
+                    Sst_MoveSprite2(self);
+                    Tails_JumpAngle(self);
+                    Tails_Floor(self);
+                    Tails_CarrySonic(self);
+                    break;
+                }
                 Tails_CancelSpindash();
                 Tails_JumpHeight(self);
                 Tails_JumpDirection(self);

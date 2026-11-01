@@ -9,6 +9,7 @@ void Obj_Explosion(Sst *self);
 #include "Object/BossCommon.h"
 #include "Object/HTZBoss.h"
 #include "Object/Sonic.h"
+#include "Object/Tails.h"
 #include "Object/SuperSonic.h"
 #include "Object/WaterObjects.h"
 #include "Constants.h"
@@ -803,7 +804,9 @@ static signed int React_Enemy(Sst *self, Sst *hit)
         hit->code = Obj_Explosion;
         hit->routine = 0;
 
-        if (self->y_vel >= 0) {
+        if (sonic_carried) {
+            // (Tails carries him: his speed stays, or Tails drops him)
+        } else if (self->y_vel >= 0) {
             if (self->y_pos.f.u < hit->y_pos.f.u)
                 self->y_vel = -self->y_vel;
             else
@@ -1531,8 +1534,12 @@ static void Sonic_JumpHeight(Sst *self) {
     if (scratch->jumping) {
         // Get minimum jump speed and apply if ABC isn't held
         int16_t spd = ((self->status & SST_PSTATUS_UNDERWATER) != 0) ? -0x200 : -0x400;
-        if (self->y_vel < spd && !(jpad1_hold2 & (JPAD_A | JPAD_C | JPAD_B)))
-            self->y_vel = spd;
+        if (self->y_vel < spd) {
+            if (!(jpad1_hold2 & (JPAD_A | JPAD_C | JPAD_B)))
+                self->y_vel = spd;
+        } else {
+            Tails_CallToCarry(); // (a jump button pressed with Up held, once he is no longer rising fast: Tails is called to fly and carry him)
+        }
     } else {
         // Cap upwards speed
         if (self->y_vel < -0xFC0)
@@ -1710,6 +1717,14 @@ static void Sonic_UpdateSpindash(Sst *self) {
 // Abandons a spin dash that is still charging when Sonic leaves the ground some other
 // way than releasing it (e.g. a seesaw launch). Clearing only the flag left the dust
 // companion in its Dash animation, so it kept following Sonic through the air.
+void Sonic_CarryCollision(Sst *sonic) {
+    Sonic_Floor(sonic);
+}
+
+bool Sonic_Spindashing(void) {
+    return (spindash_flag & 1) != 0;
+}
+
 void Sonic_CancelSpindash(void) {
     if (!(spindash_flag & 1))
         return;
@@ -1771,11 +1786,13 @@ static void Sonic_Water(Sst *self) {
             sonspeed_dec = 0x100;
         }
 
-        self->y_vel = (int16_t)(self->y_vel << 1); // double Y-speed while exiting water
-        if (self->y_vel == 0)
-            return;
-        if (self->y_vel < -0x1000)
-            self->y_vel = -0x1000; // cap max speed on leaving water
+        if (!sonic_carried) { // (a Sonic that Tails carries keeps his speeds: Tails drops him when they are not Tails')
+            self->y_vel = (int16_t)(self->y_vel << 1); // double Y-speed while exiting water
+            if (self->y_vel == 0)
+                return;
+            if (self->y_vel < -0x1000)
+                self->y_vel = -0x1000; // cap max speed on leaving water
+        }
 
         DustSplash_Show(Splash_Companion(), DUST_SPLASH);
         PlaySound(sfx_Splash);
@@ -1802,10 +1819,12 @@ static void Sonic_Water(Sst *self) {
             sonspeed_dec = 0x80;
         }
 
-        self->x_vel >>= 1; // half X-speed when entering water
-        self->y_vel >>= 2; // quarter Y-speed when entering water
-        if (self->y_vel == 0)
-            return;
+        if (!sonic_carried) {
+            self->x_vel >>= 1; // half X-speed when entering water
+            self->y_vel >>= 2; // quarter Y-speed when entering water
+            if (self->y_vel == 0)
+                return;
+        }
 
         DustSplash_Show(Splash_Companion(), DUST_SPLASH);
         PlaySound(sfx_Splash);
@@ -2230,8 +2249,15 @@ void Obj_Sonic(Sst *self) {
             jpad1_press2 = jpad1_press1;
         }
 
-        // Run player routine
-        if (!(CharObjControl(self) & 1)) {
+        // Run player routine (not while Tails flies with him: his place is Tails' then; and if Tails stops flying he is let go)
+        bool carried = false;
+        if (sonic_carried) {
+            if (Tails_IsFlying())
+                carried = true;
+            else
+                sonic_carried = false;
+        }
+        if (!carried && !(CharObjControl(self) & 1)) {
             switch ((((self->status & SST_PSTATUS_IN_BALL) != 0) << 2) | (((self->status & SST_PSTATUS_IN_AIR) != 0) << 1)) {
             case 0: // Not in ball, not in air
                 // The alpha's long wait: after standing for a while (animation 5 from its frame $1E) he does nothing until a button is held, and then gets up (animation 10, or 11 from frame $AC)
