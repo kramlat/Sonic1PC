@@ -216,16 +216,6 @@ void Obj_GotThroughCard(Sst *self) {
         Sst_Draw(self);
 }
 
-// The animals of a zone, until each has its own: those of the slot it had in Nick Arcade (and Emerald Hill's for the zones without any yet)
-static uint8_t TitleCard_AnimalsPlc(int zone) {
-    switch (zone) {
-    case ZoneId_CPZ: return PlcId_MZAnimals;
-    case ZoneId_HPZ: return PlcId_SYZAnimals;
-    case ZoneId_HTZ: return PlcId_SBZAnimals;
-    default: return PlcId_SLZAnimals;
-    }
-}
-
 // The elements of the level's title card, in the order they were made: the name, ZONE and the act number (NULL where the card is not there)
 static Sst *TitleCard_Element(int n) {
     for (int i = 0; i < SST_COUNT; i++)
@@ -481,7 +471,7 @@ void Obj_TitleCard(Sst *self) {
         // (gone, or back where it started) the name's end loads the explosions' and the animals' art
         if (self->routine == 4) {
             AddPLC(PlcId_Explode);
-            AddPLC(TitleCard_AnimalsPlc(LEVEL_ZONE(level_id)));
+            AddPLC(Level_AnimalsPlc()); // (the zone's pair of the alpha's: Emerald Hill's is the pre-beta's too, Squirrel and BlueBird)
             if (LEVEL_LOAD_BLOCK(level_id)->plc2 != 0)
                 AddPLC(LEVEL_LOAD_BLOCK(level_id)->plc2); // (the zone's second list, which LevelDataLoad leaves for here)
         }
