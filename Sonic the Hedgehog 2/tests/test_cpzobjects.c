@@ -618,6 +618,51 @@ static void SFZObjects_TheLargeLaserFlickersForThirtyTwoFramesAndGoes(void) {
     CHECK(laser->code == NULL);
 }
 
+static Sst *FindShot(void) {
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_EnemyWeapon)
+            return &sst[i];
+    return NULL;
+}
+
+static void SFZObjects_TheCannonTurnsToWhoIsBelowItAndFiresEverySixtyFourFrames(void) {
+    Reset();
+    player->code = NULL;
+    Sst *cannon = Spawn(0xB8, 0x6C, 500, 300);
+    player->x_pos.f.u = 500 + 0x50; // (to its right, below it)
+    player->y_pos.f.u = 400;
+    Frames(1);
+    cannon->render_flags |= SST_RENDER_ON_SCREEN;
+    Frames(1);
+    CHECK_EQ(cannon->routine, 4);
+    Frames(2);
+    CHECK_EQ(cannon->mapping_frame, 2); // (it turns to him)
+    Sst *shot = FindShot();
+    CHECK(shot != NULL);
+    if (shot != NULL) {
+        CHECK_EQ(shot->x_vel, 0x100);
+        CHECK_EQ(shot->y_vel, 0x100);
+    }
+    CHECK_EQ(cannon->collision_flags, 0x86);
+}
+
+static void SFZObjects_TheCannonDoesNotFireAtWhoIsAboveItOrFarOff(void) {
+    Reset();
+    player->code = NULL;
+    Sst *cannon = Spawn(0xB8, 0x6C, 500, 300);
+    player->x_pos.f.u = 500;
+    player->y_pos.f.u = 200; // (above)
+    Frames(1);
+    cannon->render_flags |= SST_RENDER_ON_SCREEN;
+    Frames(3);
+    CHECK_EQ(cannon->routine, 2);
+    player->y_pos.f.u = 400;
+    player->x_pos.f.u = 500 + 0x70; // (too far to the side)
+    cannon->render_flags |= SST_RENDER_ON_SCREEN;
+    Frames(3);
+    CHECK_EQ(cannon->routine, 2);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -645,6 +690,8 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SFZObjects_TheHorizontalHelixCatchesWhoIsOverItWhileItSpinsAtFullSpeed);
     RUN_TEST(SFZObjects_APlatformHelixIsAPlatformThatFoldsAwayAndComesBack);
     RUN_TEST(SFZObjects_TheLargeLaserFlickersForThirtyTwoFramesAndGoes);
+    RUN_TEST(SFZObjects_TheCannonTurnsToWhoIsBelowItAndFiresEverySixtyFourFrames);
+    RUN_TEST(SFZObjects_TheCannonDoesNotFireAtWhoIsAboveItOrFarOff);
     RUN_TEST(SFZObjects_TheLaserWaitsToBeSeenThenCrossesLeftAndGoes);
     RUN_TEST(SFZObjects_TheBossSwitchIsDestroyedByARollingLandingAndChangesTheLayout);
 }

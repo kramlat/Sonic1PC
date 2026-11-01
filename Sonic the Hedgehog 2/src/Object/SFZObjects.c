@@ -23,6 +23,10 @@
 #include "Resource/Animation/SFZHorizontalHelix.h"
 #include "Resource/Animation/SFZPlatformHelix.h"
 #include "Resource/Mappings/SFZHorizontalHelix.h"
+#include "Resource/Mappings/SFZCannon.h"
+#include "Resource/Animation/SFZCannonShot.h"
+#include "Resource/Animation/SFZCluckerShot.h"
+#include "Object/Coconuts.h"
 #include "Resource/Mappings/SFZPlatformHelix.h"
 #include "Resource/Mappings/SFZLargeLaser.h"
 #include "Oscillatory Routines.h"
@@ -1019,4 +1023,80 @@ void Obj_SFZPlatformHelix(Sst *self) {
         break;
     }
     SstOnScreenTest(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $B8, the cannon (Obj_0xB8_Cannon): Object_Settings' entry (the cannon's mappings, art at $3AB, render 4, priority 4, width $10, collision $86). When it has been on the screen and a character is below it and not more
+// than $5F to either side it goes on (it gets its time, 2); it turns to the character (frame 0 within $20 of straight under it, 1 if he is to its left, 2 to its right) and, every $40 frames, fires: the shot
+// (object $98, the cannon's own: frame 3 and 4 turning) leaves from the cannon's mouth, a pixel a frame the way the cannon points and one down
+// ---------------------------------------------------------------------------------------------------------------------------------------
+const uint8_t *SFZ_CannonMappings(void) {
+    return Mappings_SFZCannon;
+}
+
+const uint8_t *SFZ_CluckerMappings(void) {
+    return Mappings_SFZClucker;
+}
+
+const uint8_t *SFZ_CannonShotAnimation(void) {
+    return Animation_SFZCannonShot;
+}
+
+const uint8_t *SFZ_CluckerShotAnimation(void) {
+    return Animation_SFZCluckerShot;
+}
+
+enum { CannonRoutine_Init = 0, CannonRoutine_Wait = 2, CannonRoutine_Aim = 4 };
+
+static void Cannon_Fire(Sst *self, Own_SFZHelix *own) {
+    static const int8_t shots[3][4] = { { 0x00, 0x18, 0x00, 0x01 }, { (int8_t)0xEF, 0x10, (int8_t)0xFF, 0x01 }, { 0x11, 0x10, 0x01, 0x01 } };
+    (void)own;
+    Sst *shot = Sst_AllocateAfter(self);
+    if (shot == NULL)
+        return;
+    shot->code = Obj_EnemyWeapon;
+    ((Own_Weapon *)shot->own.u8)->weapon = Weapon_CannonShot;
+    shot->mapping_frame = 3;
+    const int8_t *s = shots[self->mapping_frame % 3];
+    shot->x_pos.f.u = (int16_t)(self->x_pos.f.u + s[0]);
+    shot->y_pos.f.u = (int16_t)(self->y_pos.f.u + s[1]);
+    shot->x_vel = (int16_t)(s[2] * 256);
+    shot->y_vel = (int16_t)(s[3] * 256);
+}
+
+void Obj_SFZCannon(Sst *self) {
+    Own_SFZHelix *own = (Own_SFZHelix *)self->own.u8;
+    switch (self->routine) {
+    case CannonRoutine_Init:
+        self->mappings = Mappings_SFZCannon;
+        self->art_tile = TILE_MAP(0, 0, 0, 0, 0x3AB);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 4 * 0x80;
+        self->width_pixels = 0x10;
+        self->collision_flags = 0x86;
+        self->routine += 2;
+        return;
+    case CannonRoutine_Wait: {
+        const int16_t dx = (int16_t)(self->x_pos.f.u - player->x_pos.f.u);
+        if ((self->render_flags & SST_RENDER_ON_SCREEN) && (uint16_t)self->y_pos.f.u < (uint16_t)player->y_pos.f.u && (uint16_t)(dx + 0x60) < 0xC0) {
+            self->routine += 2;
+            own->timer = 2;
+        }
+        SstOnScreenTest(self);
+        return;
+    }
+    case CannonRoutine_Aim: {
+        const int16_t dx = (int16_t)(self->x_pos.f.u - player->x_pos.f.u);
+        uint8_t frame = 0;
+        if ((uint16_t)(dx + 0x20) >= 0x40)
+            frame = (uint16_t)self->x_pos.f.u < (uint16_t)player->x_pos.f.u ? 2 : 1;
+        self->mapping_frame = frame;
+        if (--own->timer == 0) {
+            own->timer = 0x40;
+            Cannon_Fire(self, own);
+        }
+        SstOnScreenTest(self);
+        return;
+    }
+    }
 }

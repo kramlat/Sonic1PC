@@ -47,6 +47,13 @@ void Obj_SFZHorizontalHelix(Sst *self);
 void Obj_SFZPlatformHelix(Sst *self);
 void Obj_SFZLargeLaser(Sst *self);
 
+// $B8: the cannon (it looks at a character who is below it and not further than $60 to either side, turns to him (three frames) and fires a shot, which is object $98's, every $40 frames)
+void Obj_SFZCannon(Sst *self);
+const uint8_t *SFZ_CannonMappings(void);       // (the weapon object's shots are drawn from the cannon's and the Clucker's mappings)
+const uint8_t *SFZ_CluckerMappings(void);
+const uint8_t *SFZ_CannonShotAnimation(void);
+const uint8_t *SFZ_CluckerShotAnimation(void);
+
 // (PaletteCycle.c: which of the zone's two sets of cycle colours is on)
 extern uint8_t sfz_cycle_second;
 
