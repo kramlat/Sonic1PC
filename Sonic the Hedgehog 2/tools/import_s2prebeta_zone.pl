@@ -17,6 +17,8 @@ use File::Temp qw(tempdir);
 
 # the zones: where its files are in Data and how they are named
 my %zones = (
+    # Neo Green Hill (ARZ, slot $0F): the files' names have no underscore before Col and Map
+    NGHZ => { dir => 'NGHz', prefix => 'NGHz', pal => 'NGHz.pal', water => 'NGHz_UW.pal', water_res => 'NGHZWater', cols => ['NGHzCol1.dat', 'NGHzCol2.dat'], maps => ['NGHzMap1.Kos', 'NGHzMap2.Kos'] },
     CPZ => { dir => 'CPz', prefix => 'CPz', pal => 'CPz.pal', water => 'CPz_UW.pal', water_res => 'CPZWater' },
     # Sky Fortress: one layout, one object list and one ring list for both acts (the pre-beta's labels for the second are the first's), and its files are named a little differently
     # Death Egg and Sky Chase: one act each, and the tiles, blocks, chunks and collision of another zone (Chemical Plant's and Sky Fortress's: `share`), with a layout, objects and palette of their own; Death Egg has no rings
@@ -71,8 +73,8 @@ unless ($z->{share}) {
     run($nem2kos, "$res/S2Art/$zone", "$src/Tiles.nem");
     kos("$res/S2Map16/$zone", unkos("$src/" . ($z->{blocks} // 'Blocks.kos')));
     spit("$res/S2Map128/$zone", slurp("$src/" . ($z->{chunks} // 'Chunks.kos')));
-    kos("$res/S2Collision/${zone}1", slurp("$src/$z->{prefix}_Col1.dat"));
-    kos("$res/S2Collision/${zone}2", slurp("$src/$z->{prefix}_Col2.dat"));
+    kos("$res/S2Collision/${zone}1", slurp("$src/" . ($z->{cols} ? $z->{cols}[0] : "$z->{prefix}_Col1.dat")));
+    kos("$res/S2Collision/${zone}2", slurp("$src/" . ($z->{cols} ? $z->{cols}[1] : "$z->{prefix}_Col2.dat")));
     run($solids2s3, "$res/S2Collision/$zone", "$res/S2Collision/${zone}1", "$res/S2Collision/${zone}2");
     unlink "$res/S2Collision/${zone}1", "$res/S2Collision/${zone}2";
 }

@@ -121,8 +121,8 @@ static const ZoneGolden zone_goldens[] = {
     { ZoneId_MCZ, 1, -1, 0x6822c9a4af424564ull },
     { ZoneId_CNZ, 0, -1, 0xe1c598a3e37241a7ull },
     { ZoneId_SSZ, 0, -1, 0x1ade4a656e40c98aull },
-    { ZoneId_ARZ, 0, -1, 0xc27c2630b75c5e4aull },
-    { ZoneId_ARZ, 1, -1, 0x9de67dc826666277ull },
+    { ZoneId_ARZ, 0, -1, 0xcd0e306cb55f8331ull }, // (the pre-beta's Neo Green Hill: its tiles, blocks and chunks differ from the alpha's)
+    { ZoneId_ARZ, 1, -1, 0xb40a68c52ec6ffb0ull },
 };
 
 static void ScrollZones_BackgroundsShowWhatTheOriginalsDid(void) {

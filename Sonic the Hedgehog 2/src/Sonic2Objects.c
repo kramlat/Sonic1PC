@@ -147,6 +147,7 @@ void Obj_TitleCharacters(Sst *self);
 void Obj_TubeCover(Sst *self);
 void Obj_Whisp(Sst *self);
 #include "Object/NGHZObjects.h"
+#include "Object/NGHZPillars.h"
 #include "Object/TitleCard.h"
 #include "Object/Animals.h"
 #include "Object/Monitor.h"
@@ -273,6 +274,9 @@ const SstCode sst_object_codes[0x100] = {
 	[0x84] = Obj_AutoSpin,
 	[0x89] = Obj_NGHZBoss,
 	[0x8C] = Obj_Whisp,
+	[0x23] = Obj_NGHZPillar,
+	[0x2B] = Obj_NGHZRisingPillar,
+	[0x82] = Obj_NGHZFallingPillar,
 	[0x8D] = Obj_Grounder,
 	[0x8E] = Obj_Grounder,
 	[0x8F] = Obj_GrounderWall,

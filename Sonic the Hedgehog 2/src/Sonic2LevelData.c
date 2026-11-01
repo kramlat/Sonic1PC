@@ -274,11 +274,11 @@ const int16_t *LevelSizes(int zone, int act) {
             { 0x0004, 0x0000, 0x1000 + SCREEN_WIDEADD2, 0x00C8, 0x00C8 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x1000 + SCREEN_WIDEADD2, 0x00C8, 0x00C8 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
         },
-        [0x0F] = { // NGHZ
-            { 0x0004, 0x0000, 0x28C0 + SCREEN_WIDEADD2, 0x0200, 0x03A0 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
-            { 0x0004, 0x0000, 0x26C0 + SCREEN_WIDEADD2, 0x0180, 0x05A0 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
-            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0200, 0x03A0 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
-            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0180, 0x05A0 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+        [0x0F] = { // NGHZ (the pre-beta's)
+            { 0x0004, 0x0000, 0x28C0 + SCREEN_WIDEADD2, 0x0200, 0x0600 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0180, 0x0780 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0200, 0x0600 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0180, 0x0780 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
         },
         [0x10] = { // SCZ (the pre-beta's: the first act's camera has no height of its own: Sky Chase scrolls by itself, and its events let it down)
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0000 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
@@ -307,7 +307,7 @@ const int16_t StartLocArray[ZoneId_Num][4][2] = {
     [0x0C] = { { 0x0060, 0x02AC }, { 0x0060, 0x058C }, { 0x0060, 0x02AC }, { 0x0060, 0x02AC } }, // CNZ
     [0x0D] = { { 0x0060, 0x01EC }, { 0x0060, 0x012C }, { 0x0060, 0x01EC }, { 0x0060, 0x01EC } }, // CPZ
     [0x0E] = { { 0x0060, 0x012D }, { 0x0060, 0x012D }, { 0x0060, 0x012D }, { 0x0060, 0x012D } }, // DEZ
-    [0x0F] = { { 0x0050, 0x037C }, { 0x0050, 0x037C }, { 0x0050, 0x037C }, { 0x0050, 0x037C } }, // NGHZ
+    [0x0F] = { { 0x0060, 0x037E }, { 0x0060, 0x037E }, { 0x0060, 0x037E }, { 0x0060, 0x037E } }, // NGHZ
     [0x10] = { { 0x0120, 0x0070 }, { 0x0120, 0x0070 }, { 0x0120, 0x0070 }, { 0x0120, 0x0070 } }, // SCZ
 };
 
