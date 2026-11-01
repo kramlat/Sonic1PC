@@ -38,6 +38,8 @@ enum {
 	PalId_GCZ,  // Cyber City's
 	PalId_SSZ,  // Sand Shower's
 	PalId_SFZ,  // Sky Fortress's (the pre-beta's)
+	PalId_DEZ,  // Death Egg's
+	PalId_SCZ,  // Sky Chase's
 
 	PalId_EHZ = PalId_SLZ,
 	PalId_CPZ = PalId_MZ,

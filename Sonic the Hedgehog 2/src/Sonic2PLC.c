@@ -22,6 +22,14 @@
 #include "Resource/Art/HTZBossFire.h"
 #include "Resource/Art/DHZBoss.h"
 #include "Resource/Art/CPZBoss.h"
+#include "Resource/Art/CPZAutomaticDoor.h"
+#include "Resource/Art/DEZMetalSonic.h"
+#include "Resource/Art/DEZRobotnik.h"
+#include "Resource/Art/DEZRobotnikBody.h"
+#include "Resource/Art/DEZRobotnikFaces.h"
+#include "Resource/Art/DEZRobotnikWindow.h"
+#include "Resource/Art/Nebula.h"
+#include "Resource/Art/Turtloid.h"
 #include "Resource/Art/SFZRobotnikShip.h"
 #include "Resource/Art/SFZTornado.h"
 #include "Resource/Art/SFZClouds.h"
@@ -949,6 +957,31 @@ static const PLCList PLC_SFZ2 = { // Sky Fortress's secondary list, the pre-beta
     }
 };
 
+static const PLCList PLC_DEZ2 = { // Death Egg's secondary list, the pre-beta's $21 (its tiles are Chemical Plant's: the level's own)
+    6,
+    (const PLC[]) {
+        { Art_CPZAutomaticDoor,  ART_VRAM(0x6500 >> 5) },
+        { Art_DEZMetalSonic,     ART_VRAM(0x7000 >> 5) },
+        { Art_DEZRobotnikWindow, ART_VRAM(0x6F00 >> 5) },
+        { Art_DEZRobotnik,       ART_VRAM(0xA300 >> 5) },
+        { Art_DEZRobotnikFaces,  ART_VRAM(0xA000 >> 5) },
+        { Art_DEZRobotnikBody,   ART_VRAM(0xAC80 >> 5) },
+    }
+};
+
+static const PLCList PLC_SCZ2 = { // Sky Chase's secondary list, the pre-beta's $25 (its tiles are Sky Fortress's: the level's own)
+    7,
+    (const PLC[]) {
+        { Art_SFZTornado,         ART_VRAM(0xA000 >> 5) },
+        { Art_SFZClouds,          ART_VRAM(0xA9E0 >> 5) },
+        { Art_SFZVerticalHelix,   ART_VRAM(0xAC20 >> 5) },
+        { Art_SFZHorizontalHelix, ART_VRAM(0x79A0 >> 5) },
+        { Art_SFZBalkiry,         ART_VRAM(0xACA0 >> 5) },
+        { Art_Turtloid,           ART_VRAM(0x7140 >> 5) },
+        { Art_Nebula,             ART_VRAM(0x6DC0 >> 5) },
+    }
+};
+
 static const PLCList PLC_CPZBoss = { // the pre-beta's list $28: Chemical Plant's boss: the ship's art (Robotnik), the boss, the ship's boost, the smoke and the explosions
     5,
     (const PLC[]) {
@@ -1059,6 +1092,8 @@ const PLCList* plcs[PlcId_Num] = {
     /* PlcId_DHZBoss     */ &PLC_DHZBoss,
     /* PlcId_SFZ         */ &PLC_SFZ,
     /* PlcId_SFZ2        */ &PLC_SFZ2,
+    /* PlcId_DEZ2        */ &PLC_DEZ2,
+    /* PlcId_SCZ2        */ &PLC_SCZ2,
     /* PlcId_CPZBoss     */ &PLC_CPZBoss,
 };
 

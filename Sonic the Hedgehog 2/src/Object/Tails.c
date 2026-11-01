@@ -2367,8 +2367,8 @@ void Game_LevelObjects(void) {
     Sst *tails = SST_PLAYER_2;
     memset(tails, 0, sizeof(*tails));
     memset(SST_TAILS_TAILS, 0, sizeof(Sst));
-    // Where the Tornado is (Sky Fortress's start, and Sky Chase) Tails is its pilot, drawn by it: there is no second character
-    if (LEVEL_ZONE(level_id) != ZoneId_SFZ && LEVEL_ZONE(level_id) != ZoneId_SCZ) {
+    // Where the Tornado is (Sky Fortress's start, and Sky Chase) Tails is its pilot, drawn by it, and Death Egg is Sonic's alone (a later build's ending makes no sense with him there): no second character in those three
+    if (LEVEL_ZONE(level_id) != ZoneId_SFZ && LEVEL_ZONE(level_id) != ZoneId_SCZ && LEVEL_ZONE(level_id) != ZoneId_DEZ) {
         tails->code = Obj_Tails;
         tails->x_pos.f.u = player->x_pos.f.u - 0x20;
         tails->y_pos.f.u = player->y_pos.f.u;

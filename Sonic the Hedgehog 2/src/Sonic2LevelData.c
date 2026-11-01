@@ -152,6 +152,13 @@
 #include "Resource/S2Layout/NGHZ2.h"
 #include "Resource/S2Objects/NGHZ2.h"
 #include "Resource/S2Rings/NGHZ2.h"
+// DEZ and SCZ share the tiles of Chemical Plant and Sky Fortress
+#include "Resource/S2Layout/DEZ1.h"
+#include "Resource/S2Objects/DEZ1.h"
+#include "Resource/S2Rings/DEZ1.h"
+#include "Resource/S2Layout/SCZ1.h"
+#include "Resource/S2Objects/SCZ1.h"
+#include "Resource/S2Rings/SCZ1.h"
 // SFZ
 #include "Resource/S2Art/SFZ.h"
 #include "Resource/S2Map16/SFZ.h"
@@ -181,7 +188,9 @@ const struct LevelLayout level_layouts[ZoneId_Num][4] = {
     [0x0B] = {{ S2Layout_DHZ1 }, { S2Layout_DHZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // DHZ
     [0x0C] = {{ S2Layout_CNZ1 }, { S2Layout_CNZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // CNZ
     [0x0D] = {{ S2Layout_CPZ1 }, { S2Layout_CPZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // CPZ
+    [0x0E] = {{ S2Layout_DEZ1 }, { S2Layout_Null }, { S2Layout_Null }, { S2Layout_Null } }, // DEZ (one act)
     [0x0F] = {{ S2Layout_NGHZ1 }, { S2Layout_NGHZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // NGHZ
+    [0x10] = {{ S2Layout_SCZ1 }, { S2Layout_Null }, { S2Layout_Null }, { S2Layout_Null } }, // SCZ (one act)
 };
 
 // The level boundaries and camera shifts of each act. They depend on the size of the picture (the wider or taller it is, the further the camera can see past the edges), which is chosen at run time, so the table is built when it is read.
@@ -259,11 +268,23 @@ const int16_t *LevelSizes(int zone, int act) {
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
         },
+        [0x0E] = { // DEZ (the pre-beta's: the camera does not go up or down)
+            { 0x0004, 0x0000, 0x1000 + SCREEN_WIDEADD2, 0x00C8, 0x00C8 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x1000 + SCREEN_WIDEADD2, 0x00C8, 0x00C8 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x1000 + SCREEN_WIDEADD2, 0x00C8, 0x00C8 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x1000 + SCREEN_WIDEADD2, 0x00C8, 0x00C8 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+        },
         [0x0F] = { // NGHZ
             { 0x0004, 0x0000, 0x28C0 + SCREEN_WIDEADD2, 0x0200, 0x03A0 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x26C0 + SCREEN_WIDEADD2, 0x0180, 0x05A0 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0200, 0x03A0 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0180, 0x05A0 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+        },
+        [0x10] = { // SCZ (the pre-beta's: the first act's camera has no height of its own: Sky Chase scrolls by itself, and its events let it down)
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0000 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
         },
     };
     static int16_t result[6];
@@ -285,7 +306,9 @@ const int16_t StartLocArray[ZoneId_Num][4][2] = {
     [0x0B] = { { 0x0060, 0x06AC }, { 0x0060, 0x05AC }, { 0x0060, 0x06AC }, { 0x0060, 0x06AC } }, // DHZ
     [0x0C] = { { 0x0060, 0x02AC }, { 0x0060, 0x058C }, { 0x0060, 0x02AC }, { 0x0060, 0x02AC } }, // CNZ
     [0x0D] = { { 0x0060, 0x01EC }, { 0x0060, 0x012C }, { 0x0060, 0x01EC }, { 0x0060, 0x01EC } }, // CPZ
+    [0x0E] = { { 0x0060, 0x012D }, { 0x0060, 0x012D }, { 0x0060, 0x012D }, { 0x0060, 0x012D } }, // DEZ
     [0x0F] = { { 0x0050, 0x037C }, { 0x0050, 0x037C }, { 0x0050, 0x037C }, { 0x0050, 0x037C } }, // NGHZ
+    [0x10] = { { 0x0120, 0x0070 }, { 0x0120, 0x0070 }, { 0x0120, 0x0070 }, { 0x0120, 0x0070 } }, // SCZ
 };
 
 // Level scroll block sizes
@@ -302,7 +325,9 @@ const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
     [0x0B] = { 0x800, 0x100, 0x100, 0 },
     [0x0C] = { 0x800, 0x100, 0x100, 0 },
     [0x0D] = { 0x800, 0x100, 0x100, 0 },
+    [0x0E] = { 0x800, 0x100, 0x100, 0 },
     [0x0F] = { 0x800, 0x100, 0x100, 0 },
+    [0x10] = { 0x800, 0x100, 0x100, 0 },
 };
 
 // The load block table, one entry for each zone and act (LevelLoadBlock.h; each is written out with its sprite art list, tileset, second art list, blocks, palette, chunks); Hill Top's blocks and tileset have its own over Emerald Hill's (and its chunks, which were Emerald Hill's until that came from the alpha)
@@ -325,7 +350,9 @@ const LevelLoadBlock level_load_block[ZoneId_Num][4] = {
         LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ),
     },
     [0x0D] = LLB_ACTS(LLB(PlcId_MZ, S2Art_CPZ, PlcId_MZ2, S2Map16_CPZ, PalId_CPZ, S2Map128_CPZ)),
+    [0x0E] = LLB_ACTS(LLB(0, S2Art_CPZ, PlcId_DEZ2, S2Map16_CPZ, PalId_DEZ, S2Map128_CPZ)),
     [0x0F] = LLB_ACTS(LLB(PlcId_GHZ, S2Art_NGHZ, PlcId_GHZ2, S2Map16_NGHZ, PalId_NGHZ, S2Map128_NGHZ)),
+    [0x10] = LLB_ACTS(LLB(0, S2Art_SFZ, PlcId_SCZ2, S2Map16_SFZ, PalId_SCZ, S2Map128_SFZ)),
 };
 
 // Level solid indices, one file for both paths of a zone's blocks (LevelSolids.h: the Sonic 3 & Knuckles layout, interleaved, Kosinski compressed)
@@ -342,7 +369,9 @@ const uint8_t* level_solids[ZoneId_Num - 1] = {
     [0x0B] = S2Collision_DHZ,
     [0x0C] = S2Collision_CNZ,
     [0x0D] = S2Collision_CPZ,
+    [0x0E] = S2Collision_CPZ,
     [0x0F] = S2Collision_NGHZ,
+    [0x10] = S2Collision_SFZ,
 };
 
 // Level object layouts (Sonic 2 format: SstLoad.h), and the ring layouts in the same places
@@ -359,7 +388,9 @@ const uint8_t* level_obj[ZoneId_Num][4] = {
     [0x0B] = { S2Objects_DHZ1, S2Objects_DHZ2, S2Objects_Null, S2Objects_Null }, // DHZ
     [0x0C] = { S2Objects_CNZ1, S2Objects_CNZ2, S2Objects_Null, S2Objects_Null }, // CNZ
     [0x0D] = { S2Objects_CPZ1, S2Objects_CPZ2, S2Objects_Null, S2Objects_Null }, // CPZ
+    [0x0E] = { S2Objects_DEZ1, S2Objects_Null, S2Objects_Null, S2Objects_Null }, // DEZ
     [0x0F] = { S2Objects_NGHZ1, S2Objects_NGHZ2, S2Objects_Null, S2Objects_Null }, // NGHZ
+    [0x10] = { S2Objects_SCZ1, S2Objects_Null, S2Objects_Null, S2Objects_Null }, // SCZ
 };
 
 const uint8_t* level_ring[ZoneId_Num][4] = {
@@ -375,7 +406,9 @@ const uint8_t* level_ring[ZoneId_Num][4] = {
     [0x0B] = { S2Rings_DHZ1, S2Rings_DHZ2, S2Rings_Null, S2Rings_Null }, // DHZ
     [0x0C] = { S2Rings_CNZ1, S2Rings_CNZ2, S2Rings_Null, S2Rings_Null }, // CNZ
     [0x0D] = { S2Rings_CPZ1, S2Rings_CPZ2, S2Rings_Null, S2Rings_Null }, // CPZ
+    [0x0E] = { S2Rings_DEZ1, S2Rings_Null, S2Rings_Null, S2Rings_Null }, // DEZ
     [0x0F] = { S2Rings_NGHZ1, S2Rings_NGHZ2, S2Rings_Null, S2Rings_Null }, // NGHZ
+    [0x10] = { S2Rings_SCZ1, S2Rings_Null, S2Rings_Null, S2Rings_Null }, // SCZ
 };
 
 // The name of a zone's terrain files in res/ (S2Art/<name>, S2Map16/<name> ...), for the level editor's saved files
@@ -405,7 +438,9 @@ const char *Peek_ZoneCode(int zone) {
         [0x0B] = "DHZ",
         [0x0C] = "CNZ",
         [0x0D] = "CPZ",
+        [0x0E] = "DEZ",
         [0x0F] = "NGHZ",
+        [0x10] = "SCZ",
     };
     return zone >= 0 && zone < ZoneId_Num ? names[zone] : (const char *)0;
 }
@@ -425,7 +460,9 @@ const char *Peek_LevelName(int zone, int act) {
         [0x0B] = { "DHZ1", "DHZ2", "DHZ3", "DHZ4" },
         [0x0C] = { "CNZ1", "CNZ2", "CNZ3", "CNZ4" },
         [0x0D] = { "CPZ1", "CPZ2", "CPZ3", "CPZ4" },
+        [0x0E] = { "DEZ1", "DEZ2", "DEZ3", "DEZ4" },
         [0x0F] = { "NGHZ1", "NGHZ2", "NGHZ3", "NGHZ4" },
+        [0x10] = { "SCZ1", "SCZ2", "SCZ3", "SCZ4" },
     };
     return zone >= 0 && zone < ZoneId_Num && act >= 0 && act < 4 ? names[zone][act] : (const char *)0;
 }

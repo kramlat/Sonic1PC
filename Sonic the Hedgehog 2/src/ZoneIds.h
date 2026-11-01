@@ -18,7 +18,7 @@ typedef enum {
 	ZoneId_MCZ = 0x0B,
 	ZoneId_CNZ = 0x0C,
 	ZoneId_CPZ = 0x0D,
-	ZoneId_Empty0E, // (was Cyber City's)
+	ZoneId_DEZ = 0x0E, // Death Egg (the pre-beta's data, which shares Chemical Plant's tiles: see the importer); it was Cyber City's slot in the alpha
 	ZoneId_ARZ = 0x0F,
 	ZoneId_SCZ = 0x10, // Sky Chase (the prototype's Death Egg slot: the menu's text says so): no data yet
 	ZoneId_Empty11,    // the slot Sonic 1's names below point at
@@ -28,7 +28,7 @@ typedef enum {
 	// zone that is built, or that code would take it for a Sonic 1 zone: Sky Chase and Cyber City had them before they moved)
 	ZoneId_GHZ = ZoneId_Empty01,
 	ZoneId_LZ = ZoneId_Empty11,
-	ZoneId_MZ = ZoneId_Empty0E,
+	ZoneId_MZ = ZoneId_Empty11,
 	ZoneId_SLZ = ZoneId_Empty05,
 	ZoneId_SYZ = ZoneId_Empty11,
 	ZoneId_SBZ = ZoneId_Empty11,

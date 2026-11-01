@@ -348,6 +348,7 @@ static void Deform_ARZ(void) {
 	HTZQuake_ShakeDustHill(); // (the boss of act 2 shakes the screen as its walls rise: the alpha's Bg_Scroll_NGHz)
 }
 
+void Deform_SCZ(void);
 // Each zone's background deformation, registered with the scrolling engine (ScrollEngine.h) as its background event: these are the old deformation routines, kept until each zone is written for the engine
 static void RegisterZones(void) {
     static bool done;
@@ -366,6 +367,7 @@ static void RegisterZones(void) {
     ScrollEngine_SetZone(ZoneId_EHZ, -1, &(ScrollZone){ .background_event = Deform_EHZ });
     ScrollEngine_SetZone(ZoneId_HPZ, -1, &(ScrollZone){ .background_event = Deform_HPZ });
     ScrollEngine_SetZone(ZoneId_HTZ, -1, &(ScrollZone){ .background_event = Deform_HTZ });
+    ScrollEngine_SetZone(ZoneId_SCZ, -1, &(ScrollZone){ .background_event = Deform_SCZ });
 }
 
 
@@ -723,6 +725,32 @@ void ScrollVertical(void) {
 	LevelPlane_CameraMovedY(&fg_plane, old_y);
 }
 
+// Sky Chase (Bg_Scroll_SCz): the level scrolls by itself: the camera goes by the Tornado's speeds (the events set them: SFZObjects.h) and not after the player; the background goes half a pixel a frame whenever the camera
+// moves, to the right whichever way (the pre-beta's own: it adds the same $100 for any direction), and the lines are the foreground's and the background's
+#include "Object/SFZObjects.h"
+static void ScrollAuto(void)
+{
+	const int16_t prev_x = scrpos_x.f.u;
+	scrpos_x.f.u = (int16_t)(scrpos_x.f.u + tornado_scroll_x);
+	scrshift_x = (int16_t)(tornado_scroll_x << 8);
+	LevelPlane_CameraMovedX(&fg_plane, prev_x);
+	const int16_t old_y = scrpos_y.f.u;
+	scrpos_y.f.u = (int16_t)(scrpos_y.f.u + tornado_scroll_y);
+	scrshift_y = (int16_t)(tornado_scroll_y << 8);
+	LevelPlane_CameraMovedY(&fg_plane, old_y);
+}
+
+void Deform_SCZ(void)
+{
+	if (scrshift_x != 0)
+		bg_scrpos_x.v += 0x8000;
+	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
+	for (int i = 0; i < SCREEN_HEIGHT; i++) {
+		hscroll_buffer[i][0] = (int16_t)-scrpos_x.f.u;
+		hscroll_buffer[i][1] = (int16_t)-bg_scrpos_x.f.u;
+	}
+}
+
 void DeformLayers(void)
 {
 	//Check if we're allowed to scroll
@@ -744,8 +772,12 @@ void DeformLayers(void)
 		limit_btm2 = limit_btm1 = size[4];
 	}
 	Editor_CameraBegin();
-	ScrollHoriz();
-	ScrollVertical();
+	if (LEVEL_ZONE(level_id) == ZoneId_SCZ && !editing && !debug_use) {
+		ScrollAuto();
+	} else {
+		ScrollHoriz();
+		ScrollVertical();
+	}
 	Editor_CameraEnd();
 	if (editing) { // (the level's own limits stay as they were: they come back with a playtest)
 		limit_left2 = kept[0];

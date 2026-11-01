@@ -25,4 +25,6 @@ PlcId_CNZBoss, // the alpha's list $2D: Casino Night's boss
 PlcId_DHZBoss, // the alpha's list $2C: Dust Hill's boss (the ship, the boss, the explosions)
 PlcId_SFZ,  // Sky Fortress's primary list (the pre-beta's list $0E: the ship, the tornado, the clouds, the helices, the Balkiry, the wall and the Clucker)
 PlcId_SFZ2, // its secondary (the pre-beta's list $11: the lasers, the cannon, the conveyors and the rest)
+PlcId_DEZ2, // Death Egg's secondary list (the pre-beta's $21: its door, Metal Sonic, Robotnik's window, his faces and his body)
+PlcId_SCZ2, // Sky Chase's secondary list (the pre-beta's $25: the Tornado, the clouds, the helices, the Balkiry, the Turtloid and the Nebula)
 PlcId_CPZBoss, // the pre-beta's list $28: Chemical Plant's boss (the ship, its boost, the boss, the smoke and the explosions)

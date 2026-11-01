@@ -685,9 +685,11 @@ void PaletteCycle(void) {
 
     switch (LEVEL_ZONE(level_id)) {
     case ZoneId_CPZ:
+    case ZoneId_DEZ: // (Death Egg's is Chemical Plant's)
         PCycle_CPZ();
         break;
     case ZoneId_SFZ:
+    case ZoneId_SCZ: // (the pre-beta's Sky Chase shares Sky Fortress's cycles)
         PCycle_SFZ();
         break;
     case ZoneId_EHZ:

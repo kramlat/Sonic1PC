@@ -15,6 +15,8 @@
 #include "Resource/S2Palette/CNZ2.h"
 #include "Resource/S2Palette/GCZ.h"
 #include "Resource/S2Palette/SFZ.h"
+#include "Resource/S2Palette/DEZ.h"
+#include "Resource/S2Palette/SCZ.h"
 #include "Resource/S2Palette/NGHZ.h"
 #include "Resource/S2Palette/LevelSel.h" // the prototypes' level select palette
 #include "Resource/S2Palette/HPZWater.h"
@@ -79,5 +81,7 @@ PalettePointer palette_pointers[] = {
     /* PalId_GCZ       */ { (const uint16_t*)S2Palette_GCZ, &dry_palette[1][0], 0x30, PAL_FORMAT_GENESIS },
     /* PalId_SSZ       */ { (const uint16_t*)S2Palette_SSZ, &dry_palette[1][0], 0x30, PAL_FORMAT_GENESIS },
     /* PalId_SFZ       */ { (const uint16_t*)S2Palette_SFZ, &dry_palette[1][0], 0x30, PAL_FORMAT_GENESIS },
+    /* PalId_DEZ       */ { (const uint16_t*)S2Palette_DEZ, &dry_palette[1][0], 0x30, PAL_FORMAT_GENESIS },
+    /* PalId_SCZ       */ { (const uint16_t*)S2Palette_SCZ, &dry_palette[1][0], 0x30, PAL_FORMAT_GENESIS },
 };
 

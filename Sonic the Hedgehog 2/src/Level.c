@@ -10,6 +10,7 @@
 #include "Object/DHZBoss.h"
 #include "Object/CNZBoss.h"
 #include "Object/CPZBoss.h"
+#include "Object/SFZObjects.h"
 #include "Object/NGHZBoss.h"
 #include "HTZBackground.h"
 #include "SandShower.h"
@@ -366,7 +367,40 @@ void DynamicLevelEvents(void) {
     // (The events follow the first camera and set limits for the whole level, which a split screen has two views of: its levels are the versus ones, without a boss, so the arena of Emerald Hill's act 2 is left out)
     if (camera_split && LEVEL_ZONE(level_id) == ZoneId_EHZ)
         return;
+    if (LEVEL_ZONE(level_id) != ZoneId_SCZ)
+        tornado_scroll_x = tornado_scroll_y = 0; // (the level does not scroll by itself: Sky Chase's does)
     switch (LEVEL_ZONE(level_id)) {
+    case ZoneId_SCZ: // the pre-beta's DynResize_SCz: how fast the level goes, and where it goes down
+        switch (dle_routine) {
+        case 0:
+            tornado_scroll_x = 1;
+            tornado_scroll_y = 0;
+            dle_routine += 2;
+            break;
+        case 2:
+            if (scrpos_x.f.u >= 0x1180 - SCREEN_WIDEADD2) {
+                tornado_scroll_x = -1;
+                tornado_scroll_y = 1;
+                limit_btm1 = 0x0500 - SCREEN_TALLADD;
+                dle_routine += 2;
+            }
+            break;
+        case 4:
+            if (scrpos_y.f.u >= 0x0500 - SCREEN_TALLADD) {
+                tornado_scroll_x = 1;
+                tornado_scroll_y = 0;
+                dle_routine += 2;
+            }
+            break;
+        case 6:
+            if (scrpos_x.f.u >= 0x1480 - SCREEN_WIDEADD2) {
+                tornado_scroll_x = 0;
+                tornado_scroll_y = 0;
+                dle_routine += 2;
+            }
+            break;
+        }
+        break;
     case ZoneId_SSZ:
         SandShower_LevelMisc(); // (the quicksand of its blocks)
         break;
@@ -472,6 +506,9 @@ void SignpostArtLoad(void) {
     // Check if signpost should load (the prototype's End_Level_Art_Load: not in Emerald Hill's act 2, the boss's, where its art load would clear the queue of the art being loaded; every other act, Chemical
     // Plant's and Neo Green Hill's second too, has a signpost and loads its art. Nick Arcade skipped every second act.)
     if (debug_use || level_id == LEVEL_ID(ZoneId_EHZ, 1))
+        return;
+    // (Sky Chase has no signpost: its Tornado sets the camera's limits each frame, so that "the end" is always reached and the art would be queued afresh every frame, clearing the queue)
+    if (LEVEL_ZONE(level_id) == ZoneId_SCZ)
         return;
 
     // Check if we've reached the end of the level
@@ -589,7 +626,7 @@ void Level_MakeWaterSurfaces(void) {
 uint8_t Level_Music(uint16_t level) {
     static const uint8_t zone_music[ZoneId_Num] = {
         [0x00] = mus_EHZ, [0x01] = mus_EHZ, [0x02] = mus_MTZ, [0x03] = mus_OOZ, [0x04] = mus_MTZ, [0x05] = mus_MTZ, [0x07] = mus_HTZ,
-        [0x06] = mus_WFZ, [0x08] = mus_HPZ, [0x09] = mus_MzSwap, [0x0A] = mus_CNZ2P, [0x0B] = mus_MCZ, [0x0C] = mus_CNZ, [0x0D] = mus_CPZ, [0x0F] = mus_ARZ, [0x10] = mus_SCZ,
+        [0x06] = mus_WFZ, [0x08] = mus_HPZ, [0x09] = mus_MzSwap, [0x0A] = mus_CNZ2P, [0x0B] = mus_MCZ, [0x0C] = mus_CNZ, [0x0D] = mus_CPZ, [0x0E] = mus_WFZ, [0x0F] = mus_ARZ, [0x10] = mus_WFZ,
         // (the alpha's list has Sky Chase's song at $09 and Cyber City's, the Marble swap, at $0E: each follows its zone to its new slot)
     };
     unsigned zone = LEVEL_ZONE(level);

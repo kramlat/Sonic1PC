@@ -63,7 +63,9 @@ static const Pending pending[] = {
     { ZoneId_HTZ, 0, { 0 } },
     { ZoneId_HPZ, 0, { 0 } },
     { ZoneId_CPZ, 0, { 0 } },
-    { ZoneId_SFZ, 0, { 0 } }, // (Sky Fortress's own objects: not ported yet)
+    { ZoneId_SFZ, 0, { 0 } },
+    { ZoneId_DEZ, 2, { 0xC6, 0xC7 } }, // (Death Egg's two bosses: they wait)
+    { ZoneId_SCZ, 2, { 0x99, 0x9A } }, // (Sky Chase's own: the Nebula and the Turtloid) // (Sky Fortress's own objects: not ported yet)
     { ZoneId_ARZ, 0, { 0 } },
     { ZoneId_MCZ, 0, { 0 } }, // (Dust Hill)
     { ZoneId_OOZ, 0, { 0 } }, // (Oil Ocean)
@@ -231,13 +233,13 @@ static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
         else if (zone == 9)
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), mus_MzSwap); // Cyber City (it was in the alpha's Genocide City slot, $0E, and moved to $09) has the Metropolis theme with major and minor swapped (id $20), where the alpha has Chemical Plant's
         else if (zone == 14)
-            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), 0); // the empty slot Cyber City left
+            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), mus_WFZ); // Death Egg (the slot Cyber City left): the pre-beta's list has $8F for it
         else if (zone == 6)
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), mus_WFZ); // Sky Fortress (the pre-beta's zone $06: its music list has $8F there; the alpha's slot has the Emerald Hill 2P theme)
         else
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), alpha_music_list[zone] - 0x80);
     }
-    CHECK_EQ(Level_Music(LEVEL_ID(ZoneId_SCZ, 0)), alpha_music_list[9] - 0x80); // Sky Chase's song, the alpha's $09 entry, follows the zone to its slot ($10)
+    CHECK_EQ(Level_Music(LEVEL_ID(ZoneId_SCZ, 0)), mus_WFZ); // Sky Chase plays $8F in the pre-beta (the alpha's $8D entry is Sky Chase's own song, not used now)
 }
 
 
