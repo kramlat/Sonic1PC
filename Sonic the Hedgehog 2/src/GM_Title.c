@@ -329,6 +329,7 @@ static const uint16_t title_demos[] = {
 #include "Resource/Art/TitleSonic.h"
 #include "Resource/Art/TitleMenu.h"
 #include "Object/TitleMenu.h"
+void Obj_TitleCharacters(Sst *self); // (Object/TitleCharacters.c)
 #include "Resource/Art/TitleTM.h"
 #include "Resource/Tilemap/TitleFG.h"
 
@@ -476,8 +477,8 @@ void GM_Title(void) {
     Sst_ResetAll(); // (the level's Sonic and Tails must not stay on the title screen)
     player->x_pos = title_x;
     player->y_pos = title_y;
-    Sst_Spawn(ObjId_TitleSonic, 0, 0); // Sonic (frame 0) and Tails (frame 1): the prototypes' title characters
-    Sst *tails = Sst_Spawn(ObjId_TitleSonic, 0, 0);
+    Sst_SpawnCode(Obj_TitleCharacters, 0, 0); // Sonic (frame 0) and Tails (frame 1): the prototypes' title characters
+    Sst *tails = Sst_SpawnCode(Obj_TitleCharacters, 0, 0);
     if (tails != NULL)
         tails->mapping_frame = 1;
     Sst_SpawnCode(Obj_TitleMenu, 0, 0); // 1 PLAYER / 2 PLAYER VS (the pre-beta's object $0F)
