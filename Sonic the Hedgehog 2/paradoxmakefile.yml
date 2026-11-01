@@ -81,6 +81,7 @@ reuse:
       - "asm/Mappings/ShieldInvincibility.asm"
       - "res/Mappings/HUD"      # the HUD mapping: Sonic 1's layout (widescreen frames included) with Nick Arcade's palettes (normal and flashing swapped)
       - "asm/Mappings/HUD.asm"
+      - "src/GM_Sega.c"         # -> its own: the pre-beta's SEGA logo (the final game's)
       - "src/GM_Title.c"        # -> its own GM_Title.c: Start begins in Emerald Hill, the level select cheat is always on
 resources:
   - "Art/Sonic"
@@ -344,6 +345,10 @@ resources:
   - "S2Title/MapBG"
   - "S2Title/MapBG2"
   - "S2Title/Palette"
+  - "S2Sega/Art"       # the SEGA logo of the pre-beta (the final's): GM_Sega.c
+  - "S2Sega/Blocks"
+  - "S2Sega/Map"
+  - "S2Sega/Palette"
   - "Art/EHZBridge"
   - "Animation/Scenery"
   - "Mappings/ArrowShooter"
@@ -507,6 +512,7 @@ resources:
 sources:
   - "src/Sonic2Assets.c"
   - "src/Sonic2Screens.c"
+  - "src/GM_Sega.c"
   - "src/GM_Title.c"
   - "src/Sonic2Collision.c"
   - "src/Sonic2Sound.c"
@@ -536,6 +542,7 @@ sources:
   - "src/Object/TitleCard.c"
   - "src/TitleCardData.c"
   - "src/Object/TitleMenu.c"
+  - "src/Object/SegaScreen.c"
   - "src/Object/Signpost.c"
   - "src/Object/Platform.c"
   - "src/Object/EHZWaterfall.c"
@@ -590,6 +597,7 @@ sources:
 # binary sprite mappings in Sonic 2's format (the importer's output): their headers are written in Sonic 3 & Knuckles' format
 mappings_SonicTheHedgehog2:
   - "Mappings/Sonic"
+  - "Mappings/SegaSprites"
   - "Mappings/TitleCardNames"
   - "Mappings/TitleMenu"
   - "Mappings/Tails"
@@ -744,6 +752,7 @@ assemble:
   - "Mappings/HTZSeesaw"
   - "Mappings/TitleCardNames" # (the pre-beta's title cards: tools/import_s2prebeta_titlecards.pl)
   - "Mappings/TitleMenu"
+  - "Mappings/SegaSprites" # (the SEGA screen's sprites: the pre-beta's $B0 and $B1)
 cmake: paradoxmake.cmake
 
 # Sonic 2's own music: the final game's 29 tracks (the alpha's sound test order; SMPS driver 2 sources, converted with asm2json, files named by the final game's names and ids: HPz_83 is the Mystic Cave 2P theme, OOz_88 the Casino Night 2P one), and the Simon Wai prototype's effects

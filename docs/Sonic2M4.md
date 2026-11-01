@@ -38,3 +38,12 @@ The special stage is saved for last in M4: it is the biggest payload.
 
 * **Water levels' bubbles load over the title card's art** (the user, 2026-10-31: a known bug of the real pre-beta ROM): the card's letters are at tile $5DE on, where the water zones' countdown bubbles are loaded ($BD00, tile $5E8), so the card is garbled in the real ROM. The port does not keep it (the user: no problem, the port is not held to the hardware's limits): the card's art goes in after the level's first pattern lists, and the zone's second list waits for the card to go (`Object/TitleCard.c`, `Level.c`). Putting the original order back is the two lines marked there if it is ever wanted behind `SCP_FIX_BUGS` (the port's rule for original bugs that do not crash is to keep them unless that is on).
 
+## The SEGA screen, in stages (the user, 2026-10-31)
+
+The pre-beta's SEGA screen is the final game's (its art, `Sega_Screen`, and objects $B0 and $B1: Sonic running across the logo at twice his size, the letters pushed aside line by line, two palette sweeps, the voice at the end). `GM_Sega.c` (Sonic 2's own, replacing Sonic 1's) takes it in stages, the objects loaded directly (no id table):
+
+1. **DONE** The logo where it ends (art, map, palette: `res/S2Sega`), the trademark hidden by object $B1 (`Object/SegaScreen.c`; the Japanese console, `SCP_JP`, keeps it), the pre-beta's timing (about 80 frames of the animation, the voice, 180 frames of hold, Start leaves).
+2. Sonic running across the logo (object $B0: his art cut from `Sonic.dat`, tiles $2B6 to $301, doubled in RAM by `Sub_Sega_Intro`, at tile $88; frames 0-3 of `asm/Mappings/SegaSprites.asm` are made and unused).
+3. The letters' lines pushed aside (35 offsets, the even lines on the way in and the odd ones on the way back) and the palette sweeps (the lists at $FB10 and $FB00).
+4. **The last stage: the SEGA voice is replaced with the final game's. Ask the user for the sample rate when it is time for that one.**
+
