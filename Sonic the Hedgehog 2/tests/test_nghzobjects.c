@@ -185,8 +185,10 @@ static void NGHZObjects_TheWhispFollowsSonicWithinItsSpeedLimit(void) {
     player->y_pos.f.u = 200;
     Obj_Whisp(whisp);
     CHECK_EQ(whisp->collision_flags, 0x0B);
-    for (int i = 0; i < 0x11; i++)
-        Obj_Whisp(whisp);
+    Obj_Whisp(whisp);
+    CHECK_EQ(whisp->routine, 2); // (it waits until it is on screen)
+    whisp->render_flags |= SST_RENDER_ON_SCREEN;
+    Obj_Whisp(whisp);
     CHECK_EQ(whisp->routine, 4); // (it has set off)
     for (int i = 0; i < 0x30; i++)
         Obj_Whisp(whisp);
