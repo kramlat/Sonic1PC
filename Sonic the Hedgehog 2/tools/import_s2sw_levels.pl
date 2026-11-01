@@ -12,6 +12,7 @@
 # and the level size and start position tables (from s2b.asm and the start position files). The disassembly calls its first zone Green Hill, but it is Emerald Hill (EHZ here), the zone its data and objects are.
 # The zones the Sonic 2 alpha (Aug 21st 1992, ~/Projects/s2aug21-disasm, S2ALPHA to use another) has data for (%alpha below) take that data instead, as the project moves toward that build (M3): its level files, level size table and
 # start positions. Its objects are in the engine's format already (flips in bits 13-14 and remember state in bit 15 of the Y word, the whole id byte).
+# Emerald Hill (EHZ) is no longer the alpha's: from M4 it is the pre-beta's Green Hill (tools/import_s2prebeta_ghz.pl), which writes its res/ files and which this script would write over with the alpha's (it also leaves the second act's start, $0060, to Sonic2LevelData.c).
 # Needs the kosenc, nem2kos and solids2s3 tools (KOSENC, NEM2KOS and SOLIDS2S3 give their paths; they build from ParadoxEngine/tools). Run it in the Sonic 2 folder: import_s2sw_levels.pl
 use strict;
 use warnings;

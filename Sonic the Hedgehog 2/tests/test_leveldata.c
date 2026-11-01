@@ -18,7 +18,7 @@ typedef struct {
 
 static void LevelData_StartPositionsMatchThePrototype(void) {
     static const Start starts[] = {
-        { ZoneId_EHZ, 0, 0x60, 0x28F }, { ZoneId_EHZ, 1, 0x40, 0x2AF }, { ZoneId_HTZ, 0, 0x60, 0x3EF }, { ZoneId_HTZ, 1, 0x60, 0x6AF }, // (Hill Top's are the alpha's)
+        { ZoneId_EHZ, 0, 0x60, 0x28F }, { ZoneId_EHZ, 1, 0x60, 0x2AF }, { ZoneId_HTZ, 0, 0x60, 0x3EF }, { ZoneId_HTZ, 1, 0x60, 0x6AF }, // (Hill Top's are the alpha's; Emerald Hill's are the pre-beta's)
         { ZoneId_CNZ, 0, 0x60, 0x2AC }, { ZoneId_CNZ, 1, 0x60, 0x58C }, { ZoneId_CPZ, 0, 0x30, 0x1EC }, { ZoneId_CPZ, 1, 0x30, 0x12C },
         { ZoneId_ARZ, 0, 0x50, 0x37C }, { ZoneId_ARZ, 1, 0x50, 0x37C }, { ZoneId_WZ, 0, 0x60, 0x1AC },
     };

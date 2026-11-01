@@ -391,7 +391,7 @@ void DynamicLevelEvents(void) {
         case 2:
             if ((uint16_t)scrpos_x.f.u < (0x2880 - SCREEN_WIDEADD2))
                 break;
-            limit_left2 = 0x2880 - SCREEN_WIDEADD2;
+            limit_left2 = 0x28F0 - SCREEN_WIDEADD2; // (the pre-beta's: it writes $2940 and then $28F0 to the same limit, so the arena's left edge is $28F0)
             dle_routine += 2;
             break;
         case 4: // when the boss is beaten, the results card (the alpha's; Nick Arcade went back to the Sega screen)
