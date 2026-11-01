@@ -304,6 +304,7 @@ const SstCode sst_object_codes[0x100] = {
 	[0x8B] = Obj_SFZPaletteSwitch,
 	[0xAC] = Obj_Balkiry,
 	[0xAD] = Obj_SFZCluckerPlatform,
+	[0xAE] = Obj_Clucker,
 	[0xB2] = Obj_SFZTornado,
 	[0xBA] = Obj_SFZConveyorWheels,
 	[0xBD] = Obj_SFZElevator,

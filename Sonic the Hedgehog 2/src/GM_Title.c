@@ -35,9 +35,9 @@ uint8_t demo_num;
 // Level select: the Simon Wai prototype's (LevelSelect, LevelSelect_Controls and LevelSelect_TextLoad in its disassembly). It plays its own music while it is open, lists every stage of
 // the zones it has and a sound test of every id from $80 to $FF, and starts a level in the split screen when B is the button that picks it. Hold A and press Start on the title screen to get here.
 // ===========================================================================
-#define LEVSEL_ROWS         29   // 27 stages, Special Stage and Sound Select (the prototype's 25 and Sand Shower's two)
-#define LEVSEL_SS_ROW       27
-#define LEVSEL_SNDTEST_ROW  28
+#define LEVSEL_ROWS         30   // 28 stages, Special Stage and Sound Select (the prototype's 25, Sand Shower's two, and Sky Chase, Sky Fortress and Death Egg with one each)
+#define LEVSEL_SS_ROW       28
+#define LEVSEL_SNDTEST_ROW  29
 #define LEVSEL_VISIBLE      27   // lines that fit the screen (rows 1 to 27 of its 28): the list scrolls when the highlight leaves them
 #define LEVSEL_LINE_LENGTH  27
 #define LEVSEL_START_ROW    1    // (the prototype draws its text at $E08C on the plane: row 1, column 6)
@@ -76,12 +76,13 @@ static const char *const levsel_text[LEVSEL_ROWS] = {
     "NEO GREEN HILL ZONE STAGE 0",
     "                    STAGE 1",
     "SKY CHASE ZONE      STAGE 0",
-    "                    STAGE 1",
+    "SKY FORTRESS ZONE   STAGE 0",
+    "DEATH EGG ZONE      STAGE 0",
     "SPECIAL STAGE",
     "SOUND SELECT",
 };
 
-// The level each of the first 27 lines starts (LevelSelect_Order), in the prototype's zone ids, which are the zone slots (ZoneIds.h). A zone that has not been built yet (it has no header in the level
+// The level each of the first 28 lines starts (LevelSelect_Order), in the prototype's zone ids, which are the zone slots (ZoneIds.h). A zone that has not been built yet (it has no header in the level
 // tables) does nothing when picked, as an unused entry of the prototype's order does
 static const uint16_t levsel_levels[LEVSEL_SS_ROW] = {
     LEVEL_ID(0x00, 0), LEVEL_ID(0x00, 1),
@@ -96,7 +97,9 @@ static const uint16_t levsel_levels[LEVSEL_SS_ROW] = {
     LEVEL_ID(0x0D, 0), LEVEL_ID(0x0D, 1),
     LEVEL_ID(0x09, 0), LEVEL_ID(0x09, 1),
     LEVEL_ID(0x0F, 0), LEVEL_ID(0x0F, 1),
-    LEVEL_ID(0x10, 0), LEVEL_ID(0x10, 1),
+    LEVEL_ID(0x10, 0),
+    LEVEL_ID(0x06, 0), // Sky Fortress: one act
+    LEVEL_ID(0x0E, 0), // Death Egg: one act (not built yet: the slot is empty and it does nothing when picked)
 };
 
 static bool LevSelZoneBuilt(uint16_t level) {

@@ -799,6 +799,32 @@ static void SkyBadniks_TheWeaponObjectHasTheTurtloidsBulletAndTheNebulasBomb(voi
     CHECK_EQ(bullet->collision_flags, 0x98);
 }
 
+static void SkyBadniks_TheCluckerWaitsForSomeoneNearThenAimsAndFiresEverySixtyFourFrames(void) {
+    Reset();
+    scrpos_x.f.u = 400;
+    Sst *clucker = Spawn(0xAE, 0, 500, 300);
+    player->x_pos.f.u = 500 + 0x200; // (far)
+    Frames(3);
+    CHECK_EQ(clucker->routine, 2);
+    CHECK_EQ(clucker->mapping_frame, 0x15);
+    player->x_pos.f.u = 500 + 0x40; // (near)
+    Frames(1);
+    CHECK_EQ(clucker->routine, 4);
+    int shots = 0;
+    bool enemy = false;
+    uint8_t last = clucker->routine;
+    for (int i = 0; i < 300; i++) {
+        Frames(1);
+        if (clucker->collision_flags == 0x06)
+            enemy = true;
+        if (clucker->routine == 0x0A && last != 0x0A)
+            shots++; // (it fires as it goes into its routine $A)
+        last = clucker->routine;
+    }
+    CHECK(enemy); // (it is an enemy once it is up)
+    CHECK(shots >= 2 && shots <= 6);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -835,6 +861,7 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SFZObjects_AHatchwayOpensToBeStoodOnAndShutsAgain);
     RUN_TEST(SkyBadniks_TheBalkiryGoesLeftWithItsBoostAndTheBoostGoesWhenItIsGone);
     RUN_TEST(SkyBadniks_TheWeaponObjectHasTheTurtloidsBulletAndTheNebulasBomb);
+    RUN_TEST(SkyBadniks_TheCluckerWaitsForSomeoneNearThenAimsAndFiresEverySixtyFourFrames);
     RUN_TEST(SFZObjects_TheLaserWaitsToBeSeenThenCrossesLeftAndGoes);
     RUN_TEST(SFZObjects_TheBossSwitchIsDestroyedByARollingLandingAndChangesTheLayout);
 }

@@ -16,4 +16,8 @@ const uint8_t *Turtloid_ShotAnimation(void);
 // Makes the boost of `parent` ($9C, with the animation script table it is to run and the frame it starts at)
 void SkyBadniks_MakeBoost(Sst *parent, const uint8_t *animation);
 
+// $AE: the Clucker (a chicken that stands on a platform ($AD) and, when a character comes within $80 of it, goes through its animations (it turns up, aims) and fires, every $40 frames after that: a shot
+// of the weapon object)
+void Obj_Clucker(Sst *self);
+
 #endif //_SKYBADNIKS_H

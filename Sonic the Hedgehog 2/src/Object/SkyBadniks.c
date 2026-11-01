@@ -16,6 +16,11 @@
 #include "Resource/Mappings/Balkiry.h"
 #include "Resource/Mappings/Nebula.h"
 #include "Resource/Mappings/Turtloid.h"
+#include "Resource/Animation/SFZClucker.h"
+#include "Resource/Animation/SFZClucker1.h"
+#include "Resource/Animation/SFZClucker2.h"
+#include "Object/Coconuts.h"
+#include "Object/Tails.h"
 
 const uint8_t *Turtloid_Mappings(void) {
     return Mappings_Turtloid;
@@ -109,4 +114,96 @@ void Obj_Balkiry(Sst *self) {
     SstDeleteIfNotInRange(self);
     if (self->code != NULL)
         Sst_Draw(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// $AE, the Clucker (Obj_0xAE_Clucker): Object_Settings' entry (the Clucker's mappings, art at $379, render 4, priority 5, width $10), frame $15, and the same way as it is placed. Its routines: 2 waits for a character within
+// $7F of it (either way), 4 runs its first animation (frames 0 to 7), at the end of which it is frame 8 and an enemy (collision $06), 6 its second (8 to $B and three more $B), 8 waits $40 frames and then (A) fires
+// the shot, frame $B, 0 animates two frames and 0xC goes back to 8
+// ---------------------------------------------------------------------------------------------------------------------------------------
+typedef struct {
+    uint8_t subtype;  // 0x28
+    uint8_t pad0;
+    uint8_t timer;    // 0x2A
+} Own_Clucker;
+
+static void Clucker_Restart(Sst *self, uint8_t frame) { // (the clear of its animation's place: clr.l and clr.w of the pre-beta's, and the frame)
+    self->anim_frame = 0;
+    self->anim_frame_timer = 0;
+    self->prev_anim = self->anim;
+    self->mapping_frame = frame;
+}
+
+static void Clucker_Fire(Sst *self) {
+    Sst *shot = Sst_AllocateAfter(self);
+    if (shot == NULL)
+        return;
+    shot->code = Obj_EnemyWeapon;
+    ((Own_Weapon *)shot->own.u8)->weapon = Weapon_CluckerShot;
+    shot->mapping_frame = 0x0D;
+    shot->x_pos.f.u = self->x_pos.f.u;
+    shot->y_pos.f.u = (int16_t)(self->y_pos.f.u + 0x0B);
+    int16_t speed = (int16_t)0xFE00, shift = -8;
+    if (self->render_flags & SST_RENDER_X_FLIP) {
+        speed = (int16_t)-speed;
+        shift = 8;
+    }
+    shot->x_vel = speed;
+    shot->x_pos.f.u = (int16_t)(shot->x_pos.f.u + shift);
+}
+
+void Obj_Clucker(Sst *self) {
+    Own_Clucker *own = (Own_Clucker *)self->own.u8;
+    switch (self->routine) {
+    case 0:
+        self->mappings = SFZ_CluckerMappings();
+        self->art_tile = TILE_MAP(0, 0, 0, 0, 0x379);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 5 * 0x80;
+        self->width_pixels = 0x10;
+        self->collision_flags = 0;
+        self->routine += 2;
+        self->mapping_frame = 0x15;
+        if (self->render_flags & SST_RENDER_X_FLIP)
+            self->status |= SST_STATUS_X_FLIP;
+        return;
+    case 2:
+        if ((uint16_t)((int16_t)(self->x_pos.f.u - player->x_pos.f.u) + 0x80) < 0x100)
+            self->routine += 2;
+        break;
+    case 4: {
+        const uint8_t before = self->routine;
+        self->anim = 0;
+        Sst_Animate(self, Animation_SFZClucker);
+        if (self->routine != before) {
+            self->anim = 1;
+            Clucker_Restart(self, 8);
+            self->collision_flags = 0x06;
+        }
+        break;
+    }
+    case 6:
+        self->anim = 0;
+        Sst_Animate(self, Animation_SFZClucker1);
+        break;
+    case 8:
+        if (own->timer != 0) {
+            own->timer--;
+        } else {
+            self->routine += 2;
+            self->anim = 0;
+            Clucker_Restart(self, 0x0B);
+            Clucker_Fire(self);
+        }
+        break;
+    case 0x0A:
+        self->anim = 0;
+        Sst_Animate(self, Animation_SFZClucker2);
+        break;
+    case 0x0C:
+        self->routine = 8;
+        own->timer = 0x40;
+        break;
+    }
+    SstOnScreenTest(self);
 }
