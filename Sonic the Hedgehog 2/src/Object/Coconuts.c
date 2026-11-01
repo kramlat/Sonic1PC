@@ -2,6 +2,7 @@
 // subtype is the index into it) and the monkey is always in one of: hanging on the trunk (waiting until it is time to climb), climbing, or throwing.
 #include "Object/Coconuts.h"
 #include "Object/SFZObjects.h"
+#include "Object/SkyBadniks.h"
 #include "SstLoad.h"
 #include "ObjectSst.h"
 #include "Object.h"
@@ -150,6 +151,8 @@ static const WeaponLook weapon_looks[] = {
     { NULL, TILE_MAP(0, 1, 0, 0, 0x52D), 0x84, 5, 4, 0x98 },             // the Spiny's shot (Spiny_Mappings)
     { NULL, TILE_MAP(0, 0, 0, 0, 0x3AB), 0x84, 3, 4, 0x98 },             // Sky Fortress's cannon's shot (SFz_Cannon_Mappings)
     { NULL, TILE_MAP(0, 0, 0, 0, 0x379), 0x84, 5, 4, 0x98 },             // the Clucker's shot (Clucker_Mappings)
+    { NULL, TILE_MAP(0, 0, 0, 0, 0x38A), 0x84, 4, 4, 0x98 },             // the Turtloid's bullet (Turtloid_Mappings)
+    { NULL, TILE_MAP(1, 1, 0, 0, 0x36E), 0x84, 4, 8, 0x8B },             // the Nebula's bomb (Nebula_Mappings): its palette line goes between the first and the third each frame
 };
 
 void Obj_EnemyWeapon(Sst *self) {
@@ -157,7 +160,7 @@ void Obj_EnemyWeapon(Sst *self) {
 
     if (self->routine == 0) {
         const WeaponLook *look = &weapon_looks[own->weapon];
-        self->mappings = own->weapon == Weapon_AsteronSpike ? Asteron_Mappings() : own->weapon == Weapon_RexonFireball ? Rexon_Mappings() : own->weapon == Weapon_SpinyShot ? Spiny_Mappings() : own->weapon == Weapon_CannonShot ? SFZ_CannonMappings() : own->weapon == Weapon_CluckerShot ? SFZ_CluckerMappings() : Mappings_Coconuts;
+        self->mappings = own->weapon == Weapon_AsteronSpike ? Asteron_Mappings() : own->weapon == Weapon_RexonFireball ? Rexon_Mappings() : own->weapon == Weapon_SpinyShot ? Spiny_Mappings() : own->weapon == Weapon_CannonShot ? SFZ_CannonMappings() : own->weapon == Weapon_CluckerShot ? SFZ_CluckerMappings() : own->weapon == Weapon_TurtloidShot ? Turtloid_Mappings() : own->weapon == Weapon_NebulaBomb ? Nebula_Mappings() : Mappings_Coconuts;
         self->art_tile = look->tile;
         self->render_flags |= look->render;
         self->priority = (uint16_t)(look->priority * 0x80);
@@ -184,6 +187,14 @@ void Obj_EnemyWeapon(Sst *self) {
     case Weapon_CannonShot:
         Sst_MoveSprite2(self);
         Sst_Animate(self, SFZ_CannonShotAnimation());
+        break;
+    case Weapon_TurtloidShot:
+        Sst_MoveSprite2(self);
+        Sst_Animate(self, Turtloid_ShotAnimation());
+        break;
+    case Weapon_NebulaBomb:
+        self->art_tile ^= 0x4000;
+        Sst_MoveSprite(self);
         break;
     case Weapon_CluckerShot:
         Sst_MoveSprite2(self);

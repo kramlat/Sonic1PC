@@ -17,6 +17,7 @@
 #include "Object/EHZBadniks.h"
 #include "Object/CPZBoss.h"
 #include "Object/SFZObjects.h"
+#include "Object/SkyBadniks.h"
 #include "Object/EHZBoss.h"
 #include "Object/EHZWaterfall.h"
 #include "Object/HPZBadniks.h"
@@ -284,6 +285,7 @@ const SstCode sst_object_codes[0x100] = {
 	[0x96] = Obj_RexonBody,
 	[0x97] = Obj_RexonHead,
 	[0x98] = Obj_EnemyWeapon,
+	[0x9C] = Obj_EnemyBoost,
 	[0x9D] = Obj_Coconuts,
 	[0x9E] = Obj_Crawlton,
 	[0x9F] = Obj_Shellcracker,
@@ -300,6 +302,7 @@ const SstCode sst_object_codes[0x100] = {
 	[0xAA] = Obj_GrabberStrand,
 	[0xAB] = Obj_GrabberUnused,
 	[0x8B] = Obj_SFZPaletteSwitch,
+	[0xAC] = Obj_Balkiry,
 	[0xAD] = Obj_SFZCluckerPlatform,
 	[0xB2] = Obj_SFZTornado,
 	[0xBA] = Obj_SFZConveyorWheels,

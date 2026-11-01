@@ -9,6 +9,8 @@
 #include "Object/CPZObjects.h"
 #include "Object/CPZBoss.h"
 #include "Object/SFZObjects.h"
+#include "Object/SkyBadniks.h"
+#include "Object/Explosion.h"
 #include "Object/Coconuts.h"
 #include "Object/Sonic.h"
 #include "Object/CharControl.h"
@@ -757,6 +759,46 @@ static void SFZObjects_AHatchwayOpensToBeStoodOnAndShutsAgain(void) {
     CHECK(shut_after);
 }
 
+static void SkyBadniks_TheBalkiryGoesLeftWithItsBoostAndTheBoostGoesWhenItIsGone(void) {
+    Reset();
+    scrpos_x.f.u = 400;
+    Sst *balkiry = Spawn(0xAC, 0, 500, 300);
+    Frames(2);
+    CHECK_EQ(balkiry->collision_flags, 0x08);
+    CHECK_EQ(balkiry->x_vel, (int16_t)0xFD00);
+    Sst *boost = NULL;
+    for (int i = 0; i < SST_COUNT; i++)
+        if (sst[i].code == Obj_EnemyBoost)
+            boost = &sst[i];
+    CHECK(boost != NULL);
+    Frames(20);
+    CHECK(balkiry->x_pos.f.u < 500 - 50);
+    if (boost != NULL) {
+        CHECK_EQ(boost->x_pos.f.u, balkiry->x_pos.f.u); // (the boost is where it is)
+        balkiry->code = Obj_Explosion;
+        Frames(2);
+        CHECK(boost->code == NULL);
+    }
+}
+
+static void SkyBadniks_TheWeaponObjectHasTheTurtloidsBulletAndTheNebulasBomb(void) {
+    Reset();
+    scrpos_x.f.u = 400;
+    Sst *bomb = Spawn(0x98, 0, 500, 300);
+    ((Own_Weapon *)bomb->own.u8)->weapon = Weapon_NebulaBomb;
+    Frames(1);
+    CHECK_EQ(bomb->collision_flags, 0x8B);
+    bomb->render_flags |= SST_RENDER_ON_SCREEN;
+    const uint16_t art = bomb->art_tile;
+    Frames(1);
+    CHECK(bomb->art_tile != art); // (its palette line flickers)
+    CHECK(bomb->y_vel > 0); // (and it falls)
+    Sst *bullet = Spawn(0x98, 0, 520, 300);
+    ((Own_Weapon *)bullet->own.u8)->weapon = Weapon_TurtloidShot;
+    Frames(1);
+    CHECK_EQ(bullet->collision_flags, 0x98);
+}
+
 void RegisterCPZObjectTests(void) {
     RUN_TEST(CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter);
     RUN_TEST(CPZObjects_BarrierDoesNotOpenForTheFarSide);
@@ -791,6 +833,8 @@ void RegisterCPZObjectTests(void) {
     RUN_TEST(SFZObjects_TheCloudsDriftLeftAtTheirOwnSpeedsAndTheRestStay);
     RUN_TEST(SFZObjects_TheRocketBoostShowsEveryOtherFrameAndTheEnginePartTurns);
     RUN_TEST(SFZObjects_AHatchwayOpensToBeStoodOnAndShutsAgain);
+    RUN_TEST(SkyBadniks_TheBalkiryGoesLeftWithItsBoostAndTheBoostGoesWhenItIsGone);
+    RUN_TEST(SkyBadniks_TheWeaponObjectHasTheTurtloidsBulletAndTheNebulasBomb);
     RUN_TEST(SFZObjects_TheLaserWaitsToBeSeenThenCrossesLeftAndGoes);
     RUN_TEST(SFZObjects_TheBossSwitchIsDestroyedByARollingLandingAndChangesTheLayout);
 }
