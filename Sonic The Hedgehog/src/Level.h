@@ -16,7 +16,7 @@
 
 
 //Level types
-#ifdef ZONE_SLOTS // a game built on this one with its own zone slots (Sonic 2 has 17): every per-zone table is sized by ZoneId_Num
+#ifdef ZONE_SLOTS // a game built on this one with its own zone slots (Sonic 2 has 18): every per-zone table is sized by ZoneId_Num
 #include "ZoneIds.h"
 #else
 typedef enum {

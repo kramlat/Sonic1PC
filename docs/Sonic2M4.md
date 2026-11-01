@@ -12,3 +12,14 @@ The reference is Neto's disassembly of the pre-beta, https://github.com/NyperYuh
 
 * The title card object refers to Sonic 1's oval and Final Zone mappings.
 * The Rhinobot's art was edited to use another palette.
+
+## From Sonic Retro (the user's screenshots, 2026-10-31)
+
+* The pre-beta is dated September 14, 1992 (EPROMs found by drx, released November 9, 2019, a day before the alpha). The prerelease order on that site: Nick Arcade (1992-05), Simon Wai (1992-0X), Alpha (08-21), **Pre-Beta (09-14)**, CENSOR (09-1X), Beta 4 (09-18), **Beta 5 (09-21)**, Beta 6 (09-22), Beta 7 (09-24), Beta 8 (09-24): so M4 = pre-beta, M5 = censor, M6 = beta 4 (s2b4), and s2b5 is beta 5.
+* "To the untrained eye this version could be passed off as the final game, with every level being accounted for and all but the final three (Sky Chase Zone, Wing Fortress Zone (known here as Sky Fortress Zone) and Death Egg Zone) being completable. However, the Special Stages and 2-player mode have yet to be implemented properly, and there are a number of minor differences and layout changes, particularly towards the end of the game. It also lacks much of the polish seen in prototypes from here on out, such as title and score cards, introductions and endings."
+* So the three zones that are not completable (Sky Chase, Wing Fortress/Sky Fortress, Death Egg) are not zones to play in M4; the title and score cards come in later builds (the title card in full around s2b5).
+
+## Zone slots (2026-10-31)
+
+Cyber City moved from slot $0E to $09, Sky Chase has slot $10 (no data yet), the slot $0E is empty, and a slot $11 exists for Sonic 1's zone names that the shared Sonic 1 code tests for (ZONE_SLOTS is 18). Hidden Palace ($08) and Wood ($02) keep their slots and stay as they are (see above).
+

@@ -47,11 +47,11 @@ static const uint16_t level_order[ZoneId_Num][2] = {
     [0x04] = { LEVEL_ID(0x04, 1), LEVEL_ID(0x07, 0) },
     [0x07] = { LEVEL_ID(0x07, 1), 0 },
     [0x08] = { LEVEL_ID(0x08, 1), LEVEL_ID(0x0A, 0) },
+    [0x09] = { LEVEL_ID(0x09, 1), LEVEL_ID(0x0F, 0) },
     [0x0A] = { LEVEL_ID(0x0A, 1), LEVEL_ID(0x0B, 0) },
     [0x0B] = { LEVEL_ID(0x0B, 1), LEVEL_ID(0x0C, 0) },
     [0x0C] = { LEVEL_ID(0x0C, 1), LEVEL_ID(0x0D, 0) },
     [0x0D] = { LEVEL_ID(0x0D, 1), LEVEL_ID(0x07, 0) },
-    [0x0E] = { LEVEL_ID(0x0E, 1), LEVEL_ID(0x0F, 0) },
     [0x0F] = { LEVEL_ID(0x0F, 1), LEVEL_ID(0x0D, 0) },
     [0x10] = { LEVEL_ID(0x10, 1), 0 },
 };

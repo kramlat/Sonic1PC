@@ -264,7 +264,24 @@ static void LevelLayout_PlanesAreExactAndReadLikeTheFixedBuffer(void) {
     CHECK_EQ(mismatches, 0);
 }
 
+// The zone slots: Cyber City is in $09 (it was the alpha's $0E), Sky Chase has $10 (no data yet), and the names of Sonic 1's zones, which the shared Sonic 1 code tests for, are on slots no zone uses: they
+// must never be a zone that is built (that code would take the zone for a Sonic 1 one)
+static void LevelData_TheZoneSlotsAreWhereTheyWereMoved(void) {
+    CHECK_EQ(ZoneId_GCZ, 0x09);
+    CHECK_EQ(ZoneId_ARZ, 0x0F);
+    CHECK_EQ(ZoneId_SCZ, 0x10);
+    CHECK(level_load_block[ZoneId_GCZ][0].art[0] != NULL);
+    CHECK(level_load_block[0x0E][0].art[0] == NULL);        // (the slot Cyber City left is empty)
+    CHECK(level_load_block[ZoneId_SCZ][0].art[0] == NULL);  // (and Sky Chase has nothing yet)
+    const int names[] = { ZoneId_GHZ, ZoneId_LZ, ZoneId_MZ, ZoneId_SLZ, ZoneId_SYZ, ZoneId_SBZ, ZoneId_EndZ, ZoneId_SS };
+    for (unsigned i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
+        CHECK(names[i] != ZoneId_SCZ && names[i] != ZoneId_GCZ);
+        CHECK(level_load_block[names[i]][0].art[0] == NULL);
+    }
+}
+
 void RegisterLevelDataTests(void) {
+    RUN_TEST(LevelData_TheZoneSlotsAreWhereTheyWereMoved);
     RUN_TEST(LevelLayout_PlanesAreExactAndReadLikeTheFixedBuffer);
     RUN_TEST(LevelData_TheLayoutHeaderSaysHowBigTheLevelIs);
     RUN_TEST(LevelData_HillTopsSupplementStartsWhereTheSymbolsSay);

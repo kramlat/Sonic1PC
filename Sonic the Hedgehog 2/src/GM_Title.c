@@ -75,7 +75,7 @@ static const char *const levsel_text[LEVSEL_ROWS] = {
     "                    STAGE 1",
     "NEO GREEN HILL ZONE STAGE 0",
     "                    STAGE 1",
-    "DEATH EGG ZONE      STAGE 0",
+    "SKY CHASE ZONE      STAGE 0",
     "                    STAGE 1",
     "SPECIAL STAGE",
     "SOUND SELECT",
@@ -94,7 +94,7 @@ static const uint16_t levsel_levels[LEVSEL_SS_ROW] = {
     LEVEL_ID(0x0B, 0), LEVEL_ID(0x0B, 1),
     LEVEL_ID(0x0C, 0), LEVEL_ID(0x0C, 1),
     LEVEL_ID(0x0D, 0), LEVEL_ID(0x0D, 1),
-    LEVEL_ID(0x0E, 0), LEVEL_ID(0x0E, 1),
+    LEVEL_ID(0x09, 0), LEVEL_ID(0x09, 1),
     LEVEL_ID(0x0F, 0), LEVEL_ID(0x0F, 1),
     LEVEL_ID(0x10, 0), LEVEL_ID(0x10, 1),
 };

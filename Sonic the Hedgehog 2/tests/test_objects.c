@@ -224,11 +224,14 @@ static void Music_EveryFinalTrackHasASongAndZonesFollowTheAlphasPlaylist(void) {
     for (int zone = 0; zone < 16; zone++) {
         if (zone == 8)
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), 0x10); // Hidden Palace stays, with its own track ($90), where the alpha has the Mystic Cave 2P theme
+        else if (zone == 9)
+            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), mus_MzSwap); // Cyber City (it was in the alpha's Genocide City slot, $0E, and moved to $09) has the Metropolis theme with major and minor swapped (id $20), where the alpha has Chemical Plant's
         else if (zone == 14)
-            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), mus_MzSwap); // Cyber City (in the alpha's Genocide City slot) has the Metropolis theme with major and minor swapped (id $20), where the alpha has Chemical Plant's
+            CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), 0); // the empty slot Cyber City left
         else
             CHECK_EQ(Level_Music(LEVEL_ID(zone, 0)), alpha_music_list[zone] - 0x80);
     }
+    CHECK_EQ(Level_Music(LEVEL_ID(ZoneId_SCZ, 0)), alpha_music_list[9] - 0x80); // Sky Chase's song, the alpha's $09 entry, follows the zone to its slot ($10)
 }
 
 
