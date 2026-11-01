@@ -204,9 +204,11 @@ void SstRenderQueue(int queue, sprite_t **sprite, uint8_t *sprite_i, const Sprit
 // One pass over the queued objects for one view: `top` is where the view's top is in sprite coordinates, `view_w` how wide it is (the cull checks use it). The first pass clears each object's on-screen flag; a second one
 // only adds to it, so an object is on screen if it is in either view.
 static void BuildPass(sprite_t **sprite, uint8_t *sprite_i, const SpriteView *view, int16_t top, bool clear_on_screen, int view_w) {
-	// The level's rings come first (Render_Sprites: the HUD, the rings, then the queues)
+	// The front queue first, then the level's rings, then the others (Render_Sprites: the HUD, the rings, then the queues; the HUD is an object of the front queue here, and it is in front of everything,
+	// the rings of the level too: the VDP puts what is first in its table on top)
+	SstRenderQueue(0, sprite, sprite_i, view, top, view_w, clear_on_screen);
 	Rings_Render(sprite, sprite_i, view, top, view_w);
-	for (int i = 0; i < SST_QUEUES; i++)
+	for (int i = 1; i < SST_QUEUES; i++)
 		SstRenderQueue(i, sprite, sprite_i, view, top, view_w, clear_on_screen);
 }
 
