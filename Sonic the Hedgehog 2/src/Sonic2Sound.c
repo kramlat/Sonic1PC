@@ -29,6 +29,7 @@
 #include "Resource/Music/S2Mus_Super_96.h"
 #include "Resource/Music/S2Mus_Invcb_97.h"
 #include "Resource/Music/S2Mus_1Up_98.h"
+#include "Resource/Music/S2Mus_Credt_9E.h"
 #include "Resource/Music/S2Mus_Blank_9F.h"
 #include "Resource/Music/S2Mus_TScr_99.h"
 #include "Resource/Music/S2Mus_LRes_9A.h"
@@ -60,6 +61,7 @@
 #include "Resource/Music/S2Mus_Super_96_json.h"
 #include "Resource/Music/S2Mus_Invcb_97_json.h"
 #include "Resource/Music/S2Mus_1Up_98_json.h"
+#include "Resource/Music/S2Mus_Credt_9E_json.h"
 #include "Resource/Music/S2Mus_Blank_9F_json.h"
 #include "Resource/Music/S2Mus_TScr_99_json.h"
 #include "Resource/Music/S2Mus_LRes_9A_json.h"
@@ -190,6 +192,8 @@
 #include "Resource/Music/S2Sfx_E7.h"
 #include "Resource/Music/S2Sfx_E8.h"
 #include "Resource/Music/S2Sfx_E9.h"
+#include "Resource/Music/S2Sfx_EA.h"
+#include "Resource/Music/S2Sfx_EB.h"
 #include "Resource/Music/S2Sfx_D0_json.h"
 #include "Resource/Music/S2Sfx_D1_json.h"
 #include "Resource/Music/S2Sfx_D2_json.h"
@@ -216,6 +220,8 @@
 #include "Resource/Music/S2Sfx_E7_json.h"
 #include "Resource/Music/S2Sfx_E8_json.h"
 #include "Resource/Music/S2Sfx_E9_json.h"
+#include "Resource/Music/S2Sfx_EA_json.h"
+#include "Resource/Music/S2Sfx_EB_json.h"
 
 static const uint8_t *const sound_table[0x100] = {
     [mus_VsResults] = S2Mus_VsRes_81,
@@ -247,7 +253,7 @@ static const uint8_t *const sound_table[0x100] = {
     [mus_GameOver] = S2Mus_TGOvr_9B,
     [mus_Continue] = S2Mus_Cont_9C,
     [mus_Emerald] = S2Mus_Emrld_9D,
-    [mus_HPZCopy] = S2Mus_HPz_90,
+    [mus_Credits] = S2Mus_Credt_9E,
     [mus_Blank] = S2Mus_Blank_9F,
     [mus_MzSwap] = S2Mus_MzSwap,
 
@@ -325,6 +331,8 @@ static const uint8_t *const sound_table[0x100] = {
     [sfx_DHZRoots] = S2Sfx_E7,
     [sfx_AlphaE8] = S2Sfx_E8,
     [sfx_DHZRoots2] = S2Sfx_E9,
+    [sfx_LaserBurst] = S2Sfx_EA,
+    [sfx_Scatter] = S2Sfx_EB,
 };
 
 static const char *const sound_table_json[0x100] = {
@@ -357,7 +365,7 @@ static const char *const sound_table_json[0x100] = {
     [mus_GameOver] = S2Mus_TGOvr_9B_json,
     [mus_Continue] = S2Mus_Cont_9C_json,
     [mus_Emerald] = S2Mus_Emrld_9D_json,
-    [mus_HPZCopy] = S2Mus_HPz_90_json,
+    [mus_Credits] = S2Mus_Credt_9E_json,
     [mus_Blank] = S2Mus_Blank_9F_json,
     [mus_MzSwap] = S2Mus_MzSwap_json,
 
@@ -435,6 +443,8 @@ static const char *const sound_table_json[0x100] = {
     [sfx_DHZRoots] = S2Sfx_E7_json,
     [sfx_AlphaE8] = S2Sfx_E8_json,
     [sfx_DHZRoots2] = S2Sfx_E9_json,
+    [sfx_LaserBurst] = S2Sfx_EA_json,
+    [sfx_Scatter] = S2Sfx_EB_json,
 };
 
 // Every song runs on driver version 1's coordination flags, converted from the sources' own. The songs the final game keeps compressed (every one but the 1-up, game over and emerald jingles) have Sonic 2's tempo
@@ -456,7 +466,6 @@ static const uint8_t sound_table_driver_ver[0x100] = {
     [mus_CPZ] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_WFZ] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_HPZ] = SOUND_DRIVER_VERSION_2_TEMPO,
-    [mus_HPZCopy] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_Blank] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_MzSwap] = SOUND_DRIVER_VERSION_2_TEMPO,
     [mus_Menu] = SOUND_DRIVER_VERSION_2_TEMPO,
@@ -481,6 +490,7 @@ static const uint8_t sound_priorities[SOUND_ID_LAST - sfx_Jump + 1] = {
     0x70, 0x60, 0x60, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x70, 0x60, // $D0
     0x62, 0x60, 0x60, 0x60, 0x70, 0x70, 0x70, 0x70, 0x70, 0x60, 0x60, // $DB
     0x60, 0x60, 0x62, 0x62,                                           // $E6
+    0x70, 0x70,                                                       // $EA (Laser Burst) and $EB (Scatter): the usual priority; the pre-beta's driver table is not in its disassembly
 };
 
 // The tempo each song takes under speed shoes: the final game's zSpedUpTempoTable, by song (Sonic 2 tempos, as the songs' own; the 1-up, game over and emerald jingles' are converted to Sonic 1's: $05, $12, $06)
@@ -523,7 +533,7 @@ static const SoundInspectEntry inspect_entries[] = {
     INSPECT_ENTRY(mus_GameOver, 1, "Game Over"),
     INSPECT_ENTRY(mus_Continue, 1, "Continue"),
     INSPECT_ENTRY(mus_Emerald, 1, "Got an Emerald"),
-    INSPECT_ENTRY(mus_HPZCopy, 1, "Hidden Palace (copy)"),
+    INSPECT_ENTRY(mus_Credits, 1, "Credits"),
     INSPECT_ENTRY(mus_Blank, 1, "Empty"),
     INSPECT_ENTRY(mus_MzSwap, 1, "Metropolis (major/minor swapped)"),
     INSPECT_ENTRY(sfx_Jump, 0, "Jump"),
@@ -600,6 +610,8 @@ static const SoundInspectEntry inspect_entries[] = {
     INSPECT_ENTRY(sfx_DHZRoots, 0, "Alpha E7"),
     INSPECT_ENTRY(sfx_AlphaE8, 0, "Alpha E8"),
     INSPECT_ENTRY(sfx_DHZRoots2, 0, "Alpha E9"),
+    INSPECT_ENTRY(sfx_LaserBurst, 0, "Laser Burst"),
+    INSPECT_ENTRY(sfx_Scatter, 0, "Scatter"),
 };
 
 const SoundBank game_sound_bank = {
@@ -609,7 +621,7 @@ const SoundBank game_sound_bank = {
     .music_first = mus_VsResults,
     .music_last = mus_MzSwap,
     .sfx_first = sfx_Jump,
-    .special_last = SOUND_ID_LAST, // (every effect up to the alpha's $E9: they were left out when $E1-$E9 came in, so they played into the music's own channels, with no priority)
+    .special_last = SOUND_ID_LAST, // (every effect up to the final game's $EB, the alpha's $E1-$E9 included: they were left out when $E1-$E9 came in, so they played into the music's own channels, with no priority)
     .command_first = bgm_Fade,
     .command_last = bgm_Stop,
     .sfx_priorities = sound_priorities,

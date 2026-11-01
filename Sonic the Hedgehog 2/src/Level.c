@@ -1,4 +1,5 @@
 #include "EditorLive.h"
+#include "GameInterface.h"
 #include "Level.h"
 #include "SstLoad.h"
 #include "Object/Ring.h"
@@ -337,8 +338,9 @@ void LevelDataLoad(void) {
     // Load level palette
     PalLoad1(header->pal);
 
-    // Load level art
-    if (header->plc2 != 0)
+    // Load level art: the second list. Under a title card it waits until the card has gone (TitleCard.c): the card's letters are in tiles the zones' art lists use ($5E8 on: the water zones' bubbles),
+    // which the card keeps while it is on the screen, over the first seconds of the level
+    if (header->plc2 != 0 && !(demo >= 0 && !game_info.no_title_card))
         AddPLC(header->plc2);
 
     // The animated art's first frames, at once (see S2_PrimeLevelArt): Hill Top's mountains are tiles that only its animated art puts in VRAM, and that otherwise runs once the level loop does, after the title
@@ -582,7 +584,8 @@ void Level_MakeWaterSurfaces(void) {
 uint8_t Level_Music(uint16_t level) {
     static const uint8_t zone_music[ZoneId_Num] = {
         [0x00] = mus_EHZ, [0x01] = mus_EHZ, [0x02] = mus_MTZ, [0x03] = mus_OOZ, [0x04] = mus_MTZ, [0x05] = mus_MTZ, [0x06] = mus_EHZ2P, [0x07] = mus_HTZ,
-        [0x08] = mus_HPZ, [0x09] = mus_SCZ, [0x0A] = mus_CNZ2P, [0x0B] = mus_MCZ, [0x0C] = mus_CNZ, [0x0D] = mus_CPZ, [0x0E] = mus_MzSwap, [0x0F] = mus_ARZ,
+        [0x08] = mus_HPZ, [0x09] = mus_MzSwap, [0x0A] = mus_CNZ2P, [0x0B] = mus_MCZ, [0x0C] = mus_CNZ, [0x0D] = mus_CPZ, [0x0F] = mus_ARZ, [0x10] = mus_SCZ,
+        // (the alpha's list has Sky Chase's song at $09 and Cyber City's, the Marble swap, at $0E: each follows its zone to its new slot)
     };
     unsigned zone = LEVEL_ZONE(level);
     return zone < ZoneId_Num ? zone_music[zone] : 0;

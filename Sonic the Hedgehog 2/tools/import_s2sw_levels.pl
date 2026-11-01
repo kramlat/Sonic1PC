@@ -198,7 +198,7 @@ for my $name (@order) {
     push @resources, "S2Layout/$key", "S2Objects/$key", "S2Rings/$key";
 }
 
-# Cyber City (the final game's CCZ, which takes the alpha's Genocide City slot ($0E): the alpha has no data for it, so its level size and start are the alpha's defaults for the slot). Its files are in the import folder
+# Cyber City (the final game's CCZ, which took the alpha's Genocide City slot ($0E) and has moved to $09, to leave the slots after Neo Green Hill for the zones that are yet to be ported: the alpha has no data for it, so its level size and start are pinned here, what the slot's defaults were). Its files are in the import folder
 # (S2IMPORT, default "import and toss"), in the final's formats: Kosinski tiles, blocks, chunks and collision indices, layouts already interleaved as the engine has them (FG row, BG row), the palette of lines 1-3 and
 # the three cycling palettes (the underwater one waits for the water). Its object and ring files are empty: the objects of its layout that this build does not have come later
 {
@@ -209,7 +209,7 @@ for my $name (@order) {
                     "$imp/cols/CCZ primary 16x16 collision index.kos" => "S2Collision/${z}1", "$imp/cols/CCZ secondary 16x16 collision index.kos" => "S2Collision/${z}2",
                     "$imp/pal/CCZ.bin" => "S2Palette/$z", "$imp/pal/CCZ Cycle 1.bin" => "S2Palette/${z}Cycle1", "$imp/pal/CCZ Cycle 2.bin" => "S2Palette/${z}Cycle2", "$imp/pal/CCZ Cycle 3.bin" => "S2Palette/${z}Cycle3");
         for my $src (sort keys %copy) { spit("$res/$copy{$src}", slurp($src)) if -e $src; push @resources, $copy{$src} } # (the staging folder moves on: what was imported stays in res)
-        $info{$z}{slot} = 0x0E;
+        $info{$z}{slot} = 0x09;
         for my $act (1, 2) {
             my $key = "$z$act";
             my $lay = "$imp/level/CCZ_" . (3 - $act) . ".kos"; # (the files' acts are swapped: the one with the boss area is the first act here)
@@ -219,7 +219,7 @@ for my $name (@order) {
                 spit("$res/S2Objects/$key", pack('nnCC', 0xFFFF, 0, 0, 0));
                 spit("$res/S2Rings/$key", pack('nn', 0xFFFF, 0));
             }
-            $info{$z}{acts}{$act} = { slot => 0x0E, act => $act - 1, key => $key, alpha => 1, start_override => ($act == 1 ? [ 0x06F9, 0x05D4 ] : [ 0x00BE, 0x005E ]) }; # (the starts: where the user put Sonic in debug mode; the HUD there shows the camera's position, and the ring is the debug cursor on Sonic: camera plus the cursor's place on the screen)
+            $info{$z}{acts}{$act} = { slot => 0x09, act => $act - 1, key => $key, alpha => 1, size_override => [ 0x3FFF, 0x0720 ], start_override => ($act == 1 ? [ 0x06F9, 0x05D4 ] : [ 0x00BE, 0x005E ]) }; # (the starts: where the user put Sonic in debug mode; the HUD there shows the camera's position, and the ring is the debug cursor on Sonic: camera plus the cursor's place on the screen)
             push @resources, "S2Layout/$key", "S2Objects/$key", "S2Rings/$key";
         }
     }

@@ -34,7 +34,7 @@ enum SoundID {
 	mus_GameOver, // $9B (Game Over)
 	mus_Continue, // $9C (Continue)
 	mus_Emerald, // $9D (Got an Emerald)
-	mus_HPZCopy, // $9E (a copy of $90 in the prototype and the alpha)
+	mus_Credits, // $9E: the credits theme (the final game's; a copy of $90 in the prototype and the alpha, which have none, and in this port until M4)
 	mus_Blank, // $9F (an empty song there)
 	mus_MzSwap, // $20 here, past the final game's music ids: Metropolis with major and minor swapped (Cyber City's)
 
@@ -112,6 +112,8 @@ enum SoundID {
 	sfx_DHZRoots, // $E7 (the bridge of Dust Hill that opens when its roots are pulled)
 	sfx_AlphaE8, // $E8
 	sfx_DHZRoots2, // $E9 (the same bridge's)
+	sfx_LaserBurst, // $EA (the final game's: the pre-beta has it)
+	sfx_Scatter, // $EB (the final game's: the pre-beta has it)
 
 	bgm_Fade = 0xF0,
 	sfx_Sega,
@@ -120,7 +122,7 @@ enum SoundID {
 	bgm_Stop,
 
 	// The last sound the sound test can reach
-	SOUND_ID_LAST = sfx_DHZRoots2,
+	SOUND_ID_LAST = sfx_Scatter,
 
 	// Sonic 1's names, for the code shared with it: what plays for each
 	bgm_GHZ = mus_VsResults, // (the first music)
@@ -139,7 +141,7 @@ enum SoundID {
 	bgm_GotThrough = mus_ActClear,
 	bgm_GameOver = mus_GameOver,
 	bgm_Continue = mus_Continue,
-	bgm_Credits = mus_Title,
+	bgm_Credits = mus_Credits,
 	bgm_Drowning = mus_Menu,
 	bgm_Emerald = mus_Emerald,
 	bgm_SSRG = mus_Emerald,

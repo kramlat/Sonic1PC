@@ -164,11 +164,11 @@ const struct LevelLayout level_layouts[ZoneId_Num][4] = {
     [0x04] = {{ S2Layout_MTZ1 }, { S2Layout_MTZ2 }, { S2Layout_MTZ3 }, { S2Layout_MTZ3 } }, // MTZ (its third act is the prototype's slot 5)
     [0x07] = {{ S2Layout_HTZ1 }, { S2Layout_HTZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // HTZ
     [0x08] = {{ S2Layout_HPZ1 }, { S2Layout_HPZ1 }, { S2Layout_Null }, { S2Layout_Null } }, // HPZ
+    [0x09] = {{ S2Layout_GCZ1 }, { S2Layout_GCZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // GCZ
     [0x0A] = {{ S2Layout_OOZ1 }, { S2Layout_OOZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // OOZ
     [0x0B] = {{ S2Layout_DHZ1 }, { S2Layout_DHZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // DHZ
     [0x0C] = {{ S2Layout_CNZ1 }, { S2Layout_CNZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // CNZ
     [0x0D] = {{ S2Layout_CPZ1 }, { S2Layout_CPZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // CPZ
-    [0x0E] = {{ S2Layout_GCZ1 }, { S2Layout_GCZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // GCZ
     [0x0F] = {{ S2Layout_NGHZ1 }, { S2Layout_NGHZ2 }, { S2Layout_Null }, { S2Layout_Null } }, // NGHZ
 };
 
@@ -211,6 +211,12 @@ const int16_t *LevelSizes(int zone, int act) {
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
         },
+        [0x09] = { // GCZ
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+        },
         [0x0A] = { // OOZ
             { 0x0004, 0x0000, 0x2F80 + SCREEN_WIDEADD2, 0x0000, 0x0680 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x2580 + SCREEN_WIDEADD2, 0x0000, 0x0680 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
@@ -235,12 +241,6 @@ const int16_t *LevelSizes(int zone, int act) {
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
         },
-        [0x0E] = { // GCZ
-            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
-            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
-            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
-            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
-        },
         [0x0F] = { // NGHZ
             { 0x0004, 0x0000, 0x28C0 + SCREEN_WIDEADD2, 0x0200, 0x03A0 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x26C0 + SCREEN_WIDEADD2, 0x0180, 0x05A0 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
@@ -261,11 +261,11 @@ const int16_t StartLocArray[ZoneId_Num][4][2] = {
     [0x04] = { { 0x0060, 0x028C }, { 0x0060, 0x05EC }, { 0x0060, 0x020C }, { 0x0060, 0x028C } }, // MTZ
     [0x07] = { { 0x0060, 0x03EF }, { 0x0060, 0x06AF }, { 0x0060, 0x03EF }, { 0x0060, 0x03EF } }, // HTZ
     [0x08] = { { 0x0230, 0x01AC }, { 0x0030, 0x01BD }, { 0x0230, 0x01AC }, { 0x0230, 0x01AC } }, // HPZ
+    [0x09] = { { 0x0070, 0x0460 }, { 0x00BE, 0x005E }, { 0x06F9, 0x05D4 }, { 0x06F9, 0x05D4 } }, // GCZ
     [0x0A] = { { 0x0060, 0x06AC }, { 0x0050, 0x056C }, { 0x0060, 0x06AC }, { 0x0060, 0x06AC } }, // OOZ
     [0x0B] = { { 0x0060, 0x06AC }, { 0x0060, 0x05AC }, { 0x0060, 0x06AC }, { 0x0060, 0x06AC } }, // DHZ
     [0x0C] = { { 0x0060, 0x02AC }, { 0x0060, 0x058C }, { 0x0060, 0x02AC }, { 0x0060, 0x02AC } }, // CNZ
     [0x0D] = { { 0x0030, 0x01EC }, { 0x0030, 0x012C }, { 0x0030, 0x01EC }, { 0x0030, 0x01EC } }, // CPZ
-    [0x0E] = { { 0x0070, 0x0460 }, { 0x00BE, 0x005E }, { 0x06F9, 0x05D4 }, { 0x06F9, 0x05D4 } }, // GCZ
     [0x0F] = { { 0x0050, 0x037C }, { 0x0050, 0x037C }, { 0x0050, 0x037C }, { 0x0050, 0x037C } }, // NGHZ
 };
 
@@ -277,11 +277,11 @@ const int16_t BGScrollBlockSizes[ZoneId_Num][4] = {
     [0x04] = { 0x800, 0x100, 0x100, 0 },
     [0x07] = { 0x800, 0x100, 0x100, 0 },
     [0x08] = { 0x800, 0x100, 0x100, 0 },
+    [0x09] = { 0x800, 0x100, 0x100, 0 },
     [0x0A] = { 0x800, 0x100, 0x100, 0 },
     [0x0B] = { 0x800, 0x100, 0x100, 0 },
     [0x0C] = { 0x800, 0x100, 0x100, 0 },
     [0x0D] = { 0x800, 0x100, 0x100, 0 },
-    [0x0E] = { 0x800, 0x100, 0x100, 0 },
     [0x0F] = { 0x800, 0x100, 0x100, 0 },
 };
 
@@ -294,6 +294,7 @@ const LevelLoadBlock level_load_block[ZoneId_Num][4] = {
     [0x04] = LLB_ACTS(LLB(PlcId_MTZ, S2Art_MTZ, PlcId_MTZ2, S2Map16_MTZ, PalId_MTZ, S2Map128_MTZ)),
     [0x07] = LLB_ACTS({ PlcId_SBZ, PlcId_SBZ2, PalId_HTZ, { S2Art_EHZPrimary, S2Art_HTZSecondary }, { S2Map16_EHZPrimary, S2Map16_HTZSecondary }, { S2Map128_HTZ, S2Map128_HTZ } }),
     [0x08] = LLB_ACTS(LLB(PlcId_SYZ, S2Art_HPZ, 0, S2Map16_HPZ, PalId_HPZ, S2Map128_HPZ)),
+    [0x09] = LLB_ACTS(LLB(0, S2Art_GCZ, 0, S2Map16_GCZ, PalId_GCZ, S2Map128_GCZ)),
     [0x0A] = LLB_ACTS(LLB(PlcId_OOZ, S2Art_OOZ, PlcId_OOZ2, S2Map16_OOZ, PalId_OOZ, S2Map128_OOZ)),
     [0x0B] = LLB_ACTS(LLB(PlcId_DHZ, S2Art_DHZ, PlcId_DHZ2, S2Map16_DHZ, PalId_DHZ, S2Map128_DHZ)),
     [0x0C] = { // (the alpha's Casino Night has a palette for each act)
@@ -303,7 +304,6 @@ const LevelLoadBlock level_load_block[ZoneId_Num][4] = {
         LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ),
     },
     [0x0D] = LLB_ACTS(LLB(PlcId_MZ, S2Art_CPZ, PlcId_MZ2, S2Map16_CPZ, PalId_CPZ, S2Map128_CPZ)),
-    [0x0E] = LLB_ACTS(LLB(0, S2Art_GCZ, 0, S2Map16_GCZ, PalId_GCZ, S2Map128_GCZ)),
     [0x0F] = LLB_ACTS(LLB(PlcId_GHZ, S2Art_NGHZ, PlcId_GHZ2, S2Map16_NGHZ, PalId_NGHZ, S2Map128_NGHZ)),
 };
 
@@ -315,11 +315,11 @@ const uint8_t* level_solids[ZoneId_Num - 1] = {
     [0x04] = S2Collision_MTZ,
     [0x07] = S2Collision_HTZ,
     [0x08] = S2Collision_HPZ,
+    [0x09] = S2Collision_GCZ,
     [0x0A] = S2Collision_OOZ,
     [0x0B] = S2Collision_DHZ,
     [0x0C] = S2Collision_CNZ,
     [0x0D] = S2Collision_CPZ,
-    [0x0E] = S2Collision_GCZ,
     [0x0F] = S2Collision_NGHZ,
 };
 
@@ -331,11 +331,11 @@ const uint8_t* level_obj[ZoneId_Num][4] = {
     [0x04] = { S2Objects_MTZ1, S2Objects_MTZ2, S2Objects_MTZ3, S2Objects_Null }, // MTZ
     [0x07] = { S2Objects_HTZ1, S2Objects_HTZ2, S2Objects_Null, S2Objects_Null }, // HTZ
     [0x08] = { S2Objects_HPZ1, S2Objects_HPZ1, S2Objects_Null, S2Objects_Null }, // HPZ
+    [0x09] = { S2Objects_GCZ1, S2Objects_GCZ2, S2Objects_Null, S2Objects_Null }, // GCZ
     [0x0A] = { S2Objects_OOZ1, S2Objects_OOZ2, S2Objects_Null, S2Objects_Null }, // OOZ
     [0x0B] = { S2Objects_DHZ1, S2Objects_DHZ2, S2Objects_Null, S2Objects_Null }, // DHZ
     [0x0C] = { S2Objects_CNZ1, S2Objects_CNZ2, S2Objects_Null, S2Objects_Null }, // CNZ
     [0x0D] = { S2Objects_CPZ1, S2Objects_CPZ2, S2Objects_Null, S2Objects_Null }, // CPZ
-    [0x0E] = { S2Objects_GCZ1, S2Objects_GCZ2, S2Objects_Null, S2Objects_Null }, // GCZ
     [0x0F] = { S2Objects_NGHZ1, S2Objects_NGHZ2, S2Objects_Null, S2Objects_Null }, // NGHZ
 };
 
@@ -346,11 +346,11 @@ const uint8_t* level_ring[ZoneId_Num][4] = {
     [0x04] = { S2Rings_MTZ1, S2Rings_MTZ2, S2Rings_MTZ3, S2Rings_Null }, // MTZ
     [0x07] = { S2Rings_HTZ1, S2Rings_HTZ2, S2Rings_Null, S2Rings_Null }, // HTZ
     [0x08] = { S2Rings_HPZ1, S2Rings_HPZ1, S2Rings_Null, S2Rings_Null }, // HPZ
+    [0x09] = { S2Rings_GCZ1, S2Rings_GCZ2, S2Rings_Null, S2Rings_Null }, // GCZ
     [0x0A] = { S2Rings_OOZ1, S2Rings_OOZ2, S2Rings_Null, S2Rings_Null }, // OOZ
     [0x0B] = { S2Rings_DHZ1, S2Rings_DHZ2, S2Rings_Null, S2Rings_Null }, // DHZ
     [0x0C] = { S2Rings_CNZ1, S2Rings_CNZ2, S2Rings_Null, S2Rings_Null }, // CNZ
     [0x0D] = { S2Rings_CPZ1, S2Rings_CPZ2, S2Rings_Null, S2Rings_Null }, // CPZ
-    [0x0E] = { S2Rings_GCZ1, S2Rings_GCZ2, S2Rings_Null, S2Rings_Null }, // GCZ
     [0x0F] = { S2Rings_NGHZ1, S2Rings_NGHZ2, S2Rings_Null, S2Rings_Null }, // NGHZ
 };
 
@@ -375,11 +375,11 @@ const char *Peek_ZoneCode(int zone) {
         [0x04] = "MTZ",
         [0x07] = "HTZ",
         [0x08] = "HPZ",
+        [0x09] = "GCZ",
         [0x0A] = "OOZ",
         [0x0B] = "DHZ",
         [0x0C] = "CNZ",
         [0x0D] = "CPZ",
-        [0x0E] = "GCZ",
         [0x0F] = "NGHZ",
     };
     return zone >= 0 && zone < ZoneId_Num ? names[zone] : (const char *)0;
@@ -394,11 +394,11 @@ const char *Peek_LevelName(int zone, int act) {
         [0x04] = { "MTZ1", "MTZ2", "MTZ3", "MTZ4" },
         [0x07] = { "HTZ1", "HTZ2", "HTZ3", "HTZ4" },
         [0x08] = { "HPZ1", "HPZ2", "HPZ3", "HPZ4" },
+        [0x09] = { "GCZ1", "GCZ2", "GCZ3", "GCZ4" },
         [0x0A] = { "OOZ1", "OOZ2", "OOZ3", "OOZ4" },
         [0x0B] = { "DHZ1", "DHZ2", "DHZ3", "DHZ4" },
         [0x0C] = { "CNZ1", "CNZ2", "CNZ3", "CNZ4" },
         [0x0D] = { "CPZ1", "CPZ2", "CPZ3", "CPZ4" },
-        [0x0E] = { "GCZ1", "GCZ2", "GCZ3", "GCZ4" },
         [0x0F] = { "NGHZ1", "NGHZ2", "NGHZ3", "NGHZ4" },
     };
     return zone >= 0 && zone < ZoneId_Num && act >= 0 && act < 4 ? names[zone][act] : (const char *)0;
