@@ -261,9 +261,9 @@ static void Deform_CNZ(void) {
 // The prototype's bands of a background (the loop at loc_6526 and loc_6A36): `heights` are the bands' heights in lines and `values` their scroll; the background's own Y says which band is at the top and how
 // much of it shows. Each band's value is the background's X as the original writes it (negated here).
 static void Deform_Bands(const uint8_t *heights, int count, const int16_t *values, uint16_t bg_y, int16_t fg) {
-	uint16_t h[24];
-	int16_t pos[24];
-	for (int i = 0; i < count; i++) {
+	uint16_t h[48];
+	int16_t pos[48];
+	for (int i = 0; i < count && i < 48; i++) {
 		h[i] = heights[i];
 		pos[i] = values[i];
 	}
@@ -349,6 +349,8 @@ static void Deform_ARZ(void) {
 }
 
 void Deform_SCZ(void);
+static void Deform_SFZ(void);
+static void Deform_DEZ(void);
 // Each zone's background deformation, registered with the scrolling engine (ScrollEngine.h) as its background event: these are the old deformation routines, kept until each zone is written for the engine
 static void RegisterZones(void) {
     static bool done;
@@ -367,6 +369,8 @@ static void RegisterZones(void) {
     ScrollEngine_SetZone(ZoneId_EHZ, -1, &(ScrollZone){ .background_event = Deform_EHZ });
     ScrollEngine_SetZone(ZoneId_HPZ, -1, &(ScrollZone){ .background_event = Deform_HPZ });
     ScrollEngine_SetZone(ZoneId_HTZ, -1, &(ScrollZone){ .background_event = Deform_HTZ });
+    ScrollEngine_SetZone(ZoneId_SFZ, -1, &(ScrollZone){ .background_event = Deform_SFZ });
+    ScrollEngine_SetZone(ZoneId_DEZ, -1, &(ScrollZone){ .background_event = Deform_DEZ });
     ScrollEngine_SetZone(ZoneId_SCZ, -1, &(ScrollZone){ .background_event = Deform_SCZ });
 }
 
@@ -512,6 +516,20 @@ void BgScrollSpeed(int16_t x, int16_t y) {
         case ZoneId_GCZ: /* Cyber City: InitCam_Std (the camera's Y shifted right twice and its X three times, arithmetically) */
             bg_scrpos_y.f.u = (int16_t)(y >> 2);
             bg_scrpos_x.f.u = (int16_t)(x >> 3);
+            break;
+
+        case ZoneId_SFZ: /* Sky Fortress: the camera's own place, and its three drifting layers start over */
+            memset(bgscroll_buffer, 0, 12);
+            break;
+
+        case ZoneId_DEZ: /* Death Egg: the camera's own place, and the stars' words start over */
+            memset(bgscroll_buffer, 0, 80);
+            break;
+
+        case ZoneId_SCZ: /* Sky Chase: the background starts at 0 (Bg_Scroll_Speed_SCz clears its two) */
+            bg_scrpos_x.v = bg_scrpos_y.v = 0;
+            bg2_scrpos_x.v = bg2_scrpos_y.v = 0;
+            bg3_scrpos_x.v = 0;
             break;
 
         case ZoneId_SSZ: /* Sand Shower: an eighth of the height and of the width */
@@ -723,6 +741,60 @@ void ScrollVertical(void) {
 	scrshift_y = (int16_t)((scroll.v - scrpos_y.v) >> 8);
 	scrpos_y.v = scroll.v;
 	LevelPlane_CameraMovedY(&fg_plane, old_y);
+}
+
+// Sky Fortress (Bg_Scroll_SFz): the background goes with the camera, a pixel for a pixel (Scroll_Block_2 and 3 with the whole of each move), and in 38 bands of $20 to $C0 lines (2560 in all, the plane's $800 and the
+// wrap's overlap) picks one of five x: the first two are the background's own, the three others drift by themselves at half, a quarter and an eighth of a pixel a frame (they are not the camera's at all: the sky's
+// clouds)
+static void Deform_SFZ(void)
+{
+	bg_scrpos_x.v += (int32_t)scrshift_x << 8;
+	bg_scrpos_y.v += (int32_t)scrshift_y << 8;
+	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
+	int32_t *drift = (int32_t *)bgscroll_buffer; // (cleared where the level starts)
+	drift[0] += 0x8000;
+	drift[1] += 0x4000;
+	drift[2] += 0x2000;
+	static const uint8_t heights[38] = { 0xC0, 0xC0, 0x80, 0x20, 0x30, 0x30, 0x20, 0x30, 0x30, 0x20, 0x30, 0x30, 0x20, 0x30, 0x30, 0x20, 0x30, 0x30, 0x20, 0x30, 0x30, 0x20, 0x30, 0x30, 0x80, 0x80, 0x20, 0x30, 0x30, 0x20, 0x30, 0x30, 0x20, 0x30, 0x30, 0xC0, 0xC0, 0x80 };
+	static const uint8_t source[38] = { 0, 0, 0, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 2, 3, 4, 1, 1, 2, 3, 4, 2, 3, 4, 2, 3, 4, 0, 0, 0 };
+	const int16_t x = bg_scrpos_x.f.u;
+	const int16_t layers[5] = { x, x, (int16_t)(drift[0] >> 16), (int16_t)(drift[1] >> 16), (int16_t)(drift[2] >> 16) };
+	int16_t values[38];
+	for (int i = 0; i < 38; i++)
+		values[i] = layers[source[i]];
+	Deform_Bands(heights, 38, values, (uint16_t)bg_scrpos_y.f.u & 0x7FF, (int16_t)-scrpos_x.f.u);
+}
+
+// Death Egg (Bg_Scroll_DEz): the background goes with the camera too, and in 36 bands (the first $80 lines, then bands of 8, then a few) the stars each have an x of their own, which grows by 1 to 6 a frame (a word
+// each that is kept from frame to frame) except for the first and the last four, which are the camera's, and a few that are the part of a 24th: the picture of stars going by at their speeds
+static void Deform_DEZ(void)
+{
+	bg_scrpos_x.v += (int32_t)scrshift_x << 8;
+	bg_scrpos_y.v += (int32_t)scrshift_y << 8;
+	vid_bg_scrpos_y_dup = bg_scrpos_y.f.u;
+	uint16_t *w = (uint16_t *)bgscroll_buffer; // (cleared where the level starts)
+	static const uint8_t adds[23] = { 3, 2, 4, 1, 2, 4, 3, 4, 2, 6, 3, 4, 1, 2, 4, 3, 2, 3, 4, 1, 3, 4, 2 };
+	const uint16_t camera = (uint16_t)scrpos_x.f.u;
+	w[0] = camera;
+	for (int i = 0; i < 23; i++)
+		w[1 + i] = (uint16_t)(w[1 + i] + adds[i]);
+	w[24] = (uint16_t)(w[24] + 1);
+	w[25] = (uint16_t)(w[24] >> 1);
+	w[26] = (uint16_t)(w[26] + 3);
+	w[27] = (uint16_t)(w[27] + 2);
+	w[28] = (uint16_t)(w[28] + 4);
+	const uint32_t whole = (uint32_t)w[24] << 16, eighth = whole >> 3;
+	w[31] = (uint16_t)((whole - eighth) >> 16);
+	w[30] = (uint16_t)((whole - eighth - eighth) >> 16);
+	w[29] = (uint16_t)((whole - eighth - eighth - eighth) >> 16);
+	w[32] = (uint16_t)(w[32] + 1);
+	w[33] = w[34] = w[35] = camera;
+	static const uint8_t heights[36] = { 0x80, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
+	                                    0x08, 0x08, 0x08, 0x08, 0x08, 0x03, 0x05, 0x08, 0x10, 0x80, 0x80 };
+	int16_t values[36];
+	for (int i = 0; i < 36; i++)
+		values[i] = (int16_t)w[i];
+	Deform_Bands(heights, 36, values, (uint16_t)bg_scrpos_y.f.u, (int16_t)-scrpos_x.f.u);
 }
 
 // Sky Chase (Bg_Scroll_SCz): the level scrolls by itself: the camera goes by the Tornado's speeds (the events set them: SFZObjects.h) and not after the player; the background goes half a pixel a frame whenever the camera
