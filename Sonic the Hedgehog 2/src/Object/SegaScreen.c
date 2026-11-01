@@ -1,14 +1,189 @@
+#include <string.h>
+
 #include "Constants.h"
 #include "Game.h"
 #include "SstLoad.h"
 #include "ObjectSst.h"
 #include "Object.h"
 
+#include "Backend/VDP.h"
 #include "Object/SegaScreen.h"
+#include "Resource/Art/SegaSonic.h"
 #include "Resource/Mappings/SegaSprites.h"
 
-// The objects of the SEGA screen of the Sonic 2 pre-beta (the final game's), loaded by GM_Sega.c: $B1 here, the two blocks that hide the trademark of the logo (the pre-beta makes it for every
-// console but the Japanese one, where the trademark stays); Sonic running across the logo ($B0) is the next stage.
+// The objects of the SEGA screen of the Sonic 2 pre-beta (the final game's), loaded by GM_Sega.c: $B0, Sonic running across the logo at twice his size, and $B1, the two blocks that hide the trademark of
+// the logo (the pre-beta makes it for every console but the Japanese one, where the trademark stays). Stage 2 of the screen has Sonic; the letters' lines and the palette sweeps are stage 3.
+
+bool sega_animation_done;
+
+// ---- Sonic's art, doubled (Sub_Sega_Intro of the pre-beta, as it does it) ------------------------------------------------------------------------------------------------------------------------------------
+// The tiles of his four running frames (the lists of the pre-beta's $B0: a tile of Art_Sonic and how many, in the word) are put one after the other in a buffer, and each piece of them is made into one twice as
+// big, a pixel a 2 x 2 block: a source byte (two pixels) becomes two bytes on this row and on the next, so a tile becomes four, down the left column and then down the right. $0B00 on is the result (the
+// pre-beta DMAs it to tile $88)
+#define SEGA_ART_FIRST 0x2B6 // the first tile of Art_Sonic that the lists use (the resource holds the tiles from there)
+static uint8_t sega_ram[0x4000];
+
+static void SegaDoubleByte(unsigned src, unsigned dst) {
+    const uint8_t b = sega_ram[src];
+    const uint8_t hi = (uint8_t)(b & 0xF0), lo = (uint8_t)(b & 0x0F);
+    sega_ram[dst] = sega_ram[dst + 4] = (uint8_t)(hi | (hi >> 4));
+    sega_ram[dst + 1] = sega_ram[dst + 5] = (uint8_t)(lo | (lo << 4));
+}
+
+static unsigned SegaDoubleRow(unsigned src, unsigned dst) { // (two source bytes)
+    SegaDoubleByte(src, dst);
+    SegaDoubleByte(src + 1, dst + 2);
+    return src + 2;
+}
+
+typedef struct { unsigned a1, a2, a3, a5; } SegaBlit;
+
+// Offset_0x034BA4 / 34BBC: D5 + 1 tiles of the source, a row of 4 pixels to each of the two columns
+static void SegaBlitTiles(SegaBlit *b, unsigned *c1, unsigned *c2, int d5) {
+    for (;;) {
+        for (int row = 0; row < 8; row++) {
+            b->a1 = SegaDoubleRow(b->a1, *c1);
+            *c1 += 8;
+            b->a1 = SegaDoubleRow(b->a1, *c2);
+            *c2 += 8;
+        }
+        if (d5-- == 0)
+            break;
+    }
+}
+
+// Offset_0x034B2A
+static void SegaIntroPart(SegaBlit *b, int d0, int d1, unsigned v2, unsigned v3) {
+    unsigned a2 = b->a2, a4 = a2, a3 = a2 + v2, a5;
+    SegaBlitTiles(b, &a2, &a3, d1 & 1);
+    b->a3 = a3;
+    if (d1 & 2) {
+        a4 += (v2 * 2) << (d0 & 1);
+        a5 = a4 + v3;
+        SegaBlitTiles(b, &a4, &a5, d1 >> 1);
+        b->a5 = a5;
+    }
+    if (d0 & 3) {
+        a2 += v2;
+        a3 = a2 + v2;
+        SegaBlitTiles(b, &a2, &a3, d1 & 1);
+        b->a3 = a3;
+        if (d1 & 2) {
+            a4 += v3;
+            a5 = a4 + v3;
+            SegaBlitTiles(b, &a4, &a5, d1 >> 1);
+            b->a5 = a5;
+        }
+    }
+    b->a2 = a2;
+}
+
+// Sub_Sega_Intro: from a1, to a2, d0 and d1 saying how many tiles and in what shape
+static void SegaIntro(unsigned a1, unsigned a2, int d0, int d1) {
+    SegaBlit b = { a1, a2, 0, 0 };
+    const unsigned v2 = (unsigned)((d1 & 1) + 1) << 6, v3 = (unsigned)((d1 >> 1) + 1) << 6;
+    SegaIntroPart(&b, d0, d1, v2, v3);
+    if (!(d0 & 2))
+        return;
+    if (!(d1 & 2))
+        b.a5 = b.a3;
+    b.a2 = b.a5;
+    SegaIntroPart(&b, d0, d1, v2, v3);
+}
+
+// Offset_0x0345B4 on: Sonic's frames (four lists of a 6 tile and a 16 tile piece of Art_Sonic), then the eight doublings; the result goes to VRAM at tile $88 (the mappings count from there)
+#define SEGA_SONIC_TILE 0x88
+static void SegaMakeSonicArt(void) {
+    static const uint16_t lists[4][2] = { { 0x52B6, 0xF2BC }, { 0x52CC, 0xF2D2 }, { 0x52B6, 0xF2E2 }, { 0x52CC, 0xF2F2 } };
+    static const struct { uint16_t src, dst; uint8_t d0, d1; } blits[8] = {
+        { 0x0000, 0x0B00, 2, 1 }, { 0x00C0, 0x0E00, 3, 3 }, { 0x02C0, 0x1600, 2, 1 }, { 0x0380, 0x1900, 3, 3 },
+        { 0x0580, 0x2100, 2, 1 }, { 0x0640, 0x2400, 3, 3 }, { 0x0840, 0x2C00, 2, 1 }, { 0x0900, 0x2F00, 3, 3 },
+    };
+    memset(sega_ram, 0, sizeof(sega_ram));
+    unsigned at = 0;
+    for (int l = 0; l < 4; l++)
+        for (int i = 0; i < 2; i++) {
+            const unsigned tile = lists[l][i] & 0xFFF, count = (unsigned)(lists[l][i] >> 12) + 1;
+            memcpy(sega_ram + at, Art_SegaSonic + (tile - SEGA_ART_FIRST) * TILE_SIZE, count * TILE_SIZE);
+            at += count * TILE_SIZE;
+        }
+    for (int i = 0; i < 8; i++)
+        SegaIntro(blits[i].src, blits[i].dst, blits[i].d0, blits[i].d1);
+    VDP_SeekVRAM(ART_VRAM(SEGA_SONIC_TILE));
+    VDP_WriteVRAM(sega_ram + 0x0B00, 0x2C00);
+}
+
+// ---- Sonic ($B0) -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// He runs left across the logo (twelve frames of $20 pixels), is out of sight while the first sweep goes (28 frames), runs back right (twelve frames) and is out of sight while the second goes: the voice
+// is then played (GM_Sega.c). A wide picture has more to run: the frames it takes to cross it are added to both runs.
+enum { SEGA_RUN_FRAMES = 12, SEGA_SWEEP_FRAMES = 28 };
+
+typedef struct {
+    int16_t timer;
+} Own_SegaSonic;
+
+static const uint8_t sega_sonic_anim[] = { 0x00, 0x02, 0x00, 0x00, 0x01, 0x02, 0x03, 0xFF }; // (every frame, 0-3 round)
+
+static int SegaExtraFrames(void) {
+    return (PLANE_WIDEADD * 8 + 0x1F) / 0x20;
+}
+
+void Obj_SegaSonic(Sst *self) {
+    Own_SegaSonic *own = (Own_SegaSonic *)self->own.u8;
+
+    switch (self->routine) {
+    case 0:
+        self->routine += 2;
+        SegaMakeSonicArt();
+        self->mappings = Mappings_SegaSprites;
+        self->art_tile = TILE_MAP(1, 2, 0, 0, SEGA_SONIC_TILE);
+        self->render_flags = SST_RENDER_X_FLIP; // (faces the way he runs: left)
+        self->status = SST_STATUS_X_FLIP;
+        self->priority = 1 * 0x80;
+        self->width_pixels = 0x10;
+        self->x_pos.f.u = 0x1E8 + (PLANE_WIDEADD * 8);
+        self->y_pos.f.u = 0xF0 + SCREEN_TALLADD2;
+        own->timer = SEGA_RUN_FRAMES - 1 + SegaExtraFrames();
+        break;
+    case 2: // runs left
+        self->x_pos.f.u -= 0x20;
+        if (--own->timer >= 0) {
+            Sst_Animate(self, sega_sonic_anim);
+            Sst_Draw(self);
+        } else {
+            self->routine += 2;
+            own->timer = SEGA_SWEEP_FRAMES;
+        }
+        break;
+    case 4: // out of sight: the first sweep
+        if (--own->timer < 0) {
+            self->routine += 2;
+            self->render_flags &= (uint8_t)~SST_RENDER_X_FLIP; // (turns round)
+            self->status &= (uint8_t)~SST_STATUS_X_FLIP;
+            self->x_pos.f.u -= 0x28;
+            own->timer = SEGA_RUN_FRAMES - 1 + SegaExtraFrames();
+        }
+        break;
+    case 6: // runs right
+        self->x_pos.f.u += 0x20;
+        if (--own->timer >= 0) {
+            Sst_Animate(self, sega_sonic_anim);
+            Sst_Draw(self);
+        } else {
+            self->routine += 2;
+            own->timer = SEGA_SWEEP_FRAMES;
+        }
+        break;
+    case 8: // out of sight: the second sweep; then the voice
+        if (--own->timer < 0) {
+            self->routine += 2;
+            sega_animation_done = true;
+        }
+        break;
+    }
+}
+
+// ---- The trademark's hider ($B1) ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 void Obj_SegaTrademarkHider(Sst *self) {
     switch (self->routine) {

@@ -381,6 +381,7 @@ resources:
   # the pre-beta's title cards (tools/import_s2prebeta_titlecards.pl)
   - "Art/TitleCardZone"
   - "Art/TitleCardLetters"
+  - "Art/SegaSonic" # (tiles $2B6-$301 of the pre-beta's Sonic art: the SEGA screen's running Sonic)
   - "Art/TitleMenu" # (the title screen's 1 PLAYER / 2 PLAYER VS, the pre-beta's 1p2pVs.nem)
   - "Art/BossEHZ"
   - "Art/BossEHZBlades"

@@ -15,14 +15,13 @@
 #include "Object/SegaScreen.h"
 
 // The SEGA logo of the Sonic 2 pre-beta (September 14, 1992), which is the final game's: its art (the logo's letters at tile 1, the block graphic at tile $80), its map (the whole of plane B) and its
-// palette (four lines: the first white, the second the orange gradient the letters are drawn in). Stage 1 of the screen: the logo stands where it ends, with the hold and the voice of the original (the
-// pre-beta's Sega_Screen); Sonic running across it, the letters pushed aside line by line and the palette sweeps come after (the pre-beta's objects $B0 and $B1).
+// palette (four lines: the first white, the second the orange gradient the letters are drawn in). Stages 1 and 2 of the screen: the logo stands where it ends, with the hold and the voice of the original (the
+// pre-beta's Sega_Screen), and Sonic runs across it (its object $B0; $B1 hides the trademark); the letters pushed aside line by line and the palette sweeps come after.
 #include "Resource/S2Sega/Art.h"
 #include "Resource/S2Sega/Blocks.h"
 #include "Resource/S2Sega/Map.h"
 #include "Resource/S2Sega/Palette.h"
 
-#define SEGA_ANIMATION_FRAMES 80 // (what the pre-beta's two runs and their palette sweeps take, until its objects have the voice played)
 #define SEGA_HOLD_FRAMES 180     // ($B4 in the pre-beta: the logo stays this long, or until Start)
 
 // SEGA gamemode
@@ -61,6 +60,8 @@ void GM_Sega(void) {
 #ifndef SCP_JP
     Sst_SpawnCode(Obj_SegaTrademarkHider, 0, 0); // (the Japanese console keeps the trademark)
 #endif
+    sega_animation_done = false;
+    Sst_SpawnCode(Obj_SegaSonic, 0, 0); // Sonic running across the logo
 
     // The letters start white on white (the first line of the palette is all white) and the two sweeps of the pre-beta's object $B0 write the orange gradient over it; where they end is what stays
     // (the last rows of its two lists, at $FB00 and $FB10)
@@ -72,7 +73,7 @@ void GM_Sega(void) {
         dry_palette[0][i] = sweep_end[i];
 
     // The animation (stage 2: Sonic's run and the letters' lines), then the voice
-    for (int frame = 0; frame < SEGA_ANIMATION_FRAMES; frame++) {
+    while (!sega_animation_done) {
         vbla_routine = 0x02;
         WaitForVBla();
         if ((gamemode & 0x7F) != GameMode_Sega)
