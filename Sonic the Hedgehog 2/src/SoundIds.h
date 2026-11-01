@@ -112,6 +112,8 @@ enum SoundID {
 	sfx_DHZRoots, // $E7 (the bridge of Dust Hill that opens when its roots are pulled)
 	sfx_AlphaE8, // $E8
 	sfx_DHZRoots2, // $E9 (the same bridge's)
+	sfx_LaserBurst, // $EA (the final game's: the pre-beta has it)
+	sfx_Scatter, // $EB (the final game's: the pre-beta has it)
 
 	bgm_Fade = 0xF0,
 	sfx_Sega,
@@ -120,7 +122,7 @@ enum SoundID {
 	bgm_Stop,
 
 	// The last sound the sound test can reach
-	SOUND_ID_LAST = sfx_DHZRoots2,
+	SOUND_ID_LAST = sfx_Scatter,
 
 	// Sonic 1's names, for the code shared with it: what plays for each
 	bgm_GHZ = mus_VsResults, // (the first music)
