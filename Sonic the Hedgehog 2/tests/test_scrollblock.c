@@ -111,7 +111,7 @@ static const ZoneGolden zone_goldens[] = {
     { ZoneId_HTZ, 0, 0x1900, 0xa34ab936b29da417ull }, // (the camera starts before the first quake's stretch and runs through it)
     { ZoneId_HTZ, 1, 0x1500, 0x28a964487a2578baull },
     { ZoneId_EHZ, 0, -1, 0x9537d67c422b1650ull },
-    { ZoneId_CPZ, 0, -1, 0x196c4cf1138ff992ull },
+    { ZoneId_CPZ, 0, -1, 0x7e0ac675484af996ull }, // (the pre-beta's Chemical Plant: its chunks and blocks differ from the alpha's)
     { ZoneId_HPZ, 0, -1, 0x83bc803ef861421cull },
     { ZoneId_HTZ, 0, -1, 0xba0eebd73ad15cf6ull },
     { ZoneId_WZ, 0, -1, 0x7ac5405b04af7249ull },

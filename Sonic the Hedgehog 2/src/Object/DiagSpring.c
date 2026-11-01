@@ -120,6 +120,10 @@ static void DiagSpring_Stand(Sst *self, Sst *chr, uint8_t subtype) {
     chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
     chr->anim = 0x10;
     chr->routine = 2;
+    if (chr == player) // (the pre-beta's: a spring that throws him takes his spin dash charge)
+        Sonic_CancelSpindash();
+    else
+        Tails_CancelSpindash();
     DiagSpring_Tumble(chr, subtype);
     PlaySound(sfx_Spring);
 }

@@ -48,6 +48,7 @@ static void CPZObjects_BarrierRisesWhileSonicIsNearAndSinksAfter(void) {
     Obj_CPZBarrier(obj);
     CHECK_EQ(obj->y_pos.f.u, 300);
     player->x_pos.f.u = 700; // inside [x - $200, x)
+    player->y_pos.f.u = 300; // (and within $20 of the barrier's base: the pre-beta's strip is a box)
     for (int i = 0; i < 4; i++)
         Obj_CPZBarrier(obj);
     CHECK_EQ(obj->y_pos.f.u, 300 - 4 * 8);

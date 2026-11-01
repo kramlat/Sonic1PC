@@ -125,6 +125,8 @@ static void TubeStep(Sst *self, Own_Tube *own, Sst *chr, TubeChar *tc) {
     case 0: { // free: taken when he is near the mouth
         if (debug_use)
             return;
+        if (chr != player && Tails_IsRespawning()) // (the pre-beta's: a Tails who is flying in is not taken: it checked his animation $20, which his flight uses now too, so it is his state)
+            return;
         int16_t range = (int16_t)own->range;
         int16_t d0 = (int16_t)(chr->x_pos.f.u - self->x_pos.f.u);
         if ((uint16_t)d0 >= (uint16_t)range)
@@ -314,7 +316,7 @@ void Obj_CPZTubeSpring(Sst *self) {
         self->render_flags |= SST_RENDER_LEVEL;
         self->width_pixels = 0x10;
         self->priority = 1 * 0x80;
-        own->power = (self->subtype & 2) ? -0xA00 : -0x1000;
+        own->power = (self->subtype & 2) ? -0xA80 : -0x1000; // (the pre-beta's weaker one is $A80: the alpha's was $A00)
     }
 
     if (self->mapping_frame != 1) { // (shut while it is open)
@@ -336,7 +338,7 @@ void Obj_CPZTubeSpring(Sst *self) {
         if (who == SolidChar_Tails && chr->code == NULL)
             continue;
         uint16_t cx = (uint16_t)chr->x_pos.f.u, cy = (uint16_t)chr->y_pos.f.u;
-        if (cx >= x0 && cx < x1 && cy >= y0 && cy < y1)
+        if (cx >= x0 && cx < x1 && cy >= y0 && cy < y1 && self->prev_anim != (uint8_t)(2 + who)) // (not again while it is already open for him: the pre-beta)
             self->anim = (uint8_t)(2 + who);
     }
     Sst_Animate(self, Animation_TubeSpring);

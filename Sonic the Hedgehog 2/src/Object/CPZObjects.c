@@ -2,6 +2,7 @@
 // that make its staircases (6B, Obj_0x6B_Mz_Platform at loc_1BCEC), the one way barrier (2D), the tube cover (32), the rotating platforms (78), the sliding platforms (7A), the invisible block (74)
 // and the droplet chain badnik (1D). Each is a port of its routine in the prototype's disassembly.
 #include "Object/CPZObjects.h"
+#include "Object/CharControl.h"
 void Obj_Points(Sst *self);
 #include "ObjectSst.h"
 #include "Object.h"
@@ -180,7 +181,10 @@ typedef struct {
 #define ARTTILE_BOOSTER 0x39C // ($7380 in the zone's art list)
 
 static void Booster_Give(Sst *self, Sst *chr, int16_t speed) {
-    if ((uint16_t)(chr->x_vel < 0 ? -chr->x_vel : chr->x_vel) >= 0x1000) { // (the alpha's: a character who is going that fast already is left as he is, and the booster only sounds)
+    int16_t going = chr->x_vel; // (the pre-beta's: how fast he goes the way the booster faces; the alpha's looked at the size of his speed, either way)
+    if (self->status & SST_STATUS_X_FLIP)
+        going = (int16_t)-going;
+    if (going >= 0x1000) { // (a character who is going that fast already is left as he is, and the booster only sounds)
         PlaySound(sfx_Spring);
         return;
     }
@@ -451,7 +455,7 @@ void Obj_CPZBarrier(Sst *self) {
         const bool cpz = LEVEL_ZONE(level_id) == ZoneId_CPZ;
         const bool mtz = LEVEL_ZONE(level_id) == ZoneId_MTZ; // (Metropolis's is the first tile of its art, and as wide as Chemical Plant's)
         self->art_tile = ssz ? TILE_MAP(0, 2, 0, 0, 0) : mtz ? TILE_MAP(0, 3, 0, 0, 0) : TILE_MAP(0, 1, 0, 0, cpz ? ARTTILE_CPZ_STRIPES : ARTTILE_HTZ_VALVE_BARRIER);
-        self->width_pixels = ssz ? 0x10 : (cpz || mtz) ? 0xC : 8; // (Sand Shower's runs from x to x+32: its solid box is centred 16 to the right)
+        self->width_pixels = ssz ? 0x10 : 8; // (Sand Shower's runs from x to x+32: its solid box is centred 16 to the right; the pre-beta's Chemical Plant and Metropolis doors are 8 wide too: the alpha's were 12)
         self->render_flags |= SST_RENDER_LEVEL;
         self->priority = 4 * 0x80;
         own->base_y = self->y_pos.f.u;
@@ -524,8 +528,8 @@ void Obj_CPZBarrier(Sst *self) {
     }
     self->routine_secondary = 0; // (down, unless a character is in the strip)
     FOR_EACH_CHARACTER(chr, who) {
-        const uint16_t cx = (uint16_t)chr->x_pos.f.u;
-        if (cx >= (uint16_t)d2 && cx < (uint16_t)d3)
+        const int16_t cx = chr->x_pos.f.u, cy = chr->y_pos.f.u; // (the pre-beta's: the strip is a box, $20 above and below the door's base, and a character whom an object holds with his collisions off does not open it)
+        if (cx >= d2 && (uint16_t)cx < (uint16_t)d3 && (uint16_t)cy >= (uint16_t)(own->base_y - 0x20) && (uint16_t)cy < (uint16_t)(own->base_y + 0x20) && !(CharObjControl(chr) & 0x80))
             self->routine_secondary = 2;
     }
     }
@@ -1026,9 +1030,12 @@ void Obj_CPZWorm(Sst *self) {
         self->y_vel += 0x18;
         if (self->y_vel == 0)
             self->x_pos.f.u = (int16_t)(own->hop + own->base_x);
+        if (self->y_vel == 0x180) // (the pre-beta's sounds, the splashes of the hopping worm: on its way down, and as it lands)
+            PlaySound(sfx_Gloop);
         if (!((uint16_t)own->base_y > (uint16_t)self->y_pos.f.u)) {
             self->y_vel = own->jump;
             self->x_pos.f.u = own->base_x;
+            PlaySound(sfx_Gloop);
         }
         break;
     }

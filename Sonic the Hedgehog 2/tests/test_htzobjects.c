@@ -86,7 +86,7 @@ static void HTZObjects_TheValveBarrierHasItsOwnArtAndWidth(void) {
     Sst *cpz = Spawn(0x2D, 0, 400, 300);
     Obj_CPZBarrier(cpz);
     CHECK_EQ(cpz->art_tile & 0x7FF, 0x394);
-    CHECK_EQ(cpz->width_pixels, 0xC);
+    CHECK_EQ(cpz->width_pixels, 8); // (the pre-beta's: the alpha's was $C)
 }
 
 static void HTZObjects_TheRockIsWiderAndBreaksInSix(void) {
