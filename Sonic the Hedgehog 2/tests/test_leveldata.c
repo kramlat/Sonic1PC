@@ -36,7 +36,7 @@ typedef struct {
 static void LevelData_LevelSizesMatchThePrototype(void) {
     static const Size sizes[] = {
         { ZoneId_HTZ, 0, 0x2800, 0, 0x720 }, { ZoneId_HTZ, 1, 0x3280, 0, 0x720 }, // (Hill Top's second act is the alpha's) { ZoneId_CPZ, 0, 0x2780, 0, 0x720 }, { ZoneId_CPZ, 1, 0x2880, 0, 0x720 },
-        { ZoneId_CNZ, 0, 0x3FFF, 0, 0x720 }, { ZoneId_CNZ, 1, 0x3FFF, 0, 0x720 }, { ZoneId_ARZ, 0, 0x28C0, 0x200, 0x600 }, { ZoneId_ARZ, 1, 0x3FFF, 0x180, 0x780 },
+        { ZoneId_CNZ, 0, 0x27A0, 0, 0x720 }, { ZoneId_CNZ, 1, 0x2A80, 0, 0x720 }, { ZoneId_ARZ, 0, 0x28C0, 0x200, 0x600 }, { ZoneId_ARZ, 1, 0x3FFF, 0x180, 0x780 },
         { ZoneId_WZ, 0, 0x3FFF, 0, 0x720 },
     };
     for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++) {

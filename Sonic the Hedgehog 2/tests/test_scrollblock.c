@@ -119,7 +119,7 @@ static const ZoneGolden zone_goldens[] = {
     { ZoneId_OOZ, 0, -1, 0xd5dd899da2d6ba05ull },
     { ZoneId_MCZ, 0, -1, 0x73d0d845ffd7d591ull },
     { ZoneId_MCZ, 1, -1, 0x6822c9a4af424564ull },
-    { ZoneId_CNZ, 0, -1, 0xe1c598a3e37241a7ull },
+    { ZoneId_CNZ, 0, -1, 0xbeee30984f308590ull }, // (the pre-beta's Casino Night)
     { ZoneId_SSZ, 0, -1, 0x1ade4a656e40c98aull },
     { ZoneId_ARZ, 0, -1, 0xcd0e306cb55f8331ull }, // (the pre-beta's Neo Green Hill: its tiles, blocks and chunks differ from the alpha's)
     { ZoneId_ARZ, 1, -1, 0xb40a68c52ec6ffb0ull },

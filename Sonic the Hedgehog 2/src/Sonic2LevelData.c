@@ -256,9 +256,9 @@ const int16_t *LevelSizes(int zone, int act) {
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x03C0, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0060, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
         },
-        [0x0C] = { // CNZ
-            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
-            { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+        [0x0C] = { // CNZ (the pre-beta's)
+            { 0x0004, 0x0000, 0x27A0 + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
+            { 0x0004, 0x0000, 0x2A80 + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
             { 0x0004, 0x0000, 0x3FFF + SCREEN_WIDEADD2, 0x0000, 0x0720 + SCREEN_TALLADD, 96 + SCREEN_TALLADD2 },
         },
@@ -345,7 +345,7 @@ const LevelLoadBlock level_load_block[ZoneId_Num][4] = {
     [0x0B] = LLB_ACTS(LLB(PlcId_DHZ, S2Art_DHZ, PlcId_DHZ2, S2Map16_DHZ, PalId_DHZ, S2Map128_DHZ)),
     [0x0C] = { // (the alpha's Casino Night has a palette for each act)
         LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ),
-        LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ2, S2Map128_CNZ),
+        LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ),
         LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ),
         LLB(PlcId_LZ, S2Art_CNZ, PlcId_LZ2, S2Map16_CNZ, PalId_CNZ, S2Map128_CNZ),
     },

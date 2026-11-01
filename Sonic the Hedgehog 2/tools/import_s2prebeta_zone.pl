@@ -19,6 +19,7 @@ use File::Temp qw(tempdir);
 my %zones = (
     # Neo Green Hill (ARZ, slot $0F): the files' names have no underscore before Col and Map
     NGHZ => { dir => 'NGHz', prefix => 'NGHz', pal => 'NGHz.pal', water => 'NGHz_UW.pal', water_res => 'NGHZWater', cols => ['NGHzCol1.dat', 'NGHzCol2.dat'], maps => ['NGHzMap1.Kos', 'NGHzMap2.Kos'] },
+    CNZ => { dir => 'CNz', prefix => 'CNz', pal => 'CNz.pal' },
     CPZ => { dir => 'CPz', prefix => 'CPz', pal => 'CPz.pal', water => 'CPz_UW.pal', water_res => 'CPZWater' },
     # Sky Fortress: one layout, one object list and one ring list for both acts (the pre-beta's labels for the second are the first's), and its files are named a little differently
     # Death Egg and Sky Chase: one act each, and the tiles, blocks, chunks and collision of another zone (Chemical Plant's and Sky Fortress's: `share`), with a layout, objects and palette of their own; Death Egg has no rings
