@@ -20,6 +20,8 @@ my $objects = ($ENV{S2PREBETA} // "$ENV{HOME}/Projects/s2prebeta-disasm") . '/Da
 for my $job (
     [ 'asm_dc_mappings.pl', 'Obj_0xD8.asm', 'Green_Bumper_Mappings', 'res/Mappings/CNZGreenBumper' ],
     [ 'asm_dc_animation.pl', 'Obj_0xD8.asm', 'Green_Bumper_Animate_Data', 'res/Animation/CNZGreenBumper' ],
+    [ 'asm_dc_mappings.pl', 'Obj_0xD7.asm', 'Blue_Bumper_Mappings', 'res/Mappings/CNZBlueBumper' ],
+    [ 'asm_dc_animation.pl', 'Obj_0xD7.asm', 'Blue_Bumper_Animate_Data', 'res/Animation/CNZBlueBumper' ],
     [ 'asm_dc_mappings.pl', 'Obj_0xD6.asm', 'Slot_Machine_Starter_Mappings', 'res/Mappings/CNZSlotStarter' ],
     [ 'asm_dc_animation.pl', 'Obj_0xD6.asm', 'Slot_Machine_Starter_Animate_Data', 'res/Animation/CNZSlotStarter' ],
     [ 'asm_dc_mappings.pl', 'Obj_0x86.asm', 'Flippers_Mappings', 'res/Mappings/CNZFlippers' ],

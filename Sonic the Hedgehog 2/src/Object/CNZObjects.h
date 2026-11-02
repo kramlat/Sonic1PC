@@ -11,4 +11,7 @@ void Obj_AutoSpin(Sst *self);
 void Obj_CNZGreenBumper(Sst *self);
 void CNZ_ResetBumperGroups(void);
 
+// The pre-beta's blue bumper (D7): throws whoever touches it by the side he is on; with a subtype it goes to and fro over $C0 pixels
+void Obj_CNZBlueBumper(Sst *self);
+
 #endif //_CNZOBJECTS_H

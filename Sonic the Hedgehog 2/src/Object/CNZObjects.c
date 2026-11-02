@@ -19,7 +19,9 @@ void Obj_Points(Sst *self);
 
 #include "Resource/Animation/CNZBumper.h"
 #include "Resource/Mappings/AutoSpin.h"
+#include "Resource/Animation/CNZBlueBumper.h"
 #include "Resource/Animation/CNZGreenBumper.h"
+#include "Resource/Mappings/CNZBlueBumper.h"
 #include "Resource/Mappings/CNZBumper.h"
 #include "Resource/Mappings/CNZGreenBumper.h"
 
@@ -245,4 +247,95 @@ void Obj_CNZGreenBumper(Sst *self) {
             SstOnScreenTest(self);
         break;
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object D7 (the pre-beta's): the blue bumper. Whoever touches it is thrown by the quarter of the circle he is in from it: sideways at $800, or up or down at $800 with the sideways speed he has made a
+// little less ($200) or more; with a subtype (not 0) it goes to and fro 1 pixel a frame between $60 pixels either side of where it is put
+// ---------------------------------------------------------------------------------------------------------------------------------------
+#define ArtTile_CNZBlueBumper 0x394 // ($7280: the zone's list)
+
+typedef struct {
+    uint8_t subtype;
+    uint8_t pad[7];
+    int16_t left;  // 0x30
+    int16_t right; // 0x32
+    uint8_t left_going; // 0x34: it is going to the left
+} Own_BlueBumper;
+
+// Offset_0x026FC8
+static void BlueBumper_Throw(Sst *self, Sst *chr) {
+    const int16_t d1 = (int16_t)(self->x_pos.f.u - chr->x_pos.f.u);
+    const int16_t d2 = (int16_t)(self->y_pos.f.u - chr->y_pos.f.u);
+    const uint8_t angle = (uint8_t)(CalcAngle(d1, d2) + 0x20);
+    switch (angle & 0xC0) {
+    case 0x40:
+    case 0xC0:
+        chr->x_vel -= 0x200;
+        if (d1 < 0)
+            chr->x_vel += 0x400;
+        chr->y_vel = (angle & 0xC0) == 0x40 ? -0x800 : 0x800;
+        self->anim = 1;
+        break;
+    case 0x80:
+        chr->x_vel = 0x800;
+        self->anim = 2;
+        break;
+    default:
+        chr->x_vel = -0x800;
+        self->anim = 2;
+        break;
+    }
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t) ~(SST_PSTATUS_ROLL_JUMP | SST_PSTATUS_PUSHING);
+    ((Scratch_Sonic *)chr->own.u8)->jumping = false;
+    PlaySound(sfx_Bumper);
+}
+
+void Obj_CNZBlueBumper(Sst *self) {
+    Own_BlueBumper *own = (Own_BlueBumper *)self->own.u8;
+
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_CNZBlueBumper;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_CNZBlueBumper);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x10;
+        self->priority = 1 * 0x80;
+        self->collision_flags = 0xCA;
+        if (self->status & SST_STATUS_X_FLIP)
+            own->left_going = 1;
+        own->left = (int16_t)(self->x_pos.f.u - 0x60);
+        own->right = (int16_t)(self->x_pos.f.u + 0x60);
+    }
+
+    if (self->collision_property) {
+        const uint8_t touched = self->collision_property;
+        self->collision_property = 0;
+        if (touched & 1)
+            BlueBumper_Throw(self, player);
+        if ((touched & 2) && TAILS_OBJ->code != NULL)
+            BlueBumper_Throw(self, TAILS_OBJ);
+    }
+    Sst_Animate(self, Animation_CNZBlueBumper);
+    if (self->subtype == 0) {
+        SstOnScreenTest(self);
+        return;
+    }
+    if (own->left_going) {
+        self->x_pos.f.u--;
+        if (self->x_pos.f.u == own->left)
+            own->left_going = 0;
+    } else {
+        self->x_pos.f.u++;
+        if (self->x_pos.f.u == own->right)
+            own->left_going = 1;
+    }
+    if (!SstOutOfRange(own->left) || !SstOutOfRange(own->right)) {
+        Sst_Draw(self);
+        return;
+    }
+    if (self->respawn)
+        (*SstLoad_State(self)) &= 0x7F;
+    Sst_Delete(self);
 }

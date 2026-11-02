@@ -359,6 +359,29 @@ static void CNZObjects_TheFlipperThrowsWhoStandsOnItWhenAButtonIsPressed(void) {
     CHECK(player->y_vel < 0); // (thrown up)
 }
 
+static void CNZObjects_TheBlueBumperThrowsBySideAndMovesWithASubtype(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_CNZ, 0);
+    Sst *bumper = SpawnSst(0xD7, 0x00, 500, 300);
+    Obj_CNZBlueBumper(bumper);
+    CHECK_EQ(bumper->collision_flags, 0xCA);
+    player->x_pos.f.u = 460; // (to its left)
+    player->y_pos.f.u = 300;
+    player->x_vel = 0;
+    bumper->collision_property = 1;
+    Obj_CNZBlueBumper(bumper);
+    CHECK_EQ(player->x_vel, -0x800); // (away from it)
+    player->x_pos.f.u = 540; // (to its right)
+    bumper->collision_property = 1;
+    Obj_CNZBlueBumper(bumper);
+    CHECK_EQ(player->x_vel, 0x800);
+    Sst *mover = SpawnSst(0xD7, 0x01, 800, 300);
+    Obj_CNZBlueBumper(mover);
+    const int16_t x = mover->x_pos.f.u;
+    Obj_CNZBlueBumper(mover);
+    CHECK_EQ(mover->x_pos.f.u, x + 1); // (a pixel a frame)
+}
+
 static void CNZObjects_TheSlotMachineSpinsAndStopsOnItsOwn(void) {
     Reset();
     SlotMachine_Reset();
@@ -433,6 +456,7 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
     RUN_TEST(SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt);
     RUN_TEST(CNZObjects_TheGreenBumperThrowsAndGoesAtTheThirdHit);
+    RUN_TEST(CNZObjects_TheBlueBumperThrowsBySideAndMovesWithASubtype);
     RUN_TEST(CNZObjects_TheSlotMachineSpinsAndStopsOnItsOwn);
     RUN_TEST(CNZObjects_TheSlotStarterHoldsACharacterAndLetsHimGoDown);
     RUN_TEST(CNZObjects_TheFlipperThrowsWhoStandsOnItWhenAButtonIsPressed);
