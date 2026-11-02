@@ -1,4 +1,7 @@
 #include "Object/InvincibilityStars.h"
+#include "Object/CNZObjects.h"
+#include "Object/CNZFlippers.h"
+#include "Game.h"
 #include "test.h"
 
 #include <string.h>
@@ -311,6 +314,49 @@ static void Stars_TheInvincibilityStarsAreOneObjectOfEightAndGoWithTheInvincibil
     CHECK(stars->code == NULL); // (it is gone)
 }
 
+static void CNZObjects_TheGreenBumperThrowsAndGoesAtTheThirdHit(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_CNZ, 0);
+    Sst *bumper = SpawnSst(0xD8, 0x00, 500, 300); // (a flat one)
+    Obj_CNZGreenBumper(bumper);
+    CHECK_EQ(bumper->collision_flags, 0xD7);
+    CHECK_EQ(bumper->art_tile >> 13 & 3, 2);
+    player->x_pos.f.u = 500;
+    player->y_pos.f.u = 260; // (above it)
+    for (int hit = 1; hit <= 3; hit++) {
+        player->y_vel = 0;
+        bumper->collision_property = 1;
+        Obj_CNZGreenBumper(bumper);
+        CHECK_EQ(player->y_vel, -0x700); // (up and away)
+        CHECK((player->status & SST_PSTATUS_IN_AIR) != 0);
+        for (int i = 0; i < 6; i++)
+            Obj_CNZGreenBumper(bumper); // (the wait of 4 frames)
+        if (hit < 3)
+            CHECK_EQ(bumper->art_tile >> 13 & 3, 2 - hit); // (a colour less each time)
+    }
+    CHECK_EQ(bumper->routine, 4); // (at the third it goes)
+}
+
+static void CNZObjects_TheFlipperThrowsWhoStandsOnItWhenAButtonIsPressed(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_CNZ, 0);
+    Sst *flipper = SpawnSst(0x86, 0x00, 500, 300);
+    Obj_CNZFlipper(flipper);
+    CHECK_EQ(flipper->routine, 2);
+    player->x_pos.f.u = 520;
+    player->y_pos.f.u = 280;
+    flipper->status |= 0x08; // (Sonic stands on it)
+    player->status |= SST_PSTATUS_OBJECT_STAND;
+    jpad1_press2 = 0;
+    Obj_CNZFlipper(flipper); // (a frame on it)
+    jpad1_press2 = 0x40;     // (a press)
+    Obj_CNZFlipper(flipper);
+    jpad1_press2 = 0;
+    Obj_CNZFlipper(flipper);
+    CHECK((player->status & SST_PSTATUS_IN_AIR) != 0);
+    CHECK(player->y_vel < 0); // (thrown up)
+}
+
 static void SSZObjects_TheSwitchIsAButtonAndABaseFromTheLevelsTiles(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_SSZ, 0);
@@ -339,5 +385,7 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(SSZObjects_TheSwitchIsAButtonAndABaseFromTheLevelsTiles);
     RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
     RUN_TEST(SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt);
+    RUN_TEST(CNZObjects_TheGreenBumperThrowsAndGoesAtTheThirdHit);
+    RUN_TEST(CNZObjects_TheFlipperThrowsWhoStandsOnItWhenAButtonIsPressed);
     RUN_TEST(Stars_TheInvincibilityStarsAreOneObjectOfEightAndGoWithTheInvincibility);
 }

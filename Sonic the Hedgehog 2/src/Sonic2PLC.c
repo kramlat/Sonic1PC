@@ -239,6 +239,7 @@
 #include "Resource/Art/CPZDroplet.h"
 #include "Resource/Art/NGHZWaterSurface.h"
 #include "Resource/Art/CNZCards.h"
+#include "Resource/Art/CNZCrawl.h"
 #include "Resource/Art/HTZRock.h"
 #include "Resource/Art/HTZValveBarrier.h"
 #include "Resource/Art/HTZSpiker.h"
@@ -377,32 +378,34 @@ static const PLCList PLC_GHZ2 = { // the alpha's list $23: Chop Chop, Whisp, Gro
 // ---------------------------------------------------------------------------
 // Pattern load cues - Labyrinth
 // ---------------------------------------------------------------------------
-static const PLCList PLC_LZ = { // Casino Night (the alpha's list $1C; its addresses in VRAM are bytes, here in tiles)
-    9,
+static const PLCList PLC_LZ = { // Casino Night (the pre-beta's list $1C; its addresses in VRAM are bytes, here in tiles)
+    10,
     (const PLC[]) {
-        { Art_CNZGreenPlatform, ART_VRAM(0x6F00 >> 5) },
-        { Art_CNZSpikeball,     ART_VRAM(0x6F80 >> 5) },
-        { Art_CNZBox,           ART_VRAM(0x7000 >> 5) },
+        { Art_CNZCrawl,         ART_VRAM(0x6800 >> 5) },
+        { Art_CNZBox,           ART_VRAM(0x6D80 >> 5) },
+        { Art_CNZGreenPlatform, ART_VRAM(0x6F80 >> 5) },
+        { Art_CNZSpikeball,     ART_VRAM(0x7000 >> 5) }, // (the slot machine's)
         { Art_CNZElevator,      ART_VRAM(0x7080 >> 5) },
         { Art_CNZCards,         ART_VRAM(0x7100 >> 5) }, // (the slot machine's starter)
         { Art_CNZBlueBumper,    ART_VRAM(0x7280 >> 5) },
         { Art_CNZBumpers,       ART_VRAM(0x7340 >> 5) },
-        { Art_CNZDiagLauncher,  ART_VRAM(0x7640 >> 5) },
-        { Art_CNZVertLauncher,  ART_VRAM(0x7A40 >> 5) },
+        { Art_CNZFlippers,      ART_VRAM(0x7640 >> 5) },
+        { Art_CNZGreenBumpers,  ART_VRAM(0x7CC0 >> 5) },
     }
 };
 
-static const PLCList PLC_LZ2 = { // the alpha's list $1D: the green bumpers, the flippers, the spikes, the diagonal spring and the straight springs
+static const PLCList PLC_LZ2 = { // the pre-beta's list $1D: the launchers, the spikes, the diagonal spring and the straight springs
     6,
     (const PLC[]) {
-        { Art_CNZGreenBumpers, ART_VRAM(0x7C80 >> 5) },
-        { Art_CNZFlippers,     ART_VRAM(0x8000 >> 5) },
+        { Art_CNZDiagLauncher, ART_VRAM(0x8040 >> 5) },
+        { Art_CNZVertLauncher, ART_VRAM(0x8440 >> 5) },
         { Art_Spikes,          ART_VRAM(ArtTile_Spikes) },
         { Art_SpringDiag,      ART_VRAM(ArtTile_SpringDiag) },
         { Art_SpringUp,        ART_VRAM(ArtTile_SpringUp) },
         { Art_SpringSide,      ART_VRAM(ArtTile_SpringSide) },
     }
 };
+
 // ---------------------------------------------------------------------------
 // Pattern load cues - Marble
 // ---------------------------------------------------------------------------

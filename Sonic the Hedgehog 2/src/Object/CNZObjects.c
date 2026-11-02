@@ -13,11 +13,15 @@ void Obj_Points(Sst *self);
 #include "Object/Tails.h"
 #include "Sound.h"
 
+#include <string.h>
+
 #include "Macros.h"
 
 #include "Resource/Animation/CNZBumper.h"
 #include "Resource/Mappings/AutoSpin.h"
+#include "Resource/Animation/CNZGreenBumper.h"
 #include "Resource/Mappings/CNZBumper.h"
+#include "Resource/Mappings/CNZGreenBumper.h"
 
 #define ArtTile_CNZBumper 0x39A // ($7340: the zone's list)
 
@@ -123,4 +127,122 @@ void Obj_AutoSpin(Sst *self) {
     }
     if (debug_mode)
         Sst_Draw(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object D8 (the pre-beta's): the green bumper of Casino Night. Its three kinds, by the picture (0 and 3 push up or down, 1 and 4 turn him by a mirror at 45 degrees, 2 and 5 push him sideways), throw
+// whoever touches it away at $700 and flash; its colour (the palette line) steps down a line each hit, and at the third it goes. Three of one group (the subtype's low six bits) gone give 500 points.
+// ---------------------------------------------------------------------------------------------------------------------------------------
+#define ArtTile_CNZGreenBumper 0x3E6 // ($7CC0: the zone's list)
+
+static uint8_t green_bumper_groups[0x40]; // the pre-beta's $FFFFE700
+
+void CNZ_ResetBumperGroups(void) {
+    memset(green_bumper_groups, 0, sizeof(green_bumper_groups));
+}
+
+typedef struct {
+    uint8_t subtype;
+    uint8_t pad[7];
+    uint8_t wait[2]; // 0x30, 0x31: frames before the same character can hit it again (Sonic's, Tails')
+} Own_GreenBumper;
+
+// Offset_0x02723E: the throw, and what the hit does to the bumper (the character in `chr`); the bumper's wait byte is set by the caller
+static void GreenBumper_Hit(Sst *self, Sst *chr, uint8_t *wait) {
+    uint8_t frame = self->mapping_frame;
+    if (frame >= 3)
+        frame -= 3;
+    if (frame == 0) { // up or down
+        self->anim = 3;
+        chr->y_vel = -0x700;
+        if ((int16_t)(self->y_pos.f.u - chr->y_pos.f.u) < 0)
+            chr->y_vel = -chr->y_vel;
+    } else if (frame == 1) { // the mirror
+        self->anim = 4;
+        const int16_t d3 = (self->status & SST_STATUS_X_FLIP) ? 0x20 : 0x60;
+        int16_t angle = (int16_t)CalcAngle(chr->x_vel, chr->y_vel);
+        angle = (int16_t)(angle - d3);
+        int16_t off = angle < 0 ? (int16_t)-angle : angle;
+        angle = (int16_t)(d3 - angle);
+        if ((uint8_t)off >= 0x40) {
+            off = (int16_t)(0x80 - off);
+            if ((uint8_t)off >= 0x38)
+                angle = (int16_t)(d3 + 0x80);
+        } else if ((uint8_t)off >= 0x38) {
+            angle = d3;
+        }
+        int16_t sin, cos;
+        CalcSine((uint8_t)angle, &sin, &cos);
+        chr->x_vel = (int16_t)(((int32_t)cos * -0x700) >> 8);
+        chr->y_vel = (int16_t)(((int32_t)sin * -0x700) >> 8);
+    } else { // sideways
+        self->anim = 5;
+        chr->x_vel = -0x700;
+        if ((int16_t)(self->x_pos.f.u - chr->x_pos.f.u) < 0)
+            chr->x_vel = -chr->x_vel;
+    }
+    chr->status |= SST_PSTATUS_IN_AIR;
+    chr->status &= (uint8_t) ~(SST_PSTATUS_ROLL_JUMP | SST_PSTATUS_PUSHING);
+    ((Scratch_Sonic *)chr->own.u8)->jumping = false;
+    PlaySound(sfx_BonusBumper);
+
+    uint8_t points_frame = 4;
+    uint16_t points = 1;
+    if (self->art_tile >= 0x2000) { // (one line less: the colour changes)
+        self->art_tile -= 0x2000;
+    } else { // (the last hit: it goes, and the third of its group is worth a bonus)
+        self->routine = 4;
+        uint8_t *count = &green_bumper_groups[self->subtype & 0x3F];
+        if (++*count >= 3) {
+            points_frame = 2;
+            points = 0x32;
+        }
+    }
+    AddPoints(points);
+    Sst *marker = Sst_SpawnCode(Obj_Points, self->x_pos.f.u, self->y_pos.f.u);
+    if (marker != NULL)
+        marker->mapping_frame = points_frame;
+    *wait = 4;
+}
+
+void Obj_CNZGreenBumper(Sst *self) {
+    Own_GreenBumper *own = (Own_GreenBumper *)self->own.u8;
+
+    switch (self->routine) {
+    case 0:
+        self->routine += 2;
+        self->mappings = Mappings_CNZGreenBumper;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_CNZGreenBumper);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x10;
+        self->priority = 1 * 0x80;
+        self->collision_flags = 0xD7;
+        self->anim = (uint8_t)((self->subtype >> 6) & 3);
+        // Fallthrough
+    case 2:
+        if (self->collision_property || own->wait[0] || own->wait[1]) {
+            const uint8_t touched = self->collision_property;
+            if (own->wait[0]) {
+                own->wait[0]--;
+            } else if (touched & 1) {
+                GreenBumper_Hit(self, player, &own->wait[0]);
+            }
+            if (own->wait[1]) {
+                own->wait[1]--;
+            } else if ((touched & 2) && TAILS_OBJ->code != NULL) {
+                GreenBumper_Hit(self, TAILS_OBJ, &own->wait[1]);
+            }
+            self->collision_property = 0;
+        }
+        Sst_Animate(self, Animation_CNZGreenBumper);
+        SstOnScreenTest(self);
+        break;
+    default: // 4: it is going: the flash plays out, and it is gone
+        Sst_Animate(self, Animation_CNZGreenBumper);
+        if (self->anim < 3)
+            Sst_Delete(self);
+        else
+            SstOnScreenTest(self);
+        break;
+    }
 }

@@ -12,6 +12,7 @@
 #include "Object/CPZBoss.h"
 #include "Object/SFZObjects.h"
 #include "Object/NGHZBoss.h"
+#include "Object/CNZObjects.h"
 #include "HTZBackground.h"
 #include "SandShower.h"
 
@@ -220,6 +221,7 @@ void LevelSizeLoad(void) {
     ghz2_tube_exit_timer = 0;
     HTZQuake_Reset();
     HTZBackground_Reset();
+    CNZ_ResetBumperGroups();
 
     // Get sizes to load
     const int16_t* sizes = LevelSizes(LEVEL_ZONE(level_id), LEVEL_ACT(level_id));

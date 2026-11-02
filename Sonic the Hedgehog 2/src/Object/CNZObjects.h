@@ -7,4 +7,8 @@
 void Obj_CNZBumper(Sst *self);
 void Obj_AutoSpin(Sst *self);
 
+// The pre-beta's green bumper (D8): three hits make it disappear, three of a group give a bonus; the groups' counts start over with the level
+void Obj_CNZGreenBumper(Sst *self);
+void CNZ_ResetBumperGroups(void);
+
 #endif //_CNZOBJECTS_H
