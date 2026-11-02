@@ -2,6 +2,7 @@
 #include "Object/CNZObjects.h"
 #include "Object/CNZFlippers.h"
 #include "Object/CNZSlots.h"
+#include "Object/CNZPlunger.h"
 #include "Object/CharControl.h"
 #include "Game.h"
 #include "test.h"
@@ -359,6 +360,34 @@ static void CNZObjects_TheFlipperThrowsWhoStandsOnItWhenAButtonIsPressed(void) {
     CHECK(player->y_vel < 0); // (thrown up)
 }
 
+static void CNZObjects_ThePlungerHoldsDrawsBackAndThrowsUp(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_CNZ, 0);
+    Sst *plunger = SpawnSst(0x85, 0x00, 700, 400);
+    Obj_CNZPlunger(plunger);
+    CHECK((plunger->render_flags & SST_RENDER_MULTI_DRAW));
+    CHECK_EQ(plunger->child_count, 1);
+    const int16_t head_y = plunger->y_pos.f.u;
+    player->x_pos.f.u = 700;
+    player->y_pos.f.u = head_y - 0x40;
+    player->y_vel = 0x200;
+    player->status |= SST_PSTATUS_IN_AIR;
+    for (int i = 0; i < 80 && OBJ_CONTROL(player) != 0x81; i++) {
+        player->y_pos.f.u += player->y_vel >> 8;
+        Obj_CNZPlunger(plunger);
+    }
+    CHECK_EQ(OBJ_CONTROL(player), 0x81); // (held)
+    jpad1_hold2 = 0x40; // (a button held)
+    for (int i = 0; i < 80; i++)
+        Obj_CNZPlunger(plunger);
+    CHECK(plunger->y_pos.f.u > head_y + 0x10); // (drawn back)
+    jpad1_hold2 = 0;
+    for (int i = 0; i < 3; i++)
+        Obj_CNZPlunger(plunger);
+    CHECK(player->y_vel < -0x1000); // (thrown up)
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+}
+
 static void CNZObjects_TheBlueBumperThrowsBySideAndMovesWithASubtype(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_CNZ, 0);
@@ -456,6 +485,7 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
     RUN_TEST(SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt);
     RUN_TEST(CNZObjects_TheGreenBumperThrowsAndGoesAtTheThirdHit);
+    RUN_TEST(CNZObjects_ThePlungerHoldsDrawsBackAndThrowsUp);
     RUN_TEST(CNZObjects_TheBlueBumperThrowsBySideAndMovesWithASubtype);
     RUN_TEST(CNZObjects_TheSlotMachineSpinsAndStopsOnItsOwn);
     RUN_TEST(CNZObjects_TheSlotStarterHoldsACharacterAndLetsHimGoDown);

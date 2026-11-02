@@ -4,6 +4,7 @@
 #include "Object/CNZObjects.h"
 #include "Object/CNZFlippers.h"
 #include "Object/CNZSlots.h"
+#include "Object/CNZPlunger.h"
 #include "Object/CPZBadniks.h"
 #include "Object/CPZObjects.h"
 #include "Object/CPZTubes.h"
@@ -281,6 +282,7 @@ const SstCode sst_object_codes[0x100] = {
 	[0xD8] = Obj_CNZGreenBumper,
 	[0xD7] = Obj_CNZBlueBumper,
 	[0x86] = Obj_CNZFlipper,
+	[0x85] = Obj_CNZPlunger,
 	[0xD6] = Obj_CNZSlotStarter,
 	[0x82] = Obj_NGHZFallingPillar,
 	[0x8D] = Obj_Grounder,
