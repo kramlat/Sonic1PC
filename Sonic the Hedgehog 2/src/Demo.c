@@ -36,7 +36,7 @@ uint8_t btn_pushtime2;
 // Nick Arcade's attract-mode demos, by zone slot (the same inputs it plays back in the same levels; its Emerald Hill demo was a two-player one, whose second pad moved Tails: here only Sonic's side)
 const uint8_t* intro_demo_ptr[ZoneId_Num] = {
     [0x00] = Demo_NAEHZ, [0x01] = Demo_NAEHZ, [0x02] = Demo_NAEHZ, [0x03] = Demo_NAEHZ, [0x04] = Demo_NAEHZ, [0x05] = Demo_NAEHZ, [0x06] = Demo_NAEHZ, [0x07] = Demo_NAHTZ,
-    [0x08] = Demo_NAHPZ, [0x09] = Demo_NAEHZ, [0x0A] = Demo_NAEHZ, [0x0B] = Demo_NAEHZ, [0x0C] = Demo_NAEHZ, [0x0D] = Demo_NACPZ, [0x0E] = Demo_NAEHZ, [0x0F] = Demo_NAEHZ, [0x10] = Demo_NAEHZ,
+    [0x08] = Demo_NAHPZ, [0x09] = Demo_NAEHZ, [0x0A] = Demo_NAEHZ, [0x0B] = Demo_NAEHZ, [0x0C] = Demo_NAHPZ, [0x0D] = Demo_NACPZ, [0x0E] = Demo_NAEHZ, [0x0F] = Demo_NAEHZ, [0x10] = Demo_NAEHZ,
     [ZoneId_SS] = Demo_NASS, // (the special stage's, where Sonic 1 has it at index 7: GM_Special.c names it by ZoneId_SS)
 };
 
