@@ -360,6 +360,25 @@ static void CNZObjects_TheFlipperThrowsWhoStandsOnItWhenAButtonIsPressed(void) {
     CHECK(player->y_vel < 0); // (thrown up)
 }
 
+static void CNZObjects_TheBlueBoxSwingsAboutWhereItWasPut(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_CNZ, 0);
+    Sst *box = SpawnSst(0xD4, 0x00, 1000, 400);
+    Obj_CNZBlueBox(box);
+    CHECK_EQ(box->x_pos.f.u, 1000 - 0x60); // (at its left end)
+    int16_t lo = box->x_pos.f.u, hi = box->x_pos.f.u;
+    for (int i = 0; i < 400; i++) {
+        Obj_CNZBlueBox(box);
+        if (box->x_pos.f.u < lo) lo = box->x_pos.f.u;
+        if (box->x_pos.f.u > hi) hi = box->x_pos.f.u;
+    }
+    CHECK(lo >= 1000 - 0x62 && lo <= 1000 - 0x5E);
+    CHECK(hi >= 1000 + 0x5E && hi <= 1000 + 0x62); // (and the other end)
+    Sst *vertical = SpawnSst(0xD4, 0x02, 1200, 400);
+    Obj_CNZBlueBox(vertical);
+    CHECK_EQ(vertical->y_pos.f.u, 400 - 0x60);
+}
+
 static void CNZObjects_TheElevatorRidesToTheOtherEndAndBack(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_CNZ, 0);
@@ -504,6 +523,7 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
     RUN_TEST(SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt);
     RUN_TEST(CNZObjects_TheGreenBumperThrowsAndGoesAtTheThirdHit);
+    RUN_TEST(CNZObjects_TheBlueBoxSwingsAboutWhereItWasPut);
     RUN_TEST(CNZObjects_TheElevatorRidesToTheOtherEndAndBack);
     RUN_TEST(CNZObjects_ThePlungerHoldsDrawsBackAndThrowsUp);
     RUN_TEST(CNZObjects_TheBlueBumperThrowsBySideAndMovesWithASubtype);

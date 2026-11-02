@@ -282,6 +282,7 @@ const SstCode sst_object_codes[0x100] = {
 	[0xD8] = Obj_CNZGreenBumper,
 	[0xD7] = Obj_CNZBlueBumper,
 	[0xD5] = Obj_CNZElevator,
+	[0xD4] = Obj_CNZBlueBox,
 	[0x86] = Obj_CNZFlipper,
 	[0x85] = Obj_CNZPlunger,
 	[0xD6] = Obj_CNZSlotStarter,

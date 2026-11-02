@@ -22,6 +22,7 @@ void Obj_Points(Sst *self);
 #include "Resource/Mappings/AutoSpin.h"
 #include "Resource/Animation/CNZBlueBumper.h"
 #include "Resource/Animation/CNZGreenBumper.h"
+#include "Resource/Mappings/CNZBlueBox.h"
 #include "Resource/Mappings/CNZBlueBumper.h"
 #include "Resource/Mappings/CNZElevator.h"
 #include "Resource/Mappings/CNZBumper.h"
@@ -417,4 +418,54 @@ void Obj_CNZElevator(Sst *self) {
             Solid_Platform(self, chr, who, 0x10, 9, old_x);
     }
     SstOnScreenTest(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object D4 (the pre-beta's): the blue box, a solid $40 box that swings by being pulled to where it was put, by 4 a frame in the speed's units ($100 to a pixel): sideways (subtype 0) from $60 pixels to
+// one side (the other, flipped) or up and down (2) from $60 above (flipped: below)
+// ---------------------------------------------------------------------------------------------------------------------------------------
+#define ArtTile_CNZBlueBox 0x36C // ($6D80: the zone's list)
+
+typedef struct {
+    uint8_t subtype;
+    uint8_t pad[7];
+    int16_t home_x; // 0x30
+    int16_t home_y; // 0x32
+} Own_BlueBox;
+
+void Obj_CNZBlueBox(Sst *self) {
+    Own_BlueBox *own = (Own_BlueBox *)self->own.u8;
+
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_CNZBlueBox;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_CNZBlueBox);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x20;
+        self->priority = 4 * 0x80;
+        own->home_x = self->x_pos.f.u;
+        own->home_y = self->y_pos.f.u;
+        self->x_pos.f.l = 0x8000;
+        self->y_pos.f.l = 0x8000;
+        if (self->subtype == 0) {
+            self->x_pos.f.u -= 0x60;
+            if (self->status & SST_STATUS_X_FLIP)
+                self->x_pos.f.u += 0xC0;
+        } else {
+            self->y_pos.f.u -= 0x60;
+            if (self->status & SST_STATUS_Y_FLIP)
+                self->y_pos.f.u += 0xC0;
+        }
+    }
+
+    const int16_t old_x = self->x_pos.f.u;
+    if (self->subtype == 0) {
+        self->x_vel += (uint16_t)own->home_x > (uint16_t)self->x_pos.f.u ? 4 : -4;
+    } else {
+        self->y_vel += (uint16_t)own->home_y > (uint16_t)self->y_pos.f.u ? 4 : -4;
+    }
+    Sst_MoveSprite2(self);
+    FOR_EACH_CHARACTER(chr, who)
+        Solid_Character(self, chr, who, 0x2B, 0x20, 0x21, old_x, NULL);
+    SstOnScreenTest2(self, own->home_x);
 }

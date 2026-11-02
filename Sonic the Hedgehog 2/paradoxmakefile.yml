@@ -719,6 +719,7 @@ mappings_SonicTheHedgehog2:
   - "Mappings/NGHZPillar"
   - "Mappings/CNZGreenBumper"
   - "Mappings/CNZFlippers"
+  - "Mappings/CNZBlueBox"
   - "Mappings/CNZElevator"
   - "Mappings/CNZPlunger"
   - "Mappings/CNZPlungerDiagonal"

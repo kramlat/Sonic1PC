@@ -67,7 +67,7 @@ static const Pending pending[] = {
     { ZoneId_DEZ, 2, { 0xC6, 0xC7 } }, // (Death Egg's two bosses: they wait)
     { ZoneId_SCZ, 0, { 0 } },
     { ZoneId_ARZ, 0, { 0 } },
-    { ZoneId_CNZ, 2, { 0xD2, 0xD4 } }, // (Casino Night: the pinball spring, flippers, platforms, boxes, elevators and bumpers wait)
+    { ZoneId_CNZ, 1, { 0xD2 } }, // (Casino Night: the pinball spring, flippers, platforms, boxes, elevators and bumpers wait)
     { ZoneId_MCZ, 0, { 0 } }, // (Dust Hill)
     { ZoneId_OOZ, 0, { 0 } }, // (Oil Ocean)
     { ZoneId_MTZ, 0, { 0 } }, // (Metropolis)

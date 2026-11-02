@@ -17,4 +17,7 @@ void Obj_CNZBlueBumper(Sst *self);
 // The pre-beta's elevator (D5): a platform that rides to the other end of its run when it is stood on, and back when it is left
 void Obj_CNZElevator(Sst *self);
 
+// The pre-beta's blue box (D4): a solid box that swings $60 pixels either side of where it is put, sideways (subtype 0) or up and down (2)
+void Obj_CNZBlueBox(Sst *self);
+
 #endif //_CNZOBJECTS_H
