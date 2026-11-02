@@ -67,6 +67,7 @@ struct Sst {
     uint8_t routine_secondary;
     uint16_t parent;            // the slot of the object that owns or spawned this one (index + 1; 0: none)
     uint16_t respawn;           // the entry of this object's place in the respawn table (index + 1; 0: none)
+    uint8_t hidden_in_view;     // the split screen: bit 0 the first view does not draw it, bit 1 the second does not (0: both do; the HUD's lives counters)
     uint8_t child_count;        // multi-draw (render_flags bit 6): the main sprite (mapping_frame, 0: none) and these children, placed in the level (or on the screen) and each a frame of the same mappings
     SstChild children[SST_CHILDREN];
     union {                     // the rest of the table: each object's own (objoff_*)

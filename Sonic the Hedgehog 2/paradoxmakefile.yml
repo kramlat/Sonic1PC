@@ -102,6 +102,7 @@ resources:
   - "Mappings/Points"
   - "Art/HUD"
   - "Art/HUDLife"
+  - "Art/HUDLifeTails"
   - "Art/HUDNum"
   - "Art/Tails"
   - "Animation/Tails"

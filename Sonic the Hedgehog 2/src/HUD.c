@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 // HUD assets
+#include "Resource/Art/HUDLifeTails.h"
 #include "Resource/Art/HUDNum.h"
 #include "Resource/Art/LifeNum.h"
 
@@ -106,7 +107,13 @@ void HUD_WriteHex(size_t offset, uint32_t value) {
 }
 
 // HUD functions
+extern uint8_t two_player_mode; // (SplitScreen.c)
+
 void HUD_Lives(void) {
+    if (two_player_mode) { // the second view's lives counter has Tails' icon: its tiles, next to the counter's (the HUD draws it with the SONIC of the first)
+        VDP_SeekVRAM(0x7E0 * 32);
+        VDP_WriteVRAM(Art_HUDLifeTails, sizeof(Art_HUDLifeTails));
+    }
     size_t offset = 0xFBA0;
 
     uint32_t value = lives;

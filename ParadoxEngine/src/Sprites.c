@@ -126,6 +126,8 @@ void SstRenderQueue(int queue, sprite_t **sprite, uint8_t *sprite_i, const Sprit
 			obj->render_flags &= 0x7F;
 		if (obj->mappings == NULL)
 			continue; // (an object that is not set up yet has nothing to show)
+		if (obj->hidden_in_view & (view == &sprite_view_p2 ? 2 : 1))
+			continue; // (the other view's)
 		const uint8_t flags = obj->render_flags;
 		const bool level = (flags & SST_RENDER_LEVEL) != 0;
 		const bool x_flip = (flags & SST_RENDER_X_FLIP) != 0, y_flip = (flags & SST_RENDER_Y_FLIP) != 0;

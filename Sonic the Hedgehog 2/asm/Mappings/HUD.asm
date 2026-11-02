@@ -13,6 +13,8 @@ Map_HUD_internal:	mappingsTable
 	mappingsTableEntry.w	@timered_nolives
 	mappingsTableEntry.w	@allred_nolives
 	mappingsTableEntry.w	@lives
+	mappingsTableEntry.w	@lives_icon
+	mappingsTableEntry.w	@lives_text
 
 @allyellow:	spriteHeader
 	spritePiece	0, -$80, 4, 2, 0, 0, 0, 1, 1
@@ -121,5 +123,13 @@ Map_HUD_internal:	mappingsTable
 	spritePiece	0, 0, 2, 2, $10A, 0, 0, 0, 1
 	spritePiece	$10, 0, 4, 2, $10E, 0, 0, 1, 1
 @lives_End
+
+@lives_icon:	spriteHeader
+	spritePiece	0, 0, 2, 2, $10A, 0, 0, 0, 1
+@lives_icon_End
+
+@lives_text:	spriteHeader
+	spritePiece	$10, 0, 4, 2, $10E, 0, 0, 1, 1
+@lives_text_End
 
 	even
