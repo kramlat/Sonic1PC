@@ -20,9 +20,12 @@ my $objects = ($ENV{S2PREBETA} // "$ENV{HOME}/Projects/s2prebeta-disasm") . '/Da
 for my $job (
     [ 'asm_dc_mappings.pl', 'Obj_0xD8.asm', 'Green_Bumper_Mappings', 'res/Mappings/CNZGreenBumper' ],
     [ 'asm_dc_animation.pl', 'Obj_0xD8.asm', 'Green_Bumper_Animate_Data', 'res/Animation/CNZGreenBumper' ],
+    [ 'asm_dc_mappings.pl', 'Obj_0xD6.asm', 'Slot_Machine_Starter_Mappings', 'res/Mappings/CNZSlotStarter' ],
+    [ 'asm_dc_animation.pl', 'Obj_0xD6.asm', 'Slot_Machine_Starter_Animate_Data', 'res/Animation/CNZSlotStarter' ],
     [ 'asm_dc_mappings.pl', 'Obj_0x86.asm', 'Flippers_Mappings', 'res/Mappings/CNZFlippers' ],
     [ 'asm_dc_animation.pl', 'Obj_0x86.asm', 'Flippers_Animate_Data', 'res/Animation/CNZFlippers' ],
 ) {
     system('perl', "tools/$job->[0]", "$objects/$job->[1]", $job->[2], $job->[3]) == 0 or die "$job->[3]\n";
 }
 print "Casino Night's art imported\n";
+system('cp', "$src/Symbols.dat", 'res/Art/CNZSymbols') == 0 or die; # (the symbols the zone's animated art draws; raw)

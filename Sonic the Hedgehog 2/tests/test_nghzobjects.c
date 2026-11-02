@@ -1,6 +1,8 @@
 #include "Object/InvincibilityStars.h"
 #include "Object/CNZObjects.h"
 #include "Object/CNZFlippers.h"
+#include "Object/CNZSlots.h"
+#include "Object/CharControl.h"
 #include "Game.h"
 #include "test.h"
 
@@ -357,6 +359,51 @@ static void CNZObjects_TheFlipperThrowsWhoStandsOnItWhenAButtonIsPressed(void) {
     CHECK(player->y_vel < 0); // (thrown up)
 }
 
+static void CNZObjects_TheSlotMachineSpinsAndStopsOnItsOwn(void) {
+    Reset();
+    SlotMachine_Reset();
+    for (int i = 0; i < 4; i++)
+        SlotMachine_Process();
+    CHECK_EQ(SlotMachine_State(), 0x38); // (set up and resting)
+    SlotMachine_Start();
+    CHECK_EQ(SlotMachine_State(), 0x08);
+    frame_count = 0x1234;
+    int frames = 0;
+    while (SlotMachine_State() != 0x38 && frames < 6000) {
+        frame_count++;
+        SlotMachine_Process();
+        frames++;
+    }
+    CHECK_EQ(SlotMachine_State(), 0x38); // (all three reels have stopped)
+    CHECK(frames > 100 && frames < 3000);
+}
+
+static void CNZObjects_TheSlotStarterHoldsACharacterAndLetsHimGoDown(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_CNZ, 0);
+    SlotMachine_Reset();
+    for (int i = 0; i < 4; i++)
+        SlotMachine_Process();
+    Sst *starter = SpawnSst(0xD6, 0x00, 600, 400);
+    Obj_CNZSlotStarter(starter);
+    CHECK_EQ(starter->mapping_frame, 0);
+    // (a character who falls onto it)
+    player->x_pos.f.u = 600;
+    player->y_pos.f.u = 400 - 0x50;
+    player->y_vel = 0x200;
+    player->status |= SST_PSTATUS_IN_AIR;
+    for (int i = 0; i < 60 && OBJ_CONTROL(player) != 0x81; i++) {
+        player->y_pos.f.u += player->y_vel >> 8;
+        Obj_CNZSlotStarter(starter);
+    }
+    CHECK_EQ(OBJ_CONTROL(player), 0x81); // (held)
+    CHECK_EQ(SlotMachine_State(), 0x08);  // (and the reels start)
+    for (int i = 0; i < 0x7A; i++)
+        Obj_CNZSlotStarter(starter);
+    CHECK_EQ(OBJ_CONTROL(player), 0);
+    CHECK_EQ(player->y_vel, 0x400);
+}
+
 static void SSZObjects_TheSwitchIsAButtonAndABaseFromTheLevelsTiles(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_SSZ, 0);
@@ -386,6 +433,8 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
     RUN_TEST(SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt);
     RUN_TEST(CNZObjects_TheGreenBumperThrowsAndGoesAtTheThirdHit);
+    RUN_TEST(CNZObjects_TheSlotMachineSpinsAndStopsOnItsOwn);
+    RUN_TEST(CNZObjects_TheSlotStarterHoldsACharacterAndLetsHimGoDown);
     RUN_TEST(CNZObjects_TheFlipperThrowsWhoStandsOnItWhenAButtonIsPressed);
     RUN_TEST(Stars_TheInvincibilityStarsAreOneObjectOfEightAndGoWithTheInvincibility);
 }

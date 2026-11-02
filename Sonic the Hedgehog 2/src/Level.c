@@ -13,6 +13,7 @@
 #include "Object/SFZObjects.h"
 #include "Object/NGHZBoss.h"
 #include "Object/CNZObjects.h"
+#include "Object/CNZSlots.h"
 #include "HTZBackground.h"
 #include "SandShower.h"
 
@@ -222,6 +223,7 @@ void LevelSizeLoad(void) {
     HTZQuake_Reset();
     HTZBackground_Reset();
     CNZ_ResetBumperGroups();
+    SlotMachine_Reset();
 
     // Get sizes to load
     const int16_t* sizes = LevelSizes(LEVEL_ZONE(level_id), LEVEL_ACT(level_id));
@@ -459,6 +461,7 @@ void DynamicLevelEvents(void) {
             CPZBoss_Events(); // (the pre-beta's: Chemical Plant's boss at the end of act 2; act 1 has none)
         break;
     case ZoneId_CNZ:
+        SlotMachine_Process(); // (the pre-beta's DynResize_CNz starts with the reels)
         if (LEVEL_ACT(level_id) == 1)
             CNZBoss_Events(); // (the alpha's: Casino Night's boss at the end of act 2; act 1 has none)
         break;
