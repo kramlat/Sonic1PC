@@ -24,6 +24,8 @@ for my $job (
     [ 'asm_dc_mappings.pl', 'Obj_0x85.asm', 'Diagonal_Pinball_Spring_Mappings', 'res/Mappings/CNZPlunger' ],
     [ 'asm_dc_mappings.pl', 'Obj_0xD5.asm', 'CNz_Elevator_Mappings', 'res/Mappings/CNZElevator' ],
     [ 'asm_dc_mappings.pl', 'Obj_0xD4.asm', 'Blue_Box_Mappings', 'res/Mappings/CNZBlueBox' ],
+    [ 'asm_dc_mappings.pl', 'Obj_0xD2.asm', 'Green_Platform_Mappings', 'res/Mappings/CNZGreenPlatform' ],
+    [ 'asm_dc_mappings.pl', 'Obj_0xC8.asm', 'Crawl_Mappings', 'res/Mappings/CNZCrawl' ],
     [ 'asm_dc_mappings.pl', 'Obj_0xD7.asm', 'Blue_Bumper_Mappings', 'res/Mappings/CNZBlueBumper' ],
     [ 'asm_dc_animation.pl', 'Obj_0xD7.asm', 'Blue_Bumper_Animate_Data', 'res/Animation/CNZBlueBumper' ],
     [ 'asm_dc_mappings.pl', 'Obj_0xD6.asm', 'Slot_Machine_Starter_Mappings', 'res/Mappings/CNZSlotStarter' ],

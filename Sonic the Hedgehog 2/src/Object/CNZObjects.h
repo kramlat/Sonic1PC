@@ -20,4 +20,10 @@ void Obj_CNZElevator(Sst *self);
 // The pre-beta's blue box (D4): a solid box that swings $60 pixels either side of where it is put, sideways (subtype 0) or up and down (2)
 void Obj_CNZBlueBox(Sst *self);
 
+// The pre-beta's green platform (D2): a line of squares that turns about its place, a frame every 16 ticks and a wait between turns (the subtype times 16)
+void Obj_CNZGreenPlatform(Sst *self);
+
+// The pre-beta's Crawl (C8): a guard that turns to a character within $60 either way and throws whoever touches it, as a bumper does
+void Obj_CNZCrawl(Sst *self);
+
 #endif //_CNZOBJECTS_H

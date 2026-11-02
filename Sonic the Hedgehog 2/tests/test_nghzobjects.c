@@ -360,6 +360,39 @@ static void CNZObjects_TheFlipperThrowsWhoStandsOnItWhenAButtonIsPressed(void) {
     CHECK(player->y_vel < 0); // (thrown up)
 }
 
+static void CNZObjects_TheGreenPlatformTurnsThroughItsFramesAndWaits(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_CNZ, 0);
+    Sst *platform = SpawnSst(0xD2, 0x00, 1100, 400);
+    Obj_CNZGreenPlatform(platform);
+    CHECK_EQ(platform->mapping_frame, 1); // (its timer starts spent: the first frame comes at once)
+    for (int i = 0; i < 16; i++)
+        Obj_CNZGreenPlatform(platform);
+    CHECK_EQ(platform->mapping_frame, 2); // (then a frame every 16 ticks)
+    int calls = 0;
+    while (platform->mapping_frame != 0 && calls++ < 400)
+        Obj_CNZGreenPlatform(platform);
+    CHECK_EQ(platform->mapping_frame, 0); // (round again)
+}
+
+static void CNZObjects_TheCrawlGuardsAgainstAnyoneNear(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_CNZ, 0);
+    Sst *crawl = SpawnSst(0xC8, 0x00, 1300, 400);
+    Obj_CNZCrawl(crawl);
+    CHECK_EQ(crawl->collision_flags, 0xD7);
+    player->x_pos.f.u = 1250;
+    player->y_pos.f.u = 400;
+    Obj_CNZCrawl(crawl);
+    CHECK_EQ(crawl->mapping_frame, 1); // (shield up)
+    crawl->collision_property = 1;
+    Obj_CNZCrawl(crawl);
+    CHECK(player->x_vel < 0); // (thrown away from it)
+    player->x_pos.f.u = 1000;
+    Obj_CNZCrawl(crawl);
+    CHECK_EQ(crawl->mapping_frame, 0); // (and down again)
+}
+
 static void CNZObjects_TheBlueBoxSwingsAboutWhereItWasPut(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_CNZ, 0);
@@ -523,6 +556,8 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
     RUN_TEST(SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt);
     RUN_TEST(CNZObjects_TheGreenBumperThrowsAndGoesAtTheThirdHit);
+    RUN_TEST(CNZObjects_TheGreenPlatformTurnsThroughItsFramesAndWaits);
+    RUN_TEST(CNZObjects_TheCrawlGuardsAgainstAnyoneNear);
     RUN_TEST(CNZObjects_TheBlueBoxSwingsAboutWhereItWasPut);
     RUN_TEST(CNZObjects_TheElevatorRidesToTheOtherEndAndBack);
     RUN_TEST(CNZObjects_ThePlungerHoldsDrawsBackAndThrowsUp);

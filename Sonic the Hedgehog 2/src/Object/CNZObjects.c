@@ -24,7 +24,9 @@ void Obj_Points(Sst *self);
 #include "Resource/Animation/CNZGreenBumper.h"
 #include "Resource/Mappings/CNZBlueBox.h"
 #include "Resource/Mappings/CNZBlueBumper.h"
+#include "Resource/Mappings/CNZCrawl.h"
 #include "Resource/Mappings/CNZElevator.h"
+#include "Resource/Mappings/CNZGreenPlatform.h"
 #include "Resource/Mappings/CNZBumper.h"
 #include "Resource/Mappings/CNZGreenBumper.h"
 
@@ -468,4 +470,167 @@ void Obj_CNZBlueBox(Sst *self) {
     FOR_EACH_CHARACTER(chr, who)
         Solid_Character(self, chr, who, 0x2B, 0x20, 0x21, old_x, NULL);
     SstOnScreenTest2(self, own->home_x);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object D2 (the pre-beta's): the green platform, a solid line of squares that turns about its place: each of its 16 frames (every 16 ticks) has its own place, size and mapping. When it has been
+// through them it waits the subtype times 16 ticks, let go of whoever was on it, and begins again
+// ---------------------------------------------------------------------------------------------------------------------------------------
+#define ArtTile_CNZGreenPlatform 0x37C // ($6F80: the zone's list)
+
+static const uint8_t green_platform_frames[16][4] = {
+    { 0xD8, 0x18, 0x08, 0x08 },
+    { 0xD8, 0x10, 0x08, 0x10 },
+    { 0xD8, 0x08, 0x08, 0x18 },
+    { 0xD8, 0x00, 0x08, 0x20 },
+    { 0xE0, 0x00, 0x10, 0x20 },
+    { 0xE8, 0xF8, 0x18, 0x18 },
+    { 0xF0, 0xF0, 0x20, 0x10 },
+    { 0xF8, 0xE8, 0x28, 0x08 },
+    { 0x08, 0xE8, 0x28, 0x08 },
+    { 0x10, 0xF0, 0x20, 0x10 },
+    { 0x18, 0xF8, 0x18, 0x18 },
+    { 0x20, 0x00, 0x10, 0x20 },
+    { 0x28, 0x00, 0x08, 0x20 },
+    { 0x28, 0x08, 0x08, 0x18 },
+    { 0x28, 0x10, 0x08, 0x10 },
+    { 0x28, 0x18, 0x08, 0x08 },
+};
+
+typedef struct {
+    uint8_t subtype;
+    uint8_t pad[7];
+    int16_t home_x; // 0x30
+    int16_t home_y; // 0x32
+    int16_t width;  // 0x34
+    int16_t height; // 0x36
+    int16_t wait;   // 0x38
+    int16_t timer;  // 0x3A
+} Own_GreenPlatform;
+
+// Offset_0x0260F8: where the frame puts it
+static void GreenPlatform_Place(Sst *self, Own_GreenPlatform *own) {
+    const uint8_t *entry = green_platform_frames[self->mapping_frame & 0xF];
+    int16_t dx = (int8_t)entry[0];
+    if (self->status & SST_STATUS_X_FLIP)
+        dx = (int16_t)-dx;
+    self->x_pos.f.u = (int16_t)(own->home_x + dx);
+    self->y_pos.f.u = (int16_t)(own->home_y + (int8_t)entry[1]);
+    own->width = entry[2];
+    self->width_pixels = entry[2];
+    own->height = entry[3];
+}
+
+static void GreenPlatform_LetGo(Sst *self, Sst *chr, int who) {
+    const uint8_t stand_bit = (uint8_t)(1 << (3 + who));
+    if (!(self->status & stand_bit))
+        return;
+    self->status &= (uint8_t)~stand_bit;
+    chr->status &= (uint8_t)~SST_PSTATUS_OBJECT_STAND;
+    chr->status |= SST_PSTATUS_IN_AIR;
+}
+
+void Obj_CNZGreenPlatform(Sst *self) {
+    Own_GreenPlatform *own = (Own_GreenPlatform *)self->own.u8;
+
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_CNZGreenPlatform;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_CNZGreenPlatform);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 8;
+        self->priority = 4 * 0x80;
+        own->home_x = self->x_pos.f.u;
+        own->home_y = self->y_pos.f.u;
+        own->wait = (int16_t)(self->subtype << 4);
+        GreenPlatform_Place(self, own);
+    }
+
+    if (own->wait != 0) { // (waiting for its turn: it is only a picture)
+        own->wait--;
+        SstOnScreenTest(self);
+        return;
+    }
+    if (--own->timer < 0) {
+        own->timer = 0xF;
+        self->mapping_frame = (uint8_t)((self->mapping_frame + 1) & 0xF);
+        if (self->mapping_frame == 0) { // (a round done: it is let go of whoever is on it, and waits)
+            own->wait = (int16_t)(self->subtype << 4);
+            if (self->status & 0x18) {
+                GreenPlatform_LetGo(self, player, SolidChar_Sonic);
+                if (TAILS_OBJ->code != NULL)
+                    GreenPlatform_LetGo(self, TAILS_OBJ, SolidChar_Tails);
+            }
+            self->x_pos.f.u = own->home_x;
+            GreenPlatform_Place(self, own);
+            return;
+        }
+        GreenPlatform_Place(self, own);
+    }
+    FOR_EACH_CHARACTER(chr, who)
+        Solid_Character(self, chr, who, (int16_t)(own->width + 0xB), own->height, (int16_t)(own->height + 1), self->x_pos.f.u, NULL);
+    SstOnScreenTest2(self, own->home_x);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object C8 (the pre-beta's): the Crawl, a guard (it is not hurt: its collision is the bumper's kind, $D7). A character within $60 either way, in the box, turns it to him and it raises its shield (frame 1);
+// whoever touches it is thrown away from it at $700, as by a bumper; it lowers it again when he has gone
+// ---------------------------------------------------------------------------------------------------------------------------------------
+#define ArtTile_CNZCrawl 0x340 // ($6800: the zone's list)
+
+// Offset_0x030B3A: a character in the box of `range` about it: returns it, and (side) whether it is on the right of the Crawl
+static Sst *Crawl_Near(const Sst *self, int16_t range, bool *right) {
+    FOR_EACH_CHARACTER(chr, who) {
+        const uint16_t dx = (uint16_t)(self->x_pos.f.u - chr->x_pos.f.u + range);
+        const uint16_t dy = (uint16_t)(self->y_pos.f.u - chr->y_pos.f.u + range);
+        if (dx < (uint16_t)(range * 2) && dy < (uint16_t)(range * 2)) {
+            *right = (uint16_t)self->x_pos.f.u < (uint16_t)chr->x_pos.f.u;
+            return chr;
+        }
+    }
+    return NULL;
+}
+
+void Obj_CNZCrawl(Sst *self) {
+    bool right = false;
+
+    switch (self->routine) {
+    case 0:
+        self->routine += 2;
+        self->mappings = Mappings_CNZCrawl;
+        self->art_tile = TILE_MAP(1, 0, 0, 0, ArtTile_CNZCrawl);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->priority = 1 * 0x80;
+        self->width_pixels = 0x10;
+        self->collision_flags = 0xD7;
+        return;
+
+    case 2:
+        if (Crawl_Near(self, 0x60, &right) != NULL) {
+            SST_RENDER_SET(self, SST_RENDER_X_FLIP, right);
+            self->routine += 2;
+            self->mapping_frame = 1;
+        }
+        SstOnScreenTest(self);
+        return;
+
+    default: // 4
+        if (Crawl_Near(self, 0x60, &right) == NULL) {
+            self->routine -= 2;
+            self->mapping_frame = 0;
+        } else if (self->collision_property) {
+            const uint8_t touched = self->collision_property;
+            self->collision_property = 0;
+            if (touched & 1)
+                Bumper_Throw(self, player);
+            if ((touched & 2) && TAILS_OBJ->code != NULL)
+                Bumper_Throw(self, TAILS_OBJ);
+            self->anim = 1;
+            QueueSound2(sfx_Bumper);
+            if (self->respawn && (*SstLoad_State(self)) < 0x8A)
+                (*SstLoad_State(self))++;
+        }
+        SstOnScreenTest(self);
+        return;
+    }
 }
