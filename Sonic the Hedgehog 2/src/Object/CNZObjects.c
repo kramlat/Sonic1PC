@@ -11,6 +11,7 @@ void Obj_Points(Sst *self);
 #include "MathUtil.h"
 #include "Object/Sonic.h"
 #include "Object/Tails.h"
+#include "Solid.h"
 #include "Sound.h"
 
 #include <string.h>
@@ -22,8 +23,13 @@ void Obj_Points(Sst *self);
 #include "Resource/Animation/CNZBlueBumper.h"
 #include "Resource/Animation/CNZGreenBumper.h"
 #include "Resource/Mappings/CNZBlueBumper.h"
+#include "Resource/Mappings/CNZElevator.h"
 #include "Resource/Mappings/CNZBumper.h"
 #include "Resource/Mappings/CNZGreenBumper.h"
+
+#define FOR_EACH_CHARACTER(chr, who) \
+    for (int who = SolidChar_Sonic; who <= SolidChar_Tails; who++) \
+        for (Sst *chr = (who == SolidChar_Sonic) ? player : (TAILS_OBJ->code != NULL ? TAILS_OBJ : NULL); chr != NULL; chr = NULL)
 
 #define ArtTile_CNZBumper 0x39A // ($7340: the zone's list)
 
@@ -338,4 +344,77 @@ void Obj_CNZBlueBumper(Sst *self) {
     if (self->respawn)
         (*SstLoad_State(self)) &= 0x7F;
     Sst_Delete(self);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Object D5 (the pre-beta's): the elevator. It is put at one end of a run of the subtype times 8 pixels (the other end is the same distance from the middle, which is where the object was placed;
+// flipped it starts at the lower end): stood on, it speeds up towards the middle by 8 a frame and slows to a stop at the other end; once the character has left it, it goes back the same way (and is
+// not a platform on the way back)
+// ---------------------------------------------------------------------------------------------------------------------------------------
+#define ArtTile_CNZElevator 0x384 // ($7080: the zone's list)
+
+typedef struct {
+    uint8_t subtype;
+    uint8_t pad0[9];
+    int16_t home;  // 0x32: the middle of the run
+    int16_t state; // 0x34: 0 waits, 2 goes, 4 waits for him to leave, 6 goes back
+} Own_Elevator;
+
+static void Elevator_Stops(Sst *self, Own_Elevator *own, bool upper) {
+    const int16_t run = (int16_t)(self->subtype << 2);
+    self->y_pos.f.u = (int16_t)(own->home + (upper ? -run : run));
+}
+
+void Obj_CNZElevator(Sst *self) {
+    Own_Elevator *own = (Own_Elevator *)self->own.u8;
+
+    if (self->routine == 0) {
+        self->routine += 2;
+        self->mappings = Mappings_CNZElevator;
+        self->art_tile = TILE_MAP(0, 2, 0, 0, ArtTile_CNZElevator);
+        self->render_flags |= SST_RENDER_LEVEL;
+        self->width_pixels = 0x10;
+        self->priority = 4 * 0x80;
+        own->home = self->y_pos.f.u;
+        Elevator_Stops(self, own, !(self->status & SST_STATUS_X_FLIP)); // (flipped: it starts at the lower end)
+    }
+
+    const int16_t old_x = self->x_pos.f.u;
+    Sst_MoveSprite2(self);
+    switch (own->state) {
+    case 0:
+        if (self->status & 0x18) {
+            PlaySound(sfx_CNZElevator);
+            own->state += 2;
+        }
+        break;
+    case 4:
+        if (!(self->status & 0x18)) {
+            PlaySound(sfx_CNZElevator);
+            own->state += 2;
+        }
+        break;
+    default: { // 2 and 6: towards the middle, and a stop at the other end
+        int16_t d1 = 8;
+        if ((uint16_t)own->home < (uint16_t)self->y_pos.f.u)
+            d1 = -8;
+        self->y_vel = (int16_t)(self->y_vel + d1);
+        if (self->y_vel == 0) {
+            const bool flipped = (self->status & SST_STATUS_X_FLIP) != 0;
+            if (own->state == 2) {
+                own->state += 2;
+                Elevator_Stops(self, own, flipped); // (the other end)
+            } else {
+                own->state = 0;
+                Elevator_Stops(self, own, !flipped);
+            }
+        }
+        break;
+    }
+    }
+    if (own->state < 6) {
+        FOR_EACH_CHARACTER(chr, who)
+            Solid_Platform(self, chr, who, 0x10, 9, old_x);
+    }
+    SstOnScreenTest(self);
 }

@@ -14,4 +14,7 @@ void CNZ_ResetBumperGroups(void);
 // The pre-beta's blue bumper (D7): throws whoever touches it by the side he is on; with a subtype it goes to and fro over $C0 pixels
 void Obj_CNZBlueBumper(Sst *self);
 
+// The pre-beta's elevator (D5): a platform that rides to the other end of its run when it is stood on, and back when it is left
+void Obj_CNZElevator(Sst *self);
+
 #endif //_CNZOBJECTS_H

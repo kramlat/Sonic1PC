@@ -360,6 +360,25 @@ static void CNZObjects_TheFlipperThrowsWhoStandsOnItWhenAButtonIsPressed(void) {
     CHECK(player->y_vel < 0); // (thrown up)
 }
 
+static void CNZObjects_TheElevatorRidesToTheOtherEndAndBack(void) {
+    Reset();
+    level_id = LEVEL_ID(ZoneId_CNZ, 0);
+    Sst *lift = SpawnSst(0xD5, 0x10, 900, 500); // (a run of $40 each way)
+    Obj_CNZElevator(lift);
+    CHECK_EQ(lift->y_pos.f.u, 500 - 0x40); // (at the upper end)
+    int frames = 0;
+    while (lift->y_pos.f.u != 500 + 0x40 && frames++ < 400) {
+        lift->status |= 0x08; // (Sonic stands on it)
+        Obj_CNZElevator(lift);
+    }
+    CHECK_EQ(lift->y_pos.f.u, 500 + 0x40); // (the lower end, where it has come to a stop)
+    frames = 0;
+    lift->status &= (uint8_t)~0x18;
+    while (lift->y_pos.f.u != 500 - 0x40 && frames++ < 400)
+        Obj_CNZElevator(lift);
+    CHECK_EQ(lift->y_pos.f.u, 500 - 0x40); // (back, once he has left)
+}
+
 static void CNZObjects_ThePlungerHoldsDrawsBackAndThrowsUp(void) {
     Reset();
     level_id = LEVEL_ID(ZoneId_CNZ, 0);
@@ -485,6 +504,7 @@ void RegisterNGHZObjectTests(void) {
     RUN_TEST(SSZObjects_TheSwingingPlatformIsDrawnFromTheLevelsTilesWithAChain);
     RUN_TEST(SSZObjects_TheHangingSwingIsAColumnWithThePlatformBelowIt);
     RUN_TEST(CNZObjects_TheGreenBumperThrowsAndGoesAtTheThirdHit);
+    RUN_TEST(CNZObjects_TheElevatorRidesToTheOtherEndAndBack);
     RUN_TEST(CNZObjects_ThePlungerHoldsDrawsBackAndThrowsUp);
     RUN_TEST(CNZObjects_TheBlueBumperThrowsBySideAndMovesWithASubtype);
     RUN_TEST(CNZObjects_TheSlotMachineSpinsAndStopsOnItsOwn);
