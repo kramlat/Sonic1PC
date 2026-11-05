@@ -1,0 +1,181 @@
+{
+    "blocks": {
+        "Mus88_Extra_Life_FM1": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+                "Mus88_Extra_Life_Jump01"
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus88_Extra_Life_FM2": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 1
+                }
+            ]
+        },
+        "Mus88_Extra_Life_FM3": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+                "Mus88_Extra_Life_Jump00"
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus88_Extra_Life_FM4": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+                "Mus88_Extra_Life_Jump01"
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus88_Extra_Life_FM5": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+                "Mus88_Extra_Life_Jump00"
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus88_Extra_Life_Jump00": {
+            "callSites": [
+                {
+                    "owner": "Mus88_Extra_Life_FM5",
+                    "tick": 0
+                },
+                {
+                    "owner": "Mus88_Extra_Life_FM3",
+                    "tick": 0
+                }
+            ],
+            "owners": [
+                "Mus88_Extra_Life_FM3",
+                "Mus88_Extra_Life_FM5"
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": true,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 2
+                }
+            ]
+        },
+        "Mus88_Extra_Life_Jump01": {
+            "callSites": [
+                {
+                    "owner": "Mus88_Extra_Life_FM4",
+                    "tick": 0
+                },
+                {
+                    "owner": "Mus88_Extra_Life_FM1",
+                    "tick": 0
+                }
+            ],
+            "owners": [
+                "Mus88_Extra_Life_FM1",
+                "Mus88_Extra_Life_FM4"
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": true,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 0
+                }
+            ]
+        },
+        "Mus88_Extra_Life_PSG1": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+                "Mus88_Extra_Life_PSG2"
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus88_Extra_Life_PSG2": {
+            "callSites": [
+                {
+                    "owner": "Mus88_Extra_Life_PSG1",
+                    "tick": 64
+                }
+            ],
+            "owners": [
+                "Mus88_Extra_Life_PSG1"
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+            ]
+        }
+    }
+}

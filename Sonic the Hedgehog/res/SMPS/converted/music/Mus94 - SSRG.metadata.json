@@ -1,0 +1,210 @@
+{
+    "blocks": {
+        "Mus94_SSRG_FM1": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+                "Mus94_SSRG_Loop00"
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 0
+                }
+            ]
+        },
+        "Mus94_SSRG_FM2": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 0
+                }
+            ]
+        },
+        "Mus94_SSRG_FM3": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+                "Mus94_SSRG_Loop00"
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 1
+                }
+            ]
+        },
+        "Mus94_SSRG_FM4": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+                "Mus94_SSRG_Loop04"
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 0
+                }
+            ]
+        },
+        "Mus94_SSRG_FM5": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 1
+                }
+            ]
+        },
+        "Mus94_SSRG_Loop00": {
+            "callSites": [
+                {
+                    "owner": "Mus94_SSRG_FM3",
+                    "tick": 0
+                },
+                {
+                    "owner": "Mus94_SSRG_FM1",
+                    "tick": 0
+                }
+            ],
+            "owners": [
+                "Mus94_SSRG_FM1",
+                "Mus94_SSRG_FM3"
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": true,
+            "targets": [
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus94_SSRG_Loop04": {
+            "callSites": [
+                {
+                    "owner": "Mus94_SSRG_PSG2",
+                    "tick": 0
+                },
+                {
+                    "owner": "Mus94_SSRG_FM4",
+                    "tick": 0
+                }
+            ],
+            "owners": [
+                "Mus94_SSRG_FM4",
+                "Mus94_SSRG_PSG2"
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": true,
+            "targets": [
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus94_SSRG_PSG1": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+                {
+                    "tick": 0,
+                    "tone": 0
+                }
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus94_SSRG_PSG2": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+                {
+                    "tick": 0,
+                    "tone": 1
+                }
+            ],
+            "shared": false,
+            "targets": [
+                "Mus94_SSRG_Loop04"
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus94_SSRG_PSG3": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+                {
+                    "tick": 0,
+                    "tone": 2
+                }
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+            ]
+        }
+    }
+}

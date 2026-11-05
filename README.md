@@ -23,7 +23,7 @@ Handbook**, or F1).
 
 Folder | What it is
 --------|--------
-`Sonic The Hedgehog/` | The Sonic 1 port (the project that `cmake` builds by default). The executable is `Sonic`.
+`Sonic the Hedgehog/` | The Sonic 1 port (the project that `cmake` builds by default). The executable is `Sonic`.
 `Sonic the Hedgehog 2/` | The Sonic 2 port, work in progress. The executable is `Sonic2`.
 `ParadoxEngine/` | The engine both games are built on (a shared library), with its sound compiler, `libparadoxsmps`, and the third-party code in `contrib/`.
 `ParadoxMake/` | The project tool that reads each folder's `paradoxmakefile.yml` and builds the engine and the game.

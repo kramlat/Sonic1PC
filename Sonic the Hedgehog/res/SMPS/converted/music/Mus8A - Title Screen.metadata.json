@@ -1,0 +1,163 @@
+{
+    "blocks": {
+        "Mus8A_Title_Screen_DAC": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+                "Mus8A_Title_Screen_PSG1"
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus8A_Title_Screen_FM1": {
+            "callSites": [
+                {
+                    "owner": "Mus8A_Title_Screen_FM5",
+                    "tick": 0
+                }
+            ],
+            "owners": [
+                "Mus8A_Title_Screen_FM5"
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 0
+                }
+            ]
+        },
+        "Mus8A_Title_Screen_FM2": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 1
+                }
+            ]
+        },
+        "Mus8A_Title_Screen_FM3": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 2
+                },
+                {
+                    "tick": 216,
+                    "voice": 1
+                }
+            ]
+        },
+        "Mus8A_Title_Screen_FM4": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+                {
+                    "tick": 0,
+                    "voice": 2
+                },
+                {
+                    "tick": 216,
+                    "voice": 1
+                }
+            ]
+        },
+        "Mus8A_Title_Screen_FM5": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+                "Mus8A_Title_Screen_FM1"
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus8A_Title_Screen_PSG1": {
+            "callSites": [
+                {
+                    "owner": "Mus8A_Title_Screen_DAC",
+                    "tick": 103
+                }
+            ],
+            "owners": [
+                "Mus8A_Title_Screen_DAC"
+            ],
+            "psgFormChanges": [
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+            ]
+        },
+        "Mus8A_Title_Screen_PSG3": {
+            "callSites": [
+            ],
+            "owners": [
+            ],
+            "psgFormChanges": [
+                {
+                    "tick": 0
+                }
+            ],
+            "psgVoiceChanges": [
+            ],
+            "shared": false,
+            "targets": [
+            ],
+            "voiceChanges": [
+            ]
+        }
+    }
+}

@@ -8,7 +8,7 @@ endif()
 # SEGA logo and before the title, as in Sonic 1
 if(SPLASH)
   target_compile_definitions(Sonic2Core PUBLIC SCP_SPLASH SCP_COUNTDOWN COUNTDOWN_DEFAULT_MUSIC=2)
-  target_sources(Sonic2Core PRIVATE "${PM_DIR}/../Sonic The Hedgehog/src/GM_Countdown.c" "${PM_DIR}/../Sonic The Hedgehog/src/GM_SSRG.c")
+  target_sources(Sonic2Core PRIVATE "${PM_DIR}/../Sonic the Hedgehog/src/GM_Countdown.c" "${PM_DIR}/../Sonic the Hedgehog/src/GM_SSRG.c")
   list(APPEND PM_RESOURCES "SSRG/ArtLink" "SSRG/ArtMain" "SSRG/ArtSonic" "SSRG/ArtSquare" "SSRG/MapLink" "SSRG/MapMain" "SSRG/MapSquare")
 endif()
 if(FIX_BUGS)
@@ -37,9 +37,9 @@ if(BUILD_TESTS AND NOT CMAKE_BUILD_TYPE STREQUAL "Showcase")
   enable_testing()
   add_executable(Sonic2Tests "${PM_DIR}/tests/test_main.c" "${PM_DIR}/tests/test_leveldata.c" "${PM_DIR}/tests/test_objects.c" "${PM_DIR}/tests/test_solid.c" "${PM_DIR}/tests/test_htzquake.c" "${PM_DIR}/tests/test_htzfloor.c" "${PM_DIR}/tests/test_htzfireball.c" "${PM_DIR}/tests/test_htzbackground.c"
                              "${PM_DIR}/tests/test_water.c" "${PM_DIR}/tests/test_signpost.c" "${PM_DIR}/tests/test_demo.c"
-                             "${PM_DIR}/tests/test_cpzobjects.c" "${PM_DIR}/tests/test_nghzobjects.c" "${PM_DIR}/tests/test_editor.c" "${PM_DIR}/tests/test_htzobjects.c" "${PM_DIR}/tests/test_camera.c" "${PM_DIR}/tests/test_renderflags.c" "${PM_DIR}/tests/test_dhzobjects.c" "${PM_DIR}/tests/test_oozobjects.c" "${PM_DIR}/tests/test_mtzobjects.c" "${PM_DIR}/tests/test_scrollblock.c" "${PM_DIR}/tests/test_oscillation.c" "${PM_DIR}/../Sonic The Hedgehog/tests/test_math.c" "${PM_DIR}/../Sonic The Hedgehog/tests/test_palette.c" "${PM_DIR}/../Sonic The Hedgehog/tests/test_vdp8bpp.c" "${PM_DIR}/../Sonic The Hedgehog/tests/test_tilebank.c" "${PM_DIR}/../Sonic The Hedgehog/tests/test_vdpwindow.c" "${PM_DIR}/../Sonic The Hedgehog/tests/test_rings.c" "${PM_DIR}/../Sonic The Hedgehog/tests/test_levelloadblock.c"
-                             "${PM_DIR}/../Sonic The Hedgehog/tests/test_compression.c")
-  target_include_directories(Sonic2Tests PRIVATE "${PM_DIR}/../Sonic The Hedgehog/tests")
+                             "${PM_DIR}/tests/test_cpzobjects.c" "${PM_DIR}/tests/test_nghzobjects.c" "${PM_DIR}/tests/test_editor.c" "${PM_DIR}/tests/test_htzobjects.c" "${PM_DIR}/tests/test_camera.c" "${PM_DIR}/tests/test_renderflags.c" "${PM_DIR}/tests/test_dhzobjects.c" "${PM_DIR}/tests/test_oozobjects.c" "${PM_DIR}/tests/test_mtzobjects.c" "${PM_DIR}/tests/test_scrollblock.c" "${PM_DIR}/tests/test_oscillation.c" "${PM_DIR}/../Sonic the Hedgehog/tests/test_math.c" "${PM_DIR}/../Sonic the Hedgehog/tests/test_palette.c" "${PM_DIR}/../Sonic the Hedgehog/tests/test_vdp8bpp.c" "${PM_DIR}/../Sonic the Hedgehog/tests/test_tilebank.c" "${PM_DIR}/../Sonic the Hedgehog/tests/test_vdpwindow.c" "${PM_DIR}/../Sonic the Hedgehog/tests/test_rings.c" "${PM_DIR}/../Sonic the Hedgehog/tests/test_levelloadblock.c"
+                             "${PM_DIR}/../Sonic the Hedgehog/tests/test_compression.c")
+  target_include_directories(Sonic2Tests PRIVATE "${PM_DIR}/../Sonic the Hedgehog/tests")
   link_game(Sonic2Tests)
   set_target_properties(Sonic2Tests PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
   set_target_properties(Sonic2Tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BUILD_DIRECTORY}/$<CONFIG>")
