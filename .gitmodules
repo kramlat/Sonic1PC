@@ -1,9 +1,3 @@
-[submodule "clownassembler"]
-	path = ParadoxEngine/contrib/clownassembler
-	url = https://github.com/kramlat/clownassembler.git
-[submodule "imgui"]
-	path = ParadoxEngine/contrib/imgui
-	url = https://github.com/ocornut/imgui.git
-[submodule "nuked-opn2"]
-	path = ParadoxEngine/contrib/nuked-opn2
-	url = https://github.com/nukeykt/Nuked-OPN2.git
+[submodule "ParadoxEngine"]
+	path = ParadoxEngine
+	url = https://github.com/kramlat/ParadoxEngine.git
