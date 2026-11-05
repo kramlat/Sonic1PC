@@ -4,3 +4,9 @@
 [submodule "ParadoxMake"]
 	path = ParadoxMake
 	url = https://github.com/kramlat/ParadoxMake.git
+[submodule "Sonic the Hedgehog"]
+	path = Sonic the Hedgehog
+	url = https://github.com/kramlat/Sonic-the-Hedgehog.git
+[submodule "Sonic the Hedgehog 2"]
+	path = Sonic the Hedgehog 2
+	url = https://github.com/kramlat/Sonic-the-Hedgehog-2.git
