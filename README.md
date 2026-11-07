@@ -85,7 +85,7 @@ bin/Debug/Sonic2
 ```
 
 Sonic 2 builds as Debug when no build type is given (its debug mode is the way into its tools for now); Sonic 1 builds as Release. You can also run ParadoxMake directly:
-`build/ParadoxMake/paradoxmake build "Sonic The Hedgehog"` (`generate`, `configure`, `build`, `install`, `test`, `clean` and `info` are its commands).
+`build/ParadoxMake/paradoxmake build "Sonic the Hedgehog"` (`generate`, `configure`, `build`, `install`, `test`, `clean` and `info` are its commands).
 
 The games are one executable plus two shared libraries that sit next to it (`libParadoxEngine.so`, the engine, and `libparadoxsmps.so`, the sound compiler): copy the
 folder, not just the executable. The executables are in `bin/<build type>/` (`bin/` for a build without a build type).
@@ -97,7 +97,7 @@ Pass these to the first `cmake` command (`-DNAME=VALUE`; use a separate build fo
 Name | Function
 --------|--------
 `-DCMAKE_BUILD_TYPE=` | `Debug`, `Release`, or `Premier` / `Showcase` (Release-speed builds that start at the SSRG splash screen; Premier keeps the cheats, Showcase does not)
-`-DPARADOX_PROJECT=` | The folder to build: `"Sonic The Hedgehog"` (the default) or `"Sonic the Hedgehog 2"`
+`-DPARADOX_PROJECT=` | The folder to build: `"Sonic the Hedgehog"` (the default) or `"Sonic the Hedgehog 2"`
 `-DJAPANESE=ON` | Compile a Japanese ROM (Sonic 1)
 `-DFIX_BUGS=ON` | Fix bugs that are blatant screw-ups that may harm performance (not gameplay bugs)
 `-DSPLASH=ON` | Start at the SSRG splash screen
@@ -131,7 +131,7 @@ MSYS2 (UCRT64 shell):
 ```
 cmake -S ParadoxMake -B build/ParadoxMake -G Ninja
 cmake --build build/ParadoxMake
-build/ParadoxMake/paradoxmake generate -B build/projects "Sonic The Hedgehog"
+build/ParadoxMake/paradoxmake generate -B build/projects "Sonic the Hedgehog"
 cmake -S build/projects/paradoxmake -B build/projects -G Ninja -DCMAKE_BUILD_TYPE=Release -DPKG_CONFIG_STATIC_LIBS=ON
 cmake --build build/projects
 ```
@@ -140,7 +140,7 @@ Visual Studio (a "Developer PowerShell"; vcpkg's folder in `VCPKG_ROOT`):
 ```
 cmake -S ParadoxMake -B build/ParadoxMake -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
 cmake --build build/ParadoxMake --config Release
-build/ParadoxMake/Release/paradoxmake.exe generate -B build/projects "Sonic The Hedgehog"
+build/ParadoxMake/Release/paradoxmake.exe generate -B build/projects "Sonic the Hedgehog"
 cmake -S build/projects/paradoxmake -B build/projects -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DMSVC_LINK_STATIC_RUNTIME=ON
 cmake --build build/projects --config Release
 ```

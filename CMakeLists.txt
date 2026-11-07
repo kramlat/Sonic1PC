@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(ParadoxOffice LANGUAGES CXX)
 
 # The only thing this CMake project builds by hand is ParadoxMake, the build tool for Paradox Engine projects. ParadoxMake then reads the
-# paradoxmakefile.yml of each project (ParadoxEngine, Sonic The Hedgehog, ...) and builds everything else; the real build tree is <this build dir>/projects.
+# paradoxmakefile.yml of each project (ParadoxEngine, Sonic the Hedgehog, ...) and builds everything else; the real build tree is <this build dir>/projects.
 #
 #   cmake -S . -B build && cmake --build build                  builds ParadoxMake and the game
 #   cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr && cmake --install build
@@ -11,13 +11,13 @@ project(ParadoxOffice LANGUAGES CXX)
 # passed through when given.
 add_subdirectory(ParadoxMake)
 
-set(PARADOX_PROJECT "Sonic The Hedgehog" CACHE STRING "The project folder ParadoxMake builds")
+set(PARADOX_PROJECT "Sonic the Hedgehog" CACHE STRING "The project folder ParadoxMake builds")
 # The build profile when none is given (-DCMAKE_BUILD_TYPE=...): Sonic 1 builds as Release, the way it is played, with its cheats (a debug build has the debug mode on already, and only a release build takes the
 # code for it). Sonic 2 builds as Debug for now: its debug cheat is not Sonic 2's own method yet (the final game's is on the sound test), so a release build would have no way into the debug mode.
 if(NOT CMAKE_BUILD_TYPE)
   if(PARADOX_PROJECT STREQUAL "Sonic the Hedgehog 2")
     set(CMAKE_BUILD_TYPE Debug)
-  elseif(PARADOX_PROJECT STREQUAL "Sonic The Hedgehog")
+  elseif(PARADOX_PROJECT STREQUAL "Sonic the Hedgehog")
     set(CMAKE_BUILD_TYPE Release)
   endif()
 endif()
