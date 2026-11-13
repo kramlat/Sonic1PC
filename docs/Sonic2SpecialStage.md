@@ -82,3 +82,8 @@ Found by reading the pre-beta's unrolled decoder ($5FFC to $6678, and its twin a
 * Objects $5E (words, `Obj_SpecialStageHud`), $87 (ring digits, `Obj_SpecialStageCounter`, subtypes 0-2 Sonic, 3-5 Miles, reading `touched`), $62 (clock, `Obj_SpecialStageClock`, starts at 99, one second per 60 frames once the stage has started, `SpecialStageObjects_TimeUp`) and $5F (`Obj_SpecialStageStart`: the banner comes down, the lights go red/yellow/green a second each by writing colours 11-13 of palette line 3, then the pieces fly off, and `SpecialStageObjects_Started` becomes true). Mappings `SpecialStageHud/Start/Counter`.
 * The rings' art (list $3D) is loaded once the banner is gone, as it goes over the lights' art.
 * Not done yet: the ring-loss scatter ($5B) and the tumble's ring spill; Sonic and Miles are not held until the start (stage 6).
+
+## Stage 5c: the rings a bomb knocks out ($5B)
+
+* On the first step of a tumble with rings (`SSPlayer.spill`, set in `Tumble`) the object that draws the character spawns up to 10 `Obj_SpecialStageRingOut` rings and takes ten off the count (with ten or fewer all go; an odd count uses the second angle table). Each flies at `(angle + $40 + table)` (x speed cos*$400, y speed sin*$800), falls with gravity, and goes in front (frame 9, priority 0) on its way down; gone off the 256-pixel stage's sides or below $E0.
+* Tested logic only (first step spills once; no rings, nothing); not yet seen on screen.
