@@ -71,3 +71,8 @@ Found by reading the pre-beta's unrolled decoder ($5FFC to $6678, and its twin a
 * **His art:** the stage's script ($2F94E, `CharacterArtScript`) has Sonic's frames from entry 0, **Miles' from entry $32** (a count and words, as Sonic's) and **his tails' from entry $44, a single word each** (no count), copied to VRAM tile $375. The sets of the art (plain, diagonal, horizontal, spin; the tails' plain, diagonal and horizontal) are chosen by the frame as Sonic's are (the tails' at 7 and $E).
 * **His tails** (Obj $88, `Obj_SpecialStageMilesTail`): in Miles' place with his flips and animation; while he runs (the first three animations) they have an animation of their own (3 frames each); while he jumps (the third) they are gone. Priority one in front less than his.
 * Tests: Miles' place, pipe and landing ellipse and his running and jumping. The viewer shows Sonic behind and Miles in front with his tails.
+
+## Stage 5a: rings and bombs
+
+* `SpecialStageItems.{h,c}` holds the logic (12 slots filled from the step's layout, distance down the pipe, size by distance, touch by Sonic and Miles). `Obj_SpecialStageItem` and `Obj_SpecialStageItemShadow` (`SpecialStageObjects.c`) draw one slot each; bombs copy their frame's tiles to tile $3C0 each frame. The viewer loads a layout on the 4th frame of a segment and loads list $3D (rings) after the start.
+* Seen in the headless viewer: rings come down the pipe. Their colour looks darker than gold (check palette line 2 against the pre-beta); bombs and the shadows are not yet checked by eye.
