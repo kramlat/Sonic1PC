@@ -101,3 +101,12 @@ What the pre-beta's stage does (read from `Special_Stage`, Offset_0x005BB0): it 
 Sonic 1's special stage palette cycle (`PCycle_SS`, run by the shared blank for routine $0A) was overwriting colours 7-12 of line 3 and 7-10 of line 4 of the stage's palette with Sonic 1's cycle. That cycle took the font's and the track's white. `ss_sonic1_palette_cycle` (PaletteCycle.c) turns it off for the pre-beta's stage; `Screen_Special` sets it only for Sonic 1's.
 
 Open: in the Sonic Retro screenshot of the pre-beta stage the track's lanes are blue, in ours yellow/brown. `SS_Main.pal` has the blues on line 2 (colours 3-7) and the lanes' yellow on line 3 (colours 3-7), so either the pre-beta cycles a line at run time (I found no cycle in its blank, routine $0A) or the tile words' palette lines differ. To compare against the pre-beta in an emulator.
+
+### Palette, shadows and the shadow/highlight mode (from the Kega dumps, 2026-11-13)
+
+Checked against the user's VRAM/CRAM dumps and a Kega screenshot of the pre-beta (`s2built_VRAM.ram`, `s2built_CRAM.ram` in the disassembly folder; both are byte-swapped words):
+* **The stage runs in shadow/highlight mode** (`$8C08`). The shadows of the characters and items are colour 15 of palette line 3 (the shadow operator), not a colour: `GM_SpecialTrack` now turns the mode on (and off at the end).
+* **Every tile of the track has its priority bit** (also the transparent ones), so the background is never shadowed. The engine's VDP now keeps this: a plane tile with the priority bit counts as normal intensity even where its pixel is transparent (`VDP_MASK_SH_NORMAL`, and in `vdp.comp`). The widescreen margins' blank tile carries the bit too.
+* **Operators obey sprite order and priority**: a shadow/highlight operator pixel does nothing under an earlier sprite or a priority tile (it darkened the characters in front of it before).
+* **Colour 7 of line 3 is $0EC2 (cyan) after the fade**, where the file has $0F00: the pre-beta's `Pal_DecRed_2` takes 2 off the red every frame without comparing it with the target, so a colour that is not a valid Mega Drive colour ends where 22 frames of the fade leave it. `WhiteIn_DecColour` (engine) now does the same; the track's edges are cyan.
+* Sonic 1's palette cycle is off in this stage (above). The real CRAM has no cycling: lines match `SS_Main.pal` except colour 7 and the lights' colours 11-13.
