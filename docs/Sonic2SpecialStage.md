@@ -76,3 +76,9 @@ Found by reading the pre-beta's unrolled decoder ($5FFC to $6678, and its twin a
 
 * `SpecialStageItems.{h,c}` holds the logic (12 slots filled from the step's layout, distance down the pipe, size by distance, touch by Sonic and Miles). `Obj_SpecialStageItem` and `Obj_SpecialStageItemShadow` (`SpecialStageObjects.c`) draw one slot each; bombs copy their frame's tiles to tile $3C0 each frame. The viewer loads a layout on the 4th frame of a segment and loads list $3D (rings) after the start.
 * Seen in the headless viewer: rings come down the pipe. Their colour looks darker than gold (check palette line 2 against the pre-beta); bombs and the shadows are not yet checked by eye.
+
+## Stage 5b: the head up display and the START banner
+
+* Objects $5E (words, `Obj_SpecialStageHud`), $87 (ring digits, `Obj_SpecialStageCounter`, subtypes 0-2 Sonic, 3-5 Miles, reading `touched`), $62 (clock, `Obj_SpecialStageClock`, starts at 99, one second per 60 frames once the stage has started, `SpecialStageObjects_TimeUp`) and $5F (`Obj_SpecialStageStart`: the banner comes down, the lights go red/yellow/green a second each by writing colours 11-13 of palette line 3, then the pieces fly off, and `SpecialStageObjects_Started` becomes true). Mappings `SpecialStageHud/Start/Counter`.
+* The rings' art (list $3D) is loaded once the banner is gone, as it goes over the lights' art.
+* Not done yet: the ring-loss scatter ($5B) and the tumble's ring spill; Sonic and Miles are not held until the start (stage 6).
