@@ -95,3 +95,9 @@ What the pre-beta's stage does (read from `Special_Stage`, Offset_0x005BB0): it 
 * `Screen_Special` now runs the pre-beta's stage (`GM_SpecialTrack`). Start pauses, B/C step a frame, A leaves for the title (the shared `PauseGame`). `SONIC2_SS_SONIC1=1` still gives Sonic 1's stage; `SONIC2_SS_TRACK=1` the old viewer controls (Up/Down speed, Start leaves).
 * The speed is the stage's fixed $C (the pre-beta never changes it).
 * Not done: the stage's demo (`Init_Demo_Control`), the H32 narrow mode on a 256-pixel screen, the taller-than-224 screen, and the play test by the user.
+
+### Palette bug fixed (the "black where white should be")
+
+Sonic 1's special stage palette cycle (`PCycle_SS`, run by the shared blank for routine $0A) was overwriting colours 7-12 of line 3 and 7-10 of line 4 of the stage's palette with Sonic 1's cycle. That cycle took the font's and the track's white. `ss_sonic1_palette_cycle` (PaletteCycle.c) turns it off for the pre-beta's stage; `Screen_Special` sets it only for Sonic 1's.
+
+Open: in the Sonic Retro screenshot of the pre-beta stage the track's lanes are blue, in ours yellow/brown. `SS_Main.pal` has the blues on line 2 (colours 3-7) and the lanes' yellow on line 3 (colours 3-7), so either the pre-beta cycles a line at run time (I found no cycle in its blank, routine $0A) or the tile words' palette lines differ. To compare against the pre-beta in an emulator.
