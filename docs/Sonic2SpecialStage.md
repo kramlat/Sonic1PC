@@ -87,3 +87,11 @@ Found by reading the pre-beta's unrolled decoder ($5FFC to $6678, and its twin a
 
 * On the first step of a tumble with rings (`SSPlayer.spill`, set in `Tumble`) the object that draws the character spawns up to 10 `Obj_SpecialStageRingOut` rings and takes ten off the count (with ten or fewer all go; an odd count uses the second angle table). Each flies at `(angle + $40 + table)` (x speed cos*$400, y speed sin*$800), falls with gravity, and goes in front (frame 9, priority 0) on its way down; gone off the 256-pixel stage's sides or below $E0.
 * Tested logic only (first step spills once; no rings, nothing); not yet seen on screen.
+
+## Stages 6 and 7: the flow, and the switch
+
+What the pre-beta's stage does (read from `Special_Stage`, Offset_0x005BB0): it sets up, shows the START banner (no one is held back: only the clock waits for the banner), and then loops for ever. **It has no end, no results screen, no emerald and no palette cycling**: the time reaching 00 does nothing, and the only ways out are the demo timer and, with the slow-motion cheat, A while paused (to the title). Those parts (emeralds, results, a time-up) belong to later milestones, not to 1:1 with the pre-beta.
+
+* `Screen_Special` now runs the pre-beta's stage (`GM_SpecialTrack`). Start pauses, B/C step a frame, A leaves for the title (the shared `PauseGame`). `SONIC2_SS_SONIC1=1` still gives Sonic 1's stage; `SONIC2_SS_TRACK=1` the old viewer controls (Up/Down speed, Start leaves).
+* The speed is the stage's fixed $C (the pre-beta never changes it).
+* Not done: the stage's demo (`Init_Demo_Control`), the H32 narrow mode on a 256-pixel screen, the taller-than-224 screen, and the play test by the user.
