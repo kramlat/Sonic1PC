@@ -1,6 +1,6 @@
 # Sonic 2 milestone M4: the pre-beta (September 14, 1992)
 
-The reference is Neto's disassembly of the pre-beta, https://github.com/NyperYuhgard/Sonic-2-September-14-1992-Pre-Beta-prototype (ROM by drx, hidden-palace.org); kept outside this repository at `~/Projects/s2prebeta-disasm` (`S2140992.asm`, `vars.asm`, `Data/<zone>/`, `Data/Objects/Obj_0x*.asm`, `Data/Sounds/*.snd`). M3 (the alpha) is tagged `S2A`; M4 follows it. Nothing of M4 is built yet.
+The reference is Neto's disassembly of the pre-beta, https://github.com/NyperYuhgard/Sonic-2-September-14-1992-Pre-Beta-prototype (ROM by drx, hidden-palace.org); kept outside this repository at `~/Projects/reference/s2prebeta-disasm` (`S2140992.asm`, `vars.asm`, `Data/<zone>/`, `Data/Objects/Obj_0x*.asm`, `Data/Sounds/*.snd`). M3 (the alpha) is tagged `S2A`; M4 follows it. Nothing of M4 is built yet.
 
 ## Do not port
 
@@ -213,4 +213,4 @@ $9F was an empty song (`Blank_9F`) and the drowning code played the options them
 
 ### The import folder's contents are all in (2026-11-13)
 
-Everything in `Sonic the Hedgehog 2/import and toss/` (the user's untracked staging folder) is in the port: its 112 sources are byte-identical to the final game's disassembly (`~/Projects/s2disasm/sound/music` and `sound/sfx`), the effects are imported (above), the music matches the port's ($9F is new), and the final SEGA voice (`PCM/SegaFinal`, 24948 bytes) is the pre-beta's and alpha's `Sega.snd`, already in. `$9E`'s converted file differs from a fresh conversion only because the converter leaves `smpsAlterPitch -$C` unparsed (the port's has the equivalent $F4). The folder's one note, which songs are compressed in the final ROM, lists every track except $98 (1-Up), $9B (Game Over), $9D (Emerald) and $9E (Credits). The folder can go: Claude's removal was blocked by the safety check (it is a workspace directory), so it is left to the user.
+Everything in `Sonic the Hedgehog 2/import and toss/` (the user's untracked staging folder) is in the port: its 112 sources are byte-identical to the final game's disassembly (`~/Projects/reference/s2disasm/sound/music` and `sound/sfx`), the effects are imported (above), the music matches the port's ($9F is new), and the final SEGA voice (`PCM/SegaFinal`, 24948 bytes) is the pre-beta's and alpha's `Sega.snd`, already in. `$9E`'s converted file differs from a fresh conversion only because the converter leaves `smpsAlterPitch -$C` unparsed (the port's has the equivalent $F4). The folder's one note, which songs are compressed in the final ROM, lists every track except $98 (1-Up), $9B (Game Over), $9D (Emerald) and $9E (Credits). The folder can go: Claude's removal was blocked by the safety check (it is a workspace directory), so it is left to the user.

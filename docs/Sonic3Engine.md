@@ -1,6 +1,6 @@
 # Moving to the Sonic 3 & Knuckles engine (both games)
 
-What `sonic3k.asm` (the Sonic 3 & Knuckles disassembly, `~/Projects/skdisasm`) does, what the port does today, and the order we move in. The aim is the one the
+What `sonic3k.asm` (the Sonic 3 & Knuckles disassembly, `~/Projects/reference/skdisasm`) does, what the port does today, and the order we move in. The aim is the one the
 S3&K engine was built for: a smoother game (art streamed in a little a frame instead of stalling, tiles drawn as the camera moves, one object loop) and level data that is
 sized to the level instead of padded. The same engine work applies to Sonic 1 and Sonic 2: everything below lives in `ParadoxEngine/` except the level conversions.
 
