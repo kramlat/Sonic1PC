@@ -160,3 +160,8 @@ Object code (normalised diff against the pre-beta's) changed, done:
 * Same or names only: $15, $1F, $2A, $6A, $75, $76, $77, $7A, $81 (bridge), $A3 flasher, $40. $36 spikes: the sideways art tile stays (see the earlier note). Not changed: the boss ($57), its palette (`DHz_Boss.pal`) and rocks, and its events (deferred).
 
 Headless: both acts load and draw.
+
+## Star post art place, and Beta 4's monitor art (2026-11-14)
+
+* **Star post:** the art moved from tile $6B0 to Beta 4's own $47C (obj_0x79: `move.w #$47C,2(a0)`): the monitor art is 60 tiles from $680 and reaches $6BC, so the load order (star post first, monitors after) had the monitors' last icons overwrite the post's lower tiles, which showed as monitor art on the post (seen in Casino Night, but it was in every zone). $47C-$48B is free in the port's lists (the spring art ends at $478, the dust at $48C).
+* **Monitor art and mappings:** `Art/Monitor` is Beta 4's `Monitors.nem` (60 tiles, as before, with the teleporter icon), and the mappings (`Monitors_Mappings`, 12 frames) are re-imported: the frames 9 and 10 (the "8" and "9" icons) have changed places, so the icon shown for the versus monitors (anim 9) is the teleporter, which replaces the spring icon.
