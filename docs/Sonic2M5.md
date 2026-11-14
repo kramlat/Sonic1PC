@@ -46,7 +46,7 @@ Read through the menu font (tile $1E-$37 A-Z, $10-$19 0-9, $1A space, $1D '.'; p
 * `TwoPHostWait`: "2 PLAYER VERSUS", the label **SESSION CODE** (row 6, palette line 0), the code field (rows 8-9: two rows of two groups of five '.' boxes, columns 13-17 and 19-23), the box frame, and **PLEASE WAIT** (rows 13 and 16, palette line 3: "PLEASE" and "WAIT").
 * `TwoPGuestWait`: the title, **LOOKING FOR SESSION** (row 7), the box frame, PLEASE WAIT; rows 5-6 and 8-9 have blocks of tile $6000 (a bar area the code can animate).
 * `TwoPLoading`: the same frame and PLEASE WAIT; the label row 7 is blank (the game writes it: LOADING).
-* `TwoPRefused`: **CONNECTION REFUSED** (row 4), the frame, **PRESS ANYTHING TO CONTINUE** (rows 16 and 19). A screen the user added beyond the four asked for: wrong code or the host is full.
+* `TwoPRefused`: **CONNECTION REFUSED** (row 4), the frame, **PRESS ANYTHING TO CONTINUE** (rows 16 and 19). It is for **a connection refused error** (the user, 2026-11-13): the engine closes the session with the host's refusal (`deny`: wrong code, a second guest, another game) or the socket's own "connection refused" error. Anything else that ends a search, a wait or a handshake without a connection (nobody found in time, the host never answered, the other side went away) is the **time out** screen.
 * `TwoPTimeOut`: **SESSION TIME OUT** (row 4), the same frame and text: any button returns to the 2 player menu.
 The zone menu's assets from s2b4 are in too: `MenuFont`, `MenuFrame`, `LevelIcons` (Nemesis), `SonicMiles` (the animation), `VsMenuBg`, `VsMenu`, `VsMenu2`, palettes `VersusMenu` ($26) and `LevelIcons`. Nothing draws them yet.
 
