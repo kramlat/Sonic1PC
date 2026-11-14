@@ -15,3 +15,7 @@ The reference is the improved disassembly of Sonic 2 Beta 4 (Esrael and Puto's, 
 * **Art:** `Rings`, `Monitors`, `EndPanel`, `Robotnik` (the ship), `WatrSurf`, Oil Ocean's `Oil_01`; the special stage's `Emerald`, `HUD_Font`, `Rings` and `WingHand`.
 * **Sound:** every effect (76 files: the final game's are already in), the 1-up, game over, emerald and credits music, and DAC $03.
 * The same-named files that are identical are not listed. Files only in s2b4 by name are mostly renames (`artnem/cnzBoss.nem` for `Data/CNz/Boss.nem` and so on): compare them by content when each area is done.
+
+## The next part: a new 2P VS scene (the user, 2026-11-13)
+
+s2b4 has a new two-player versus scene. The user wants it **extended with an extra menu before the zone menu** (to be designed with the user when we are ready to work on it; do not start it before then). It will sit with the netplay work: the versus menus are where the host/join choice and `true_two_player` will meet (see the engine's `NetPlay.h` and `docs/Sonic2M4.md`'s netplay note).
