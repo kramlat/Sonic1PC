@@ -149,3 +149,14 @@ Headless: both acts load and look right with the new layout and objects (`--act`
 Object code (normalised diff against the pre-beta's): same or names only: $14 seesaw, $16 lift, $20 boss fireball, $2D, $2F, $30, $31, $92, $93, $95, $96, $32 rock (its break data labels). **$1C scenery has more looks in Beta 4** (21: Oil Ocean's frames 4 and 5 and the second Oil Ocean mapping, and a height table by subtype that sets the object's height for subtypes 13-15 and 18-20): the extra looks are Oil Ocean's, so they come with Oil Ocean; Hill Top's use of it (subtypes 4-6) is the same. The boss ($52) and its events stay deferred.
 
 Headless: both acts load and draw with the new objects.
+
+## Dust Hill / MCZ (slot DHZ) against Beta 4 (2026-11-14)
+
+`tools/import_s2b4_mcz.pl` (layouts, objects, rings, palette of `s2b4-disasm/data/dhz`). Compared with what the port had from the pre-beta (byte for byte): **the same**: the tiles, blocks, chunks, collision, the layouts, all object art except the boss's (`dhzBoss.nem`: deferred), the palette cycle, the collapsing platforms' data, the background scroll data, level sizes and start positions. **Different, imported:** the palette, the objects (act 1: 3 star posts $79, 8 more monitors $26, 3 more collapsing platforms, 6 more spikes, 9 fewer Crawltons $9E; act 2: the end panel, the capsule $3E, 9 more monitors, 5 more $40 springs, 9 fewer Crawltons) and the rings.
+
+Object code (normalised diff against the pre-beta's) changed, done:
+* **$9E Crawlton** (`DHZBadniks.c`): it looks for a character one a frame (Sonic on the even frames, Tails on the odd: Beta 4's `loc_328AA`) within $80 each way, where the pre-beta looked at Sonic only; its body counts as $80 wide and high for being on screen (the pre-beta's: $40).
+* **$7F and $80 roots/vines** (`DHZVines.c`): a hurt character (routine 4 and up) cannot take hold (the pre-beta let a hurt one, only a dead one not); a character hanging from a long root ($80) lets go when he is off the screen or hurt (and cannot take hold for a second); only the roots that are a switch (subtype bit 7) press the switch and sound; the chains with a hook in Sky Fortress that have a switch number are $60 long.
+* Same or names only: $15, $1F, $2A, $6A, $75, $76, $77, $7A, $81 (bridge), $A3 flasher, $40. $36 spikes: the sideways art tile stays (see the earlier note). Not changed: the boss ($57), its palette (`DHz_Boss.pal`) and rocks, and its events (deferred).
+
+Headless: both acts load and draw.
