@@ -51,3 +51,5 @@ Read through the menu font (tile $1E-$37 A-Z, $10-$19 0-9, $1A space, $1D '.'; p
 The zone menu's assets from s2b4 are in too: `MenuFont`, `MenuFrame`, `LevelIcons` (Nemesis), `SonicMiles` (the animation), `VsMenuBg`, `VsMenu`, `VsMenu2`, palettes `VersusMenu` ($26) and `LevelIcons`. Nothing draws them yet.
 
 **Music for all these menus (the user, 2026-11-13): the Level select / Options theme** (`mus_Menu`, $91), from the session menu through the code, wait, loading, refused and time-out screens to the zone menu (s2b4's zone menu plays $91 already). It starts on entering the first of them and keeps playing across them (no restart between screens).
+
+**The zone menu will get a second page of four more boxes later** (the user, 2026-11-13): build it data-driven (a table of boxes, four to a page, a page number) from the start. Page 2 is where the versus-only Hidden Palace act 2 goes (see the HPZ versus plan).
