@@ -141,3 +141,11 @@ Compared with a normalised text diff of each object's source (`s2b4-disasm/objec
 * **Not changed:** the boss ($51) and its events (deferred); versus branches ($D7, $44's 2P, the VRAM offset of the reels' art in 2P).
 
 Headless: act 1 loads and looks right with the new layout and objects. **Act 2 starts on a black screen with the HUD: it did so before this change too** (unchecked why; other zones' act 2 are fine).
+
+## Hill Top (HTZ) against Beta 4 (2026-11-14)
+
+`tools/import_s2b4_htz.pl` (objects and rings of `s2b4-disasm/data/htz`). Compared with what the port had from the pre-beta (byte for byte): **the same**: the secondary tiles (`HTz_8.nem`), the blocks, the background art and strips, the palette, both layouts, all object art (lift, seesaw, spiker, Rexon, rock, lava bubble, valve barrier, boss fire), the palette cycle and its delays, the animated art script (flowers), the level sizes and start positions, the background scroll, the dynamic level events (apart from RAM names), and the chunks and collision Hill Top shares with Emerald Hill. **Different, imported:** the objects (act 1: 134 against 117: three star posts $79, three more monitors $26, six tube covers $32, two more spikes and a spring, two more $92 spikers; act 2: 3 more path swappers $03, 11 more monitors, 11 more $32, the capsule $3E, 4 star posts, 2 Sol $95) and the rings (`htzRng_Act1/2`; `htzRng_PB_*` are the pre-beta's, which Beta 4 keeps for its "previous build" level list and which are the ones the port had).
+
+Object code (normalised diff against the pre-beta's): same or names only: $14 seesaw, $16 lift, $20 boss fireball, $2D, $2F, $30, $31, $92, $93, $95, $96, $32 rock (its break data labels). **$1C scenery has more looks in Beta 4** (21: Oil Ocean's frames 4 and 5 and the second Oil Ocean mapping, and a height table by subtype that sets the object's height for subtypes 13-15 and 18-20): the extra looks are Oil Ocean's, so they come with Oil Ocean; Hill Top's use of it (subtypes 4-6) is the same. The boss ($52) and its events stay deferred.
+
+Headless: both acts load and draw with the new objects.
