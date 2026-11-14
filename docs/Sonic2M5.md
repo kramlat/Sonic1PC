@@ -49,3 +49,5 @@ Read through the menu font (tile $1E-$37 A-Z, $10-$19 0-9, $1A space, $1D '.'; p
 * `TwoPRefused`: **CONNECTION REFUSED** (row 4), the frame, **PRESS ANYTHING TO CONTINUE** (rows 16 and 19). A screen the user added beyond the four asked for: wrong code or the host is full.
 * `TwoPTimeOut`: **SESSION TIME OUT** (row 4), the same frame and text: any button returns to the 2 player menu.
 The zone menu's assets from s2b4 are in too: `MenuFont`, `MenuFrame`, `LevelIcons` (Nemesis), `SonicMiles` (the animation), `VsMenuBg`, `VsMenu`, `VsMenu2`, palettes `VersusMenu` ($26) and `LevelIcons`. Nothing draws them yet.
+
+**Music for all these menus (the user, 2026-11-13): the Level select / Options theme** (`mus_Menu`, $91), from the session menu through the code, wait, loading, refused and time-out screens to the zone menu (s2b4's zone menu plays $91 already). It starts on entering the first of them and keeps playing across them (no restart between screens).
