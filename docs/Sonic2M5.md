@@ -39,3 +39,13 @@ The port has no such screen yet (the title's 2P choice goes straight to a level)
 * 2PMenu: LOCAL SPLITSCREEN, HOST SESSION, JOIN SESSION. **After a session connects it goes to the four-box zone screen, as the local choice does.**
 * **Finding the host works as Palworld's password sessions do**: the host announces the session on the local network (UDP broadcast, port `NETPLAY_DISCOVERY_PORT` 47831, every half second, the WebSocket port and a *tag* of the code: 8 bytes of a hash, never the code), the guest types the code, searches for an announcement with its tag and joins the address it came from, with the code as the password (the handshake of `NetPlay.h`). Engine: `NetPlay_JoinByCode`, status `NETPLAY_SEARCHING`, `NetPlay_SetDiscoveryPort`; tests `Netplay_TheGuestFindsTheHostByTheCode` and `..AWrongCodeOrAnotherGameFindsNobody`. It is for the local network (a host past a router is not found).
 * **Screens the user will have designed (by Claude, from the final game's menu look):** (1) the **host's code screen** with a "please wait" message, (2) **please wait (guest)**, (3) **please wait (loading)**, and (4) a **network timeout screen** that asks the player to press any button to return to the 2 player menu.
+
+### The user's other session screens (added 2026-11-13, in `res/S2Menu/`)
+
+Read through the menu font (tile $1E-$37 A-Z, $10-$19 0-9, $1A space, $1D '.'; plane 40x28; text on palette lines 1 (`$2xxx`), 0 (`$00xx`) and 3 (`$6xxx`)):
+* `TwoPHostWait`: "2 PLAYER VERSUS", the label **SESSION CODE** (row 6, palette line 0), the code field (rows 8-9: two rows of two groups of five '.' boxes, columns 13-17 and 19-23), the box frame, and **PLEASE WAIT** (rows 13 and 16, palette line 3: "PLEASE" and "WAIT").
+* `TwoPGuestWait`: the title, **LOOKING FOR SESSION** (row 7), the box frame, PLEASE WAIT; rows 5-6 and 8-9 have blocks of tile $6000 (a bar area the code can animate).
+* `TwoPLoading`: the same frame and PLEASE WAIT; the label row 7 is blank (the game writes it: LOADING).
+* `TwoPRefused`: **CONNECTION REFUSED** (row 4), the frame, **PRESS ANYTHING TO CONTINUE** (rows 16 and 19). A screen the user added beyond the four asked for: wrong code or the host is full.
+* `TwoPTimeOut`: **SESSION TIME OUT** (row 4), the same frame and text: any button returns to the 2 player menu.
+The zone menu's assets from s2b4 are in too: `MenuFont`, `MenuFrame`, `LevelIcons` (Nemesis), `SonicMiles` (the animation), `VsMenuBg`, `VsMenu`, `VsMenu2`, palettes `VersusMenu` ($26) and `LevelIcons`. Nothing draws them yet.
