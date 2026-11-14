@@ -53,3 +53,6 @@ The zone menu's assets from s2b4 are in too: `MenuFont`, `MenuFrame`, `LevelIcon
 **Music for all these menus (the user, 2026-11-13): the Level select / Options theme** (`mus_Menu`, $91), from the session menu through the code, wait, loading, refused and time-out screens to the zone menu (s2b4's zone menu plays $91 already). It starts on entering the first of them and keeps playing across them (no restart between screens).
 
 **The zone menu will get a second page of four more boxes later** (the user, 2026-11-13): build it data-driven (a table of boxes, four to a page, a page number) from the start. Page 2 is where the versus-only Hidden Palace act 2 goes (see the HPZ versus plan).
+
+## 2P menus: first build (2026-11-14)
+`src/GM_VersusMenu.c` (`VersusMenu_Run`, called from `Tit_ChkLevSel` when 2 players is chosen): session menu, code entry (8x5 grid), host wait (code in the field), guest wait, loading, refused and time out screens, `mus_Menu` throughout, netplay via host/`NetPlay_JoinByCode` (timeouts 30 s search / 2 min host / 10 s handshake). The zone menu is a stub (EHZ) until s2b4's four-box page is ported. Not yet looked at on screen: row/column positions of the cursor and the code field come from the user's maps and need a capture pass. A started match is not yet connected to the game loop.
