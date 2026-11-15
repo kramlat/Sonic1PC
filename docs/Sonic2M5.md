@@ -223,3 +223,11 @@ Object code changed, done:
 * **$C7 final boss:** Beta 4's layout subtype is 2, its routine (the pre-beta's was $9E); the code takes both. **The final boss's code is the pre-beta's** (Beta 4's is rewritten: 677 lines differ): deferred with the other bosses.
 
 Headless: the level loads and draws.
+
+## Metropolis (MTZ) against Beta 4 (2026-11-14)
+
+`tools/import_s2b4_mtz.pl` (layouts, objects and rings of `s2b4-disasm/data/mz`, three acts). Compared with what the port had from the pre-beta (byte for byte): **the same**: the tiles, blocks, chunks, collision, palette and its three cycles, all object art (the Slicer, the lava cup, the steam, the teleporter...; only the boss's is not compared), the lava and piston data, the level sizes and start positions, the dynamic level events (apart from names), the background scroll. **Different, imported:** the layouts of acts 1 and 3, the objects (the same kinds: more monitors $26 (act 1: 10 against 5, act 2: 13 against 9, act 3: 12 against 6), fewer $74 invisible objects in acts 1 and 2, star posts $79 (5, 2 and 4), the capsule $3E in act 3 and a few more of other kinds) and the rings of acts 1 and 3.
+
+Object code (the normalised diff against the pre-beta's): the same or names and data layout only, for all of Metropolis's objects ($06, $31, $42, $47, $64-$6E, $70, $71, $9F, $A0, $A1, $A4, $74) except the conveyor belt ($72, the taller belts: done with Casino Night) and the scenery ($1C: Metropolis's looks are the same). The boss ($54, $53) stays deferred. **Nothing else needed changing.**
+
+Headless: all three acts load and draw.
