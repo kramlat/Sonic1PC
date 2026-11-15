@@ -193,3 +193,22 @@ Object code changed, done:
 * The Sky Fortress objects that share these ids use the same code; Sky Fortress's own import (zone $06) is still to come.
 
 Headless: the level loads and the Tornado flies.
+
+## Wing Fortress (SFZ, the old Sky Fortress) against Beta 4 (2026-11-14)
+
+`tools/import_s2b4_sfz.pl` (layout, objects, rings and chunks of `s2b4-disasm/data/sfz`; one layout, list and ring list for both acts, as the port has it). Compared with what the port had from the pre-beta: **the same**: the tiles, blocks, collision, palette and its cycles, all object art (the Spike Laser art, `SpkbLasr.nem`, is the same and not used; Beta 4's new `T_Rocket.nem` Tornado rocket is not imported yet), the level sizes and start positions. **Different, imported:** the chunks, the layout, the object list (act 1: 134 objects, with the new hatchways $BE, boss switch, a second Clucker $AE, rocket boosts $BC, more speed boosters $C0, the end panel and the capsule... and the boss $C5 once) and the rings.
+
+Object code changed, done (the object ids use new **subtype bases**, so the port's code has to follow, since the layout has them: $B5 $66/$68, $B8 $74, $B9 $76, $BA $78, $BC $7C, $BD $7E/$80, $C2 $8A, $C5 $92, $B6 0/4/$20):
+* **$BD elevator:** $7E up, $80 down (the pre-beta's $76 and $78); a flipped one goes $100 frames longer; art at tile $40E.
+* **$BE hatchways:** they open when the frame counter's high nibble is the subtype's (the subtype's high nibble is when), stay open $100 frames (a platform while the frame is 3 or 4) and close; no random wait; art $41A.
+* **$B6 platform helix:** the kind is `(subtype & 6) + 2` (0 and $20 fold on the counter, 4 when stood on); the folding ones go by the frame counter and their subtype's high nibble (all of them in turn), not after a random wait.
+* **$BC rocket boost:** it goes with the background ship's offset in x (`sfz_offset_x`) from where it was put, is gone when that is $380 or more, and shows every other frame; art $465.
+* **$C0 speed booster:** the way it goes counts when it is flipped (the end test), and it moves at once; art $45C.
+* **$B8 cannon:** fires every $60 frames (the pre-beta's $40). **$C2 boss switch:** it holds the camera at $2880 (the boss's arena) when it is rolled onto; art $461. **$BF engine part:** art $450.
+* **The PLC** (`PLC_SFZ2`) has Beta 4's addresses for the rocket flame, elevators, hatchways, engine part, speed booster and boss switch (the tiles above).
+* **The events** (`SFZ_Events`, Beta 4's DynResize_SFz): the camera's coming to $2BC0 across and $580 down moves them on (not the second pad's Start); the background ship's offset in x runs up to $800 and, past $600, the offset in y grows by an ever larger step (a speed of up to $840); state 6 brings both back.
+* Same or names only: the Clucker $AE and its platform $AD, the palette switch $8B, the invisible hang object $D9, the end of Sky Chase's code; the hang vines $80 were done with Dust Hill.
+
+**Not done, deferred with the boss:** the Tornado's ending (object $B2 routines 6 and up: the camera flies, Sonic's scripted moves, and the level $E00, Death Egg, at its end; the events' state 6 is set there), the boss ($C5, $C6...) and the boss arena's second part of the events (the camera lock at $2880 with the art PLCs $3E and $3F).
+
+Headless: both acts load and draw.
