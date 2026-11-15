@@ -179,3 +179,17 @@ Object code changed, done:
 * Same or names only: $15, $19, $1A, $1F, $33, $3D, $43, $45, $46, $47, $48 cannon. Boss ($55) and its events: deferred.
 
 Headless: both acts load and draw.
+
+## Sky Chase (SCZ) against Beta 4 (2026-11-14)
+
+`tools/import_s2b4_scz.pl` (layout, objects, rings and palette of `s2b4-disasm/data/scz`; one act). Compared with what the port had from the pre-beta: **the same**: the art (Nebula, Turtloid), the palette and its cycle (Sky Fortress's), the layout, the level events (`DynResize_SCz`), the background scroll, the start position; the Nebula ($99) and Balkiry ($AC). **Different, imported:** the object list (the same kinds and counts, but the cloud, helix and Tornado subtypes are Beta 4's) and the rings (272 bytes against 404).
+
+Object code changed, done:
+* **$B2 Tornado, Sky Chase's (subtype $50)** (`SFZObjects.c`): when the camera has come to the end ($1400) and Sonic is before $1568 the controls are locked and the Tornado runs him to the right on its own (`hold = right`), the camera's right limit at the camera; once he is at $1568 the level changes to level $600, **Sky Fortress** (restart with `level_id`). The pre-beta's Tornado kept the camera's right limit $40 behind it and had no end.
+* **$B3 clouds:** the subtypes are $5E, $60 and $62 (the pre-beta's $56 and on): their speeds and frames follow.
+* **$B5 horizontal helix:** the subtype base is $64 ($66 catches a character over it, $68 only turns; the SCZ has $68), the pre-beta's random wait and slow-down every $200 frames are gone (it spins at its full speed always; its animations and mappings are the same).
+* **$B4 vertical helix:** a flipped one is not harmful (and not drawn flipped), and every 32nd frame it plays the helicopter sound ($DE) if it is on the screen.
+* **$9A Turtloid:** its platform is $18 wide (the pre-beta's: $23).
+* The Sky Fortress objects that share these ids use the same code; Sky Fortress's own import (zone $06) is still to come.
+
+Headless: the level loads and the Tornado flies.
