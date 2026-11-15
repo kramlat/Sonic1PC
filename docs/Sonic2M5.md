@@ -240,3 +240,15 @@ The boss ($56 with its parts, which the port makes as $5B) and `DynResize_GHz` (
 * The act-1 version of the events is unchanged (act 1 has none).
 
 Not played: the arena's fight is only seen in the unit test (the events, the parts) since the harness's start position cannot be put in the arena.
+
+## Chemical Plant's boss and its level events against Beta 4 (2026-11-14)
+
+The boss ($5D and its parts) and `DynResize_CPz` (act 2). Compared with the pre-beta's version the port had (the normalised diff of `objects/obj_0x5D.asm`): **the same**: the mappings but the ship's, the pipe, the arm, the blobs, the wreck's pieces, the boss's art (`cpzBoss.nem`) and its art places (PLC $28), the arena's walls ($2A20) and the lower and upper limits ($450, $448), the delay ($5A frames) and the music. **Changed, done** (`CPZBoss.c`, `Level.c`):
+* **The ship's hit flash** lasts $20 frames (the pre-beta's $40).
+* **The face on the ship** (the flame part, animation script `CPz_Boss_Animate_Data_1` and the ship's mappings `CPz_Boss_Mappings_1`, now with seven frames and five scripts, re-imported): it shows a hit (animation 2) and a hurt character (animation 3), and the end of the ship (animation 4) when it is beaten.
+* **Beaten:** at the step where its fall stops the boss flag is set and the level's music is back (Beta 4's `Boss_Defeated_Music_Restore`); it drives off to the right while the camera's right limit is let out to $2C10 (the pre-beta's $2CC0), and when it has come there and the ship is out of sight the ship and its face are gone.
+* **The end of the act** is the capsule's ($3E in the layout): the events' last state (6) only holds the camera's left edge, where the pre-beta's started the results card itself.
+* **The blob** (the falling chemical drop) plays the Mega Mack drop sound ($E6) as it hits the floor.
+* Not done: Beta 4's load of the animals' art (PLC $40) when the boss is beaten.
+
+Not played: the unit tests cover the boss's parts; the fight itself has not been watched.
