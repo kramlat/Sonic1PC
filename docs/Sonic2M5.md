@@ -212,3 +212,14 @@ Object code changed, done (the object ids use new **subtype bases**, so the port
 **Not done, deferred with the boss:** the Tornado's ending (object $B2 routines 6 and up: the camera flies, Sonic's scripted moves, and the level $E00, Death Egg, at its end; the events' state 6 is set there), the boss ($C5, $C6...) and the boss arena's second part of the events (the camera lock at $2880 with the art PLCs $3E and $3F).
 
 Headless: both acts load and draw.
+
+## Death Egg (DEZ) against Beta 4 (2026-11-14)
+
+`tools/import_s2b4_dez.pl` (layout and objects of `s2b4-disasm/data/dez`; one act, no rings). Compared with what the port had from the pre-beta: **the same**: the palette, all object art (Metal Sonic, Robotnik's window, the final boss), the level events (`DynResize_DEz`), the level size and start. **Different, imported:** the layout and the object list (five objects: three barriers $2D, Robotnik running $C6 with the subtype $A6, and the final boss $C7 with the subtype 2).
+
+Object code changed, done:
+* **$C6 Robotnik running** (`DEZRunning.c`): the subtype base is $A4 (the layout's is $A6; the pre-beta's $96, base $94), and so are the door ($A8) and the thing he throws ($AA); he follows the nearer of the two characters; his leap lasts $50 frames (the pre-beta's $40).
+* **$AF Metal Sonic** (`DEZMetalSonic.c`): two dashes of an attack (the pre-beta's four), the roll sound ($BE) as he sets off and the saw sound ($B0) when the dashes are done, and he blows up for $FF frames (the pre-beta's $EF).
+* **$C7 final boss:** Beta 4's layout subtype is 2, its routine (the pre-beta's was $9E); the code takes both. **The final boss's code is the pre-beta's** (Beta 4's is rewritten: 677 lines differ): deferred with the other bosses.
+
+Headless: the level loads and draws.
