@@ -252,3 +252,13 @@ The boss ($5D and its parts) and `DynResize_CPz` (act 2). Compared with the pre-
 * Not done: Beta 4's load of the animals' art (PLC $40) when the boss is beaten.
 
 Not played: the unit tests cover the boss's parts; the fight itself has not been watched.
+
+## Casino Night's boss and its level events against Beta 4 (2026-11-20)
+
+The boss ($51 and the ball it lets fall) and `DynResize_CNz` (act 2). Beta 4's boss is **a different fight** from the pre-beta's the port had (`objects/obj_0x51.asm`, 640 lines), so `CNZBoss.c` is rewritten from it; the art (`cnzBoss.nem`, PLC $2D) and the mappings (21 frames) are byte for byte the same, the animation table has ten scripts (re-imported with `asm_dc_animation.pl`: new scripts 8 = frame 0 and 9 = the box's opening).
+* **Where it goes:** it comes in at $2A46,$654 from the right (the pre-beta's started at $29D0,$590) and patrols between $28C0 and $29C0 (no corners, no track at $63A). It has **8 hits** (the pre-beta's 2). Every $40 frames it opens or shuts the catchers (the box under the ship, which hurts, is $10/$20 wide and **8 high**: the pre-beta's was 4).
+* **It looks for Sonic** (the nearer is not chosen: the first player only, as the original): within $10 of its X, **Sonic in the pit (Y from $6B0)** makes it let the ball fall (it hangs under the catcher for $50 frames, falls, and breaks into two at the floor that fly away; at most three times between turns), **Sonic on the ledge (Y from $67C)** makes it dive with the catchers open down to $680 and up to $654, then back to its rounds. A $40 frames' pause follows each ball.
+* **Hit and face:** a hit flashes it $30 frames (the first, $80, silent), Eggman's face shows the hit (anim 6) and, while a character is hurt, laughs (anim 5); the open catchers buzz (`sfx_CNZBossZap`, every 32nd frame).
+* **Beaten:** blows up for $B3 frames, the left catcher then the right fall off, the arena's second wall opens (chunk $DD), the ship drops, hovers, **the level's music comes back** (`Boss_Defeated_Music_Restore`) and it flies off right while the camera's right limit is let out to $2AF0; when that is reached and it is off the screen it is gone. **The capsule ($3E at $2BB8,$660 in the layout) ends the act**, as for the other Beta 4 bosses: the events' last state only lets the camera down past $2A00 (lower limit $5D0).
+* Not done: Beta 4's load of the animals' art (PLC $40) when it is beaten (as for the other bosses), and the level's flag word `$FFFFFFD8` that the events' first state tests (it keeps the camera at $26A0 when it is set: nothing in the port sets it).
+Not played: the unit test (`CNZ_TheBossPatrolsLetsTheBallFallAndDivesAtSonic`) runs the patrol, the ball, the dive and the catchers' box; the fight itself has not been watched.
