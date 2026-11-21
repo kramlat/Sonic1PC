@@ -220,7 +220,7 @@ Headless: both acts load and draw.
 Object code changed, done:
 * **$C6 Robotnik running** (`DEZRunning.c`): the subtype base is $A4 (the layout's is $A6; the pre-beta's $96, base $94), and so are the door ($A8) and the thing he throws ($AA); he follows the nearer of the two characters; his leap lasts $50 frames (the pre-beta's $40).
 * **$AF Metal Sonic** (`DEZMetalSonic.c`): two dashes of an attack (the pre-beta's four), the roll sound ($BE) as he sets off and the saw sound ($B0) when the dashes are done, and he blows up for $FF frames (the pre-beta's $EF).
-* **$C7 final boss:** Beta 4's layout subtype is 2, its routine (the pre-beta's was $9E); the code takes both. **The final boss's code is the pre-beta's** (Beta 4's is rewritten: 677 lines differ): deferred with the other bosses.
+* **$C7 final boss:** rewritten from Beta 4 (2026-11-21): see `Sonic2M5_EggmanBosses.md`.
 
 Headless: the level loads and draws.
 
